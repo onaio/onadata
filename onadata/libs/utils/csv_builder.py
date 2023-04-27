@@ -118,7 +118,13 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
         new_col = None
         elem = data_dictionary.get_survey_element(col)
         if elem is None:
-            new_col = col
+            if any(
+                col.endswith(gps_meta)
+                for gps_meta in ["_latitude", "_longitude", "_altitude", "_precision"]
+            ):
+                new_col = col.split(group_delimiter)[-1]
+            else:
+                new_col = col
         elif elem.type != "":
             new_col = elem.name
         else:
@@ -460,9 +466,7 @@ class AbstractDataFrameBuilder:
         updated_gps_fields = {}
         for (key, value) in iteritems(record):
             if key in gps_fields and isinstance(value, str):
-                gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                    key
-                )
+                gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
                 gps_parts = {xpath: None for xpath in gps_xpaths}
                 # hack, check if its a list and grab the object within that
                 parts = value.split(" ")
@@ -773,9 +777,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # add ordered columns for gps fields
         for key in self.gps_fields:
-            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(
-                key
-            )
+            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
 
         # add ordered columns for nested repeat data
