@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import csv
 import re
-from typing import Dict, Optional
 import uuid
 from datetime import date, datetime
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -17,53 +16,32 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
-from onadata.apps.api.viewsets.v2.tableau_viewset import GPS_PARTS
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter
 from six import iteritems
 
 from onadata.apps.logger.models.osmdata import OsmData
-from onadata.apps.logger.models.xform import (
-    QUESTION_TYPES_TO_EXCLUDE,
-    _encode_for_mongo,
-)
+from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
+                                              _encode_for_mongo)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    BAMBOO_DATASET_ID,
-    DELETEDAT,
-    DURATION,
-    GEOLOCATION,
-    ID,
-    INDEX,
-    MULTIPLE_SELECT_TYPE,
-    NOTES,
-    PARENT_INDEX,
-    PARENT_TABLE_NAME,
-    REPEAT_INDEX_TAGS,
-    REVIEW_COMMENT,
-    REVIEW_DATE,
-    REVIEW_STATUS,
-    SAV_255_BYTES_TYPE,
-    SAV_NUMERIC_TYPE,
-    SELECT_BIND_TYPE,
-    SELECT_ONE,
-    STATUS,
-    SUBMISSION_TIME,
-    SUBMITTED_BY,
-    TAGS,
-    UUID,
-    VERSION,
-    XFORM_ID_STRING,
-)
-from onadata.libs.utils.common_tools import (
-    get_choice_label,
-    get_choice_label_value,
-    get_value_or_attachment_uri,
-    str_to_bool,
-    track_task_progress,
-)
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+                                            DELETEDAT, DURATION, GEOLOCATION,
+                                            ID, INDEX, MULTIPLE_SELECT_TYPE,
+                                            NOTES, PARENT_INDEX,
+                                            PARENT_TABLE_NAME,
+                                            REPEAT_INDEX_TAGS, REVIEW_COMMENT,
+                                            REVIEW_DATE, REVIEW_STATUS,
+                                            SAV_255_BYTES_TYPE,
+                                            SAV_NUMERIC_TYPE, SELECT_BIND_TYPE,
+                                            SELECT_ONE, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, UUID, VERSION,
+                                            XFORM_ID_STRING)
+from onadata.libs.utils.common_tools import (get_choice_label,
+                                             get_choice_label_value,
+                                             get_value_or_attachment_uri,
+                                             str_to_bool, track_task_progress)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
