@@ -22,7 +22,7 @@ class PasswordHistory(models.Model):
         return f"{self.user.username}-pass-{self.changed_at}"
 
     @classmethod
-    def user_pre_save(cls, sender, instance=None, created=False, **kwargs):
+    def user_pre_save(cls, sender, instance=None, created=False, **kwargs):  # noqa
         if not created and instance.pk:
             current_password = User.objects.get(pk=instance.pk).password
             if current_password != instance.password and current_password:
@@ -32,5 +32,6 @@ class PasswordHistory(models.Model):
 
     class Meta:
         app_label = "main"
+
 
 models.signals.pre_save.connect(PasswordHistory.user_pre_save, sender=User)

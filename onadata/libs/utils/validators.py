@@ -17,8 +17,8 @@ class PreviousPasswordValidator:
                 raise ValidationError(self.message)
 
             pw_history = user.password_history.all()[:self.history_limit]
-            for pw in pw_history:
-                if check_password(password, pw.hashed_password):
+            for pw_hist in pw_history:
+                if check_password(password, pw_hist.hashed_password):
                     raise ValidationError(self.message)
 
     def get_help_text(self):

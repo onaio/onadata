@@ -261,7 +261,7 @@ OPENID_CONNECT_AUTH_SERVERS = {
 DEFAULT_MODEL_SERIALIZER_CLASS = "rest_framework.serializers.HyperlinkedModelSerializer"
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",  # noqa
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -277,7 +277,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "onadata.libs.utils.validators.PreviousPasswordValidator",
-    }
+    },
 ]
 REST_FRAMEWORK = {
     # Use hyperlinked styles by default.
@@ -301,12 +301,8 @@ REST_FRAMEWORK = {
         "rest_framework_jsonp.renderers.JSONPRenderer",
         "rest_framework_csv.renderers.CSVRenderer",
     ),
-    'DEFAULT_THROTTLE_CLASSES': [
-        'onadata.libs.throttle.RequestHeaderThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'header': '100/minute'
-    }
+    "DEFAULT_THROTTLE_CLASSES": ["onadata.libs.throttle.RequestHeaderThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"header": "100/minute"},
 }
 
 SWAGGER_SETTINGS = {
@@ -655,9 +651,7 @@ CSP_IMG_SRC = [
     "https://www.dropbox.com",
     "http://localhost:8000",
 ]
-CSP_FRAME_ANCESTORS = [
-    "http://localhost:8000"
-]
+CSP_FRAME_ANCESTORS = ["http://localhost:8000"]
 CSP_SCRIPT_SRC = [
     "http://netdna.bootstrapcdn.com",
     "https://netdna.bootstrapcdn.com",

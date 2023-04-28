@@ -7,7 +7,6 @@ import datetime
 import json
 
 from django.conf import settings
-from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.validators import ValidationError
@@ -32,7 +31,7 @@ from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.main.models import UserProfile, PasswordHistory
+from onadata.apps.main.models import UserProfile
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin

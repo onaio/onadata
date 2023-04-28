@@ -2,7 +2,6 @@
 """
 Password reset serializer.
 """
-from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from six.moves.urllib.parse import urlparse
@@ -16,7 +15,6 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from onadata.apps.main.models.password_history import PasswordHistory
 
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
