@@ -26,7 +26,7 @@ class PasswordHistory(models.Model):
         return f"{self.user.username}-pass-{self.changed_at}"
 
     @classmethod
-    def user_pre_save(cls, _, instance=None, created=False, **kwargs):  # noqa
+    def user_pre_save(cls, sender, instance=None, created=False, **kwargs):  # noqa
         """
         Pre-save signal handler for the `User` model; Used to ensure
         that the `PasswordHistory` is updated when a user changes

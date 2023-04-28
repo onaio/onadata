@@ -255,25 +255,7 @@ class UserProfileViewSet(
         if lock_out:
             return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
-        if user_profile.user.check_password(current_password):
-            try:
-                validate_password(new_password, user=user_profile.user)
-            except ValidationError as e:
-                return Response(
-                    data={"error": e.messages}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            data = {"username": user_profile.user.username}
-            metadata = user_profile.metadata or {}
-            metadata["last_password_edit"] = timezone.now().isoformat()
-            user_profile.user.set_password(new_password)
-            user_profile.metadata = metadata
-            user_profile.user.save()
-            user_profile.save()
-            data.update(invalidate_and_regen_tokens(user=user_profile.user))
-
-            return Response(status=status.HTTP_200_OK, data=data)
-        else:
+        if not user_profile.user.check_password(current_password):
             response = change_password_attempts(request)
             if isinstance(response, int):
                 limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
@@ -284,6 +266,24 @@ class UserProfileViewSet(
                     )
                 }
             return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=user_profile.user)
+        except ValidationError as e:
+            return Response(
+                data={"error": e.messages}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = {"username": user_profile.user.username}
+        metadata = user_profile.metadata or {}
+        metadata["last_password_edit"] = timezone.now().isoformat()
+        user_profile.user.set_password(new_password)
+        user_profile.metadata = metadata
+        user_profile.user.save()
+        user_profile.save()
+        data.update(invalidate_and_regen_tokens(user=user_profile.user))
+
+        return Response(status=status.HTTP_200_OK, data=data)
 
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
