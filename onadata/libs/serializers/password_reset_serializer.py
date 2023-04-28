@@ -2,6 +2,7 @@
 """
 Password reset serializer.
 """
+from django.contrib.auth.hashers import check_password
 from six.moves.urllib.parse import urlparse
 
 from django.contrib.auth import get_user_model
@@ -13,6 +14,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from onadata.apps.main.models.password_history import PasswordHistory
 
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
@@ -228,6 +230,14 @@ class PasswordResetChangeSerializer(serializers.Serializer):
 
         if not default_token_generator.check_token(user, token):
             raise serializers.ValidationError(_(f"Invalid token: {token}"))
+
+        if user.check_password(attrs.get("new_password")):
+            raise serializers.ValidationError(_("Password has been used before."))
+
+        pass_history = PasswordHistory.objects.filter(user=user)
+        for pw in pass_history:
+            if check_password(attrs.get("new_password"), pw.hashed_password):
+                raise serializers.ValidationError(_("Password has been used before."))
 
         return attrs
 
