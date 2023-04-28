@@ -7,8 +7,10 @@ import re
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -266,6 +268,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         username = params.get("username")
         site = Site.objects.get(pk=settings.SITE_ID)
         try:
+            validate_password(params.get("password1"), user=None)
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
                 password=params.get("password1"),
@@ -277,6 +280,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _(f"User account {username} already exists")
             ) from e
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
