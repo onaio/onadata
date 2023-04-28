@@ -21,29 +21,31 @@ class TestPasswordHistory(TestCase):
         Test that password history is tracking correctly
         """
         post_data = {
-            'username': 'password_history',
-            'email': 'test@password_history.onadata',
-            'password1': 'testpass',
-            'password2': 'testpass',
-            'first_name': 'Bob',
-            'last_name': 'User',
-            'city': 'Bobville',
-            'country': 'US',
-            'organization': 'Bob Inc.',
-            'home_page': 'test.onadata',
-            'twitter': 'boberama'
+            "username": "password_history",
+            "email": "password@history.com",
+            "password1": "testpass",
+            "password2": "testpass",
+            "first_name": "Bob",
+            "last_name": "User",
+            "city": "Bobville",
+            "country": "US",
+            "organization": "Bob Inc.",
+            "home_page": "test.onadata",
+            "twitter": "boberama",
         }
-        response = self.client.post('/accounts/register/', post_data)
+        response = self.client.post("/accounts/register/", post_data)
         self.assertEqual(response.status_code, 302)
 
         try:
-            user = User.objects.get(username='password_history')
+            user = User.objects.get(username="password_history")
         except User.DoesNotExist as e:
             self.fail(e)
 
         self.assertEqual(user.password_history.count(), 0)
 
         # Subsequent password changes should be tracked
-        user.set_password('newpass')
+        user.set_password("newpass")
+        user.save()
+        user.refresh_from_db()
 
         self.assertEqual(user.password_history.count(), 1)
