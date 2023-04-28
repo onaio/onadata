@@ -783,7 +783,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": "Password has been used before"})
+        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
 
         # Assert password is changed when current_password and new_password meet criteria
         post_data = {"current_password": current_password, "new_password": new_password}
@@ -816,7 +816,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **{"HTTP_AUTHORIZATION": f"Token {new_token}"})
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": "Password has been used before"})
+        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
 
     def test_change_password_wrong_current_password(self):
         view = UserProfileViewSet.as_view({"post": "change_password"})
