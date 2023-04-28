@@ -25,7 +25,7 @@ class PasswordHistory(models.Model):
     def user_pre_save(cls, sender, instance=None, created=False, **kwargs):
         if not created and instance.pk:
             current_password = User.objects.get(pk=instance.pk).password
-            if current_password != instance.password:
+            if current_password != instance.password and current_password:
                 cls.objects.create(
                     user=instance, hashed_password=current_password
                 )
