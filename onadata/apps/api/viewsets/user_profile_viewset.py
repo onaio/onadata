@@ -262,17 +262,17 @@ class UserProfileViewSet(
                 return Response(
                     data={"error": e.messages}, status=status.HTTP_400_BAD_REQUEST
                 )
-            else:
-                data = {"username": user_profile.user.username}
-                metadata = user_profile.metadata or {}
-                metadata["last_password_edit"] = timezone.now().isoformat()
-                user_profile.user.set_password(new_password)
-                user_profile.metadata = metadata
-                user_profile.user.save()
-                user_profile.save()
-                data.update(invalidate_and_regen_tokens(user=user_profile.user))
 
-                return Response(status=status.HTTP_200_OK, data=data)
+            data = {"username": user_profile.user.username}
+            metadata = user_profile.metadata or {}
+            metadata["last_password_edit"] = timezone.now().isoformat()
+            user_profile.user.set_password(new_password)
+            user_profile.metadata = metadata
+            user_profile.user.save()
+            user_profile.save()
+            data.update(invalidate_and_regen_tokens(user=user_profile.user))
+
+            return Response(status=status.HTTP_200_OK, data=data)
         else:
             response = change_password_attempts(request)
             if isinstance(response, int):
