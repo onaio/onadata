@@ -257,13 +257,13 @@ class UserProfileViewSet(
 
         if user_profile.user.check_password(current_password):
             if user_profile.user.check_password(new_password):
-                response = {"error": _("New password cannot be the same as old")}
+                response = {"error": _("Password has been used before")}
                 return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
 
             pass_history = PasswordHistory.objects.filter(user=user_profile.user)
             for pw in pass_history:
                 if check_password(new_password, pw.hashed_password):
-                    response = {"error": _("New password cannot be the same as old")}
+                    response = {"error": _("Password has been used before")}
                     return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
 
             data = {"username": user_profile.user.username}
