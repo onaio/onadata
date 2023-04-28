@@ -3,6 +3,8 @@
 Password reset serializer.
 """
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from six.moves.urllib.parse import urlparse
 
 from django.contrib.auth import get_user_model
@@ -231,13 +233,10 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         if not default_token_generator.check_token(user, token):
             raise serializers.ValidationError(_(f"Invalid token: {token}"))
 
-        if user.check_password(attrs.get("new_password")):
-            raise serializers.ValidationError(_("Password has been used before."))
-
-        pass_history = PasswordHistory.objects.filter(user=user)
-        for pw in pass_history:
-            if check_password(attrs.get("new_password"), pw.hashed_password):
-                raise serializers.ValidationError(_("Password has been used before."))
+        try:
+            validate_password(attrs.get("new_password"), user=user)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
 
         return attrs
 

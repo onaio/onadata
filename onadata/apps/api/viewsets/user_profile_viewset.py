@@ -8,6 +8,7 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
@@ -256,26 +257,23 @@ class UserProfileViewSet(
             return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
         if user_profile.user.check_password(current_password):
-            if user_profile.user.check_password(new_password):
-                response = {"error": _("Password has been used before")}
-                return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                validate_password(new_password, user=user_profile.user)
+            except ValidationError as e:
+                return Response(
+                    data={"error": e.messages}, status=status.HTTP_400_BAD_REQUEST
+                )
+            else:
+                data = {"username": user_profile.user.username}
+                metadata = user_profile.metadata or {}
+                metadata["last_password_edit"] = timezone.now().isoformat()
+                user_profile.user.set_password(new_password)
+                user_profile.metadata = metadata
+                user_profile.user.save()
+                user_profile.save()
+                data.update(invalidate_and_regen_tokens(user=user_profile.user))
 
-            pass_history = PasswordHistory.objects.filter(user=user_profile.user)
-            for pw in pass_history:
-                if check_password(new_password, pw.hashed_password):
-                    response = {"error": _("Password has been used before")}
-                    return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
-
-            data = {"username": user_profile.user.username}
-            metadata = user_profile.metadata or {}
-            metadata["last_password_edit"] = timezone.now().isoformat()
-            user_profile.user.set_password(new_password)
-            user_profile.metadata = metadata
-            user_profile.user.save()
-            user_profile.save()
-            data.update(invalidate_and_regen_tokens(user=user_profile.user))
-            return Response(status=status.HTTP_200_OK, data=data)
-
+                return Response(status=status.HTTP_200_OK, data=data)
         else:
             response = change_password_attempts(request)
             if isinstance(response, int):
