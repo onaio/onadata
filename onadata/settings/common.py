@@ -259,6 +259,26 @@ OPENID_CONNECT_AUTH_SERVERS = {
 }
 
 DEFAULT_MODEL_SERIALIZER_CLASS = "rest_framework.serializers.HyperlinkedModelSerializer"
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 9,
+        },
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        "NAME": "onadata.libs.utils.validators.PreviousPasswordValidator",
+    }
+]
 REST_FRAMEWORK = {
     # Use hyperlinked styles by default.
     # Only used if the `serializer_class` attribute is not set on a view.
