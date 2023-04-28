@@ -268,7 +268,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         username = params.get("username")
         site = Site.objects.get(pk=settings.SITE_ID)
         try:
-            validate_password(params.get("password1"), user=None)
+            validate_password(params.get("password1"))
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
                 password=params.get("password1"),
@@ -281,7 +281,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 _(f"User account {username} already exists")
             ) from e
         except ValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError({"password": e.messages})
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
@@ -316,9 +316,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         username = value.lower() if isinstance(value, str) else value
 
         if username.isdigit():
-            raise serializers.ValidationError(
-                _("Username cannot be purely numeric.")
-            )
+            raise serializers.ValidationError(_("Username cannot be purely numeric."))
         if username in RESERVED_NAMES:
             raise serializers.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
