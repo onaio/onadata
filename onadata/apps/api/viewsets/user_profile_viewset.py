@@ -7,6 +7,7 @@ import datetime
 import json
 
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
 from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
@@ -30,7 +31,7 @@ from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models import UserProfile, PasswordHistory
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -241,32 +242,51 @@ class UserProfileViewSet(
         new_password = request.data.get("new_password", None)
         lock_out = check_user_lockout(request)
 
-        if new_password:
-            if not lock_out:
-                if user_profile.user.check_password(current_password):
-                    data = {"username": user_profile.user.username}
-                    metadata = user_profile.metadata or {}
-                    metadata["last_password_edit"] = timezone.now().isoformat()
-                    user_profile.user.set_password(new_password)
-                    user_profile.metadata = metadata
-                    user_profile.user.save()
-                    user_profile.save()
-                    data.update(invalidate_and_regen_tokens(user=user_profile.user))
+        if not current_password or not new_password:
+            return Response(
+                data={
+                    "error": _(
+                        "current_password and new_password fields cannot be blank"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-                    return Response(status=status.HTTP_200_OK, data=data)
+        if lock_out:
+            return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
 
-                response = change_password_attempts(request)
-                if isinstance(response, int):
-                    limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
-                    response = {
-                        "error": _(
-                            "Invalid password. "
-                            f"You have {limits_remaining} attempts left."
-                        )
-                    }
+        if user_profile.user.check_password(current_password):
+            if user_profile.user.check_password(new_password):
+                response = {"error": _("New password cannot be the same as old")}
                 return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(data=lock_out, status=status.HTTP_400_BAD_REQUEST)
+            pass_history = PasswordHistory.objects.filter(user=user_profile.user)
+            for pw in pass_history:
+                if check_password(new_password, pw.hashed_password):
+                    response = {"error": _("New password cannot be the same as old")}
+                    return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
+
+            data = {"username": user_profile.user.username}
+            metadata = user_profile.metadata or {}
+            metadata["last_password_edit"] = timezone.now().isoformat()
+            user_profile.user.set_password(new_password)
+            user_profile.metadata = metadata
+            user_profile.user.save()
+            user_profile.save()
+            data.update(invalidate_and_regen_tokens(user=user_profile.user))
+            return Response(status=status.HTTP_200_OK, data=data)
+
+        else:
+            response = change_password_attempts(request)
+            if isinstance(response, int):
+                limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
+                response = {
+                    "error": _(
+                        "Invalid password. "
+                        f"You have {limits_remaining} attempts left."
+                    )
+                }
+            return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
