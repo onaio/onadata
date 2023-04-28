@@ -16,6 +16,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
+from mock import patch
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
@@ -907,87 +908,6 @@ class TestExportBuilder(TestBase):
             },
         ]
         self.assertEqual(choices, expected_choices)
-
-    def test_sav_export_with_gps_and_group(self):
-        """
-        Test that SAV exports work when a GPS Question is both in a group
-        and outside of one
-        """
-        md = """
-        | survey |
-        |        | type              | name    | label |
-        |        | begin group       | group_a | A     |
-        |        | gps               | gps     | GPS   |
-        |        | end_group         | group_a | A     |
-        |        | gps               | gps     | GPS B |
-        """
-        survey = self.md_to_pyxform_survey(md, {"name": "gps_test"})
-        data = [{"group_a/gps": "4.0 36.1 5000 20", "gps": "1.0 36.1 2000 20", "_submission_time": "2016-11-21T03:42:43.00-08:00"}]
-        export_builder = ExportBuilder()
-        export_builder.TRUNCATE_GROUP_TITLE = False
-        export_builder.set_survey(survey)
-        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
-            export_builder.to_zipped_sav(temp_zip_file.name, data)
-            temp_zip_file.seek(0)
-            temp_dir = tempfile.mkdtemp()
-            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
-                zip_file.extractall(temp_dir)
-
-        expected_data = [
-                [
-                    b'group_a.gps',
-                    b'@group_a._gps_latitude',
-                    b'@group_a._gps_longitude',
-                    b'@group_a._gps_altitude',
-                    b'@group_a._gps_precision',
-                    b'gps',
-                    b'@_gps_latitude',
-                    b'@_gps_longitude',
-                    b'@_gps_altitude',
-                    b'@_gps_precision',
-                    b'meta.instanceID',
-                    b'@_id',
-                    b'@_uuid',
-                    b'@_submission_time',
-                    b'@_index',
-                    b'@_parent_table_name',
-                    b'@_parent_index',
-                    b'@_tags',
-                    b'@_notes',
-                    b'@_version',
-                    b'@_duration',
-                    b'@_submitted_by'
-                ],
-                [
-                    b'4.0 36.1 5000 20',
-                    4.0,
-                    36.1,
-                    5000.0,
-                    20.0,
-                    b'1.0 36.1 2000 20',
-                    1.0,
-                    36.1,
-                    2000.0,
-                    20.0,
-                    b'',
-                    None,
-                    b'',
-                    b'2016-11-21 03:42:43',
-                    1.0,
-                    b'',
-                    -1.0,
-                    b'',
-                    b'',
-                    b'',
-                    b'',
-                    b''
-                ]
-        ]
-        with SavReader(os.path.join(temp_dir, "gps_test.sav"), returnHeader=True) as reader:
-            rows = list(reader)
-            self.assertEqual(len(rows), 2)
-            self.assertEqual(expected_data, rows)
-        shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
     def test_zipped_sav_export_with_numeric_select_multiple_field(self):
@@ -2191,52 +2111,52 @@ class TestExportBuilder(TestBase):
             workbook = load_workbook(temp_xls_file.name)
             gps_sheet = workbook["data"]
             expected_headers = [
-                'start',
-                'end',
-                'test',
-                'Age',
-                'Image',
-                'Select_one_gender',
-                'respondent_name',
-                '_1_2_Where_do_you_live',
-                '_1_3_Another_test',
-                'GPS',
-                '_GPS_latitude',
-                '_GPS_longitude',
-                '_GPS_altitude',
-                '_GPS_precision',
-                'Another_GPS',
-                '_Another_GPS_latitude',
-                '_Another_GPS_longitude',
-                '_Another_GPS_altitude',
-                '_Another_GPS_precision',
-                '__version__',
-                'instanceID',
-                '_id',
-                '_uuid',
-                '_submission_time',
-                '_index',
-                '_parent_table_name',
-                '_parent_index',
-                '_tags',
-                '_notes',
-                '_version',
-                '_duration',
-                '_submitted_by'
+                "start",
+                "end",
+                "test",
+                "Age",
+                "Image",
+                "Select_one_gender",
+                "respondent_name",
+                "_1_2_Where_do_you_live",
+                "_1_3_Another_test",
+                "GPS",
+                "_GPS_latitude",
+                "_GPS_longitude",
+                "_GPS_altitude",
+                "_GPS_precision",
+                "Another_GPS",
+                "_Another_GPS_latitude",
+                "_Another_GPS_longitude",
+                "_Another_GPS_altitude",
+                "_Another_GPS_precision",
+                "__version__",
+                "instanceID",
+                "_id",
+                "_uuid",
+                "_submission_time",
+                "_index",
+                "_parent_table_name",
+                "_parent_index",
+                "_tags",
+                "_notes",
+                "_version",
+                "_duration",
+                "_submitted_by",
             ]
             self.assertEqual(expected_headers, list(tuple(gps_sheet.values)[0]))
             # test exported data
             expected_data = [
-                '2023-01-20T12:11:29.278+03:00',
-                '2023-01-20T12:12:00.443+03:00',
-                '2',
+                "2023-01-20T12:11:29.278+03:00",
+                "2023-01-20T12:12:00.443+03:00",
+                "2",
                 32,
                 None,
-                'male',
-                'dsa',
-                'zcxsd',
+                "male",
+                "dsa",
+                "zcxsd",
                 None,
-                '-1.248238 36.685681 0 0',
+                "-1.248238 36.685681 0 0",
                 -1.248238,
                 36.685681,
                 0,
@@ -2246,18 +2166,18 @@ class TestExportBuilder(TestBase):
                 36.685359,
                 0,
                 0,
-                'vTEmiygu2uLZpPHBYX8jKj',
-                'uuid:76887abc-7bc4-4f9c-ba64-197968359d36',
+                "vTEmiygu2uLZpPHBYX8jKj",
+                "uuid:76887abc-7bc4-4f9c-ba64-197968359d36",
                 inst_json.get("_id"),
-                '76887abc-7bc4-4f9c-ba64-197968359d36',
+                "76887abc-7bc4-4f9c-ba64-197968359d36",
                 1,
                 None,
                 -1,
                 None,
                 None,
-                'vTEmiygu2uLZpPHBYX8jKj',
+                "vTEmiygu2uLZpPHBYX8jKj",
                 31,
-                'bob'
+                "bob",
             ]
             actual_data = list(tuple(gps_sheet.values)[1])
             # remove submission time
@@ -3594,3 +3514,96 @@ class TestExportBuilder(TestBase):
             self.assertEqual(row, expected_data[idx])
 
         csv_export.close()
+
+    @patch("onadata.libs.utils.export_builder.uuid")
+    def test_sav_export_with_duplicate_metadata(self, mock_uuid):
+        """
+        Test that SAV exports work when a GPS Question is both in a group
+        and outside of one
+        """
+        md = """
+        | survey |
+        |        | type              | name    | label |
+        |        | begin group       | group_a | A     |
+        |        | gps               | gps     | GPS   |
+        |        | end_group         | group_a | A     |
+        |        | gps               | gps     | GPS B |
+        """
+        name = "data_tsewdm"
+        survey = self.md_to_pyxform_survey(md, {"name": name})
+        data = [
+            {
+                "group_a/gps": "4.0 36.1 5000 20",
+                "gps": "1.0 36.1 2000 20",
+                "_submission_time": "2016-11-21T03:42:43.00-08:00",
+            }
+        ]
+        mock_uuid.uuid4.return_value = "9366af30-52a9-46d0-9cc8-1c6411280c84"
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        expected_data = [
+            [
+                b"gps",
+                b"@_gps_latitude",
+                b"@_gps_longitude",
+                b"@_gps_altitude",
+                b"@_gps_precision",
+                b"gps@52a9",
+                b"@_gps_latitude_52a9",
+                b"@_gps_longitude_52a9",
+                b"@_gps_altitude_52a9",
+                b"@_gps_precision_52a9",
+                b"instanceID",
+                b"@_id",
+                b"@_uuid",
+                b"@_submission_time",
+                b"@_index",
+                b"@_parent_table_name",
+                b"@_parent_index",
+                b"@_tags",
+                b"@_notes",
+                b"@_version",
+                b"@_duration",
+                b"@_submitted_by",
+            ],
+            [
+                b"4.0 36.1 5000 20",
+                4.0,
+                36.1,
+                5000.0,
+                20.0,
+                b"1.0 36.1 2000 20",
+                1.0,
+                36.1,
+                2000.0,
+                20.0,
+                b"",
+                None,
+                b"",
+                b"2016-11-21 03:42:43",
+                1.0,
+                b"",
+                -1.0,
+                b"",
+                b"",
+                b"",
+                b"",
+                b"",
+            ],
+        ]
+        with SavReader(
+            os.path.join(temp_dir, f"{name}.sav"), returnHeader=True
+        ) as reader:
+            rows = list(reader)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(expected_data, rows)
+        shutil.rmtree(temp_dir)

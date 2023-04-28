@@ -550,7 +550,7 @@ class XFormMixin:
         return result
 
     @classmethod
-    def get_additional_geopoint_xpaths(cls, xpath, remove_group_name=False):
+    def get_additional_geopoint_xpaths(cls, xpath):
         """
         This will return a list of the additional fields that are
         added per geopoint.  For example, given a field 'group/gps' it will
@@ -561,7 +561,7 @@ class XFormMixin:
         prefix = ""
         name = xpath
         if match:
-            prefix = "" if remove_group_name else match.groupdict()["prefix"]
+            prefix = match.groupdict()["prefix"]
             name = match.groupdict()["name"]
 
         return ["_".join([prefix, name, suffix]) for suffix in cls.GEODATA_SUFFIXES]
