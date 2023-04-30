@@ -13,16 +13,10 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20230412
-COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
+FROM python:3.9-slim
 
-ARG release_version=v3.7.1
-
-# Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
-
 ENV PYTHONUNBUFFERED 1
-
 ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
 
 # Install service dependencies
@@ -35,10 +29,6 @@ RUN apt-get update -q &&\
         libmemcached-dev \
         build-essential \
         supervisor \
-        python3.9 \
-        python3-dev \
-        python3-pip \
-        python3-setuptools \
         git \
         libssl-dev \
         libpq-dev \
@@ -47,11 +37,8 @@ RUN apt-get update -q &&\
         libjpeg-dev \
         libxml2-dev \
         libxslt1-dev \
-        libpython3.9-dev \
         zlib1g-dev \
         ghostscript \
-        python3-celery \
-        python3-sphinx \
         pkg-config \
         gcc \
         automake \
@@ -60,8 +47,12 @@ RUN apt-get update -q &&\
         libpcre3 \
         libpcre3-dev \
         locales \
-        netcat && \
-    rm -rf /var/lib/apt/lists/*
+        netcat \
+        ca-certificates \
+        openssl \
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Generate and set en_US.UTF-8 locale
 RUN locale-gen en_US.UTF-8
@@ -75,12 +66,15 @@ RUN useradd -G tty -m onadata
 # Clone Repository and Change owner
 RUN mkdir -p /srv/onadata
 
-COPY ../../ /srv/onadata/
-
 RUN chown -R onadata:onadata /srv/onadata
 
 # Install service requirements
 WORKDIR /srv/onadata
+
+COPY requirements/ requirements/
+
+COPY --from=intermediate /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/dist-packages/
+
 # hadolint ignore=DL3013
 RUN python3.9 -m pip install --no-cache-dir -U pip && \
     python3.9 -m pip install --no-cache-dir -r requirements/base.pip && \
@@ -89,6 +83,9 @@ RUN python3.9 -m pip install --no-cache-dir -U pip && \
     python3.9 -m pip install --no-cache-dir -r requirements/azure.pip && \
     python3.9 -m pip install setuptools==65.5.1 && \
     python3.9 -m pip install --no-cache-dir pyyaml uwsgitop
+
+COPY . .
+
 
 # Compile API Docs
 RUN make -C docs html
