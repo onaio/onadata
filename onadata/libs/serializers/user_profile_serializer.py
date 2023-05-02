@@ -267,8 +267,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         metadata = {}
         username = params.get("username")
         site = Site.objects.get(pk=settings.SITE_ID)
+        new_user = None
         try:
-            validate_password(params.get("password1"))
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
                 password=params.get("password1"),
@@ -276,11 +276,16 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 site=site,
                 send_email=settings.SEND_EMAIL_ACTIVATION_API,
             )
+            validate_password(params.get("password1"), user=new_user)
         except IntegrityError as e:
             raise serializers.ValidationError(
                 _(f"User account {username} already exists")
             ) from e
         except ValidationError as e:
+            # Delete created user object if created
+            # to allow re-registration
+            if new_user:
+                new_user.delete()
             raise serializers.ValidationError({"password": e.messages})
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
