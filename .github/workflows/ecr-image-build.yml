@@ -8,6 +8,11 @@ on:
     branches:
       - "main"
   workflow_dispatch:
+    buildAlpine:
+      description: Whether to build an Alpine based image
+      required: false
+      type: boolean
+      default: false
 
 jobs:
   build:
@@ -72,6 +77,7 @@ jobs:
       - name: (Alpine) Build and push
         id: docker-build-alpine
         uses: docker/build-push-action@v2
+        if: github.event.inputs.buildAlpine
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.alpine
@@ -90,6 +96,7 @@ jobs:
         run: echo ${{ steps.docker-build-ubuntu.outputs.digest }}
 
       - name: (Alpine) Image digest
+        if: github.event.inputs.buildAlpine
         run: echo ${{ steps.docker-build-alpine.outputs.digest }}
 
       - name: Run Trivy vulnerability scanner
