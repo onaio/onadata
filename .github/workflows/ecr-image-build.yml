@@ -145,7 +145,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "View scan results: https://github.com/${{ github.repository }}/security."
+                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ env.version || github.ref_name }}+is:open++"
                   }
                 }
               ]
