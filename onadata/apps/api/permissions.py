@@ -127,6 +127,18 @@ class DjangoObjectPermissionsAllowAnon(DjangoObjectPermissions):
     authenticated_users_only = False
 
 
+# pylint: disable=too-few-public-methods
+class ImportPermissions(DjangoObjectPermissions):
+    """
+    ImportPermissions - custom permissions check on Imports viewset.
+    """
+
+    authenticated_users_only = True
+
+    def has_object_permission(self, request, view, obj):
+        return request.user.has_perm(CAN_CHANGE_XFORM, obj)
+
+
 class XFormPermissions(DjangoObjectPermissions):
     """
     XFormPermissions - custom permissions check on XForm viewset.

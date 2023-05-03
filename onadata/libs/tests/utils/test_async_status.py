@@ -1,6 +1,14 @@
-from onadata.apps.main.tests.test_base import TestBase
+"""
+tests for celery asyncronous task utilities
+"""
+from datetime import datetime
+from unittest.mock import MagicMock
+
 from celery import states
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.celeryapp import app
 from onadata.libs.utils import async_status
+from onadata.apps.logger.models.xform import XForm
 
 
 class TestAsyncStatus(TestBase):
@@ -34,3 +42,36 @@ class TestAsyncStatus(TestBase):
                         .get('error'))
         self.assertFalse(async_status.
                          async_status(async_status.SUCCESSFUL).get('error'))
+
+    def test_get_active_tasks(self):
+        """test get_active_tasks"""
+        xform = XForm()
+        time_start = 1664372983.8631873
+        self.assertEqual(
+            async_status.get_active_tasks(
+                ['onadata.libs.utils.csv_import.submit_csv_async'], xform
+            ),
+            [],
+        )
+        inspect = MagicMock()
+        inspect.active = MagicMock(
+            return_value={
+                'celery-worker@onadata-id-1': [
+                    {
+                        'args': [None, xform.pk, "/home/ona/import.csv", True],
+                        'id': '11',
+                        'time_start': time_start,
+                        'name': 'onadata.libs.utils.csv_import.submit_csv_async',
+                    }
+                ]
+            }
+        )
+        app.control.inspect = MagicMock(return_value=inspect)
+
+        self.assertEqual(async_status.get_active_tasks(
+            ['onadata.libs.utils.csv_import.submit_csv_async'],
+            xform),
+            [{'job_uuid': '11',
+              'time_start': datetime.fromtimestamp(time_start).strftime(
+                  "%Y-%m-%dT%H:%M:%S"),
+              "file": "/home/ona/import.csv", "overwrite": True}])
