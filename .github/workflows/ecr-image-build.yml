@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - "main"
+      - "*-rc"
   workflow_dispatch:
     buildAlpine:
       description: Whether to build an Alpine based image
