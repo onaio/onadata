@@ -3,6 +3,55 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.9.0(2023-05-02)
+-----------------
+
+- Add azure token to media files urls
+  `PR #2388 <https://github.com/onaio/onadata/pull/2388>`
+  [@ciremusyoka]
+- Pass user-provided values as parameters
+  `PR #2394 <https://github.com/onaio/onadata/pull/2394>`
+  [@KipSigei]
+- Handle scenario where an inactive user is part of an Organization
+  `PR #2374 <https://github.com/onaio/onadata/pull/2374>`
+  [@DavisRayM]
+- Dependabot updates
+  `PR #2397 <https://github.com/onaio/onadata/pull/2397>`
+  [@KipSigei]
+- Allow authenticated users to download public form exports
+  `PR #2396 <https://github.com/onaio/onadata/pull/2396>`
+  [@ciremusyoka]
+- Update savreaderwriter version
+  `PR #2399 <https://github.com/onaio/onadata/pull/2399>`
+  [@DavisRayM]
+- ignore .python-version
+  `PR #2402 <https://github.com/onaio/onadata/pull/2402>`
+  [@kelvin-muchiri]
+- fix bug NoneType object has no attribute push
+  `PR #2403 <https://github.com/onaio/onadata/pull/2403>`
+  [@kelvin-muchiri]
+- Fix IndexError exception raised when comparing functions
+  `PR #2408 <https://github.com/onaio/onadata/pull/2403>`
+  [@DavisRayM]
+- Bump base image
+  [@DavisRayM]
+  `PR #2409 <https://github.com/onaio/onadata/pull/2409>`
+- Add statistics endpoint for actstream actions
+  `PR #2390 <https://github.com/onaio/onadata/pull/2390>`
+  [@DavisRayM]
+- Prevent numeric usernames on user creation
+  [@KipSigei]
+  `PR #2407 <https://github.com/onaio/onadata/pull/2407>`
+- Assign default team project role to users
+  `PR #2401 <https://github.com/onaio/onadata/pull/2401>`
+  [@DavisRayM]
+- [SAV Exports] Ensure duplicate metadata fields are handled accordingly
+  `PR #2412 <https://github.com/onaio/onadata/pull/2412>`
+  [@DavisRayM]
+- Strengthen password standards for users
+  `PR #2414 <https://github.com/onaio/onadata/pull/2414>`
+  [@DavisRayM]
+
 v3.8.6(2023-03-07)
 ------------------
 - Handle cases of duplicate metadata fields within exports
