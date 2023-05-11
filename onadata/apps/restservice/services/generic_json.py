@@ -4,9 +4,14 @@ Post submisison JSON data to an external service that accepts a JSON post.
 """
 import json
 
+from django.conf import settings
+
 import requests
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
+
+WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
 
 
 class ServiceDefinition(RestServiceInterface):
@@ -21,4 +26,9 @@ class ServiceDefinition(RestServiceInterface):
         if data:
             post_data = json.dumps(data.json)
             headers = {"Content-Type": "application/json"}
-            requests.post(url, headers=headers, data=post_data)
+            try:
+                requests.post(
+                    url, headers=headers, data=post_data, timeout=WEBHOOK_TIMEOUT
+                )
+            except RequestsConnectionError:
+                pass
