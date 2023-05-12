@@ -191,7 +191,6 @@ class SubmissionReviewPermissions(XFormPermissions):
         is_authenticated = request and request.user.is_authenticated
 
         if is_authenticated and view.action == "create":
-
             # Handle bulk create
             # if doing a bulk create we will fail the entire process if the
             # user lacks permissions for even one instance
@@ -306,7 +305,6 @@ class AbstractHasPermissionMixin:  # pylint: disable=too-few-public-methods
             and (request.user.is_authenticated or not self.authenticated_users_only)
             and request.user.has_perms(perms)
         ):
-
             return True
 
         return False
@@ -387,9 +385,8 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
     """
 
     def has_permission(self, request, view):
-
         if request.user.is_anonymous and view.action == "list":
-            if request.GET.get("search"):
+            if request.GET.get("search") or request.GET.get("email"):
                 raise exceptions.NotAuthenticated()
 
         return super().has_permission(request, view)

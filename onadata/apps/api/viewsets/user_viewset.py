@@ -7,12 +7,14 @@ from django.contrib.auth import get_user_model
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
 
 from onadata.libs.filters import UserNoOrganizationsFilter
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
+from onadata.libs.filters import UserFilterSet
 from onadata.apps.api import permissions
 from onadata.apps.api.tools import get_baseviewset_class
 
@@ -41,8 +43,10 @@ class UserViewSet(
     filter_backends = (
         filters.SearchFilter,
         UserNoOrganizationsFilter,
+        DjangoFilterBackend,
     )
     search_fields = ("=email",)
+    filterset_class = UserFilterSet
 
     def get_object(self):
         """Lookup a  username by pk else use lookup_field"""
