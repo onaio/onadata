@@ -216,7 +216,7 @@ class TestUserViewSet(TestAbstractViewSet):
             ],
         )
         # matches all emails that contains query value
-        request = self.factory.get("/", data={"email": "localhost"}, **self.extra)
+        request = self.factory.get("/", data={"email": "loc"}, **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(

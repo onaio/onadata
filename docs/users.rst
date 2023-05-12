@@ -95,3 +95,34 @@ Response
            },
            ...
        ]
+
+
+Filter users using email
+------------------------------
+
+
+Example
+^^^^^^^
+
+::
+
+      curl -X GET https://api.ona.io/api/v1/users?email=demo@email.com
+
+Response
+^^^^^^^^
+
+::
+
+       [
+           {
+               "username": "demo",
+               "first_name": "First",
+               "last_name": "Last"
+           },
+           {
+               "username": "another_demo",
+               "first_name": "Another",
+               "last_name": "Demo"
+           },
+           ...
+       ]
