@@ -743,6 +743,7 @@ class UserFilterSet(django_filter_filters.FilterSet):
         field_name="email", lookup_expr="icontains"
     )
 
+    # pylint: disable=missing-class-docstring
     class Meta:
         model = User
         fields = [
