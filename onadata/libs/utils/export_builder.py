@@ -1207,7 +1207,7 @@ class ExportBuilder:
                 # check if it is a choice part of multiple choice
                 # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
-                if element.type == SELECT_ONE:
+                if element and element.type == SELECT_ONE:
                     # Determine if all select1 choices are numeric in nature.
                     # If the choices are numeric in nature have the field type
                     # in spss be numeric
@@ -1217,6 +1217,7 @@ class ExportBuilder:
                     return is_all_numeric(choices)
                 if element and element.type == "" and value_select_multiples:
                     return is_all_numeric([element.name])
+
                 parent_xpath = "/".join(xpath.split("/")[:-1])
                 parent = data_dictionary.get_element(parent_xpath)
                 return parent and parent.type == MULTIPLE_SELECT_TYPE
