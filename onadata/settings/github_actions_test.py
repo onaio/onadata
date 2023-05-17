@@ -15,7 +15,7 @@ DATABASES = {
         "NAME": "onadata",
         "USER": "onadata",
         "PASSWORD": "onadata",
-        "HOST": "localhost",
+        "HOST": "database",
     }
 }
 
