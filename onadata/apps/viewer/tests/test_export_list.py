@@ -62,6 +62,19 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
 
+    def test_xls_export_not_supported(self):
+        kwargs = {
+            "username": self.user.username.upper(),
+            "id_string": self.xform.id_string.upper(),
+            "export_type": "xls",
+        }
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.content.decode("utf-8"), 'Export type "xls" is not supported.'
+        )
+
     def test_export_data_with_unavailable_id_string(self):
         kwargs = {
             "username": self.user.username.upper(),
