@@ -271,15 +271,19 @@ class ProjectPermissions(DjangoObjectPermissions):
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        import ipdb
-
-        ipdb.set_trace()
-
         if view.action == "share" and request.method == "PUT":
             remove = request.data.get("remove")
             username = request.data.get("username", "")
             if remove and request.user.username.lower() == username.lower():
                 return True
+
+        if not request.user.is_anonymous and view.action == "invitations":
+            if ManagerRole.user_has_role(request.user, obj) or OwnerRole.user_has_role(
+                request.user, obj
+            ):
+                return True
+            else:
+                raise Http404
 
         return super().has_object_permission(request, view, obj)
 
