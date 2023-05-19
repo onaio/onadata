@@ -12,13 +12,9 @@ from unittest import skip
 
 from django.conf import settings
 from django.db.models import Q
-from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.test import override_settings, TestCase
-from onadata.apps.main.tests.test_base import TestBase
+from django.test import override_settings
 from django.contrib.auth import get_user_model
-from django.urls import reverse
-from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
@@ -37,7 +33,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Project, XForm, XFormVersion
+from onadata.apps.logger.models import Project, XForm, XFormVersion, ProjectInvitation
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
@@ -2696,33 +2692,79 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["num_datasets"], 1)
 
 
-class GetProjectInvitationListTestCase(TestCase):
+class GetProjectInvitationListTestCase(TestAbstractViewSet):
     """Tests for get project invitation list"""
+
+    def setUp(self):
+        super().setUp()
+        self._project_create()
 
     def test_authentication(self):
         """Authentication is required"""
-        factory = APIRequestFactory()
-        user = User.objects.create(username="janedoe")
-        project = Project.objects.create(
-            name="Test Project",
-            organization=user,
-            created_by=user,
-            metadata="{}",
-        )
-        request = factory.get("/")
-        request.user = AnonymousUser
+        request = self.factory.get("/")
         view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=project.pk)
-        self.assertEqual(response.status_code, 401)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
 
-    def test_client(self):
-        user = User.objects.create(username="janedoe")
-        project = Project.objects.create(
-            name="Test Project",
-            organization=user,
-            created_by=user,
-            metadata="{}",
+    def test_invalid_project(self):
+        """Invalid project is handled"""
+        request = self.factory.get("/")
+        view = ProjectViewSet.as_view({"get": "invitations"})
+        response = view(request, pk=817)
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_admins_allowed(self):
+        """Only project admins are allowed to get invitation list"""
+        # login as editor alice
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+
+        # only owner and manager roles can access invitation list
+        for role_class in ROLES_ORDERED:
+            ShareProject(self.project, "alice", role_class.name).save()
+            self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
+            request = self.factory.get("/", **self.extra)
+            view = ProjectViewSet.as_view({"get": "invitations"})
+            response = view(request, pk=self.project.pk)
+
+            if role_class.name in [ManagerRole.name, OwnerRole.name]:
+                self.assertEqual(response.status_code, 200)
+            else:
+                self.assertEqual(response.status_code, 404)
+
+    def test_invitation_list(self):
+        """Returns project invitation list"""
+        jane_invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
         )
-        client = APIClient()
-        response = client.get(reverse("project-invitations", kwargs={"pk": project.pk}))
-        self.assertEqual(response.status_code, 401)
+        john_invitation = ProjectInvitation.objects.create(
+            email="johndoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.ACCEPTED,
+        )
+        request = self.factory.get("/", **self.extra)
+        view = ProjectViewSet.as_view({"get": "invitations"})
+        response = view(request, pk=self.project.pk)
+        expected_response = [
+            {
+                "id": jane_invitation.pk,
+                "email": "janedoe@example.com",
+                "project": self.project.pk,
+                "role": "editor",
+                "status": 1,
+            },
+            {
+                "id": john_invitation.pk,
+                "email": "johndoe@example.com",
+                "project": self.project.pk,
+                "role": "editor",
+                "status": 2,
+            },
+        ]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_response)
