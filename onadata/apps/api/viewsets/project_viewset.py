@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
@@ -38,6 +39,9 @@ from onadata.libs.serializers.user_profile_serializer import UserProfileSerializ
 from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
+)
+from onadata.libs.serializers.project_invitation_serializer import (
+    ProjectInvitationSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -225,6 +229,20 @@ class ProjectViewSet(
             return Response(serializer.data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=["GET", "POST"],
+        permission_classes=[IsAuthenticated, ProjectPermissions],
+    )
+    def invitations(self, request, *args, **kwargs):
+        """List, Create project invitations"""
+        project = self.get_object()
+
+        if request.method == "GET":
+            invitations = project.invitations.all()
+            serializer = ProjectInvitationSerializer(invitations, many=True)
+            return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         """ "Soft deletes a project"""

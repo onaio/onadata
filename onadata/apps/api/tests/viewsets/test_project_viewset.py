@@ -8,11 +8,17 @@ import os
 from collections import OrderedDict
 from six import iteritems
 from operator import itemgetter
+from unittest import skip
 
 from django.conf import settings
 from django.db.models import Q
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.test import override_settings
+from django.test import override_settings, TestCase
+from onadata.apps.main.tests.test_base import TestBase
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
@@ -52,6 +58,9 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
+from rest_framework.test import APIRequestFactory
+
+User = get_user_model()
 
 ROLES = [
     ReadOnlyRoleNoDownload,
@@ -174,10 +183,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 2)
 
         # test with pagination enabled
-        params = {
-            "page": 1,
-            "page_size": 1
-        }
+        params = {"page": 1, "page_size": 1}
         request = self.factory.get("/", data=params, **self.extra)
         request.user = self.user
         response = view(request)
@@ -539,21 +545,21 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_form_publish_odk_validation_errors(self):
         self._project_create()
         path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "error_test_form.xlsx",
-            )
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "error_test_form.xlsx",
+        )
         with open(path, "rb") as xlsx_file:
             view = ProjectViewSet.as_view({"post": "forms"})
             post_data = {"xls_file": xlsx_file}
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.project.pk)
             self.assertEqual(response.status_code, 400)
-            self.assertIn("ODK Validate Errors:", response.data.get('text'))
+            self.assertIn("ODK Validate Errors:", response.data.get("text"))
 
     # pylint: disable=invalid-name
     def test_publish_xls_form_to_project(self):
@@ -1774,8 +1780,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for (role_name, role_class) in iteritems(role.ROLES):
-
+        for role_name, role_class in iteritems(role.ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertTrue(role_class.user_has_role(self.user, self.project))
@@ -2274,7 +2279,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(project.shared)
 
     def test_permission_passed_to_dataview_parent_form(self):
-
         self._project_create()
         project1 = self.project
         self._publish_xls_form_to_project()
@@ -2308,8 +2312,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for (role_name, role_class) in iteritems(role.ROLES):
-
+        for role_name, role_class in iteritems(role.ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2327,7 +2330,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(self.user, self.xform))
 
     def test_permission_not_passed_to_dataview_parent_form(self):
-
         self._project_create()
         project1 = self.project
         self._publish_xls_form_to_project()
@@ -2361,8 +2363,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for (role_name, role_class) in iteritems(role.ROLES):
-
+        for role_name, role_class in iteritems(role.ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2693,3 +2694,35 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.xform.num_of_submissions,
         )
         self.assertEqual(response.data["num_datasets"], 1)
+
+
+class GetProjectInvitationListTestCase(TestCase):
+    """Tests for get project invitation list"""
+
+    def test_authentication(self):
+        """Authentication is required"""
+        factory = APIRequestFactory()
+        user = User.objects.create(username="janedoe")
+        project = Project.objects.create(
+            name="Test Project",
+            organization=user,
+            created_by=user,
+            metadata="{}",
+        )
+        request = factory.get("/")
+        request.user = AnonymousUser
+        view = ProjectViewSet.as_view({"get": "invitations"})
+        response = view(request, pk=project.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_client(self):
+        user = User.objects.create(username="janedoe")
+        project = Project.objects.create(
+            name="Test Project",
+            organization=user,
+            created_by=user,
+            metadata="{}",
+        )
+        client = APIClient()
+        response = client.get(reverse("project-invitations", kwargs={"pk": project.pk}))
+        self.assertEqual(response.status_code, 401)
