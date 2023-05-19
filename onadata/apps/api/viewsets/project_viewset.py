@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
@@ -230,16 +229,12 @@ class ProjectViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(
-        detail=True,
-        methods=["GET", "POST"],
-        permission_classes=[IsAuthenticated, ProjectPermissions],
-    )
+    @action(detail=True, methods=["GET", "POST"])
     def invitations(self, request, *args, **kwargs):
         """List, Create project invitations"""
         project = self.get_object()
 
-        if request.method == "GET":
+        if request.method.upper() == "GET":
             invitations = project.invitations.all()
             serializer = ProjectInvitationSerializer(invitations, many=True)
             return Response(serializer.data)
