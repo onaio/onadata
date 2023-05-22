@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.test import override_settings
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from rest_framework.authtoken.models import Token
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch
@@ -2805,3 +2806,246 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
         ]
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected_response)
+
+
+class CreateProjectInvitationTestCase(TestAbstractViewSet):
+    """Tests for create project invitation"""
+
+    def setUp(self):
+        super().setUp()
+        self._project_create()
+
+    def test_authentication(self):
+        """Authentication is required"""
+        request = self.factory.post("/", data={})
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_project(self):
+        """Invalid project is handled"""
+        request = self.factory.post("/", data={})
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=817)
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_admins_allowed(self):
+        """Only project admins are allowed to create project invitation"""
+        # login as editor alice
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+
+        # only owner and manager roles can access invitation list
+        for role_class in ROLES_ORDERED:
+            ShareProject(self.project, "alice", role_class.name).save()
+            self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
+            request = self.factory.post("/", data={}, **self.extra)
+            view = ProjectViewSet.as_view({"post": "invitations"})
+            response = view(request, pk=self.project.pk)
+
+            if role_class.name in [ManagerRole.name, OwnerRole.name]:
+                self.assertEqual(response.status_code, 400)
+            else:
+                self.assertEqual(response.status_code, 404)
+
+    def test_create_invitation(self):
+        """Project invitation can be created"""
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.project.invitations.count(), 1)
+        invitation = self.project.invitations.first()
+        self.assertEqual(
+            response.data,
+            {
+                "id": invitation.pk,
+                "email": "janedoe@example.com",
+                "project": self.project.pk,
+                "role": "editor",
+                "status": 1,
+            },
+        )
+
+    def test_email_required(self):
+        """email is required"""
+        # blank string
+        post_data = {
+            "email": "",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+        # missing field
+        post_data = {
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_email_valid(self):
+        """email should be a valid email"""
+        # a valid email
+        post_data = {
+            "email": "akalkal",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com"])
+    def test_email_whitelist(self):
+        """Email address domain whitelist works"""
+        # email domain should be in whitelist
+        post_data = {
+            "email": "janedoe@xample.com",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+        # email in whitelist is successful
+        post_data = {
+            "email": "janedoe@foo.com",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["FOo.com"])
+    def test_email_whitelist_case_insenstive(self):
+        """Email domain whitelist check should be case insenstive"""
+        post_data = {
+            "email": "janedoe@FOO.com",
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_role_required(self):
+        """role field is required"""
+        # blank role
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+        # missing role
+        post_data = {
+            "email": "janedoe@example.com",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_status_valid(self):
+        """Status should be a valid choice"""
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "editor",
+            "status": "10",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_status_optional(self):
+        """status should be optional
+
+        If not provided default status should be Pending
+        """
+        post_data = {"email": "janedoe@example.com", "role": "editor"}
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        invitation = self.project.invitations.first()
+        self.assertEqual(invitation.status, ProjectInvitation.Status.PENDING)
