@@ -2768,3 +2768,40 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
         ]
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected_response)
+
+    def test_no_invitations_available(self):
+        """Returns an empty list if no invitations available"""
+        request = self.factory.get("/", **self.extra)
+        view = ProjectViewSet.as_view({"get": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_status_query_param_works(self):
+        """Filtering by status query parameter works"""
+        jane_invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        ProjectInvitation.objects.create(
+            email="johndoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.ACCEPTED,
+        )
+        request = self.factory.get("/", data={"status": "1"}, **self.extra)
+        view = ProjectViewSet.as_view({"get": "invitations"})
+        response = view(request, pk=self.project.pk)
+        expected_response = [
+            {
+                "id": jane_invitation.pk,
+                "email": "janedoe@example.com",
+                "project": self.project.pk,
+                "role": "editor",
+                "status": 1,
+            }
+        ]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_response)
