@@ -268,6 +268,9 @@ class ProjectPermissions(DjangoObjectPermissions):
         if not request.user.is_anonymous and view.action == "star":
             return True
 
+        if request.user.is_anonymous and view.action == "invitations":
+            raise Http404
+
         return super().has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
@@ -277,13 +280,11 @@ class ProjectPermissions(DjangoObjectPermissions):
             if remove and request.user.username.lower() == username.lower():
                 return True
 
-        if not request.user.is_anonymous and view.action == "invitations":
-            if ManagerRole.user_has_role(request.user, obj) or OwnerRole.user_has_role(
-                request.user, obj
-            ):
-                return True
-            else:
-                raise Http404
+        if view.action == "invitations" and not (
+            ManagerRole.user_has_role(request.user, obj)
+            or OwnerRole.user_has_role(request.user, obj)
+        ):
+            raise Http404
 
         return super().has_object_permission(request, view, obj)
 
