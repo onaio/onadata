@@ -233,8 +233,9 @@ class ProjectViewSet(
     def invitations(self, request, *args, **kwargs):
         """List, Create project invitations"""
         project = self.get_object()
+        method = request.method.upper()
 
-        if request.method.upper() == "GET":
+        if method == "GET":
             invitations = project.invitations.all()
             status = request.query_params.get("status")
 
@@ -243,6 +244,16 @@ class ProjectViewSet(
 
             serializer = ProjectInvitationSerializer(invitations, many=True)
             return Response(serializer.data)
+
+        if method == "POST":
+            serializer = ProjectInvitationSerializer(
+                data={**request.data, "project": project.pk}
+            )
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            return Response(ProjectInvitationSerializer(instance).data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def destroy(self, request, *args, **kwargs):
         """ "Soft deletes a project"""
