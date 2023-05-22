@@ -236,6 +236,11 @@ class ProjectViewSet(
 
         if request.method.upper() == "GET":
             invitations = project.invitations.all()
+            status = request.query_params.get("status")
+
+            if status:
+                invitations = invitations.filter(status=status)
+
             serializer = ProjectInvitationSerializer(invitations, many=True)
             return Response(serializer.data)
 

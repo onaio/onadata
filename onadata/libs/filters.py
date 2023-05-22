@@ -732,7 +732,3 @@ class PublicDatasetsFilter:
             return queryset.filter(shared=True)
 
         return queryset
-
-
-class ProjectInvitationFilter(ObjectPermissionsFilter):
-    pass
