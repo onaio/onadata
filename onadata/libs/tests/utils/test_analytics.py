@@ -145,10 +145,11 @@ class TestAnalytics(TestAbstractViewSet):
 
     @override_settings(
             SEGMENT_WRITE_KEY='123')
+    # pylint: disable=invalid-name
     def test_submission_tracking_postman_user_agent(self):
         """
         Test that submissions are tracked for submissions made
-        via postman
+        via an agent thats not a browser nor ODK collect
         """
         segment_mock = MagicMock()
         onadata.libs.utils.analytics.segment_analytics = segment_mock
@@ -202,7 +203,7 @@ class TestAnalytics(TestAbstractViewSet):
                 'xform_id': self.xform.pk,
                 'project_id': self.xform.project.pk,
                 'organization': 'Bob Inc.',
-                'from': 'Submission collected from Enketo',
+                'from': 'Submission collected from Web',
                 'label': f'form-{form_id}-owned-by-{username}',
                 'value': 1,
                 'event_by': 'anonymous'

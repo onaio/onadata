@@ -137,13 +137,15 @@ class TrackObjectEvent:  # pylint: disable=invalid-name,too-many-instance-attrib
         """Returns the request origin"""
         if isinstance(self.tracked_obj, Instance):
             event_source = ""  # Initialize event_source variable
-            web_user_agents = ["Chrome", "Mozilla", "Safari", "PostmanRuntime"]
+            browser_user_agents = ["Chrome", "Mozilla", "Safari"]
             try:
                 user_agent = request.META["HTTP_USER_AGENT"]
                 if "Android" in user_agent:
                     event_source = "Submission collected from ODK COLLECT"
-                elif any(ua in user_agent for ua in web_user_agents):
+                elif any(ua in user_agent for ua in browser_user_agents):
                     event_source = "Submission collected from Enketo"
+                else:
+                    event_source = "Submission collected from Web"
             except KeyError:
                 pass
         else:
