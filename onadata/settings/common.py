@@ -612,6 +612,9 @@ FULL_MESSAGE_PAYLOAD = False
 # Project & XForm Visibility Settings
 ALLOW_PUBLIC_DATASETS = True
 
+# Segment Analytics
+ENABLE_SEGMENT_ANALYTICS = False
+
 # Cache xform submission stat by 10 min 10 * 60
 XFORM_SUBMISSION_STAT_CACHE_TIME = 600
 
