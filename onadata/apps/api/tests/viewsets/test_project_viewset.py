@@ -2982,6 +2982,28 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
 
+    def test_user_unregistered(self):
+        """You cannot invite an existing user
+
+        The email should be of a user who is not registered
+        """
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._create_user_profile(alice_data)
+        post_data = {
+            "email": alice_data["email"],
+            "role": "editor",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
     def test_role_required(self):
         """role field is required"""
         # blank role
@@ -3049,3 +3071,46 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         invitation = self.project.invitations.first()
         self.assertEqual(invitation.status, ProjectInvitation.Status.PENDING)
+
+    def test_role_valid(self):
+        """Role should be a valid choice"""
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "abracadbra",
+            "status": "1",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_duplicate_invitation_invalid(self):
+        """Duplicate invitation is not allowed
+
+        An invitation is considered duplicate if another invitation exists with same
+        email, project, status
+        """
+        self.project.invitations.create(
+            email="janedoe@example.com",
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "editor",
+            "status": ProjectInvitation.Status.PENDING,
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
