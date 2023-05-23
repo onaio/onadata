@@ -136,6 +136,7 @@ class TrackObjectEvent:  # pylint: disable=invalid-name,too-many-instance-attrib
     def get_request_origin(self, request, tracking_properties):
         """Returns the request origin"""
         if isinstance(self.tracked_obj, Instance):
+            event_source = ""  # Initialize event_source variable
             try:
                 user_agent = request.META["HTTP_USER_AGENT"]
                 if "Android" in user_agent:
@@ -147,7 +148,7 @@ class TrackObjectEvent:  # pylint: disable=invalid-name,too-many-instance-attrib
                 ):
                     event_source = "Submission collected from Enketo"
             except KeyError:
-                event_source = ""
+                pass
         else:
             event_source = ""
         tracking_properties.update({"from": event_source})
