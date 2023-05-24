@@ -47,6 +47,10 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
         return role
 
+    def get_unique_together_validators(self):
+        """Overriding method to disable unique together checks"""
+        return []
+
     class Meta:
         model = ProjectInvitation
         fields = (

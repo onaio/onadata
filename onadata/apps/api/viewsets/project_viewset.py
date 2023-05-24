@@ -14,7 +14,7 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models import Project, XForm, ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.data import strtobool
@@ -237,10 +237,10 @@ class ProjectViewSet(
 
         if method == "GET":
             invitations = project.invitations.all()
-            status = request.query_params.get("status")
+            invitation_status = request.query_params.get("status")
 
-            if status:
-                invitations = invitations.filter(status=status)
+            if invitation_status:
+                invitations = invitations.filter(status=invitation_status)
 
             serializer = ProjectInvitationSerializer(invitations, many=True)
             return Response(serializer.data)
@@ -250,8 +250,24 @@ class ProjectViewSet(
                 data={**request.data, "project": project.pk}
             )
             serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
-            return Response(ProjectInvitationSerializer(instance).data)
+            email = request.data.get("email")
+            invitation_status = request.data.get(
+                "status", ProjectInvitation.Status.PENDING
+            )
+            invitation = None
+
+            try:
+                invitation = ProjectInvitation.objects.get(
+                    email=email, status=invitation_status, project=project
+                )
+            except ProjectInvitation.DoesNotExist:
+                invitation = serializer.save()
+
+            else:
+                invitation.role = serializer.data["role"]
+                invitation.save()
+
+            return Response(ProjectInvitationSerializer(invitation).data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
