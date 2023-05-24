@@ -3089,20 +3089,17 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
-    def test_duplicate_invitation_invalid(self):
-        """Duplicate invitation is not allowed
-
-        An invitation is considered duplicate if another invitation exists with same
-        email, project, status
-        """
-        self.project.invitations.create(
+    def test_update_role(self):
+        """An invitation can be updated"""
+        # status provided
+        invitation = self.project.invitations.create(
             email="janedoe@example.com",
             role="editor",
             status=ProjectInvitation.Status.PENDING,
         )
         post_data = {
             "email": "janedoe@example.com",
-            "role": "editor",
+            "role": "readonly",
             "status": ProjectInvitation.Status.PENDING,
         }
         request = self.factory.post(
@@ -3113,4 +3110,43 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         view = ProjectViewSet.as_view({"post": "invitations"})
         response = view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.role, "readonly")
+        self.assertEqual(
+            response.data,
+            {
+                "id": invitation.pk,
+                "email": "janedoe@example.com",
+                "project": self.project.pk,
+                "role": "readonly",
+                "status": 1,
+            },
+        )
+
+        # status not provided
+        post_data = {
+            "email": "janedoe@example.com",
+            "role": "readonly",
+        }
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        view = ProjectViewSet.as_view({"post": "invitations"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.role, "readonly")
+        self.assertEqual(
+            response.data,
+            {
+                "id": invitation.pk,
+                "email": "janedoe@example.com",
+                "project": self.project.pk,
+                "role": "readonly",
+                "status": 1,
+            },
+        )
