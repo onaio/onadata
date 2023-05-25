@@ -273,7 +273,7 @@ class ProjectViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["POST"], url_name="revoke-invitation")
+    @action(detail=True, methods=["POST"], url_path="revoke-invitation")
     def revoke_invitation(self, request, *args, **kwargs):
         """Revoke a project  invitation object"""
         self.get_object()
@@ -282,7 +282,7 @@ class ProjectViewSet(
         serializer.save()
         return Response({"message": _("Success")})
 
-    @action(detail=True, methods=["POST"], url_name="resend-invitation")
+    @action(detail=True, methods=["POST"], url_path="resend-invitation")
     def resend_invitation(self, request, *args, **kwargs):
         """Resend a project  invitation object"""
         self.get_object()
