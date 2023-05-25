@@ -1,11 +1,11 @@
 """
 ProjectInvitation class
 """
-
 from django.db import models
 from onadata.apps.logger.models import Project
 from onadata.libs.models.base_model import BaseModel
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 
 class ProjectInvitation(BaseModel):
@@ -41,3 +41,14 @@ class ProjectInvitation(BaseModel):
 
     def __str__(self):
         return f"{self.email}|{self.project}"
+
+    def save(self, *args, **kwargs) -> None:
+        now = timezone.now()
+
+        if self.status == self.Status.REVOKED and not self.revoked_at:
+            self.revoked_at = now
+
+        if self.status == self.Status.ACCEPTED and not self.accepted_at:
+            self.accepted_at = now
+
+        return super().save(*args, **kwargs)
