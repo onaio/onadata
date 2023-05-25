@@ -5,6 +5,7 @@ from onadata.libs.permissions import ROLES
 from django.conf import settings
 from django.utils.translation import gettext as _
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -64,8 +65,8 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
         )
 
 
-class ProjectInvitationRevokeSerializer(serializers.Serializer):
-    """Serializer for revoking project invitation"""
+class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
+    """Base serializer for project invitation updates"""
 
     invitation_id = serializers.IntegerField()
 
@@ -79,8 +80,50 @@ class ProjectInvitationRevokeSerializer(serializers.Serializer):
 
         return invitation_id
 
+
+class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
+    """Serializer for revoking project invitation"""
+
+    def validate_invitation_id(self, invitation_id):
+        super().validate_invitation_id(invitation_id)
+
+        invitation = ProjectInvitation.objects.get(pk=invitation_id)
+
+        if invitation.status != ProjectInvitation.Status.PENDING:
+            raise serializers.ValidationError(
+                _(
+                    "This is not a pending invitation. You only revoke a pending invitation"
+                )
+            )
+
+        return invitation_id
+
     def save(self, **kwargs):
         invitation_id = self.validated_data.get("invitation_id")
         invitation = ProjectInvitation.objects.get(pk=invitation_id)
         invitation.status = ProjectInvitation.Status.REVOKED
+        invitation.save()
+
+
+class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
+    """Serializer for resending project invitation"""
+
+    def validate_invitation_id(self, invitation_id):
+        super().validate_invitation_id(invitation_id)
+
+        invitation = ProjectInvitation.objects.get(pk=invitation_id)
+
+        if invitation.status != ProjectInvitation.Status.PENDING:
+            raise serializers.ValidationError(
+                _(
+                    "This is not a pending invitation. You only resend a pending invitation"
+                )
+            )
+
+        return invitation_id
+
+    def save(self, **kwargs):
+        invitation_id = self.validated_data.get("invitation_id")
+        invitation = ProjectInvitation.objects.get(pk=invitation_id)
+        invitation.resent_at = timezone.now()
         invitation.save()
