@@ -63,6 +63,7 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
             "role",
             "status",
         )
+        read_only_fields = ("status",)
 
 
 class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
