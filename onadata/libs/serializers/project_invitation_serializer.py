@@ -82,7 +82,7 @@ class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
 
 
 class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
-    """Serializer for revoking project invitation"""
+    """Serializer for revoking a project invitation"""
 
     def validate_invitation_id(self, invitation_id):
         super().validate_invitation_id(invitation_id)
@@ -106,7 +106,7 @@ class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
 
 
 class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
-    """Serializer for resending project invitation"""
+    """Serializer for resending a project invitation"""
 
     def validate_invitation_id(self, invitation_id):
         super().validate_invitation_id(invitation_id)
