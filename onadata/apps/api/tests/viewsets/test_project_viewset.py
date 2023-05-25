@@ -2846,7 +2846,6 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         post_data = {
             "email": "janedoe@example.com",
             "role": "editor",
-            "status": "1",
         }
         request = self.factory.post(
             "/",
@@ -2872,11 +2871,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     def test_email_required(self):
         """email is required"""
         # blank string
-        post_data = {
-            "email": "",
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": "", "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2887,10 +2882,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
         # missing field
-        post_data = {
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2903,11 +2895,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     def test_email_valid(self):
         """email should be a valid email"""
         # a valid email
-        post_data = {
-            "email": "akalkal",
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": "akalkal", "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2921,11 +2909,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     def test_email_whitelist(self):
         """Email address domain whitelist works"""
         # email domain should be in whitelist
-        post_data = {
-            "email": "janedoe@xample.com",
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@xample.com", "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2936,11 +2920,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
         # email in whitelist is successful
-        post_data = {
-            "email": "janedoe@foo.com",
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@foo.com", "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2953,11 +2933,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["FOo.com"])
     def test_email_whitelist_case_insenstive(self):
         """Email domain whitelist check should be case insenstive"""
-        post_data = {
-            "email": "janedoe@FOO.com",
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@FOO.com", "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2974,11 +2950,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         """
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._create_user_profile(alice_data)
-        post_data = {
-            "email": alice_data["email"],
-            "role": "editor",
-            "status": "1",
-        }
+        post_data = {"email": alice_data["email"], "role": "editor"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2991,11 +2963,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     def test_role_required(self):
         """role field is required"""
         # blank role
-        post_data = {
-            "email": "janedoe@example.com",
-            "role": "",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@example.com", "role": ""}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -3006,10 +2974,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
         # missing role
-        post_data = {
-            "email": "janedoe@example.com",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@example.com"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -3018,47 +2983,10 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
-
-    def test_status_valid(self):
-        """Status should be a valid choice"""
-        post_data = {
-            "email": "janedoe@example.com",
-            "role": "editor",
-            "status": "10",
-        }
-        request = self.factory.post(
-            "/",
-            data=json.dumps(post_data),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 400)
-
-    def test_status_optional(self):
-        """status should be optional
-
-        If not provided default status should be Pending
-        """
-        post_data = {"email": "janedoe@example.com", "role": "editor"}
-        request = self.factory.post(
-            "/",
-            data=json.dumps(post_data),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 200)
-        invitation = self.project.invitations.first()
-        self.assertEqual(invitation.status, ProjectInvitation.Status.PENDING)
 
     def test_role_valid(self):
         """Role should be a valid choice"""
-        post_data = {
-            "email": "janedoe@example.com",
-            "role": "abracadbra",
-            "status": "1",
-        }
+        post_data = {"email": "janedoe@example.com", "role": "abracadbra"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -3069,44 +2997,14 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     def test_update_role(self):
-        """An invitation can be updated"""
+        """An invitation role can be updated"""
         # status provided
         invitation = self.project.invitations.create(
             email="janedoe@example.com",
             role="editor",
             status=ProjectInvitation.Status.PENDING,
         )
-        post_data = {
-            "email": "janedoe@example.com",
-            "role": "readonly",
-            "status": ProjectInvitation.Status.PENDING,
-        }
-        request = self.factory.post(
-            "/",
-            data=json.dumps(post_data),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 200)
-        invitation.refresh_from_db()
-        self.assertEqual(invitation.role, "readonly")
-        self.assertEqual(
-            response.data,
-            {
-                "id": invitation.pk,
-                "email": "janedoe@example.com",
-                "project": self.project.pk,
-                "role": "readonly",
-                "status": 1,
-            },
-        )
-
-        # status not provided
-        post_data = {
-            "email": "janedoe@example.com",
-            "role": "readonly",
-        }
+        post_data = {"email": "janedoe@example.com", "role": "readonly"}
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
