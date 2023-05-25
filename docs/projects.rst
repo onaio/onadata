@@ -534,21 +534,22 @@ Response
 ^^^^^^^^
 
 ::
-    [
-        {
-            "id": 1,
-            "email":"janedoe@example.com",
-            "role":"readonly"
-            "status": 1
+    
+        [
+            {
+                "id": 1,
+                "email":"janedoe@example.com",
+                "role":"readonly",
+                "status": 1
 
-        },
-        {
-            "id": 2,
-            "email":"johndoe@example.com",
-            "role":"editor",
-            "status": 2,
-        }
-    ]
+            },
+            {
+                "id": 2,
+                "email":"johndoe@example.com",
+                "role":"editor",
+                "status": 2,
+            }
+        ]
 
 Get a list of project invitations with a specific status
 --------------------------------------------------------
@@ -576,15 +577,16 @@ Response
 ^^^^^^^^
 
 ::
-    [
-       
-        {
-            "id": 2,
-            "email":"johndoe@example.com",
-            "role":"editor",
-            "status": 2,
-        }
-    ]
+        
+        [
+        
+            {
+                "id": 2,
+                "email":"johndoe@example.com",
+                "role":"editor",
+                "status": 2,
+            }
+        ]
 
 
 Create a new project invitation
@@ -605,12 +607,13 @@ Response
 ^^^^^^^^
 
 ::
-    {
-        "id": 1,
-        "email": "janedoe@example.com",
-        "role": "readonly",
-        "status": 1,
-    }
+    
+        {
+            "id": 1,
+            "email": "janedoe@example.com",
+            "role": "readonly",
+            "status": 1,
+        }
 
 Update a project invitation role for a recipient
 ------------------------------------------------
