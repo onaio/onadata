@@ -147,8 +147,8 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
         org_users = set(
-            [group.team.organization for group in request.user.groups.all()]
-            + [o.user for o in filtered_queryset]
+            [group.team.organization for group in request.user.groups.all()] +
+            [o.user for o in filtered_queryset]
         )
 
         return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
@@ -335,19 +335,17 @@ class XFormPermissionFilterMixin:
         if dataview:
             int_or_parse_error(
                 dataview,
-                "Invalid value for dataview ID. It must be a positive integer.",
+                "Invalid value for dataview ID. It must be a positive integer."
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
             # filter with fitlered dataset query
             dataview_kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
-                get_filter_kwargs(self.dataview.query)
-            )
+                get_filter_kwargs(self.dataview.query))
             xform_qs = XForm.objects.filter(pk=self.dataview.xform.pk)
         elif merged_xform:
             int_or_parse_error(
                 merged_xform,
-                "Invalid value for Merged Dataset ID. It must be a positive integer.",
-            )
+                "Invalid value for Merged Dataset ID. It must be a positive integer.")
             self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
             xform_qs = self.merged_xform.xforms.all()
         elif xform:
@@ -365,7 +363,10 @@ class XFormPermissionFilterMixin:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
-        return {**{f"{keyword}__in": xforms}, **dataview_kwargs}
+        return {
+            **{f"{keyword}__in": xforms},
+            **dataview_kwargs
+        }
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._xform_filter(request, view, keyword)
@@ -514,6 +515,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """Attachment filter."""
 
     def filter_queryset(self, request, queryset, view):
+
         queryset = self._xform_filter_queryset(
             request, queryset, view, "instance__xform"
         )
@@ -695,9 +697,10 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         public_xform_id = _public_xform_id_or_none(view.kwargs.get("pk"))
         if public_xform_id:
             form_exports = queryset.filter(xform_id=public_xform_id)
-            current_user_form_exports = form_exports.filter(
-                *has_submitted_by_key
-            ).filter(options__query___submitted_by=request.user.username)
+            current_user_form_exports = (
+                form_exports.filter(*has_submitted_by_key)
+                .filter(options__query___submitted_by=request.user.username)
+            )
             other_form_exports = form_exports.exclude(*has_submitted_by_key)
             return current_user_form_exports | other_form_exports
 
