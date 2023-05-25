@@ -2700,19 +2700,18 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
     def setUp(self):
         super().setUp()
         self._project_create()
+        self.view = ProjectViewSet.as_view({"get": "invitations"})
 
     def test_authentication(self):
         """Authentication is required"""
         request = self.factory.get("/")
-        view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 404)
 
     def test_invalid_project(self):
         """Invalid project is handled"""
         request = self.factory.get("/", **self.extra)
-        view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=817)
+        response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
     def test_only_admins_allowed(self):
@@ -2721,14 +2720,13 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
+        request = self.factory.get("/", **self.extra)
 
         # only owner and manager roles can access invitation list
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
-            request = self.factory.get("/", **self.extra)
-            view = ProjectViewSet.as_view({"get": "invitations"})
-            response = view(request, pk=self.project.pk)
+            response = self.view(request, pk=self.project.pk)
 
             if role_class.name in [ManagerRole.name, OwnerRole.name]:
                 self.assertEqual(response.status_code, 200)
@@ -2750,8 +2748,7 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
             status=ProjectInvitation.Status.ACCEPTED,
         )
         request = self.factory.get("/", **self.extra)
-        view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         expected_response = [
             {
                 "id": jane_invitation.pk,
@@ -2774,8 +2771,7 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
     def test_no_invitations_available(self):
         """Returns an empty list if no invitations available"""
         request = self.factory.get("/", **self.extra)
-        view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -2794,8 +2790,7 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
             status=ProjectInvitation.Status.ACCEPTED,
         )
         request = self.factory.get("/", data={"status": "1"}, **self.extra)
-        view = ProjectViewSet.as_view({"get": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         expected_response = [
             {
                 "id": jane_invitation.pk,
@@ -2815,19 +2810,18 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
     def setUp(self):
         super().setUp()
         self._project_create()
+        self.view = ProjectViewSet.as_view({"post": "invitations"})
 
     def test_authentication(self):
         """Authentication is required"""
         request = self.factory.post("/", data={})
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
     def test_invalid_project(self):
         """Invalid project is handled"""
         request = self.factory.post("/", data={}, **self.extra)
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=817)
+        response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
     def test_only_admins_allowed(self):
@@ -2836,14 +2830,13 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
+        request = self.factory.post("/", data={}, **self.extra)
 
         # only owner and manager roles can access invitation list
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
-            request = self.factory.post("/", data={}, **self.extra)
-            view = ProjectViewSet.as_view({"post": "invitations"})
-            response = view(request, pk=self.project.pk)
+            response = self.view(request, pk=self.project.pk)
 
             if role_class.name in [ManagerRole.name, OwnerRole.name]:
                 self.assertEqual(response.status_code, 400)
@@ -2863,8 +2856,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.project.invitations.count(), 1)
         invitation = self.project.invitations.first()
@@ -2893,8 +2885,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
         # missing field
@@ -2908,8 +2899,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     def test_email_valid(self):
@@ -2926,8 +2916,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com"])
@@ -2945,8 +2934,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
         # email in whitelist is successful
@@ -2961,8 +2949,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
 
     @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["FOo.com"])
@@ -2979,8 +2966,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
 
     def test_user_unregistered(self):
@@ -3001,8 +2987,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     def test_role_required(self):
@@ -3019,8 +3004,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
         # missing role
@@ -3034,8 +3018,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     def test_status_valid(self):
@@ -3051,8 +3034,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     def test_status_optional(self):
@@ -3067,8 +3049,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         invitation = self.project.invitations.first()
         self.assertEqual(invitation.status, ProjectInvitation.Status.PENDING)
@@ -3086,8 +3067,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
 
     def test_update_role(self):
@@ -3109,8 +3089,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         invitation.refresh_from_db()
         self.assertEqual(invitation.role, "readonly")
@@ -3136,8 +3115,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             content_type="application/json",
             **self.extra,
         )
-        view = ProjectViewSet.as_view({"post": "invitations"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         invitation.refresh_from_db()
         self.assertEqual(invitation.role, "readonly")
@@ -3159,19 +3137,18 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
     def setUp(self):
         super().setUp()
         self._project_create()
+        self.view = ProjectViewSet.as_view({"post": "revoke_invitation"})
 
     def test_authentication(self):
         """Authentication is required"""
         request = self.factory.post("/", data={})
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
     def test_invalid_project(self):
         """Invalid project is handled"""
         request = self.factory.post("/", data={}, **self.extra)
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
-        response = view(request, pk=817)
+        response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
     def test_only_admins_allowed(self):
@@ -3180,14 +3157,13 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
+        request = self.factory.post("/", data={}, **self.extra)
 
-        # only owner and manager roles can access invitation list
+        # only owner and manager roles have permission
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
-            request = self.factory.post("/", data={}, **self.extra)
-            view = ProjectViewSet.as_view({"post": "revoke_invitation"})
-            response = view(request, pk=self.project.pk)
+            response = self.view(request, pk=self.project.pk)
 
             if role_class.name in [ManagerRole.name, OwnerRole.name]:
                 self.assertEqual(response.status_code, 400)
@@ -3201,11 +3177,10 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         )
         post_data = {"invitation_id": invitation.pk}
         request = self.factory.post("/", data=post_data, **self.extra)
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
         mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=pytz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            response = view(request, pk=self.project.pk)
+            response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 200)
         invitation.refresh_from_db()
@@ -3218,19 +3193,132 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         # blank
         post_data = {"invitation_id": ""}
         request = self.factory.post("/", data=post_data, **self.extra)
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
         # missing
         request = self.factory.post("/", data={}, **self.extra)
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
-        response = view(request, pk=self.project.pk)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
-    
+
     def test_invitation_id_valid(self):
         """`invitation_id` should valid"""
         post_data = {"invitation_id": "89"}
         request = self.factory.post("/", data=post_data, **self.extra)
-        view = ProjectViewSet.as_view({"post": "revoke_invitation"})
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_only_pending_allowed(self):
+        """Only invitations whose status is pending can be revoked"""
+
+        for value, _ in ProjectInvitation.Status.choices:
+            invitation = self.project.invitations.create(
+                email=f"jandoe-{value}@example.com",
+                role="editor",
+                status=value,
+            )
+            post_data = {"invitation_id": invitation.pk}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request, pk=self.project.pk)
+
+            if value == ProjectInvitation.Status.PENDING:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 400)
+
+
+class ResendInvitationTestCase(TestAbstractViewSet):
+    """Tests for resend invitation"""
+
+    def setUp(self):
+        super().setUp()
+        self._project_create()
+        self.view = ProjectViewSet.as_view({"post": "resend_invitation"})
+
+    def test_authentication(self):
+        """Authentication is required"""
+        request = self.factory.post("/", data={})
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_project(self):
+        """Invalid project is handled"""
+        request = self.factory.post("/", data={}, **self.extra)
+        response = self.view(request, pk=817)
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_admins_allowed(self):
+        """Only project admins are allowed to create project invitation"""
+        # login as editor alice
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+        request = self.factory.post("/", data={}, **self.extra)
+
+        # only owner and manager have permission
+        for role_class in ROLES_ORDERED:
+            ShareProject(self.project, "alice", role_class.name).save()
+            self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
+            response = self.view(request, pk=self.project.pk)
+
+            if role_class.name in [ManagerRole.name, OwnerRole.name]:
+                self.assertEqual(response.status_code, 400)
+            else:
+                self.assertEqual(response.status_code, 403)
+
+    def test_resend_invite(self):
+        """Invitation is revoked"""
+        invitation = self.project.invitations.create(
+            email="jandoe@example.com", role="editor"
+        )
+        post_data = {"invitation_id": invitation.pk}
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=pytz.utc)
+        request = self.factory.post("/", data=post_data, **self.extra)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.resent_at, mocked_now)
+        self.assertEqual(response.data, {"message": "Success"})
+
+    def test_invitation_id_required(self):
+        """`invitation_id` field is required"""
+        # blank
+        post_data = {"invitation_id": ""}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        view = ProjectViewSet.as_view({"post": "resend_invitation"})
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        # missing
+        request = self.factory.post("/", data={}, **self.extra)
+        view = ProjectViewSet.as_view({"post": "resend_invitation"})
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_invitation_id_valid(self):
+        """`invitation_id` should valid"""
+        post_data = {"invitation_id": "89"}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_only_pending_allowed(self):
+        """Only invitations whose status is pending can be resent"""
+
+        for value, _ in ProjectInvitation.Status.choices:
+            invitation = self.project.invitations.create(
+                email=f"jandoe-{value}@example.com",
+                role="editor",
+                status=value,
+            )
+            post_data = {"invitation_id": invitation.pk}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request, pk=self.project.pk)
+
+            if value == ProjectInvitation.Status.PENDING:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 400)
