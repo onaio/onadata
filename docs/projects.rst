@@ -515,3 +515,158 @@ Get user profiles that have starred a project
 
 	<pre class="prettyprint">
 	<b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
+
+Get Project Invitation List
+-----------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects/{pk}/invitations</pre>
+
+Example
+^^^^^^^^^
+
+curl -X GET https://api.ona.io/api/v1/projects/1/invitations
+
+Response
+^^^^^^^^^
+
+::
+    [
+        {
+            "id": 1,
+            "email":"janedoe@example.com",
+            "role":"readonly"
+            "status": 1
+
+        },
+        {
+            "id": 2,
+            "email":"johndoe@example.com",
+            "role":"editor",
+            "status": 2,
+        }
+    ]
+
+Get a list of project invitations with a specific status
+---------------------------------------------------------
+
+The available choices are:
+
+- ``1`` - Pending. Invitations which have not been accepted by recipients.
+- ``2`` - Accepted. Invitations which have been accepted by recipients.
+- ``3`` - Revoked. Invitations which were cancelled.
+
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects/{pk}/invitations?status=2</pre>
+
+
+Example
+^^^^^^^^^
+
+curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
+
+Response
+^^^^^^^^^
+
+::
+    [
+       
+        {
+            "id": 2,
+            "email":"johndoe@example.com",
+            "role":"editor",
+            "status": 2,
+        }
+    ]
+
+
+Create a new project invitation
+----------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
+
+Example
+^^^^^^^^^
+
+curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
+
+Response
+^^^^^^^^^^^
+
+::
+    {
+        "id": 1,
+        "email": "janedoe@example.com",
+        "role": "readonly",
+        "status": 1,
+    }
+
+Update a project invitation role for a recipient
+----------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
+
+
+Example
+^^^^^^^^^
+
+curl -X POST -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations
+
+Response
+^^^^^^^^^^^
+
+::
+    {
+        "id": 1,
+        "email": "janedoe@example.com",
+        "role": "editor",
+        "status": 1,
+    }
+
+
+Resend a project invitation
+------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/resend-invitation</pre>
+
+Example
+^^^^^^^^^
+
+curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
+
+Response
+^^^^^^^^^^^
+
+::
+    {
+        "message": "Success"
+    }
+
+Revoke a project invitation
+------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/revoke-invitation</pre>
+
+Example
+^^^^^^^^^
+
+curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
+
+Response
+^^^^^^^^^^^
+
+::
+    {
+        "message": "Success"
+    }

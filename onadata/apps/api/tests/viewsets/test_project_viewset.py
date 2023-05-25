@@ -2751,14 +2751,12 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
             {
                 "id": jane_invitation.pk,
                 "email": "janedoe@example.com",
-                "project": self.project.pk,
                 "role": "editor",
                 "status": 1,
             },
             {
                 "id": john_invitation.pk,
                 "email": "johndoe@example.com",
-                "project": self.project.pk,
                 "role": "editor",
                 "status": 2,
             },
@@ -2793,7 +2791,6 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
             {
                 "id": jane_invitation.pk,
                 "email": "janedoe@example.com",
-                "project": self.project.pk,
                 "role": "editor",
                 "status": 1,
             }
@@ -2862,7 +2859,6 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             {
                 "id": invitation.pk,
                 "email": "janedoe@example.com",
-                "project": self.project.pk,
                 "role": "editor",
                 "status": 1,
             },
@@ -3020,7 +3016,6 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             {
                 "id": invitation.pk,
                 "email": "janedoe@example.com",
-                "project": self.project.pk,
                 "role": "readonly",
                 "status": 1,
             },
