@@ -586,21 +586,21 @@ Response
 
 
 Create a new project invitation
-----------------------------------
+-------------------------------
 
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 ::
         
         curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
 
 Response
-^^^^^^^^^^^
+^^^^^^^^
 
 ::
     {
@@ -611,7 +611,7 @@ Response
     }
 
 Update a project invitation role for a recipient
-----------------------------------
+------------------------------------------------
 
 .. raw:: html
 
@@ -619,14 +619,14 @@ Update a project invitation role for a recipient
 
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 ::
         
         curl -X POST -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations
 
 Response
-^^^^^^^^^^^
+^^^^^^^^
 
 ::
     
@@ -639,21 +639,21 @@ Response
 
 
 Resend a project invitation
-------------------------------
+---------------------------
 
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/resend-invitation</pre>
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 ::
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
 
 Response
-^^^^^^^^^^^
+^^^^^^^^
 
 ::
     
@@ -662,24 +662,25 @@ Response
         }
 
 Revoke a project invitation
-------------------------------
+---------------------------
 
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/revoke-invitation</pre>
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 ::
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
 
 Response
-^^^^^^^^^^^
+^^^^^^^^
 
 ::
     
         {
             "message": "Success"
         }
+
