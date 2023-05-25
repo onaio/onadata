@@ -517,19 +517,19 @@ Get user profiles that have starred a project
 	<b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
 
 Get Project Invitation List
------------------------------
+---------------------------
 
 .. raw:: html
 
 	<pre class="prettyprint"><b>GET</b> /api/v1/projects/{pk}/invitations</pre>
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 curl -X GET https://api.ona.io/api/v1/projects/1/invitations
 
 Response
-^^^^^^^^^
+^^^^^^^^
 
 ::
     [
@@ -549,7 +549,7 @@ Response
     ]
 
 Get a list of project invitations with a specific status
----------------------------------------------------------
+--------------------------------------------------------
 
 The available choices are:
 
@@ -564,14 +564,14 @@ The available choices are:
 
 
 Example
-^^^^^^^^^
+^^^^^^^
 
 ::
         
         curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
 
 Response
-^^^^^^^^^
+^^^^^^^^
 
 ::
     [
