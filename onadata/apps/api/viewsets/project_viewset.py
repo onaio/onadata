@@ -43,6 +43,7 @@ from onadata.libs.serializers.xform_serializer import (
 from onadata.libs.serializers.project_invitation_serializer import (
     ProjectInvitationSerializer,
     ProjectInvitationRevokeSerializer,
+    ProjectInvitationResendSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -275,15 +276,19 @@ class ProjectViewSet(
 
     @action(detail=True, methods=["POST"], url_name="revoke-invitation")
     def revoke_invitation(self, request, *args, **kwargs):
-        method = request.method.upper()
+        self.get_object()
+        serializer = ProjectInvitationRevokeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": _("Success")})
 
-        if method == "POST":
-            serializer = ProjectInvitationRevokeSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response({"message": _("Success")})
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    @action(detail=True, methods=["POST"], url_name="resend-invitation")
+    def resend_invitation(self, request, *args, **kwargs):
+        self.get_object()
+        serializer = ProjectInvitationResendSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": _("Success")})
 
     def destroy(self, request, *args, **kwargs):
         """ "Soft deletes a project"""
