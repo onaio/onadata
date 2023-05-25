@@ -64,6 +64,7 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
             "status",
         )
         read_only_fields = ("status",)
+        extra_kwargs = {"project": {"write_only": True}}
 
 
 class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
