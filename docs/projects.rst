@@ -526,7 +526,9 @@ Get Project Invitation List
 Example
 ^^^^^^^
 
-curl -X GET https://api.ona.io/api/v1/projects/1/invitations
+::
+        
+        curl -X GET https://api.ona.io/api/v1/projects/1/invitations
 
 Response
 ^^^^^^^^
