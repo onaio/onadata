@@ -566,7 +566,9 @@ The available choices are:
 Example
 ^^^^^^^^^
 
-curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
+::
+        
+        curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
 
 Response
 ^^^^^^^^^
@@ -593,7 +595,9 @@ Create a new project invitation
 Example
 ^^^^^^^^^
 
-curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
+::
+        
+        curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
 
 Response
 ^^^^^^^^^^^
@@ -617,18 +621,21 @@ Update a project invitation role for a recipient
 Example
 ^^^^^^^^^
 
-curl -X POST -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations
+::
+        
+        curl -X POST -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations
 
 Response
 ^^^^^^^^^^^
 
 ::
-    {
-        "id": 1,
-        "email": "janedoe@example.com",
-        "role": "editor",
-        "status": 1,
-    }
+    
+        {
+            "id": 1,
+            "email": "janedoe@example.com",
+            "role": "editor",
+            "status": 1,
+        }
 
 
 Resend a project invitation
@@ -641,15 +648,18 @@ Resend a project invitation
 Example
 ^^^^^^^^^
 
-curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
+::
+        
+        curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
 
 Response
 ^^^^^^^^^^^
 
 ::
-    {
-        "message": "Success"
-    }
+    
+        {
+            "message": "Success"
+        }
 
 Revoke a project invitation
 ------------------------------
@@ -661,12 +671,15 @@ Revoke a project invitation
 Example
 ^^^^^^^^^
 
-curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
+::
+        
+        curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
 
 Response
 ^^^^^^^^^^^
 
 ::
-    {
-        "message": "Success"
-    }
+    
+        {
+            "message": "Success"
+        }
