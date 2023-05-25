@@ -16,7 +16,6 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.test import override_settings
 from django.contrib.auth import get_user_model
-from django.test import override_settings
 from rest_framework.authtoken.models import Token
 from httmock import HTTMock, urlmatch
 from mock import MagicMock, patch, Mock
@@ -56,7 +55,6 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from rest_framework.test import APIRequestFactory
 
 User = get_user_model()
 
@@ -601,8 +599,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         resultset = MetaData.objects.filter(
             Q(object_id=self.xform.pk),
             Q(data_type="enketo_url")
-            | Q(data_type="enketo_preview_url")
-            | Q(data_type="enketo_single_submit_url"),
+            | Q(data_type="enketo_preview_url")  # noqa W503
+            | Q(data_type="enketo_single_submit_url"),  # noqa W503
         )
         url = resultset.get(data_type="enketo_url")
         preview_url = resultset.get(data_type="enketo_preview_url")
@@ -2722,7 +2720,7 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
         self._login_user_and_profile(alice_data)
         request = self.factory.get("/", **self.extra)
 
-        # only owner and manager roles can access invitation list
+        # only owner and manager roles have permission
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
@@ -2832,7 +2830,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self._login_user_and_profile(alice_data)
         request = self.factory.post("/", data={}, **self.extra)
 
-        # only owner and manager roles can access invitation list
+        # only owner and manager roles have permission
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))

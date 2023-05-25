@@ -8,6 +8,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class ProjectInvitationTestCase(TestBase):
+
     """Tests for ProjectInvitation model"""
 
     def setUp(self) -> None:

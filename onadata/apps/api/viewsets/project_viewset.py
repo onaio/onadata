@@ -276,6 +276,7 @@ class ProjectViewSet(
 
     @action(detail=True, methods=["POST"], url_name="revoke-invitation")
     def revoke_invitation(self, request, *args, **kwargs):
+        """Revoke a project  invitation object"""
         self.get_object()
         serializer = ProjectInvitationRevokeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -284,6 +285,7 @@ class ProjectViewSet(
 
     @action(detail=True, methods=["POST"], url_name="resend-invitation")
     def resend_invitation(self, request, *args, **kwargs):
+        """Resend a project  invitation object"""
         self.get_object()
         serializer = ProjectInvitationResendSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -291,7 +293,7 @@ class ProjectViewSet(
         return Response({"message": _("Success")})
 
     def destroy(self, request, *args, **kwargs):
-        """ "Soft deletes a project"""
+        """Soft deletes a project"""
         project = self.get_object()
         user = request.user
         project.soft_delete(user)
