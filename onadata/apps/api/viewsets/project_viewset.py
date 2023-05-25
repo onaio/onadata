@@ -254,14 +254,13 @@ class ProjectViewSet(
             )
             serializer.is_valid(raise_exception=True)
             email = request.data.get("email")
-            invitation_status = request.data.get(
-                "status", ProjectInvitation.Status.PENDING
-            )
             invitation = None
 
             try:
                 invitation = ProjectInvitation.objects.get(
-                    email=email, status=invitation_status, project=project
+                    email=email,
+                    status=ProjectInvitation.Status.PENDING,
+                    project=project,
                 )
             except ProjectInvitation.DoesNotExist:
                 invitation = serializer.save()
