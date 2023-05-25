@@ -10,6 +10,8 @@ User = get_user_model()
 
 
 class ProjectInvitationSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectInvitation model object"""
+
     def validate_email(self, email):
         """Validate `email` field"""
         # Regular expression pattern for email validation
@@ -60,3 +62,25 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
             "role",
             "status",
         )
+
+
+class ProjectInvitationRevokeSerializer(serializers.Serializer):
+    """Serializer for revoking project invitation"""
+
+    invitation_id = serializers.IntegerField()
+
+    def validate_invitation_id(self, invitation_id):
+        """Validate `invitation_id` field"""
+        try:
+            ProjectInvitation.objects.get(pk=invitation_id)
+
+        except ProjectInvitation.DoesNotExist:
+            raise serializers.ValidationError(_("Invalid invitation_id."))
+
+        return invitation_id
+
+    def save(self, **kwargs):
+        invitation_id = self.validated_data.get("invitation_id")
+        invitation = ProjectInvitation.objects.get(pk=invitation_id)
+        invitation.status = ProjectInvitation.Status.REVOKED
+        invitation.save()

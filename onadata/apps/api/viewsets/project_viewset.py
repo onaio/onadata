@@ -5,6 +5,7 @@ The /projects API endpoint implementation.
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -41,6 +42,7 @@ from onadata.libs.serializers.xform_serializer import (
 )
 from onadata.libs.serializers.project_invitation_serializer import (
     ProjectInvitationSerializer,
+    ProjectInvitationRevokeSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -268,6 +270,18 @@ class ProjectViewSet(
                 invitation.save()
 
             return Response(ProjectInvitationSerializer(invitation).data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["POST"], url_name="revoke-invitation")
+    def revoke_invitation(self, request, *args, **kwargs):
+        method = request.method.upper()
+
+        if method == "POST":
+            serializer = ProjectInvitationRevokeSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"message": _("Success")})
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
