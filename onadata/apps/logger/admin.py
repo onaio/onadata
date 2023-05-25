@@ -6,7 +6,7 @@ from django.contrib import admin
 
 from reversion.admin import VersionAdmin
 
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models import Project, XForm, ProjectInvitation
 
 
 class FilterByUserMixin:
@@ -33,6 +33,17 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
 admin.site.register(XForm, XFormAdmin)
 
 
+class ProjectInvitationInline(admin.StackedInline):
+    model = ProjectInvitation
+    extra = 0
+    exclude = (
+        "status",
+        "accepted_at",
+        "resent_at",
+        "revoked_at",
+    )
+
+
 class ProjectAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     """Customise the Project admin view."""
 
@@ -41,6 +52,7 @@ class ProjectAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     ordering = ["name"]
     search_fields = ("name", "organization__username", "organization__email")
     user_lookup_field = "organization"
+    inlines = [ProjectInvitationInline]
 
 
 admin.site.register(Project, ProjectAdmin)
