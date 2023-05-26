@@ -1,9 +1,12 @@
-import pytz
+"""
+Tests for ProjectInvitation model
+"""
 from datetime import datetime
+from unittest.mock import patch, Mock
+import pytz
 from django.db import IntegrityError
 from onadata.apps.logger.models import ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
-from unittest.mock import patch, Mock
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
