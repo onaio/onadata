@@ -1,11 +1,12 @@
 import re
-from rest_framework import serializers
-from onadata.apps.logger.models import ProjectInvitation
-from onadata.libs.permissions import ROLES
 from django.conf import settings
 from django.utils.translation import gettext as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from rest_framework import serializers
+from onadata.apps.logger.models import ProjectInvitation
+from onadata.libs.permissions import ROLES
+
 
 User = get_user_model()
 
@@ -67,6 +68,7 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
         extra_kwargs = {"project": {"write_only": True}}
 
 
+# pylint: disable=abstract-method
 class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
     """Base serializer for project invitation updates"""
 
@@ -77,8 +79,8 @@ class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
         try:
             ProjectInvitation.objects.get(pk=invitation_id)
 
-        except ProjectInvitation.DoesNotExist:
-            raise serializers.ValidationError(_("Invalid invitation_id."))
+        except ProjectInvitation.DoesNotExist as e:
+            raise serializers.ValidationError(_("Invalid invitation_id.")) from e
 
         return invitation_id
 
@@ -93,9 +95,7 @@ class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
 
         if invitation.status != ProjectInvitation.Status.PENDING:
             raise serializers.ValidationError(
-                _(
-                    "This is not a pending invitation. You only revoke a pending invitation"
-                )
+                _("You cannot revoke an invitation which is not pending")
             )
 
         return invitation_id
@@ -117,9 +117,7 @@ class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
 
         if invitation.status != ProjectInvitation.Status.PENDING:
             raise serializers.ValidationError(
-                _(
-                    "This is not a pending invitation. You only resend a pending invitation"
-                )
+                _("You cannot resend an invitation which is not pending")
             )
 
         return invitation_id
