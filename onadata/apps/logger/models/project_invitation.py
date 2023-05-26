@@ -2,10 +2,10 @@
 ProjectInvitation class
 """
 from django.db import models
-from onadata.apps.logger.models import Project
-from onadata.libs.models.base_model import BaseModel
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from onadata.apps.logger.models import Project
+from onadata.libs.models.base_model import BaseModel
 
 
 class ProjectInvitation(BaseModel):
