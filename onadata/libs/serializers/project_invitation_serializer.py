@@ -11,8 +11,9 @@ from onadata.libs.permissions import ROLES
 User = get_user_model()
 
 
-class ProjectInvitationSerializer(serializers.ModelSerializer):
-    """Serializer for ProjectInvitation model object"""
+class ProjectInvitationBaseSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.CharField()
 
     def validate_email(self, email):
         """Validate `email` field"""
@@ -51,9 +52,11 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
         return role
 
-    def get_unique_together_validators(self):
-        """Overriding method to disable unique together checks"""
-        return []
+
+class ProjectInvitationSerializer(
+    ProjectInvitationBaseSerializer, serializers.ModelSerializer
+):
+    """Serializer for ProjectInvitation model object"""
 
     class Meta:
         model = ProjectInvitation
