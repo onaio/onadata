@@ -12,6 +12,8 @@ User = get_user_model()
 
 
 class ProjectInvitationBaseSerializer(serializers.Serializer):
+    """Base serializer for project invitation object"""
+
     email = serializers.EmailField()
     role = serializers.CharField()
 
