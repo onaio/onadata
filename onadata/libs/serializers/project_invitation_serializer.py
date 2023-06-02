@@ -11,12 +11,8 @@ from onadata.libs.permissions import ROLES
 User = get_user_model()
 
 
-# pylint: disable=abstract-method
-class ProjectInvitationBaseSerializer(serializers.Serializer):
-    """Base serializer for project invitation object"""
-
-    email = serializers.EmailField()
-    role = serializers.CharField()
+class ProjectInvitationSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectInvitation model object"""
 
     def validate_email(self, email):
         """Validate `email` field"""
@@ -54,12 +50,6 @@ class ProjectInvitationBaseSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("Invalid role."))
 
         return role
-
-
-class ProjectInvitationSerializer(
-    ProjectInvitationBaseSerializer, serializers.ModelSerializer
-):
-    """Serializer for ProjectInvitation model object"""
 
     class Meta:
         model = ProjectInvitation

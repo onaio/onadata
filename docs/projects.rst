@@ -8,6 +8,7 @@ Where:
 - ``pk`` - is the project id
 - ``formid`` - is the form id
 - ``owner`` - is the username for the user or organization of the project
+- ``invitation_pk`` - is the project invitation id
 
 Register a new Project
 -----------------------
@@ -615,12 +616,14 @@ Response
             "status": 1,
         }
 
-Update a project invitation role for a recipient
+Update a project invitation invitation
 ------------------------------------------------
 
 .. raw:: html
 
-	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
+	<pre class="prettyprint">
+    <b>PUT</b> /api/v1/projects/{pk}/invitations{invitation_pk} or <b>PATCH</b> /api/v1/projects/{pk}/invitations{invitation_pk}
+    </pre>
 
 
 Example
@@ -628,7 +631,7 @@ Example
 
 ::
         
-        curl -X POST -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations
+        curl -X PUT -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations/1
 
 Response
 ^^^^^^^^
