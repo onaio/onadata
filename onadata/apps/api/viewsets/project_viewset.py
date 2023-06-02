@@ -253,6 +253,7 @@ class ProjectViewSet(
             serializer = ProjectInvitationBaseSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             email = serializer.data["email"]
+            data = data = {**request.data, "project": project.pk}
 
             try:
                 invitation = ProjectInvitation.objects.get(
@@ -262,17 +263,13 @@ class ProjectViewSet(
                 )
             except ProjectInvitation.DoesNotExist:
                 # we are creating a new invitation
-                serializer = ProjectInvitationSerializer(
-                    data={**request.data, "project": project.pk}
-                )
+                serializer = ProjectInvitationSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 invitation = serializer.save()
 
             else:
                 # we are updating an existing invitation
-                serializer = ProjectInvitationSerializer(
-                    invitation, data={**request.data, "project": project.pk}
-                )
+                serializer = ProjectInvitationSerializer(invitation, data=data)
                 serializer.is_valid(raise_exception=True)
                 invitation = serializer.save()
 
