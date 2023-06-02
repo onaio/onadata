@@ -253,7 +253,7 @@ class ProjectViewSet(
             serializer = ProjectInvitationBaseSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             email = serializer.data["email"]
-            data = data = {**request.data, "project": project.pk}
+            data = {**request.data, "project": project.pk}
 
             try:
                 invitation = ProjectInvitation.objects.get(
