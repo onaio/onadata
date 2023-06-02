@@ -616,8 +616,8 @@ Response
             "status": 1,
         }
 
-Update a project invitation invitation
-------------------------------------------------
+Update a project invitation
+---------------------------
 
 .. raw:: html
 
