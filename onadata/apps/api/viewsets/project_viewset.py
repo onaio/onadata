@@ -261,6 +261,7 @@ class ProjectViewSet(
                     project=project,
                 )
             except ProjectInvitation.DoesNotExist:
+                # we are creating a new invitation
                 serializer = ProjectInvitationSerializer(
                     data={**request.data, "project": project.pk}
                 )
@@ -268,6 +269,7 @@ class ProjectViewSet(
                 invitation = serializer.save()
 
             else:
+                # we are updating an existing invitation
                 serializer = ProjectInvitationSerializer(
                     invitation, data={**request.data, "project": project.pk}
                 )
