@@ -44,7 +44,6 @@ from onadata.libs.serializers.project_invitation_serializer import (
     ProjectInvitationSerializer,
     ProjectInvitationRevokeSerializer,
     ProjectInvitationResendSerializer,
-    ProjectInvitationBaseSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -233,9 +232,13 @@ class ProjectViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["GET", "POST"])
+    @action(
+        detail=True,
+        methods=["GET", "POST, PUT, PATCH"],
+        url_path=r"invitations/(?P<invitation_id>\d+)",
+    )
     def invitations(self, request, *args, **kwargs):
-        """List, Create project invitations"""
+        """List, Create. Update project invitations"""
         project = self.get_object()
         method = request.method.upper()
 
@@ -250,30 +253,30 @@ class ProjectViewSet(
             return Response(serializer.data)
 
         if method == "POST":
-            serializer = ProjectInvitationBaseSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            email = serializer.data["email"]
             data = {**request.data, "project": project.pk}
+            serializer = ProjectInvitationSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-            try:
-                invitation = ProjectInvitation.objects.get(
-                    email=email,
-                    status=ProjectInvitation.Status.PENDING,
-                    project=project,
-                )
-            except ProjectInvitation.DoesNotExist:
-                # we are creating a new invitation
-                serializer = ProjectInvitationSerializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                invitation = serializer.save()
+            return Response(serializer.data)
 
-            else:
-                # we are updating an existing invitation
-                serializer = ProjectInvitationSerializer(invitation, data=data)
-                serializer.is_valid(raise_exception=True)
-                invitation = serializer.save()
+        if method in ["PUT", "PATCH"]:
+            invitation = get_object_or_404(
+                ProjectInvitation, pk=kwargs.get("invitation_id")
+            )
+            partial = False
 
-            return Response(ProjectInvitationSerializer(invitation).data)
+            if method == "PATCH":
+                partial = True
+
+            data = {**request.data, "project": project.pk}
+            serializer = ProjectInvitationSerializer(
+                invitation, data=data, partial=partial
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
