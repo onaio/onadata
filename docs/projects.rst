@@ -622,7 +622,7 @@ Update a project invitation
 .. raw:: html
 
 	<pre class="prettyprint">
-    <b>PUT</b> /api/v1/projects/{pk}/invitations{invitation_pk} or <b>PATCH</b> /api/v1/projects/{pk}/invitations{invitation_pk}
+    <b>PUT</b> /api/v1/projects/{pk}/invitations/{invitation_pk} or <b>PATCH</b> /api/v1/projects/{pk}/invitations/{invitation_pk}
     </pre>
 
 
