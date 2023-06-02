@@ -2993,7 +2993,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
 
-class UpdateInvitationTestCase(TestAbstractViewSet):
+class UpdateProjectInvitationTestCase(TestAbstractViewSet):
     """Tests for update project invitation"""
 
     def setUp(self):
@@ -3018,6 +3018,12 @@ class UpdateInvitationTestCase(TestAbstractViewSet):
         """Invalid project is handled"""
         request = self.factory.put("/", data={}, **self.extra)
         response = self.view(request, pk=817, invitation_id=self.invitation.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_invitation_id(self):
+        """Invalid project invitation is handled"""
+        request = self.factory.put("/", data={}, **self.extra)
+        response = self.view(request, pk=self.project.pk, invitation_id=817)
         self.assertEqual(response.status_code, 404)
 
     def test_only_admins_allowed(self):
