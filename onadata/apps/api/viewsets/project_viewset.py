@@ -44,6 +44,7 @@ from onadata.libs.serializers.project_invitation_serializer import (
     ProjectInvitationSerializer,
     ProjectInvitationRevokeSerializer,
     ProjectInvitationResendSerializer,
+    ProjectInvitationBaseSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -249,12 +250,9 @@ class ProjectViewSet(
             return Response(serializer.data)
 
         if method == "POST":
-            serializer = ProjectInvitationSerializer(
-                data={**request.data, "project": project.pk}
-            )
+            serializer = ProjectInvitationBaseSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            email = request.data.get("email")
-            invitation = None
+            email = serializer.data["email"]
 
             try:
                 invitation = ProjectInvitation.objects.get(
@@ -263,11 +261,18 @@ class ProjectViewSet(
                     project=project,
                 )
             except ProjectInvitation.DoesNotExist:
+                serializer = ProjectInvitationSerializer(
+                    data={**request.data, "project": project.pk}
+                )
+                serializer.is_valid(raise_exception=True)
                 invitation = serializer.save()
 
             else:
-                invitation.role = serializer.data["role"]
-                invitation.save()
+                serializer = ProjectInvitationSerializer(
+                    invitation, data={**request.data, "project": project.pk}
+                )
+                serializer.is_valid(raise_exception=True)
+                invitation = serializer.save()
 
             return Response(ProjectInvitationSerializer(invitation).data)
 
