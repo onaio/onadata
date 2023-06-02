@@ -11,6 +11,7 @@ from onadata.libs.permissions import ROLES
 User = get_user_model()
 
 
+# pylint: disable=abstract-method
 class ProjectInvitationBaseSerializer(serializers.Serializer):
     """Base serializer for project invitation object"""
 
