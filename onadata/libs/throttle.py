@@ -20,15 +20,18 @@ class RequestHeaderThrottle(SimpleRateThrottle):
         {"HTTP_USER_AGENT": "Google-HTTP-Java-Client/1.35.0 (gzip)"},
     )
 
+    def get_ident_from_header(self, value):
+        cleaned_ident = value.replace(" ", "")
+        return self.cache_format % {"scope": self.scope, "ident": cleaned_ident}
+
     def get_cache_key(self, request, _):
         for header, value in self.throttled_headers.items():
             header_value = request.META.get(header, None)
-            if header_value == value:
-                ident = header_value
-                # remove whitespace from key
-                cleaned_ident = ident.replace(" ", "")
-                return self.cache_format % {
-                    "scope": self.scope,
-                    "ident": cleaned_ident
-                }
+            if isinstance(value, str):
+                if header_value == value:
+                    return self.get_ident_from_header(header_value)
+            elif isinstance(value, list):
+                for val in value:
+                    if header_value == val:
+                        return self.get_ident_from_header(header_value)
         return None

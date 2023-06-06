@@ -30,3 +30,19 @@ class ThrottlingTests(TestCase):
         # get cached key
         key = self.throttle.get_cache_key(request, None)
         self.assertEqual(key, "throttle_header_Google-HTTP-Java-Client/1.35.0(gzip)")
+
+    @override_settings(
+        THROTTLE_HEADERS={
+            "HTTP_USER_AGENT": ["Google-HTTP-Java-Client/1.35.0 (gzip)", "Mozilla/5.0"],
+        }
+    )
+    def test_request_throttling_multiple_headers(self):
+        extra = {"HTTP_USER_AGENT": "Mozilla/5.0"}
+        request = self.factory.get("/", **extra)
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, "throttle_header_Mozilla/5.0")
+
+        extra = {"HTTP_USER_AGENT": "Google-HTTP-Java-Client/1.35.0 (gzip)"}
+        request = self.factory.get("/", **extra)
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, "throttle_header_Google-HTTP-Java-Client/1.35.0(gzip)")
