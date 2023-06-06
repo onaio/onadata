@@ -32,14 +32,18 @@ Install `Docker <https://www.docker.com/get-docker>`_ and `Docker Compose <https
 
     docker-compose up
 
+    # Start a bash/sh shell that you can intract with on the api contianer
+    docker exec -it onadata-api-1 bash
+
+    # Make changes(add fields and models) to the database
+    # -----------------
+    python3.9 manage.py migration
+
     # create super user
     # -----------------
-    docker exec -it onadata_web_1 bash
+    python3.9 manage.py createsuperuser
 
-    # activate virtual envirenment
-    source /srv/.virtualenv/bin/activate
-
-    python manage.py createsuperuser
+    
 
 It should be accessible via http://localhost:8000. The settings are in
 `onadata/settings/docker.py <onadata/settings/docker.py>`_.
