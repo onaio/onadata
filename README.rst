@@ -32,7 +32,7 @@ Install `Docker <https://www.docker.com/get-docker>`_ and `Docker Compose <https
 
     docker-compose up
 
-    # Start a bash/sh shell that you can intract with on the api contianer
+    # Start a bash/sh shell that you can interact with on the api contianer
     docker exec -it onadata-api-1 bash
 
     # Make changes(add fields and models) to the database
