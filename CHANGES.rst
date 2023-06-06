@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.9.1(2023-06-06)
+------------------
+
+- Add configurable timeouts for webhook requests
+  `PR #2419 <https://github.com/onaio/onadata/pull/2419>`
+  [@DavisRayM]
+- Handle AttributeError returned when element is None
+  `PR #2421 <https://github.com/onaio/onadata/pull/2421>`
+  [@DavisRayM]
+- Fix xlsx export bug on UI
+  `PR #2426 <https://github.com/onaio/onadata/pull/2426>`
+  [@KipSigei]
+- Fix unbound local error exception
+  `PR #2428 <https://github.com/onaio/onadata/pull/2428>`
+  [@KipSigei]
+- Upgrade django to v3.2.19
+  `PR #2429 <https://github.com/onaio/onadata/pull/2429>`
+  [@KipSigei]
+
 v3.9.0(2023-05-02)
 -----------------
 
