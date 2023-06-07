@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v3.9.1(2023-06-06)
+v3.9.1(2023-06-07)
 ------------------
 
 - Add configurable timeouts for webhook requests
