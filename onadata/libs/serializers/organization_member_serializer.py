@@ -7,6 +7,7 @@ from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
+from onadata.apps.api.models.organization_profile import get_organization_members_team
 
 from onadata.apps.api.tools import (
     _get_owners,
@@ -19,7 +20,13 @@ from onadata.apps.api.tools import (
 )
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.permissions import ROLES, OwnerRole, is_organization
+from onadata.libs.permissions import (
+    ROLES,
+    ManagerRole,
+    OwnerRole,
+    get_team_project_default_permissions,
+    is_organization,
+)
 from onadata.libs.serializers.fields.organization_field import OrganizationField
 from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
@@ -39,9 +46,11 @@ def _compose_send_email(organization, user, email_msg, email_subject=None):
 
 def _set_organization_role_to_user(organization, user, role):
     role_cls = ROLES.get(role)
-    role_cls.add(user, organization)
+    if role_cls:
+        role_cls.add(user, organization)
 
     owners_team = get_or_create_organization_owners_team(organization)
+    members_team = get_organization_members_team(organization)
 
     # add user to their respective team
     if role == OwnerRole.name:
@@ -56,13 +65,19 @@ def _set_organization_role_to_user(organization, user, role):
                 serializer.save()
 
     elif role != OwnerRole.name:
+        add_user_to_team(members_team, user)
         # add user to org projects
         for project in organization.user.project_org.all():
+            if role != ManagerRole.name:
+                role = get_team_project_default_permissions(members_team, project)
+            else:
+                if project.created_by != user:
+                    role = get_team_project_default_permissions(members_team, project)
+
             data = {"project": project.pk, "username": user.username, "role": role}
             serializer = ShareProjectSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-
         # remove user from owners team
         remove_user_from_team(owners_team, user)
 
@@ -147,9 +162,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
             user = User.objects.get(username=username)
 
             add_user_to_organization(organization, user)
-
-            if role:
-                _set_organization_role_to_user(organization, user, role)
+            _set_organization_role_to_user(organization, user, role)
 
             if email_msg:
                 _compose_send_email(organization, user, email_msg, email_subject)

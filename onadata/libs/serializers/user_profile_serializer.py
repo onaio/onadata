@@ -7,8 +7,10 @@ import re
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -265,6 +267,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         metadata = {}
         username = params.get("username")
         site = Site.objects.get(pk=settings.SITE_ID)
+        new_user = None
         try:
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
@@ -273,10 +276,17 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 site=site,
                 send_email=settings.SEND_EMAIL_ACTIVATION_API,
             )
+            validate_password(params.get("password1"), user=new_user)
         except IntegrityError as e:
             raise serializers.ValidationError(
                 _(f"User account {username} already exists")
             ) from e
+        except ValidationError as e:
+            # Delete created user object if created
+            # to allow re-registration
+            if new_user:
+                new_user.delete()
+            raise serializers.ValidationError({"password": e.messages})
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
@@ -310,6 +320,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         """
         username = value.lower() if isinstance(value, str) else value
 
+        if username.isdigit():
+            raise serializers.ValidationError(_("Username cannot be purely numeric."))
         if username in RESERVED_NAMES:
             raise serializers.ValidationError(
                 _(f"{username} is a reserved name, please choose another")

@@ -203,6 +203,20 @@ class TestFormShow(TestBase):
             'export_type': 'csv'
         }))
 
+        # assert contains .xlsx in url
+        self.assertContains(response, reverse(export_list, kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'export_type': 'xlsx'
+        }))
+
+        # assert shouldn't contain .xls in url
+        self.assertNotContains(response, reverse(export_list, kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'export_type': 'xls'
+        }))
+
     def test_return_error_if_xform_not_found(self):
         map_url = reverse(map_view, kwargs={
             'username': self.user.username,
@@ -229,7 +243,7 @@ class TestFormShow(TestBase):
         self.assertContains(response, reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
-            'export_type': 'xls'
+            'export_type': 'xlsx'
         }))
         self.assertNotContains(response, reverse(map_view, kwargs={
             'username': self.user.username,

@@ -16,12 +16,12 @@
     "@bower_components/underscore": "jashkenas/underscore#~1.13.4"
   },
   "devDependencies": {
-    "grunt": "^1.5.3",
+    "grunt": "^1.6.1",
     "grunt-karma": "^4.0.2",
-    "karma": "^6.4.0",
+    "karma": "^6.4.1",
     "load-grunt-tasks": "^5.1.0",
-    "sinon": "^14.0.0",
-    "tmp": "0.0.23"
+    "sinon": "^15.0.3",
+    "tmp": "0.2.1"
   },
   "engines": {
     "node": ">=0.8.0"

@@ -1,0 +1,19 @@
+# ignore everthing
+**
+# allow the following
+!onadata
+!requirements
+!manage.py
+!LICENSE
+!pyproject.toml
+!setup.cfg
+!setup.py
+!uwsgi.ini
+!extras
+!Makefile
+!docs
+
+# we finally again ignore the following from the folders allowed above
+**/*tests
+**/*test
+**/*__pycache__

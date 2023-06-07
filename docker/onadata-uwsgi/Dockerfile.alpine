@@ -1,0 +1,82 @@
+FROM python:3.9-alpine3.17
+
+ENV PYTHONUNBUFFERED 1
+ENV DJANGO_SETTINGS_MODULE onadata.preset.docker
+
+ARG optional_packages
+
+# Create container user
+RUN addgroup -g 11211 onadata
+RUN adduser -D -u 1121 -G onadata onadata
+
+# Install dependencies
+RUN apk add --no-cache --virtual .build-deps\
+        bash\
+        binutils\
+        proj-dev\
+        memcached\
+        libmemcached-dev\
+        supervisor\
+        git\
+        openssh\
+        openssl-dev\
+        libpq-dev\
+        gfortran\
+        openblas-dev\
+        linux-headers\
+        jpeg-dev\
+        libxml2-dev\
+        libxslt-dev\
+        zlib-dev\
+        ghostscript\
+        py3-sphinx\
+        pkgconfig\
+        gcc\
+        automake\
+        libtool\
+        openjdk11-jre-headless\
+        build-base\
+        musl\
+        musl-utils\
+        musl-locales\
+        tzdata\
+        netcat-openbsd\
+        gdal\
+        geos\
+        geos-dev\
+        gdal-dev\
+        icu-dev\
+        icu\
+        icu-libs
+
+# Set Locale Info
+RUN echo "export LC_ALL=en_US.UTF-8" >> /etc/profile.d/locale.sh
+
+# Install OnaData
+RUN mkdir -p /srv/onadata
+
+WORKDIR /srv/onadata
+
+COPY ../../ ./ 
+
+RUN chown -R onadata:onadata /home/onadata
+RUN chown -R onadata:onadata /srv/onadata
+
+RUN pip install --no-cache-dir -r requirements/base.pip
+RUN pip install --no-cache-dir -r requirements/s3.pip
+RUN pip install --no-cache-dir -r requirements/ses.pip
+RUN pip install --no-cache-dir -r requirements/azure.pip
+RUN pip install --no-cache-dir PyYAML==6.0 uwsgitop==0.11
+
+# Install optional requirements
+# Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
+# hadolint ignore=DL3013
+RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
+
+# Generate documentation
+RUN make -C docs html
+
+USER onadata
+
+CMD ["/home/onadata/.local/bin/uwsgi", "--ini", "/uwsgi.ini"]

@@ -2,20 +2,20 @@
 """
 Password reset serializer.
 """
-from six.moves.urllib.parse import urlparse
-
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.template import loader
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_decode
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
+from six.moves.urllib.parse import urlparse
 
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
-
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -228,6 +228,11 @@ class PasswordResetChangeSerializer(serializers.Serializer):
 
         if not default_token_generator.check_token(user, token):
             raise serializers.ValidationError(_(f"Invalid token: {token}"))
+
+        try:
+            validate_password(attrs.get("new_password"), user=user)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
 
         return attrs
 

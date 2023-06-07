@@ -28,13 +28,13 @@ from onadata.libs.utils.numeric import int_or_parse_error
 User = get_user_model()
 
 
-def _is_public_xform(export_id: int):
+def _public_xform_id_or_none(export_id: int):
     export = Export.objects.filter(pk=export_id).first()
 
-    if export:
-        return export.xform.shared_data or export.xform.shared
+    if export and (export.xform.shared_data or export.xform.shared):
+        return export.xform_id
 
-    return False
+    return None
 
 
 # pylint: disable=too-few-public-methods
@@ -689,10 +689,20 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
             Q(options__has_key="query") & Q(options__query__has_key="_submitted_by"),
         )
 
-        if request.user.is_anonymous or _is_public_xform(view.kwargs.get("pk")):
+        if request.user.is_anonymous:
             return self._xform_filter_queryset(
                 request, queryset, view, "xform_id"
             ).exclude(*has_submitted_by_key)
+
+        public_xform_id = _public_xform_id_or_none(view.kwargs.get("pk"))
+        if public_xform_id:
+            form_exports = queryset.filter(xform_id=public_xform_id)
+            current_user_form_exports = (
+                form_exports.filter(*has_submitted_by_key)
+                .filter(options__query___submitted_by=request.user.username)
+            )
+            other_form_exports = form_exports.exclude(*has_submitted_by_key)
+            return current_user_form_exports | other_form_exports
 
         old_perm_format = getattr(self, "perm_format")
 
