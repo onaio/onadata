@@ -2,7 +2,7 @@
 Module containing throttling utilities
 """
 
-from django.conf import Settings
+from django.conf import settings
 
 from rest_framework.throttling import SimpleRateThrottle
 
@@ -14,11 +14,14 @@ class RequestHeaderThrottle(SimpleRateThrottle):
     """
 
     scope = "header"
-    throttled_headers = getattr(
-        Settings,
-        "THROTTLE_HEADERS",
-        {"HTTP_USER_AGENT": "Google-HTTP-Java-Client/1.35.0 (gzip)"},
-    )
+
+    @property
+    def throttled_headers(self):
+        return getattr(
+            settings,
+            "THROTTLE_HEADERS",
+            {"HTTP_USER_AGENT": "Google-HTTP-Java-Client/1.35.0 (gzip)"},
+        )
 
     def get_ident_from_header(self, value):
         cleaned_ident = value.replace(" ", "")
