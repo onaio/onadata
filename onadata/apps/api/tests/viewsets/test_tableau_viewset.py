@@ -33,7 +33,7 @@ class TestTableauViewSet(TestBase):
         self._publish_xls_file_and_set_xform(path)
         path = os.path.join(self.fixture_dir, "repeats_sub.xml")
         self.factory = RequestFactory()
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
         self._make_submission(path, forced_submission_time=self._submission_time)
 
         self.view = TableauViewSet.as_view(
@@ -59,7 +59,7 @@ class TestTableauViewSet(TestBase):
         expected_schema = [
             {
                 "table_alias": "data",
-                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",  # noqa
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",  # noqa pylint: disable=line-too-long
                 "column_headers": [
                     {"id": "_id", "dataType": "int", "alias": "_id"},
                     {"id": "name", "dataType": "string", "alias": "name"},
@@ -289,7 +289,7 @@ class TestTableauViewSet(TestBase):
         """
         xform_w_attachments = self._publish_markdown(images_md, self.user)
         submission_file = NamedTemporaryFile(delete=False)
-        with open(submission_file.name, "w") as xml_file:
+        with open(submission_file.name, "w", encoding="utf-8") as xml_file:
             xml_file.write(
                 "<?xml version='1.0'?><data id=\"%s\">"
                 "<image1>1335783522563.jpg</image1>"
