@@ -337,8 +337,9 @@ class DataViewSet(
 
         return Response(data=data)
 
+    # pylint: disable=too-many-branches
     def destroy(self, request, *args, **kwargs):
-        """Soft deletes submissions data."""
+        """Deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
         # get param to trigger permanent submission deletion
@@ -407,7 +408,7 @@ class DataViewSet(
                 else:
                     # enable soft deletion
                     delete_instance(self.object, request.user)
-                
+
                 # updates the num_of_submissions for the form.
                 self.object.xform.submission_count(force_update=True)
 
