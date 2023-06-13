@@ -211,10 +211,11 @@ class TableauViewSet(OpenDataViewSet):
             if count:
                 return Response({"count": num_instances})
 
-            # there currently exists a peculiar intermittent bug where after ordering the queryset and
-            # the first item is accessed such as instances[0] or by slicing instances[0:1] (as in the
-            # the pagination implementation) the execution freezes and no result is returned.
-            # This causes the server to timeout. The workaround below only ensures we order and paginate
+            # there currently exists a peculiar intermittent bug where after ordering
+            # the queryset and the first item is accessed such as instances[0] or by
+            # slicing instances[0:1] (as in the the pagination implementation) the
+            # execution freezes and no result is returned. This causes the server to
+            # timeout. The workaround below only ensures we order and paginate
             # the results only when the queryset returns more than 1 item
             if num_instances > 1:
                 instances = instances.order_by("pk")
