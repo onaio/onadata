@@ -346,3 +346,16 @@ class TestTableauViewSet(TestBase):
         instances = self.xform.instances.all().order_by("pk")
         self.assertEqual(row_data[0]["_id"], instances[0].pk)
         self.assertEqual(row_data[1]["_id"], instances[1].pk)
+
+    def test_count_query_param(self):
+        """count query param works"""
+        self.view = TableauViewSet.as_view({"get": "data"})
+        path = os.path.join(self.fixture_dir, "repeats_sub.xml")
+        # make submission number 2
+        self._make_submission(path, forced_submission_time=self._submission_time)
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get("/", data={"count": True}, **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"count": 2})
