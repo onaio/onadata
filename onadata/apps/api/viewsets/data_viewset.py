@@ -341,6 +341,11 @@ class DataViewSet(
         """Soft deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
+        # get param to trigger permanent submission deletion
+        permanent_delete = strtobool(request.data.get("permanent_delete", "False"))
+        enable_submission_permanent_delete = getattr(
+            settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+        )
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
@@ -365,7 +370,11 @@ class DataViewSet(
                 )
 
             for instance in queryset.iterator():
-                delete_instance(instance, request.user)
+                if permanent_delete and enable_submission_permanent_delete:
+                    instance.delete()
+                else:
+                    # enable soft deletion
+                    delete_instance(instance, request.user)
 
             # updates the num_of_submissions for the form.
             after_count = self.object.submission_count(force_update=True)
@@ -393,7 +402,18 @@ class DataViewSet(
 
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
-                delete_instance(self.object, request.user)
+                if permanent_delete and enable_submission_permanent_delete:
+                    self.object.delete()
+                else:
+                    # enable soft deletion
+                    delete_instance(self.object, request.user)
+                
+                # updates the num_of_submissions for the form.
+                self.object.xform.submission_count(force_update=True)
+
+                # update the date modified field of the project
+                self.object.xform.project.date_modified = timezone.now()
+                self.object.xform.project.save(update_fields=["date_modified"])
 
                 # send message
                 send_message(
