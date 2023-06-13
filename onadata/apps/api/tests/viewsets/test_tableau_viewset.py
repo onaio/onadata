@@ -115,7 +115,7 @@ class TestTableauViewSet(TestBase):
             },
             {
                 "table_alias": "children",
-                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_children",  # noqa
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_children",  # noqa pylint: disable=line-too-long
                 "column_headers": [
                     {"id": "_id", "dataType": "int", "alias": "_id"},
                     {"id": "__parent_id", "dataType": "int", "alias": "__parent_id"},
