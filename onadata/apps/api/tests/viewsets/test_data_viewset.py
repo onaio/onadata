@@ -1866,6 +1866,26 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.num_of_submissions, 2)
         self.assertTrue(send_message_mock.called)
 
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=False)
+    def test_failed_permanent_deletion(self):
+        """
+        Test that permanent submission deletion throws bad request when
+        functionality is disabled
+        """
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"error": "Permanent Submission deletion not allowed"}
+        )
+
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_delete_submission_inactive_form(self, send_message_mock):
         self._make_submissions()

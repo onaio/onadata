@@ -370,12 +370,23 @@ class DataViewSet(
                     deleted_at__isnull=True,
                 )
 
+            error_msg = None
             for instance in queryset.iterator():
-                if permanent_delete and enable_submission_permanent_delete:
-                    instance.delete()
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        instance.delete()
+                    else:
+                        error_msg = {
+                            "error": _("Permanent Submission deletion not allowed")
+                        }
+                        break
                 else:
                     # enable soft deletion
                     delete_instance(instance, request.user)
+
+            if error_msg:
+                # return error msg if permanent deletion not enabled
+                return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
 
             # updates the num_of_submissions for the form.
             after_count = self.object.submission_count(force_update=True)
@@ -403,8 +414,14 @@ class DataViewSet(
 
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
-                if permanent_delete and enable_submission_permanent_delete:
-                    self.object.delete()
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        self.object.delete()
+                    else:
+                        error_msg = {
+                            "error": _("Permanent Submission deletion not allowed")
+                        }
+                        return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     # enable soft deletion
                     delete_instance(self.object, request.user)
