@@ -53,7 +53,7 @@ def process_tableau_data(
             else:
                 flat_dict[ID] = row_id
 
-            for (key, value) in row.items():
+            for key, value in row.items():
                 qstn = xform.get_element(key)
                 if qstn:
                     qstn_type = qstn.get("type")
@@ -181,8 +181,8 @@ class TableauViewSet(OpenDataViewSet):
         ]
         query_param_keys = request.query_params
         should_paginate = any(k in query_param_keys for k in pagination_keys)
-
         data = []
+
         if isinstance(self.object.content_object, XForm):
             if not self.object.active:
                 return Response(status=status.HTTP_404_NOT_FOUND)
@@ -202,16 +202,29 @@ class TableauViewSet(OpenDataViewSet):
             # Filter out deleted submissions
             instances = Instance.objects.filter(
                 **qs_kwargs, deleted_at__isnull=True
-            ).order_by("pk")
+            ).only("json")
+            # we prefer to use len(instances) instead of instances.count() as using
+            # len is less expensive as no db query is made. Read more
+            # https://docs.djangoproject.com/en/4.2/topics/db/optimization/
+            num_instances = len(instances)
 
             if count:
-                return Response({"count": instances.count()})
+                return Response({"count": num_instances})
 
-            if should_paginate:
+            # there currently exists a peculiar intermittent bug where after ordering
+            # the queryset and the first item is accessed such as instances[0] or by
+            # slicing instances[0:1] (as in the the pagination implementation) the
+            # execution freezes and no result is returned. This causes the server to
+            # timeout. The workaround below only ensures we order and paginate
+            # the results only when the queryset returns more than 1 item
+            if num_instances > 1:
+                instances = instances.order_by("pk")
+
+            if should_paginate and num_instances > 1:
                 instances = self.paginate_queryset(instances)
+
             # Switch out media file names for url links in queryset
             data = replace_attachment_name_with_url(instances)
-
             data = process_tableau_data(
                 TableauDataSerializer(data, many=True).data, xform
             )

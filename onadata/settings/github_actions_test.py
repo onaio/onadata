@@ -15,7 +15,7 @@ DATABASES = {
         "NAME": "onadata",
         "USER": "onadata",
         "PASSWORD": "onadata",
-        "HOST": "localhost",
+        "HOST": os.environ.get("DB_HOST", "localhost"),
     }
 }
 
