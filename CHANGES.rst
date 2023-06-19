@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.9.2(2023-06-19)
+------------------
+
+- Fix open-data endpoint timeout bug 
+  `PR #2435 <https://github.com/onaio/onadata/pull/2435>`
+  [@kelvin-muchiri]
+
 v3.9.1(2023-06-07)
 ------------------
 
