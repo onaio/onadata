@@ -1,0 +1,2 @@
+{% load i18n %}
+You have been added to an {{deployment_name}} Project

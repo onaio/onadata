@@ -1,0 +1,10 @@
+{% load i18n %}
+Hello,
+
+You have been added to {{project_name}} by a project admin allowing you to begin data collection. 
+
+To begin using {{deployment_name}}, please activate your account first by clicking the link below:
+{{invitation_url}}
+
+Thanks,
+The Team at {{ deployment_name }}

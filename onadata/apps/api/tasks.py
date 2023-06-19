@@ -13,7 +13,8 @@ from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models import XForm, ProjectInvitation
+from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -106,3 +107,11 @@ def send_verification_email(email, message_txt, subject):
 def send_account_lockout_email(email, message_txt, subject):
     """Sends account locked email."""
     send_generic_email(email, message_txt, subject)
+
+
+@app.task()
+def send_project_invitation_email_async(invitation_id: str):
+    """Sends generic email asynchronously"""
+    invitation = ProjectInvitation.objects.get(id=invitation_id)
+    email = ProjectInvitationEmail(invitation)
+    email.send()
