@@ -66,7 +66,7 @@ from onadata.libs.serializers.data_serializer import (
     OSMSerializer,
 )
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
@@ -343,7 +343,7 @@ class DataViewSet(
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
         # get param to trigger permanent submission deletion
-        permanent_delete = strtobool(request.data.get("permanent_delete", "False"))
+        permanent_delete = str_to_bool(request.data.get("permanent_delete"))
         enable_submission_permanent_delete = getattr(
             settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
         )
