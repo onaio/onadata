@@ -7,6 +7,7 @@ from rest_framework import serializers
 from onadata.apps.logger.models import ProjectInvitation
 from onadata.libs.permissions import ROLES
 from onadata.apps.api.tasks import send_project_invitation_email_async
+from onadata.libs.utils.email import get_project_invitation_url
 
 
 User = get_user_model()
@@ -66,7 +67,8 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         instance = super().create(validated_data)
-        send_project_invitation_email_async.delay(instance.id)
+        project_activation_url = get_project_invitation_url(self.context["request"])
+        send_project_invitation_email_async.delay(instance.id, project_activation_url)
 
         return instance
 
@@ -130,4 +132,5 @@ class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
         invitation = ProjectInvitation.objects.get(pk=invitation_id)
         invitation.resent_at = timezone.now()
         invitation.save()
-        send_project_invitation_email_async.delay(invitation_id)
+        project_activation_url = get_project_invitation_url(self.context["request"])
+        send_project_invitation_email_async.delay(invitation_id, project_activation_url)

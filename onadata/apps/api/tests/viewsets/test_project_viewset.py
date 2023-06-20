@@ -2841,6 +2841,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
     def test_create_invitation(self, mock_send_mail):
         """Project invitation can be created"""
         post_data = {
@@ -2866,7 +2867,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
-        mock_send_mail.assert_called_once_with(invitation.pk)
+        mock_send_mail.assert_called_once_with(
+            invitation.pk, "https://example.com/register"
+        )
 
     def test_email_required(self, mock_send_mail):
         """email is required"""
@@ -3278,6 +3281,7 @@ class ResendInvitationTestCase(TestAbstractViewSet):
 
         mock_send_mail.assert_not_called()
 
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
     def test_resend_invite(self, mock_send_mail):
         """Invitation is revoked"""
         invitation = self.project.invitations.create(
@@ -3294,7 +3298,10 @@ class ResendInvitationTestCase(TestAbstractViewSet):
         invitation.refresh_from_db()
         self.assertEqual(invitation.resent_at, mocked_now)
         self.assertEqual(response.data, {"message": "Success"})
-        mock_send_mail.assert_called_once_with(invitation.id)
+        mock_send_mail.assert_called_once_with(
+            invitation.id,
+            "https://example.com/register",
+        )
 
     def test_invitation_id_required(self, mock_send_mail):
         """`invitation_id` field is required"""

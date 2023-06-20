@@ -1,9 +1,17 @@
 from six.moves.urllib.parse import urlencode
-
+from mock import patch
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+    get_project_invitation_url,
+)
+from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.apps.logger.models import ProjectInvitation
+from onadata.libs.utils.user_auth import get_user_default_project
+
 
 VERIFICATION_URL = "http://ab.cd.ef"
 
@@ -114,3 +122,79 @@ class TestEmail(TestBase):
     def test_email_data_does_not_contain_newline_chars(self):
         email_data = self._get_email_data(include_redirect_url=True)
         self.assertNotIn("\n", email_data.get("subject"))
+
+
+class ProjectInvitationEmailTestCase(TestBase):
+    """Tests for class ProjectInvitationEmail"""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.project.name = "Test Invitation"
+        self.project.save()
+        self.invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        self.email = ProjectInvitationEmail(
+            self.invitation, "https://example.com/register"
+        )
+
+    def _mock_invitation_make_token(self):
+        return "tokenmoto"
+
+    def _mock_email_to_b64(self):
+        return "emailb64"
+
+    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
+    @patch.object(ProjectInvitationEmail, "_email_to_b64", _mock_email_to_b64)
+    def test_make_url(self):
+        """The invitation link created is correct"""
+        link = (
+            "https://example.com/register?"
+            "invitation_id=emailb64&invitation_token=tokenmoto"
+        )
+        self.assertEqual(self.email.make_url(), link)
+
+    @override_settings(DEPLOYMENT_NAME="Misfit")
+    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
+    @patch.object(ProjectInvitationEmail, "_email_to_b64", _mock_email_to_b64)
+    @patch("onadata.libs.utils.email.send_generic_email")
+    def test_send(self, mock_send):
+        """Email is sent successfully"""
+        self.email.send()
+        email_data = {
+            "subject": "Invitation to Join a Project on Misfit",
+            "message_txt": "\nHello,\n\nYou have been added to Test Invitation by"
+            " a project admin allowing you to begin data collection.\n\nTo begin"
+            " using Misfit, please create an account first by clicking the link below:"
+            "\nhttps://example.com/register?invitation_id=emailb64&amp;invitation_token=tokenmoto"
+            "\n\nThanks,\nThe Team at Misfit\n",
+        }
+        mock_send.assert_called_with(
+            self.invitation.email,
+            **email_data,
+        )
+
+
+class ProjectInvitationURLTestCase(TestBase):
+    """Tests for get_project_invitation_url"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.custom_request = RequestFactory().get("/path", data={"name": "test"})
+
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_url_configured(self):
+        """settings.PROJECT_INVITATION_URL is set"""
+        url = get_project_invitation_url(self.custom_request)
+        self.assertEqual(url, "https://example.com/register")
+
+    def test_url_not_configured(self):
+        """settings.PROJECT_INVITATION_URL not set"""
+        url = get_project_invitation_url(self.custom_request)
+        self.assertEqual(url, "http://testserver/api/v1/profiles")

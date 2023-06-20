@@ -254,7 +254,8 @@ class ProjectViewSet(
 
         if method == "POST":
             data = {**request.data, "project": project.pk}
-            serializer = ProjectInvitationSerializer(data=data)
+            context = self.get_serializer_context()
+            serializer = ProjectInvitationSerializer(data=data, context=context)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
@@ -270,8 +271,12 @@ class ProjectViewSet(
                 partial = True
 
             data = {**request.data, "project": project.pk}
+            context = self.get_serializer_context()
             serializer = ProjectInvitationSerializer(
-                invitation, data=data, partial=partial
+                invitation,
+                data=data,
+                partial=partial,
+                context=context,
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -293,7 +298,10 @@ class ProjectViewSet(
     def resend_invitation(self, request, *args, **kwargs):
         """Resend a project  invitation object"""
         self.get_object()
-        serializer = ProjectInvitationResendSerializer(data=request.data)
+        context = self.get_serializer_context()
+        serializer = ProjectInvitationResendSerializer(
+            data=request.data, context=context
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("Success")})

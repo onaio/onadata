@@ -6,6 +6,7 @@ import six
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.http import HttpRequest
 from django.utils.http import base36_to_int
 from django.utils.crypto import constant_time_compare
 from django.template.loader import render_to_string
@@ -130,29 +131,45 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
         )
 
 
+def get_project_invitation_url(request: HttpRequest):
+    """Get project invitation url"""
+    getattr(settings, "PROJECT_INVITATION_URL", "")
+
+    url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
+
+    if not url:
+        url = reverse("userprofile-list", request=request)
+
+    return url
+
+
 class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
     """
     A class to send a project invitation email
     """
 
-    def __init__(self, invitation: ProjectInvitation) -> None:
+    def __init__(self, invitation: ProjectInvitation, url: str) -> None:
         super().__init__()
 
         self.invitation = invitation
+        self.url = url
 
-    def _get_url(self) -> str:
-        """Returns the project invitation URL"""
-        url = getattr(settings, "PROJECT_INVITATION_URL", None)
-        # convert email to base 64
-        emailb64 = urlsafe_base64_encode(force_bytes(self.invitation.email))
-        token = self.make_token(self.invitation)
+    def _make_token(self) -> str:
+        return super().make_token(self.invitation)
+
+    def _email_to_b64(self):
+        """Convert email to base 64"""
+        return urlsafe_base64_encode(force_bytes(self.invitation.email))
+
+    def make_url(self) -> str:
+        """Returns the project invitation URL to be embedded in the email"""
         query_params: dict[str, str] = {
-            "invitation_id": emailb64,
-            "invitation_token": token,
+            "invitation_id": self._email_to_b64(),
+            "invitation_token": self._make_token(),
         }
         query_params_string = urlencode(query_params)
 
-        return f"{url}?{query_params_string}"
+        return f"{self.url}?{query_params_string}"
 
     def send(self) -> None:
         """Send project invitation email"""
@@ -168,7 +185,7 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
                 {
                     "deployment_name": deployment_name,
                     "project_name": self.invitation.project.name,
-                    "invitation_url": self._get_url(),
+                    "invitation_url": self.make_url(),
                 },
             ),
         }

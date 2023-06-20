@@ -1,2 +1,1 @@
-{% load i18n %}
-You have been added to an {{deployment_name}} Project
+{% load i18n %}{% blocktranslate %}Invitation to Join a Project on {{deployment_name}}{% endblocktranslate %}

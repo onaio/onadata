@@ -110,8 +110,8 @@ def send_account_lockout_email(email, message_txt, subject):
 
 
 @app.task()
-def send_project_invitation_email_async(invitation_id: str):
+def send_project_invitation_email_async(invitation_id: str, url: str):
     """Sends generic email asynchronously"""
     invitation = ProjectInvitation.objects.get(id=invitation_id)
-    email = ProjectInvitationEmail(invitation)
+    email = ProjectInvitationEmail(invitation, url)
     email.send()
