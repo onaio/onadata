@@ -1113,6 +1113,11 @@ A POST payload of parameter `permanent_delete` with the value 'True'. The value 
 
     permanent_delete = 'True'
 
+Example
+^^^^^^^^^
+::
+
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d permanent_delete = 'True'`
 
 Response
 ^^^^^^^^^
@@ -1122,7 +1127,13 @@ Response
 
 **Permanently Delete a subset of submissions**
 
-`DELETE /api/v1/data/{pk}?permanent_delete=true&instance_ids=1,2,3`
+`DELETE /api/v1/data/{pk}`
+
+Example
+^^^^^^^^^
+::
+
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d permanent_delete = 'True' -d instance_ids=101425,108428,1974624`
 
 Response
 ^^^^^^^^^
@@ -1133,7 +1144,6 @@ Response
         "status_code": "200",
         "message": "3 records were deleted"
     }
-
 
 
 GEOJSON
