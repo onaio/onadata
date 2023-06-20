@@ -1099,6 +1099,43 @@ Response
     {"status_code": 200, "message": "3 records were deleted"}
 
 
+Permanent Deletion of Submissions
+------------------------------------
+
+**Permanently Delete a specific submission instance**
+
+`DELETE /api/v1/data/{pk}/{dataid}`
+
+A POST payload of parameter `permanent_delete` with the value 'True'. The value is 'False' by default.
+
+**Payload**
+::
+
+    permanent_delete = 'True'
+
+
+Response
+^^^^^^^^^
+
+::
+    HTTP 204 No Content
+
+**Permanently Delete a subset of submissions**
+
+`DELETE /api/v1/data/{pk}?permanent_delete=true&instance_ids=1,2,3`
+
+Response
+^^^^^^^^^
+
+::
+
+    {
+        "status_code": "200",
+        "message": "3 records were deleted"
+    }
+
+
+
 GEOJSON
 -------
 
