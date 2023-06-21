@@ -377,7 +377,9 @@ class DataViewSet(
                         instance.delete()
                     else:
                         error_msg = {
-                            "error": _("Permanent Submission deletion not allowed")
+                            "error": _(
+                                "Permanent submission deletion is not enabled for this server."
+                            )
                         }
                         break
                 else:
@@ -419,7 +421,9 @@ class DataViewSet(
                         self.object.delete()
                     else:
                         error_msg = {
-                            "error": _("Permanent Submission deletion not allowed")
+                            "error": _(
+                                "Permanent submission deletion is not enabled for this server."
+                            )
                         }
                         return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
                 else:
