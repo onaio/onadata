@@ -337,7 +337,7 @@ class DataViewSet(
 
         return Response(data=data)
 
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
     def destroy(self, request, *args, **kwargs):
         """Deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
@@ -346,6 +346,9 @@ class DataViewSet(
         permanent_delete = str_to_bool(request.data.get("permanent_delete"))
         enable_submission_permanent_delete = getattr(
             settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+        )
+        permanent_delete_disabled_msg = _(
+            "Permanent submission deletion is not enabled for this server."
         )
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
@@ -376,11 +379,7 @@ class DataViewSet(
                     if enable_submission_permanent_delete:
                         instance.delete()
                     else:
-                        error_msg = {
-                            "error": _(
-                                "Permanent submission deletion is not enabled for this server."
-                            )
-                        }
+                        error_msg = {"error": permanent_delete_disabled_msg}
                         break
                 else:
                     # enable soft deletion
@@ -420,11 +419,7 @@ class DataViewSet(
                     if enable_submission_permanent_delete:
                         self.object.delete()
                     else:
-                        error_msg = {
-                            "error": _(
-                                "Permanent submission deletion is not enabled for this server."
-                            )
-                        }
+                        error_msg = {"error": permanent_delete_disabled_msg}
                         return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     # enable soft deletion

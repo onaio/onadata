@@ -1108,6 +1108,8 @@ Permanent Deletion of Submissions
 
 A POST payload of parameter `permanent_delete` with the value 'True'. The value is 'False' by default.
 
+Note: This functionality is only enabled when the ``ENABLE_SUBMISSION_PERMANENT_DELETE`` setting is set to `True` within the application
+
 **Payload**
 ::
 
@@ -1117,7 +1119,7 @@ Example
 ^^^^^^^^^
 ::
 
-    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d permanent_delete = 'True'`
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'permanent_delete=True'`
 
 Response
 ^^^^^^^^^
@@ -1133,7 +1135,7 @@ Example
 ^^^^^^^^^
 ::
 
-    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d permanent_delete = 'True' -d instance_ids=101425,108428,1974624`
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'permanent_delete=True' -d 'instance_ids=101425,108428,1974624'`
 
 Response
 ^^^^^^^^^

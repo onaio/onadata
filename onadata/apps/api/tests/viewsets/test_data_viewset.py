@@ -1755,6 +1755,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # test that xform submission count is updated
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
     
         # Test project details updated successfully
         self.assertEqual(
@@ -1783,6 +1784,10 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 3)
+
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 3)
+        self.assertEqual(self.xform.num_of_submissions, 3)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
@@ -1824,6 +1829,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
 
+        # check number of xform instances
+        self.assertEqual(self.xform.instances.count(), 2)
+
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_permanent_instance_delete_inactive_form(self, send_message_mock):
@@ -1849,6 +1857,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # test that xform submission count is updated
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
 
         # make form inactive
         self.xform.downloadable = False
@@ -1866,6 +1875,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.num_of_submissions, 2)
         self.assertTrue(send_message_mock.called)
 
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 2)
+
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=False)
     def test_failed_permanent_deletion(self):
         """
@@ -1882,9 +1894,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data, {"error": "Permanent Submission deletion not allowed"}
-        )
+        error_msg = "Permanent submission deletion is not enabled for this server."
+        self.assertEqual(response.data, {"error": error_msg})
 
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_delete_submission_inactive_form(self, send_message_mock):
