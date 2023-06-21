@@ -77,8 +77,8 @@ class ProjectInvitationTestCase(TestBase):
                 status=ProjectInvitation.Status.REVOKED,
             )
 
-    def test_revoked_at_autoset(self):
-        """`revoked_at` is set if null and status is REVOKED"""
+    def test_revoke(self):
+        """Calling revoke method works correctly"""
         mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=pytz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
@@ -86,39 +86,28 @@ class ProjectInvitationTestCase(TestBase):
                 email="janedoe@example.com",
                 project=self.project,
                 role="editor",
-                status=ProjectInvitation.Status.REVOKED,
+                status=ProjectInvitation.Status.PENDING,
             )
+            invitation.revoke()
+            invitation.refresh_from_db()
             self.assertEqual(invitation.revoked_at, mocked_now)
+            self.assertEqual(invitation.status, ProjectInvitation.Status.REVOKED)
 
-        # only auto set if revoked_at is not provided
-        revoked_at = datetime(2023, 5, 24, 11, 17, 0, tzinfo=pytz.utc)
-
-        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            invitation = ProjectInvitation.objects.create(
-                email="johndoe@example.com",
-                project=self.project,
-                role="editor",
-                status=ProjectInvitation.Status.REVOKED,
-                revoked_at=revoked_at,
-            )
-            self.assertEqual(invitation.revoked_at, revoked_at)
-
-        # revoked_at is not overriden when saving
+        # setting revoked_at explicitly works
+        revoked_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=pytz.utc)
         invitation = ProjectInvitation.objects.create(
-            email="bob@example.com",
+            email="john@example.com",
             project=self.project,
             role="editor",
-            status=ProjectInvitation.Status.REVOKED,
-            revoked_at=revoked_at,
+            status=ProjectInvitation.Status.PENDING,
         )
+        invitation.revoke(revoked_at=revoked_at)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.revoked_at, revoked_at)
+        self.assertEqual(invitation.status, ProjectInvitation.Status.REVOKED)
 
-        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            invitation.save()
-            invitation.refresh_from_db()
-            self.assertEqual(invitation.revoked_at, revoked_at)
-
-    def test_accepted_at_autoset(self):
-        """`accepted_at` is set if null and status is ACCEPTED"""
+    def test_accept(self):
+        """Calling accept method works correctly"""
         mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=pytz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
@@ -126,33 +115,22 @@ class ProjectInvitationTestCase(TestBase):
                 email="janedoe@example.com",
                 project=self.project,
                 role="editor",
-                status=ProjectInvitation.Status.ACCEPTED,
+                status=ProjectInvitation.Status.PENDING,
             )
+            invitation.accept()
+            invitation.refresh_from_db()
             self.assertEqual(invitation.accepted_at, mocked_now)
+            self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
 
-        # only auto set if accepted_at is not provided
-        accepted_at = datetime(2023, 5, 24, 11, 17, 0, tzinfo=pytz.utc)
-
-        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            invitation = ProjectInvitation.objects.create(
-                email="johndoe@example.com",
-                project=self.project,
-                role="editor",
-                status=ProjectInvitation.Status.ACCEPTED,
-                accepted_at=accepted_at,
-            )
-            self.assertEqual(invitation.accepted_at, accepted_at)
-
-        # accepted_at is not overriden when saving
+        # setting accepted_at explicitly works
+        accepted_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=pytz.utc)
         invitation = ProjectInvitation.objects.create(
-            email="bob@example.com",
+            email="john@example.com",
             project=self.project,
             role="editor",
-            status=ProjectInvitation.Status.REVOKED,
-            accepted_at=accepted_at,
+            status=ProjectInvitation.Status.PENDING,
         )
-
-        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            invitation.save()
-            invitation.refresh_from_db()
-            self.assertEqual(invitation.accepted_at, accepted_at)
+        invitation.accept(accepted_at=accepted_at)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.accepted_at, accepted_at)
+        self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)

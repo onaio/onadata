@@ -22,7 +22,10 @@ from registration.models import RegistrationProfile
 from rest_framework import serializers
 
 from onadata.apps.api.models.temp_token import TempToken
-from onadata.apps.api.tasks import send_verification_email
+from onadata.apps.api.tasks import (
+    send_verification_email,
+    accept_project_invitation_async,
+)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
@@ -30,7 +33,11 @@ from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+    ProjectInvitationEmail,
+)
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -142,6 +149,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     # pylint: disable=invalid-name
     id = serializers.ReadOnlyField(source="user.id")
     joined_on = serializers.ReadOnlyField(source="user.date_joined")
+    invitation_id = serializers.CharField(required=False, write_only=True)
+    invitation_token = serializers.CharField(required=False, write_only=True)
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -166,6 +175,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             "metadata",
             "joined_on",
             "name",
+            "invitation_id",
+            "invitation_token",
         )
         owner_only_fields = ("metadata",)
 
@@ -175,8 +186,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             request = self.context.get("request")
             if (
                 isinstance(self.instance, QuerySet)
-                or (request and request.user != self.instance.user)
-                or not request
+                or (request and request.user != self.instance.user)  # noqa W503
+                or not request  # noqa W503
             ):
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
@@ -206,9 +217,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if (
             "email" in ret
-            and request is None
-            or request.user
-            and not request.user.has_perm(CAN_VIEW_PROFILE, instance)
+            and request is None  # noqa W503
+            or request.user  # noqa W503
+            and not request.user.has_perm(CAN_VIEW_PROFILE, instance)  # noqa W503
         ):
             del ret["email"]
 
@@ -262,6 +273,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     )
     def create(self, validated_data):
         """Creates a user registration profile and account."""
+        encoded_invitation_id = validated_data.pop("invitation_id", None)
+        invitation_token = validated_data.pop("invitation_token", None)
         params = validated_data
         request = self.context.get("request")
         metadata = {}
@@ -287,15 +300,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if new_user:
                 new_user.delete()
             raise serializers.ValidationError({"password": e.messages})
+
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
         new_user.save()
-
-        if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
-            redirect_url = params.get("redirect_url")
-            _send_verification_email(redirect_url, new_user, request)
-
         created_by = request.user
         created_by = None if created_by.is_anonymous else created_by
         metadata["last_password_edit"] = timezone.now().isoformat()
@@ -311,6 +320,31 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata,
         )
         profile.save()
+        invitation = None
+
+        if encoded_invitation_id and invitation_token:
+            invitation = ProjectInvitationEmail.check_invitation(
+                encoded_invitation_id, invitation_token
+            )
+            # If invitation is valid, we accept the invitation, else
+            # we do nothing. There is absolutely no reason to prevent
+            # account creation because the invitation did not pass validation
+            if invitation:
+                accept_project_invitation_async.delay(
+                    invitation.id,
+                    new_user.id,
+                )
+
+        if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
+            if invitation and invitation.email == new_user.email:
+                # Mark users email as verified. No need to for them to verify
+                # if they registered using the email that the invite was sent to
+                profile.metadata.update({"is_email_verified": True})
+                profile.save()
+
+            else:
+                redirect_url = params.get("redirect_url")
+                _send_verification_email(redirect_url, new_user, request)
 
         return profile
 
@@ -377,8 +411,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         params = _get_registration_params(attrs)
         if (
             not self.instance
-            and params.get("name") is None
-            and params.get("first_name") is None
+            and params.get("name") is None  # noqa W503
+            and params.get("first_name") is None  # noqa W503
         ):
             raise serializers.ValidationError(
                 {"name": _("Either name or first_name should be provided")}

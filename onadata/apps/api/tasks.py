@@ -15,6 +15,7 @@ from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.apps.logger.models import XForm, ProjectInvitation
 from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.user_auth import accept_project_invitation
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -115,3 +116,10 @@ def send_project_invitation_email_async(invitation_id: str, url: str):
     invitation = ProjectInvitation.objects.get(id=invitation_id)
     email = ProjectInvitationEmail(invitation, url)
     email.send()
+
+
+@app.task()
+def accept_project_invitation_async(invitation_id: str, user_id: str):
+    invitation = ProjectInvitation.objects.get(id=invitation_id)
+    user = User.objects.get(pk=user_id)
+    accept_project_invitation(invitation, user)

@@ -108,8 +108,7 @@ class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
     def save(self, **kwargs):
         invitation_id = self.validated_data.get("invitation_id")
         invitation = ProjectInvitation.objects.get(pk=invitation_id)
-        invitation.status = ProjectInvitation.Status.REVOKED
-        invitation.save()
+        invitation.revoke()
 
 
 class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):

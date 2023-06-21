@@ -1,7 +1,9 @@
 from six.moves.urllib.parse import urlencode
 from mock import patch
+from django.utils.http import urlsafe_base64_encode
 from django.test import RequestFactory
 from django.test.utils import override_settings
+from django.utils.encoding import force_bytes
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.email import (
     get_verification_email_data,
@@ -146,38 +148,51 @@ class ProjectInvitationEmailTestCase(TestBase):
     def _mock_invitation_make_token(self):
         return "tokenmoto"
 
-    def _mock_email_to_b64(self):
-        return "emailb64"
-
-    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
-    @patch.object(ProjectInvitationEmail, "_email_to_b64", _mock_email_to_b64)
-    def test_make_url(self):
+    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch("onadata.libs.utils.email.urlsafe_base64_encode")
+    def test_make_url(self, mock_base64_encode):
         """The invitation link created is correct"""
+        mock_base64_encode.return_value = "idbase64"
         link = (
             "https://example.com/register?"
-            "invitation_id=emailb64&invitation_token=tokenmoto"
+            "invitation_id=idbase64&invitation_token=tokenmoto"
         )
         self.assertEqual(self.email.make_url(), link)
 
     @override_settings(DEPLOYMENT_NAME="Misfit")
-    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
-    @patch.object(ProjectInvitationEmail, "_email_to_b64", _mock_email_to_b64)
+    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch("onadata.libs.utils.email.urlsafe_base64_encode")
     @patch("onadata.libs.utils.email.send_generic_email")
-    def test_send(self, mock_send):
+    def test_send(self, mock_send, mock_base64_encode):
         """Email is sent successfully"""
+        mock_base64_encode.return_value = "idbase64"
         self.email.send()
         email_data = {
             "subject": "Invitation to Join a Project on Misfit",
             "message_txt": "\nHello,\n\nYou have been added to Test Invitation by"
             " a project admin allowing you to begin data collection.\n\nTo begin"
             " using Misfit, please create an account first by clicking the link below:"
-            "\nhttps://example.com/register?invitation_id=emailb64&amp;invitation_token=tokenmoto"
+            "\nhttps://example.com/register?invitation_id=idbase64&amp;invitation_token=tokenmoto"
             "\n\nThanks,\nThe Team at Misfit\n",
         }
         mock_send.assert_called_with(
             self.invitation.email,
             **email_data,
         )
+
+    def test_check_invitation(self):
+        """Check invitation works correctly"""
+        # valid invitation_id and token passes
+        token = self.email.make_token()
+        invitation_id = urlsafe_base64_encode(force_bytes(self.invitation.id))
+        check = ProjectInvitationEmail.check_invitation(invitation_id, token)
+        self.assertEqual(self.invitation, check)
+        # invalid id does not pass
+        check = ProjectInvitationEmail.check_invitation("foo", token)
+        self.assertIsNone(check)
+        # invalid token does not pass
+        check = ProjectInvitationEmail.check_invitation(invitation_id, "sometoken")
+        self.assertIsNone(check)
 
 
 class ProjectInvitationURLTestCase(TestBase):

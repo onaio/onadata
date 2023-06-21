@@ -3,15 +3,19 @@
 email utility functions.
 """
 import six
+from typing import Optional
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.http import HttpRequest
-from django.utils.http import base36_to_int
+from django.utils.http import (
+    base36_to_int,
+    urlsafe_base64_encode,
+    urlsafe_base64_decode,
+)
 from django.utils.crypto import constant_time_compare
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from six.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
 from onadata.apps.logger.models import ProjectInvitation
@@ -154,18 +158,34 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
         self.invitation = invitation
         self.url = url
 
-    def _make_token(self) -> str:
+    def make_token(self) -> str:
         return super().make_token(self.invitation)
 
-    def _email_to_b64(self):
-        """Convert email to base 64"""
-        return urlsafe_base64_encode(force_bytes(self.invitation.email))
+    @staticmethod
+    def check_invitation(encoded_id: str, token: str) -> Optional[ProjectInvitation]:
+        """Check if an invitation is valid"""
+        try:
+            invitation_id = int(urlsafe_base64_decode(encoded_id))
+
+        except ValueError:
+            return None
+
+        try:
+            invitation = ProjectInvitation.objects.get(pk=invitation_id)
+
+        except ProjectInvitation.DoesNotExist:
+            return None
+
+        if ProjectInvitationTokenGenerator().check_token(invitation, token):
+            return invitation
+
+        return None
 
     def make_url(self) -> str:
         """Returns the project invitation URL to be embedded in the email"""
         query_params: dict[str, str] = {
-            "invitation_id": self._email_to_b64(),
-            "invitation_token": self._make_token(),
+            "invitation_id": urlsafe_base64_encode(force_bytes(self.invitation.id)),
+            "invitation_token": self.make_token(),
         }
         query_params_string = urlencode(query_params)
 

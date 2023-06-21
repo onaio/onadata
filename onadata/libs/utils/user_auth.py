@@ -11,6 +11,8 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.utils import timezone
 
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from rest_framework.authtoken.models import Token
@@ -21,6 +23,8 @@ from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import get_form
+from onadata.apps.logger.models import ProjectInvitation
+from onadata.libs.models.share_project import ShareProject
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -87,14 +91,14 @@ def has_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         shared
-        or xform.shared_data
-        or (
+        or xform.shared_data  # noqa W503
+        or (  # noqa W503
             hasattr(request, "session")
-            and request.session.get("public_link") == xform.uuid
+            and request.session.get("public_link") == xform.uuid  # noqa W503
         )
-        or owner == user
-        or user.has_perm("logger.view_xform", xform)
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.view_xform", xform)  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 
@@ -103,8 +107,8 @@ def has_edit_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         (shared and xform.shared_data)
-        or owner == user
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 
@@ -263,3 +267,25 @@ def invalidate_and_regen_tokens(user):
     temp_token = TempToken.objects.create(user=user).key
 
     return {"access_token": access_token, "temp_token": temp_token}
+
+
+def accept_project_invitation(invitation: ProjectInvitation, user: User) -> None:
+    """Accept a project inivitation and share project with user
+
+    Accepts all invitations whose email matches the invitation's email or
+    the user's email
+    """
+
+    invitation_qs = ProjectInvitation.objects.filter(
+        Q(email=invitation.email) | Q(email=user.email),
+        status=ProjectInvitation.Status.PENDING,
+    )
+    now = timezone.now()
+
+    for invitation in invitation_qs:
+        ShareProject(
+            invitation.project,
+            user.username,
+            invitation.role,
+        ).save()
+        invitation.accept(accepted_at=now)

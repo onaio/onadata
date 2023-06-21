@@ -42,13 +42,15 @@ class ProjectInvitation(BaseModel):
     def __str__(self):
         return f"{self.email}|{self.project}"
 
-    def save(self, *args, **kwargs) -> None:
-        now = timezone.now()
+    def accept(self, accepted_at=None) -> None:
+        """Accept invitation"""
 
-        if self.status == self.Status.REVOKED and not self.revoked_at:
-            self.revoked_at = now
+        self.accepted_at = accepted_at or timezone.now()
+        self.status = ProjectInvitation.Status.ACCEPTED
+        self.save()
 
-        if self.status == self.Status.ACCEPTED and not self.accepted_at:
-            self.accepted_at = now
-
-        return super().save(*args, **kwargs)
+    def revoke(self, revoked_at=None) -> None:
+        """Revoke invitation"""
+        self.revoked_at = revoked_at or timezone.now()
+        self.status = ProjectInvitation.Status.REVOKED
+        self.save()
