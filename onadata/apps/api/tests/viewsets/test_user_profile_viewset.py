@@ -317,15 +317,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         # user registers using same email as invitation email
         data = _profile_data()
         del data["name"]
-        data["invitation_id"] = "some_valid_id"
-        data["invitation_token"] = "some_valid_token"
         data["email"] = invitation.email
 
         with patch.object(
             ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
         ):
             request = self.factory.post(
-                "/api/v1/profiles",
+                "/api/v1/profiles?invitation_id=some_valid_id&invitation_token=some_token",
                 data=json.dumps(data),
                 content_type="application/json",
                 **self.extra,
@@ -347,7 +345,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
         ):
             request = self.factory.post(
-                "/api/v1/profiles",
+                "/api/v1/profiles?invitation_id=some_valid_id&invitation_token=some_token",
                 data=json.dumps(data),
                 content_type="application/json",
                 **self.extra,
