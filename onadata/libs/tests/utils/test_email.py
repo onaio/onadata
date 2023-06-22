@@ -1,3 +1,5 @@
+import six
+from datetime import datetime
 from six.moves.urllib.parse import urlencode
 from mock import patch
 from django.utils.http import urlsafe_base64_encode
@@ -193,6 +195,18 @@ class ProjectInvitationEmailTestCase(TestBase):
         # invalid token does not pass
         check = ProjectInvitationEmail.check_invitation(invitation_id, "sometoken")
         self.assertIsNone(check)
+
+    def test_make_token(self):
+        """Ensure the hash algorithm is correct"""
+        timestamp = datetime.now().timestamp
+        expected_hash = (
+            six.text_type(self.invitation.pk)
+            + six.text_type(timestamp)  # noqa W503
+            + six.text_type(self.invitation.status)  # noqa W503
+        )
+        self.assertEqual(
+            self.email._make_hash_value(self.invitation, timestamp), expected_hash
+        )
 
 
 class ProjectInvitationURLTestCase(TestBase):
