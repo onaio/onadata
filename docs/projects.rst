@@ -750,7 +750,7 @@ Since a project invitation is sent to an unregistered user, acceptance of the in
 when creating a new user.
 
 The ``invitation_id`` and ``invitation_token`` query params are added to 
-the `create user`_: https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user endpoint
+the `create user <https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user>`_ endpoint
 
 where:
 
