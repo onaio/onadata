@@ -639,7 +639,7 @@ where:
 The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
 
 Normally, you would want the email recipient to be redirected to a web app. This can be achieved by
-overriding ``PROJECT_INVITATION_URL``
+adding the setting ``PROJECT_INVITATION_URL``
 
 **Example**
 
@@ -750,12 +750,11 @@ Since a project invitation is sent to an unregistered user, acceptance of the in
 when creating a new user.
 
 The ``invitation_id`` and ``invitation_token`` query params are added to 
-the _create user: https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user endpoint
+the `create user`_: https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user endpoint
 
 where:
 
-- ``id`` - is the value of the project ``invitation_id`` query parameter from the url
-embedded in the project invitation email
+- ``id`` - is the value of the project ``invitation_id`` query parameter from the url embedded in the project invitation email
 - ``token`` - is the value of the project ``invitation_token`` query parameter from the url
 embedded in the project invitation email
 
@@ -770,8 +769,7 @@ user will not have the projects shared with them.
 
 If the validation for ``id`` and ``token`` is succesful:
 
-- The invitation will be accepted including any other pending invitations whose emails match the 
-invitation's email.
+- The invitation will be accepted including any other pending invitations whose emails match the invitation's email.
 - If the invitation's email matches the new user's email, the new user's will immediately be marked as 
 verified.
 
