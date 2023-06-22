@@ -611,6 +611,13 @@ Example
 ``email``: The email address of the unregistered user.
 
 - Should be a valid email. If the ``PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST`` setting has been enabled, then the email domain has to be in the whitelist for it to be also valid
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com", "bar.com"]
+
 - Email should not be that of a registered user
 
 ``role``: The user's role for the project.
