@@ -148,8 +148,6 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
 
 def get_project_invitation_url(request: HttpRequest):
     """Get project invitation url"""
-    getattr(settings, "PROJECT_INVITATION_URL", "")
-
     url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
 
     if not url:
