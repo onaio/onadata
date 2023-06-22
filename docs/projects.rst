@@ -593,6 +593,9 @@ Response
 Create a new project invitation
 -------------------------------
 
+Invite an **unregistered** user to a project. An email will be sent to the user which has a link for them to
+create an account.
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
@@ -603,6 +606,19 @@ Example
 ::
         
         curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
+
+
+``email``: The email address of the unregistered user.
+
+- Should be a valid email. If the `PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST` setting has been enabled, 
+then the email domain has to be in the whitelist for it to be also valid
+- Email should not be that of a registered user
+role: The user's role for the project.
+
+``role``: The user's role for the project.
+
+- Must be a valid role
+
 
 Response
 ^^^^^^^^
@@ -649,6 +665,8 @@ Response
 Resend a project invitation
 ---------------------------
 
+Resend a project invitation email
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/resend-invitation</pre>
@@ -671,6 +689,9 @@ Response
 
 Revoke a project invitation
 ---------------------------
+
+Cancel a project invitation. A revoked invitation means that project will **not** be shared with the new user
+even if they accept the invitation.
 
 .. raw:: html
 
