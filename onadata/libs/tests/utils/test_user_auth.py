@@ -51,6 +51,7 @@ class AcceptProjectInvitationTestCase(TestBase):
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(self.invitation.accepted_at, self.mocked_now)
+            self.assertEqual(self.invitation.accepted_by, self.user)
             self.assertTrue(EditorRole.user_has_role(self.user, self.project))
             # other invitations are not touched
             john_invitation.refresh_from_db()
@@ -59,6 +60,7 @@ class AcceptProjectInvitationTestCase(TestBase):
             invitation.refresh_from_db()
             self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(invitation.accepted_at, self.mocked_now)
+            self.assertEqual(invitation.accepted_by, self.user)
             self.assertTrue(ManagerRole.user_has_role(self.user, project))
 
     def test_different_user_email(self):
@@ -85,11 +87,13 @@ class AcceptProjectInvitationTestCase(TestBase):
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(self.invitation.accepted_at, self.mocked_now)
+            self.assertEqual(self.invitation.accepted_by, self.user)
             self.assertTrue(EditorRole.user_has_role(self.user, self.project))
             # other projects are shared
             invitation.refresh_from_db()
             self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(invitation.accepted_at, self.mocked_now)
+            self.assertEqual(invitation.accepted_by, self.user)
             self.assertTrue(ManagerRole.user_has_role(self.user, project))
 
     def test_only_pending_accepted(self):
@@ -102,4 +106,5 @@ class AcceptProjectInvitationTestCase(TestBase):
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.REVOKED)
             self.assertIsNone(self.invitation.accepted_at)
+            self.assertIsNone(self.invitation.accepted_by)
             self.assertFalse(EditorRole.user_has_role(self.user, self.project))

@@ -288,4 +288,4 @@ def accept_project_invitation(invitation: ProjectInvitation, user: User) -> None
             user.username,
             invitation.role,
         ).save()
-        invitation.accept(accepted_at=now)
+        invitation.accept(accepted_at=now, accepted_by=user)

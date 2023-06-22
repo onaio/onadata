@@ -2870,6 +2870,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         mock_send_mail.assert_called_once_with(
             invitation.pk, "https://example.com/register"
         )
+        self.assertEqual(invitation.invited_by, self.user)
 
     def test_email_required(self, mock_send_mail):
         """email is required"""

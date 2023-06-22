@@ -67,6 +67,8 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         instance = super().create(validated_data)
+        instance.invited_by = self.context["request"].user
+        instance.save()
         project_activation_url = get_project_invitation_url(self.context["request"])
         send_project_invitation_email_async.delay(instance.id, project_activation_url)
 
