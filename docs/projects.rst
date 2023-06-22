@@ -692,3 +692,27 @@ Response
             "message": "Success"
         }
 
+
+Accept a project invitation
+---------------------------
+
+Since a project invitation is sent to an unregistered user, acceptance of the invitation is handled
+when creating a new user.
+
+The `invitation_id` and `invitation_token` query params are added to 
+the [create user](https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user) endpoint
+
+where:
+
+- ``id`` - is the value of the project `invitation_id` query parameter from the url
+embedded in the project invitation email
+- ``token`` - is the value of the project `invitation_token` query parameter from the url
+embedded in the project invitation email
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/profiles?invitation_id={id}&invitation_token={token}</pre>
+
+
+Validity of the `id` and `token` **do not prevent a user from being created**. If any of the parameters are
+invalid, the account will be created normally but the projects will not be shared with the user.
