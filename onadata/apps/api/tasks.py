@@ -112,7 +112,7 @@ def send_account_lockout_email(email, message_txt, subject):
 
 @app.task()
 def send_project_invitation_email_async(invitation_id: str, url: str):
-    """Sends generic email asynchronously"""
+    """Sends project invitation email asynchronously"""
     invitation = ProjectInvitation.objects.get(id=invitation_id)
     email = ProjectInvitationEmail(invitation, url)
     email.send()
@@ -120,6 +120,7 @@ def send_project_invitation_email_async(invitation_id: str, url: str):
 
 @app.task()
 def accept_project_invitation_async(invitation_id: str, user_id: str):
+    """Accpet project invitation asynchronously"""
     invitation = ProjectInvitation.objects.get(id=invitation_id)
     user = User.objects.get(pk=user_id)
     accept_project_invitation(invitation, user)
