@@ -128,6 +128,17 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
         return super().make_token(invitation)
 
     def _make_hash_value(self, invitation, timestamp):
+        """Make a hash value for the invitation token
+
+        The  hash is made up of:
+
+        1. primary key of the invitation - will uniquely identify the hash as belonging
+        to a particular inivtation
+        2. timestamp - the current timestamp
+        3. invitation status - will invaliddate the link when the status changes. If an invitation
+        with a status of pending changes to accepted, the link will be invalidated and cannot be
+        re-used
+        """
         return (
             six.text_type(invitation.pk)
             + six.text_type(timestamp)  # noqa W503

@@ -610,7 +610,7 @@ Example
 
 ``email``: The email address of the unregistered user.
 
-- Should be a valid email. If the `PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST` setting has been enabled, 
+- Should be a valid email. If the ``PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST`` setting has been enabled, 
 then the email domain has to be in the whitelist for it to be also valid
 - Email should not be that of a registered user
 role: The user's role for the project.
@@ -631,6 +631,27 @@ Response
             "role": "readonly",
             "status": 1,
         }
+    
+
+The link embedded in the email will be of the format ``http://{url}?invitation_id={id}&invitation_token={token}`` 
+where:
+
+- ``url`` - Is the URL the recipient will be redirected to on clicking the link. 
+The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
+
+Normally, you would want the email recipient to be redirected to a web app. This can be achieved by
+overriding ``PROJECT_INVITATION_URL``
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_URL = 'https://example.com/register'
+    
+- ``id`` - The `ProjectInvitation` object primary key encoded to base 64
+- ``token`` - is a hash value that will be used to confirm validity of the link.
+
+
 
 Update a project invitation
 ---------------------------
