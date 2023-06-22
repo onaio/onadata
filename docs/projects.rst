@@ -612,7 +612,6 @@ Example
 
 - Should be a valid email. If the ``PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST`` setting has been enabled, then the email domain has to be in the whitelist for it to be also valid
 - Email should not be that of a registered user
-role: The user's role for the project.
 
 ``role``: The user's role for the project.
 
@@ -635,8 +634,7 @@ Response
 The link embedded in the email will be of the format ``http://{url}?invitation_id={id}&invitation_token={token}`` 
 where:
 
-- ``url`` - Is the URL the recipient will be redirected to on clicking the link. 
-The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
+- ``url`` - is the URL the recipient will be redirected to on clicking the link. The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
 
 Normally, you would want the email recipient to be redirected to a web app. This can be achieved by
 adding the setting ``PROJECT_INVITATION_URL``
@@ -647,9 +645,8 @@ adding the setting ``PROJECT_INVITATION_URL``
 
     PROJECT_INVITATION_URL = 'https://example.com/register'
 
-- ``id`` - The `ProjectInvitation` object primary key encoded to base 64
+- ``id`` - The ``ProjectInvitation`` object primary key encoded to base 64
 - ``token`` - is a hash value that will be used to confirm validity of the link.
-
 
 
 Update a project invitation
@@ -699,7 +696,7 @@ Example
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
 
 
-``invitation_id``: The primary key of the `ProjectInvitation`` to resend. 
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
 
 - Must be a ``ProjectInvitation`` whose status is **Pending**
 
@@ -755,8 +752,7 @@ the `create user <https://github.com/onaio/onadata/blob/main/docs/profiles.rst#r
 where:
 
 - ``id`` - is the value of the project ``invitation_id`` query parameter from the url embedded in the project invitation email
-- ``token`` - is the value of the project ``invitation_token`` query parameter from the url
-embedded in the project invitation email
+- ``token`` - is the value of the project ``invitation_token`` query parameter from the url embedded in the project invitation email
 
 .. raw:: html
 
@@ -770,8 +766,7 @@ user will not have the projects shared with them.
 If the validation for ``id`` and ``token`` is succesful:
 
 - The invitation will be accepted including any other pending invitations whose emails match the invitation's email.
-- If the invitation's email matches the new user's email, the new user's will immediately be marked as 
-verified.
+- If the invitation's email matches the new user's email, the new user's will immediately be marked as verified.
 
 If ``id`` and ``token`` are invalid or are not provided, all pending project invitations whose email match
 the new user email are also accepted and shared with the user.
