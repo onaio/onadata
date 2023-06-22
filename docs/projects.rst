@@ -678,6 +678,11 @@ Example
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
 
+
+``invitation_id``: The primary key of the `ProjectInvitation`` to resend. 
+
+- Must be a `ProjectInvitation`` whose status is `Pending``
+
 Response
 ^^^^^^^^
 
@@ -703,6 +708,10 @@ Example
 ::
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
+
+``invitation_id``: The primary key of the `ProjectInvitation` to resend. 
+
+- Must be a `ProjectInvitation` whose status is `Pending`
 
 Response
 ^^^^^^^^
@@ -735,5 +744,16 @@ embedded in the project invitation email
 	<pre class="prettyprint"><b>POST</b> /api/v1/profiles?invitation_id={id}&invitation_token={token}</pre>
 
 
-Validity of the `id` and `token` **do not prevent a user from being created**. If any of the parameters are
-invalid, the account will be created normally but the projects will not be shared with the user.
+The validation of the `id` and `token` are dependent on one another and both should be provided for 
+successful validation. Failure of validation does not prevent the account creation. However, the new
+user will not have the projects shared with them.
+
+If the validation for `id` and `token` is succesful:
+
+- The invitation will be accepted including any other pending invitations whose emails match the 
+invitation's email.
+- If the invitation's email matches the new user's email, the new user's will immediately be marked as 
+verified.
+
+If `id` and `token` are invalid or are not provided, all pending project invitations whose email match
+the new user email are also accepted and shared with the user.
