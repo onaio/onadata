@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
@@ -110,13 +111,16 @@ def send_account_lockout_email(email, message_txt, subject):
     """Sends account locked email."""
     send_generic_email(email, message_txt, subject)
 
-@app.task(ignore_result=True)
+
+@app.task()
 def delete_inactive_submissions():
     """
-    Task to periodically delete soft deleted submissions
+    Task to periodically delete soft deleted submissions from db
     """
     submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", 360)
     time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
     # deletes soft deleted submissions that are older than time threshold
-    instances = Instance.objects.filter(deleted_at__gt=time_threshold)
+    instances = Instance.objects.filter(
+        Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold),
+    )
     instances.delete()
