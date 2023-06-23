@@ -4,6 +4,7 @@ Celery api.tasks module.
 """
 import os
 import sys
+import logging
 
 from celery.result import AsyncResult
 from django.core.files.uploadedfile import TemporaryUploadedFile
@@ -113,14 +114,24 @@ def send_account_lockout_email(email, message_txt, subject):
 @app.task()
 def send_project_invitation_email_async(invitation_id: str, url: str):
     """Sends project invitation email asynchronously"""
-    invitation = ProjectInvitation.objects.get(id=invitation_id)
-    email = ProjectInvitationEmail(invitation, url)
-    email.send()
+    try:
+        invitation = ProjectInvitation.objects.get(id=invitation_id)
+
+    except ProjectInvitation.DoesNotExist as err:
+        logging.exception(err)
+
+    else:
+        email = ProjectInvitationEmail(invitation, url)
+        email.send()
 
 
 @app.task()
 def accept_project_invitation_async(invitation_id: str, user_id: str):
     """Accpet project invitation asynchronously"""
-    invitation = ProjectInvitation.objects.get(id=invitation_id)
-    user = User.objects.get(pk=user_id)
-    accept_project_invitation(invitation, user)
+    try:
+        invitation = ProjectInvitation.objects.get(id=invitation_id)
+    except ProjectInvitation.DoesNotExist as err:
+        logging.exception(err)
+    else:
+        user = User.objects.get(pk=user_id)
+        accept_project_invitation(invitation, user)
