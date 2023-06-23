@@ -200,23 +200,36 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
 
         return f"{self.url}?{query_params_string}"
 
-    def send(self) -> None:
-        """Send project invitation email"""
-        message_path = "projects/invitation.txt"
-        subject_path = "projects/invitation_subject.txt"
+    def get_template_data(self) -> dict[str, str]:
+        """Get context data for the templates"""
         deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
-        email_data = {
-            "subject": render_to_string(
-                subject_path, {"deployment_name": deployment_name}
-            ),
-            "message_txt": render_to_string(
-                message_path,
-                {
-                    "deployment_name": deployment_name,
-                    "project_name": self.invitation.project.name,
-                    "invitation_url": self.make_url(),
-                },
-            ),
+        organization = self.invitation.project.organization.profile.name
+        data = {
+            "subject": {"deployment_name": deployment_name},
+            "body": {
+                "deployment_name": deployment_name,
+                "project_name": self.invitation.project.name,
+                "invitation_url": self.make_url(),
+                "organization": organization,
+            },
         }
 
-        send_generic_email(self.invitation.email, **email_data)
+        return data
+
+    def get_email_data(self) -> dict[str, str]:
+        """Get the email data to be sent"""
+        message_path = "projects/invitation.txt"
+        subject_path = "projects/invitation_subject.txt"
+        template_data = self.get_template_data()
+        email_data = {
+            "subject": render_to_string(subject_path, template_data["subject"]),
+            "message_txt": render_to_string(
+                message_path,
+                template_data["body"],
+            ),
+        }
+        return email_data
+
+    def send(self) -> None:
+        """Send project invitation email"""
+        send_generic_email(self.invitation.email, **self.get_email_data())

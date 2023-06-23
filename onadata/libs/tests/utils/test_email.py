@@ -135,6 +135,8 @@ class ProjectInvitationEmailTestCase(TestBase):
         super().setUp()
 
         self.project = get_user_default_project(self.user)
+        self.user.profile.name = "Test User"
+        self.user.profile.save()
         self.project.name = "Test Invitation"
         self.project.save()
         self.invitation = ProjectInvitation.objects.create(
@@ -207,6 +209,24 @@ class ProjectInvitationEmailTestCase(TestBase):
         self.assertEqual(
             self.email._make_hash_value(self.invitation, timestamp), expected_hash
         )
+
+    @override_settings(DEPLOYMENT_NAME="Misfit")
+    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch("onadata.libs.utils.email.urlsafe_base64_encode")
+    def test_get_template_data(self, mock_base64_encode):
+        """Context data for the email templates is correct"""
+        mock_base64_encode.return_value = "idbase64"
+        expected_data = {
+            "subject": {"deployment_name": "Misfit"},
+            "body": {
+                "deployment_name": "Misfit",
+                "project_name": "Test Invitation",
+                "invitation_url": "https://example.com/register?invitation_id=idbase64&invitation_token=tokenmoto",
+                "organization": "Test User",
+            },
+        }
+        data = self.email.get_template_data()
+        self.assertEqual(data, expected_data)
 
 
 class ProjectInvitationURLTestCase(TestBase):
