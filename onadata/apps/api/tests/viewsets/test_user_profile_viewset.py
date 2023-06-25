@@ -752,11 +752,40 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIn("%s already exists" % data["username"], response.data["username"])
 
+    @override_settings(AUTH_PASSWORD_VALIDATORS=[{"NAME": "onadata.libs.utils.validators.PreviousPasswordValidator"}])
     def test_change_password(self):
         view = UserProfileViewSet.as_view({"post": "change_password"})
         current_password = "bobbob"
         new_password = "bobbob1"
         old_token = Token.objects.get(user=self.user).key
+
+        # Assert missing or invalid password are rejected
+        post_data = {"current_password": "wrongpass", "new_password": new_password}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": "Invalid password. You have 9 attempts left."})
+
+        post_data = {"current_password": current_password, "new_password": ""}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": "current_password and new_password fields cannot be blank"})
+
+        post_data = {"current_password": "", "new_password": new_password}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"error": "current_password and new_password fields cannot be blank"})
+
+        # Assert new password can not be the same as the current password
+        post_data = {"current_password": current_password, "new_password": current_password}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
+
+        # Assert password is changed when current_password and new_password meet criteria
         post_data = {"current_password": current_password, "new_password": new_password}
 
         request = self.factory.post("/", data=post_data, **self.extra)
@@ -774,12 +803,20 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIn("temp_token", response.data)
         self.assertEqual(response.data["username"], self.user.username)
         self.assertNotEqual(response.data["access_token"], old_token)
+        new_token = response.data["access_token"]
 
         # Assert requests made with the old tokens are rejected
         post_data = {"current_password": new_password, "new_password": "random"}
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 401)
+
+        # Assert user can not set old password as their password
+        post_data = {"current_password": new_password, "new_password": current_password}
+        request = self.factory.post("/", data=post_data, **{"HTTP_AUTHORIZATION": f"Token {new_token}"})
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
 
     def test_change_password_wrong_current_password(self):
         view = UserProfileViewSet.as_view({"post": "change_password"})

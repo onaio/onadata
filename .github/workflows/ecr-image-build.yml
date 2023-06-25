@@ -7,11 +7,17 @@ on:
   push:
     branches:
       - "main"
+      - "*-rc"
   workflow_dispatch:
+    buildAlpine:
+      description: Whether to build an Alpine based image
+      required: false
+      type: boolean
+      default: false
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -72,6 +78,7 @@ jobs:
       - name: (Alpine) Build and push
         id: docker-build-alpine
         uses: docker/build-push-action@v2
+        if: github.event.inputs.buildAlpine
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.alpine
@@ -90,6 +97,7 @@ jobs:
         run: echo ${{ steps.docker-build-ubuntu.outputs.digest }}
 
       - name: (Alpine) Image digest
+        if: github.event.inputs.buildAlpine
         run: echo ${{ steps.docker-build-alpine.outputs.digest }}
 
       - name: Run Trivy vulnerability scanner
@@ -138,7 +146,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "View scan results: https://github.com/${{ github.repository }}/security."
+                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ env.version || github.ref_name }}+is:open++"
                   }
                 }
               ]

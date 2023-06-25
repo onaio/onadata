@@ -22,46 +22,26 @@ from savReaderWriter import SavWriter
 from six import iteritems
 
 from onadata.apps.logger.models.osmdata import OsmData
-from onadata.apps.logger.models.xform import (
-    QUESTION_TYPES_TO_EXCLUDE,
-    _encode_for_mongo,
-)
+from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
+                                              _encode_for_mongo)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    BAMBOO_DATASET_ID,
-    DELETEDAT,
-    DURATION,
-    GEOLOCATION,
-    ID,
-    INDEX,
-    MULTIPLE_SELECT_TYPE,
-    NOTES,
-    PARENT_INDEX,
-    PARENT_TABLE_NAME,
-    REPEAT_INDEX_TAGS,
-    REVIEW_COMMENT,
-    REVIEW_DATE,
-    REVIEW_STATUS,
-    SAV_255_BYTES_TYPE,
-    SAV_NUMERIC_TYPE,
-    SELECT_BIND_TYPE,
-    SELECT_ONE,
-    STATUS,
-    SUBMISSION_TIME,
-    SUBMITTED_BY,
-    TAGS,
-    UUID,
-    VERSION,
-    XFORM_ID_STRING,
-)
-from onadata.libs.utils.common_tools import (
-    get_choice_label,
-    get_choice_label_value,
-    get_value_or_attachment_uri,
-    str_to_bool,
-    track_task_progress,
-)
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+                                            DELETEDAT, DURATION, GEOLOCATION,
+                                            ID, INDEX, MULTIPLE_SELECT_TYPE,
+                                            NOTES, PARENT_INDEX,
+                                            PARENT_TABLE_NAME,
+                                            REPEAT_INDEX_TAGS, REVIEW_COMMENT,
+                                            REVIEW_DATE, REVIEW_STATUS,
+                                            SAV_255_BYTES_TYPE,
+                                            SAV_NUMERIC_TYPE, SELECT_BIND_TYPE,
+                                            SELECT_ONE, STATUS,
+                                            SUBMISSION_TIME, SUBMITTED_BY,
+                                            TAGS, UUID, VERSION,
+                                            XFORM_ID_STRING)
+from onadata.libs.utils.common_tools import (get_choice_label,
+                                             get_choice_label_value,
+                                             get_value_or_attachment_uri,
+                                             str_to_bool, track_task_progress)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
@@ -270,11 +250,7 @@ def _get_var_name(title, var_names):
         .replace("}", "")
     )
     var_name = _check_sav_column(var_name, var_names)
-
-    if ("/" in title and title.split("/")[1].startswith("_")) or var_name.startswith(
-        "_"
-    ):
-        var_name = "@" + var_name
+    var_name = "@" + var_name if var_name.startswith("_") else var_name
     var_names.append(var_name)
     return var_name, var_names
 
@@ -351,19 +327,23 @@ class ExportBuilder:
         field_delimiter,
         data_dictionary,
         remove_group_name=False,
+        gps_extra_field=False,
     ):
         """Format the field title."""
         title = abbreviated_xpath
         # Check if to truncate the group name prefix
         if remove_group_name:
-            elem = data_dictionary.get_survey_element(abbreviated_xpath)
-            # incase abbreviated_xpath is a choices xpath
-            if elem is None:
-                pass
-            elif elem.type == "":
-                title = "/".join([elem.parent.name, elem.name])
+            if gps_extra_field:
+                title = title.split(field_delimiter)[-1]
             else:
-                title = elem.name
+                elem = data_dictionary.get_survey_element(abbreviated_xpath)
+                # incase abbreviated_xpath is a choices xpath
+                if elem is None:
+                    pass
+                elif elem.type == "":
+                    title = "/".join([elem.parent.name, elem.name])
+                else:
+                    title = elem.name
 
         if field_delimiter != "/":
             title = field_delimiter.join(title.split("/"))
@@ -556,8 +536,9 @@ class ExportBuilder:
                     # split gps fields within this section
                     if child.bind.get("type") == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
+                        parent_xpath = child.get_abbreviated_xpath()
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                            child.get_abbreviated_xpath(), remove_group_name
+                            child.get_abbreviated_xpath()
                         )
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
@@ -565,12 +546,14 @@ class ExportBuilder:
                                 field_delimiter,
                                 data_dicionary,
                                 remove_group_name,
+                                gps_extra_field=True,
                             )
                             current_section["elements"].append(
                                 {
                                     "label": _title,
                                     "title": _title,
                                     "xpath": xpath,
+                                    "parent": parent_xpath,
                                     "type": "decimal",
                                 }
                             )
@@ -1224,7 +1207,7 @@ class ExportBuilder:
                 # check if it is a choice part of multiple choice
                 # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
-                if element.type == SELECT_ONE:
+                if element and element.type == SELECT_ONE:
                     # Determine if all select1 choices are numeric in nature.
                     # If the choices are numeric in nature have the field type
                     # in spss be numeric
@@ -1234,6 +1217,7 @@ class ExportBuilder:
                     return is_all_numeric(choices)
                 if element and element.type == "" and value_select_multiples:
                     return is_all_numeric([element.name])
+
                 parent_xpath = "/".join(xpath.split("/")[:-1])
                 parent = data_dictionary.get_element(parent_xpath)
                 return parent and parent.type == MULTIPLE_SELECT_TYPE
@@ -1245,13 +1229,27 @@ class ExportBuilder:
         var_labels = {}
         var_names = []
         fields_and_labels = []
+        _gps_fields = []
+        _gps_parent_id = {}
+
+        for section in self.gps_fields.values():
+            _gps_fields += list(section.keys())
 
         elements += [
             {"title": f, "label": f, "xpath": f, "type": f} for f in self.extra_columns
         ]
         for element in elements:
             title = element["title"]
+            parent = element.get("parent", "")
+            if parent in _gps_parent_id:
+                parent_id = _gps_parent_id[parent]
+                title += f"_{parent_id}"
+
             _var_name, _var_names = _get_var_name(title, var_names)
+            if element["xpath"] in _gps_fields:
+                if len(_var_name.split("@")) == 2:
+                    _gps_parent_id[element["xpath"]] = _var_name.split("@")[-1]
+
             var_names = _var_names
             fields_and_labels.append(
                 (element["title"], element["label"], element["xpath"], _var_name)

@@ -545,4 +545,7 @@ if (settings.DEBUG or TESTING) and "debug_toolbar" in settings.INSTALLED_APPS:
             re_path(r"^__debug__/", include(debug_toolbar.urls)),
         ]
 
-init_analytics()
+ENABLE_SEGMENT_ANALYTICS = getattr(settings, "ENABLE_SEGMENT_ANALYTICS", False)
+
+if ENABLE_SEGMENT_ANALYTICS:
+    init_analytics()

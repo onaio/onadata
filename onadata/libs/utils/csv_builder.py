@@ -118,7 +118,13 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
         new_col = None
         elem = data_dictionary.get_survey_element(col)
         if elem is None:
-            new_col = col
+            if any(
+                col.endswith(gps_meta)
+                for gps_meta in ["_latitude", "_longitude", "_altitude", "_precision"]
+            ):
+                new_col = col.split(group_delimiter)[-1]
+            else:
+                new_col = col
         elif elem.type != "":
             new_col = elem.name
         else:
@@ -456,13 +462,11 @@ class AbstractDataFrameBuilder:
             record.update({"_tags": ", ".join(sorted(tags))})
 
     @classmethod
-    def _split_gps_fields(cls, record, gps_fields, remove_group_name=False):
+    def _split_gps_fields(cls, record, gps_fields):
         updated_gps_fields = {}
         for (key, value) in iteritems(record):
             if key in gps_fields and isinstance(value, str):
-                gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                    key, remove_group_name
-                )
+                gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
                 gps_parts = {xpath: None for xpath in gps_xpaths}
                 # hack, check if its a list and grab the object within that
                 parts = value.split(" ")
@@ -473,7 +477,7 @@ class AbstractDataFrameBuilder:
             elif isinstance(value, list):
                 for list_item in value:
                     if isinstance(list_item, dict):
-                        cls._split_gps_fields(list_item, gps_fields, remove_group_name)
+                        cls._split_gps_fields(list_item, gps_fields)
         record.update(updated_gps_fields)
 
     # pylint: disable=too-many-arguments
@@ -773,9 +777,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # add ordered columns for gps fields
         for key in self.gps_fields:
-            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(
-                key, self.remove_group_name
-            )
+            gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
 
         # add ordered columns for nested repeat data
@@ -812,7 +814,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # check for gps and split into
             # components i.e. latitude, longitude,
             # altitude, precision
-            self._split_gps_fields(record, self.gps_fields, self.remove_group_name)
+            self._split_gps_fields(record, self.gps_fields)
             self._tag_edit_string(record)
             flat_dict = {}
             # re index repeats
