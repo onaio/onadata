@@ -66,7 +66,7 @@ from onadata.libs.serializers.data_serializer import (
     OSMSerializer,
 )
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
@@ -337,10 +337,19 @@ class DataViewSet(
 
         return Response(data=data)
 
+    # pylint: disable=too-many-branches,too-many-locals
     def destroy(self, request, *args, **kwargs):
-        """Soft deletes submissions data."""
+        """Deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
+        # get param to trigger permanent submission deletion
+        permanent_delete = str_to_bool(request.data.get("permanent_delete"))
+        enable_submission_permanent_delete = getattr(
+            settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+        )
+        permanent_delete_disabled_msg = _(
+            "Permanent submission deletion is not enabled for this server."
+        )
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
@@ -364,8 +373,21 @@ class DataViewSet(
                     deleted_at__isnull=True,
                 )
 
+            error_msg = None
             for instance in queryset.iterator():
-                delete_instance(instance, request.user)
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        instance.delete()
+                    else:
+                        error_msg = {"error": permanent_delete_disabled_msg}
+                        break
+                else:
+                    # enable soft deletion
+                    delete_instance(instance, request.user)
+
+            if error_msg:
+                # return error msg if permanent deletion not enabled
+                return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
 
             # updates the num_of_submissions for the form.
             after_count = self.object.submission_count(force_update=True)
@@ -393,7 +415,22 @@ class DataViewSet(
 
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
-                delete_instance(self.object, request.user)
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        self.object.delete()
+                    else:
+                        error_msg = {"error": permanent_delete_disabled_msg}
+                        return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # enable soft deletion
+                    delete_instance(self.object, request.user)
+
+                # updates the num_of_submissions for the form.
+                self.object.xform.submission_count(force_update=True)
+
+                # update the date modified field of the project
+                self.object.xform.project.date_modified = timezone.now()
+                self.object.xform.project.save(update_fields=["date_modified"])
 
                 # send message
                 send_message(

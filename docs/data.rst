@@ -1099,6 +1099,55 @@ Response
     {"status_code": 200, "message": "3 records were deleted"}
 
 
+Permanent Deletion of Submissions
+------------------------------------
+
+**Permanently Delete a specific submission instance**
+
+`DELETE /api/v1/data/{pk}/{dataid}`
+
+A POST payload of parameter `permanent_delete` with the value 'True'. The value is 'False' by default.
+
+Note: This functionality is only enabled when the ``ENABLE_SUBMISSION_PERMANENT_DELETE`` setting is set to `True` within the application
+
+**Payload**
+::
+
+    permanent_delete = 'True'
+
+Example
+^^^^^^^^^
+::
+
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'permanent_delete=True'`
+
+Response
+^^^^^^^^^
+
+::
+    HTTP 204 No Content
+
+**Permanently Delete a subset of submissions**
+
+`DELETE /api/v1/data/{pk}`
+
+Example
+^^^^^^^^^
+::
+
+    `curl -X DELETE https://api.ona.io/api/v1/data/28058' -d 'permanent_delete=True' -d 'instance_ids=101425,108428,1974624'`
+
+Response
+^^^^^^^^^
+
+::
+
+    {
+        "status_code": "200",
+        "message": "3 records were deleted"
+    }
+
+
 GEOJSON
 -------
 

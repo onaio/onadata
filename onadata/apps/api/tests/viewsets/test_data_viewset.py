@@ -1729,6 +1729,174 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
 
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_submissions_permanent_deletion(self, send_message_mock):
+        """
+        Test that permanent submission deletions work
+        """
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view({"delete": "destroy", "get": "list"})
+
+        # initial count = 4 submissions
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
+    
+        # Test project details updated successfully
+        self.assertEqual(
+            self.xform.project.date_modified.strftime("%Y-%m-%d %H:%M:%S"),
+            timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+        # message sent upon delete
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=dataid,
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
+        )
+
+        # second delete of same submission should return 404
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 404)
+
+        # remaining 3 submissions
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
+
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 3)
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_permanent_deletions_bulk_submissions(self, send_message_mock):
+        """
+        Test that permanent bulk submission deletions work
+        """
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
+        formid = self.xform.pk
+        initial_count = self.xform.num_of_submissions
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        # test with valid instance id's
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ",".join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids, "permanent_delete": True}
+
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get("message"),
+            "%d records were deleted" % len(records_to_be_deleted),
+        )
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.called_with(
+            [str(i.pk) for i in records_to_be_deleted],
+            formid,
+            XFORM,
+            request.user,
+            SUBMISSION_DELETED,
+        )
+        self.xform.refresh_from_db()
+        current_count = self.xform.num_of_submissions
+        self.assertNotEqual(current_count, initial_count)
+        self.assertEqual(current_count, 2)
+        self.assertEqual(self.xform.num_of_submissions, 2)
+
+        # check number of xform instances
+        self.assertEqual(self.xform.instances.count(), 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_permanent_instance_delete_inactive_form(self, send_message_mock):
+        """
+        Test that permanent submission deletions works on inactive forms
+        """
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view(
+            {
+                "delete": "destroy",
+            }
+        )
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
+
+        # make form inactive
+        self.xform.downloadable = False
+        self.xform.save()
+
+        dataid = self.xform.instances.filter(deleted_at=None).order_by("id")[0].pk
+
+        request = self.factory.delete("/", **self.extra, data={"permanent_delete": True})
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 2)
+        self.assertTrue(send_message_mock.called)
+
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=False)
+    def test_failed_permanent_deletion(self):
+        """
+        Test that permanent submission deletion throws bad request when
+        functionality is disabled
+        """
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 400)
+        error_msg = "Permanent submission deletion is not enabled for this server."
+        self.assertEqual(response.data, {"error": error_msg})
+
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_delete_submission_inactive_form(self, send_message_mock):
         self._make_submissions()
