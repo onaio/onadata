@@ -1,3 +1,5 @@
+"""Tests for module onadata.apps.api.tasks"""
+
 from unittest.mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
