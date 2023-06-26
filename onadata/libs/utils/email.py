@@ -120,7 +120,8 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
             # with:
             #   return False
             if not constant_time_compare(
-                self._make_token_with_timestamp(  # pylint: disable=unexpected-keyword-arg
+                # pylint: disable=unexpected-keyword-arg
+                self._make_token_with_timestamp(
                     invitation,
                     ts,
                     legacy=True,
