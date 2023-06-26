@@ -2799,6 +2799,9 @@ class GetProjectInvitationListTestCase(TestAbstractViewSet):
         self.assertEqual(response.data, expected_response)
 
 
+@patch(
+    "onadata.libs.serializers.project_invitation_serializer.send_project_invitation_email_async.delay"
+)
 class CreateProjectInvitationTestCase(TestAbstractViewSet):
     """Tests for create project invitation"""
 
@@ -2807,19 +2810,19 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self._project_create()
         self.view = ProjectViewSet.as_view({"post": "invitations"})
 
-    def test_authentication(self):
+    def test_authentication(self, mock_send_mail):
         """Authentication is required"""
         request = self.factory.post("/", data={})
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
-    def test_invalid_project(self):
+    def test_invalid_project(self, mock_send_mail):
         """Invalid project is handled"""
         request = self.factory.post("/", data={}, **self.extra)
         response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
-    def test_only_admins_allowed(self):
+    def test_only_admins_allowed(self, mock_send_mail):
         """Only project admins are allowed to create project invitation"""
         # login as editor alice
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -2838,7 +2841,8 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
-    def test_create_invitation(self):
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_create_invitation(self, mock_send_mail):
         """Project invitation can be created"""
         post_data = {
             "email": "janedoe@example.com",
@@ -2863,8 +2867,12 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
+        mock_send_mail.assert_called_once_with(
+            invitation.pk, "https://example.com/register"
+        )
+        self.assertEqual(invitation.invited_by, self.user)
 
-    def test_email_required(self):
+    def test_email_required(self, mock_send_mail):
         """email is required"""
         # blank string
         post_data = {"email": "", "role": "editor"}
@@ -2887,8 +2895,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
-    def test_email_valid(self):
+    def test_email_valid(self, mock_send_mail):
         """email should be a valid email"""
         # a valid email
         post_data = {"email": "akalkal", "role": "editor"}
@@ -2900,9 +2909,10 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
     @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com"])
-    def test_email_whitelist(self):
+    def test_email_whitelist(self, mock_send_mail):
         """Email address domain whitelist works"""
         # email domain should be in whitelist
         post_data = {"email": "janedoe@xample.com", "role": "editor"}
@@ -2925,9 +2935,10 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
+        mock_send_mail.assert_called_once()
 
     @override_settings(PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["FOo.com"])
-    def test_email_whitelist_case_insenstive(self):
+    def test_email_whitelist_case_insenstive(self, mock_send_mail):
         """Email domain whitelist check should be case insenstive"""
         post_data = {"email": "janedoe@FOO.com", "role": "editor"}
         request = self.factory.post(
@@ -2938,8 +2949,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
+        mock_send_mail.assert_called_once()
 
-    def test_user_unregistered(self):
+    def test_user_unregistered(self, mock_send_mail):
         """You cannot invite an existing user
 
         The email should be of a user who is not registered
@@ -2955,8 +2967,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
-    def test_role_required(self):
+    def test_role_required(self, mock_send_mail):
         """role field is required"""
         # blank role
         post_data = {"email": "janedoe@example.com", "role": ""}
@@ -2979,8 +2992,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
-    def test_role_valid(self):
+    def test_role_valid(self, mock_send_mail):
         """Role should be a valid choice"""
         post_data = {"email": "janedoe@example.com", "role": "abracadbra"}
         request = self.factory.post(
@@ -2991,6 +3005,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
 
 class UpdateProjectInvitationTestCase(TestAbstractViewSet):
@@ -3221,6 +3236,9 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
 
 
+@patch(
+    "onadata.libs.serializers.project_invitation_serializer.send_project_invitation_email_async.delay"
+)
 class ResendInvitationTestCase(TestAbstractViewSet):
     """Tests for resend invitation"""
 
@@ -3229,19 +3247,21 @@ class ResendInvitationTestCase(TestAbstractViewSet):
         self._project_create()
         self.view = ProjectViewSet.as_view({"post": "resend_invitation"})
 
-    def test_authentication(self):
+    def test_authentication(self, mock_send_mail):
         """Authentication is required"""
         request = self.factory.post("/", data={})
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
+        mock_send_mail.assert_not_called()
 
-    def test_invalid_project(self):
+    def test_invalid_project(self, mock_send_mail):
         """Invalid project is handled"""
         request = self.factory.post("/", data={}, **self.extra)
         response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
+        mock_send_mail.assert_not_called()
 
-    def test_only_admins_allowed(self):
+    def test_only_admins_allowed(self, mock_send_mail):
         """Only project admins are allowed to create project invitation"""
         # login as editor alice
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -3260,7 +3280,10 @@ class ResendInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
-    def test_resend_invite(self):
+        mock_send_mail.assert_not_called()
+
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_resend_invite(self, mock_send_mail):
         """Invitation is revoked"""
         invitation = self.project.invitations.create(
             email="jandoe@example.com", role="editor"
@@ -3276,8 +3299,12 @@ class ResendInvitationTestCase(TestAbstractViewSet):
         invitation.refresh_from_db()
         self.assertEqual(invitation.resent_at, mocked_now)
         self.assertEqual(response.data, {"message": "Success"})
+        mock_send_mail.assert_called_once_with(
+            invitation.id,
+            "https://example.com/register",
+        )
 
-    def test_invitation_id_required(self):
+    def test_invitation_id_required(self, mock_send_mail):
         """`invitation_id` field is required"""
         # blank
         post_data = {"invitation_id": ""}
@@ -3290,15 +3317,17 @@ class ResendInvitationTestCase(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"post": "resend_invitation"})
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
-    def test_invitation_id_valid(self):
+    def test_invitation_id_valid(self, mock_send_mail):
         """`invitation_id` should valid"""
         post_data = {"invitation_id": "89"}
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+        mock_send_mail.assert_not_called()
 
-    def test_only_pending_allowed(self):
+    def test_only_pending_allowed(self, mock_send_mail):
         """Only invitations whose status is pending can be resent"""
 
         for value, _ in ProjectInvitation.Status.choices:
@@ -3316,3 +3345,5 @@ class ResendInvitationTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 400)
+
+        mock_send_mail.assert_called_once()

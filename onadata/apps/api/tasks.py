@@ -4,6 +4,7 @@ Celery api.tasks module.
 """
 import os
 import sys
+import logging
 from datetime import timedelta
 
 from celery.result import AsyncResult
@@ -17,7 +18,9 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
+from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.user_auth import accept_project_invitation
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -127,3 +130,26 @@ def delete_inactive_submissions():
         for instance in queryset_iterator(instances):
             # delete submission
             instance.delete()
+def send_project_invitation_email_async(invitation_id: str, url: str):
+    """Sends project invitation email asynchronously"""
+    try:
+        invitation = ProjectInvitation.objects.get(id=invitation_id)
+
+    except ProjectInvitation.DoesNotExist as err:
+        logging.exception(err)
+
+    else:
+        email = ProjectInvitationEmail(invitation, url)
+        email.send()
+
+
+@app.task()
+def accept_project_invitation_async(invitation_id: str, user_id: str):
+    """Accpet project invitation asynchronously"""
+    try:
+        invitation = ProjectInvitation.objects.get(id=invitation_id)
+    except ProjectInvitation.DoesNotExist as err:
+        logging.exception(err)
+    else:
+        user = User.objects.get(pk=user_id)
+        accept_project_invitation(invitation, user)

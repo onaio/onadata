@@ -6,6 +6,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from onadata.apps.logger.models import ProjectInvitation
 from onadata.libs.permissions import ROLES
+from onadata.apps.api.tasks import send_project_invitation_email_async
+from onadata.libs.utils.email import get_project_invitation_url
 
 
 User = get_user_model()
@@ -13,6 +15,18 @@ User = get_user_model()
 
 class ProjectInvitationSerializer(serializers.ModelSerializer):
     """Serializer for ProjectInvitation model object"""
+
+    class Meta:
+        model = ProjectInvitation
+        fields = (
+            "id",
+            "email",
+            "project",
+            "role",
+            "status",
+        )
+        read_only_fields = ("status",)
+        extra_kwargs = {"project": {"write_only": True}}
 
     def validate_email(self, email):
         """Validate `email` field"""
@@ -51,17 +65,14 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
         return role
 
-    class Meta:
-        model = ProjectInvitation
-        fields = (
-            "id",
-            "email",
-            "project",
-            "role",
-            "status",
-        )
-        read_only_fields = ("status",)
-        extra_kwargs = {"project": {"write_only": True}}
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        instance.invited_by = self.context["request"].user
+        instance.save()
+        project_activation_url = get_project_invitation_url(self.context["request"])
+        send_project_invitation_email_async.delay(instance.id, project_activation_url)
+
+        return instance
 
 
 # pylint: disable=abstract-method
@@ -99,8 +110,7 @@ class ProjectInvitationRevokeSerializer(ProjectInvitationUpdateBaseSerializer):
     def save(self, **kwargs):
         invitation_id = self.validated_data.get("invitation_id")
         invitation = ProjectInvitation.objects.get(pk=invitation_id)
-        invitation.status = ProjectInvitation.Status.REVOKED
-        invitation.save()
+        invitation.revoke()
 
 
 class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
@@ -123,3 +133,5 @@ class ProjectInvitationResendSerializer(ProjectInvitationUpdateBaseSerializer):
         invitation = ProjectInvitation.objects.get(pk=invitation_id)
         invitation.resent_at = timezone.now()
         invitation.save()
+        project_activation_url = get_project_invitation_url(self.context["request"])
+        send_project_invitation_email_async.delay(invitation_id, project_activation_url)

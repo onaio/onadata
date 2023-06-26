@@ -593,6 +593,9 @@ Response
 Create a new project invitation
 -------------------------------
 
+Invite an **unregistered** user to a project. An email will be sent to the user which has a link for them to
+create an account.
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
@@ -603,6 +606,24 @@ Example
 ::
         
         curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
+
+
+``email``: The email address of the unregistered user.
+
+- Should be a valid email. If the ``PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST`` setting has been enabled, then the email domain has to be in the whitelist for it to be also valid
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com", "bar.com"]
+
+- Email should not be that of a registered user
+
+``role``: The user's role for the project.
+
+- Must be a valid role
+
 
 Response
 ^^^^^^^^
@@ -615,6 +636,25 @@ Response
             "role": "readonly",
             "status": 1,
         }
+    
+
+The link embedded in the email will be of the format ``http://{url}?invitation_id={id}&invitation_token={token}`` 
+where:
+
+- ``url`` - is the URL the recipient will be redirected to on clicking the link. The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
+
+Normally, you would want the email recipient to be redirected to a web app. This can be achieved by
+adding the setting ``PROJECT_INVITATION_URL``
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_URL = 'https://example.com/register'
+
+- ``id`` - The ``ProjectInvitation`` object primary key encoded to base 64
+- ``token`` - is a hash value that will be used to confirm validity of the link.
+
 
 Update a project invitation
 ---------------------------
@@ -649,6 +689,8 @@ Response
 Resend a project invitation
 ---------------------------
 
+Resend a project invitation email
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/resend-invitation</pre>
@@ -659,6 +701,11 @@ Example
 ::
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
+
+
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+
+- Must be a ``ProjectInvitation`` whose status is **Pending**
 
 Response
 ^^^^^^^^
@@ -672,6 +719,9 @@ Response
 Revoke a project invitation
 ---------------------------
 
+Cancel a project invitation. A revoked invitation means that project will **not** be shared with the new user
+even if they accept the invitation.
+
 .. raw:: html
 
 	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/revoke-invitation</pre>
@@ -683,6 +733,10 @@ Example
         
         curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
 
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+
+- Must be a ``ProjectInvitation`` whose status is **Pending**
+
 Response
 ^^^^^^^^
 
@@ -692,3 +746,34 @@ Response
             "message": "Success"
         }
 
+
+Accept a project invitation
+---------------------------
+
+Since a project invitation is sent to an unregistered user, acceptance of the invitation is handled
+when creating a new user.
+
+The ``invitation_id`` and ``invitation_token`` query params are added to 
+the `create user <https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user>`_ endpoint
+
+where:
+
+- ``id`` - is the value of the project ``invitation_id`` query parameter from the url embedded in the project invitation email
+- ``token`` - is the value of the project ``invitation_token`` query parameter from the url embedded in the project invitation email
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/profiles?invitation_id={id}&invitation_token={token}</pre>
+
+
+The validation of the ``id`` and ``token`` are dependent on one another and both should be provided for 
+successful validation. Failure of validation does not prevent the account creation. However, the new
+user will not have the projects shared with them.
+
+If the validation for ``id`` and ``token`` is succesful:
+
+- The invitation will be accepted including any other pending invitations whose emails match the invitation's email.
+- If the invitation's email matches the new user's email, the new user's will immediately be marked as verified.
+
+If ``id`` and ``token`` are invalid or are not provided, all pending project invitations whose email match
+the new user email are also accepted and shared with the user.
