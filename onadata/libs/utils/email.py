@@ -124,14 +124,11 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
 
         return True
 
-    def make_token(
-        self, invitation: ProjectInvitation
-    ) -> str:  # pylint: disable=arguments-renamed
-        return super().make_token(invitation)
-
     def _make_hash_value(
-        self, invitation, timestamp
-    ):  # pylint: disable=arguments-renamed
+        self,
+        invitation,  # pylint: disable=arguments-renamed
+        timestamp,
+    ):
         """Make a hash value for the invitation token
 
         The  hash is made up of:

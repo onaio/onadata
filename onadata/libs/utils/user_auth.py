@@ -269,7 +269,9 @@ def invalidate_and_regen_tokens(user):
     return {"access_token": access_token, "temp_token": temp_token}
 
 
-def accept_project_invitation(invitation: ProjectInvitation, user: User) -> None:
+def accept_project_invitation(
+    project_invitation: ProjectInvitation, user: User
+) -> None:
     """Accept a project inivitation and share project with user
 
     Accepts all invitations whose email matches the invitation's email or
@@ -277,7 +279,7 @@ def accept_project_invitation(invitation: ProjectInvitation, user: User) -> None
     """
 
     invitation_qs = ProjectInvitation.objects.filter(
-        Q(email=invitation.email) | Q(email=user.email),
+        Q(email=project_invitation.email) | Q(email=user.email),
         status=ProjectInvitation.Status.PENDING,
     )
     now = timezone.now()
