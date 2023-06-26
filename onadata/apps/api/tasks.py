@@ -130,7 +130,12 @@ def delete_inactive_submissions():
         for instance in queryset_iterator(instances):
             # delete submission
             instance.delete()
-def send_project_invitation_email_async(invitation_id: str, url: str):
+
+
+@app.task()
+def send_project_invitation_email_async(
+    invitation_id: str, url: str
+):  # pylint: disable=invalid-name
     """Sends project invitation email asynchronously"""
     try:
         invitation = ProjectInvitation.objects.get(id=invitation_id)
