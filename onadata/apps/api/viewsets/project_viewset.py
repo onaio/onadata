@@ -82,6 +82,16 @@ class ProjectViewSet(
         """Return BaseProjectSerializer class when listing projects."""
         if self.action == "list":
             return BaseProjectSerializer
+
+        if self.action == "invitations":
+            return ProjectInvitationSerializer
+
+        if self.action == "revoke_invitation":
+            return ProjectInvitationRevokeSerializer
+
+        if self.action == "resend_invitation":
+            return ProjectInvitationResendSerializer
+
         return super().get_serializer_class()
 
     def get_queryset(self):
@@ -249,21 +259,20 @@ class ProjectViewSet(
             if invitation_status:
                 invitations = invitations.filter(status=invitation_status)
 
-            serializer = ProjectInvitationSerializer(invitations, many=True)
+            serializer = self.get_serializer(invitations, many=True)
             return Response(serializer.data)
 
         if method == "POST":
             data = {**request.data, "project": project.pk}
-            context = self.get_serializer_context()
-            serializer = ProjectInvitationSerializer(data=data, context=context)
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
             return Response(serializer.data)
 
         if method in ["PUT", "PATCH"]:
             invitation = get_object_or_404(
-                ProjectInvitation, pk=kwargs.get("invitation_id")
+                ProjectInvitation,
+                pk=kwargs.get("invitation_id"),
             )
             partial = False
 
@@ -271,16 +280,13 @@ class ProjectViewSet(
                 partial = True
 
             data = {**request.data, "project": project.pk}
-            context = self.get_serializer_context()
-            serializer = ProjectInvitationSerializer(
+            serializer = self.get_serializer(
                 invitation,
                 data=data,
                 partial=partial,
-                context=context,
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
             return Response(serializer.data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -289,7 +295,7 @@ class ProjectViewSet(
     def revoke_invitation(self, request, *args, **kwargs):
         """Revoke a project  invitation object"""
         self.get_object()
-        serializer = ProjectInvitationRevokeSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("Success")})
@@ -298,10 +304,7 @@ class ProjectViewSet(
     def resend_invitation(self, request, *args, **kwargs):
         """Resend a project  invitation object"""
         self.get_object()
-        context = self.get_serializer_context()
-        serializer = ProjectInvitationResendSerializer(
-            data=request.data, context=context
-        )
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": _("Success")})
