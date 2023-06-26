@@ -152,7 +152,7 @@ class ProjectInvitationEmailTestCase(TestBase):
     def _mock_invitation_make_token(self):
         return "tokenmoto"
 
-    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
     @patch("onadata.libs.utils.email.urlsafe_base64_encode")
     def test_make_url(self, mock_base64_encode):
         """The invitation link created is correct"""
@@ -164,7 +164,7 @@ class ProjectInvitationEmailTestCase(TestBase):
         self.assertEqual(self.email.make_url(), link)
 
     @override_settings(DEPLOYMENT_NAME="Misfit")
-    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
     @patch("onadata.libs.utils.email.urlsafe_base64_encode")
     @patch("onadata.libs.utils.email.send_generic_email")
     def test_send(self, mock_send, mock_base64_encode):
@@ -187,7 +187,7 @@ class ProjectInvitationEmailTestCase(TestBase):
     def test_check_invitation(self):
         """Check invitation works correctly"""
         # valid invitation_id and token passes
-        token = self.email.make_token()
+        token = self.email._make_token()
         invitation_id = urlsafe_base64_encode(force_bytes(self.invitation.id))
         check = ProjectInvitationEmail.check_invitation(invitation_id, token)
         self.assertEqual(self.invitation, check)
@@ -211,7 +211,7 @@ class ProjectInvitationEmailTestCase(TestBase):
         )
 
     @override_settings(DEPLOYMENT_NAME="Misfit")
-    @patch.object(ProjectInvitationEmail, "make_token", _mock_invitation_make_token)
+    @patch.object(ProjectInvitationEmail, "_make_token", _mock_invitation_make_token)
     @patch("onadata.libs.utils.email.urlsafe_base64_encode")
     def test_get_template_data(self, mock_base64_encode):
         """Context data for the email templates is correct"""

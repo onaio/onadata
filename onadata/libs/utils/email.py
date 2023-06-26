@@ -124,9 +124,9 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
 
         return True
 
-    def _make_hash_value(
+    def _make_hash_value(  # pylint: disable=arguments-renamed
         self,
-        invitation,  # pylint: disable=arguments-renamed
+        invitation,
         timestamp,
     ):
         """Make a hash value for the invitation token
@@ -168,7 +168,7 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
         self.invitation = invitation
         self.url = url
 
-    def make_token(self) -> str:
+    def _make_token(self) -> str:
         return super().make_token(self.invitation)
 
     @staticmethod
@@ -195,7 +195,7 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
         """Returns the project invitation URL to be embedded in the email"""
         query_params: dict[str, str] = {
             "invitation_id": urlsafe_base64_encode(force_bytes(self.invitation.id)),
-            "invitation_token": self.make_token(),
+            "invitation_token": self._make_token(),
         }
         query_params_string = urlencode(query_params)
 
