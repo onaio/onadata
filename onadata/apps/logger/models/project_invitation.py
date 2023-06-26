@@ -2,10 +2,13 @@
 ProjectInvitation class
 """
 from django.db import models
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from onadata.apps.logger.models.project import Project
 from onadata.libs.models.base_model import BaseModel
+
+User = get_user_model()
 
 
 class ProjectInvitation(BaseModel):
@@ -34,6 +37,20 @@ class ProjectInvitation(BaseModel):
     status = models.PositiveSmallIntegerField(
         choices=Status.choices, default=Status.PENDING
     )
+    invited_by = models.ForeignKey(
+        User,
+        related_name="project_invitations_created",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    accepted_by = models.ForeignKey(
+        User,
+        related_name="project_invitations_accepted",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
     resent_at = models.DateTimeField(null=True, blank=True)
@@ -42,13 +59,16 @@ class ProjectInvitation(BaseModel):
     def __str__(self):
         return f"{self.email}|{self.project}"
 
-    def save(self, *args, **kwargs) -> None:
-        now = timezone.now()
+    def accept(self, accepted_by=None, accepted_at=None) -> None:
+        """Accept invitation"""
 
-        if self.status == self.Status.REVOKED and not self.revoked_at:
-            self.revoked_at = now
+        self.accepted_at = accepted_at or timezone.now()
+        self.accepted_by = accepted_by
+        self.status = ProjectInvitation.Status.ACCEPTED
+        self.save()
 
-        if self.status == self.Status.ACCEPTED and not self.accepted_at:
-            self.accepted_at = now
-
-        return super().save(*args, **kwargs)
+    def revoke(self, revoked_at=None) -> None:
+        """Revoke invitation"""
+        self.revoked_at = revoked_at or timezone.now()
+        self.status = ProjectInvitation.Status.REVOKED
+        self.save()

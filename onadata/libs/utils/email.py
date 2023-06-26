@@ -2,11 +2,23 @@
 """
 email utility functions.
 """
+import six
+from typing import Optional
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.http import HttpRequest
+from django.utils.http import (
+    base36_to_int,
+    urlsafe_base64_encode,
+    urlsafe_base64_decode,
+)
+from django.utils.crypto import constant_time_compare
 from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
 from six.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
+from onadata.apps.logger.models import ProjectInvitation
 
 
 def get_verification_url(redirect_url, request, verification_key):
@@ -75,3 +87,149 @@ def send_generic_email(email, message_txt, subject):
     email_message = EmailMultiAlternatives(subject, message_txt, from_email, [email])
 
     email_message.send()
+
+
+class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
+    """Strategy object for generating and checking tokens for project invitation URL"""
+
+    def check_token(self, invitation, token):
+        """
+        Check that a project invitation token is correct for a given user.
+        """
+        if not (invitation and token):
+            return False
+        # Parse the token
+        try:
+            ts_b36, _ = token.split("-")
+        except ValueError:
+            return False
+
+        try:
+            ts = base36_to_int(ts_b36)
+        except ValueError:
+            return False
+
+        # Check that the timestamp/uid has not been tampered with
+        if not constant_time_compare(
+            self._make_token_with_timestamp(invitation, ts), token
+        ):
+            # RemovedInDjango40Warning: when the deprecation ends, replace
+            # with:
+            #   return False
+            if not constant_time_compare(
+                self._make_token_with_timestamp(invitation, ts, legacy=True),
+                token,
+            ):
+                return False
+
+        return True
+
+    def make_token(self, invitation: ProjectInvitation) -> str:
+        return super().make_token(invitation)
+
+    def _make_hash_value(self, invitation, timestamp):
+        """Make a hash value for the invitation token
+
+        The  hash is made up of:
+
+        1. primary key of the invitation - will uniquely identify the hash as belonging
+        to a particular inivtation
+        2. timestamp - the current timestamp
+        3. invitation status - will invaliddate the link when the status changes. If an invitation
+        with a status of pending changes to accepted, the link will be invalidated and cannot be
+        re-used
+        """
+        return (
+            six.text_type(invitation.pk)
+            + six.text_type(timestamp)  # noqa W503
+            + six.text_type(invitation.status)  # noqa W503
+        )
+
+
+def get_project_invitation_url(request: HttpRequest):
+    """Get project invitation url"""
+    url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
+
+    if not url:
+        url = reverse("userprofile-list", request=request)
+
+    return url
+
+
+class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
+    """
+    A class to send a project invitation email
+    """
+
+    def __init__(self, invitation: ProjectInvitation, url: str) -> None:
+        super().__init__()
+
+        self.invitation = invitation
+        self.url = url
+
+    def make_token(self) -> str:
+        return super().make_token(self.invitation)
+
+    @staticmethod
+    def check_invitation(encoded_id: str, token: str) -> Optional[ProjectInvitation]:
+        """Check if an invitation is valid"""
+        try:
+            invitation_id = int(urlsafe_base64_decode(encoded_id))
+
+        except ValueError:
+            return None
+
+        try:
+            invitation = ProjectInvitation.objects.get(pk=invitation_id)
+
+        except ProjectInvitation.DoesNotExist:
+            return None
+
+        if ProjectInvitationTokenGenerator().check_token(invitation, token):
+            return invitation
+
+        return None
+
+    def make_url(self) -> str:
+        """Returns the project invitation URL to be embedded in the email"""
+        query_params: dict[str, str] = {
+            "invitation_id": urlsafe_base64_encode(force_bytes(self.invitation.id)),
+            "invitation_token": self.make_token(),
+        }
+        query_params_string = urlencode(query_params)
+
+        return f"{self.url}?{query_params_string}"
+
+    def get_template_data(self) -> dict[str, str]:
+        """Get context data for the templates"""
+        deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
+        organization = self.invitation.project.organization.profile.name
+        data = {
+            "subject": {"deployment_name": deployment_name},
+            "body": {
+                "deployment_name": deployment_name,
+                "project_name": self.invitation.project.name,
+                "invitation_url": self.make_url(),
+                "organization": organization,
+            },
+        }
+
+        return data
+
+    def get_email_data(self) -> dict[str, str]:
+        """Get the email data to be sent"""
+        message_path = "projects/invitation.txt"
+        subject_path = "projects/invitation_subject.txt"
+        template_data = self.get_template_data()
+        email_data = {
+            "subject": render_to_string(subject_path, template_data["subject"]),
+            "message_txt": render_to_string(
+                message_path,
+                template_data["body"],
+            ),
+        }
+        return email_data
+
+    def send(self) -> None:
+        """Send project invitation email"""
+        send_generic_email(self.invitation.email, **self.get_email_data())
