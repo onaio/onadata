@@ -4,6 +4,7 @@ from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from pyxform.errors import PyXFormError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
@@ -76,6 +77,95 @@ class TestPublishXLS(TestBase):
         self.xform.save(update_fields=["title"])
         self.assertFalse(self.xform.hash == "" or self.xform.hash is None)
         self.assertFalse(self.xform.hash == xform_old_hash)
+
+    def test_xform_with_entities(self):
+        md="""
+        | survey   |         |       |       |
+        |          | type    | name  | label |
+        |          | text    | a     | A     |
+        | entities |         |       |       |
+        |          | dataset | label |       |
+        |          | trees   | a     |       |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has entities namespace
+        self.assertIn(
+            'xmlns:entities="http://www.opendatakit.org/xforms/entities"',
+            self.xform.xml
+        )
+        # assert has entities version
+        self.assertIn(
+            'entities:entities-version="2022.1.0"',
+            self.xform.xml
+        )
+
+    def test_xform_with_entities_save_to(self):
+        md="""
+        | survey   |         |       |       |         |
+        |          | type    | name  | label | save_to |
+        |          | text    | a     | A     | foo     |
+        | entities |         |       |       |         |
+        |          | dataset | label |       |         |
+        |          | trees   | a     |       |         |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has save_to column in xml
+        self.assertIn(
+            'entities:saveto="foo"',
+            self.xform.xml
+        )
+
+    def test_xform_create_if_in_entities(self):
+        md="""
+        | survey   |         |                      |       |
+        |          | type    | name                 | label |
+        |          | text    | a                    | A     |
+        | entities |         |                      |       |
+        |          | dataset | create_if            | label |
+        |          | trees   | string-length(a) > 3 | a     |
+        """
+        self._create_user_and_login()
+        self.xform = self._publish_markdown(md, self.user)
+        # assert has create_if entity expression
+        self.assertIn(
+            'calculate="string-length(a) &gt; 3"',
+            self.xform.xml
+        )
+        self.assertIn(
+            '<entity create="1" dataset="trees" id="">',
+            self.xform.xml
+        )
+
+    def test_xform_big_image_invalid_if_no_image(self):
+        md="""
+        | survey |      |      |                  |
+        |        | type | name | media::big-image |
+        |        | text | c    | m.png            |
+        """
+        self._create_user_and_login()
+        msg = ("To use big-image, you must also specify"
+               " an image for the survey element")
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self.xform = self._publish_markdown(md, self.user)
+
+    def test_single_entity_allowed_per_form(self):
+        md="""
+        | survey   |         |      |       |
+        |          | type    | name | label |
+        |          | text    | a    | A     |
+        | entities |         |      |       |
+        |          | dataset |      |       |
+        |          | trees   |      |       |
+        |          | shovels |      |       |
+        """
+        self._create_user_and_login()
+        msg = ("Currently, you can only declare a single entity per form."
+               " Please make sure your entities sheet only declares"
+               " one entity.")
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self.xform = self._publish_markdown(md, self.user)
 
     def test_report_exception_with_exc_info(self):
         e = Exception("A test exception")
