@@ -226,12 +226,15 @@ class UserProfileViewSet(
         """Create and cache user profile"""
         invitation_id = request.query_params.get("invitation_id")
         invitation_token = request.query_params.get("invitation_token")
-        request.data.update(
-            {
-                "invitation_id": invitation_id,
-                "invitation_token": invitation_token,
-            }
-        )
+
+        if invitation_id and invitation_token:
+            request.data.update(
+                {
+                    "invitation_id": invitation_id,
+                    "invitation_token": invitation_token,
+                }
+            )
+
         response = super().create(request, *args, **kwargs)
         profile = response.data
         user_name = profile.get("username")
