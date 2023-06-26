@@ -2,8 +2,8 @@
 """
 email utility functions.
 """
-import six
 from typing import Optional
+import six
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -92,7 +92,7 @@ def send_generic_email(email, message_txt, subject):
 class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
     """Strategy object for generating and checking tokens for project invitation URL"""
 
-    def check_token(self, invitation, token):
+    def check_token(self, invitation, token):  # pylint: disable=arguments-renamed
         """
         Check that a project invitation token is correct for a given user.
         """
@@ -105,7 +105,7 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
             return False
 
         try:
-            ts = base36_to_int(ts_b36)
+            ts = base36_to_int(ts_b36)  # pylint: disable=invalid-name
         except ValueError:
             return False
 
@@ -124,20 +124,24 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
 
         return True
 
-    def make_token(self, invitation: ProjectInvitation) -> str:
+    def make_token(
+        self, invitation: ProjectInvitation
+    ) -> str:  # pylint: disable=arguments-renamed
         return super().make_token(invitation)
 
-    def _make_hash_value(self, invitation, timestamp):
+    def _make_hash_value(
+        self, invitation, timestamp
+    ):  # pylint: disable=arguments-renamed
         """Make a hash value for the invitation token
 
         The  hash is made up of:
 
-        1. primary key of the invitation - will uniquely identify the hash as belonging
-        to a particular inivtation
+        1. primary key of the invitation - will uniquely identify the
+        hash as belonging to a particular inivtation
         2. timestamp - the current timestamp
-        3. invitation status - will invaliddate the link when the status changes. If an invitation
-        with a status of pending changes to accepted, the link will be invalidated and cannot be
-        re-used
+        3. invitation status - will invaliddate the link when the status
+        changes. If an invitation with a status of pending changes to accepted,
+        the link will be invalidated and cannot be re-used
         """
         return (
             six.text_type(invitation.pk)
