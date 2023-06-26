@@ -111,13 +111,20 @@ class ProjectInvitationTokenGenerator(PasswordResetTokenGenerator):
 
         # Check that the timestamp/uid has not been tampered with
         if not constant_time_compare(
-            self._make_token_with_timestamp(invitation, ts), token
+            self._make_token_with_timestamp(
+                invitation, ts
+            ),  # pylint: disable=no-value-for-parameter
+            token,
         ):
             # RemovedInDjango40Warning: when the deprecation ends, replace
             # with:
             #   return False
             if not constant_time_compare(
-                self._make_token_with_timestamp(invitation, ts, legacy=True),
+                self._make_token_with_timestamp(
+                    invitation,
+                    ts,
+                    legacy=True,
+                ),  # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
                 token,
             ):
                 return False
