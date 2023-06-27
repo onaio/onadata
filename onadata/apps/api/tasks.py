@@ -117,10 +117,12 @@ def delete_inactive_submissions():
     """
     Task to periodically delete soft deleted submissions from db
     """
-    submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", 360)
+    submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", 365)
     time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
     # deletes soft deleted submissions that are older than time threshold
     instances = Instance.objects.filter(
         Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold),
+        date_created__lte=time_threshold
     )
+    # perform a bulk delete, to avoid triggering model signals
     instances.delete()
