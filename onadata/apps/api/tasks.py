@@ -9,7 +9,7 @@ from datetime import timedelta
 from celery.result import AsyncResult
 from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.core.files.storage import default_storage
+from django.core.files.storage import default_storage, get_storage_class
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -17,7 +17,8 @@ from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
-from onadata.apps.logger.models import Instance, XForm
+from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.apps.logger.models import Instance, XForm, Attachment
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -112,17 +113,31 @@ def send_account_lockout_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
 
 
+def delete_attachments(attachment):
+    storage = get_storage_class()()
+    storage.exists(attachment.media_file.name) and storage.delete(
+        attachment.media_file.name
+    )
+
+
 @app.task()
 def delete_inactive_submissions():
     """
     Task to periodically delete soft deleted submissions from db
     """
-    submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", 365)
-    time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
-    # deletes soft deleted submissions that are older than time threshold
-    instances = Instance.objects.filter(
-        Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold),
-        date_created__lte=time_threshold
-    )
-    # perform a bulk delete, to avoid triggering model signals
-    instances.delete()
+    submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", None)
+    if submissions_lifespan:
+        time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
+        # delete instance attachments
+        instances = Instance.objects.filter(
+            Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold),
+            date_created__lte=time_threshold,
+        )
+        for instance in queryset_iterator(instances):
+            attachments = Attachment.objects.filter(instance=instance)
+            _ = [
+                delete_attachments(attachment)
+                for attachment in queryset_iterator(attachments)
+            ]
+            # delete submission
+            instance.delete()
