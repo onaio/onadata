@@ -9,7 +9,7 @@ from datetime import timedelta
 from celery.result import AsyncResult
 from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.core.files.storage import default_storage, get_storage_class
+from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
@@ -18,11 +18,10 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.apps.logger.models import Instance, XForm, Attachment
+from onadata.apps.logger.models import Instance, XForm
 from onadata.celeryapp import app
 
 User = get_user_model()
-storage = get_storage_class()()
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -114,14 +113,6 @@ def send_account_lockout_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
 
 
-def delete_attachments(attachment):
-    """Util function to delete attachments"""
-    # pylint: disable=expression-not-assigned
-    storage.exists(attachment.media_file.name) and storage.delete(
-        attachment.media_file.name
-    )
-
-
 @app.task()
 def delete_inactive_submissions():
     """
@@ -132,14 +123,8 @@ def delete_inactive_submissions():
         time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
         # delete instance attachments
         instances = Instance.objects.filter(
-            Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold),
-            date_created__lte=time_threshold,
+            Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold)
         )
         for instance in queryset_iterator(instances):
-            attachments = Attachment.objects.filter(instance=instance)
-            _ = [
-                delete_attachments(attachment)
-                for attachment in queryset_iterator(attachments)
-            ]
             # delete submission
             instance.delete()
