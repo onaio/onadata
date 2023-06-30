@@ -9,6 +9,8 @@ from django.test import override_settings
 from django.utils import timezone
 
 from onadata.apps.api.tasks import delete_inactive_submissions
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.main.tests.test_base import TestBase
 
 
@@ -50,3 +52,48 @@ class TestAPITasks(TestBase):
         self.assertEqual(
             self.xform.instances.filter(deleted_at__isnull=False).count(), 0
         )
+
+    # pylint: disable=invalid-name
+    @override_settings(INACTIVE_SUBMISSIONS_LIFESPAN=20)
+    def test_delete_inactive_submissions_with_attachments(self):  # noqa
+        """Test delete_inactive_submissions() task"""
+        self._publish_transportation_form()
+        self._submit_transport_instance_w_attachment()
+        self._submit_transport_instance_w_uuid("transport_2011-07-25_19-05-36")
+        self.xform.refresh_from_db()
+        # check submissions count
+        self.assertEqual(self.xform.instances.count(), 2)
+        # check attachments count
+        self.assertEqual(Attachment.objects.all().count(), 1)
+        instance = self.xform.instances.first()
+        # create instance history
+        InstanceHistory.objects.create(
+            xml=instance.xml,
+            checksum=instance.checksum,
+            xform_instance=instance,
+        )
+        history_count = InstanceHistory.objects.filter(
+            xform_instance__id=instance.pk
+        ).count()
+        self.assertEqual(history_count, 1)
+        # set submission date_created to be 90 days from now
+        instance.date_created = timezone.now() - timedelta(days=90)
+        instance.save()
+        # soft delete submission
+        # set deleted_at to be 60 days from now
+        # meaning the submission is soft deleted 30 days after being created
+        deleted_at = timezone.now() - timedelta(days=60)
+        instance.set_deleted(deleted_at, self.user)
+        # test that theres one soft deleted submission
+        self.assertEqual(
+            self.xform.instances.filter(deleted_at__isnull=False).count(), 1
+        )
+        delete_inactive_submissions()
+        # test that the soft deleted submission is deleted
+        # since deleted_at is greater than specified lifespan
+        self.assertEqual(
+            self.xform.instances.filter(deleted_at__isnull=False).count(), 0
+        )
+        # test that the deletion cascades to InstanceHistory & attachments
+        self.assertEqual(Attachment.objects.all().count(), 0)
+        self.assertEqual(Attachment.objects.all().count(), 0)
