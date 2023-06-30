@@ -1,10 +1,12 @@
 """
 API tasks test
 """
+import os
 from datetime import timedelta
 
 from celery import current_app
 from django.conf import settings
+from django.core.files.storage import get_storage_class
 from django.test import override_settings
 from django.utils import timezone
 
@@ -65,13 +67,24 @@ class TestAPITasks(TestBase):
         self.assertEqual(self.xform.instances.count(), 2)
         # check attachments count
         self.assertEqual(Attachment.objects.all().count(), 1)
+        # check if attachment file exists in file system
+        default_storage = get_storage_class()()
+        self.assertTrue(
+            default_storage.exists(self.attachment.media_file.name)
+        )
         instance = self.xform.instances.first()
         # create instance history
-        InstanceHistory.objects.create(
-            xml=instance.xml,
-            checksum=instance.checksum,
-            xform_instance=instance,
+        s = self.surveys[0]
+        xml_edit_submission_file_path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            s + "_edited.xml",
         )
+        # edit submission
+        self._make_submission(xml_edit_submission_file_path)
         history_count = InstanceHistory.objects.filter(
             xform_instance__id=instance.pk
         ).count()
@@ -96,4 +109,8 @@ class TestAPITasks(TestBase):
         )
         # test that the deletion cascades to InstanceHistory & attachments
         self.assertEqual(Attachment.objects.all().count(), 0)
-        self.assertEqual(Attachment.objects.all().count(), 0)
+        self.assertEqual(InstanceHistory.objects.all().count(), 0)
+        # check that attachment doesn't exist in storage
+        self.assertFalse(
+            default_storage.exists(self.attachment.media_file.name)
+        )

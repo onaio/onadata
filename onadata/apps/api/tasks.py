@@ -22,6 +22,7 @@ from onadata.apps.logger.models import Instance, XForm, Attachment
 from onadata.celeryapp import app
 
 User = get_user_model()
+storage = get_storage_class()()
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -114,7 +115,8 @@ def send_account_lockout_email(email, message_txt, subject):
 
 
 def delete_attachments(attachment):
-    storage = get_storage_class()()
+    """Util function to delete attachments"""
+    # pylint: disable=expression-not-assigned
     storage.exists(attachment.media_file.name) and storage.delete(
         attachment.media_file.name
     )
