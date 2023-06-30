@@ -367,7 +367,7 @@ sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
 sqlalchemy==2.0.7
     # via tabulator
-sqlparse==0.4.3
+sqlparse==0.4.4
     # via
     #   django
     #   django-debug-toolbar
