@@ -40,7 +40,7 @@ six==1.16.0
     # via
     #   azure-core
     #   isodate
-sqlparse==0.4.3
+sqlparse==0.4.4
     # via django
 typing-extensions==4.5.0
     # via
