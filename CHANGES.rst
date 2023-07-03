@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.10.0(2023-07-03)
+-------------------
+
+- Add task to permanently delete soft-deleted submissiions
+  `PR #2446 <https://github.com/onaio/onadata/pull/2446>`
+  [@KipSigei]
+- Update sqlparse package to fix security vulnerability
+  `PR #2447 <https://github.com/onaio/onadata/pull/2447>`
+  [@KipSigei]
+- Add ability to permanently delete submissions
+  `PR #2437 <https://github.com/onaio/onadata/pull/2437>`
+  [@KipSigei]
+- Update pyxform version to v1.12.0 with case management support
+  `PR #2341 <https://github.com/onaio/onadata/pull/2341>`
+  [@KipSigei]
+
 v3.9.2(2023-06-19)
 ------------------
 
