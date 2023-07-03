@@ -12,9 +12,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
+from django.core.files.storage import get_storage_class
 from django.db import connection, transaction
 from django.db.models import Q
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -33,6 +34,7 @@ from onadata.apps.logger.xform_instance_parser import (
 )
 from onadata.celeryapp import app
 from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -83,6 +85,7 @@ ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
 )
 # pylint: disable=invalid-name
 User = get_user_model()
+storage = get_storage_class()()
 
 
 def get_attachment_url(attachment, suffix=None):
@@ -831,6 +834,17 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         update_project_date_modified(instance.pk, created)
 
 
+# pylint: disable=unused-argument
+def permanently_delete_attachments(sender, instance=None, created=False, **kwargs):
+    if instance:
+        attachments = instance.attachments.all()
+        for attachment in queryset_iterator(attachments):
+            # pylint: disable=expression-not-assigned
+            storage.exists(attachment.media_file.name) and storage.delete(
+                attachment.media_file.name
+            )
+
+
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
 )
@@ -839,6 +853,12 @@ post_delete.connect(
     update_xform_submission_count_delete,
     sender=Instance,
     dispatch_uid="update_xform_submission_count_delete",
+)
+
+pre_delete.connect(
+    permanently_delete_attachments,
+    sender=Instance,
+    dispatch_uid="permanently_delete_attachments"
 )
 
 

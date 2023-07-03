@@ -4,16 +4,20 @@ Celery api.tasks module.
 """
 import os
 import sys
+from datetime import timedelta
 
 from celery.result import AsyncResult
+from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
-from onadata.apps.logger.models.xform import XForm
+from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.apps.logger.models import Instance, XForm
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -106,3 +110,20 @@ def send_verification_email(email, message_txt, subject):
 def send_account_lockout_email(email, message_txt, subject):
     """Sends account locked email."""
     send_generic_email(email, message_txt, subject)
+
+
+@app.task()
+def delete_inactive_submissions():
+    """
+    Task to periodically delete soft deleted submissions from db
+    """
+    submissions_lifespan = getattr(settings, "INACTIVE_SUBMISSIONS_LIFESPAN", None)
+    if submissions_lifespan:
+        time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
+        # delete instance attachments
+        instances = Instance.objects.filter(
+            deleted_at__isnull=False, deleted_at__lte=time_threshold
+        )
+        for instance in queryset_iterator(instances):
+            # delete submission
+            instance.delete()
