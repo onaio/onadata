@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
@@ -123,7 +122,7 @@ def delete_inactive_submissions():
         time_threshold = timezone.now() - timedelta(days=submissions_lifespan)
         # delete instance attachments
         instances = Instance.objects.filter(
-            Q(deleted_at__isnull=False) | Q(deleted_at__gte=time_threshold)
+            deleted_at__isnull=False, deleted_at__lte=time_threshold
         )
         for instance in queryset_iterator(instances):
             # delete submission
