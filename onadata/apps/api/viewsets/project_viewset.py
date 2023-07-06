@@ -245,7 +245,7 @@ class ProjectViewSet(
     @action(
         detail=True,
         methods=["GET", "POST, PUT, PATCH"],
-        url_path=r"invitations/(?P<invitation_id>\d+)",
+        url_path="invitations",
     )
     def invitations(self, request, *args, **kwargs):
         """List, Create. Update project invitations"""
