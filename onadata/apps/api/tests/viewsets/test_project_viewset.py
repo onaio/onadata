@@ -3023,22 +3023,21 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
 
     def test_authentication(self):
         """Authentication is required"""
-        request = self.factory.put("/", data={})
-        response = self.view(
-            request, pk=self.project.pk, invitation_id=self.invitation.id
-        )
+        request = self.factory.put("/", data={}
+)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
     def test_invalid_project(self):
         """Invalid project is handled"""
         request = self.factory.put("/", data={}, **self.extra)
-        response = self.view(request, pk=817, invitation_id=self.invitation.id)
+        response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
     def test_invalid_invitation_id(self):
         """Invalid project invitation is handled"""
         request = self.factory.put("/", data={}, **self.extra)
-        response = self.view(request, pk=self.project.pk, invitation_id=817)
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 404)
 
     def test_only_admins_allowed(self):
@@ -3047,15 +3046,15 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
-        request = self.factory.put("/", data={}, **self.extra)
+        request = self.factory.put(
+            "/", data={"invitation_id": self.invitation.id}, **self.extra
+        )
 
         # only owner and manager roles have permission
         for role_class in ROLES_ORDERED:
             ShareProject(self.project, "alice", role_class.name).save()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
-            response = self.view(
-                request, pk=self.project.pk, invitation_id=self.invitation.id
-            )
+            response = self.view(request, pk=self.project.pk)
 
             if role_class.name in [ManagerRole.name, OwnerRole.name]:
                 self.assertEqual(response.status_code, 400)
@@ -3064,16 +3063,18 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
 
     def test_update(self):
         """We can update an invitation"""
-        payload = {"email": "rihanna@example.com", "role": "readonly"}
+        payload = {
+            "email": "rihanna@example.com",
+            "role": "readonly",
+            "invitation_id": self.invitation.id
+        }
         request = self.factory.put(
             "/",
             data=json.dumps(payload),
             content_type="application/json",
             **self.extra,
         )
-        response = self.view(
-            request, pk=self.project.pk, invitation_id=self.invitation.id
-        )
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.invitation.refresh_from_db()
         self.assertEqual(self.invitation.role, "readonly")
@@ -3090,16 +3091,14 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
     def test_patch_role(self):
         """An invitation `role` can be updated"""
         self.view = ProjectViewSet.as_view({"patch": "invitations"})
-        payload = {"role": "readonly"}
+        payload = {"role": "readonly", "invitation_id": self.invitation.id}
         request = self.factory.patch(
             "/",
             data=json.dumps(payload),
             content_type="application/json",
             **self.extra,
         )
-        response = self.view(
-            request, pk=self.project.pk, invitation_id=self.invitation.id
-        )
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.invitation.refresh_from_db()
         self.assertEqual(self.invitation.role, "readonly")
@@ -3116,16 +3115,17 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
     def test_email_role(self):
         """An invitation `email` can be updated"""
         self.view = ProjectViewSet.as_view({"patch": "invitations"})
-        payload = {"email": "rihanna@example.com"}
+        payload = {
+            "email": "rihanna@example.com",
+            "invitation_id": self.invitation.id
+        }
         request = self.factory.patch(
             "/",
             data=json.dumps(payload),
             content_type="application/json",
             **self.extra,
         )
-        response = self.view(
-            request, pk=self.project.pk, invitation_id=self.invitation.id
-        )
+        response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.invitation.refresh_from_db()
         self.assertEqual(self.invitation.email, "rihanna@example.com")
