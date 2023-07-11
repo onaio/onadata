@@ -321,9 +321,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         with patch.object(
             ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
-        ):
+        ) as mock_check_invitation:
             request = self.factory.post(
-                "/api/v1/profiles?invitation_id=some_valid_id&invitation_token=some_token",
+                "/api/v1/profiles?invitation_id=id&invitation_token=token",
                 data=json.dumps(data),
                 content_type="application/json",
                 **self.extra,
@@ -331,6 +331,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertEqual(response.status_code, 201)
             user = User.objects.get(username="deno")
+            mock_check_invitation.assert_called_once_with("id", "token")
             mock_accept_invitation.assert_called_with(invitation.id, user.id)
             # user email matches invitation email so no need to send
             # verification email

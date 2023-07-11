@@ -235,7 +235,7 @@ class ProjectInvitationEmail(ProjectInvitationTokenGenerator):
             "message_txt": render_to_string(
                 message_path,
                 template_data["body"],
-            ),
+            ).replace('&amp;', '&'),
         }
         return email_data
 
