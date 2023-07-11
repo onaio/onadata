@@ -2872,6 +2872,16 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         self.assertEqual(invitation.invited_by, self.user)
 
+        # duplicate invitation not allowed
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 400)
+
     def test_email_required(self, mock_send_mail):
         """email is required"""
         # blank string
@@ -3023,8 +3033,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
 
     def test_authentication(self):
         """Authentication is required"""
-        request = self.factory.put("/", data={}
-)
+        request = self.factory.put("/", data={})
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
@@ -3066,7 +3075,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         payload = {
             "email": "rihanna@example.com",
             "role": "readonly",
-            "invitation_id": self.invitation.id
+            "invitation_id": self.invitation.id,
         }
         request = self.factory.put(
             "/",
@@ -3115,10 +3124,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
     def test_email_role(self):
         """An invitation `email` can be updated"""
         self.view = ProjectViewSet.as_view({"patch": "invitations"})
-        payload = {
-            "email": "rihanna@example.com",
-            "invitation_id": self.invitation.id
-        }
+        payload = {"email": "rihanna@example.com", "invitation_id": self.invitation.id}
         request = self.factory.patch(
             "/",
             data=json.dumps(payload),

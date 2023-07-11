@@ -16,11 +16,6 @@ class ProjectInvitation(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        unique_together = (
-            "email",
-            "project",
-            "status",
-        )
 
     class Status(models.IntegerChoices):
         """Choices for `status` field"""
