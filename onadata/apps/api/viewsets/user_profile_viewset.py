@@ -206,6 +206,17 @@ class UserProfileViewSet(
 
         return obj
 
+    def get_serializer(self, *args, **kwargs):
+        if (invitation_id := self.request.query_params.get("invitation_id")) and (
+            invitation_token := self.request.query_params.get("invitation_token")
+        ):
+            draft_request_data = self.request.data.copy()
+            draft_request_data["invitation_id"] = invitation_id
+            draft_request_data["invitation_token"] = invitation_token
+            kwargs["data"] = draft_request_data
+
+        return super().get_serializer(*args, **kwargs)
+
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
         username = kwargs.get("user")
@@ -224,17 +235,6 @@ class UserProfileViewSet(
 
     def create(self, request, *args, **kwargs):
         """Create and cache user profile"""
-        invitation_id = request.query_params.get("invitation_id")
-        invitation_token = request.query_params.get("invitation_token")
-
-        if invitation_id and invitation_token:
-            request.data.update(
-                {
-                    "invitation_id": invitation_id,
-                    "invitation_token": invitation_token,
-                }
-            )
-
         response = super().create(request, *args, **kwargs)
         profile = response.data
         user_name = profile.get("username")
