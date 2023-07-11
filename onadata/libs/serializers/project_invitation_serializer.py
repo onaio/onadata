@@ -65,6 +65,16 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
         return role
 
+    def validate(self, attrs):
+        if ProjectInvitation.objects.filter(
+            email=attrs["email"],
+            project=attrs["project"],
+            status=ProjectInvitation.Status.PENDING,
+        ).exists():
+            raise serializers.ValidationError(_("Invitation already exists."))
+
+        return super().validate(attrs)
+
     def create(self, validated_data):
         instance = super().create(validated_data)
         instance.invited_by = self.context["request"].user

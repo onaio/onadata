@@ -4,7 +4,6 @@ Tests for ProjectInvitation model
 from datetime import datetime
 from unittest.mock import patch, Mock
 import pytz
-from django.db import IntegrityError
 from onadata.apps.logger.models import ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -65,23 +64,6 @@ class ProjectInvitationTestCase(TestBase):
         self.assertIsNone(invitation.revoked_at)
         self.assertIsNone(invitation.resent_at)
         self.assertEqual(invitation.status, ProjectInvitation.Status.PENDING)
-
-    def test_invitation_unique(self):
-        """Duplicate entry with same email, project, status is not allowed"""
-        ProjectInvitation.objects.create(
-            email="janedoe@example.com",
-            project=self.project,
-            role="editor",
-            status=ProjectInvitation.Status.REVOKED,
-        )
-
-        with self.assertRaises(IntegrityError):
-            ProjectInvitation.objects.create(
-                email="janedoe@example.com",
-                project=self.project,
-                role="readonly",
-                status=ProjectInvitation.Status.REVOKED,
-            )
 
     def test_revoke(self):
         """Calling revoke method works correctly"""
