@@ -176,7 +176,7 @@ class ProjectInvitationEmailTestCase(TestBase):
             "message_txt": "\nHello,\n\nYou have been added to Test Invitation by"
             " a project admin allowing you to begin data collection.\n\nTo begin"
             " using Misfit, please create an account first by clicking the link below:"
-            "\nhttps://example.com/register?invitation_id=idbase64&amp;invitation_token=tokenmoto"
+            "\nhttps://example.com/register?invitation_id=idbase64&invitation_token=tokenmoto"
             "\n\nThanks,\nThe Team at Misfit\n",
         }
         mock_send.assert_called_with(
