@@ -5,7 +5,6 @@ UserProfileViewSet module.
 
 import datetime
 import json
-import logging
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -215,8 +214,6 @@ class UserProfileViewSet(
             draft_request_data["invitation_id"] = invitation_id
             draft_request_data["invitation_token"] = invitation_token
             kwargs["data"] = draft_request_data
-            # TODO: for debugging purposes, should be removed before merging
-            logging.warning('Get serializer---------%s, %s', kwargs['data'].get('invitation_id'), kwargs['data'].get('invitation_token'))
 
         return super().get_serializer(*args, **kwargs)
 
