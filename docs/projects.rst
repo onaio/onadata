@@ -671,7 +671,7 @@ Example
 
 ::
         
-        curl -X PUT -d "email=janedoe@example.com" -d "role=editor" -d "invitation_id=5"  https://api.ona.io/api/v1/projects/1/invitations/1
+        curl -X PUT -d "email=janedoe@example.com" -d "role=editor" -d "invitation_id=1"  https://api.ona.io/api/v1/projects/1/invitations/1
 
 Response
 ^^^^^^^^
