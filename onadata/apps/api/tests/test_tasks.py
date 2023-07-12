@@ -33,6 +33,7 @@ class SendProjectInivtationEmailAsyncTestCase(TestBase):
         mock_send.assert_called_once()
 
 
+@patch("onadata.apps.api.tasks.accept_project_invitation")
 class AcceptProjectInvitationTesCase(TestBase):
     """Tests for accept_project_invitation_async"""
 
@@ -46,8 +47,12 @@ class AcceptProjectInvitationTesCase(TestBase):
             role="manager",
         )
 
-    @patch("onadata.apps.api.tasks.accept_project_invitation")
     def test_accept_invitation(self, mock_accept_invitation):
         """Test invitation is accepted"""
-        accept_project_invitation_async(self.invitation.id, self.user.id)
-        mock_accept_invitation.assert_called_once_with(self.invitation, self.user)
+        accept_project_invitation_async(self.user.id, self.invitation.id)
+        mock_accept_invitation.assert_called_once_with(self.user, self.invitation)
+
+    def test_invitation_id_optional(self, mock_accept_invitation):
+        """invitation_id argument is optional"""
+        accept_project_invitation_async(self.user.id)
+        mock_accept_invitation.assert_called_once_with(self.user, None)

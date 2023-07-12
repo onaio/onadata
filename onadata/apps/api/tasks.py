@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 from datetime import timedelta
+from typing import Optional
 
 from celery.result import AsyncResult
 from django.conf import settings
@@ -149,12 +150,21 @@ def send_project_invitation_email_async(
 
 
 @app.task()
-def accept_project_invitation_async(invitation_id: str, user_id: str):
+def accept_project_invitation_async(user_id: str, invitation_id: Optional[str] = None):
     """Accpet project invitation asynchronously"""
+    invitation = None
+
+    if invitation_id:
+        try:
+            invitation = ProjectInvitation.objects.get(id=invitation_id)
+        except ProjectInvitation.DoesNotExist as err:
+            logging.exception(err)
+
     try:
-        invitation = ProjectInvitation.objects.get(id=invitation_id)
-    except ProjectInvitation.DoesNotExist as err:
-        logging.exception(err)
-    else:
         user = User.objects.get(pk=user_id)
-        accept_project_invitation(invitation, user)
+
+    except User.DoesNotExist as err:
+        logging.exception(err)
+
+    else:
+        accept_project_invitation(user, invitation)

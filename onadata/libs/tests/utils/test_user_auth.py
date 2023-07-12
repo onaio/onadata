@@ -47,7 +47,7 @@ class AcceptProjectInvitationTestCase(TestBase):
         )
 
         with patch("django.utils.timezone.now", Mock(return_value=self.mocked_now)):
-            accept_project_invitation(self.invitation, self.user)
+            accept_project_invitation(self.user, self.invitation)
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(self.invitation.accepted_at, self.mocked_now)
@@ -83,7 +83,7 @@ class AcceptProjectInvitationTestCase(TestBase):
         )
 
         with patch("django.utils.timezone.now", Mock(return_value=self.mocked_now)):
-            accept_project_invitation(self.invitation, self.user)
+            accept_project_invitation(self.user, self.invitation)
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.ACCEPTED)
             self.assertEqual(self.invitation.accepted_at, self.mocked_now)
@@ -102,9 +102,19 @@ class AcceptProjectInvitationTestCase(TestBase):
         self.invitation.save()
 
         with patch("django.utils.timezone.now", Mock(return_value=self.mocked_now)):
-            accept_project_invitation(self.invitation, self.user)
+            accept_project_invitation(self.user, self.invitation)
             self.invitation.refresh_from_db()
             self.assertEqual(self.invitation.status, ProjectInvitation.Status.REVOKED)
             self.assertIsNone(self.invitation.accepted_at)
             self.assertIsNone(self.invitation.accepted_by)
             self.assertFalse(EditorRole.user_has_role(self.user, self.project))
+
+    def test_invitation_optional(self):
+        """Invitation is optional
+
+        If invitation is not provided, invitations matching the user email
+        are accepted
+        """
+        accept_project_invitation(self.user)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.status, ProjectInvitation.Status.ACCEPTED)
