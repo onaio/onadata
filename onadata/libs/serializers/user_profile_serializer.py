@@ -17,7 +17,6 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import six
-import logging
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers
@@ -274,8 +273,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     )
     def create(self, validated_data):
         """Creates a user registration profile and account."""
-        # TODO: for debugging purposes, should be removed before merging
-        logging.warning('In create------------- %s %s', validated_data.get('invitation_id'), validated_data.get('invitation_token'))
         encoded_invitation_id = validated_data.pop("invitation_id", None)
         invitation_token = validated_data.pop("invitation_token", None)
         params = validated_data
@@ -324,8 +321,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         )
         profile.save()
         invitation = None
-        # TODO: for debugging purposes, should be removed before merging
-        logging.warning('Invitation---------------------%s, %s', encoded_invitation_id, invitation_token)
 
         if encoded_invitation_id and invitation_token:
             invitation = ProjectInvitationEmail.check_invitation(
