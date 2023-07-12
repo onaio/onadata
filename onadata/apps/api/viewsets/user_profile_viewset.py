@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+import logging
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -207,6 +208,9 @@ class UserProfileViewSet(
         return obj
 
     def get_serializer(self, *args, **kwargs):
+        # TODO: for debugging purposes, should be removed before merging
+        logging.warning('Get serializer--------------%s, %s', self.request.query_params.get("invitation_id"), self.request.query_params.get("invitation_token"))
+
         if (invitation_id := self.request.query_params.get("invitation_id")) and (
             invitation_token := self.request.query_params.get("invitation_token")
         ):
