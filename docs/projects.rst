@@ -775,5 +775,4 @@ If the validation for ``id`` and ``token`` is succesful:
 - The invitation will be accepted including any other pending invitations whose emails match the invitation's email.
 - If the invitation's email matches the new user's email, the new user's will immediately be marked as verified.
 
-If ``id`` and ``token`` are invalid or are not provided, all pending project invitations whose email match
-the new user email are also accepted and shared with the user.
+If ``id`` and ``token`` are invalid or are not provided but the user registers using an email that matches a pending invitation, then that project is shared with the user.
