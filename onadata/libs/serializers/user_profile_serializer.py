@@ -338,14 +338,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 redirect_url = params.get("redirect_url")
                 _send_verification_email(redirect_url, new_user, request)
 
-        invitation_id = None
-
-        if invitation:
-            invitation_id = invitation.id
-
         accept_project_invitation_async.delay(
-            new_user.id,
-            invitation_id,
+            new_user.id, invitation.id if invitation else None
         )
 
         return profile
