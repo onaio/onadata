@@ -3097,54 +3097,6 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
             },
         )
 
-    def test_patch_role(self):
-        """An invitation `role` can be updated"""
-        self.view = ProjectViewSet.as_view({"patch": "invitations"})
-        payload = {"role": "readonly", "invitation_id": self.invitation.id}
-        request = self.factory.patch(
-            "/",
-            data=json.dumps(payload),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 200)
-        self.invitation.refresh_from_db()
-        self.assertEqual(self.invitation.role, "readonly")
-        self.assertEqual(
-            response.data,
-            {
-                "id": self.invitation.pk,
-                "email": "janedoe@example.com",
-                "role": "readonly",
-                "status": 1,
-            },
-        )
-
-    def test_email_role(self):
-        """An invitation `email` can be updated"""
-        self.view = ProjectViewSet.as_view({"patch": "invitations"})
-        payload = {"email": "rihanna@example.com", "invitation_id": self.invitation.id}
-        request = self.factory.patch(
-            "/",
-            data=json.dumps(payload),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 200)
-        self.invitation.refresh_from_db()
-        self.assertEqual(self.invitation.email, "rihanna@example.com")
-        self.assertEqual(
-            response.data,
-            {
-                "id": self.invitation.pk,
-                "email": "rihanna@example.com",
-                "role": "editor",
-                "status": 1,
-            },
-        )
-
 
 class RevokeInvitationTestCase(TestAbstractViewSet):
     """Tests for revoke invitation"""

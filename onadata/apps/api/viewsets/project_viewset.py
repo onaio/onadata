@@ -244,7 +244,7 @@ class ProjectViewSet(
 
     @action(
         detail=True,
-        methods=["GET", "POST", "PUT", "PATCH"],
+        methods=["GET", "POST", "PUT"],
         url_path="invitations",
     )
     def invitations(self, request, *args, **kwargs):
@@ -269,22 +269,16 @@ class ProjectViewSet(
             serializer.save()
             return Response(serializer.data)
 
-        if method in ["PUT", "PATCH"]:
+        if method == "PUT":
             invitation_id = request.data.get("invitation_id")
             invitation = get_object_or_404(
                 ProjectInvitation,
                 pk=invitation_id,
             )
-            partial = False
-
-            if method == "PATCH":
-                partial = True
-
             data = {**request.data, "project": project.pk}
             serializer = self.get_serializer(
                 invitation,
                 data=data,
-                partial=partial,
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
