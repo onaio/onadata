@@ -5,13 +5,13 @@ User authentication utility functions.
 import base64
 import re
 from functools import wraps
+from typing import Optional
 
 from django.apps import apps
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 from django.utils import timezone
 
 from guardian.shortcuts import assign_perm, get_perms_for_model
@@ -270,18 +270,26 @@ def invalidate_and_regen_tokens(user):
 
 
 def accept_project_invitation(
-    project_invitation: ProjectInvitation, user: User
+    user: User, project_invitation: Optional[ProjectInvitation] = None
 ) -> None:
     """Accept a project inivitation and share project with user
 
-    Accepts all invitations whose email matches the invitation's email or
-    the user's email
+    Accepts all invitations whose email matches the user's email and
+    the invitations's email
     """
 
     invitation_qs = ProjectInvitation.objects.filter(
-        Q(email=project_invitation.email) | Q(email=user.email),
+        email=user.email,
         status=ProjectInvitation.Status.PENDING,
     )
+
+    if project_invitation:
+        invitation_email_qs = ProjectInvitation.objects.filter(
+            email=project_invitation.email,
+            status=ProjectInvitation.Status.PENDING,
+        )
+        invitation_qs = invitation_qs.union(invitation_email_qs)
+
     now = timezone.now()
 
     for invitation in invitation_qs:
