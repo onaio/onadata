@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import six
+import logging
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers
@@ -321,6 +322,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         )
         profile.save()
         invitation = None
+        logging.info('Invitation---------------------%s, %s', encoded_invitation_id, invitation_token)
 
         if encoded_invitation_id and invitation_token:
             invitation = ProjectInvitationEmail.check_invitation(
@@ -330,6 +332,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # we do nothing. There is absolutely no reason to prevent
             # account creation because the invitation did not pass validation
             if invitation:
+                logging.info('Invitation check passed--------')
                 accept_project_invitation_async.delay(
                     invitation.id,
                     new_user.id,
