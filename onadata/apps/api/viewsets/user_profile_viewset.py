@@ -208,9 +208,6 @@ class UserProfileViewSet(
         return obj
 
     def get_serializer(self, *args, **kwargs):
-        # TODO: for debugging purposes, should be removed before merging
-        logging.warning('Get serializer--------------%s, %s', self.request.query_params.get("invitation_id"), self.request.query_params.get("invitation_token"))
-
         if (invitation_id := self.request.query_params.get("invitation_id")) and (
             invitation_token := self.request.query_params.get("invitation_token")
         ):
@@ -218,6 +215,8 @@ class UserProfileViewSet(
             draft_request_data["invitation_id"] = invitation_id
             draft_request_data["invitation_token"] = invitation_token
             kwargs["data"] = draft_request_data
+            # TODO: for debugging purposes, should be removed before merging
+            logging.warning('Get serializer---------%s, %s', kwargs['data'].get('invitation_id'), kwargs['data'].get('invitation_token'))
 
         return super().get_serializer(*args, **kwargs)
 
