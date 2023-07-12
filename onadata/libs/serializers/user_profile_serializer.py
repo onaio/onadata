@@ -322,6 +322,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         )
         profile.save()
         invitation = None
+        # TODO: for debugging purposes, should be removed before merging
         logging.warning('Invitation---------------------%s, %s', encoded_invitation_id, invitation_token)
 
         if encoded_invitation_id and invitation_token:
@@ -332,7 +333,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # we do nothing. There is absolutely no reason to prevent
             # account creation because the invitation did not pass validation
             if invitation:
-                logging.warning('Invitation check passed--------')
                 accept_project_invitation_async.delay(
                     invitation.id,
                     new_user.id,
