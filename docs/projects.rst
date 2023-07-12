@@ -605,7 +605,7 @@ Example
 
 ::
         
-        curl -X POST -d email=janedoe@example.com -d role=readonly https://api.ona.io/api/v1/projects/1/invitations
+        curl -X POST -d "email=janedoe@example.com" -d "role=readonly" https://api.ona.io/api/v1/projects/1/invitations
 
 
 ``email``: The email address of the unregistered user.
@@ -662,7 +662,7 @@ Update a project invitation
 .. raw:: html
 
 	<pre class="prettyprint">
-    <b>PUT</b> /api/v1/projects/{pk}/invitations/{invitation_pk} or <b>PATCH</b> /api/v1/projects/{pk}/invitations/{invitation_pk}
+    <b>PUT</b> /api/v1/projects/{pk}/invitations
     </pre>
 
 
@@ -671,7 +671,7 @@ Example
 
 ::
         
-        curl -X PUT -d email=janedoe@example.com -d role=editor https://api.ona.io/api/v1/projects/1/invitations/1
+        curl -X PUT -d "email=janedoe@example.com" -d "role=editor" -d "invitation_id=5"  https://api.ona.io/api/v1/projects/1/invitations/1
 
 Response
 ^^^^^^^^
@@ -700,7 +700,7 @@ Example
 
 ::
         
-        curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/resend-invitation
+        curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/resend-invitation
 
 
 ``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
@@ -731,7 +731,7 @@ Example
 
 ::
         
-        curl -X POST -d invitation_id=6 https://api.ona.io/api/v1/projects/1/revoke-invitation
+        curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/revoke-invitation
 
 ``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
 
