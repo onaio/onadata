@@ -274,6 +274,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     )
     def create(self, validated_data):
         """Creates a user registration profile and account."""
+        # TODO: for debugging purposes, should be removed before merging
+        logging.warning('In create------------- %s %s', validated_data.get('invitation_id'), validated_data.get('invitation_token'))
         encoded_invitation_id = validated_data.pop("invitation_id", None)
         invitation_token = validated_data.pop("invitation_token", None)
         params = validated_data
