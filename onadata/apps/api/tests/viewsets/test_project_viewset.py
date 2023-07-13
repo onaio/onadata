@@ -3086,6 +3086,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.email, "rihanna@example.com")
         self.assertEqual(self.invitation.role, "readonly")
         self.assertEqual(
             response.data,
@@ -3093,6 +3094,60 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
                 "id": self.invitation.pk,
                 "email": "rihanna@example.com",
                 "role": "readonly",
+                "status": 1,
+            },
+        )
+
+    def test_update_role_only(self):
+        """We can update role only"""
+        payload = {
+            "email": self.invitation.email,
+            "role": "readonly",
+            "invitation_id": self.invitation.id,
+        }
+        request = self.factory.put(
+            "/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.role, "readonly")
+        self.assertEqual(
+            response.data,
+            {
+                "id": self.invitation.pk,
+                "email": "janedoe@example.com",
+                "role": "readonly",
+                "status": 1,
+            },
+        )
+
+    def test_update_email_only(self):
+        """We can update email only"""
+        payload = {
+            "email": "rihanna@example.com",
+            "role": self.invitation.role,
+            "invitation_id": self.invitation.id,
+        }
+        request = self.factory.put(
+            "/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.email, "rihanna@example.com")
+        self.assertEqual(
+            response.data,
+            {
+                "id": self.invitation.pk,
+                "email": "rihanna@example.com",
+                "role": "editor",
                 "status": 1,
             },
         )
