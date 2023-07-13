@@ -5,14 +5,12 @@ User authentication utility functions.
 import base64
 import re
 from functools import wraps
-from typing import Optional
 
 from django.apps import apps
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.sites.models import Site
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from rest_framework.authtoken.models import Token
@@ -23,8 +21,6 @@ from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import get_form
-from onadata.apps.logger.models import ProjectInvitation
-from onadata.libs.models.share_project import ShareProject
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -267,35 +263,3 @@ def invalidate_and_regen_tokens(user):
     temp_token = TempToken.objects.create(user=user).key
 
     return {"access_token": access_token, "temp_token": temp_token}
-
-
-def accept_project_invitation(
-    user: User, project_invitation: Optional[ProjectInvitation] = None
-) -> None:
-    """Accept a project inivitation and share project with user
-
-    Accepts all invitations whose email matches the user's email and
-    the invitations's email
-    """
-
-    invitation_qs = ProjectInvitation.objects.filter(
-        email=user.email,
-        status=ProjectInvitation.Status.PENDING,
-    )
-
-    if project_invitation:
-        invitation_email_qs = ProjectInvitation.objects.filter(
-            email=project_invitation.email,
-            status=ProjectInvitation.Status.PENDING,
-        )
-        invitation_qs = invitation_qs.union(invitation_email_qs)
-
-    now = timezone.now()
-
-    for invitation in invitation_qs:
-        ShareProject(
-            invitation.project,
-            user.username,
-            invitation.role,
-        ).save()
-        invitation.accept(accepted_at=now, accepted_by=user)

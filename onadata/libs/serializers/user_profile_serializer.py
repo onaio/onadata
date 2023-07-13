@@ -24,7 +24,6 @@ from rest_framework import serializers
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import (
     send_verification_email,
-    accept_project_invitation_async,
 )
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
@@ -36,7 +35,6 @@ from onadata.libs.utils.cache_tools import IS_ORG
 from onadata.libs.utils.email import (
     get_verification_email_data,
     get_verification_url,
-    ProjectInvitationEmail,
 )
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
@@ -149,8 +147,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     # pylint: disable=invalid-name
     id = serializers.ReadOnlyField(source="user.id")
     joined_on = serializers.ReadOnlyField(source="user.date_joined")
-    invitation_id = serializers.CharField(required=False, write_only=True)
-    invitation_token = serializers.CharField(required=False, write_only=True)
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -175,8 +171,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             "metadata",
             "joined_on",
             "name",
-            "invitation_id",
-            "invitation_token",
         )
         owner_only_fields = ("metadata",)
 
@@ -273,8 +267,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     )
     def create(self, validated_data):
         """Creates a user registration profile and account."""
-        encoded_invitation_id = validated_data.pop("invitation_id", None)
-        invitation_token = validated_data.pop("invitation_token", None)
         params = validated_data
         request = self.context.get("request")
         metadata = {}
@@ -320,27 +312,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata,
         )
         profile.save()
-        invitation = None
-
-        if encoded_invitation_id and invitation_token:
-            invitation = ProjectInvitationEmail.check_invitation(
-                encoded_invitation_id, invitation_token
-            )
 
         if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
-            if invitation and invitation.email == new_user.email:
-                # Mark users email as verified. No need to for them to verify
-                # if they registered using the email that the invite was sent to
-                profile.metadata.update({"is_email_verified": True})
-                profile.save()
-
-            else:
-                redirect_url = params.get("redirect_url")
-                _send_verification_email(redirect_url, new_user, request)
-
-        accept_project_invitation_async.delay(
-            new_user.id, invitation.id if invitation else None
-        )
+            redirect_url = params.get("redirect_url")
+            _send_verification_email(redirect_url, new_user, request)
 
         return profile
 
