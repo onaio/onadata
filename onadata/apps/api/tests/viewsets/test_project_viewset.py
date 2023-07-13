@@ -3152,6 +3152,28 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
             },
         )
 
+    def test_only_pending_allowed(self):
+        """Only pending invitation can be updated"""
+        for value, _ in ProjectInvitation.Status.choices:
+            invitation = self.project.invitations.create(
+                email=f"jandoe-{value}@example.com",
+                role="editor",
+                status=value,
+            )
+            payload = {
+                "email": "rihanna@example.com",
+                "role": "readonly",
+                "invitation_id": invitation.id,
+            }
+            request = self.factory.put("/", data=payload, **self.extra)
+            response = self.view(request, pk=self.project.pk)
+
+            if value == ProjectInvitation.Status.PENDING:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 400)
+
 
 class RevokeInvitationTestCase(TestAbstractViewSet):
     """Tests for revoke invitation"""

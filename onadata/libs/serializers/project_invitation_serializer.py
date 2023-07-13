@@ -52,10 +52,6 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
             ]:
                 raise serializers.ValidationError(_(err_msg))
 
-        # email should not be of an existing user
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError(_("User already exists"))
-
         return email
 
     def validate_role(self, role):
@@ -73,6 +69,10 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
         ).exists():
             raise serializers.ValidationError(_("Invitation already exists."))
 
+        # email should not be of an existing user
+        if User.objects.filter(email=validated_data["email"]).exists():
+            raise serializers.ValidationError(_("User already exists"))
+
         instance = super().create(validated_data)
         instance.invited_by = self.context["request"].user
         instance.save()
@@ -80,6 +80,15 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
         send_project_invitation_email_async.delay(instance.id, project_activation_url)
 
         return instance
+
+    def update(self, instance, validated_data):
+        # only a pending invitation can be updated
+        if instance.status != ProjectInvitation.Status.PENDING:
+            raise serializers.ValidationError(
+                _("Only pending invitations can be updated")
+            )
+
+        return super().update(instance, validated_data)
 
 
 # pylint: disable=abstract-method
