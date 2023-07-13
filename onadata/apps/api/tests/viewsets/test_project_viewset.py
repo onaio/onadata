@@ -3187,7 +3187,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
 
     def test_user_unregistered(self, mock_send_mail):
-        """Email cannot be updated to that of an unregistered user"""
+        """Email cannot be updated to that of an existing user"""
         alice_data = {"username": "alice", "email": "alice@example.com"}
         self._create_user_profile(alice_data)
         post_data = {
