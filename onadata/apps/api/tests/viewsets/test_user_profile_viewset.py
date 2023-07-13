@@ -7,7 +7,6 @@ import datetime
 import json
 import os
 from six.moves.urllib.parse import urlparse, parse_qs
-from mock import Mock
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -32,7 +31,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
-from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.permissions import EditorRole
 
 
 User = get_user_model()
@@ -297,16 +296,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     @patch(
         (
             "onadata.libs.serializers.user_profile_serializer."
-            "accept_project_invitation_async.delay"
-        )
-    )
-    @patch(
-        (
-            "onadata.libs.serializers.user_profile_serializer."
             "send_verification_email.delay"
         )
     )
-    def test_accept_invitaton(self, mock_send_email, mock_accept_invitation):
+    def test_accept_invitaton(self, mock_send_email):
         """An invitation is accepted successfuly"""
         self._project_create()
         invitation = ProjectInvitation.objects.create(
@@ -318,84 +311,19 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data = _profile_data()
         del data["name"]
         data["email"] = invitation.email
-
-        with patch.object(
-            ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
-        ) as mock_check_invitation:
-            request = self.factory.post(
-                "/api/v1/profiles?invitation_id=id&invitation_token=token",
-                data=json.dumps(data),
-                content_type="application/json",
-                **self.extra,
-            )
-            response = self.view(request)
-            self.assertEqual(response.status_code, 201)
-            user = User.objects.get(username="deno")
-            mock_check_invitation.assert_called_once_with("id", "token")
-            mock_accept_invitation.assert_called_with(user.id, invitation.id)
-            # user email matches invitation email so no need to send
-            # verification email
-            mock_send_email.assert_not_called()
-            self.assertTrue(user.profile.metadata["is_email_verified"])
-
-        # user registers using a different email from invitation email
-        data["email"] = "nickiminaj@example.com"
-        data["username"] = "nicki"
-
-        with patch.object(
-            ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
-        ):
-            request = self.factory.post(
-                "/api/v1/profiles?invitation_id=some_valid_id&invitation_token=some_token",
-                data=json.dumps(data),
-                content_type="application/json",
-                **self.extra,
-            )
-            response = self.view(request)
-            self.assertEqual(response.status_code, 201)
-            user = User.objects.get(username=data["username"])
-            mock_accept_invitation.assert_called_with(user.id, invitation.id)
-            # user email does not match invitation email so we send email verification
-            mock_send_email.assert_called_once()
-            self.assertFalse(user.profile.metadata.get("is_email_verified", False))
-
-        # invitation_id and invitation_token missing
-        data["email"] = "jack@example.com"
-        data["username"] = "jack"
-
-        with patch.object(
-            ProjectInvitationEmail, "check_invitation", Mock(return_value=invitation)
-        ):
-            request = self.factory.post(
-                "/api/v1/profiles",
-                data=json.dumps(data),
-                content_type="application/json",
-                **self.extra,
-            )
-            response = self.view(request)
-            self.assertEqual(response.status_code, 201)
-            user = User.objects.get(username=data["username"])
-            mock_accept_invitation.assert_called_with(user.id, None)
-            self.assertFalse(user.profile.metadata.get("is_email_verified", False))
-
-        # invalid invitation
-        data["email"] = "jude@example.com"
-        data["username"] = "jude"
-
-        with patch.object(
-            ProjectInvitationEmail, "check_invitation", Mock(return_value=None)
-        ):
-            request = self.factory.post(
-                "/api/v1/profiles?invitation_id=some_valid_id&invitation_token=some_token",
-                data=json.dumps(data),
-                content_type="application/json",
-                **self.extra,
-            )
-            response = self.view(request)
-            self.assertEqual(response.status_code, 201)
-            user = User.objects.get(username=data["username"])
-            mock_accept_invitation.assert_called_with(user.id, None)
-            self.assertFalse(user.profile.metadata.get("is_email_verified", False))
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username="deno")
+        mock_send_email.assert_called_once()
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
+        self.assertTrue(EditorRole.user_has_role(user, self.project))
 
     def _create_user_using_profiles_endpoint(self, data):
         request = self.factory.post(
