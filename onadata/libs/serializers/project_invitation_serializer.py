@@ -61,6 +61,16 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
 
         return role
 
+    def _validate_email_exists(self, email):
+        """Email should not be of an existing user"""
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(_("User already exists"))
+
+    def _send_project_invitation_email(self, invitation_id: str) -> None:
+        """Send project invitation email"""
+        project_activation_url = get_project_invitation_url(self.context["request"])
+        send_project_invitation_email_async.delay(invitation_id, project_activation_url)
+
     def create(self, validated_data):
         if ProjectInvitation.objects.filter(
             email=validated_data["email"],
@@ -69,15 +79,11 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
         ).exists():
             raise serializers.ValidationError(_("Invitation already exists."))
 
-        # email should not be of an existing user
-        if User.objects.filter(email=validated_data["email"]).exists():
-            raise serializers.ValidationError(_("User already exists"))
-
+        self._validate_email_exists(validated_data["email"])
         instance = super().create(validated_data)
         instance.invited_by = self.context["request"].user
         instance.save()
-        project_activation_url = get_project_invitation_url(self.context["request"])
-        send_project_invitation_email_async.delay(instance.id, project_activation_url)
+        self._send_project_invitation_email(instance.id)
 
         return instance
 
@@ -88,7 +94,14 @@ class ProjectInvitationSerializer(serializers.ModelSerializer):
                 _("Only pending invitations can be updated")
             )
 
-        return super().update(instance, validated_data)
+        self._validate_email_exists(validated_data["email"])
+        has_email_changed = instance.email != validated_data["email"]
+        updated_instance = super().update(instance, validated_data)
+
+        if has_email_changed:
+            self._send_project_invitation_email(instance.id)
+
+        return updated_instance
 
 
 # pylint: disable=abstract-method
