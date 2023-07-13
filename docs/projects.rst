@@ -770,7 +770,7 @@ The validation of the ``id`` and ``token`` are dependent on one another and both
 successful validation. Failure of validation does not prevent the account creation. However, the new
 user will not have the projects shared with them.
 
-If the validation for ``id`` and ``token`` is succesful:
+If the validation for ``id`` and ``token`` is successful:
 
 - The invitation will be accepted including any other pending invitations whose emails match the invitation's email.
 - If the invitation's email matches the new user's email, the new user's will immediately be marked as verified.
