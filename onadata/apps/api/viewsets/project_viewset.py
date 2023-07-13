@@ -263,7 +263,9 @@ class ProjectViewSet(
             return Response(serializer.data)
 
         if method == "POST":
-            data = {**request.data, "project": project.pk}
+            draft_request_data = self.request.data.copy()
+            draft_request_data["project"] = project.pk
+            data = draft_request_data
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -275,7 +277,9 @@ class ProjectViewSet(
                 ProjectInvitation,
                 pk=invitation_id,
             )
-            data = {**request.data, "project": project.pk}
+            draft_request_data = self.request.data.copy()
+            draft_request_data["project"] = project.pk
+            data = draft_request_data
             serializer = self.get_serializer(
                 invitation,
                 data=data,
