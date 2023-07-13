@@ -3018,6 +3018,9 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         mock_send_mail.assert_not_called()
 
 
+@patch(
+    "onadata.libs.serializers.project_invitation_serializer.send_project_invitation_email_async.delay"
+)
 class UpdateProjectInvitationTestCase(TestAbstractViewSet):
     """Tests for update project invitation"""
 
@@ -3031,25 +3034,25 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
             status=ProjectInvitation.Status.PENDING,
         )
 
-    def test_authentication(self):
+    def test_authentication(self, mock_send_mail):
         """Authentication is required"""
         request = self.factory.put("/", data={})
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 401)
 
-    def test_invalid_project(self):
+    def test_invalid_project(self, mock_send_mail):
         """Invalid project is handled"""
         request = self.factory.put("/", data={}, **self.extra)
         response = self.view(request, pk=817)
         self.assertEqual(response.status_code, 404)
 
-    def test_invalid_invitation_id(self):
+    def test_invalid_invitation_id(self, mock_send_mail):
         """Invalid project invitation is handled"""
         request = self.factory.put("/", data={}, **self.extra)
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 404)
 
-    def test_only_admins_allowed(self):
+    def test_only_admins_allowed(self, mock_send_mail):
         """Only project admins are allowed to update project invitation"""
         # login as editor alice
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -3070,7 +3073,8 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
-    def test_update(self):
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_update(self, mock_send_mail):
         """We can update an invitation"""
         payload = {
             "email": "rihanna@example.com",
@@ -3097,8 +3101,11 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
+        mock_send_mail.assert_called_once_with(
+            self.invitation.pk, "https://example.com/register"
+        )
 
-    def test_update_role_only(self):
+    def test_update_role_only(self, mock_send_mail):
         """We can update role only"""
         payload = {
             "email": self.invitation.email,
@@ -3124,8 +3131,10 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
+        mock_send_mail.assert_not_called()
 
-    def test_update_email_only(self):
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_update_email_only(self, mock_send_mail):
         """We can update email only"""
         payload = {
             "email": "rihanna@example.com",
@@ -3151,8 +3160,11 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
+        mock_send_mail.assert_called_once_with(
+            self.invitation.pk, "https://example.com/register"
+        )
 
-    def test_only_pending_allowed(self):
+    def test_only_pending_allowed(self, mock_send_mail):
         """Only pending invitation can be updated"""
         for value, _ in ProjectInvitation.Status.choices:
             invitation = self.project.invitations.create(
@@ -3173,6 +3185,28 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 400)
+
+    def test_user_unregistered(self, mock_send_mail):
+        """Email cannot be updated to that of an unregistered user"""
+        alice_data = {"username": "alice", "email": "alice@example.com"}
+        self._create_user_profile(alice_data)
+        post_data = {
+            "email": alice_data["email"],
+            "role": "editor",
+            "invitation_id": self.invitation.id,
+        }
+        request = self.factory.put(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.project.pk)
+        print("Helleo", response.data)
+        self.assertEqual(response.status_code, 400)
+        self.invitation.refresh_from_db()
+        # invitation email not updated
+        self.assertEqual(self.invitation.email, "janedoe@example.com")
 
 
 class RevokeInvitationTestCase(TestAbstractViewSet):
