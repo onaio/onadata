@@ -1,7 +1,10 @@
-import pytz
+
+"""Tests for onadata.apps.main.signals module"""
 
 from datetime import datetime
 from unittest.mock import Mock, patch
+
+import pytz
 
 from django.contrib.auth import get_user_model
 
