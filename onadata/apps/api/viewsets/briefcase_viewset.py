@@ -98,6 +98,19 @@ class BriefcaseViewset(
         id_string = _extract_id_string(form_id)
         uuid = _extract_uuid(form_id)
         username = self.kwargs.get("username")
+        form_pk = self.kwargs.get("xform_pk")
+        project_pk = self.kwargs.get("project_pk")
+
+        if not username:
+            if form_pk:
+                queryset = self.queryset.filter(pk=form_pk)
+                if queryset.first():
+                    username = queryset.first().user.username
+            elif project_pk:
+                queryset = queryset.filter(project__pk=project_pk)
+                if queryset.first():
+                    username = queryset.first().user.username
+
 
         obj = get_object_or_404(
             Instance,
@@ -115,18 +128,35 @@ class BriefcaseViewset(
         Filters an XForm submission instances using ODK Aggregate query parameters.
         """
         username = self.kwargs.get("username")
-        if username is None and self.request.user.is_anonymous:
+        form_pk = self.kwargs.get("xform_pk")
+        project_pk = self.kwargs.get("project_pk")
+
+        if (not username or not form_pk or not project_pk) and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
         if username is not None and self.request.user.is_anonymous:
-            profile = get_object_or_404(UserProfile, user__username__iexact=username)
+            profile = None
+            if username:
+                profile = get_object_or_404(UserProfile, user__username__iexact=username)
+            elif form_pk:
+                queryset = queryset.filter(pk=form_pk)
+                if queryset.first():
+                    profile = queryset.first().user.profile
+            elif project_pk:
+                queryset = queryset.filter(project__pk=project_pk)
+                if queryset.first():
+                    profile = queryset.first().user.profile
 
             if profile.require_auth:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
                 queryset = queryset.filter(user=profile.user)
+        elif form_pk:
+            queryset = queryset.filter(pk=form_pk)
+        elif project_pk:
+            queryset = queryset.filter(project__pk=project_pk)
         else:
             queryset = super().filter_queryset(queryset)
 

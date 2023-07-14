@@ -202,7 +202,27 @@ urlpatterns = [
         name="view-submission-list",
     ),
     re_path(
+        r"^forms/(?P<xform_pk>\w+)/view/submissionList$",
+        BriefcaseViewset.as_view({"get": "list", "head": "list"}),
+        name="view-submission-list",
+    ),
+    re_path(
+        r"^projects/(?P<project_pk>\d+)/view/submissionList$",
+        BriefcaseViewset.as_view({"get": "list", "head": "list"}),
+        name="view-submission-list",
+    ),
+    re_path(
         r"^(?P<username>\w+)/view/downloadSubmission$",
+        BriefcaseViewset.as_view({"get": "retrieve", "head": "retrieve"}),
+        name="view-download-submission",
+    ),
+    re_path(
+        r"^forms/(?P<xform_pk>\w+)/view/downloadSubmission$",
+        BriefcaseViewset.as_view({"get": "retrieve", "head": "retrieve"}),
+        name="view-download-submission",
+    ),
+    re_path(
+        r"^projects/(?P<project_pk>\d+)/view/downloadSubmission$",
         BriefcaseViewset.as_view({"get": "retrieve", "head": "retrieve"}),
         name="view-download-submission",
     ),
