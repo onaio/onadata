@@ -13,8 +13,22 @@ from onadata.apps.logger.models import ProjectInvitation
 
 def get_verification_url(redirect_url, request, verification_key):
     """Returns the verification_url"""
-    verification_url = getattr(settings, "VERIFICATION_URL", None)
-    url = verification_url or reverse("userprofile-verify-email", request=request)
+    # get verification URL based on host
+    verification_url_map = getattr(settings, "VERIFICATION_URL", {})
+    host = request.get_host()
+    url = (
+        (
+            verification_url_map
+            and host in verification_url_map
+            and verification_url_map[host]
+        )
+        or (
+            verification_url_map
+            and "*" in verification_url_map
+            and verification_url_map["*"]
+        )
+        or reverse("userprofile-verify-email", request=request)
+    )
     query_params_dict = {"verification_key": verification_key}
     if redirect_url:
         query_params_dict.update({"redirect_url": redirect_url})

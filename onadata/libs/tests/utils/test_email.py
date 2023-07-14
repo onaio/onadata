@@ -24,7 +24,13 @@ class TestEmail(TestBase):
         self.redirect_url = "http://red.ir.ect"
         self.custom_request = RequestFactory().get("/path", data={"name": "test"})
 
-    @override_settings(VERIFICATION_URL=None)
+    @override_settings(
+        VERIFICATION_URL={
+            "stage-testserver": 'https://stage-testserver/email-verification-confirmation',
+            "*": None,
+        }
+    )
+    @override_settings(ALLOWED_HOSTS="*")
     def test_get_verification_url(self):
         # without redirect_url
         verification_url = get_verification_url(
@@ -64,6 +70,28 @@ class TestEmail(TestBase):
             ("http://testserver/api/v1/profiles/verify_email?%s" % string_query_params),
         )
 
+        # with redirect_url
+        self.custom_request.META["HTTP_HOST"] = "stage-testserver"
+        verification_url = get_verification_url(
+            **{
+                "redirect_url": self.redirect_url,
+                "request": self.custom_request,
+                "verification_key": self.verification_key,
+            }
+        )
+
+        string_query_params = urlencode(
+            {
+                "verification_key": self.verification_key,
+                "redirect_url": self.redirect_url,
+            }
+        )
+
+        self.assertEqual(
+            verification_url,
+            ("https://stage-testserver/email-verification-confirmation?%s" % string_query_params)
+        )
+
     def _get_email_data(self, include_redirect_url=False):
         verification_url = get_verification_url(
             **{
@@ -100,7 +128,7 @@ class TestEmail(TestBase):
             email_data.get("message_txt"),
         )
 
-    @override_settings(VERIFICATION_URL=VERIFICATION_URL)
+    @override_settings(VERIFICATION_URL={"*": VERIFICATION_URL})
     def test_get_verification_email_data_with_verification_url_set(self):
         email_data = self._get_email_data()
         self.assertIn(
@@ -108,7 +136,7 @@ class TestEmail(TestBase):
             email_data.get("message_txt"),
         )
 
-    @override_settings(VERIFICATION_URL=VERIFICATION_URL)
+    @override_settings(VERIFICATION_URL={"*": VERIFICATION_URL})
     def test_get_verification_email_data_with_verification_and_redirect_urls(self):
         email_data = self._get_email_data(include_redirect_url=True)
         encoded_url = urlencode(
@@ -197,3 +225,4 @@ class ProjectInvitationURLTestCase(TestBase):
         """settings.PROJECT_INVITATION_URL not set"""
         url = get_project_invitation_url(self.custom_request)
         self.assertEqual(url, "http://testserver/api/v1/profiles")
+# Add test case for using a different host
