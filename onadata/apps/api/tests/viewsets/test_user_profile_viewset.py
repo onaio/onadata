@@ -291,40 +291,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
-    @patch(
-        (
-            "onadata.libs.serializers.user_profile_serializer."
-            "send_verification_email.delay"
-        )
-    )
-    def test_accept_invitaton(self, mock_send_email):
-        """An invitation is accepted successfuly"""
-        self._project_create()
-        invitation = ProjectInvitation.objects.create(
-            email="janedoe@example.com",
-            project=self.project,
-            role="editor",
-        )
-        # user registers using same email as invitation email
-        data = _profile_data()
-        del data["name"]
-        data["email"] = invitation.email
-        request = self.factory.post(
-            "/api/v1/profiles",
-            data=json.dumps(data),
-            content_type="application/json",
-            **self.extra,
-        )
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-        user = User.objects.get(username="deno")
-        mock_send_email.assert_called_once()
-        invitation.refresh_from_db()
-        self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
-        self.assertTrue(EditorRole.user_has_role(user, self.project))
-
     def _create_user_using_profiles_endpoint(self, data):
         request = self.factory.post(
             "/api/v1/profiles",
@@ -1488,3 +1454,107 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                 ),
             ]
         )
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        (
+            "onadata.libs.serializers.user_profile_serializer."
+            "send_verification_email.delay"
+        )
+    )
+    def test_accept_invitaton(self, mock_send_email):
+        """An invitation is accepted successfuly"""
+        self._project_create()
+        invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+        )
+        # user registers using same email as invitation email
+        data = _profile_data()
+        del data["name"]
+        data["email"] = invitation.email
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username="deno")
+        mock_send_email.assert_called_once()
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
+        self.assertTrue(EditorRole.user_has_role(user, self.project))
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",  # noqa
+            },
+        ]
+    )
+    @patch(
+        (
+            "onadata.libs.serializers.user_profile_serializer."
+            "send_verification_email.delay"
+        )
+    )
+    def test_password_optional(self, mock_send_verification_email):
+        """Field `password` is optional"""
+        # password not provided
+        data = _profile_data()
+        del data["name"]
+        del data["password"]
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        profile = UserProfile.objects.get(user__username=data["username"])
+        data["id"] = profile.user.pk
+        data["gravatar"] = profile.gravatar
+        data["url"] = "http://testserver/api/v1/profiles/deno"
+        data["user"] = "http://testserver/api/v1/users/deno"
+        data["metadata"] = {}
+        data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
+        data["joined_on"] = profile.user.date_joined
+        data["name"] = "%s %s" % ("Dennis", "erama")
+        self.assertEqual(response.data, data)
+        self.assertTrue(mock_send_verification_email.called)
+        user = User.objects.get(username="deno")
+        self.assertTrue(user.is_active)
+        # password blank
+        data = _profile_data()
+        user.delete()
+        del data["name"]
+        data["password"] = ""
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        profile = UserProfile.objects.get(user__username=data["username"])
+        data["id"] = profile.user.pk
+        data["gravatar"] = profile.gravatar
+        data["url"] = "http://testserver/api/v1/profiles/deno"
+        data["user"] = "http://testserver/api/v1/users/deno"
+        data["metadata"] = {}
+        data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
+        data["joined_on"] = profile.user.date_joined
+        data["name"] = "%s %s" % ("Dennis", "erama")
+        del data["password"]
+        self.assertEqual(response.data, data)
+        self.assertTrue(mock_send_verification_email.called)
+        user = User.objects.get(username="deno")
+        self.assertTrue(user.is_active)
