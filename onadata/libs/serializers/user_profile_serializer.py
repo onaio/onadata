@@ -288,15 +288,16 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 _(f"User account {username} already exists")
             ) from e
 
-        try:
-            validate_password("" if password is None else password, user=new_user)
+        if password is not None:
+            try:
+                validate_password(password, user=new_user)
 
-        except ValidationError as e:
-            # Delete created user object if created
-            # to allow re-registration
-            if new_user:
-                new_user.delete()
-            raise serializers.ValidationError({"password": e.messages})
+            except ValidationError as e:
+                # Delete created user object if created
+                # to allow re-registration
+                if new_user:
+                    new_user.delete()
+                raise serializers.ValidationError({"password": e.messages})
 
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
