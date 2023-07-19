@@ -2050,10 +2050,10 @@ class TestExportBuilder(TestBase):
             section_name = section["name"].replace("/", "_")
             _test_sav_file(section_name)
 
-    def test_export_zipped_zap_missing_lang_label(self):
+    def test_export_zipped_zap_missing_en_label(self):
         """Blank language label defaults to label for default language"""
         survey = create_survey_from_xls(
-            _logger_fixture_path("childrens_survey_sw_missing_lang_label.xlsx"),
+            _logger_fixture_path("childrens_survey_sw_missing_en_label.xlsx"),
             default_name="childrens_survey_sw",
         )
         # default_language is set to swahili
@@ -2081,6 +2081,7 @@ class TestExportBuilder(TestBase):
             section_name = section["name"]
 
             if section_name == "childrens_survey_sw":
+                # Default swahili label is used incase english label is missing for question
                 result = filter(
                     lambda question: question["label"] == "1. Jina lako ni?",
                     section["elements"],
@@ -2089,6 +2090,7 @@ class TestExportBuilder(TestBase):
                 checks += 1
 
             if section_name == "children":
+                # Default swahili label is used incase english label is missing for choice
                 result = filter(
                     lambda choice: choice["label"] == "fav_colors/Nyekundu",
                     section["elements"],
