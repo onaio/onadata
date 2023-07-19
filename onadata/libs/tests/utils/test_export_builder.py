@@ -2050,10 +2050,10 @@ class TestExportBuilder(TestBase):
             section_name = section["name"].replace("/", "_")
             _test_sav_file(section_name)
 
-    def test_export_zipped_zap_choices_label_language_missing(self):
-        """Missing choice language label defaults to label for default language"""
+    def test_export_zipped_zap_missing_lang_label(self):
+        """Blank language label defaults to label for default language"""
         survey = create_survey_from_xls(
-            _logger_fixture_path("childrens_survey_sw_missing_choice_lang.xlsx"),
+            _logger_fixture_path("childrens_survey_sw_missing_lang_label.xlsx"),
             default_name="childrens_survey_sw",
         )
         # default_language is set to swahili
@@ -2075,15 +2075,28 @@ class TestExportBuilder(TestBase):
 
         # check that each file exists
         self.assertTrue(os.path.exists(os.path.join(temp_dir, f"{survey.name}.sav")))
+        checks = 0
 
         for section in export_builder.sections:
-            if section == "children":
+            section_name = section["name"]
+
+            if section_name == "childrens_survey_sw":
                 result = filter(
-                    lambda label: label == "fav_colors/Nyekundu",
-                    section["children"]["elements"],
+                    lambda question: question["label"] == "1. Jina lako ni?",
+                    section["elements"],
                 )
-                self.assertEqual(len(result), 1)
-                break
+                self.assertEqual(len(list(result)), 1)
+                checks += 1
+
+            if section_name == "children":
+                result = filter(
+                    lambda choice: choice["label"] == "fav_colors/Nyekundu",
+                    section["elements"],
+                )
+                self.assertEqual(len(list(result)), 1)
+                checks += 1
+
+        self.assertEqual(checks, 2)
 
     # pylint: disable=invalid-name
     def test_generate_field_title_truncated_titles(self):
