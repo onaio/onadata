@@ -866,13 +866,16 @@ def attachment_url(request, size="medium"):
     """
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
+    attachment_id = request.GET.get("attachment_id")
     if not media_file:
         return HttpResponseNotFound(_("Attachment not found"))
-
-    result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
-    if not result:
-        return HttpResponseNotFound(_("Attachment not found"))
-    attachment = result[0]
+    if attachment_id:
+        attachment = get_object_or_404(Attachment, pk=attachment_id)
+    else:
+        result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
+        if not result:
+            return HttpResponseNotFound(_("Attachment not found"))
+        attachment = result[0]
 
     if size == "original" and no_redirect == "true":
         response = response_with_mimetype_and_name(
