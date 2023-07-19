@@ -130,6 +130,35 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertContains(response, expected_submission_list)
 
+    def test_view_submission_list_w_xformid(self):
+        view = BriefcaseViewset.as_view({'get': 'list'})
+        self._publish_xml_form()
+        self._make_submissions()
+        request = self.factory.get(
+            self._submission_list_url,
+            data={'formId': self.xform.id_string})
+        response = view(request, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view(request, xform_pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        import ipdb; ipdb.set_trace()
+        submission_list_path = os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'view', 'submissionList.xml')
+        instances = ordered_instances(self.xform)
+
+        self.assertEqual(instances.count(), NUM_INSTANCES)
+
+        last_index = instances[instances.count() - 1].pk
+        with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
+            expected_submission_list = f.read()
+            expected_submission_list = \
+                expected_submission_list.replace(
+                    '{{resumptionCursor}}', '%s' % last_index)
+            self.assertContains(response, expected_submission_list)
+
     def test_view_submission_list_w_soft_deleted_submission(self):
         view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
