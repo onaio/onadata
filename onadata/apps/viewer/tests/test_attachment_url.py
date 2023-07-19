@@ -43,6 +43,21 @@ class TestAttachmentUrl(TestBase):
         attachment = Attachment.objects.all().reverse()[0]
         self.assertEqual(attachment.mimetype, 'image/jpeg')
 
+    def test_attachment_url_w_media_id(self):
+        self.assertEqual(
+            Attachment.objects.count(), self.attachment_count + 1)
+        response = self.client.get(
+            self.url, {"attachment_id": self.attachment.id})
+        self.assertEqual(response.status_code, 302)  # redirects to amazon
+
+    def test_attachment_url_w_media_id_no_redirect(self):
+        self.assertEqual(
+            Attachment.objects.count(), self.attachment_count + 1)
+        response = self.client.get(
+            self.url, {"attachment_id": self.attachment.id,
+                       'no_redirect': 'true'})
+        self.assertEqual(response.status_code, 200)  # no redirects to amazon
+
     def tearDown(self):
         path = os.path.join(settings.MEDIA_ROOT, self.user.username)
         for root, dirs, files in os.walk(path, topdown=False):

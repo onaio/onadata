@@ -223,9 +223,9 @@ class TestBriefcaseAPI(TestBase):
             for var in (
                 ("{{submissionDate}}", instance.date_created.isoformat()),
                 ("{{form_id}}", str(self.xform.id)),
+                ("{{attachment_id}}", str(self.attachment.id)),
             ):
                 text = text.replace(*var)
-
             self.assertContains(response, instanceId, status_code=200)
             self.assertMultiLineEqual(response.content.decode("utf-8"), text)
 

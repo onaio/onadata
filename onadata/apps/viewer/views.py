@@ -867,7 +867,8 @@ def attachment_url(request, size="medium"):
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
     attachment_id = request.GET.get("attachment_id")
-    if not media_file:
+
+    if not media_file and not attachment_id:
         return HttpResponseNotFound(_("Attachment not found"))
     if attachment_id:
         attachment = get_object_or_404(Attachment, pk=attachment_id)
