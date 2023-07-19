@@ -2050,6 +2050,41 @@ class TestExportBuilder(TestBase):
             section_name = section["name"].replace("/", "_")
             _test_sav_file(section_name)
 
+    def test_export_zipped_zap_choices_label_language_missing(self):
+        """Missing choice language label defaults to label for default language"""
+        survey = create_survey_from_xls(
+            _logger_fixture_path("childrens_survey_sw_missing_choice_lang.xlsx"),
+            default_name="childrens_survey_sw",
+        )
+        # default_language is set to swahili
+        self.assertEqual(survey.to_json_dict().get("default_language"), "swahili")
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        # export to be in english
+        export_builder.language = "english"
+        export_builder.set_survey(survey)
+
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            filename = temp_zip_file.name
+            export_builder.to_zipped_sav(filename, self.data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        # check that each file exists
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, f"{survey.name}.sav")))
+
+        for section in export_builder.sections:
+            if section == "children":
+                result = filter(
+                    lambda label: label == "fav_colors/Nyekundu",
+                    section["children"]["elements"],
+                )
+                self.assertEqual(len(result), 1)
+                break
+
     # pylint: disable=invalid-name
     def test_generate_field_title_truncated_titles(self):
         self._create_childrens_survey()

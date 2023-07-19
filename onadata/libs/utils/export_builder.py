@@ -22,26 +22,46 @@ from savReaderWriter import SavWriter
 from six import iteritems
 
 from onadata.apps.logger.models.osmdata import OsmData
-from onadata.apps.logger.models.xform import (QUESTION_TYPES_TO_EXCLUDE,
-                                              _encode_for_mongo)
+from onadata.apps.logger.models.xform import (
+    QUESTION_TYPES_TO_EXCLUDE,
+    _encode_for_mongo,
+)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
-                                            DELETEDAT, DURATION, GEOLOCATION,
-                                            ID, INDEX, MULTIPLE_SELECT_TYPE,
-                                            NOTES, PARENT_INDEX,
-                                            PARENT_TABLE_NAME,
-                                            REPEAT_INDEX_TAGS, REVIEW_COMMENT,
-                                            REVIEW_DATE, REVIEW_STATUS,
-                                            SAV_255_BYTES_TYPE,
-                                            SAV_NUMERIC_TYPE, SELECT_BIND_TYPE,
-                                            SELECT_ONE, STATUS,
-                                            SUBMISSION_TIME, SUBMITTED_BY,
-                                            TAGS, UUID, VERSION,
-                                            XFORM_ID_STRING)
-from onadata.libs.utils.common_tools import (get_choice_label,
-                                             get_choice_label_value,
-                                             get_value_or_attachment_uri,
-                                             str_to_bool, track_task_progress)
+from onadata.libs.utils.common_tags import (
+    ATTACHMENTS,
+    BAMBOO_DATASET_ID,
+    DELETEDAT,
+    DURATION,
+    GEOLOCATION,
+    ID,
+    INDEX,
+    MULTIPLE_SELECT_TYPE,
+    NOTES,
+    PARENT_INDEX,
+    PARENT_TABLE_NAME,
+    REPEAT_INDEX_TAGS,
+    REVIEW_COMMENT,
+    REVIEW_DATE,
+    REVIEW_STATUS,
+    SAV_255_BYTES_TYPE,
+    SAV_NUMERIC_TYPE,
+    SELECT_BIND_TYPE,
+    SELECT_ONE,
+    STATUS,
+    SUBMISSION_TIME,
+    SUBMITTED_BY,
+    TAGS,
+    UUID,
+    VERSION,
+    XFORM_ID_STRING,
+)
+from onadata.libs.utils.common_tools import (
+    get_choice_label,
+    get_choice_label_value,
+    get_value_or_attachment_uri,
+    str_to_bool,
+    track_task_progress,
+)
 from onadata.libs.utils.mongo import _decode_from_mongo, _is_invalid_for_mongo
 
 # the bind type of select multiples that we use to compare
@@ -100,7 +120,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row, media_xpaths=
     media_xpaths = [] if media_xpaths is None else media_xpaths
     # pylint: disable=too-many-nested-blocks
     if isinstance(data, dict):
-        for (key, val) in iteritems(data):
+        for key, val in iteritems(data):
             if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
                 output[key] = []
                 for child in val:
@@ -118,7 +138,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row, media_xpaths=
                     }
                     # iterate over keys within new_output and append to
                     # main output
-                    for (out_key, out_val) in iteritems(new_output):
+                    for out_key, out_val in iteritems(new_output):
                         if isinstance(out_val, list):
                             if out_key not in output:
                                 output[out_key] = []
@@ -202,7 +222,7 @@ def decode_mongo_encoded_section_names(data):
     :param data: A dictionary to decode.
     """
     results = {}
-    for (k, v) in iteritems(data):
+    for k, v in iteritems(data):
         new_v = v
         if isinstance(v, dict):
             new_v = decode_mongo_encoded_section_names(v)
@@ -353,8 +373,13 @@ class ExportBuilder:
     def get_choice_label_from_dict(self, label):
         """Returns the choice label for the default language."""
         if isinstance(label, dict):
-            language = self.get_default_language(list(label))
-            label = label.get(self.language or language)
+            default_language = self.get_default_language(list(label))
+            default_label = label.get(default_language)
+
+            if self.language:
+                return label.get(self.language, default_label)
+
+            return default_label
 
         return label
 
@@ -475,7 +500,7 @@ class ExportBuilder:
                         )
                 elif isinstance(child, Question) and (
                     child.bind.get("type") not in QUESTION_TYPES_TO_EXCLUDE
-                    and child.type not in QUESTION_TYPES_TO_EXCLUDE
+                    and child.type not in QUESTION_TYPES_TO_EXCLUDE  # noqa W503
                 ):
                     # add to survey_sections
                     if isinstance(child, Question):
@@ -490,7 +515,7 @@ class ExportBuilder:
                             data_dicionary.get_label(
                                 child_xpath, elem=child, language=language
                             )
-                            or _title
+                            or _title  # noqa W503
                         )
                         current_section["elements"].append(
                             {
@@ -511,7 +536,7 @@ class ExportBuilder:
                     # if its a select multiple, make columns out of its choices
                     if (
                         child.bind.get("type") == SELECT_BIND_TYPE
-                        and child.type == MULTIPLE_SELECT_TYPE
+                        and child.type == MULTIPLE_SELECT_TYPE  # noqa W503
                     ):
                         choices = []
                         if self.SPLIT_SELECT_MULTIPLES:
@@ -590,7 +615,7 @@ class ExportBuilder:
                         )
                     if (
                         child.bind.get("type") == SELECT_BIND_TYPE
-                        and child.type == SELECT_ONE
+                        and child.type == SELECT_ONE  # noqa W503
                     ):
                         _append_xpaths_to_section(
                             current_section_name,
@@ -679,7 +704,7 @@ class ExportBuilder:
         :return: the row dict with select multiples choice as fields in the row
         """
         # for each select_multiple, get the associated data and split it
-        for (xpath, choices) in iteritems(select_multiples):
+        for xpath, choices in iteritems(select_multiples):
             # get the data matching this xpath
             data = row.get(xpath) and str(row.get(xpath))
             selections = []
@@ -738,7 +763,7 @@ class ExportBuilder:
     def split_gps_components(cls, row, gps_fields):
         """Splits GPS components into their own fields."""
         # for each gps_field, get associated data and split it
-        for (xpath, gps_components) in iteritems(gps_fields):
+        for xpath, gps_components in iteritems(gps_fields):
             data = row.get(xpath)
             if data:
                 gps_parts = data.split()
@@ -749,7 +774,7 @@ class ExportBuilder:
     @classmethod
     def decode_mongo_encoded_fields(cls, row, encoded_fields):
         """Update encoded fields with their corresponding xpath"""
-        for (xpath, encoded_xpath) in iteritems(encoded_fields):
+        for xpath, encoded_xpath in iteritems(encoded_fields):
             if row.get(encoded_xpath):
                 val = row.pop(encoded_xpath)
                 row.update({xpath: val})
@@ -819,8 +844,8 @@ class ExportBuilder:
             value = row.get(elm["xpath"])
             if (
                 elm["type"] in ExportBuilder.TYPES_TO_CONVERT
-                and value is not None
-                and value != ""
+                and value is not None  # noqa W503
+                and value != ""  # noqa W503
             ):
                 row[elm["xpath"]] = ExportBuilder.convert_type(value, elm["type"])
 
@@ -932,7 +957,7 @@ class ExportBuilder:
 
         # write zipfile
         with ZipFile(path, "w", ZIP_DEFLATED, allowZip64=True) as zip_file:
-            for (section_name, csv_def) in iteritems(csv_defs):
+            for section_name, csv_def in iteritems(csv_defs):
                 csv_file = csv_def["csv_file"]
                 csv_file.seek(0)
                 zip_file.write(
@@ -940,7 +965,7 @@ class ExportBuilder:
                 )
 
         # close files when we are done
-        for (section_name, csv_def) in iteritems(csv_defs):
+        for section_name, csv_def in iteritems(csv_defs):
             csv_def["csv_file"].close()
 
     @classmethod
@@ -1150,7 +1175,7 @@ class ExportBuilder:
         for question in choice_questions:
             if (
                 xpath_var_names
-                and question.get_abbreviated_xpath() not in xpath_var_names
+                and question.get_abbreviated_xpath() not in xpath_var_names  # noqa W503
             ):
                 continue
             var_name = (
@@ -1293,7 +1318,7 @@ class ExportBuilder:
                 )
                 for element in elements
             ]
-            + [
+            + [  # noqa W503
                 (
                     _var_types[item],
                     SAV_NUMERIC_TYPE
@@ -1302,7 +1327,7 @@ class ExportBuilder:
                 )
                 for item in self.extra_columns
             ]
-            + [
+            + [  # noqa W503
                 (
                     x[1],
                     SAV_NUMERIC_TYPE
@@ -1400,12 +1425,12 @@ class ExportBuilder:
             index += 1
             track_task_progress(i, total_records)
 
-        for (section_name, sav_def) in iteritems(sav_defs):
+        for section_name, sav_def in iteritems(sav_defs):
             sav_def["sav_writer"].closeSavFile(sav_def["sav_writer"].fh, mode="wb")
 
         # write zipfile
         with ZipFile(path, "w", ZIP_DEFLATED, allowZip64=True) as zip_file:
-            for (section_name, sav_def) in iteritems(sav_defs):
+            for section_name, sav_def in iteritems(sav_defs):
                 sav_file = sav_def["sav_file"]
                 sav_file.seek(0)
                 zip_file.write(
@@ -1413,7 +1438,7 @@ class ExportBuilder:
                 )
 
         # close files when we are done
-        for (section_name, sav_def) in iteritems(sav_defs):
+        for section_name, sav_def in iteritems(sav_defs):
             sav_def["sav_file"].close()
 
     def get_fields(self, dataview, section, key):
