@@ -223,7 +223,7 @@ class TestBriefcaseAPI(TestBase):
             for var in (
                 ("{{submissionDate}}", instance.date_created.isoformat()),
                 ("{{form_id}}", str(self.xform.id)),
-                ("{{attachment_id}}", str(self.attachment.id)),
+                ("{{media_id}}", str(self.attachment.id)),
             ):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)

@@ -301,7 +301,8 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             text = f.read()
             for var in ((u'{{submissionDate}}',
                          instance.date_created.isoformat()),
-                        (u'{{form_id}}', str(self.xform.id))):
+                        (u'{{form_id}}', str(self.xform.id)),
+                        (u'{{media_id}}', str(self.attachment.id))):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)
             self.assertMultiLineEqual(response.content.decode('utf-8'), text)
@@ -466,7 +467,8 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             text = f.read()
             for var in ((u'{{submissionDate}}',
                          instance.date_created.isoformat()),
-                        (u'{{form_id}}', str(self.xform.id))):
+                        (u'{{form_id}}', str(self.xform.id)),
+                        (u'{{media_id}}', str(self.attachment.id))):
                 text = text.replace(*var)
             self.assertNotIn(
                 'transportation id="transportation_2011_07_25"'
@@ -521,7 +523,8 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             text = f.read()
             for var in ((u'{{submissionDate}}',
                          instance.date_created.isoformat()),
-                        (u'{{form_id}}', str(self.xform.id))):
+                        (u'{{form_id}}', str(self.xform.id)),
+                        (u'{{media_id}}', str(self.attachment.id))):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)
 
