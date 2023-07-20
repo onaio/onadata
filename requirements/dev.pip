@@ -114,7 +114,7 @@ dict2xml==1.7.1
     # via onadata
 dill==0.3.5.1
     # via pylint
-django==3.2.19
+django==3.2.20
     # via
     #   django-cors-headers
     #   django-csp
