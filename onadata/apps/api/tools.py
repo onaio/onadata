@@ -739,7 +739,6 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
-
             role = users.get(user).get("role")
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
@@ -773,3 +772,35 @@ def replace_attachment_name_with_url(data):
                 except ValueError:
                     pass
     return data
+
+
+ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
+ENKETO_META_UID_COOKIE = getattr(
+    settings, "ENKETO_META_UID_COOKIE", "__enketo_meta_uid"
+)
+ENKETO_META_USERNAME_COOKIE = getattr(
+    settings, "ENKETO_META_USERNAME_COOKIE", "__enketo_meta_username"
+)
+
+
+def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
+    """Set signed cookies for JWT token in the HTTPResponse resp object."""
+    if not username and not json_web_token:
+        return None
+
+    max_age = 30 * 24 * 60 * 60 * 1000
+    enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
+    enketo = {"secure": False, "salt": settings.ENKETO_API_SALT}
+
+    # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
+    # i.e. don't add in development environment because cookie automatically
+    # assigns 'localhost' as domain
+    if getattr(settings, "ENKETO_AUTH_COOKIE_DOMAIN", None):
+        enketo_meta_uid["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        enketo["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+
+    resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
+
+    return resp
