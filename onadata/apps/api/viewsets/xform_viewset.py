@@ -467,8 +467,18 @@ class XFormViewSet(
             if redirect:
                 return redirect
 
+            # get value of login URL based on host
+            host = request.get_host()
+            enketo_client_login_url_setting = settings.ENKETO_CLIENT_LOGIN_URL or {}
+            enketo_client_login_url = (
+                host in enketo_client_login_url_setting
+                and enketo_client_login_url_setting[host]
+            ) or (
+                "*" in enketo_client_login_url_setting
+                and enketo_client_login_url_setting["*"]
+            )
             login_vars = {
-                "login_url": settings.ENKETO_CLIENT_LOGIN_URL,
+                "login_url": enketo_client_login_url,
                 "return_url": urlencode({"return_url": return_url}),
             }
             client_login = "{login_url}?{return_url}".format(**login_vars)
