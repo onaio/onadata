@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from onadata.libs.utils.email import send_generic_email
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.apps.logger.models import ProjectInvitation
 
 User = get_user_model()
@@ -81,7 +82,7 @@ def accept_project_invitation(sender, instance=None, created=False, **kwargs):
         # pylint: disable=import-outside-toplevel
         from onadata.libs.models.share_project import ShareProject
 
-        for invitation in invitation_qs:
+        for invitation in queryset_iterator(invitation_qs):
             ShareProject(
                 invitation.project,
                 instance.username,
