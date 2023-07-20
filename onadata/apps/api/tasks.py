@@ -4,6 +4,7 @@ Celery api.tasks module.
 """
 import os
 import sys
+import logging
 from datetime import timedelta
 
 from celery.result import AsyncResult
@@ -17,7 +18,8 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
+from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.celeryapp import app
 
 User = get_user_model()
@@ -127,3 +129,19 @@ def delete_inactive_submissions():
         for instance in queryset_iterator(instances):
             # delete submission
             instance.delete()
+
+
+@app.task()
+def send_project_invitation_email_async(
+    invitation_id: str, url: str
+):  # pylint: disable=invalid-name
+    """Sends project invitation email asynchronously"""
+    try:
+        invitation = ProjectInvitation.objects.get(id=invitation_id)
+
+    except ProjectInvitation.DoesNotExist as err:
+        logging.exception(err)
+
+    else:
+        email = ProjectInvitationEmail(invitation, url)
+        email.send()

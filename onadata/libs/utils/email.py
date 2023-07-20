@@ -4,9 +4,11 @@ email utility functions.
 """
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.http import HttpRequest
 from django.template.loader import render_to_string
 from six.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
+from onadata.apps.logger.models import ProjectInvitation
 
 
 def get_verification_url(redirect_url, request, verification_key):
@@ -75,3 +77,59 @@ def send_generic_email(email, message_txt, subject):
     email_message = EmailMultiAlternatives(subject, message_txt, from_email, [email])
 
     email_message.send()
+
+
+def get_project_invitation_url(request: HttpRequest):
+    """Get project invitation url"""
+    url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
+
+    if not url:
+        url = reverse("userprofile-list", request=request)
+
+    return url
+
+
+class ProjectInvitationEmail:
+    """
+    A class to send a project invitation email
+    """
+
+    def __init__(self, invitation: ProjectInvitation, url: str) -> None:
+        super().__init__()
+
+        self.invitation = invitation
+        self.url = url
+
+    def get_template_data(self) -> dict[str, str]:
+        """Get context data for the templates"""
+        deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
+        organization = self.invitation.project.organization.profile.name
+        data = {
+            "subject": {"deployment_name": deployment_name},
+            "body": {
+                "deployment_name": deployment_name,
+                "project_name": self.invitation.project.name,
+                "invitation_url": self.url,
+                "organization": organization,
+            },
+        }
+
+        return data
+
+    def get_email_data(self) -> dict[str, str]:
+        """Get the email data to be sent"""
+        message_path = "projects/invitation.txt"
+        subject_path = "projects/invitation_subject.txt"
+        template_data = self.get_template_data()
+        email_data = {
+            "subject": render_to_string(subject_path, template_data["subject"]),
+            "message_txt": render_to_string(
+                message_path,
+                template_data["body"],
+            ),
+        }
+        return email_data
+
+    def send(self) -> None:
+        """Send project invitation email"""
+        send_generic_email(self.invitation.email, **self.get_email_data())

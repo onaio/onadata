@@ -1,9 +1,17 @@
 from six.moves.urllib.parse import urlencode
-
+from mock import patch
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+    get_project_invitation_url,
+)
+from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.apps.logger.models import ProjectInvitation
+from onadata.libs.utils.user_auth import get_user_default_project
+
 
 VERIFICATION_URL = "http://ab.cd.ef"
 
@@ -114,3 +122,78 @@ class TestEmail(TestBase):
     def test_email_data_does_not_contain_newline_chars(self):
         email_data = self._get_email_data(include_redirect_url=True)
         self.assertNotIn("\n", email_data.get("subject"))
+
+
+class ProjectInvitationEmailTestCase(TestBase):
+    """Tests for class ProjectInvitationEmail"""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.user.profile.name = "Test User"
+        self.user.profile.save()
+        self.project.name = "Test Invitation"
+        self.project.save()
+        self.invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+            status=ProjectInvitation.Status.PENDING,
+        )
+        self.email = ProjectInvitationEmail(
+            self.invitation, "https://example.com/register"
+        )
+
+    @override_settings(DEPLOYMENT_NAME="Misfit")
+    @patch("onadata.libs.utils.email.send_generic_email")
+    def test_send(self, mock_send):
+        """Email is sent successfully"""
+        self.email.send()
+        email_data = {
+            "subject": "Invitation to Join a Project on Misfit",
+            "message_txt": "\nHello,\n\nYou have been added to Test Invitation by"
+            " a project admin allowing you to begin data collection.\n\nTo begin"
+            " using Misfit, please create an account first by clicking the link below:"
+            "\nhttps://example.com/register"
+            "\n\nThanks,\nThe Team at Misfit\n",
+        }
+        mock_send.assert_called_with(
+            self.invitation.email,
+            **email_data,
+        )
+
+    @override_settings(DEPLOYMENT_NAME="Misfit")
+    def test_get_template_data(self):
+        """Context data for the email templates is correct"""
+        expected_data = {
+            "subject": {"deployment_name": "Misfit"},
+            "body": {
+                "deployment_name": "Misfit",
+                "project_name": "Test Invitation",
+                "invitation_url": "https://example.com/register",
+                "organization": "Test User",
+            },
+        }
+        data = self.email.get_template_data()
+        self.assertEqual(data, expected_data)
+
+
+class ProjectInvitationURLTestCase(TestBase):
+    """Tests for get_project_invitation_url"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.custom_request = RequestFactory().get("/path", data={"name": "test"})
+
+    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    def test_url_configured(self):
+        """settings.PROJECT_INVITATION_URL is set"""
+        url = get_project_invitation_url(self.custom_request)
+        self.assertEqual(url, "https://example.com/register")
+
+    def test_url_not_configured(self):
+        """settings.PROJECT_INVITATION_URL not set"""
+        url = get_project_invitation_url(self.custom_request)
+        self.assertEqual(url, "http://testserver/api/v1/profiles")

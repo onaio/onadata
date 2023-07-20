@@ -87,14 +87,14 @@ def has_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         shared
-        or xform.shared_data
-        or (
+        or xform.shared_data  # noqa W503
+        or (  # noqa W503
             hasattr(request, "session")
-            and request.session.get("public_link") == xform.uuid
+            and request.session.get("public_link") == xform.uuid  # noqa W503
         )
-        or owner == user
-        or user.has_perm("logger.view_xform", xform)
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.view_xform", xform)  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 
@@ -103,8 +103,8 @@ def has_edit_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         (shared and xform.shared_data)
-        or owner == user
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 

@@ -8,6 +8,7 @@ Where:
 - ``pk`` - is the project id
 - ``formid`` - is the form id
 - ``owner`` - is the username for the user or organization of the project
+- ``invitation_pk`` - is the project invitation id
 
 Register a new Project
 -----------------------
@@ -515,3 +516,239 @@ Get user profiles that have starred a project
 
 	<pre class="prettyprint">
 	<b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
+
+Get Project Invitation List
+---------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects/{pk}/invitations</pre>
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X GET https://api.ona.io/api/v1/projects/1/invitations
+
+Response
+^^^^^^^^
+
+::
+    
+        [
+            {
+                "id": 1,
+                "email":"janedoe@example.com",
+                "role":"readonly",
+                "status": 1
+
+            },
+            {
+                "id": 2,
+                "email":"johndoe@example.com",
+                "role":"editor",
+                "status": 2,
+            }
+        ]
+
+Get a list of project invitations with a specific status
+--------------------------------------------------------
+
+The available choices are:
+
+- ``1`` - Pending. Invitations which have not been accepted by recipients.
+- ``2`` - Accepted. Invitations which have been accepted by recipients.
+- ``3`` - Revoked. Invitations which were cancelled.
+
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects/{pk}/invitations?status=2</pre>
+
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
+
+Response
+^^^^^^^^
+
+::
+        
+        [
+        
+            {
+                "id": 2,
+                "email":"johndoe@example.com",
+                "role":"editor",
+                "status": 2,
+            }
+        ]
+
+
+Create a new project invitation
+-------------------------------
+
+Invite an **unregistered** user to a project. An email will be sent to the user which has a link for them to
+create an account.
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/invitations</pre>
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X POST -d "email=janedoe@example.com" -d "role=readonly" https://api.ona.io/api/v1/projects/1/invitations
+
+
+``email``: The email address of the unregistered user.
+
+- Should be a valid email. If the ``PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST`` setting has been enabled, then the email domain has to be in the whitelist for it to be also valid
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_EMAIL_DOMAIN_WHITELIST=["foo.com", "bar.com"]
+
+- Email should not be that of a registered user
+
+``role``: The user's role for the project.
+
+- Must be a valid role
+
+
+Response
+^^^^^^^^
+
+::
+    
+        {
+            "id": 1,
+            "email": "janedoe@example.com",
+            "role": "readonly",
+            "status": 1,
+        }
+    
+
+The link embedded in the email will be of the format ``http://{url}`` 
+where:
+
+- ``url`` - is the URL the recipient will be redirected to on clicking the link. The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
+
+Normally, you would want the email recipient to be redirected to a web app. This can be achieved by
+adding the setting ``PROJECT_INVITATION_URL``
+
+**Example**
+
+::
+
+    PROJECT_INVITATION_URL = 'https://example.com/register'
+
+
+Update a project invitation
+---------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint">
+    <b>PUT</b> /api/v1/projects/{pk}/invitations
+    </pre>
+
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X PUT -d "email=janedoe@example.com" -d "role=editor" -d "invitation_id=1"  https://api.ona.io/api/v1/projects/1/invitations/1
+
+Response
+^^^^^^^^
+
+::
+    
+        {
+            "id": 1,
+            "email": "janedoe@example.com",
+            "role": "editor",
+            "status": 1,
+        }
+
+
+Resend a project invitation
+---------------------------
+
+Resend a project invitation email
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/resend-invitation</pre>
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/resend-invitation
+
+
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+
+- Must be a ``ProjectInvitation`` whose status is **Pending**
+
+Response
+^^^^^^^^
+
+::
+    
+        {
+            "message": "Success"
+        }
+
+Revoke a project invitation
+---------------------------
+
+Cancel a project invitation. A revoked invitation means that project will **not** be shared with the new user
+even if they accept the invitation.
+
+.. raw:: html
+
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/{pk}/revoke-invitation</pre>
+
+Example
+^^^^^^^
+
+::
+        
+        curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/revoke-invitation
+
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+
+- Must be a ``ProjectInvitation`` whose status is **Pending**
+
+Response
+^^^^^^^^
+
+::
+    
+        {
+            "message": "Success"
+        }
+
+
+Accept a project invitation
+---------------------------
+
+Since a project invitation is sent to an unregistered user, acceptance of the invitation is handled
+when `creating a new user <https://github.com/onaio/onadata/blob/main/docs/profiles.rst#register-a-new-user>`_.
+
+All pending invitations whose email match the new user's email will be accepted and projects shared with the
+user

@@ -4,10 +4,14 @@ signal module.
 """
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from onadata.libs.utils.email import send_generic_email
-
+from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.apps.logger.models import ProjectInvitation
 
 User = get_user_model()
 
@@ -62,3 +66,26 @@ def send_activation_email(sender, instance=None, **kwargs):
                     send_generic_email(
                         instance.email, email, f"{deployment_name} account activated"
                     )
+
+
+@receiver(post_save, sender=User, dispatch_uid="accept_project_invitation")
+def accept_project_invitation(sender, instance=None, created=False, **kwargs):
+    """Accept project invitations that match user email"""
+    if created:
+        invitation_qs = ProjectInvitation.objects.filter(
+            email=instance.email,
+            status=ProjectInvitation.Status.PENDING,
+        )
+        now = timezone.now()
+        # ShareProject needs to be imported inline because otherwise we get
+        # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
+        # pylint: disable=import-outside-toplevel
+        from onadata.libs.models.share_project import ShareProject
+
+        for invitation in queryset_iterator(invitation_qs):
+            ShareProject(
+                invitation.project,
+                instance.username,
+                invitation.role,
+            ).save()
+            invitation.accept(accepted_at=now, accepted_by=instance)

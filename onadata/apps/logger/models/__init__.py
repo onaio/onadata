@@ -16,3 +16,4 @@ from onadata.apps.logger.models.widget import Widget  # noqa
 from onadata.apps.logger.models.xform import XForm  # noqa
 from onadata.apps.logger.models.xform_version import XFormVersion  # noqa
 from onadata.apps.logger.xform_instance_parser import InstanceParseError  # noqa
+from onadata.apps.logger.models.project_invitation import ProjectInvitation  # noqa

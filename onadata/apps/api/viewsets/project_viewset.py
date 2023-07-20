@@ -5,6 +5,7 @@ The /projects API endpoint implementation.
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -14,7 +15,7 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Project, XForm
+from onadata.apps.logger.models import Project, XForm, ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.data import strtobool
@@ -38,6 +39,11 @@ from onadata.libs.serializers.user_profile_serializer import UserProfileSerializ
 from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
+)
+from onadata.libs.serializers.project_invitation_serializer import (
+    ProjectInvitationSerializer,
+    ProjectInvitationRevokeSerializer,
+    ProjectInvitationResendSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
@@ -76,6 +82,16 @@ class ProjectViewSet(
         """Return BaseProjectSerializer class when listing projects."""
         if self.action == "list":
             return BaseProjectSerializer
+
+        if self.action == "invitations":
+            return ProjectInvitationSerializer
+
+        if self.action == "revoke_invitation":
+            return ProjectInvitationRevokeSerializer
+
+        if self.action == "resend_invitation":
+            return ProjectInvitationResendSerializer
+
         return super().get_serializer_class()
 
     def get_queryset(self):
@@ -226,8 +242,74 @@ class ProjectViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(
+        detail=True,
+        methods=["GET", "POST", "PUT"],
+        url_path="invitations",
+    )
+    def invitations(self, request, *args, **kwargs):
+        """List, Create. Update project invitations"""
+        project = self.get_object()
+        method = request.method.upper()
+
+        if method == "GET":
+            invitations = project.invitations.all()
+            invitation_status = request.query_params.get("status")
+
+            if invitation_status:
+                invitations = invitations.filter(status=invitation_status)
+
+            serializer = self.get_serializer(invitations, many=True)
+            return Response(serializer.data)
+
+        if method == "POST":
+            draft_request_data = self.request.data.copy()
+            draft_request_data["project"] = project.pk
+            data = draft_request_data
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+        if method == "PUT":
+            invitation_id = request.data.get("invitation_id")
+            invitation = get_object_or_404(
+                ProjectInvitation,
+                pk=invitation_id,
+            )
+            draft_request_data = self.request.data.copy()
+            draft_request_data["project"] = project.pk
+            data = draft_request_data
+            serializer = self.get_serializer(
+                invitation,
+                data=data,
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["POST"], url_path="revoke-invitation")
+    def revoke_invitation(self, request, *args, **kwargs):
+        """Revoke a project  invitation object"""
+        self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": _("Success")})
+
+    @action(detail=True, methods=["POST"], url_path="resend-invitation")
+    def resend_invitation(self, request, *args, **kwargs):
+        """Resend a project  invitation object"""
+        self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": _("Success")})
+
     def destroy(self, request, *args, **kwargs):
-        """ "Soft deletes a project"""
+        """Soft deletes a project"""
         project = self.get_object()
         user = request.user
         project.soft_delete(user)
