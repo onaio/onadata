@@ -20,7 +20,7 @@ cryptography==40.0.1
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==3.2.19
+django==3.2.20
     # via
     #   -r requirements/azure.in
     #   django-storages
