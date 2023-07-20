@@ -371,7 +371,11 @@ class ExportBuilder:
         return title
 
     def get_choice_label_from_dict(self, label):
-        """Returns the choice label for the default language."""
+        """Returns the choice label for the default language
+
+        If a label for the target language is blank then the default
+        language is used
+        """
         if isinstance(label, dict):
             default_language = self.get_default_language(list(label))
             default_label = label.get(default_language)
