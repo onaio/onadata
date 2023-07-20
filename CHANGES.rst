@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.10.1(2023-07-20)
+-------------------
+
+- Upgrade django to v3.2.20
+  `PR #2454 <https://github.com/onaio/onadata/pull/2454>`
+  [@KipSigei]
+- Optimize attachments endpoint
+  `PR #2452 <https://github.com/onaio/onadata/pull/2452>`
+  [@KipSigei]
+
 v3.10.0(2023-07-03)
 -------------------
 
