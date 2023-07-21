@@ -258,10 +258,10 @@ class TableauViewSet(OpenDataViewSet):
                 sql_params = [xform.pk]
 
             if should_paginate:
-                bottom, top = self.paginator.get_offset_limit(
+                offset, limit = self.paginator.get_offset_limit(
                     self.request, self.data_count
                 )
-                sql += f" LIMIT {top} OFFSET {bottom}"
+                sql += f" LIMIT {limit} OFFSET {offset}"
 
             cursor.execute(sql, params=sql_params)
             instances = [
