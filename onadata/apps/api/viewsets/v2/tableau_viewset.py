@@ -3,12 +3,16 @@
 Implements the /api/v2/tableau endpoint
 """
 import re
+import json
 from collections import defaultdict
 from typing import List
+
+from django.db import connection
 
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 
 from onadata.apps.api.tools import replace_attachment_name_with_url
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
@@ -24,6 +28,8 @@ from onadata.libs.utils.common_tags import (
     PARENT_TABLE,
     REPEAT_SELECT_TYPE,
 )
+from onadata.libs.pagination import RawSQLQueryPageNumberPagination
+
 
 DEFAULT_TABLE_NAME = "data"
 GPS_PARTS = ["latitude", "longitude", "altitude", "precision"]
@@ -167,6 +173,17 @@ class TableauViewSet(OpenDataViewSet):
     TableauViewSet - the /api/v2/tableau API endpoin implementation.
     """
 
+    pagination_class = RawSQLQueryPageNumberPagination
+    data_count = None
+
+    def paginate_queryset(self, queryset):
+        """Returns a paginated queryset."""
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(
+            queryset, self.request, view=self, count=self.data_count
+        )
+
     @action(methods=["GET"], detail=True)
     def data(self, request, **kwargs):
         # pylint: disable=attribute-defined-outside-init
@@ -188,39 +205,71 @@ class TableauViewSet(OpenDataViewSet):
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             xform = self.object.content_object
-            if xform.is_merged_dataset:
-                qs_kwargs = {
-                    "xform_id__in": list(
+
+            if should_paginate or count:
+                qs_kwargs = {}
+
+                if xform.is_merged_dataset:
+                    xform_pks = list(
                         xform.mergedxform.xforms.values_list("pk", flat=True)
                     )
-                }
-            else:
-                qs_kwargs = {"xform_id": xform.pk}
+                    qs_kwargs = {"xform__pk__in": xform_pks}
+
+                else:
+                    qs_kwargs = {"xform__pk": xform.pk}
+
+                if gt_id:
+                    qs_kwargs.update({"id__gt": gt_id})
+
+                self.data_count = (
+                    Instance.objects.filter(**qs_kwargs, deleted_at__isnull=True)
+                    .only("pk")
+                    .count()
+                )
+
+                if count:
+                    return Response({"count": self.data_count})
+
+            cursor = connection.cursor()
+            sql = ""
+            sql_where = ""
+            sql_params = None
+
             if gt_id:
-                qs_kwargs.update({"id__gt": gt_id})
+                sql_where = f" AND id > {gt_id}"
 
-            # Filter out deleted submissions
-            instances = Instance.objects.filter(
-                **qs_kwargs, deleted_at__isnull=True
-            ).only("json")
-            # we prefer to use len(instances) instead of instances.count() as using
-            # len is less expensive as no db query is made. Read more
-            # https://docs.djangoproject.com/en/4.2/topics/db/optimization/
-            num_instances = len(instances)
+            if xform.is_merged_dataset:
+                sql = (
+                    "SELECT id, json from logger_instance"
+                    " WHERE xform_id IN %s AND deleted_at IS NULL"
+                    + sql_where  # noqa W503
+                    + " ORDER BY id ASC"  # noqa W503
+                )
+                xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
+                sql_params = [tuple(xform_pks)]
 
-            if count:
-                return Response({"count": num_instances})
+            else:
+                sql = (
+                    "SELECT id, json from logger_instance"
+                    " WHERE xform_id = %s AND deleted_at IS NULL"
+                    + sql_where  # noqa W503
+                    + " ORDER BY id ASC"  # noqa W503
+                )
+                sql_params = [xform.pk]
 
-            # there currently exists a peculiar intermittent bug where after ordering
-            # the queryset and the first item is accessed such as instances[0] or by
-            # slicing instances[0:1] (as in the the pagination implementation) the
-            # execution freezes and no result is returned. This causes the server to
-            # timeout. The workaround below only ensures we order and paginate
-            # the results only when the queryset returns more than 1 item
-            if num_instances > 1:
-                instances = instances.order_by("pk")
+            if should_paginate:
+                bottom, top = self.paginator.get_offset_limit(
+                    self.request, self.data_count
+                )
+                sql += f" LIMIT {top} OFFSET {bottom}"
 
-            if should_paginate and num_instances > 1:
+            cursor.execute(sql, params=sql_params)
+            instances = [
+                Instance(id=record[0], json=json.loads(record[1]))
+                for record in cursor.fetchall()
+            ]
+
+            if should_paginate:
                 instances = self.paginate_queryset(instances)
 
             # Switch out media file names for url links in queryset

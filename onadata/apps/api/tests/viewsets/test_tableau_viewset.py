@@ -362,3 +362,14 @@ class TestTableauViewSet(TestBase):
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"count": 2})
+
+    def test_gt_id_query_param(self):
+        """gt_id query param works"""
+        self.view = TableauViewSet.as_view({"get": "data"})
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get("/", data={"gt_id": 500}, **self.extra)
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        row_data = streaming_data(response)
+        self.assertEqual(len(row_data), 0)
