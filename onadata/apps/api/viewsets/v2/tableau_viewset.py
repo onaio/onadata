@@ -235,6 +235,9 @@ class TableauViewSet(OpenDataViewSet):
             sql_where = ""
             sql_params = None
 
+            # raw SQL queries were used to improve the performance since
+            # performance was very slow for large querysets
+
             if gt_id:
                 sql_where = f" AND id > {gt_id}"
 
