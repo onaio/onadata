@@ -160,7 +160,7 @@ class RawSQLQueryPageNumberPagination(CountOverridablePageNumberPagination):
     django_paginator_class = RawSQLQueryPaginator
 
     def get_offset_limit(self, request, count) -> Tuple[int, int]:
-        """Returns raw SQL query offset and limit"""
+        """Returns the offset and limit to be used in a raw SQL query"""
         page_size = self.get_page_size(request)
         # pass an empty object_list since we are not handling any pagination
         # at this point, we are specifically interested in the count
