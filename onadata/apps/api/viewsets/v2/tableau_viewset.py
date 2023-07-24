@@ -240,21 +240,21 @@ class TableauViewSet(OpenDataViewSet):
 
             if xform.is_merged_dataset:
                 sql = (
-                    "SELECT id, json from logger_instance"
+                    "SELECT id, json from logger_instance"  # nosec
                     " WHERE xform_id IN %s AND deleted_at IS NULL"
                     + sql_where  # noqa W503
                     + " ORDER BY id ASC"  # noqa W503
-                )  # nosec
+                )
                 xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
                 sql_params = [tuple(xform_pks)]
 
             else:
                 sql = (
-                    "SELECT id, json from logger_instance"
+                    "SELECT id, json from logger_instance"  # nosec
                     " WHERE xform_id = %s AND deleted_at IS NULL"
                     + sql_where  # noqa W503
                     + " ORDER BY id ASC"  # noqa W503
-                )  # nosec
+                )
                 sql_params = [xform.pk]
 
             if should_paginate:
