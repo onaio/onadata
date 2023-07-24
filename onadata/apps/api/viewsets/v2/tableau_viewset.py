@@ -3,16 +3,12 @@
 Implements the /api/v2/tableau endpoint
 """
 import re
-import json
 from collections import defaultdict
 from typing import List
-
-from django.db import connection
 
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
 
 from onadata.apps.api.tools import replace_attachment_name_with_url
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
@@ -230,16 +226,17 @@ class TableauViewSet(OpenDataViewSet):
                 if count:
                     return Response({"count": self.data_count})
 
-            cursor = connection.cursor()
             sql = ""
             sql_where = ""
-            sql_params = None
+            sql_where_params = []
+            sql_params = []
 
             # raw SQL queries were used to improve the performance since
             # performance was very slow for large querysets
 
             if gt_id:
-                sql_where = f" AND id > {gt_id}"
+                sql_where = " AND id > %s"
+                sql_where_params.append(gt_id)
 
             if xform.is_merged_dataset:
                 sql = (
@@ -247,7 +244,7 @@ class TableauViewSet(OpenDataViewSet):
                     " WHERE xform_id IN %s AND deleted_at IS NULL"
                     + sql_where  # noqa W503
                     + " ORDER BY id ASC"  # noqa W503
-                )
+                )  # nosec
                 xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
                 sql_params = [tuple(xform_pks)]
 
@@ -257,7 +254,7 @@ class TableauViewSet(OpenDataViewSet):
                     " WHERE xform_id = %s AND deleted_at IS NULL"
                     + sql_where  # noqa W503
                     + " ORDER BY id ASC"  # noqa W503
-                )
+                )  # nosec
                 sql_params = [xform.pk]
 
             if should_paginate:
@@ -266,11 +263,7 @@ class TableauViewSet(OpenDataViewSet):
                 )
                 sql += f" LIMIT {limit} OFFSET {offset}"
 
-            cursor.execute(sql, params=sql_params)
-            instances = [
-                Instance(id=record[0], json=json.loads(record[1]))
-                for record in cursor.fetchall()
-            ]
+            instances = Instance.objects.raw(sql, sql_params + sql_where_params)
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
