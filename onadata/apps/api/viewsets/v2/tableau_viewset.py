@@ -229,9 +229,7 @@ class TableauViewSet(OpenDataViewSet):
             sql_where = ""
             sql_where_params = []
 
-            # raw SQL queries were used to improve the performance since
-            # performance was very slow for large querysets
-
+            # Raw SQL queries are used to improve the performance for large querysets
             if gt_id:
                 sql_where += " AND id > %s"
                 sql_where_params.append(gt_id)
@@ -242,23 +240,23 @@ class TableauViewSet(OpenDataViewSet):
                 + sql_where  # noqa W503
                 + " ORDER BY id ASC"  # noqa W503
             )
-
-            if should_paginate:
-                offset, limit = self.paginator.get_offset_limit(
-                    self.request, self.data_count
-                )
-                sql += f" LIMIT {limit} OFFSET {offset}"
-
             xform_pks = [xform.id]
 
             if xform.is_merged_dataset:
                 xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
 
             sql_params = [tuple(xform_pks)] + sql_where_params
-            instances = Instance.objects.raw(sql, sql_params)
 
             if should_paginate:
+                offset, limit = self.paginator.get_offset_limit(
+                    self.request, self.data_count
+                )
+                sql += f" LIMIT {limit} OFFSET {offset}"
+                instances = Instance.objects.raw(sql, sql_params)
                 instances = self.paginate_queryset(instances)
+
+            else:
+                instances = Instance.objects.raw(sql, sql_params)
 
             # Switch out media file names for url links in queryset
             data = replace_attachment_name_with_url(instances, request)
