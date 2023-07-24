@@ -236,9 +236,7 @@ class TableauViewSet(OpenDataViewSet):
 
             sql = (
                 "SELECT id, json from logger_instance"  # nosec
-                " WHERE xform_id IN %s AND deleted_at IS NULL"
-                + sql_where  # noqa W503
-                + " ORDER BY id ASC"  # noqa W503
+                " WHERE xform_id IN %s AND deleted_at IS NULL" + sql_where  # noqa W503
             )
             xform_pks = [xform.id]
 
