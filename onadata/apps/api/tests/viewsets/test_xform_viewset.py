@@ -4320,6 +4320,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertNotEqual(multiples_select_split, no_multiples_select_split)
             self.assertGreater(multiples_select_split, no_multiples_select_split)
 
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_csv_export_with_and_without_removed_group_name(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -4344,6 +4345,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             data = {"remove_group_name": True}
             request = self.factory.get("/", data=data, **self.extra)
+            request.META["HTTP_HOST"] = "example.com"
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
 
@@ -4973,6 +4975,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 headers = next(csv_reader)
                 self.assertIn("Is ambulance available daily or weekly?", headers)
 
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_csv_exports_w_images_link(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(
@@ -5022,6 +5025,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             data = {"include_images": True}
             # request for export again
             request = self.factory.get("/", data=data, **self.extra)
+            request.META["HTTP_HOST"] = "example.com"
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
 

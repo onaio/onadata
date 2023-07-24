@@ -225,4 +225,3 @@ class ProjectInvitationURLTestCase(TestBase):
         """settings.PROJECT_INVITATION_URL not set"""
         url = get_project_invitation_url(self.custom_request)
         self.assertEqual(url, "http://testserver/api/v1/profiles")
-# Add test case for using a different host

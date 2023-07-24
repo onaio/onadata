@@ -224,7 +224,7 @@ class TableauViewSet(OpenDataViewSet):
                 instances = self.paginate_queryset(instances)
 
             # Switch out media file names for url links in queryset
-            data = replace_attachment_name_with_url(instances)
+            data = replace_attachment_name_with_url(instances, request)
             data = process_tableau_data(
                 TableauDataSerializer(data, many=True).data, xform
             )

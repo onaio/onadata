@@ -91,7 +91,7 @@ def _html_submission_response(request, instance):
     data = {}
     data["username"] = instance.xform.user.username
     data["id_string"] = instance.xform.id_string
-    data["domain"] = Site.objects.get(id=settings.SITE_ID).domain
+    data["domain"] = request.get_host() or Site.objects.get(id=settings.SITE_ID).domain
 
     return render(request, "submission.html", data)
 

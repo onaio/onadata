@@ -168,7 +168,11 @@ def create_organization_object(org_name, creator, attrs=None):
     except IntegrityError as e:
         raise ValidationError(_(f"{org_name} already exists")) from e
     if email:
-        site = Site.objects.get(pk=settings.SITE_ID)
+        site = (
+            attrs["host"]
+            if "host" in attrs
+            else Site.objects.get(pk=settings.SITE_ID).domain
+        )
         registration_profile.send_activation_email(site)
     profile = OrganizationProfile(
         user=new_user,
@@ -749,9 +753,9 @@ def update_role_by_meta_xform_perms(xform):
                 role.add(user, xform)
 
 
-def replace_attachment_name_with_url(data):
+def replace_attachment_name_with_url(data, request):
     """Replaces the attachment filename with a URL in ``data`` object."""
-    site_url = Site.objects.get_current().domain
+    site_url = request.get_host() or Site.objects.get_current().domain
 
     for record in data:
         attachments: dict = record.json.get("_attachments")

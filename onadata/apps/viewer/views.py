@@ -313,7 +313,12 @@ def data_export(request, username, id_string, export_type):  # noqa C901
 
     audit = {"xform": xform.id_string, "export_type": export_type}
 
-    options = {"extension": extension, "username": username, "id_string": id_string}
+    options = {
+        "extension": extension,
+        "username": username,
+        "id_string": id_string,
+        "host": request.get_host(),
+    }
     if query:
         options["query"] = query
 
@@ -400,7 +405,6 @@ def create_export(request, username, id_string, export_type):
 
     credential = None
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
-
         credential = _get_google_credential(request)
         if isinstance(credential, HttpResponseRedirect):
             return credential
@@ -435,6 +439,7 @@ def create_export(request, username, id_string, export_type):
         "remove_group_name": str_to_bool(remove_group_name),
         "meta": meta.replace(",", "") if meta else None,
         "google_credentials": credential,
+        "host": request.get_host(),
     }
 
     try:
@@ -510,6 +515,7 @@ def export_list(request, username, id_string, export_type):  # noqa C901
         "meta": export_meta,
         "token": export_token,
         "google_credentials": credential,
+        "host": request.get_host(),
     }
 
     if should_create_new_export(xform, export_type, options):

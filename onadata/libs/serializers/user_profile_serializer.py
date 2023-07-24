@@ -272,7 +272,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         metadata = {}
         username = params.get("username")
         password = params.get("password1", "")
-        site = Site.objects.get(pk=settings.SITE_ID)
+        site = request.get_host() or Site.objects.get(pk=settings.SITE_ID).domain
         new_user = None
 
         try:

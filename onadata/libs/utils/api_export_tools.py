@@ -152,6 +152,8 @@ def custom_response_handler(  # noqa: C0901
     dataview_pk = hasattr(dataview, "pk") and dataview.pk
     options["dataview_pk"] = dataview_pk
 
+    options["host"] = request.get_host()
+
     if dataview:
         columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
 
@@ -249,6 +251,7 @@ def _generate_new_export(  # noqa: C0901
         "extension": extension,
         "username": xform.user.username,
         "id_string": xform.id_string,
+        "host": request.get_host(),
     }
     if query:
         options["query"] = query

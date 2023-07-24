@@ -321,7 +321,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         key = "photo"
         value = "123.jpg"
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
 
@@ -332,7 +338,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         # when include_images is False, you get the value
         media_xpaths = []
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
@@ -344,7 +356,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
 
         media_xpaths = ["photo"]
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
@@ -381,7 +399,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         key = "photo"
         value = "1 2 3.jpg"
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
 
         self.assertTrue(val_or_url)
@@ -713,7 +737,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                     }
                 ],
             }
-            self.assertEqual(len(geojson['features']), 1)
+            self.assertEqual(len(geojson["features"]), 1)
             content = json.loads(content)
             self.assertEqual(content, geojson)
 
