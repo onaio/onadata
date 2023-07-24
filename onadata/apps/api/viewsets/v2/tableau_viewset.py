@@ -226,36 +226,22 @@ class TableauViewSet(OpenDataViewSet):
                 if count:
                     return Response({"count": self.data_count})
 
-            sql = ""
             sql_where = ""
             sql_where_params = []
-            sql_params = []
 
             # raw SQL queries were used to improve the performance since
             # performance was very slow for large querysets
 
             if gt_id:
-                sql_where = " AND id > %s"
+                sql_where += " AND id > %s"
                 sql_where_params.append(gt_id)
 
-            if xform.is_merged_dataset:
-                sql = (
-                    "SELECT id, json from logger_instance"  # nosec
-                    " WHERE xform_id IN %s AND deleted_at IS NULL"
-                    + sql_where  # noqa W503
-                    + " ORDER BY id ASC"  # noqa W503
-                )
-                xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
-                sql_params = [tuple(xform_pks)]
-
-            else:
-                sql = (
-                    "SELECT id, json from logger_instance"  # nosec
-                    " WHERE xform_id = %s AND deleted_at IS NULL"
-                    + sql_where  # noqa W503
-                    + " ORDER BY id ASC"  # noqa W503
-                )
-                sql_params = [xform.pk]
+            sql = (
+                "SELECT id, json from logger_instance"  # nosec
+                " WHERE xform_id IN %s AND deleted_at IS NULL"
+                + sql_where  # noqa W503
+                + " ORDER BY id ASC"  # noqa W503
+            )
 
             if should_paginate:
                 offset, limit = self.paginator.get_offset_limit(
@@ -263,7 +249,13 @@ class TableauViewSet(OpenDataViewSet):
                 )
                 sql += f" LIMIT {limit} OFFSET {offset}"
 
-            instances = Instance.objects.raw(sql, sql_params + sql_where_params)
+            xform_pks = [xform.id]
+
+            if xform.is_merged_dataset:
+                xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
+
+            sql_params = [tuple(xform_pks)] + sql_where_params
+            instances = Instance.objects.raw(sql, sql_params)
 
             if should_paginate:
                 instances = self.paginate_queryset(instances)
