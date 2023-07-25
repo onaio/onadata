@@ -85,6 +85,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         if "request" in self.context:
             creator = self.context["request"].user
+            validated_data["host"] = self.context["request"].get_host()
 
         validated_data["organization"] = org_name
 
@@ -130,13 +131,15 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 except UserProfile.DoesNotExist:
                     profile = UserProfile.objects.create(user=u)
 
-                users_list.append({
-                    "user": u.username,
-                    "role": get_role_in_org(u, obj),
-                    "first_name": u.first_name,
-                    "last_name": u.last_name,
-                    "gravatar": profile.gravatar,
-                })
+                users_list.append(
+                    {
+                        "user": u.username,
+                        "role": get_role_in_org(u, obj),
+                        "first_name": u.first_name,
+                        "last_name": u.last_name,
+                        "gravatar": profile.gravatar,
+                    }
+                )
             return users_list
 
         members = get_organization_members(obj) if obj else []

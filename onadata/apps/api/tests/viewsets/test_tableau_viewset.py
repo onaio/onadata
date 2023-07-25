@@ -8,6 +8,7 @@ from re import search
 from django.test import RequestFactory
 from tempfile import NamedTemporaryFile
 from django.utils.dateparse import parse_datetime
+from django.test.utils import override_settings
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.api.viewsets.v2.tableau_viewset import (
@@ -277,6 +278,7 @@ class TestTableauViewSet(TestBase):
         cleaned_data = clean_xform_headers(group_columns)
         self.assertEqual(cleaned_data, ["childs_name", "childs_age"])
 
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_replace_media_links(self):
         """
         Test that attachment details exported to Tableau contains
@@ -313,6 +315,7 @@ class TestTableauViewSet(TestBase):
         _open_data = get_or_create_opendata(xform_w_attachments)
         uuid = _open_data[0].uuid
         request = self.factory.get("/", **self.extra)
+        request.META["HTTP_HOST"] = "example.com"
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         # cast generator response to list for easy manipulation

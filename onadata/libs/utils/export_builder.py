@@ -106,7 +106,9 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
 
 
 # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
-def dict_to_joined_export(data, index, indices, name, survey, row, media_xpaths=None):
+def dict_to_joined_export(
+    data, index, indices, name, survey, row, host, media_xpaths=None
+):
     """
     Converts a dict into one or more tabular datasets
     :param data: current record which can be changed or updated
@@ -129,7 +131,14 @@ def dict_to_joined_export(data, index, indices, name, survey, row, media_xpaths=
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key, survey, row, media_xpaths
+                        child,
+                        child_index,
+                        indices,
+                        key,
+                        survey,
+                        row,
+                        host,
+                        media_xpaths,
                     )
                     item = {
                         INDEX: child_index,
@@ -163,6 +172,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row, media_xpaths=
                         data_dictionary,
                         media_xpaths,
                         row and row.get(ATTACHMENTS),
+                        host=host,
                     )
 
     return output
@@ -922,6 +932,8 @@ class ExportBuilder:
         index = 1
         indices = {}
         survey_name = self.survey.name
+        options = kwargs.get("options")
+        host = options.get("host") if options else None
         for i, row_data in enumerate(data, start=1):
             # decode mongo section names
             joined_export = dict_to_joined_export(
@@ -931,6 +943,7 @@ class ExportBuilder:
                 survey_name,
                 self.survey,
                 row_data,
+                host,
                 media_xpaths,
             )
             output = decode_mongo_encoded_section_names(joined_export)
@@ -1060,6 +1073,9 @@ class ExportBuilder:
         index = 1
         indices = {}
         survey_name = self.survey.name
+
+        options = kwargs.get("options")
+        host = options.get("host") if options else None
         for i, row_data in enumerate(data, start=1):
             joined_export = dict_to_joined_export(
                 row_data,
@@ -1068,6 +1084,7 @@ class ExportBuilder:
                 survey_name,
                 self.survey,
                 row_data,
+                host,
                 media_xpaths,
             )
             output = decode_mongo_encoded_section_names(joined_export)
@@ -1122,6 +1139,7 @@ class ExportBuilder:
         xform = kwargs.get("xform")
         options = kwargs.get("options")
         total_records = kwargs.get("total_records")
+        host = options.get("host") if options else None
         win_excel_utf8 = options.get("win_excel_utf8") if options else False
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
         show_choice_labels = options.get("show_choice_labels", False)
@@ -1149,6 +1167,7 @@ class ExportBuilder:
             show_choice_labels=show_choice_labels,
             include_reviews=self.INCLUDE_REVIEWS,
             language=language,
+            host=host,
         )
 
         csv_builder.export_to(path, dataview=dataview)
@@ -1394,6 +1413,9 @@ class ExportBuilder:
         index = 1
         indices = {}
         survey_name = self.survey.name
+
+        options = kwargs.get("options")
+        host = options.get("host") if options else None
         for i, row_data in enumerate(data, start=1):
             # decode mongo section names
             joined_export = dict_to_joined_export(
@@ -1403,6 +1425,7 @@ class ExportBuilder:
                 survey_name,
                 self.survey,
                 row_data,
+                host,
                 media_xpaths,
             )
             output = decode_mongo_encoded_section_names(joined_export)

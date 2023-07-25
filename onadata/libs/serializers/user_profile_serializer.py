@@ -8,7 +8,6 @@ import re
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -22,6 +21,7 @@ from registration.models import RegistrationProfile
 from rest_framework import serializers
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.tools import get_host_domain
 from onadata.apps.api.tasks import (
     send_verification_email,
 )
@@ -272,7 +272,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         metadata = {}
         username = params.get("username")
         password = params.get("password1", "")
-        site = Site.objects.get(pk=settings.SITE_ID)
+        site = get_host_domain(request)
         new_user = None
 
         try:

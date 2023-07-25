@@ -13,8 +13,22 @@ from onadata.apps.logger.models import ProjectInvitation
 
 def get_verification_url(redirect_url, request, verification_key):
     """Returns the verification_url"""
-    verification_url = getattr(settings, "VERIFICATION_URL", None)
-    url = verification_url or reverse("userprofile-verify-email", request=request)
+    # get verification URL based on host
+    verification_url_map = getattr(settings, "VERIFICATION_URL", {})
+    host = request.get_host()
+    url = (
+        (
+            verification_url_map
+            and host in verification_url_map
+            and verification_url_map[host]
+        )
+        or (
+            verification_url_map
+            and "*" in verification_url_map
+            and verification_url_map["*"]
+        )
+        or reverse("userprofile-verify-email", request=request)
+    )
     query_params_dict = {"verification_key": verification_key}
     if redirect_url:
         query_params_dict.update({"redirect_url": redirect_url})
@@ -81,7 +95,12 @@ def send_generic_email(email, message_txt, subject):
 
 def get_project_invitation_url(request: HttpRequest):
     """Get project invitation url"""
-    url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
+    invitation_url_setting: dict = getattr(settings, "PROJECT_INVITATION_URL", {})
+
+    site_domain = request.get_host()
+    url = (
+        site_domain in invitation_url_setting and invitation_url_setting[site_domain]
+    ) or ("*" in invitation_url_setting and invitation_url_setting["*"])
 
     if not url:
         url = reverse("userprofile-list", request=request)

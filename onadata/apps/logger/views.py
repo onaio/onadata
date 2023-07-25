@@ -12,7 +12,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.contrib.sites.models import Site
 from django.core.files import File
 from django.core.files.storage import get_storage_class
 from django.http import (
@@ -34,6 +33,7 @@ from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.api.tools import get_host_domain
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
@@ -91,7 +91,7 @@ def _html_submission_response(request, instance):
     data = {}
     data["username"] = instance.xform.user.username
     data["id_string"] = instance.xform.id_string
-    data["domain"] = Site.objects.get(id=settings.SITE_ID).domain
+    data["domain"] = get_host_domain(request)
 
     return render(request, "submission.html", data)
 

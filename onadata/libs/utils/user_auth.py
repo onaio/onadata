@@ -34,7 +34,7 @@ class HttpResponseNotAuthorized(HttpResponse):
 
     status_code = 401
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         HttpResponse.__init__(self)
         self["WWW-Authenticate"] = f'Basic realm="{Site.objects.get_current().name}"'
 

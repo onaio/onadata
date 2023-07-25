@@ -650,7 +650,7 @@ adding the setting ``PROJECT_INVITATION_URL``
 
 ::
 
-    PROJECT_INVITATION_URL = 'https://example.com/register'
+    PROJECT_INVITATION_URL = {'*': 'https://example.com/register'}
 
 
 Update a project invitation

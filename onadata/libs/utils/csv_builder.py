@@ -253,8 +253,8 @@ class AbstractDataFrameBuilder:
         show_choice_labels=True,
         include_reviews=False,
         language=None,
+        host=None,
     ):
-
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -302,6 +302,7 @@ class AbstractDataFrameBuilder:
         self.index_tags = index_tags
         self.show_choice_labels = show_choice_labels
         self.language = language
+        self.host = host
 
         self._setup()
 
@@ -464,7 +465,7 @@ class AbstractDataFrameBuilder:
     @classmethod
     def _split_gps_fields(cls, record, gps_fields):
         updated_gps_fields = {}
-        for (key, value) in iteritems(record):
+        for key, value in iteritems(record):
             if key in gps_fields and isinstance(value, str):
                 gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
                 gps_parts = {xpath: None for xpath in gps_xpaths}
@@ -552,8 +553,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         show_choice_labels=False,
         include_reviews=False,
         language=None,
+        host=None,
     ):
-
         super().__init__(
             username,
             id_string,
@@ -576,6 +577,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             show_choice_labels,
             include_reviews,
             language,
+            host,
         )
 
         self.ordered_columns = OrderedDict()
@@ -600,6 +602,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         index_tags=DEFAULT_INDEX_TAGS,
         show_choice_labels=False,
         language=None,
+        host=None,
     ):
         """
         Flatten list columns by appending an index, otherwise return as is
@@ -643,7 +646,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         # set within a group.
                         _item = item
 
-                    for (nested_key, nested_val) in iteritems(_item):
+                    for nested_key, nested_val in iteritems(_item):
                         # given the key "children/details" and nested_key/
                         # abbreviated xpath
                         # "children/details/immunization/polio_1",
@@ -677,6 +680,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                     index_tags=index_tags,
                                     show_choice_labels=show_choice_labels,
                                     language=language,
+                                    host=host,
                                 )
                             )
                         else:
@@ -698,6 +702,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 include_images,
                                 show_choice_labels=show_choice_labels,
                                 language=language,
+                                host=host,
                             )
                 else:
                     record[key] = get_value_or_attachment_uri(
@@ -708,6 +713,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         include_images,
                         show_choice_labels=show_choice_labels,
                         language=language,
+                        host=host,
                     )
         else:
             # anything that's not a list will be in the top level dict so its
@@ -724,6 +730,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     include_images,
                     show_choice_labels=show_choice_labels,
                     language=language,
+                    host=host,
                 )
         return record
 
@@ -763,7 +770,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         # add ordered columns for select multiples
         if self.split_select_multiples:
-            for (key, choices) in iteritems(self.select_multiples):
+            for key, choices in iteritems(self.select_multiples):
                 # HACK to ensure choices are NOT duplicated
                 if key in self.ordered_columns.keys():
                     self.ordered_columns[key] = remove_dups_from_list_maintain_order(
@@ -783,7 +790,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         # add ordered columns for nested repeat data
         for record in cursor:
             # re index column repeats
-            for (key, value) in iteritems(record):
+            for key, value in iteritems(record):
                 self._reindex(
                     key,
                     value,
@@ -795,6 +802,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     index_tags=self.index_tags,
                     show_choice_labels=self.show_choice_labels,
                     language=self.language,
+                    host=self.host,
                 )
 
     def _format_for_dataframe(self, cursor):
@@ -818,7 +826,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             self._tag_edit_string(record)
             flat_dict = {}
             # re index repeats
-            for (key, value) in iteritems(record):
+            for key, value in iteritems(record):
                 reindexed = self._reindex(
                     key,
                     value,
@@ -830,6 +838,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     index_tags=self.index_tags,
                     show_choice_labels=self.show_choice_labels,
                     language=self.language,
+                    host=self.host,
                 )
                 flat_dict.update(reindexed)
             yield flat_dict

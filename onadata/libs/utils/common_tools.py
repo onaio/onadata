@@ -237,19 +237,15 @@ def cmp_to_key(mycmp):
     return ComparatorClass
 
 
-def current_site_url(path):
+def current_site_url(path, host):
     """
     Returns fully qualified URL (no trailing slash) for the current site.
     :param path
     :return: complete url
     """
-    # pylint: disable=import-outside-toplevel
-    from django.contrib.sites.models import Site
-
-    current_site = Site.objects.get_current()
     protocol = getattr(settings, "ONA_SITE_PROTOCOL", "http")
     port = getattr(settings, "ONA_SITE_PORT", "")
-    url = f"{protocol}://{current_site.domain}"
+    url = f"{protocol}://{host}"
     if port:
         url += f":{port}"
     if path:
@@ -315,6 +311,7 @@ def get_value_or_attachment_uri(
     attachment_list=None,
     show_choice_labels=False,
     language=None,
+    host=None,
 ):
     """
     Gets either the attachment value or the attachment url
@@ -339,7 +336,7 @@ def get_value_or_attachment_uri(
             if a.get("name") == value
         ]
         if attachments:
-            value = current_site_url(attachments[0].get("download_url", ""))
+            value = current_site_url(attachments[0].get("download_url", ""), host)
 
     return value
 

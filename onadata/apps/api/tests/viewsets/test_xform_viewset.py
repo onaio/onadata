@@ -871,7 +871,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             formid = self.xform.pk
             request = self.factory.get("/", **self.extra)
             # get existing form format
-            exsting_format = get_existing_file_format(self.xform.xls, 'xls')
+            exsting_format = get_existing_file_format(self.xform.xls, "xls")
 
             # XLSX format
             response = view(request, pk=formid, format="xlsx")
@@ -1226,7 +1226,13 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "Authentication failure, cannot redirect",
             )
 
-    @override_settings(ENKETO_CLIENT_LOGIN_URL="http://test.ona.io/login")
+    @override_settings(
+        ENKETO_CLIENT_LOGIN_URL={
+            "*": "http://test.ona.io/login",
+            "stage-testserver": "http://gh.ij.kl/login",
+        }
+    )
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_login_enketo_no_jwt_but_with_return_url(self):
         with HTTMock(enketo_urls_mock):
             self._publish_xls_form_to_project()
@@ -1237,9 +1243,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             url = "https://enketo.ona.io/::YY8M"
             query_data = {"return": url}
             request = self.factory.get("/", data=query_data)
-            response = view(request, pk=formid)
 
-            # user is redirected to the set login page in settings file
+            # user is redirected to default login page "*"
+            response = view(request, pk=formid)
+            self.assertTrue(response.url.startswith("http://test.ona.io/login"))
+            self.assertEqual(response.status_code, 302)
+
+            # user is redirected to login page for "stage-testserver"
+            request.META["HTTP_HOST"] = "stage-testserver"
+            response = view(request, pk=formid)
+            self.assertTrue(response.url.startswith("http://gh.ij.kl/login"))
             self.assertEqual(response.status_code, 302)
 
     @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY, JWT_ALGORITHM=JWT_ALGORITHM)
@@ -4307,6 +4320,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertNotEqual(multiples_select_split, no_multiples_select_split)
             self.assertGreater(multiples_select_split, no_multiples_select_split)
 
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_csv_export_with_and_without_removed_group_name(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -4331,6 +4345,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             data = {"remove_group_name": True}
             request = self.factory.get("/", data=data, **self.extra)
+            request.META["HTTP_HOST"] = "example.com"
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
 
@@ -4960,6 +4975,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 headers = next(csv_reader)
                 self.assertIn("Is ambulance available daily or weekly?", headers)
 
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_csv_exports_w_images_link(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(
@@ -5009,6 +5025,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             data = {"include_images": True}
             # request for export again
             request = self.factory.get("/", data=data, **self.extra)
+            request.META["HTTP_HOST"] = "example.com"
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
 
@@ -5239,7 +5256,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
             for role_class in ROLES_ORDERED:
-
                 data = {"username": "alice", "role": role_class.name}
                 request = self.factory.post("/", data=data, **self.extra)
                 response = view(request, pk=formid)
