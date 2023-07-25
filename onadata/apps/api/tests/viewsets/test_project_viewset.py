@@ -2841,7 +2841,13 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
-    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    @override_settings(
+        PROJECT_INVITATION_URL={
+            "*": "https://example.com/register",
+            "onadata.com": "https://onadata.com/register",
+        }
+    )
+    @override_settings(ALLOWED_HOSTS=["*"])
     def test_create_invitation(self, mock_send_mail):
         """Project invitation can be created"""
         post_data = {
@@ -2881,6 +2887,31 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 400)
+
+        # Project invitations are created for non-default host
+        request = self.factory.post(
+            "/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            **self.extra,
+        )
+        request.META["HTTP_HOST"] = "onadata.com"
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.project.invitations.count(), 1)
+        invitation = self.project.invitations.first()
+        self.assertEqual(
+            response.data,
+            {
+                "id": invitation.pk,
+                "email": "janedoe@example.com",
+                "role": "editor",
+                "status": 1,
+            },
+        )
+        mock_send_mail.assert_called_once_with(
+            invitation.pk, "https://example.com/register"
+        )
 
     def test_email_required(self, mock_send_mail):
         """email is required"""
@@ -3073,7 +3104,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
-    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    @override_settings(PROJECT_INVITATION_URL={"*": "https://example.com/register"})
     def test_update(self, mock_send_mail):
         """We can update an invitation"""
         payload = {
@@ -3133,7 +3164,7 @@ class UpdateProjectInvitationTestCase(TestAbstractViewSet):
         )
         mock_send_mail.assert_not_called()
 
-    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    @override_settings(PROJECT_INVITATION_URL={"*": "https://example.com/register"})
     def test_update_email_only(self, mock_send_mail):
         """We can update email only"""
         payload = {
@@ -3351,7 +3382,7 @@ class ResendInvitationTestCase(TestAbstractViewSet):
 
         mock_send_mail.assert_not_called()
 
-    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    @override_settings(PROJECT_INVITATION_URL={"*": "https://example.com/register"})
     def test_resend_invite(self, mock_send_mail):
         """Invitation is revoked"""
         invitation = self.project.invitations.create(

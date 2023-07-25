@@ -95,7 +95,12 @@ def send_generic_email(email, message_txt, subject):
 
 def get_project_invitation_url(request: HttpRequest):
     """Get project invitation url"""
-    url: str = getattr(settings, "PROJECT_INVITATION_URL", "")
+    invitation_url_setting: dict = getattr(settings, "PROJECT_INVITATION_URL", {})
+
+    site_domain = request.get_host()
+    url = (
+        site_domain in invitation_url_setting and invitation_url_setting[site_domain]
+    ) or ("*" in invitation_url_setting and invitation_url_setting["*"])
 
     if not url:
         url = reverse("userprofile-list", request=request)

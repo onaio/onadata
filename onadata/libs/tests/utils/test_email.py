@@ -26,7 +26,7 @@ class TestEmail(TestBase):
 
     @override_settings(
         VERIFICATION_URL={
-            "stage-testserver": 'https://stage-testserver/email-verification-confirmation',
+            "stage-testserver": "https://stage-testserver/email-verification-confirmation",
             "*": None,
         }
     )
@@ -89,7 +89,10 @@ class TestEmail(TestBase):
 
         self.assertEqual(
             verification_url,
-            ("https://stage-testserver/email-verification-confirmation?%s" % string_query_params)
+            (
+                "https://stage-testserver/email-verification-confirmation?%s"
+                % string_query_params
+            ),
         )
 
     def _get_email_data(self, include_redirect_url=False):
@@ -215,11 +218,24 @@ class ProjectInvitationURLTestCase(TestBase):
 
         self.custom_request = RequestFactory().get("/path", data={"name": "test"})
 
-    @override_settings(PROJECT_INVITATION_URL="https://example.com/register")
+    @override_settings(PROJECT_INVITATION_URL={"*": "https://example.com/register"})
     def test_url_configured(self):
         """settings.PROJECT_INVITATION_URL is set"""
         url = get_project_invitation_url(self.custom_request)
         self.assertEqual(url, "https://example.com/register")
+
+    @override_settings(
+        PROJECT_INVITATION_URL={
+            "*": "https://example.com/register",
+            "new-domain.com": "https://new-domain.com/register",
+        }
+    )
+    @override_settings(ALLOWED_HOSTS=["*"])
+    def test_url_configured(self):
+        """settings.PROJECT_INVITATION_URL is set"""
+        self.custom_request.META["HTTP_HOST"] = "new-domain.com"
+        url = get_project_invitation_url(self.custom_request)
+        self.assertEqual(url, "https://new-domain.com/register")
 
     def test_url_not_configured(self):
         """settings.PROJECT_INVITATION_URL not set"""
