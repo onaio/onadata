@@ -249,8 +249,8 @@ class TableauViewSet(OpenDataViewSet):
                 offset, limit = self.paginator.get_offset_limit(
                     self.request, self.data_count
                 )
-                sql += f" LIMIT {limit} OFFSET {offset}"
-                instances = Instance.objects.raw(sql, sql_params)
+                sql += " LIMIT %s OFFSET %s"
+                instances = Instance.objects.raw(sql, sql_params + [limit, offset])
                 instances = self.paginate_queryset(instances)
 
             else:
