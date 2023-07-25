@@ -753,9 +753,15 @@ def update_role_by_meta_xform_perms(xform):
                 role.add(user, xform)
 
 
+def get_host_domain(request):
+    """Get host from reques or check the Site model"""
+    request_host = request and request.get_host()
+    return request_host or Site.objects.get_current().domain
+
+
 def replace_attachment_name_with_url(data, request):
     """Replaces the attachment filename with a URL in ``data`` object."""
-    site_url = request.get_host() or Site.objects.get_current().domain
+    site_url = get_host_domain(request)
 
     for record in data:
         attachments: dict = record.json.get("_attachments")

@@ -2889,6 +2889,10 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
         # Project invitations are created for non-default host
+        post_data = {
+            "email": "bobalice@onadata.com",
+            "role": "editor",
+        }
         request = self.factory.post(
             "/",
             data=json.dumps(post_data),
@@ -2898,20 +2902,20 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
         request.META["HTTP_HOST"] = "onadata.com"
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(self.project.invitations.count(), 1)
-        invitation = self.project.invitations.first()
+        self.assertEqual(self.project.invitations.count(), 2)
+        invitation = self.project.invitations.last()
         self.assertEqual(
             response.data,
             {
                 "id": invitation.pk,
-                "email": "janedoe@example.com",
+                "email": "bobalice@onadata.com",
                 "role": "editor",
                 "status": 1,
             },
         )
-        mock_send_mail.assert_called_once_with(
-            invitation.pk, "https://example.com/register"
-        )
+        mock_send_mail.assert_called_with(
+            invitation.pk, "https://onadata.com/register"
+            )
 
     def test_email_required(self, mock_send_mail):
         """email is required"""
