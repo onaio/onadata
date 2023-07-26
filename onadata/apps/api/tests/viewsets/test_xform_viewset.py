@@ -34,7 +34,6 @@ from httmock import HTTMock
 from mock import Mock, patch
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from rest_framework import status
-from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.tests.mocked_data import (
     enketo_error500_mock,
@@ -62,7 +61,6 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
-from onadata.apps.viewer.models.export import ExportTypeError
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
@@ -114,7 +112,32 @@ def raise_bad_status_line(arg):
     raise BadStatusLine("RANDOM STATUS")
 
 
-class TestXFormViewSet(TestAbstractViewSet):
+class XFormViewSetBaseTestCase(TestAbstractViewSet):
+    def _make_submission_over_date_range(self, start, days=1):
+        self._publish_xls_form_to_project()
+
+        start_time = start
+        curr_time = start_time
+        for survey in self.surveys:
+            _submission_time = curr_time
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT,
+                    "apps",
+                    "main",
+                    "tests",
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    survey,
+                    survey + ".xml",
+                ),
+                forced_submission_time=_submission_time,
+            )
+            curr_time += timedelta(days=days)
+
+
+class TestXFormViewSet(XFormViewSetBaseTestCase):
     """Test XFormViewSet"""
 
     def setUp(self):
@@ -3559,34 +3582,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             self.assertEqual(response.status_code, 404)
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_form_data_async(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-
-            for format in ["xlsx", "osm", "csv"]:
-                request = self.factory.get("/", data={"format": format}, **self.extra)
-                response = view(request, pk=formid)
-                self.assertIsNotNone(response.data)
-                self.assertEqual(response.status_code, 202)
-                self.assertTrue("job_uuid" in response.data)
-                task_id = response.data.get("job_uuid")
-                get_data = {"job_uuid": task_id}
-                request = self.factory.get("/", data=get_data, **self.extra)
-                response = view(request, pk=formid)
-
-                self.assertTrue(async_result.called)
-                self.assertEqual(response.status_code, 202)
-                export = Export.objects.get(task_id=task_id)
-                self.assertTrue(export.is_successful)
-
     def test_xform_retrieve_osm_format(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -3601,208 +3596,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.get("/", data={"format": "osm"}, **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_zip_async(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-            form_view = XFormViewSet.as_view(
-                {
-                    "get": "retrieve",
-                }
-            )
-            export_async_view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-            fmt = "zip"
-
-            request = self.factory.get("/", data={"format": fmt}, **self.extra)
-            response = export_async_view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-            task_id = response.data.get("job_uuid")
-            get_data = {"job_uuid": task_id}
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = export_async_view(request, pk=formid)
-
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
-            export = Export.objects.get(task_id=task_id)
-            self.assertTrue(export.is_successful)
-
-            request = self.factory.get("/", **self.extra)
-            response = form_view(request, pk=formid, format=fmt)
-            self.assertTrue(response.status_code, 200)
-            headers = dict(response.items())
-            content_disposition = headers["Content-Disposition"]
-            filename = filename_from_disposition(content_disposition)
-            basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".zip")
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_async_connection_error(self, async_result):
-        with HTTMock(enketo_mock):
-            async_result.side_effect = ConnectionError(
-                "Error opening socket: a socket error occurred"
-            )
-            self._publish_xls_form_to_project()
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-
-            format = "xlsx"
-            request = self.factory.get("/", data={"format": format}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-            task_id = response.data.get("job_uuid")
-            get_data = {"job_uuid": task_id}
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 503)
-            self.assertEqual(response.status_text.upper(), "SERVICE UNAVAILABLE")
-            self.assertEqual(
-                response.data["detail"],
-                "Service temporarily unavailable, try again later.",
-            )
-            export = Export.objects.get(task_id=task_id)
-            self.assertTrue(export.is_successful)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_create_xls_report_async(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-
-            data_value = "template 1|http://xls_server"
-            self._add_form_metadata(self.xform, "external_export", data_value)
-            # pylint: disable=no-member
-            metadata = MetaData.objects.get(
-                object_id=self.xform.id, data_type="external_export"
-            )
-            paths = [
-                os.path.join(
-                    self.main_directory,
-                    "fixtures",
-                    "transportation",
-                    "instances_w_uuid",
-                    s,
-                    s + ".xml",
-                )
-                for s in ["transport_2011-07-25_19-05-36"]
-            ]
-
-            self._make_submission(paths[0])
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-            with HTTMock(external_mock):
-                # External export
-                request = self.factory.get(
-                    "/", data={"format": "xlsx", "meta": metadata.pk}, **self.extra
-                )
-                response = view(request, pk=formid)
-
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-
-            data = response.data
-            get_data = {"job_uuid": data.get("job_uuid")}
-
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = view(request, pk=formid, format="xlsx")
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_create_xls_report_async_with_data_id(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-
-            data_value = "template 1|http://xls_server"
-            self._add_form_metadata(self.xform, "external_export", data_value)
-            # pylint: disable=no-member
-            metadata = MetaData.objects.get(
-                object_id=self.xform.id, data_type="external_export"
-            )
-            paths = [
-                os.path.join(
-                    self.main_directory,
-                    "fixtures",
-                    "transportation",
-                    "instances_w_uuid",
-                    s,
-                    s + ".xml",
-                )
-                for s in ["transport_2011-07-25_19-05-36"]
-            ]
-
-            self._make_submission(paths[0])
-            self.assertEqual(self.response.status_code, 201)
-
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            data = {"meta": metadata.pk, "data_id": self.xform.instances.all()[0].pk}
-            formid = self.xform.pk
-            request = self.factory.get("/", data=data, **self.extra)
-            with HTTMock(external_mock):
-                # External export
-                request = self.factory.get(
-                    "/",
-                    data={
-                        "format": "xlsx",
-                        "meta": metadata.pk,
-                        "data_id": self.xform.instances.all()[0].pk,
-                    },
-                    **self.extra,
-                )
-                response = view(request, pk=formid)
-
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-
-            data = response.data
-            get_data = {"job_uuid": data.get("job_uuid")}
-
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = view(request, pk=formid, format="xlsx")
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
-
-    def test_check_async_publish_empty_uuid(self):
-        view = XFormViewSet.as_view({"get": "create_async"})
-
-        # set an empty uuid
-        get_data = {"job_uuid": ""}
-        request = self.factory.get("/", data=get_data, **self.extra)
-        response = view(request)
-
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(response.data, {"error": "Empty job uuid"})
 
     def test_always_new_report_with_data_id(self):
         with HTTMock(enketo_mock):
@@ -4429,48 +4222,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, ".csv")
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_csv_data_async_with_remove_group_name(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-
-            request = self.factory.get(
-                "/", data={"format": "csv", "remove_group_name": True}, **self.extra
-            )
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-            task_id = response.data.get("job_uuid")
-
-            export_pk = Export.objects.all().order_by("pk").reverse()[0].pk
-
-            # metaclaass for mocking results
-            job = type(
-                str("AsyncResultMock"), (), {"state": "SUCCESS", "result": export_pk}
-            )
-            async_result.return_value = job
-
-            get_data = {"job_uuid": task_id, "remove_group_name": True}
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
-            export = Export.objects.last()
-            self.assertIn(str(export.pk), response.data.get("export_url"))
-
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
-            export = Export.objects.get(task_id=task_id)
-            self.assertTrue(export.is_successful)
-
     def test_xform_linked_dataviews(self):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", "tutorial.xlsx"
@@ -4617,29 +4368,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
             self.assertIn("enketo_url", response.data)
 
-    def _make_submission_over_date_range(self, start, days=1):
-        self._publish_xls_form_to_project()
-
-        start_time = start
-        curr_time = start_time
-        for survey in self.surveys:
-            _submission_time = curr_time
-            self._make_submission(
-                os.path.join(
-                    settings.PROJECT_ROOT,
-                    "apps",
-                    "main",
-                    "tests",
-                    "fixtures",
-                    "transportation",
-                    "instances",
-                    survey,
-                    survey + ".xml",
-                ),
-                forced_submission_time=_submission_time,
-            )
-            curr_time += timedelta(days=days)
-
     def _validate_csv_export(
         self, response, test_file_path, field=None, test_data=None
     ):
@@ -4705,56 +4433,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             export = Export.objects.last()
             self.assertIn("query", export.options)
             self.assertEqual(export.options["query"], query_str)
-
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_form_data_async_with_filtered_date(self, async_result):
-        with HTTMock(enketo_mock):
-            start_date = datetime(2015, 12, 2, tzinfo=utc)
-            self._make_submission_over_date_range(start_date)
-
-            first_datetime = start_date.strftime(MONGO_STRFTIME)
-            second_datetime = start_date + timedelta(days=1, hours=20)
-            query_str = (
-                '{"_submission_time": {"$gte": "'
-                + first_datetime
-                + '", "$lte": "'
-                + second_datetime.strftime(MONGO_STRFTIME)
-                + '"}}'
-            )
-            count = Export.objects.all().count()
-
-            export_view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-
-            for export_format in ["csv"]:
-                request = self.factory.get(
-                    "/",
-                    data={"format": export_format, "query": query_str},
-                    **self.extra,
-                )
-                response = export_view(request, pk=formid)
-                self.assertIsNotNone(response.data)
-                self.assertEqual(response.status_code, 202)
-                self.assertTrue("job_uuid" in response.data)
-                self.assertEqual(count + 1, Export.objects.all().count())
-
-                task_id = response.data.get("job_uuid")
-                get_data = {"job_uuid": task_id}
-                request = self.factory.get("/", data=get_data, **self.extra)
-                response = export_view(request, pk=formid)
-
-                self.assertTrue(async_result.called)
-                self.assertEqual(response.status_code, 202)
-                export = Export.objects.get(task_id=task_id)
-                self.assertTrue(export.is_successful)
-
-                export = Export.objects.last()
-                self.assertIn("query", export.options)
-                self.assertEqual(export.options["query"], query_str)
 
     def test_previous_export_with_date_filter_is_returned(self):
         with HTTMock(enketo_mock):
@@ -4866,114 +4544,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             # should create a new export
             self.assertEqual(count + 1, Export.objects.all().count())
-
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_form_data_async_include_labels(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-            export_view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            form_view = XFormViewSet.as_view(
-                {
-                    "get": "retrieve",
-                }
-            )
-            formid = self.xform.pk
-
-            for export_format in ["csv"]:
-                request = self.factory.get(
-                    "/",
-                    data={"format": export_format, "include_labels": "true"},
-                    **self.extra,
-                )
-                response = export_view(request, pk=formid)
-                self.assertIsNotNone(response.data)
-                self.assertEqual(response.status_code, 202)
-                self.assertTrue("job_uuid" in response.data)
-                task_id = response.data.get("job_uuid")
-                get_data = {"job_uuid": task_id}
-                request = self.factory.get("/", data=get_data, **self.extra)
-                response = export_view(request, pk=formid)
-
-                self.assertTrue(async_result.called)
-                self.assertEqual(response.status_code, 202)
-                export = Export.objects.get(task_id=task_id)
-                self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath, "r") as f:
-                    csv_reader = csv.reader(f)
-                    # jump over headers first
-                    next(csv_reader)
-                    labels = next(csv_reader)
-                    self.assertIn("Is ambulance available daily or weekly?", labels)
-
-                request = self.factory.get(
-                    "/", data={"include_labels": "true"}, **self.extra
-                )
-                response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(
-                    "".join([c.decode("utf-8") for c in response.streaming_content])
-                )
-                csv_reader = csv.reader(f)
-                # jump over headers first
-                next(csv_reader)
-                labels = next(csv_reader)
-                self.assertIn("Is ambulance available daily or weekly?", labels)
-
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_export_form_data_async_include_labels_only(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._make_submissions()
-            export_view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            form_view = XFormViewSet.as_view(
-                {
-                    "get": "retrieve",
-                }
-            )
-            formid = self.xform.pk
-
-            for export_format in ["csv"]:
-                request = self.factory.get(
-                    "/",
-                    data={"format": export_format, "include_labels_only": "true"},
-                    **self.extra,
-                )
-                response = export_view(request, pk=formid)
-                self.assertIsNotNone(response.data)
-                self.assertEqual(response.status_code, 202)
-                self.assertTrue("job_uuid" in response.data)
-                task_id = response.data.get("job_uuid")
-                get_data = {"job_uuid": task_id}
-                request = self.factory.get("/", data=get_data, **self.extra)
-                response = export_view(request, pk=formid)
-
-                self.assertTrue(async_result.called)
-                self.assertEqual(response.status_code, 202)
-                export = Export.objects.get(task_id=task_id)
-                self.assertTrue(export.is_successful)
-                with default_storage.open(export.filepath, "r") as f:
-                    csv_reader = csv.reader(f)
-                    headers = next(csv_reader)
-                    self.assertIn("Is ambulance available daily or weekly?", headers)
-
-                request = self.factory.get(
-                    "/", data={"include_labels_only": "true"}, **self.extra
-                )
-                response = form_view(request, pk=formid, format=export_format)
-                f = StringIO(
-                    "".join([c.decode("utf-8") for c in response.streaming_content])
-                )
-                csv_reader = csv.reader(f)
-                headers = next(csv_reader)
-                self.assertIn("Is ambulance available daily or weekly?", headers)
 
     @override_settings(ALLOWED_HOSTS=["*"])
     def test_csv_exports_w_images_link(self):
@@ -5133,34 +4703,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, text_response)
 
-    @patch("onadata.libs.utils.api_export_tools._get_google_credential")
-    def test_xform_gsheet_exports_authorization_url(self, mock_google_creds):
-        redirect_url = "https://google.com/api/example/authorization_url"
-        mock_google_creds.return_value = HttpResponseRedirect(redirect_to=redirect_url)
-
-        self._publish_xls_form_to_project()
-        self._make_submissions()
-
-        view = XFormViewSet.as_view(
-            {
-                "get": "export_async",
-            }
-        )
-
-        data = {"format": "gsheets"}
-        request = self.factory.get("/", data=data, **self.extra)
-        response = view(request, pk=self.xform.pk)
-
-        self.assertTrue(mock_google_creds.called)
-
-        expected_response = {
-            "details": "Google authorization needed",
-            "url": redirect_url,
-        }
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, expected_response)
-
     @flaky
     def test_sav_zip_export_long_variable_length(self):
         self._publish_xls_form_to_project()
@@ -5186,31 +4728,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="savzip")
         self.assertEqual(response.status_code, 200)
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_sav_zip_export_long_variable_length_async(self, async_result):
-        self._publish_xls_form_to_project()
-        view = XFormViewSet.as_view(
-            {
-                "get": "export_async",
-            }
-        )
-        formid = self.xform.pk
-        request = self.factory.get("/", data={"format": "savzip"}, **self.extra)
-        response = view(request, pk=formid)
-        self.assertIsNotNone(response.data)
-        self.assertEqual(response.status_code, 202)
-        self.assertTrue("job_uuid" in response.data)
-        task_id = response.data.get("job_uuid")
-        get_data = {"job_uuid": task_id}
-        request = self.factory.get("/", data=get_data, **self.extra)
-        response = view(request, pk=formid)
-
-        self.assertTrue(async_result.called)
-        self.assertEqual(response.status_code, 202)
-        export = Export.objects.get(task_id=task_id)
-        self.assertTrue(export.is_successful)
 
     def test_xform_version_count(self):
         self._publish_xls_form_to_project()
@@ -5441,42 +4958,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             cloned_form = XForm.objects.last()
             self.assertEqual(cloned_form.created_by.username, "alice")
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
-    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
-    def test_pending_export_async(self, async_result):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            view = XFormViewSet.as_view(
-                {
-                    "get": "export_async",
-                }
-            )
-            formid = self.xform.pk
-            request = self.factory.get("/", data={"format": "csv"}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-            task_id = response.data.get("job_uuid")
-
-            request = self.factory.get("/", data={"format": "csv"}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue("job_uuid" in response.data)
-            task_id_two = response.data.get("job_uuid")
-
-            self.assertEqual(task_id, task_id_two)
-
-            get_data = {"job_uuid": task_id_two}
-            request = self.factory.get("/", data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
-            export = Export.objects.get(task_id=task_id)
-            self.assertTrue(export.is_pending)
-
     def test_form_publishing_floip(self):
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()
@@ -5590,6 +5071,565 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data.get("error"), "csv_file not a csv file")
+
+
+class ExportAsyncTestCase(XFormViewSetBaseTestCase):
+    """Tests for exporting form data asynchronously"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = XFormViewSet.as_view({"get": "export_async"})
+
+    def test_authentication(self):
+        """Authentication is required"""
+        self._publish_xls_form_to_project()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 404)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_form_data_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+
+            for format in ["xlsx", "osm", "csv"]:
+                request = self.factory.get("/", data={"format": format}, **self.extra)
+                response = view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue("job_uuid" in response.data)
+                task_id = response.data.get("job_uuid")
+                get_data = {"job_uuid": task_id}
+                request = self.factory.get("/", data=get_data, **self.extra)
+                response = view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_zip_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            form_view = XFormViewSet.as_view(
+                {
+                    "get": "retrieve",
+                }
+            )
+            export_async_view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+            fmt = "zip"
+
+            request = self.factory.get("/", data={"format": fmt}, **self.extra)
+            response = export_async_view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+            task_id = response.data.get("job_uuid")
+            get_data = {"job_uuid": task_id}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = export_async_view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+
+            request = self.factory.get("/", **self.extra)
+            response = form_view(request, pk=formid, format=fmt)
+            self.assertTrue(response.status_code, 200)
+            headers = dict(response.items())
+            content_disposition = headers["Content-Disposition"]
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, ".zip")
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_async_connection_error(self, async_result):
+        with HTTMock(enketo_mock):
+            async_result.side_effect = ConnectionError(
+                "Error opening socket: a socket error occurred"
+            )
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+            format = "xlsx"
+            request = self.factory.get("/", data={"format": format}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+            task_id = response.data.get("job_uuid")
+            get_data = {"job_uuid": task_id}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.status_text.upper(), "SERVICE UNAVAILABLE")
+            self.assertEqual(
+                response.data["detail"],
+                "Service temporarily unavailable, try again later.",
+            )
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_create_xls_report_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            data_value = "template 1|http://xls_server"
+            self._add_form_metadata(self.xform, "external_export", data_value)
+            # pylint: disable=no-member
+            metadata = MetaData.objects.get(
+                object_id=self.xform.id, data_type="external_export"
+            )
+            paths = [
+                os.path.join(
+                    self.main_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances_w_uuid",
+                    s,
+                    s + ".xml",
+                )
+                for s in ["transport_2011-07-25_19-05-36"]
+            ]
+
+            self._make_submission(paths[0])
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+            with HTTMock(external_mock):
+                # External export
+                request = self.factory.get(
+                    "/", data={"format": "xlsx", "meta": metadata.pk}, **self.extra
+                )
+                response = view(request, pk=formid)
+
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+
+            data = response.data
+            get_data = {"job_uuid": data.get("job_uuid")}
+
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid, format="xlsx")
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_create_xls_report_async_with_data_id(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            data_value = "template 1|http://xls_server"
+            self._add_form_metadata(self.xform, "external_export", data_value)
+            # pylint: disable=no-member
+            metadata = MetaData.objects.get(
+                object_id=self.xform.id, data_type="external_export"
+            )
+            paths = [
+                os.path.join(
+                    self.main_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances_w_uuid",
+                    s,
+                    s + ".xml",
+                )
+                for s in ["transport_2011-07-25_19-05-36"]
+            ]
+
+            self._make_submission(paths[0])
+            self.assertEqual(self.response.status_code, 201)
+
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            data = {"meta": metadata.pk, "data_id": self.xform.instances.all()[0].pk}
+            formid = self.xform.pk
+            request = self.factory.get("/", data=data, **self.extra)
+            with HTTMock(external_mock):
+                # External export
+                request = self.factory.get(
+                    "/",
+                    data={
+                        "format": "xlsx",
+                        "meta": metadata.pk,
+                        "data_id": self.xform.instances.all()[0].pk,
+                    },
+                    **self.extra,
+                )
+                response = view(request, pk=formid)
+
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+
+            data = response.data
+            get_data = {"job_uuid": data.get("job_uuid")}
+
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid, format="xlsx")
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+
+    def test_check_async_publish_empty_uuid(self):
+        view = XFormViewSet.as_view({"get": "create_async"})
+
+        # set an empty uuid
+        get_data = {"job_uuid": ""}
+        request = self.factory.get("/", data=get_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data, {"error": "Empty job uuid"})
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_csv_data_async_with_remove_group_name(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+
+            request = self.factory.get(
+                "/", data={"format": "csv", "remove_group_name": True}, **self.extra
+            )
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+            task_id = response.data.get("job_uuid")
+
+            export_pk = Export.objects.all().order_by("pk").reverse()[0].pk
+
+            # metaclaass for mocking results
+            job = type(
+                str("AsyncResultMock"), (), {"state": "SUCCESS", "result": export_pk}
+            )
+            async_result.return_value = job
+
+            get_data = {"job_uuid": task_id, "remove_group_name": True}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            export = Export.objects.last()
+            self.assertIn(str(export.pk), response.data.get("export_url"))
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_form_data_async_with_filtered_date(self, async_result):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2, tzinfo=utc)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+            query_str = (
+                '{"_submission_time": {"$gte": "'
+                + first_datetime
+                + '", "$lte": "'
+                + second_datetime.strftime(MONGO_STRFTIME)
+                + '"}}'
+            )
+            count = Export.objects.all().count()
+
+            export_view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+
+            for export_format in ["csv"]:
+                request = self.factory.get(
+                    "/",
+                    data={"format": export_format, "query": query_str},
+                    **self.extra,
+                )
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue("job_uuid" in response.data)
+                self.assertEqual(count + 1, Export.objects.all().count())
+
+                task_id = response.data.get("job_uuid")
+                get_data = {"job_uuid": task_id}
+                request = self.factory.get("/", data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+
+                export = Export.objects.last()
+                self.assertIn("query", export.options)
+                self.assertEqual(export.options["query"], query_str)
+
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_form_data_async_include_labels(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            export_view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            form_view = XFormViewSet.as_view(
+                {
+                    "get": "retrieve",
+                }
+            )
+            formid = self.xform.pk
+
+            for export_format in ["csv"]:
+                request = self.factory.get(
+                    "/",
+                    data={"format": export_format, "include_labels": "true"},
+                    **self.extra,
+                )
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue("job_uuid" in response.data)
+                task_id = response.data.get("job_uuid")
+                get_data = {"job_uuid": task_id}
+                request = self.factory.get("/", data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+                with default_storage.open(export.filepath, "r") as f:
+                    csv_reader = csv.reader(f)
+                    # jump over headers first
+                    next(csv_reader)
+                    labels = next(csv_reader)
+                    self.assertIn("Is ambulance available daily or weekly?", labels)
+
+                request = self.factory.get(
+                    "/", data={"include_labels": "true"}, **self.extra
+                )
+                response = form_view(request, pk=formid, format=export_format)
+                f = StringIO(
+                    "".join([c.decode("utf-8") for c in response.streaming_content])
+                )
+                csv_reader = csv.reader(f)
+                # jump over headers first
+                next(csv_reader)
+                labels = next(csv_reader)
+                self.assertIn("Is ambulance available daily or weekly?", labels)
+
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_export_form_data_async_include_labels_only(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            export_view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            form_view = XFormViewSet.as_view(
+                {
+                    "get": "retrieve",
+                }
+            )
+            formid = self.xform.pk
+
+            for export_format in ["csv"]:
+                request = self.factory.get(
+                    "/",
+                    data={"format": export_format, "include_labels_only": "true"},
+                    **self.extra,
+                )
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue("job_uuid" in response.data)
+                task_id = response.data.get("job_uuid")
+                get_data = {"job_uuid": task_id}
+                request = self.factory.get("/", data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+                with default_storage.open(export.filepath, "r") as f:
+                    csv_reader = csv.reader(f)
+                    headers = next(csv_reader)
+                    self.assertIn("Is ambulance available daily or weekly?", headers)
+
+                request = self.factory.get(
+                    "/", data={"include_labels_only": "true"}, **self.extra
+                )
+                response = form_view(request, pk=formid, format=export_format)
+                f = StringIO(
+                    "".join([c.decode("utf-8") for c in response.streaming_content])
+                )
+                csv_reader = csv.reader(f)
+                headers = next(csv_reader)
+                self.assertIn("Is ambulance available daily or weekly?", headers)
+
+    @override_settings(GOOGLE_EXPORT=True)
+    @patch("onadata.libs.utils.api_export_tools._get_google_credential")
+    def test_xform_gsheet_exports_authorization_url(self, mock_google_creds):
+        redirect_url = "https://google.com/api/example/authorization_url"
+        mock_google_creds.return_value = HttpResponseRedirect(redirect_to=redirect_url)
+
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
+        view = XFormViewSet.as_view(
+            {
+                "get": "export_async",
+            }
+        )
+
+        data = {"format": "gsheets"}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertTrue(mock_google_creds.called)
+
+        expected_response = {
+            "details": "Google authorization needed",
+            "url": redirect_url,
+        }
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, expected_response)
+
+    @override_settings(GOOGLE_EXPORT=False)
+    @patch("onadata.libs.utils.api_export_tools._get_google_credential")
+    def test_google_exports_disabled(self, mock_google_creds):
+        class CredentialsMock:
+            def to_json(self):
+                return {
+                    "refresh_token": "refresh-token",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "client_id": "client-id",
+                    "client_secret": "client-secret",
+                    "scopes": ["https://www.googleapis.com/auth/drive.file"],
+                    "expiry": datetime(2016, 8, 18, 12, 43, 30, 316792),
+                }
+
+        mock_google_creds.return_value = CredentialsMock()
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        data = {"format": "gsheets"}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        expected_response = {"details": "Export format not supported"}
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, expected_response)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_sav_zip_export_long_variable_length_async(self, async_result):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view(
+            {
+                "get": "export_async",
+            }
+        )
+        formid = self.xform.pk
+        request = self.factory.get("/", data={"format": "savzip"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertIsNotNone(response.data)
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue("job_uuid" in response.data)
+        task_id = response.data.get("job_uuid")
+        get_data = {"job_uuid": task_id}
+        request = self.factory.get("/", data=get_data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
+    def test_pending_export_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view(
+                {
+                    "get": "export_async",
+                }
+            )
+            formid = self.xform.pk
+            request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+            task_id = response.data.get("job_uuid")
+
+            request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue("job_uuid" in response.data)
+            task_id_two = response.data.get("job_uuid")
+
+            self.assertEqual(task_id, task_id_two)
+
+            get_data = {"job_uuid": task_id_two}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_pending)
 
     def test_export_csvzip_form_data_async(self):
         with HTTMock(enketo_mock):
