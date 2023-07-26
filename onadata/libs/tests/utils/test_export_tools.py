@@ -455,6 +455,27 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         self.assertEqual(options["remove_group_name"], True)
         self.assertEqual(options["include_images"], True)
 
+    def test_export_not_found(self):
+        export_type = "csv"
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True,
+        }
+
+        self._publish_transportation_form_and_submit_instance()
+        self._create_old_export(self.xform, export_type, options)
+        export = Export(xform=self.xform, export_type=export_type, options=options)
+        export.save()
+        export_id = export.pk
+
+        export.delete()
+        export = generate_export(export_type, self.xform, export_id, options)
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        self.assertNotEqual(export_id, export.pk)
+
     def test_kml_export_data(self):
         """
         Test kml_export_data(id_string, user, xform=None).
@@ -979,35 +1000,3 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         for a in Attachment.objects.all():
             self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
-
-
-class GenerateExportTestCase(TestBase):
-    """Tests for method generate_export"""
-
-    def _create_old_export(self, xform, export_type, options):
-        Export(xform=xform, export_type=export_type, options=options).save()
-        self.export = Export.objects.filter(xform=xform, export_type=export_type)
-
-    def test_export_not_found(self):
-        export_type = "csv"
-        options = {
-            "group_delimiter": "/",
-            "remove_group_name": False,
-            "split_select_multiples": True,
-        }
-
-        self._publish_transportation_form_and_submit_instance()
-        self._create_old_export(self.xform, export_type, options)
-        export = Export(xform=self.xform, export_type=export_type, options=options)
-        export.save()
-        export_id = export.pk
-
-        export.delete()
-        export = generate_export(export_type, self.xform, export_id, options)
-
-        self.assertIsNotNone(export)
-        self.assertTrue(export.is_successful)
-        self.assertNotEqual(export_id, export.pk)
-
-    def test_missing_google_exports(self):
-        """"""
