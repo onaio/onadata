@@ -5549,7 +5549,7 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
 
     @override_settings(GOOGLE_EXPORT=False)
     @patch("onadata.libs.utils.api_export_tools._get_google_credential")
-    def test_google_exports_disabled(self, mock_google_creds):
+    def test_google_exports_setting_false(self, mock_google_creds):
         class CredentialsMock:
             def to_json(self):
                 return {
@@ -5563,7 +5563,28 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
 
         mock_google_creds.return_value = CredentialsMock()
         self._publish_xls_form_to_project()
-        self._make_submissions()
+        data = {"format": "gsheets"}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        expected_response = {"details": "Export format not supported"}
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, expected_response)
+
+    @patch("onadata.libs.utils.api_export_tools._get_google_credential")
+    def test_google_exports_setting_missing(self, mock_google_creds):
+        class CredentialsMock:
+            def to_json(self):
+                return {
+                    "refresh_token": "refresh-token",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "client_id": "client-id",
+                    "client_secret": "client-secret",
+                    "scopes": ["https://www.googleapis.com/auth/drive.file"],
+                    "expiry": datetime(2016, 8, 18, 12, 43, 30, 316792),
+                }
+
+        mock_google_creds.return_value = CredentialsMock()
+        self._publish_xls_form_to_project()
         data = {"format": "gsheets"}
         request = self.factory.get("/", data=data, **self.extra)
         response = self.view(request, pk=self.xform.pk)
