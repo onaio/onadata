@@ -2,6 +2,7 @@
 """
 Pagination classes.
 """
+from typing import Tuple
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
@@ -137,3 +138,40 @@ class CountOverridablePageNumberPagination(StandardPageNumberPagination):
 
         self.request = request
         return list(self.page)
+
+
+class RawSQLQueryPaginator(CountOverridablePaginator):
+    """Paginator class for raw SQL queries"""
+
+    def page(self, number):
+        """Return page
+
+        self.object_list is NOT sliced because self.object_list should
+        have been paginated via OFFSET and LIMIT before creating a
+        RawPaginator instance
+        """
+        number = self.validate_number(number)
+        return self._get_page(self.object_list, number, self)
+
+
+class RawSQLQueryPageNumberPagination(CountOverridablePageNumberPagination):
+    """PageNumberPagination class for raw SQL queries"""
+
+    django_paginator_class = RawSQLQueryPaginator
+
+    def get_offset_limit(self, request, count) -> Tuple[int, int]:
+        """Returns the offset and limit to be used in a raw SQL query"""
+        page_size = self.get_page_size(request)
+        # pass an empty object_list since we are not handling any pagination
+        # at this point, we are specifically interested in the count
+        paginator = self.django_paginator_class([], page_size, count_override=count)
+        page_number = paginator.validate_number(
+            self.get_page_number(request, paginator)
+        )
+        offset = (page_number - 1) * paginator.per_page
+        limit = offset + paginator.per_page
+
+        if limit + paginator.orphans >= paginator.count:
+            limit = paginator.count
+
+        return (offset, limit)
