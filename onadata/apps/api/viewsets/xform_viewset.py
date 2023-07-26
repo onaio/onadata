@@ -867,16 +867,17 @@ class XFormViewSet(
         xform = self.get_object()
         export_type = request.query_params.get("format")
 
-        try:
-            _get_export_type(export_type)
+        if export_type:
+            try:
+                _get_export_type(export_type)
 
-        except ParseError:
-            payload = {"details": _("Export format not supported")}
-            return Response(
-                data=payload,
-                status=status.HTTP_403_FORBIDDEN,
-                content_type="application/json",
-            )
+            except exceptions.ParseError:
+                payload = {"details": _("Export format not supported")}
+                return Response(
+                    data=payload,
+                    status=status.HTTP_403_FORBIDDEN,
+                    content_type="application/json",
+                )
 
         job_uuid = request.query_params.get("job_uuid")
 
