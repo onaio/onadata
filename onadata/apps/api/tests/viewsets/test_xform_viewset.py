@@ -4680,6 +4680,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             with self.assertRaises(KeyError):
                 self._validate_csv_export(response, None, key, expected_data)
 
+    @override_settings(GOOGLE_EXPORT=True)
     def test_xform_gsheet_exports_disabled_sync_mode(self):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", "tutorial.xlsx"
