@@ -3597,6 +3597,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
 
+    def test_check_async_publish_empty_uuid(self):
+        view = XFormViewSet.as_view({"get": "create_async"})
+
+        # set an empty uuid
+        get_data = {"job_uuid": ""}
+        request = self.factory.get("/", data=get_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data, {"error": "Empty job uuid"})
+
     def test_always_new_report_with_data_id(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -5305,17 +5316,6 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
             response = view(request, pk=formid, format="xlsx")
             self.assertTrue(async_result.called)
             self.assertEqual(response.status_code, 202)
-
-    def test_check_async_publish_empty_uuid(self):
-        view = XFormViewSet.as_view({"get": "create_async"})
-
-        # set an empty uuid
-        get_data = {"job_uuid": ""}
-        request = self.factory.get("/", data=get_data, **self.extra)
-        response = view(request)
-
-        self.assertEqual(response.status_code, 202)
-        self.assertEqual(response.data, {"error": "Empty job uuid"})
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
