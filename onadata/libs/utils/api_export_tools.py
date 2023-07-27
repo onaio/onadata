@@ -114,14 +114,15 @@ def include_hxl_row(dv_columns, hxl_columns):
 
 
 def _get_export_type(export_type):
-    if export_type in list(EXPORT_EXT):
-        export_type = EXPORT_EXT[export_type]
-    else:
+    if export_type not in EXPORT_EXT or (
+        export_type == Export.GOOGLE_SHEETS_EXPORT
+        and not getattr(settings, "GOOGLE_EXPORT", False)
+    ):
         raise exceptions.ParseError(
             _(f"'{export_type}' format not known or not implemented!")
         )
 
-    return export_type
+    return EXPORT_EXT[export_type]
 
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
@@ -181,7 +182,6 @@ def custom_response_handler(  # noqa: C0901
         export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
         if export_type == Export.GOOGLE_SHEETS_EXPORT:
-
             return Response(
                 data=json.dumps(
                     {"details": _("Sheets export only supported in async mode")}
