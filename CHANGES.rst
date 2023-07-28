@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.11.0(2023-07-28)
+-------------------
+
+- Ensure onadata can work in a multi-domain setup
+  `PR #2450 <https://github.com/onaio/onadata/pull/2450>`
+  [@FrankApiyo]
+- Fix AttributeError: 'ExportBuilder' object has no attribute 'to_google_sheets'
+  `PR #2458 <https://github.com/onaio/onadata/pull/2458>`
+  [@kelvin-muchiri]
+- Enhance performance of open-data endpoint api/v2/open-data/<uuid>/data
+  `PR #2456 <https://github.com/onaio/onadata/pull/2456>`
+  [@kelvin-muchiri]
+- Fix AttributeError: 'NoneType' object has no attribute 'strip' when exporting form data
+  `PR #2453 <https://github.com/onaio/onadata/pull/2453>`
+  [@kelvin-muchiri]
+- Add ability to create, update project invitations
+  `PR #2430 <https://github.com/onaio/onadata/pull/2430>`
+  [@kelvin-muchiri]
+
 v3.10.1(2023-07-20)
 -------------------
 
