@@ -133,7 +133,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     filter_query = options.get("query")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
-
+    sort = options.get("sort")
     export_type_func_map = {
         Export.XLSX_EXPORT: "to_xlsx_export",
         Export.CSV_EXPORT: "to_flat_csv_export",
@@ -151,15 +151,35 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = dataview.query_data(
-            dataview, all_data=True, filter_query=filter_query
+            dataview,
+            all_data=True,
+            filter_query=filter_query,
+            sort=sort,
         )
-        total_records = dataview.query_data(dataview, count=True)[0].get("count")
+        total_records = dataview.query_data(
+            dataview,
+            count=True,
+            sort=sort,
+        )[
+            0
+        ].get("count")
     else:
-        records = query_data(xform, query=filter_query, start=start, end=end)
+        records = query_data(
+            xform,
+            query=filter_query,
+            start=start,
+            end=end,
+            sort=sort,
+        )
 
         if filter_query:
             total_records = query_data(
-                xform, query=filter_query, start=start, end=end, count=True
+                xform,
+                query=filter_query,
+                start=start,
+                end=end,
+                count=True,
+                sort=sort,
             )[0].get("count")
         else:
             total_records = xform.num_of_submissions
@@ -423,6 +443,7 @@ def generate_attachments_zip_export(
     """
     export_type = options.get("extension", export_type)
     filter_query = options.get("query")
+    sort = options.get("sort")
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
@@ -433,13 +454,21 @@ def generate_attachments_zip_export(
             instance_id__in=[
                 rec.get("_id")
                 for rec in dataview.query_data(
-                    dataview, all_data=True, filter_query=filter_query
+                    dataview,
+                    all_data=True,
+                    filter_query=filter_query,
+                    sort=sort,
                 )
             ],
             instance__deleted_at__isnull=True,
         )
     else:
-        instance_ids = query_data(xform, fields='["_id"]', query=filter_query)
+        instance_ids = query_data(
+            xform,
+            fields='["_id"]',
+            query=filter_query,
+            sort=sort,
+        )
         attachments = Attachment.objects.filter(instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:
             attachments = attachments.filter(
@@ -815,6 +844,7 @@ def generate_external_export(  # noqa C901
     filter_query = options.get("query")
     meta = options.get("meta")
     token = options.get("token")
+    sort = options.get("sort")
 
     if xform is None:
         xform = XForm.objects.get(
@@ -839,7 +869,11 @@ def generate_external_export(  # noqa C901
 
         instances = [inst[0].json if inst else {}]
     else:
-        instances = query_data(xform, query=filter_query)
+        instances = query_data(
+            xform,
+            query=filter_query,
+            sort=sort,
+        )
 
     records = _get_records(instances)
 

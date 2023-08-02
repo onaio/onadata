@@ -162,9 +162,9 @@ class DataViewSet(
         elif fmt == "xml":
             serializer_class = DataInstanceXMLSerializer
         elif (
-            form_pk is not None and
-            dataid is None and
-            form_pk != self.public_data_endpoint
+            form_pk is not None
+            and dataid is None
+            and form_pk != self.public_data_endpoint
         ):
             if sort or fields:
                 serializer_class = JsonDataSerializer
@@ -412,7 +412,6 @@ class DataViewSet(
             )
 
         if isinstance(self.object, Instance):
-
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
                 if permanent_delete:
@@ -644,7 +643,8 @@ class DataViewSet(
         if export_type == "geojson":
             # raise 404 if all instances dont have geoms
             if not xform.instances_with_geopoints and not (
-                    xform.polygon_xpaths() or xform.geotrace_xpaths()):
+                xform.polygon_xpaths() or xform.geotrace_xpaths()
+            ):
                 raise Http404(_("Not Found"))
 
             # add pagination when fetching geojson features
@@ -653,7 +653,7 @@ class DataViewSet(
 
             return Response(serializer.data)
 
-        return custom_response_handler(request, xform, query, export_type)
+        return custom_response_handler(request, xform, query, export_type, sort=sort)
 
     # pylint: disable=too-many-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):

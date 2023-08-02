@@ -8,6 +8,8 @@ import datetime
 import json
 import logging
 import os
+import csv
+from io import StringIO
 from builtins import open
 from datetime import timedelta
 from tempfile import NamedTemporaryFile
@@ -115,6 +117,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     """
     Test /data API endpoint implementation.
     """
+
     lockfile = __file__
 
     def setUp(self):
@@ -1118,11 +1121,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         second_datetime = start_time + timedelta(days=1, hours=20)
 
         query_str = (
-            '{"_submission_time": {"$gte": "' +
-            first_datetime +
-            '", "$lte": "' +
-            second_datetime.strftime(MONGO_STRFTIME) +
-            '"}}'
+            '{"_submission_time": {"$gte": "'
+            + first_datetime
+            + '", "$lte": "'
+            + second_datetime.strftime(MONGO_STRFTIME)
+            + '"}}'
         )
 
         request = self.factory.get("/?query=%s" % query_str, **self.extra)
@@ -1679,7 +1682,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_deletion_of_bulk_submissions(self, send_message_mock):
-
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk
@@ -1756,7 +1758,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 3)
         self.assertEqual(self.xform.instances.count(), 3)
-    
+
         # Test project details updated successfully
         self.assertEqual(
             self.xform.project.date_modified.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1865,7 +1867,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         dataid = self.xform.instances.filter(deleted_at=None).order_by("id")[0].pk
 
-        request = self.factory.delete("/", **self.extra, data={"permanent_delete": True})
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 204)
@@ -2330,16 +2334,17 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             json.dumps(response.data)[:94],
-            '{"type": "FeatureCollection", "features":' +
-            ' [{"type": "Feature", "geometry": null, "properties":')
-        self.assertEqual(len(response.data['features']), 1)
-        feature = dict(response.data['features'][0])
-        self.assertEqual(feature['type'], 'Feature')
-        self.assertEqual(feature['geometry'], None)
-        self.assertTrue(isinstance(feature['properties'], dict))
+            '{"type": "FeatureCollection", "features":'
+            + ' [{"type": "Feature", "geometry": null, "properties":',
+        )
+        self.assertEqual(len(response.data["features"]), 1)
+        feature = dict(response.data["features"][0])
+        self.assertEqual(feature["type"], "Feature")
+        self.assertEqual(feature["geometry"], None)
+        self.assertTrue(isinstance(feature["properties"], dict))
         self.assertEqual(self.xform.instances.count(), 2)
-        self.assertEqual(self.xform.polygon_xpaths(), ['shape'])
-        self.assertEqual(self.xform.geotrace_xpaths(), ['path'])
+        self.assertEqual(self.xform.polygon_xpaths(), ["shape"])
+        self.assertEqual(self.xform.geotrace_xpaths(), ["path"])
 
         # check if instances_with_geopoints is True for the form
         self.xform.refresh_from_db()
@@ -2347,7 +2352,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     @patch("onadata.apps.viewer.signals._post_process_submissions")
     def test_instances_with_empty_geopoints_no_polygons(self, mock_signal):
-
         # publish sample geo submissions
         self._publish_submit_geojson(has_empty_geoms=True, only_geopoints=True)
 
@@ -3448,3 +3452,130 @@ class TestOSM(TestAbstractViewSet):
         )
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 0)
+
+
+@override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_data_media/"))
+class ExportDataTestCase(SerializeMixin, TestBase):
+    """Tests exporting data"""
+
+    lockfile = __file__
+
+    def setUp(self):
+        super().setUp()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.factory = RequestFactory()
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.view = DataViewSet.as_view({"get": "list"})
+
+    def test_csv_export(self):
+        """Data is exported as CSV"""
+        self._make_submissions()
+        formid = self.xform.pk
+        request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+        response = self.view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        csv_file_obj = StringIO(
+            "".join([c.decode("utf-8") for c in response.streaming_content])
+        )
+        csv_reader = csv.reader(csv_file_obj)
+        headers = next(csv_reader)
+        expected_headers = [
+            "transport/available_transportation_types_to_referral_facility/ambulance",
+            "transport/available_transportation_types_to_referral_facility/bicycle",
+            "transport/available_transportation_types_to_referral_facility/boat_canoe",
+            "transport/available_transportation_types_to_referral_facility/bus",
+            "transport/available_transportation_types_to_referral_facility/donkey_mule_cart",
+            "transport/available_transportation_types_to_referral_facility/keke_pepe",
+            "transport/available_transportation_types_to_referral_facility/lorry",
+            "transport/available_transportation_types_to_referral_facility/motorbike",
+            "transport/available_transportation_types_to_referral_facility/taxi",
+            "transport/available_transportation_types_to_referral_facility/other",
+            "transport/available_transportation_types_to_referral_facility_other",
+            "transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "image1",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(headers, expected_headers)
+        number_records = len(list(csv_reader))
+        self.assertEqual(number_records, 4)
+
+    def test_sort_query_param(self):
+        """sort query param works with exports"""
+
+        self._make_submissions()
+        formid = self.xform.pk
+        # sort csv export data by id in descending order
+        request = self.factory.get(
+            "/", data={"format": "csv", "sort": '{"_id": -1}'}, **self.extra
+        )
+        response = self.view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        csv_file_obj = StringIO(
+            "".join([c.decode("utf-8") for c in response.streaming_content])
+        )
+        csv_reader = csv.reader(csv_file_obj)
+        instances = Instance.objects.filter(xform_id=formid).order_by("-id")
+        self.assertEqual(instances.count(), 4)
+        headers = next(csv_reader)
+        expected_headers = [
+            "transport/available_transportation_types_to_referral_facility/ambulance",
+            "transport/available_transportation_types_to_referral_facility/bicycle",
+            "transport/available_transportation_types_to_referral_facility/boat_canoe",
+            "transport/available_transportation_types_to_referral_facility/bus",
+            "transport/available_transportation_types_to_referral_facility/donkey_mule_cart",
+            "transport/available_transportation_types_to_referral_facility/keke_pepe",
+            "transport/available_transportation_types_to_referral_facility/lorry",
+            "transport/available_transportation_types_to_referral_facility/motorbike",
+            "transport/available_transportation_types_to_referral_facility/taxi",
+            "transport/available_transportation_types_to_referral_facility/other",
+            "transport/available_transportation_types_to_referral_facility_other",
+            "transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "image1",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(headers, expected_headers)
+        # csv records should be ordered by id in descending order
+        for instance in instances:
+            row = next(csv_reader)
+            self.assertEqual(str(instance.id), row[22])

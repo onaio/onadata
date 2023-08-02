@@ -3,22 +3,24 @@
 Test CSVDataFrameBuilder
 """
 import csv
-from onadata.libs.exceptions import NoRecordsFoundError
 import os
 from tempfile import NamedTemporaryFile
 
 from builtins import chr, open
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
-from mock import patch
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
-    AbstractDataFrameBuilder, CSVDataFrameBuilder, get_prefix_from_xpath,
-    remove_dups_from_list_maintain_order, write_to_csv)
+    AbstractDataFrameBuilder,
+    CSVDataFrameBuilder,
+    get_prefix_from_xpath,
+    remove_dups_from_list_maintain_order,
+    write_to_csv,
+)
 
 
 def xls_filepath_from_fixture_name(fixture_name):
@@ -26,8 +28,11 @@ def xls_filepath_from_fixture_name(fixture_name):
     Return an xls file path at tests/fixtures/[fixture]/fixture.xls
     """
     return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture_name,
-        fixture_name + ".xlsx")
+        os.path.dirname(os.path.abspath(__file__)),
+        "fixtures",
+        fixture_name,
+        fixture_name + ".xlsx",
+    )
 
 
 # pylint: disable=invalid-name
@@ -36,8 +41,12 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
     Returns the path to a fixture given fixture_name and instance_name.
     """
     return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture_name,
-        "instances", fixture_name + "_" + instance_name + ".xml")
+        os.path.dirname(os.path.abspath(__file__)),
+        "fixtures",
+        fixture_name,
+        "instances",
+        fixture_name + "_" + instance_name + ".xml",
+    )
 
 
 class TestCSVDataFrameBuilder(TestBase):
@@ -47,7 +56,7 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def setUp(self):
         self._create_user_and_login()
-        self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
+        self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
 
     def _publish_xls_fixture_set_xform(self, fixture):
         """
@@ -60,38 +69,39 @@ class TestCSVDataFrameBuilder(TestBase):
         # pylint: disable=attribute-defined-outside-init
         self.xform = XForm.objects.all().reverse()[0]
 
-    def _submit_fixture_instance(self, fixture, instance,
-                                 submission_time=None):
+    def _submit_fixture_instance(self, fixture, instance, submission_time=None):
         """
         Submit an instance at
         tests/fixtures/[fixture]/instances/[fixture]_[instance].xml
         """
         xml_submission_file_path = xml_inst_filepath_from_fixture_name(
-            fixture, instance)
+            fixture, instance
+        )
         self._make_submission(
-            xml_submission_file_path, forced_submission_time=submission_time)
+            xml_submission_file_path, forced_submission_time=submission_time
+        )
         self.assertEqual(self.response.status_code, 201)
 
     def _publish_single_level_repeat_form(self):
         self._publish_xls_fixture_set_xform("new_repeats")
         # pylint: disable=attribute-defined-outside-init
-        self.survey_name = u"new_repeats"
+        self.survey_name = "new_repeats"
 
     def _publish_nested_repeats_form(self):
         self._publish_xls_fixture_set_xform("nested_repeats")
         # pylint: disable=attribute-defined-outside-init
-        self.survey_name = u"nested_repeats"
+        self.survey_name = "nested_repeats"
 
     def _publish_grouped_gps_form(self):
         self._publish_xls_fixture_set_xform("grouped_gps")
         # pylint: disable=attribute-defined-outside-init
-        self.survey_name = u"grouped_gps"
+        self.survey_name = "grouped_gps"
 
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
-        # pylint: disable=protected-access
-        cursor = csv_df_builder._query_data()
+            self.user.username, self.xform.id_string, include_images=False
+        )
+        cursor = self.xform.instances.all().values_list("json", flat=True)
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
@@ -100,17 +110,24 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         self._publish_nested_repeats_form()
         self._submit_fixture_instance(
-            "nested_repeats", "01", submission_time=self._submission_time)
+            "nested_repeats", "01", submission_time=self._submission_time
+        )
         self._submit_fixture_instance(
-            "nested_repeats", "02", submission_time=self._submission_time)
+            "nested_repeats", "02", submission_time=self._submission_time
+        )
 
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "fixtures",
-            "nested_repeats", "nested_repeats.csv")
+            os.path.dirname(os.path.abspath(__file__)),
+            "fixtures",
+            "nested_repeats",
+            "nested_repeats.csv",
+        )
         temp_file.close()
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
@@ -125,24 +142,27 @@ class TestCSVDataFrameBuilder(TestBase):
         self._submit_fixture_instance("grouped_gps", "01")
         data = self._csv_data_for_dataframe()
         columns = list(data[0])
-        expected_columns = [
-            u'gps_group/gps',
-            u'gps_group/_gps_latitude',
-            u'gps_group/_gps_longitude',
-            u'gps_group/_gps_altitude',
-            u'gps_group/_gps_precision',
-            u'web_browsers/firefox',
-            u'web_browsers/chrome',
-            u'web_browsers/ie',
-            u'web_browsers/safari',
-            u'_xform_id',
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            AbstractDataFrameBuilder.IGNORED_COLUMNS
+        expected_columns = (
+            [
+                "gps_group/gps",
+                "gps_group/_gps_latitude",
+                "gps_group/_gps_longitude",
+                "gps_group/_gps_altitude",
+                "gps_group/_gps_precision",
+                "web_browsers/firefox",
+                "web_browsers/chrome",
+                "web_browsers/ie",
+                "web_browsers/safari",
+                "_xform_id",
+            ]
+            + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS
+            + AbstractDataFrameBuilder.IGNORED_COLUMNS
+        )
         try:
-            expected_columns.remove(u'_deleted_at')
-            expected_columns.remove(u'_review_status')
-            expected_columns.remove(u'_review_comment')
-            expected_columns.remove(u'_review_date')
+            expected_columns.remove("_deleted_at")
+            expected_columns.remove("_review_status")
+            expected_columns.remove("_review_comment")
+            expected_columns.remove("_review_date")
         except ValueError:
             pass
         self.maxDiff = None
@@ -164,23 +184,23 @@ class TestCSVDataFrameBuilder(TestBase):
             if key in data_0:
                 data_0.pop(key)
         expected_data_0 = {
-            u'gps': u'-1.2627557 36.7926442 0.0 30.0',
-            u'_gps_latitude': u'-1.2627557',
-            u'_gps_longitude': u'36.7926442',
-            u'_gps_altitude': u'0.0',
-            u'_gps_precision': u'30.0',
-            u'kids/has_kids': u'1',
-            u'info/age': 80,
-            u'kids/kids_details[1]/kids_name': u'Abel',
-            u'kids/kids_details[1]/kids_age': 50,
-            u'kids/kids_details[2]/kids_name': u'Cain',
-            u'kids/kids_details[2]/kids_age': 76,
-            u'web_browsers/chrome': True,
-            u'web_browsers/ie': True,
-            u'web_browsers/safari': False,
-            u'web_browsers/firefox': False,
-            u'info/name': u'Adam',
-            u'_xform_id': self.xform.pk,
+            "gps": "-1.2627557 36.7926442 0.0 30.0",
+            "_gps_latitude": "-1.2627557",
+            "_gps_longitude": "36.7926442",
+            "_gps_altitude": "0.0",
+            "_gps_precision": "30.0",
+            "kids/has_kids": "1",
+            "info/age": 80,
+            "kids/kids_details[1]/kids_name": "Abel",
+            "kids/kids_details[1]/kids_age": 50,
+            "kids/kids_details[2]/kids_name": "Cain",
+            "kids/kids_details[2]/kids_age": 76,
+            "web_browsers/chrome": True,
+            "web_browsers/ie": True,
+            "web_browsers/safari": False,
+            "web_browsers/firefox": False,
+            "info/name": "Adam",
+            "_xform_id": self.xform.pk,
         }
         self.assertEqual(expected_data_0, data_0)
 
@@ -191,42 +211,41 @@ class TestCSVDataFrameBuilder(TestBase):
         self._publish_nested_repeats_form()
         self._submit_fixture_instance("nested_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         # pylint: disable=protected-access
-        cursor = [k for k in csv_df_builder._query_data()]
+        cursor = self.xform.instances.all().values_list("json", flat=True)
         record = cursor[0]
-        select_multiples = \
-            CSVDataFrameBuilder._collect_select_multiples(self.xform)
-        result = CSVDataFrameBuilder._split_select_multiples(
-            record, select_multiples)
+        select_multiples = CSVDataFrameBuilder._collect_select_multiples(self.xform)
+        result = CSVDataFrameBuilder._split_select_multiples(record, select_multiples)
         expected_result = {
-            u'web_browsers/ie': True,
-            u'web_browsers/safari': True,
-            u'web_browsers/firefox': False,
-            u'web_browsers/chrome': False
+            "web_browsers/ie": True,
+            "web_browsers/safari": True,
+            "web_browsers/firefox": False,
+            "web_browsers/chrome": False,
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in list(result)
-                       if key in list(expected_result)])
+        result = dict(
+            [(key, result[key]) for key in list(result) if key in list(expected_result)]
+        )
         self.assertEqual(expected_result, result)
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username,
-            self.xform.id_string,
-            binary_select_multiples=True)
+            self.user.username, self.xform.id_string, binary_select_multiples=True
+        )
         # pylint: disable=protected-access
-        result = csv_df_builder._split_select_multiples(
-            record, select_multiples)
+        result = csv_df_builder._split_select_multiples(record, select_multiples)
         expected_result = {
-            u'web_browsers/ie': 1,
-            u'web_browsers/safari': 1,
-            u'web_browsers/firefox': 0,
-            u'web_browsers/chrome': 0
+            "web_browsers/ie": 1,
+            "web_browsers/safari": 1,
+            "web_browsers/firefox": 0,
+            "web_browsers/chrome": 0,
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in list(result)
-                       if key in list(expected_result)])
+        result = dict(
+            [(key, result[key]) for key in list(result) if key in list(expected_result)]
+        )
         self.assertEqual(expected_result, result)
 
     def test_split_select_multiples_values(self):
@@ -235,25 +254,23 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         self._publish_nested_repeats_form()
         self._submit_fixture_instance("nested_repeats", "01")
-        csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
-        # pylint: disable=protected-access
-        cursor = [k for k in csv_df_builder._query_data()]
+        cursor = self.xform.instances.all().values_list("json", flat=True)
         record = cursor[0]
-        select_multiples = \
-            CSVDataFrameBuilder._collect_select_multiples(self.xform)
+        select_multiples = CSVDataFrameBuilder._collect_select_multiples(self.xform)
         result = CSVDataFrameBuilder._split_select_multiples(
-            record, select_multiples, value_select_multiples=True)
+            record, select_multiples, value_select_multiples=True
+        )
         expected_result = {
-            u'web_browsers/ie': u'ie',
-            u'web_browsers/safari': u'safari',
-            u'web_browsers/firefox': None,
-            u'web_browsers/chrome': None
+            "web_browsers/ie": "ie",
+            "web_browsers/safari": "safari",
+            "web_browsers/firefox": None,
+            "web_browsers/chrome": None,
         }
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
-        result = dict([(key, result[key]) for key in list(result)
-                       if key in list(expected_result)])
+        result = dict(
+            [(key, result[key]) for key in list(result) if key in list(expected_result)]
+        )
         self.assertEqual(expected_result, result)
 
     # pylint: disable=invalid-name
@@ -263,44 +280,43 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         self.maxDiff = None
         record = {
-            'name': 'Tom',
-            'age': 23,
-            'browser_use': [{
-                'browser_use/year': '2010',
-                'browser_use/browsers': 'firefox safari'
-            }, {
-                'browser_use/year': '2011',
-                'browser_use/browsers': 'firefox chrome'
-            }]
+            "name": "Tom",
+            "age": 23,
+            "browser_use": [
+                {"browser_use/year": "2010", "browser_use/browsers": "firefox safari"},
+                {"browser_use/year": "2011", "browser_use/browsers": "firefox chrome"},
+            ],
         }  # yapf: disable
         expected_result = {
-            'name': 'Tom',
-            'age': 23,
-            'browser_use': [{
-                'browser_use/year': '2010',
-                'browser_use/browsers/firefox': True,
-                'browser_use/browsers/safari': True,
-                'browser_use/browsers/ie': False,
-                'browser_use/browsers/chrome': False
-            }, {
-                'browser_use/year': '2011',
-                'browser_use/browsers/firefox': True,
-                'browser_use/browsers/safari': False,
-                'browser_use/browsers/ie': False,
-                'browser_use/browsers/chrome': True
-            }]
+            "name": "Tom",
+            "age": 23,
+            "browser_use": [
+                {
+                    "browser_use/year": "2010",
+                    "browser_use/browsers/firefox": True,
+                    "browser_use/browsers/safari": True,
+                    "browser_use/browsers/ie": False,
+                    "browser_use/browsers/chrome": False,
+                },
+                {
+                    "browser_use/year": "2011",
+                    "browser_use/browsers/firefox": True,
+                    "browser_use/browsers/safari": False,
+                    "browser_use/browsers/ie": False,
+                    "browser_use/browsers/chrome": True,
+                },
+            ],
         }  # yapf: disable
         select_multiples = {
-            'browser_use/browsers': [
-                ('browser_use/browsers/firefox', 'firefox', 'Firefox'),
-                ('browser_use/browsers/safari', 'safari', 'Safari'),
-                ('browser_use/browsers/ie', 'ie', 'Internet Explorer'),
-                ('browser_use/browsers/chrome', 'chrome', 'Google Chrome')
+            "browser_use/browsers": [
+                ("browser_use/browsers/firefox", "firefox", "Firefox"),
+                ("browser_use/browsers/safari", "safari", "Safari"),
+                ("browser_use/browsers/ie", "ie", "Internet Explorer"),
+                ("browser_use/browsers/chrome", "chrome", "Google Chrome"),
             ]
         }
         # pylint: disable=protected-access
-        result = CSVDataFrameBuilder._split_select_multiples(
-            record, select_multiples)
+        result = CSVDataFrameBuilder._split_select_multiples(record, select_multiples)
         self.assertEqual(expected_result, result)
 
     def test_split_gps_fields(self):
@@ -308,14 +324,14 @@ class TestCSVDataFrameBuilder(TestBase):
         Test GPS fields data are split into latitude, longitude, altitude, and
         precision segments.
         """
-        record = {'gps': '5 6 7 8'}
-        gps_fields = ['gps']
+        record = {"gps": "5 6 7 8"}
+        gps_fields = ["gps"]
         expected_result = {
-            'gps': '5 6 7 8',
-            '_gps_latitude': '5',
-            '_gps_longitude': '6',
-            '_gps_altitude': '7',
-            '_gps_precision': '8',
+            "gps": "5 6 7 8",
+            "_gps_latitude": "5",
+            "_gps_longitude": "6",
+            "_gps_altitude": "7",
+            "_gps_precision": "8",
         }
         # pylint: disable=protected-access
         AbstractDataFrameBuilder._split_gps_fields(record, gps_fields)
@@ -327,27 +343,26 @@ class TestCSVDataFrameBuilder(TestBase):
         Test GPS fields data is split within repeats.
         """
         record = {
-            'a_repeat': [{
-                'a_repeat/gps': '1 2 3 4'
-            }, {
-                'a_repeat/gps': '5 6 7 8'
-            }]
+            "a_repeat": [{"a_repeat/gps": "1 2 3 4"}, {"a_repeat/gps": "5 6 7 8"}]
         }
-        gps_fields = ['a_repeat/gps']
+        gps_fields = ["a_repeat/gps"]
         expected_result = {
-            'a_repeat': [{
-                'a_repeat/gps': '1 2 3 4',
-                'a_repeat/_gps_latitude': '1',
-                'a_repeat/_gps_longitude': '2',
-                'a_repeat/_gps_altitude': '3',
-                'a_repeat/_gps_precision': '4',
-            }, {
-                'a_repeat/gps': '5 6 7 8',
-                'a_repeat/_gps_latitude': '5',
-                'a_repeat/_gps_longitude': '6',
-                'a_repeat/_gps_altitude': '7',
-                'a_repeat/_gps_precision': '8',
-            }]
+            "a_repeat": [
+                {
+                    "a_repeat/gps": "1 2 3 4",
+                    "a_repeat/_gps_latitude": "1",
+                    "a_repeat/_gps_longitude": "2",
+                    "a_repeat/_gps_altitude": "3",
+                    "a_repeat/_gps_precision": "4",
+                },
+                {
+                    "a_repeat/gps": "5 6 7 8",
+                    "a_repeat/_gps_latitude": "5",
+                    "a_repeat/_gps_longitude": "6",
+                    "a_repeat/_gps_altitude": "7",
+                    "a_repeat/_gps_precision": "8",
+                },
+            ]
         }
         # pylint: disable=protected-access
         AbstractDataFrameBuilder._split_gps_fields(record, gps_fields)
@@ -386,24 +401,22 @@ class TestCSVDataFrameBuilder(TestBase):
         # publish form so we have a dd to pass to xform inst. parser
         self._publish_xls_fixture_set_xform(fixture)
         submission_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "fixtures", fixture,
-            fixture + ".xml")
+            os.path.dirname(os.path.abspath(__file__)),
+            "fixtures",
+            fixture,
+            fixture + ".xml",
+        )
         # get submission xml str
         with open(submission_path, "r") as f:
             xml_str = f.read()
         xform_instance_dict = xform_instance_to_dict(xml_str, self.xform)
         expected_dict = {
-            u'test_item_name_matches_repeat': {
-                u'formhub': {
-                    u'uuid': u'c911d71ce1ac48478e5f8bac99addc4e'
-                },
-                u'gps': [{
-                    u'info': u'Yo',
-                    u'gps': u'-1.2625149 36.7924478 0.0 30.0'
-                }, {
-                    u'info': u'What',
-                    u'gps': u'-1.2625072 36.7924328 0.0 30.0'
-                }]
+            "test_item_name_matches_repeat": {
+                "formhub": {"uuid": "c911d71ce1ac48478e5f8bac99addc4e"},
+                "gps": [
+                    {"info": "Yo", "gps": "-1.2625149 36.7924478 0.0 30.0"},
+                    {"info": "What", "gps": "-1.2625072 36.7924328 0.0 30.0"},
+                ],
             }
         }
         self.assertEqual(xform_instance_dict, expected_dict)
@@ -424,10 +437,10 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         xpath = "parent/child/grandhild"
         prefix = get_prefix_from_xpath(xpath)
-        self.assertEqual(prefix, 'parent/child/')
+        self.assertEqual(prefix, "parent/child/")
         xpath = "parent/child"
         prefix = get_prefix_from_xpath(xpath)
-        self.assertEqual(prefix, 'parent/')
+        self.assertEqual(prefix, "parent/")
         xpath = "parent"
         prefix = get_prefix_from_xpath(xpath)
         self.assertTrue(prefix is None)
@@ -444,13 +457,15 @@ class TestCSVDataFrameBuilder(TestBase):
         for _ in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
@@ -478,17 +493,19 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_images=False,
-            win_excel_utf8=True)
+            win_excel_utf8=True,
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
-        self.assertEqual(b'\xef\xbb\xbfname', header[0].encode('utf-8'))
+        self.assertEqual(b"\xef\xbb\xbfname", header[0].encode("utf-8"))
         # close and delete file
         csv_file.close()
         os.unlink(temp_file.name)
@@ -503,46 +520,51 @@ class TestCSVDataFrameBuilder(TestBase):
         data_0 = self._csv_data_for_dataframe()[0]
         # remove dynamic fields
         ignore_list = [
-            '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id', '_date_modified'
+            "_uuid",
+            "meta/instanceID",
+            "formhub/uuid",
+            "_submission_time",
+            "_id",
+            "_bamboo_dataset_id",
+            "_date_modified",
         ]
         for item in ignore_list:
             data_0.pop(item)
         expected_data_0 = {
-            u'_xform_id_string': u'groups_in_repeats',
-            u'_xform_id': self.xform.pk,
-            u'_status': u'submitted_via_web',
-            u'_tags': u'',
-            u'_notes': u'',
-            u'_version': self.xform.version,
-            u"_submitted_by": u'bob',
-            u'name': u'Abe',
-            u'age': 88,
-            u'has_children': u'1',
-            u'children[1]/childs_info/name': u'Cain',
-            u'children[2]/childs_info/name': u'Abel',
-            u'children[1]/childs_info/age': 56,
-            u'children[2]/childs_info/age': 48,
-            u'children[1]/immunization/immunization_received/polio_1': True,
-            u'children[1]/immunization/immunization_received/polio_2': False,
-            u'children[2]/immunization/immunization_received/polio_1': True,
-            u'children[2]/immunization/immunization_received/polio_2': True,
-            u'web_browsers/chrome': True,
-            u'web_browsers/firefox': False,
-            u'web_browsers/ie': False,
-            u'web_browsers/safari': False,
-            u'gps': u'-1.2626156 36.7923571 0.0 30.0',
-            u'_geolocation': [-1.2626156, 36.7923571],
-            u'_duration': '',
-            u'_edited': False,
-            u'_gps_latitude': u'-1.2626156',
-            u'_gps_longitude': u'36.7923571',
-            u'_gps_altitude': u'0.0',
-            u'_gps_precision': u'30.0',
-            u'_attachments': [],
-            u'_total_media': 0,
-            u'_media_count': 0,
-            u'_media_all_received': True
+            "_xform_id_string": "groups_in_repeats",
+            "_xform_id": self.xform.pk,
+            "_status": "submitted_via_web",
+            "_tags": "",
+            "_notes": "",
+            "_version": self.xform.version,
+            "_submitted_by": "bob",
+            "name": "Abe",
+            "age": 88,
+            "has_children": "1",
+            "children[1]/childs_info/name": "Cain",
+            "children[2]/childs_info/name": "Abel",
+            "children[1]/childs_info/age": 56,
+            "children[2]/childs_info/age": 48,
+            "children[1]/immunization/immunization_received/polio_1": True,
+            "children[1]/immunization/immunization_received/polio_2": False,
+            "children[2]/immunization/immunization_received/polio_1": True,
+            "children[2]/immunization/immunization_received/polio_2": True,
+            "web_browsers/chrome": True,
+            "web_browsers/firefox": False,
+            "web_browsers/ie": False,
+            "web_browsers/safari": False,
+            "gps": "-1.2626156 36.7923571 0.0 30.0",
+            "_geolocation": [-1.2626156, 36.7923571],
+            "_duration": "",
+            "_edited": False,
+            "_gps_latitude": "-1.2626156",
+            "_gps_longitude": "36.7923571",
+            "_gps_altitude": "0.0",
+            "_gps_precision": "30.0",
+            "_attachments": [],
+            "_total_media": 0,
+            "_media_count": 0,
+            "_media_all_received": True,
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
@@ -563,25 +585,51 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_images=False,
-            include_reviews=True)
+            include_reviews=True,
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
-            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
-            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
-            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
-            '_tags', '_notes', '_version', '_duration', '_submitted_by',
-            '_total_media', '_media_count', '_media_all_received',
-            '_review_status', '_review_comment', '_review_date'
+            "name",
+            "age",
+            "has_kids",
+            "kids_name",
+            "kids_age",
+            "kids_name",
+            "kids_age",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -604,42 +652,44 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_images=False,
-            include_reviews=True)
+            include_reviews=True,
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 1)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 10 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'gps',
-            '_gps_latitude',
-            '_gps_longitude',
-            '_gps_altitude',
-            '_gps_precision',
-            'web_browsers/firefox',
-            'web_browsers/chrome',
-            'web_browsers/ie',
-            'web_browsers/safari',
-            'instanceID',
-            '_id',
-            '_uuid',
-            '_submission_time',
-            '_date_modified',
-            '_tags',
-            '_notes',
-            '_version',
-            '_duration',
-            '_submitted_by',
-            '_total_media',
-            '_media_count',
-            '_media_all_received',
-            '_review_status',
-            '_review_comment',
-            '_review_date'
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -666,40 +716,88 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_labels=True,
-            include_reviews=True)
+            include_reviews=True,
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
-            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
-            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
-            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
-            '_tags', '_notes', '_version', '_duration', '_submitted_by',
-            '_total_media', '_media_count', '_media_all_received',
-            '_review_status', '_review_comment', '_review_date'
+            "name",
+            "age",
+            "has_kids",
+            "kids_name",
+            "kids_age",
+            "kids_name",
+            "kids_age",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_header, header)
         labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
-            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
-            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
-            '_gps_latitude', '_gps_longitude', '_gps_altitude',
-            '_gps_precision', 'web_browsers/Mozilla Firefox',
-            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
-            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
-            '_submission_time', '_date_modified', '_tags', '_notes',
-            '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_review_status',
-            '_review_comment', '_review_date'
+            "Name",
+            "age",
+            "Do you have kids?",
+            "Kids Name",
+            "Kids Age",
+            "Kids Name",
+            "Kids Age",
+            "5. Record your GPS coordinates.",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/Mozilla Firefox",
+            "web_browsers/Google Chrome",
+            "web_browsers/Internet Explorer",
+            "web_browsers/Safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -727,27 +825,51 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_labels_only=True,
-            include_reviews=True)
+            include_reviews=True,
+        )
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         labels = next(csv_reader)
         self.assertEqual(len(labels), 17 + len(csv_df_builder.extra_columns))
         expected_labels = [
-            'Name', 'age', 'Do you have kids?', 'Kids Name', 'Kids Age',
-            'Kids Name', 'Kids Age', '5. Record your GPS coordinates.',
-            '_gps_latitude', '_gps_longitude', '_gps_altitude',
-            '_gps_precision', 'web_browsers/Mozilla Firefox',
-            'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
-            'web_browsers/Safari', 'instanceID', '_id', '_uuid',
-            '_submission_time', '_date_modified', '_tags', '_notes',
-            '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received', '_review_status',
-            '_review_comment', '_review_date'
+            "Name",
+            "age",
+            "Do you have kids?",
+            "Kids Name",
+            "Kids Age",
+            "Kids Name",
+            "Kids Age",
+            "5. Record your GPS coordinates.",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/Mozilla Firefox",
+            "web_browsers/Google Chrome",
+            "web_browsers/Internet Explorer",
+            "web_browsers/Safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -759,8 +881,7 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file.close()
         os.unlink(temp_file.name)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_no_split_select_multiples(self, mock_query_data):
+    def test_no_split_select_multiples(self):
         """
         Test select multiples are not split within repeats.
         """
@@ -781,39 +902,45 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | browsers  | ie      | Internet Explorer |
         |         | browsers  | safari  | Safari            |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Tom',
-            'age': 23,
-            'browser_use': [{
-                'browser_use/year': '2010',
-                'browser_use/browsers': 'firefox safari'
-            }, {
-                'browser_use/year': '2011',
-                'browser_use/browsers': 'firefox chrome'
-            }]
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [
+            {
+                "name": "Tom",
+                "age": 23,
+                "browser_use": [
+                    {
+                        "browser_use/year": "2010",
+                        "browser_use/browsers": "firefox safari",
+                    },
+                    {
+                        "browser_use/year": "2011",
+                        "browser_use/browsers": "firefox chrome",
+                    },
+                ],
+            }
+        ]  # yapf: disable
+
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            include_images=False,
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Tom',
-            'age': 23,
-            'browser_use[1]/year': '2010',
-            'browser_use[1]/browsers': 'firefox safari',
-            'browser_use[2]/year': '2011',
-            'browser_use[2]/browsers': 'firefox chrome'
-        }]
+        expected_result = [
+            {
+                "name": "Tom",
+                "age": 23,
+                "browser_use[1]/year": "2010",
+                "browser_use[1]/browsers": "firefox safari",
+                "browser_use[2]/year": "2011",
+                "browser_use[2]/browsers": "firefox chrome",
+            }
+        ]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @override_settings(EXTRA_COLUMNS=['_xform_id'])
+    @override_settings(EXTRA_COLUMNS=["_xform_id"])
     def test_csv_export_extra_columns(self):
         """
         Test CSV export EXTRA_COLUMNS
@@ -830,22 +957,49 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_labels=True,
-            include_reviews=True)
+            include_reviews=True,
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
         expected_header = [
-            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
-            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
-            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
-            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
-            'instanceID', '_id', '_uuid', '_submission_time', '_date_modified',
-            '_tags', '_notes', '_version', '_duration', '_submitted_by',
-            '_total_media', '_media_count', '_media_all_received', '_xform_id',
-            '_review_status', '_review_comment', '_review_date'
+            "name",
+            "age",
+            "has_kids",
+            "kids_name",
+            "kids_age",
+            "kids_name",
+            "kids_age",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+            "_xform_id",
+            "_review_status",
+            "_review_comment",
+            "_review_date",
         ]
         self.assertEqual(expected_header, header)
         # close and delete file
@@ -857,10 +1011,12 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.id_string,
             remove_group_name=True,
             include_labels=True,
-            include_reviews=True)
+            include_reviews=True,
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
@@ -878,59 +1034,66 @@ class TestCSVDataFrameBuilder(TestBase):
         self.xform.get_keys()
 
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False,
-            index_tags=('_', '_'))
-        cursor = csv_df_builder._query_data()
+            self.user.username,
+            self.xform.id_string,
+            include_images=False,
+            index_tags=("_", "_"),
+        )
+        cursor = self.xform.instances.all().values_list("json", flat=True)
         result = [d for d in csv_df_builder._format_for_dataframe(cursor)][0]
         # remove dynamic fields
         ignore_list = [
-            '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id', '_date_modified'
+            "_uuid",
+            "meta/instanceID",
+            "formhub/uuid",
+            "_submission_time",
+            "_id",
+            "_bamboo_dataset_id",
+            "_date_modified",
         ]
         for item in ignore_list:
             result.pop(item)
         expected_result = {
-            u'_xform_id_string': u'groups_in_repeats',
-            u'_xform_id': self.xform.pk,
-            u'_status': u'submitted_via_web',
-            u'_tags': u'',
-            u'_notes': u'',
-            u'_version': self.xform.version,
-            u"_submitted_by": u'bob',
-            u'name': u'Abe',
-            u'age': 88,
-            u'has_children': u'1',
-            u'children_1_/childs_info/name': u'Cain',
-            u'children_2_/childs_info/name': u'Abel',
-            u'children_1_/childs_info/age': 56,
-            u'children_2_/childs_info/age': 48,
-            u'children_1_/immunization/immunization_received/polio_1': True,
-            u'children_1_/immunization/immunization_received/polio_2': False,
-            u'children_2_/immunization/immunization_received/polio_1': True,
-            u'children_2_/immunization/immunization_received/polio_2': True,
-            u'web_browsers/chrome': True,
-            u'web_browsers/firefox': False,
-            u'web_browsers/ie': False,
-            u'web_browsers/safari': False,
-            u'gps': u'-1.2626156 36.7923571 0.0 30.0',
-            u'_geolocation': [-1.2626156, 36.7923571],
-            u'_duration': '',
-            u'_edited': False,
-            u'_gps_latitude': u'-1.2626156',
-            u'_gps_longitude': u'36.7923571',
-            u'_gps_altitude': u'0.0',
-            u'_gps_precision': u'30.0',
-            u'_attachments': [],
-            u'_total_media': 0,
-            u'_media_count': 0,
-            u'_media_all_received': True
+            "_xform_id_string": "groups_in_repeats",
+            "_xform_id": self.xform.pk,
+            "_status": "submitted_via_web",
+            "_tags": "",
+            "_notes": "",
+            "_version": self.xform.version,
+            "_submitted_by": "bob",
+            "name": "Abe",
+            "age": 88,
+            "has_children": "1",
+            "children_1_/childs_info/name": "Cain",
+            "children_2_/childs_info/name": "Abel",
+            "children_1_/childs_info/age": 56,
+            "children_2_/childs_info/age": 48,
+            "children_1_/immunization/immunization_received/polio_1": True,
+            "children_1_/immunization/immunization_received/polio_2": False,
+            "children_2_/immunization/immunization_received/polio_1": True,
+            "children_2_/immunization/immunization_received/polio_2": True,
+            "web_browsers/chrome": True,
+            "web_browsers/firefox": False,
+            "web_browsers/ie": False,
+            "web_browsers/safari": False,
+            "gps": "-1.2626156 36.7923571 0.0 30.0",
+            "_geolocation": [-1.2626156, 36.7923571],
+            "_duration": "",
+            "_edited": False,
+            "_gps_latitude": "-1.2626156",
+            "_gps_longitude": "36.7923571",
+            "_gps_altitude": "0.0",
+            "_gps_precision": "30.0",
+            "_attachments": [],
+            "_total_media": 0,
+            "_media_count": 0,
+            "_media_all_received": True,
         }
 
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_multi_language(self, mock_query_data):
+    def test_show_choice_labels_multi_language(self):
         """
         Test show_choice_labels=true for select one questions - multi language
         form.
@@ -947,31 +1110,22 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits            | 2     | Orange        | Orange       |
         |         | fruits            | 3     | Apple         | Pomme        |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1"}]  # yapf: disable
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True, language='French')
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            include_images=False,
+            show_choice_labels=True,
+            language="French",
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': 'Mangue'
-        }]
+        expected_result = [{"name": "Maria", "age": 25, "fruit": "Mangue"}]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_multi_language_1(self, mock_query_data):
+    def test_show_choice_labels_multi_language_1(self):
         """
         Test show_choice_labels=true for select one questions - multi language
         form selected language.
@@ -988,31 +1142,23 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits            | 2     | Orange        | Orange       |
         |         | fruits            | 3     | Apple         | Pomme        |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1"}]  # yapf: disable
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True, language='English')
+            include_images=False,
+            show_choice_labels=True,
+            language="English",
+        )
         # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': 'Mango'
-        }]
+        expected_result = [{"name": "Maria", "age": 25, "fruit": "Mango"}]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels(self, mock_query_data):
+    def test_show_choice_labels(self):
         """
         Test show_choice_labels=true for select one questions.
         """
@@ -1028,31 +1174,21 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits            | 2     | Orange |
         |         | fruits            | 3     | Apple  |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1"}]  # yapf: disable
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            include_images=False,
+            show_choice_labels=True,
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': 'Mango'
-        }]
+        expected_result = [{"name": "Maria", "age": 25, "fruit": "Mango"}]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple(self, mock_query_data):
+    def test_show_choice_labels_select_multiple(self):
         """
         Test show_choice_labels=true for select multiple questions.
         """
@@ -1068,32 +1204,21 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange |
         |         | fruits                 | 3     | Apple  |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            include_images=False,
+            show_choice_labels=True,
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': 'Mango Orange'
-        }]
+        expected_result = [{"name": "Maria", "age": 25, "fruit": "Mango Orange"}]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple_language(self,
-                                                         mock_query_data):
+    def test_show_choice_labels_select_multiple_language(self):
         """
         Test show_choice_labels=true for select multiple questions - multi
         language form.
@@ -1110,31 +1235,22 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange     | Orange   |
         |         | fruits                 | 3     | Apple      | Pomme    |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=False,
-            include_images=False, show_choice_labels=True, language='Fr')
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            include_images=False,
+            show_choice_labels=True,
+            language="Fr",
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': 'Mangue Orange'
-        }]
+        expected_result = [{"name": "Maria", "age": 25, "fruit": "Mangue Orange"}]
         self.maxDiff = None
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple_1(self, mock_query_data):
+    def test_show_choice_labels_select_multiple_1(self):
         """
         Test show_choice_labels=true, split_select_multiples=true and
         value_select_multiples=true for select multiple questions.
@@ -1151,35 +1267,30 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange |
         |         | fruits                 | 3     | Apple  |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
-
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         # Split Select multiples, value_select_multiples is True
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
-            split_select_multiples=True, value_select_multiples=True,
-            include_images=False, show_choice_labels=True)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            split_select_multiples=True,
+            value_select_multiples=True,
+            include_images=False,
+            show_choice_labels=True,
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit/Mango': 'Mango',
-            'fruit/Orange': 'Orange',
-            'fruit/Apple': None
-        }]
+        expected_result = [
+            {
+                "name": "Maria",
+                "age": 25,
+                "fruit/Mango": "Mango",
+                "fruit/Orange": "Orange",
+                "fruit/Apple": None,
+            }
+        ]
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple_1_language(self,
-                                                           mock_query_data):
+    def test_show_choice_labels_select_multiple_1_language(self):
         """
         Test show_choice_labels=true, split_select_multiples=true and
         value_select_multiples=true for select multiple questions - multi
@@ -1197,34 +1308,31 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange     | Orange   |
         |         | fruits                 | 3     | Apple      | Pomme    |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
-
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         # Split Select multiples, value_select_multiples is True
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
-            split_select_multiples=True, value_select_multiples=True,
-            include_images=False, show_choice_labels=True, language='Fr')
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder._query_data()]
+            split_select_multiples=True,
+            value_select_multiples=True,
+            include_images=False,
+            show_choice_labels=True,
+            language="Fr",
+        )
         result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit/Mangue': 'Mangue',
-            'fruit/Orange': 'Orange',
-            'fruit/Pomme': None
-        }]
+        expected_result = [
+            {
+                "name": "Maria",
+                "age": 25,
+                "fruit/Mangue": "Mangue",
+                "fruit/Orange": "Orange",
+                "fruit/Pomme": None,
+            }
+        ]
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple_2(self, mock_query_data):
+    def test_show_choice_labels_select_multiple_2(self):
         """
         Test show_choice_labels=true, split_select_multiples=true,
         binary_select_multiples=true for select multiple questions.
@@ -1241,30 +1349,27 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange |
         |         | fruits                 | 3     | Apple  |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
-
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         # Split Select multiples, binary_select_multiples is True
         csv_df_builder_1 = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
-            split_select_multiples=True, binary_select_multiples=True,
-            include_images=False, show_choice_labels=True)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder_1._query_data()]
+            split_select_multiples=True,
+            binary_select_multiples=True,
+            include_images=False,
+            show_choice_labels=True,
+        )
         result = [k for k in csv_df_builder_1._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit/Mango': 1,
-            'fruit/Orange': 1,
-            'fruit/Apple': 0
-        }]
+        expected_result = [
+            {
+                "name": "Maria",
+                "age": 25,
+                "fruit/Mango": 1,
+                "fruit/Orange": 1,
+                "fruit/Apple": 0,
+            }
+        ]
         self.assertEqual(expected_result, result)
 
     def test_export_data_for_xforms_without_submissions(self):
@@ -1280,21 +1385,42 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(self.xform.instances.count(), 0)
         # Generate csv export for form
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
 
         expected_header = [
-            'info/name', 'info/age', 'kids/has_kids', 'gps', '_gps_latitude',
-            '_gps_longitude', '_gps_altitude', '_gps_precision',
-            'web_browsers/firefox', 'web_browsers/chrome', 'web_browsers/ie',
-            'web_browsers/safari', 'meta/instanceID', '_id', '_uuid',
-            '_submission_time', '_date_modified', '_tags', '_notes',
-            '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received']
+            "info/name",
+            "info/age",
+            "kids/has_kids",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
         # Test form headers are present on exported csv file.
         self.assertEqual(header, expected_header)
 
@@ -1313,21 +1439,42 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(self.xform.instances.count(), 0)
         # Generate csv export for form
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
 
         expected_header = [
-            'info/name', 'info/age', 'kids/has_kids', 'gps', '_gps_latitude',
-            '_gps_longitude', '_gps_altitude', '_gps_precision',
-            'web_browsers/firefox', 'web_browsers/chrome', 'web_browsers/ie',
-            'web_browsers/safari', 'meta/instanceID', '_id', '_uuid',
-            '_submission_time', '_date_modified', '_tags', '_notes',
-            '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received']
+            "info/name",
+            "info/age",
+            "kids/has_kids",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
         # Test form headers are present on exported csv file.
         self.assertEqual(header, expected_header)
 
@@ -1336,23 +1483,45 @@ class TestCSVDataFrameBuilder(TestBase):
             self._submit_fixture_instance("new_repeats", "01")
         self._submit_fixture_instance("new_repeats", "02")
         # pylint: disable=protected-access
-        record_count = csv_df_builder._query_data(count=True)
+        record_count = self.xform.instances.count()
         self.assertEqual(record_count, 5)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        cursor = self.xform.instances.all().values_list("json", flat=True)
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         newer_header = next(csv_reader)
         expected_headers = [
-            'info/name', 'info/age', 'kids/has_kids',
-            'kids/kids_details[1]/kids_name', 'kids/kids_details[1]/kids_age',
-            'kids/kids_details[2]/kids_name', 'kids/kids_details[2]/kids_age',
-            'gps', '_gps_latitude', '_gps_longitude', '_gps_altitude',
-            '_gps_precision', 'web_browsers/firefox', 'web_browsers/chrome',
-            'web_browsers/ie', 'web_browsers/safari', 'meta/instanceID', '_id',
-            '_uuid', '_submission_time', '_date_modified', '_tags', '_notes',
-            '_version', '_duration', '_submitted_by', '_total_media',
-            '_media_count', '_media_all_received']
+            "info/name",
+            "info/age",
+            "kids/has_kids",
+            "kids/kids_details[1]/kids_name",
+            "kids/kids_details[1]/kids_age",
+            "kids/kids_details[2]/kids_name",
+            "kids/kids_details[2]/kids_age",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "web_browsers/firefox",
+            "web_browsers/chrome",
+            "web_browsers/ie",
+            "web_browsers/safari",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
 
         # Test export headers are recreated with repeat data.
         self.assertEqual(newer_header, expected_headers)
@@ -1367,29 +1536,7 @@ class TestCSVDataFrameBuilder(TestBase):
         # close and delete file
         csv_file.close()
 
-    def test_export_raises_NoRecordsFound_for_form_without_instances(self):
-        """
-        Test exporting records for forms without submissions raises
-        NorecordsFound exception.
-        """
-        fixture = "new_repeats"
-        # publish form so we have a dd
-        self._publish_xls_fixture_set_xform(fixture)
-
-        # Confirm form has not submissions so far
-        self.assertEqual(self.xform.instances.count(), 0)
-        # Generate csv export for form
-        csv_df_builder_1 = CSVDataFrameBuilder(
-            self.user.username,
-            self.xform.id_string,
-            split_select_multiples=True, binary_select_multiples=False,
-            include_images=False, show_choice_labels=True)
-        # Fetch form data throws NoRecordsFound exeption
-        with self.assertRaises(NoRecordsFoundError):
-            csv_df_builder_1._query_data()
-
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_show_choice_labels_select_multiple_3(self, mock_query_data):
+    def test_show_choice_labels_select_multiple_3(self):
         """
         Test show_choice_labels=true, split_select_multiples=true,
         binary_select_multiples=false for select multiple questions.
@@ -1406,34 +1553,30 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 2     | Orange |
         |         | fruits                 | 3     | Apple  |
         """
-        xform = self._publish_markdown(md_xform, self.user, id_string='b')
-        data = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit': '1 2'
-        }]  # yapf: disable
-        mock_query_data.return_value = data
-
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]  # yapf: disable
         # Split Select multiples, binary_select_multiples is True
         csv_df_builder_1 = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
-            split_select_multiples=True, binary_select_multiples=False,
-            include_images=False, show_choice_labels=True)
-        # pylint: disable=protected-access
-        cursor = [row for row in csv_df_builder_1._query_data()]
+            split_select_multiples=True,
+            binary_select_multiples=False,
+            include_images=False,
+            show_choice_labels=True,
+        )
         result = [k for k in csv_df_builder_1._format_for_dataframe(cursor)]
-        expected_result = [{
-            'name': 'Maria',
-            'age': 25,
-            'fruit/Mango': True,
-            'fruit/Orange': True,
-            'fruit/Apple': 0
-        }]
+        expected_result = [
+            {
+                "name": "Maria",
+                "age": 25,
+                "fruit/Mango": True,
+                "fruit/Orange": True,
+                "fruit/Apple": 0,
+            }
+        ]
         self.assertEqual(expected_result, result)
 
-    @patch.object(CSVDataFrameBuilder, '_query_data')
-    def test_multiple_repeats_column_order(self, mock_query_data):
+    def test_multiple_repeats_column_order(self):
         """Test the order of the columns in a multiple repeats form export"""
         md_xform = """
         | survey  |
@@ -1460,79 +1603,102 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | food                 | Salad         | Salad       |              |                            |
         |         | food                 | Sandwich      | Sandwich    |              |                            |
         """  # noqa: E501
-        self.xform = self._publish_markdown(md_xform, self.user, id_string='b')
+        self.xform = self._publish_markdown(md_xform, self.user, id_string="b")
 
-        data = [{
-            'food': 'Orange',
-            'no_food': 2,
-            'food_repeat': [{
-                'food_repeat/food_group': 'Banana'
-            }, {
-                'food_repeat/food_group': 'Lasgna'
-            }]
-        }, {
-            'food': 'Apple',
-            'no_food_2': 2,
-            'food_repeat_2': [{
-                'food_repeat_2/food_group_2': 'Cake'
-            }, {
-                'food_repeat_2/food_group_2': 'Salad'
-            }]
-        }]
-
-        mock_query_data.return_value = data
-
+        cursor = [
+            {
+                "food": "Orange",
+                "no_food": 2,
+                "food_repeat": [
+                    {"food_repeat/food_group": "Banana"},
+                    {"food_repeat/food_group": "Lasgna"},
+                ],
+            },
+            {
+                "food": "Apple",
+                "no_food_2": 2,
+                "food_repeat_2": [
+                    {"food_repeat_2/food_group_2": "Cake"},
+                    {"food_repeat_2/food_group_2": "Salad"},
+                ],
+            },
+        ]
         expected_header = [
-            'food/Apple', 'food/Orange', 'food/Banana', 'food/Pizza',
-            'food/Lasgna', 'food/Cake', 'food/Chocolate', 'food/Salad',
-            'food/Sandwich', 'no_food', 'food_repeat_count',
-            'food_repeat[1]/food_group/Apple',
-            'food_repeat[1]/food_group/Orange',
-            'food_repeat[1]/food_group/Banana',
-            'food_repeat[1]/food_group/Pizza',
-            'food_repeat[1]/food_group/Lasgna',
-            'food_repeat[1]/food_group/Cake',
-            'food_repeat[1]/food_group/Chocolate',
-            'food_repeat[1]/food_group/Salad',
-            'food_repeat[1]/food_group/Sandwich',
-            'food_repeat[2]/food_group/Apple',
-            'food_repeat[2]/food_group/Orange',
-            'food_repeat[2]/food_group/Banana',
-            'food_repeat[2]/food_group/Pizza',
-            'food_repeat[2]/food_group/Lasgna',
-            'food_repeat[2]/food_group/Cake',
-            'food_repeat[2]/food_group/Chocolate',
-            'food_repeat[2]/food_group/Salad',
-            'food_repeat[2]/food_group/Sandwich', 'no_food_2',
-            'food_repeat_2_count', 'food_repeat_2[1]/food_group_2/Apple',
-            'food_repeat_2[1]/food_group_2/Orange',
-            'food_repeat_2[1]/food_group_2/Banana',
-            'food_repeat_2[1]/food_group_2/Pizza',
-            'food_repeat_2[1]/food_group_2/Lasgna',
-            'food_repeat_2[1]/food_group_2/Cake',
-            'food_repeat_2[1]/food_group_2/Chocolate',
-            'food_repeat_2[1]/food_group_2/Salad',
-            'food_repeat_2[1]/food_group_2/Sandwich',
-            'food_repeat_2[2]/food_group_2/Apple',
-            'food_repeat_2[2]/food_group_2/Orange',
-            'food_repeat_2[2]/food_group_2/Banana',
-            'food_repeat_2[2]/food_group_2/Pizza',
-            'food_repeat_2[2]/food_group_2/Lasgna',
-            'food_repeat_2[2]/food_group_2/Cake',
-            'food_repeat_2[2]/food_group_2/Chocolate',
-            'food_repeat_2[2]/food_group_2/Salad',
-            'food_repeat_2[2]/food_group_2/Sandwich', 'gps',
-            '_gps_latitude', '_gps_longitude', '_gps_altitude',
-            '_gps_precision', 'meta/instanceID', '_id', '_uuid',
-            '_submission_time', '_date_modified', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by',
-            '_total_media', '_media_count', '_media_all_received']
+            "food/Apple",
+            "food/Orange",
+            "food/Banana",
+            "food/Pizza",
+            "food/Lasgna",
+            "food/Cake",
+            "food/Chocolate",
+            "food/Salad",
+            "food/Sandwich",
+            "no_food",
+            "food_repeat_count",
+            "food_repeat[1]/food_group/Apple",
+            "food_repeat[1]/food_group/Orange",
+            "food_repeat[1]/food_group/Banana",
+            "food_repeat[1]/food_group/Pizza",
+            "food_repeat[1]/food_group/Lasgna",
+            "food_repeat[1]/food_group/Cake",
+            "food_repeat[1]/food_group/Chocolate",
+            "food_repeat[1]/food_group/Salad",
+            "food_repeat[1]/food_group/Sandwich",
+            "food_repeat[2]/food_group/Apple",
+            "food_repeat[2]/food_group/Orange",
+            "food_repeat[2]/food_group/Banana",
+            "food_repeat[2]/food_group/Pizza",
+            "food_repeat[2]/food_group/Lasgna",
+            "food_repeat[2]/food_group/Cake",
+            "food_repeat[2]/food_group/Chocolate",
+            "food_repeat[2]/food_group/Salad",
+            "food_repeat[2]/food_group/Sandwich",
+            "no_food_2",
+            "food_repeat_2_count",
+            "food_repeat_2[1]/food_group_2/Apple",
+            "food_repeat_2[1]/food_group_2/Orange",
+            "food_repeat_2[1]/food_group_2/Banana",
+            "food_repeat_2[1]/food_group_2/Pizza",
+            "food_repeat_2[1]/food_group_2/Lasgna",
+            "food_repeat_2[1]/food_group_2/Cake",
+            "food_repeat_2[1]/food_group_2/Chocolate",
+            "food_repeat_2[1]/food_group_2/Salad",
+            "food_repeat_2[1]/food_group_2/Sandwich",
+            "food_repeat_2[2]/food_group_2/Apple",
+            "food_repeat_2[2]/food_group_2/Orange",
+            "food_repeat_2[2]/food_group_2/Banana",
+            "food_repeat_2[2]/food_group_2/Pizza",
+            "food_repeat_2[2]/food_group_2/Lasgna",
+            "food_repeat_2[2]/food_group_2/Cake",
+            "food_repeat_2[2]/food_group_2/Chocolate",
+            "food_repeat_2[2]/food_group_2/Salad",
+            "food_repeat_2[2]/food_group_2/Sandwich",
+            "gps",
+            "_gps_latitude",
+            "_gps_longitude",
+            "_gps_altitude",
+            "_gps_precision",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
 
         csv_df_builder = CSVDataFrameBuilder(
-            self.user.username, self.xform.id_string, include_images=False)
+            self.user.username, self.xform.id_string, include_images=False
+        )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name)
-        csv_file = open(temp_file.name, 'r')
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
 
@@ -1540,8 +1706,7 @@ class TestCSVDataFrameBuilder(TestBase):
 
         csv_file.close()
 
-    @patch.object(CSVDataFrameBuilder, "_query_data")
-    def test_split_select_multiples_with_randomize(self, mock_query_data):
+    def test_split_select_multiples_with_randomize(self):
         """
         Test select multiples choices are split with the randomize option true.
         """
@@ -1563,7 +1728,7 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | browsers  | safari  | Safari            |
         """  # noqa: E501
         xform = self._publish_markdown(md_xform, self.user, id_string="b")
-        data = [
+        cursor = [
             {
                 "name": "Tom",
                 "age": 23,
@@ -1579,42 +1744,29 @@ class TestCSVDataFrameBuilder(TestBase):
                 ],
             }
         ]  # yapf: disable
-        mock_query_data.return_value = data
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             split_select_multiples=True,
             include_images=False,
         )
-        # pylint: disable=protected-access
-        cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
         select_multiples = CSVDataFrameBuilder._collect_select_multiples(xform)
-        result = CSVDataFrameBuilder._split_select_multiples(
-            record, select_multiples)
+        result = CSVDataFrameBuilder._split_select_multiples(record, select_multiples)
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
         result = dict(
-            [
-                (key, result[key])
-                for key in list(result)
-                if key in list(data[0])
-            ]
+            [(key, result[key]) for key in list(result) if key in list(cursor[0])]
         )
-        self.assertEqual(data[0], result)
+        self.assertEqual(cursor[0], result)
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, xform.id_string, binary_select_multiples=True
         )
         # pylint: disable=protected-access
-        result = csv_df_builder._split_select_multiples(
-            record, select_multiples)
+        result = csv_df_builder._split_select_multiples(record, select_multiples)
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
         result = dict(
-            [
-                (key, result[key])
-                for key in list(result)
-                if key in list(data[0])
-            ]
+            [(key, result[key]) for key in list(result) if key in list(cursor[0])]
         )
-        self.assertEqual(data[0], result)
+        self.assertEqual(cursor[0], result)
