@@ -1274,7 +1274,7 @@ class TestExportBuilder(TestBase):
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
             export_builder.to_xlsx_export(
                 temp_xls_file, xdata, options={"host": "example.com"}
-                )
+            )
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file)
             children_sheet = workbook["exp"]
@@ -2512,7 +2512,7 @@ class TestExportBuilder(TestBase):
         for item in self.data:
             outputs.append(
                 dict_to_joined_export(
-                item, index, indices, survey_name, survey, item, None
+                    item, index, indices, survey_name, survey, item, None
                 )
             )
             index += 1
@@ -3481,9 +3481,10 @@ class TestExportBuilder(TestBase):
         csv_export = NamedTemporaryFile(suffix=".csv")
         records = self.xform.instances.all()
         inst_json = records.first().json
+        csv_data = records.values_list("json", flat=True).iterator()
         export_builder.to_flat_csv_export(
             csv_export.name,
-            records,
+            csv_data,
             self.xform.user.username,
             self.xform.id_string,
             "",
