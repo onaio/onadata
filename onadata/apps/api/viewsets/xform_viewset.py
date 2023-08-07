@@ -569,12 +569,21 @@ class XFormViewSet(
         query = request.query_params.get("query")
         token = request.GET.get("token")
         meta = request.GET.get("meta")
+        sort = request.GET.get("sort")
 
         if export_type is None or export_type in ["json", "debug"]:
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request, xform, query, export_type, token, meta)
+        return custom_response_handler(
+            request,
+            xform,
+            query,
+            export_type,
+            token,
+            meta,
+            sort=sort,
+        )
 
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
