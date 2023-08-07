@@ -201,7 +201,7 @@ class TestNoteViewSet(TestBase):
 
         view = XFormViewSet.as_view({"get": "retrieve"})
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"sort": '{"_id": -1}'}, **self.extra)
         response = view(request, pk=self.xform.pk, format="csv")
         self.assertTrue(response.status_code, 200)
 
