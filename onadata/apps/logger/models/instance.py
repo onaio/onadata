@@ -697,6 +697,11 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        indexes = [
+            models.Index(fields=['date_created']),
+            models.Index(fields=['date_modified']),
+            models.Index(fields=['deleted_at']),
+        ]
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
