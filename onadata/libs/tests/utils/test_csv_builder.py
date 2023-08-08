@@ -101,7 +101,9 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False
         )
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
     def test_csv_dataframe_export_to(self):
@@ -120,7 +122,9 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -214,7 +218,9 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False
         )
         # pylint: disable=protected-access
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         record = cursor[0]
         select_multiples = CSVDataFrameBuilder._collect_select_multiples(self.xform)
         result = CSVDataFrameBuilder._split_select_multiples(record, select_multiples)
@@ -254,7 +260,9 @@ class TestCSVDataFrameBuilder(TestBase):
         """
         self._publish_nested_repeats_form()
         self._submit_fixture_instance("nested_repeats", "01")
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         record = cursor[0]
         select_multiples = CSVDataFrameBuilder._collect_select_multiples(self.xform)
         result = CSVDataFrameBuilder._split_select_multiples(
@@ -463,7 +471,12 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all()
+            .order_by("id")
+            .order_by("id")
+            .values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -499,7 +512,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -591,7 +606,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -658,7 +675,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 1)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -722,7 +741,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -831,7 +852,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -960,7 +983,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_reviews=True,
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -1014,7 +1039,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_reviews=True,
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -1039,7 +1066,9 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False,
             index_tags=("_", "_"),
         )
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         result = [d for d in csv_df_builder._format_for_dataframe(cursor)][0]
         # remove dynamic fields
         ignore_list = [
@@ -1388,7 +1417,9 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -1442,7 +1473,9 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username, self.xform.id_string, include_images=False
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
@@ -1486,7 +1519,9 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = self.xform.instances.count()
         self.assertEqual(record_count, 5)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        cursor = self.xform.instances.all().values_list("json", flat=True)
+        cursor = (
+            self.xform.instances.all().order_by("id").values_list("json", flat=True)
+        )
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
