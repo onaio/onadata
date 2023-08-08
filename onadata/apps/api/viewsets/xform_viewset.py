@@ -685,6 +685,7 @@ class XFormViewSet(
 
             else:
                 if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
+                    xls_file_name = xls_file.name
                     csv_file = submission_xls_to_csv(xls_file)
                 overwrite = request.query_params.get("overwrite")
                 overwrite = (
@@ -705,8 +706,12 @@ class XFormViewSet(
                     )
                 else:
                     csv_file.seek(0)
+                    if hasattr(csv_file, "name"):
+                        file_name = csv_file.name
+                    else:
+                        file_name = xls_file_name
                     upload_to = os.path.join(
-                        request.user.username, "csv_imports", csv_file.name
+                        request.user.username, "csv_imports", file_name
                     )
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(
