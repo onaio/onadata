@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.12.0(2023-08-07)
+-------------------
+
+- Add indexes to instance model date fields
+  `PR #2393 <https://github.com/onaio/onadata/pull/2393>`
+  [@KipSigei]
+
 v3.11.0(2023-07-28)
 -------------------
 
