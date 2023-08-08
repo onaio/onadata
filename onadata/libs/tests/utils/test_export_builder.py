@@ -2155,7 +2155,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(self.xform.instances.count(), 0)
         self._make_submission(_logger_fixture_path("gps_data.xml"))
         self.assertEqual(self.xform.instances.count(), 1)
-        records = self.xform.instances.all()
+        records = self.xform.instances.all().order_by("id")
         inst_json = records.first().json
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
             export_builder.to_xlsx_export(temp_xls_file.name, [inst_json])
@@ -3479,7 +3479,7 @@ class TestExportBuilder(TestBase):
         self._make_submission(_logger_fixture_path("gps_data.xml"))
         self.assertEqual(self.xform.instances.count(), 1)
         csv_export = NamedTemporaryFile(suffix=".csv")
-        records = self.xform.instances.all()
+        records = self.xform.instances.all().order_by("id")
         inst_json = records.first().json
         csv_data = records.values_list("json", flat=True).iterator()
         export_builder.to_flat_csv_export(
