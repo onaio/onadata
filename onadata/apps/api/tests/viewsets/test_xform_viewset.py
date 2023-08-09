@@ -4988,6 +4988,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertEqual(xforms + 1, XForm.objects.count())
 
     def test_xlsx_import(self):
+        """Ensure XLSX imports work as expected and dates are formatted correctly"""
         with HTTMock(enketo_mock):
             xls_path = os.path.join(
                 settings.PROJECT_ROOT,
