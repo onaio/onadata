@@ -40,7 +40,11 @@ from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    query_data,
+    query_count,
+    query_fields_data,
+)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
@@ -173,14 +177,12 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
         )
 
         if filter_query:
-            total_records = query_data(
+            total_records = query_count(
                 xform,
                 query=filter_query,
-                start=start,
-                end=end,
-                count=True,
-                sort=sort,
-            )[0].get("count")
+                date_created_gte=start,
+                date_created_lte=end,
+            )
         else:
             total_records = xform.num_of_submissions
 
@@ -463,11 +465,8 @@ def generate_attachments_zip_export(
             instance__deleted_at__isnull=True,
         )
     else:
-        instance_ids = query_data(
-            xform,
-            fields='["_id"]',
-            query=filter_query,
-            sort=sort,
+        instance_ids = query_fields_data(
+            xform, fields=["_id"], query=filter_query, sort=sort
         )
         attachments = Attachment.objects.filter(instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:

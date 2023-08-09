@@ -10,7 +10,6 @@ from typing import Union
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.db.models.query import QuerySet
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
@@ -26,7 +25,10 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.pagination import CountOverridablePageNumberPagination
+from onadata.libs.pagination import (
+    CountOverridablePageNumberPagination,
+    RawSQLQueryPageNumberPagination,
+)
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
@@ -41,6 +43,10 @@ from onadata.apps.viewer.models.parsed_instance import (
     get_sql_with_params,
     get_where_clause,
     query_data,
+    query_fields_data,
+    _get_sort_fields,
+    query_count,
+    ParsedInstance,
 )
 from onadata.libs import filters
 from onadata.libs.data import parse_int, strtobool
@@ -660,14 +666,21 @@ class DataViewSet(
         """
         Set the submission instances queryset.
         """
+
+        query_offset = start
+        query_limit = limit
+        xform = None
+
         try:
             enable_etag = True
+
             if not is_public_request:
                 xform = self.get_object()
                 self.data_count = xform.num_of_submissions
                 enable_etag = self.data_count < SUBMISSION_RETRIEVAL_THRESHOLD
 
             where, where_params = get_where_clause(query)
+
             if where:
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.object_list.extra(
@@ -675,29 +688,58 @@ class DataViewSet(
                 )
 
             if (start and limit or limit) and (not sort and not fields):
-                start = start if start is not None else 0
-                limit = limit if start is None or start == 0 else start + limit
+                start_index = start if start is not None else 0
+                end_index = limit if start is None or start == 0 else start + limit
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list
                 )
                 # pylint: disable=attribute-defined-outside-init
-                self.object_list = self.object_list[start:limit]
+                self.object_list = self.object_list[start_index:end_index]
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
                     query = filter_queryset_xform_meta_perms_sql(
                         self.get_object(), self.request.user, query
                     )
-                    # pylint: disable=attribute-defined-outside-init
-                    self.object_list = query_data(
-                        xform,
-                        query=query,
-                        sort=sort,
-                        start_index=start,
-                        limit=limit,
-                        fields=fields,
-                        json_only=not self.kwargs.get("format") == "xml",
+                    query_json_fields = fields or ParsedInstance._has_json_fields(
+                        _get_sort_fields(sort)
                     )
+                    pagination_keys = [
+                        self.paginator.page_query_param,
+                        self.paginator.page_size_query_param,
+                    ]
+                    query_param_keys = self.request.query_params
+                    should_paginate = any(
+                        k in query_param_keys for k in pagination_keys
+                    )
+
+                    if should_paginate:
+                        raw_paginator = RawSQLQueryPageNumberPagination()
+                        count = query_count(xform, query=query)
+                        query_offset, query_limit = raw_paginator.get_offset_limit(
+                            self.request, count
+                        )
+
+                    if query_json_fields:
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = query_fields_data(
+                            xform,
+                            query=query,
+                            sort=sort,
+                            start_index=query_offset,
+                            limit=query_limit,
+                            fields=fields,
+                        )
+                    else:
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = query_data(
+                            xform,
+                            query=query,
+                            sort=sort,
+                            start_index=query_offset,
+                            limit=query_limit,
+                            json_only=not self.kwargs.get("format") == "xml",
+                        )
                 except NoRecordsPermission:
                     # pylint: disable=attribute-defined-outside-init
                     self.object_list = []
@@ -705,24 +747,23 @@ class DataViewSet(
             # ETags are Disabled for XForms with Submissions that surpass
             # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
             if enable_etag:
-                if isinstance(self.object_list, QuerySet):
-                    setattr(
-                        self, "etag_hash", (get_etag_hash_from_query(self.object_list))
-                    )
-                else:
-                    sql, params, records = get_sql_with_params(
+                sql = params = None
+
+                if xform:
+                    sql, params = get_sql_with_params(
                         xform,
                         query=query,
                         sort=sort,
-                        start_index=start,
-                        limit=limit,
+                        start_index=query_offset,
+                        limit=query_limit,
                         fields=fields,
                     )
-                    setattr(
-                        self,
-                        "etag_hash",
-                        (get_etag_hash_from_query(records, sql, params)),
-                    )
+
+                setattr(
+                    self,
+                    "etag_hash",
+                    (get_etag_hash_from_query(sql, params)),
+                )
         except ValueError as e:
             raise ParseError(str(e)) from e
         except DataError as e:
