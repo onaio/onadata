@@ -282,7 +282,7 @@ matplotlib-inline==0.1.6
     # via ipython
 mccabe==0.6.1
     # via pylint
-mock==5.1.0
+mock==4.0.3
     # via -r requirements/dev.in
 modilabs-python-utils==0.1.5
     # via onadata
