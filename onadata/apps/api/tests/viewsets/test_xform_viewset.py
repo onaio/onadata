@@ -4987,6 +4987,38 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertEqual(response.status_code, 201, response.data)
                 self.assertEqual(xforms + 1, XForm.objects.count())
 
+    def test_xlsx_import(self):
+        """Ensure XLSX imports work as expected and dates are formatted correctly"""
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "double_image_form.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({"post": "data_import"})
+            xls_import = fixtures_path("double_image_field_form_data.xlsx")
+            post_data = {"xls_file": xls_import}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+
+            # check that date columns are formatted correctly
+            self.assertEqual(
+                self.xform.instances.values("json___submission_time")[::1],
+                [
+                    {"json___submission_time": "2023-02-03T10:27:41"},
+                    {"json___submission_time": "2023-02-03T10:27:42"},
+                    {"json___submission_time": "2023-03-13T08:42:57"},
+                ],
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get("Cache-Control"), None)
+            self.assertEqual(response.data.get("additions"), 3)
+            self.assertEqual(response.data.get("updates"), 0)
+
     def test_xls_import(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(

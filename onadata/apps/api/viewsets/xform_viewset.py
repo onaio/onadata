@@ -705,8 +705,9 @@ class XFormViewSet(
                     )
                 else:
                     csv_file.seek(0)
+                    file_name = getattr(csv_file, "name", xls_file and xls_file.name)
                     upload_to = os.path.join(
-                        request.user.username, "csv_imports", csv_file.name
+                        request.user.username, "csv_imports", file_name
                     )
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(

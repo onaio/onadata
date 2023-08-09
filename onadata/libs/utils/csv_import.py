@@ -129,7 +129,7 @@ def dict_merge(part_a, part_b):
     if not isinstance(part_b, dict):
         return part_b
     result = deepcopy(part_a)
-    for (k, v) in iteritems(part_b):
+    for k, v in iteritems(part_b):
         if k in result and isinstance(result[k], dict):
             result[k] = dict_merge(result[k], v)
         else:
@@ -628,16 +628,16 @@ def submission_xls_to_csv(xls_file):  # noqa
         # convert excel dates(floats) to datetime
         for date_column_index in date_columns:
             try:
-                row_values[date_column_index] = (
-                    row_values[date_column_index].strftime("%Y-%m-%d").isoformat()
-                )
+                row_values[date_column_index - 1] = row_values[
+                    date_column_index - 1
+                ].isoformat()
             except (ValueError, TypeError):
                 pass
 
         # convert excel boolean to true/false
         for boolean_column_index in boolean_columns:
-            row_values[boolean_column_index] = bool(
-                row_values[boolean_column_index] == EXCEL_TRUE
+            row_values[boolean_column_index - 1] = bool(
+                row_values[boolean_column_index - 1] == EXCEL_TRUE
             )
 
         csv_writer.writerow(row_values)
