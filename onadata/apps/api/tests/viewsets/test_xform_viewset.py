@@ -5004,6 +5004,15 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
 
+            # check that date columns are formatted correctly
+            self.assertEqual(
+                self.xform.instances.values("json___submission_time")[::1],
+                [
+                    {"json___submission_time": "2023-02-03T10:27:41"},
+                    {"json___submission_time": "2023-02-03T10:27:42"},
+                    {"json___submission_time": "2023-03-13T08:42:57"},
+                ],
+            )
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data.get("additions"), 3)
