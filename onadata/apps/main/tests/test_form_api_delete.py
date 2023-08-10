@@ -77,5 +77,5 @@ class TestFormAPIDelete(TestBase):
         self.assertNotEqual(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
         self.data_args.update({"query": query})
-        after = [r for r in query_fields_data(**self.data_args)]
+        after = list(query_fields_data(**self.data_args))
         self.assertEqual(len(after), count - 1)
