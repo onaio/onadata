@@ -27,7 +27,6 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.pagination import (
     CountOverridablePageNumberPagination,
-    RawSQLQueryPageNumberPagination,
 )
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
@@ -45,7 +44,6 @@ from onadata.apps.viewer.models.parsed_instance import (
     query_data,
     query_fields_data,
     _get_sort_fields,
-    query_count,
     ParsedInstance,
 )
 from onadata.libs import filters
@@ -79,6 +77,7 @@ SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
 )
+
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -666,9 +665,6 @@ class DataViewSet(
         """
         Set the submission instances queryset.
         """
-
-        query_offset = start
-        query_limit = limit
         xform = None
 
         try:
@@ -706,21 +702,23 @@ class DataViewSet(
                         _get_sort_fields(sort)
                     )
                     should_query_json_fields = fields or has_json_fields
-                    pagination_keys = [
-                        self.paginator.page_query_param,
-                        self.paginator.page_size_query_param,
-                    ]
-                    query_param_keys = self.request.query_params
-                    should_paginate = any(
-                        k in query_param_keys for k in pagination_keys
-                    )
 
-                    if should_paginate:
-                        raw_paginator = RawSQLQueryPageNumberPagination()
-                        count = query_count(xform, query=query)
-                        query_offset, query_limit = raw_paginator.get_offset_limit(
-                            self.request, count
+                    if self._should_paginate():
+                        retrieval_threshold = getattr(
+                            settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
                         )
+                        query_param_keys = self.request.query_params
+                        page = int(
+                            query_param_keys.get(self.paginator.page_query_param, 1)
+                        )
+                        page_size = int(
+                            query_param_keys.get(
+                                self.paginator.page_size_query_param,
+                                retrieval_threshold,
+                            )
+                        )
+                        start = (page - 1) * page_size
+                        limit = page_size
 
                     if should_query_json_fields:
                         data = query_fields_data(
@@ -728,8 +726,8 @@ class DataViewSet(
                             fields=fields,
                             query=query,
                             sort=sort,
-                            start_index=query_offset,
-                            limit=query_limit,
+                            start_index=start,
+                            limit=limit,
                         )
                         # pylint: disable=attribute-defined-outside-init
                         self.object_list = data
@@ -738,8 +736,8 @@ class DataViewSet(
                             xform,
                             query=query,
                             sort=sort,
-                            start_index=query_offset,
-                            limit=query_limit,
+                            start_index=start,
+                            limit=limit,
                             json_only=not self.kwargs.get("format") == "xml",
                         )
                         # pylint: disable=attribute-defined-outside-init
@@ -758,8 +756,8 @@ class DataViewSet(
                         xform,
                         query=query,
                         sort=sort,
-                        start_index=query_offset,
-                        limit=query_limit,
+                        start_index=start,
+                        limit=limit,
                         fields=fields,
                     )
 
@@ -781,17 +779,20 @@ class DataViewSet(
             queryset, self.request, view=self, count=self.data_count
         )
 
-    # pylint: disable=too-many-arguments,too-many-locals
-    def _get_data(self, query, fields, sort, start, limit, is_public_request):
-        self.set_object_list(query, fields, sort, start, limit, is_public_request)
-
-        retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
+    def _should_paginate(self) -> bool:
+        """Check whether the request is a pagination request"""
         pagination_keys = [
             self.paginator.page_query_param,
             self.paginator.page_size_query_param,
         ]
         query_param_keys = self.request.query_params
-        should_paginate = any(k in query_param_keys for k in pagination_keys)
+        return any(k in query_param_keys for k in pagination_keys)
+
+    # pylint: disable=too-many-arguments,too-many-locals
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        self.set_object_list(query, fields, sort, start, limit, is_public_request)
+        should_paginate = self._should_paginate()
+        retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
 
         if not should_paginate and not is_public_request:
             # Paginate requests that try to retrieve data that surpasses
@@ -803,6 +804,7 @@ class DataViewSet(
                 self.paginator.page_size = retrieval_threshold
 
         if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
+            query_param_keys = self.request.query_params
             current_page = query_param_keys.get(self.paginator.page_query_param, 1)
             current_page_size = query_param_keys.get(
                 self.paginator.page_size_query_param, retrieval_threshold
