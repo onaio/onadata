@@ -58,6 +58,7 @@ from onadata.libs.utils.model_tools import get_columns_with_hxl, queryset_iterat
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile, image_urls
 
+
 DEFAULT_GROUP_DELIMITER = "/"
 DEFAULT_INDEX_TAGS = ("[", "]")
 SUPPORTED_INDEX_TAGS = ("[", "]", "(", ")", "{", "}", ".", "_")

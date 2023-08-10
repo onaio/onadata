@@ -605,7 +605,7 @@ def api(request, username=None, id_string=None):  # noqa C901
             args["limit"] = int(request.GET.get("limit"))
 
         # pylint: disable=protected-access
-        has_json_fields = args.sort("sort") and ParsedInstance._has_json_fields(
+        has_json_fields = args.get("sort") and ParsedInstance._has_json_fields(
             _get_sort_fields(args.get("sort"))
         )
         should_query_json_fields = args.get("fields") or has_json_fields
