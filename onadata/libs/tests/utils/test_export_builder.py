@@ -1267,7 +1267,7 @@ class TestExportBuilder(TestBase):
             media_files=[media_file],
         )
 
-        xdata = query_data(self.xform)
+        xdata = [datum for datum in query_data(self.xform)]
         survey = self.md_to_pyxform_survey(md, {"name": "exp"})
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)

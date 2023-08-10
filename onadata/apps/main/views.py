@@ -64,6 +64,7 @@ from onadata.apps.viewer.models.parsed_instance import (
     DATETIME_FORMAT,
     query_data,
     query_fields_data,
+    query_count,
     ParsedInstance,
     _get_sort_fields,
 )
@@ -604,27 +605,35 @@ def api(request, username=None, id_string=None):  # noqa C901
         if "limit" in request.GET:
             args["limit"] = int(request.GET.get("limit"))
 
-        # pylint: disable=protected-access
-        has_json_fields = args.get("sort") and ParsedInstance._has_json_fields(
-            _get_sort_fields(args.get("sort"))
-        )
-        should_query_json_fields = args.get("fields") or has_json_fields
-
-        if should_query_json_fields:
-            cursor = query_fields_data(**args)
+        if "count" in request.GET and int(request.GET.get("count")) > 0:
+            count = query_count(xform, query)
+            cursor = [{"count": count}]
 
         else:
-            cursor = query_data(**args)  # pylint: disable=unexpected-keyword-arg
+            # pylint: disable=protected-access
+            has_json_fields = args.get("sort") and ParsedInstance._has_json_fields(
+                _get_sort_fields(args.get("sort"))
+            )
+            should_query_json_fields = args.get("fields") or has_json_fields
+
+            if should_query_json_fields:
+                cursor = list(query_fields_data(**args))
+
+            else:
+                args.pop("fields")
+                data = query_data(**args)
+                cursor = [datum for datum in data]
+
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(conditional_escape(str(e)))
 
     if "callback" in request.GET and request.GET.get("callback") != "":
         callback = request.GET.get("callback")
-        response_text = json_util.dumps(list(cursor))
+        response_text = json_util.dumps(cursor)
         response_text = f"{callback}({response_text})"
         response = HttpResponse(response_text)
     else:
-        response = JsonResponse(list(cursor), safe=False)
+        response = JsonResponse(cursor, safe=False)
 
     add_cors_headers(response)
 

@@ -27,7 +27,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.export_builder import (
@@ -961,7 +961,9 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             "query": '{"_submission_time": {"$lte": "2019-01-13T00:00:00"}}',
         }
         filter_query = options.get("query")
-        instance_ids = query_data(self.xform, fields='["_id"]', query=filter_query)
+        instance_ids = query_fields_data(
+            self.xform, fields='["_id"]', query=filter_query
+        )
 
         export = generate_attachments_zip_export(
             Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
