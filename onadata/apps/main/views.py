@@ -610,18 +610,21 @@ def api(request, username=None, id_string=None):  # noqa C901
             cursor = [{"count": count}]
 
         else:
-            # pylint: disable=protected-access
-            has_json_fields = args.get("sort") and ParsedInstance._has_json_fields(
-                _get_sort_fields(args.get("sort"))
-            )
-            should_query_json_fields = args.get("fields") or has_json_fields
+            has_json_fields = False
+
+            if args.get("sort"):
+                sort_fields = _get_sort_fields(args.get("sort"))
+                # pylint: disable=protected-access
+                has_json_fields = ParsedInstance._has_json_fields(sort_fields)
+
+            should_query_json_fields = bool(args.get("fields")) or has_json_fields
 
             if should_query_json_fields:
                 cursor = list(query_fields_data(**args))
 
             else:
                 args.pop("fields")
-                data = query_data(**args)
+                data = query_data(**args)  # pylint: disable=unexpected-keyword-arg
                 cursor = [datum for datum in data]
 
     except (ValueError, TypeError) as e:
