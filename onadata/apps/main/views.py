@@ -63,6 +63,9 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 from onadata.apps.viewer.models.parsed_instance import (
     DATETIME_FORMAT,
     query_data,
+    query_fields_data,
+    ParsedInstance,
+    _get_sort_fields,
 )
 from onadata.apps.viewer.views import attachment_url
 from onadata.libs.exceptions import EnketoError
@@ -601,7 +604,17 @@ def api(request, username=None, id_string=None):  # noqa C901
         if "limit" in request.GET:
             args["limit"] = int(request.GET.get("limit"))
 
-        cursor = query_data(**args)
+        # pylint: disable=protected-access
+        has_json_fields = args.sort("sort") and ParsedInstance._has_json_fields(
+            _get_sort_fields(args.get("sort"))
+        )
+        should_query_json_fields = args.get("fields") or has_json_fields
+
+        if should_query_json_fields:
+            cursor = query_fields_data(**args)
+
+        else:
+            cursor = query_data(**args)
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(conditional_escape(str(e)))
 

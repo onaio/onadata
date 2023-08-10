@@ -733,8 +733,7 @@ class DataViewSet(
                             fields=fields,
                         )
                     else:
-                        # pylint: disable=attribute-defined-outside-init
-                        self.object_list = query_data(
+                        self.object_list = query_data(  # pylint: disable=attribute-defined-outside-init
                             xform,
                             query=query,
                             sort=sort,
