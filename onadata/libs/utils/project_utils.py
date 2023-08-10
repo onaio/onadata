@@ -238,7 +238,7 @@ def propagate_project_permissions(
                 max_retries=Retry(
                     total=5,
                     backoff_factor=2,
-                    method_whitelist=["GET", "POST", "DELETE"],
+                    allowed_methods=["GET", "POST", "DELETE"],
                     status_forcelist=[502, 503, 504],
                 )
             ),

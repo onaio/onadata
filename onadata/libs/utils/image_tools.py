@@ -144,7 +144,7 @@ def _save_thumbnails(image, path, size, suffix, extension):
 
         try:
             # Ensure conversion to float in operations
-            image.thumbnail(get_dimensions(image.size, float(size)), Image.ANTIALIAS)
+            image.thumbnail(get_dimensions(image.size, float(size)), Image.LANCZOS)
         except ZeroDivisionError:
             pass
 
