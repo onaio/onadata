@@ -723,17 +723,18 @@ class DataViewSet(
                         )
 
                     if should_query_json_fields:
-                        # pylint: disable=attribute-defined-outside-init
-                        self.object_list = query_fields_data(
+                        data = query_fields_data(
                             xform,
+                            fields=fields,
                             query=query,
                             sort=sort,
                             start_index=query_offset,
                             limit=query_limit,
-                            fields=fields,
                         )
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = data
                     else:
-                        self.object_list = query_data(  # pylint: disable=attribute-defined-outside-init,line-too-long
+                        data = query_data(
                             xform,
                             query=query,
                             sort=sort,
@@ -741,6 +742,8 @@ class DataViewSet(
                             limit=query_limit,
                             json_only=not self.kwargs.get("format") == "xml",
                         )
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = data
                 except NoRecordsPermission:
                     # pylint: disable=attribute-defined-outside-init
                     self.object_list = []
