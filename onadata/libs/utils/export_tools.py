@@ -133,6 +133,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     filter_query = options.get("query")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
+    limit = options.get("limit")
 
     export_type_func_map = {
         Export.XLSX_EXPORT: "to_xlsx_export",
@@ -151,15 +152,17 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = dataview.query_data(
-            dataview, all_data=True, filter_query=filter_query
+            dataview, all_data=True, filter_query=filter_query, limit=limit
         )
         total_records = dataview.query_data(dataview, count=True)[0].get("count")
     else:
-        records = query_data(xform, query=filter_query, start=start, end=end)
+        records = query_data(
+            xform, query=filter_query, start=start, end=end, limit=limit
+        )
 
         if filter_query:
             total_records = query_data(
-                xform, query=filter_query, start=start, end=end, count=True
+                xform, query=filter_query, start=start, end=end, limit=limit, count=True
             )[0].get("count")
         else:
             total_records = xform.num_of_submissions
