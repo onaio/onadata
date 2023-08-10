@@ -179,6 +179,52 @@ def _get_sort_fields(sort):
     return list(_parse_sort_fields(sort))
 
 
+def build_sql_where(xform, query, start=None, end=None):
+    """Build SQL WHERE clause"""
+    known_integers = [
+        get_name_from_survey_element(e)
+        for e in xform.get_survey_elements_of_type("integer")
+    ]
+    where = []
+    where_params = []
+
+    if query and isinstance(query, list):
+        for qry in query:
+            _where, _where_params = get_where_clause(qry, known_integers)
+            where += _where
+            where_params += _where_params
+
+    else:
+        where, where_params = get_where_clause(query, known_integers)
+
+    sql_where = "WHERE xform_id in %s AND deleted_at IS NULL"
+
+    if where_params:
+        sql_where += " AND " + " AND ".join(where)
+
+    if isinstance(start, datetime.datetime):
+        sql_where += " AND date_created >= %s"
+        where_params += [start.isoformat()]
+    if isinstance(end, datetime.datetime):
+        sql_where += " AND date_created <= %s"
+        where_params += [end.isoformat()]
+
+    xform_pks = [xform.pk]
+
+    if xform.is_merged_dataset:
+        merged_xform_ids = list(
+            xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+        if merged_xform_ids:
+            xform_pks = list(merged_xform_ids)
+
+    params = [tuple(xform_pks)] + where_params
+
+    return sql_where, params
+
+
 # pylint: disable=too-many-locals,too-many-statements,too-many-branches
 def get_sql_with_params(
     xform,
@@ -191,17 +237,9 @@ def get_sql_with_params(
     limit=None,
     json_only: bool = True,
 ):
-    """
-    Returns the SQL and related parameters.
-    """
-    params = []
+    """Returns the SQL and related parameters"""
     sort = _get_sort_fields(sort)
     sql = ""
-    known_integers = [
-        get_name_from_survey_element(e)
-        for e in xform.get_survey_elements_of_type("integer")
-    ]
-    where, where_params = get_where_clause(query, known_integers)
 
     if fields and isinstance(fields, six.string_types):
         fields = json.loads(fields)
@@ -222,37 +260,8 @@ def get_sql_with_params(
         else:
             sql = "SELECT * FROM logger_instance"
 
-    if query and isinstance(query, list):
-        for qry in query:
-            _where, _where_params = get_where_clause(qry, known_integers)
-            where += _where
-            where_params += _where_params
-
-    sql_where = ""
-
-    if where_params:
-        sql_where = " AND " + " AND ".join(where)
-
-    if isinstance(start, datetime.datetime):
-        sql_where += " AND date_created >= %s"
-        where_params += [start.isoformat()]
-    if isinstance(end, datetime.datetime):
-        sql_where += " AND date_created <= %s"
-        where_params += [end.isoformat()]
-
-    xform_pks = [xform.pk]
-
-    if xform.is_merged_dataset:
-        merged_xform_ids = list(
-            xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
-                "id", flat=True
-            )
-        )
-        if merged_xform_ids:
-            xform_pks = list(merged_xform_ids)
-
-    sql += " WHERE xform_id IN %s " + sql_where + " AND deleted_at IS NULL"
-    params = [tuple(xform_pks)] + where_params
+    sql_where, params = build_sql_where(xform, query, start, end)
+    sql += f" {sql_where}"
 
     # apply sorting
     if sort:
@@ -293,31 +302,13 @@ def query_count(
     date_created_lte=None,
 ):
     """Count number of instances matching query"""
-    known_integers = [
-        get_name_from_survey_element(e)
-        for e in xform.get_survey_elements_of_type("integer")
-    ]
-    where, where_params = get_where_clause(query, known_integers)
-    sql = "SELECT COUNT(id) FROM logger_instance"
-    sql_where = ""
-
-    if where_params:
-        sql_where = " AND " + " AND ".join(where)
-
-    if isinstance(date_created_gte, datetime.datetime):
-        sql_where += " AND date_created >= %s"
-        where_params += [date_created_gte.isoformat()]
-    if isinstance(date_created_lte, datetime.datetime):
-        sql_where += " AND date_created <= %s"
-        where_params += [date_created_lte.isoformat()]
-
-    xform_pks = [xform.pk]
-
-    if xform.is_merged_dataset:
-        xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
-
-    sql += " WHERE xform_id IN %s " + sql_where + " AND deleted_at IS NULL"
-    params = [tuple(xform_pks)] + where_params
+    sql_where, params = build_sql_where(
+        xform,
+        query,
+        date_created_gte,
+        date_created_lte,
+    )
+    sql = f"SELECT COUNT(id) FROM logger_instance {sql_where}"
 
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
