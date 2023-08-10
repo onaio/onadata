@@ -308,7 +308,7 @@ def query_count(
         date_created_gte,
         date_created_lte,
     )
-    sql = f"SELECT COUNT(id) FROM logger_instance {sql_where}"
+    sql = f"SELECT COUNT(id) FROM logger_instance {sql_where}"  # nosec
 
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
