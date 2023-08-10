@@ -212,7 +212,8 @@ def get_sql_with_params(
 
     else:
         if json_only:
-            if ParsedInstance._has_json_fields(sort):
+            # pylint: disable=protected-access
+            if sort and ParsedInstance._has_json_fields(sort):
                 sql = "SELECT json FROM logger_instance"
 
             else:
@@ -262,9 +263,7 @@ def get_sql_with_params(
             if not fields:
                 sql += " ORDER BY"
 
-                for i in range(len(sort)):
-                    sort_field = sort[i]
-
+                for index, sort_field in enumerate(sort):
                     if sort_field.startswith("-"):
                         sort_field = sort_field.removeprefix("-")
                         # It's safe to use string interpolation since this
@@ -273,7 +272,7 @@ def get_sql_with_params(
                     else:
                         sql += f" {sort_field} ASC"
 
-                    if i != len(sort) - 1:
+                    if index != len(sort) - 1:
                         sql += ","
 
     sql, params = _start_index_limit(sql, params, start_index, limit)

@@ -702,10 +702,10 @@ class DataViewSet(
                         self.get_object(), self.request.user, query
                     )
                     # pylint: disable=protected-access
-                    should_query_json_fields = (
-                        fields
-                        or ParsedInstance._has_json_fields(_get_sort_fields(sort))
+                    has_json_fields = sort and ParsedInstance._has_json_fields(
+                        _get_sort_fields(sort)
                     )
+                    should_query_json_fields = fields or has_json_fields
                     pagination_keys = [
                         self.paginator.page_query_param,
                         self.paginator.page_size_query_param,
@@ -733,7 +733,7 @@ class DataViewSet(
                             fields=fields,
                         )
                     else:
-                        self.object_list = query_data(  # pylint: disable=attribute-defined-outside-init
+                        self.object_list = query_data(  # pylint: disable=attribute-defined-outside-init,line-too-long
                             xform,
                             query=query,
                             sort=sort,

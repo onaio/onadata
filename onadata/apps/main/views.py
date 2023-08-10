@@ -614,7 +614,7 @@ def api(request, username=None, id_string=None):  # noqa C901
             cursor = query_fields_data(**args)
 
         else:
-            cursor = query_data(**args)
+            cursor = query_data(**args)  # pylint: disable=unexpected-keyword-arg
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(conditional_escape(str(e)))
 
