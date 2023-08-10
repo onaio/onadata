@@ -179,7 +179,7 @@ def _get_sort_fields(sort):
     return list(_parse_sort_fields(sort))
 
 
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too-many-statements,too-many-branches
 def get_sql_with_params(
     xform,
     query=None,
@@ -267,8 +267,8 @@ def get_sql_with_params(
 
                     if sort_field.startswith("-"):
                         sort_field = sort_field.removeprefix("-")
-                        # It's safe to use string interpolation since this is a column and not
-                        # a value https://docs.djangoproject.com/en/4.2/topics/db/sql/#passing-parameters-into-raw
+                        # It's safe to use string interpolation since this
+                        # is a column and not a value
                         sql += f" {sort_field} DESC"
                     else:
                         sql += f" {sort_field} ASC"

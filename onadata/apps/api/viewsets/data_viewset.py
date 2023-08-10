@@ -701,8 +701,10 @@ class DataViewSet(
                     query = filter_queryset_xform_meta_perms_sql(
                         self.get_object(), self.request.user, query
                     )
-                    query_json_fields = fields or ParsedInstance._has_json_fields(
-                        _get_sort_fields(sort)
+                    # pylint: disable=protected-access
+                    should_query_json_fields = (
+                        fields
+                        or ParsedInstance._has_json_fields(_get_sort_fields(sort))
                     )
                     pagination_keys = [
                         self.paginator.page_query_param,
@@ -720,7 +722,7 @@ class DataViewSet(
                             self.request, count
                         )
 
-                    if query_json_fields:
+                    if should_query_json_fields:
                         # pylint: disable=attribute-defined-outside-init
                         self.object_list = query_fields_data(
                             xform,

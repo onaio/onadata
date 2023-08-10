@@ -60,7 +60,10 @@ from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
-from onadata.apps.viewer.models.parsed_instance import DATETIME_FORMAT, query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    DATETIME_FORMAT,
+    query_data,
+)
 from onadata.apps.viewer.views import attachment_url
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
@@ -569,7 +572,6 @@ def api(request, username=None, id_string=None):  # noqa C901
         return HttpResponseForbidden(_("Not shared."))
 
     query = request.GET.get("query")
-    total_records = xform.num_of_submissions
 
     try:
         args = {
@@ -593,21 +595,11 @@ def api(request, username=None, id_string=None):  # noqa C901
 
             args["limit"] = page_size
 
-        if query:
-            count_args = args.copy()
-            count_args["count"] = True
-            count_results = list(query_data(**count_args))
-            if count_results:
-                total_records = count_results[0].get("count", total_records)
-
         if "start" in request.GET:
             args["start_index"] = int(request.GET.get("start"))
 
         if "limit" in request.GET:
             args["limit"] = int(request.GET.get("limit"))
-
-        if "count" in request.GET:
-            args["count"] = int(request.GET.get("count")) > 0
 
         cursor = query_data(**args)
     except (ValueError, TypeError) as e:
@@ -1452,8 +1444,6 @@ def activity_api(request, username):
             query_args["start"] = int(request.GET.get("start"))
         if "limit" in request.GET:
             query_args["limit"] = int(request.GET.get("limit"))
-        if "count" in request.GET:
-            query_args["count"] = int(request.GET.get("count")) > 0
         cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(str(e))
