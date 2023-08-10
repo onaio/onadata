@@ -243,7 +243,13 @@ def get_sql_with_params(
     xform_pks = [xform.pk]
 
     if xform.is_merged_dataset:
-        xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
+        merged_xform_ids = list(
+            xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+        if merged_xform_ids:
+            xform_pks = list(merged_xform_ids)
 
     sql += " WHERE xform_id IN %s " + sql_where + " AND deleted_at IS NULL"
     params = [tuple(xform_pks)] + where_params

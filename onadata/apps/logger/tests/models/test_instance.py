@@ -13,7 +13,11 @@ from onadata.apps.logger.models.instance import (
     numeric_checker,
 )
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance, query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance,
+    query_data,
+    query_fields_data,
+)
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
@@ -190,7 +194,7 @@ class TestInstance(TestBase):
         # with fields
         data = [
             i.get("_id")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]'
             )
         ]
@@ -200,7 +204,7 @@ class TestInstance(TestBase):
         # mongo $gt
         data = [
             i.get("_id")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform, query='{"_id": {"$gt": %s}}' % (oldest), fields='["_id"]'
             )
         ]
@@ -231,7 +235,7 @@ class TestInstance(TestBase):
         # mongo $gt
         data = [
             i.get("_submission_time")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform,
                 query='{"_submission_time": {"$lt": "%s"}}' % (atime),
                 fields='["_submission_time"]',
