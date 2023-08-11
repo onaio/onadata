@@ -19,6 +19,7 @@ build
 # media folder used by tests
 # TODO figure out a way to clean this up rather than ignore it.
 /onadata/test_media
+/onadata/test_data_media
 /onadata/media
 /onadata/static
 
