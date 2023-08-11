@@ -328,19 +328,10 @@ class TestTableauViewSet(TestBase):
     def test_pagination(self):
         """Pagination works correctly"""
         self.view = TableauViewSet.as_view({"get": "data"})
-        # test 1 submission
         _open_data = get_or_create_opendata(self.xform)
         uuid = _open_data[0].uuid
-        request = self.factory.get(
-            "/", data={"page": 1, "page_size": 100}, **self.extra
-        )
-        response = self.view(request, uuid=uuid)
-        self.assertEqual(response.status_code, 200)
-        row_data = streaming_data(response)
-        self.assertEqual(len(row_data), 1)
-
         # Multiple submissions are ordered by primary key
-        # For pagination to work without dupliacates, the results have to
+        # For pagination to work without duplicates, the results have to
         # be ordered. Otherwise, the database will not guarantee a record
         # encountered in a previous page will not be returned in a future page
         # as the database does not order results by default and will return
@@ -351,14 +342,41 @@ class TestTableauViewSet(TestBase):
         for _ in range(200):
             self._make_submission(path, forced_submission_time=self._submission_time)
 
+        # Page 1
+        request = self.factory.get(
+            "/", data={"page": 1, "page_size": 100}, **self.extra
+        )
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         row_data = streaming_data(response)
         self.assertEqual(len(row_data), 100)
         instances = self.xform.instances.all().order_by("pk")
+        self.assertEqual(len(instances), 201)
 
         for index, instance in enumerate(instances[:100]):
             self.assertEqual(row_data[index]["_id"], instance.pk)
+
+        # Page 2
+        request = self.factory.get(
+            "/", data={"page": 2, "page_size": 100}, **self.extra
+        )
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        row_data = streaming_data(response)
+        self.assertEqual(len(row_data), 100)
+
+        for index, instance in enumerate(instances[100:101]):
+            self.assertEqual(row_data[index]["_id"], instance.pk)
+
+        # Page 3
+        request = self.factory.get(
+            "/", data={"page": 3, "page_size": 100}, **self.extra
+        )
+        response = self.view(request, uuid=uuid)
+        self.assertEqual(response.status_code, 200)
+        row_data = streaming_data(response)
+        self.assertEqual(len(row_data), 1)
+        self.assertEqual(row_data[0]["_id"], instances.last().pk)
 
     def test_count_query_param(self):
         """count query param works"""
