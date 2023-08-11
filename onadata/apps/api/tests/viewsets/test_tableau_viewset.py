@@ -339,16 +339,26 @@ class TestTableauViewSet(TestBase):
         row_data = streaming_data(response)
         self.assertEqual(len(row_data), 1)
 
-        # multiple submissions are ordered by primary key
+        # Multiple submissions are ordered by primary key
+        # For pagination to work without dupliacates, the results have to
+        # be ordered. Otherwise, the database will not guarantee a record
+        # encountered in a previous page will not be returned in a future page
+        # as the database does not order results by default and will return
+        # randomly
         path = os.path.join(self.fixture_dir, "repeats_sub.xml")
-        self._make_submission(path, forced_submission_time=self._submission_time)
+        # Create additional submissions to increase our chances of the results
+        # being random
+        for _ in range(200):
+            self._make_submission(path, forced_submission_time=self._submission_time)
+
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         row_data = streaming_data(response)
-        self.assertEqual(len(row_data), 2)
+        self.assertEqual(len(row_data), 100)
         instances = self.xform.instances.all().order_by("pk")
-        self.assertEqual(row_data[0]["_id"], instances[0].pk)
-        self.assertEqual(row_data[1]["_id"], instances[1].pk)
+
+        for index, instance in enumerate(instances[:100]):
+            self.assertEqual(row_data[index]["_id"], instance.pk)
 
     def test_count_query_param(self):
         """count query param works"""

@@ -249,7 +249,7 @@ class TableauViewSet(OpenDataViewSet):
                 offset, limit = self.paginator.get_offset_limit(
                     self.request, self.data_count
                 )
-                sql += " LIMIT %s OFFSET %s"
+                sql += " ORDER BY id LIMIT %s OFFSET %s"
                 instances = Instance.objects.raw(sql, sql_params + [limit, offset])
                 instances = self.paginate_queryset(instances)
 
