@@ -169,17 +169,6 @@ class TableauViewSet(OpenDataViewSet):
     TableauViewSet - the /api/v2/tableau API endpoin implementation.
     """
 
-    pagination_class = RawSQLQueryPageNumberPagination
-    data_count = None
-
-    def paginate_queryset(self, queryset):
-        """Returns a paginated queryset."""
-        if self.paginator is None:
-            return None
-        return self.paginator.paginate_queryset(
-            queryset, self.request, view=self, count=self.data_count
-        )
-
     @action(methods=["GET"], detail=True)
     def data(self, request, **kwargs):
         # pylint: disable=attribute-defined-outside-init
@@ -195,6 +184,7 @@ class TableauViewSet(OpenDataViewSet):
         query_param_keys = request.query_params
         should_paginate = any(k in query_param_keys for k in pagination_keys)
         data = []
+        data_count = 0
 
         if isinstance(self.object.content_object, XForm):
             if not self.object.active:
@@ -217,14 +207,14 @@ class TableauViewSet(OpenDataViewSet):
                 if gt_id:
                     qs_kwargs.update({"id__gt": gt_id})
 
-                self.data_count = (
+                data_count = (
                     Instance.objects.filter(**qs_kwargs, deleted_at__isnull=True)
                     .only("pk")
                     .count()
                 )
 
                 if count:
-                    return Response({"count": self.data_count})
+                    return Response({"count": data_count})
 
             sql_where = ""
             sql_where_params = []
@@ -246,12 +236,10 @@ class TableauViewSet(OpenDataViewSet):
             sql_params = [tuple(xform_pks)] + sql_where_params
 
             if should_paginate:
-                offset, limit = self.paginator.get_offset_limit(
-                    self.request, self.data_count
-                )
-                sql += " LIMIT %s OFFSET %s"
+                raw_paginator = RawSQLQueryPageNumberPagination()
+                offset, limit = raw_paginator.get_offset_limit(self.request, data_count)
+                sql += " ORDER BY id LIMIT %s OFFSET %s"
                 instances = Instance.objects.raw(sql, sql_params + [limit, offset])
-                instances = self.paginate_queryset(instances)
 
             else:
                 instances = Instance.objects.raw(sql, sql_params)
