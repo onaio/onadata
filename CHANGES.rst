@@ -9,6 +9,9 @@ v3.12.1(2023-08-14)
 - Fix pagination on endpoint /api/v2/open-data/<id>/data returning duplicates
   `PR #2467 <https://github.com/onaio/onadata/pull/2467>`
   [@kelvin-muchiri]
+- Update dependencies
+  `PR @2466 <https://github.com/onaio/onadata/pull/2466>`
+  [@KipSigei]
 - Fix attribute error when uploading xls datasets
   `PR #2465 <https://github.com/onaio/onadata/pull/2465>`
   [@FrankApiyo]
