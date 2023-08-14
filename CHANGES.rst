@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.12.1(2023-08-14)
+-------------------
+
+- Fix pagination on endpoint /api/v2/open-data/<id>/data returning duplicates
+  `PR #2467 <https://github.com/onaio/onadata/pull/2467>`
+  [@kelvin-muchiri]
+- Fix attribute error when uploading xls datasets
+  `PR #2465 <https://github.com/onaio/onadata/pull/2465>`
+  [@FrankApiyo]
+
 v3.12.0(2023-08-07)
 -------------------
 
