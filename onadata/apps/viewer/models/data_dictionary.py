@@ -6,6 +6,7 @@ import os
 from io import BytesIO, StringIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -214,7 +215,11 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         )  # noqa
 
         try:
-            set_project_perms_to_xform_async.delay(xform.pk, instance.project.pk)
+            transaction.on_commit(
+                lambda: set_project_perms_to_xform_async.delay(
+                    xform.pk, instance.project.pk
+                )
+            )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
             from onadata.libs.utils.project_utils import (
