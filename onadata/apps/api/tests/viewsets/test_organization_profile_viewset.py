@@ -7,7 +7,6 @@ from builtins import str as text
 
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
-from django.test.utils import override_settings
 
 from guardian.shortcuts import get_perms
 from mock import patch
@@ -801,7 +800,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_org_members_added_to_projects(self):
         # create org
         self._org_create()
