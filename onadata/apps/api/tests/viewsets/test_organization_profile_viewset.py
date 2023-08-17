@@ -7,6 +7,7 @@ from builtins import str as text
 
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
+from django.test.utils import override_settings
 
 from guardian.shortcuts import get_perms
 from mock import patch
@@ -800,6 +801,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_org_members_added_to_projects(self):
         # create org
         self._org_create()
@@ -809,7 +811,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # create a proj
         project_data = {"owner": self.company_data["user"]}
         self._project_create(project_data)
-        self._publish_xls_form_to_project()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project()
 
         # create aboy
         self.profile_data["username"] = "aboy"
@@ -839,6 +843,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
         # Assert that user added in org is added to teams in proj
+        aboy.refresh_from_db()
+        alice.refresh_from_db()
         self.assertTrue(OwnerRole.user_has_role(aboy, self.project))
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
         self.assertTrue(OwnerRole.user_has_role(aboy, self.xform))
