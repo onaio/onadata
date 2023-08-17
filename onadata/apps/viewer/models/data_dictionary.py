@@ -7,12 +7,14 @@ from io import BytesIO, StringIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
+from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import openpyxl
 import unicodecsv as csv
 from floip import FloipSurvey
+from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
@@ -208,9 +210,23 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import set_project_perms_to_xform  # noqa
+        from onadata.libs.utils.project_utils import (
+            set_project_perms_to_xform_async,
+        )  # noqa
 
-        set_project_perms_to_xform(xform, instance.project)
+        try:
+            transaction.on_commit(
+                lambda: set_project_perms_to_xform_async.delay(
+                    xform.pk, instance.project.pk
+                )
+            )
+        except OperationalError:
+            # pylint: disable=import-outside-toplevel
+            from onadata.libs.utils.project_utils import (
+                set_project_perms_to_xform,
+            )  # noqa
+
+            set_project_perms_to_xform(xform, instance.project)
 
     if hasattr(instance, "has_external_choices") and instance.has_external_choices:
         instance.xls.seek(0)

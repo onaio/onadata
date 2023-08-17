@@ -7,6 +7,7 @@ from builtins import str as text
 
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
+from django.test.utils import override_settings
 
 from guardian.shortcuts import get_perms
 from mock import patch
@@ -28,8 +29,12 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import DataEntryRole, OwnerRole, EditorRole
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, PROJ_PERM_CACHE, PROJ_TEAM_USERS_CACHE
+from onadata.libs.permissions import DataEntryRole, OwnerRole
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    PROJ_PERM_CACHE,
+    PROJ_TEAM_USERS_CACHE,
+)
 
 
 # pylint: disable=too-many-public-methods
@@ -796,12 +801,17 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_org_members_added_to_projects(self):
         # create org
         self._org_create()
         view = OrganizationProfileViewSet.as_view(
             {"post": "members", "get": "retrieve", "put": "members"}
         )
+        # create a proj
+        project_data = {"owner": self.company_data["user"]}
+        self._project_create(project_data)
+        self._publish_xls_form_to_project()
 
         # create aboy
         self.profile_data["username"] = "aboy"
@@ -809,15 +819,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         data = {"username": "aboy", "role": "owner"}
         request = self.factory.post(
-            "/", data=json.dumps(data), content_type="application/json", **self.extra
+            "/",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-
-        # create a proj
-        project_data = {"owner": self.company_data["user"]}
-        self._project_create(project_data)
-        self._publish_xls_form_to_project()
 
         # create alice
         self.profile_data["username"] = "alice"
