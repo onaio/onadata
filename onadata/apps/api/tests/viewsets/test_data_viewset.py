@@ -275,7 +275,14 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_fields_query_params(self):
         """fields query params works"""
         view = DataViewSet.as_view({"get": "list"})
-        self._make_submissions()
+        fixture_dir = os.path.join(self.this_directory, "fixtures", "csv_export")
+        form_path = os.path.join(fixture_dir, "tutorial_w_repeats.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        submission_path = os.path.join(fixture_dir, "repeats_sub.xml")
+
+        for _ in range(102):
+            self._make_submission(submission_path)
+
         fields_query = {"fields": '["_id", "_status"]'}
         request = self.factory.get("/", data=fields_query, **self.extra)
         response = view(request, pk=self.xform.id)
@@ -292,9 +299,22 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+        self.assertEqual(len(response.data), 100)
 
         for index, instance in enumerate(instances[:100]):
+            self.assertEqual(response.data[index]["_id"], instance.pk)
+
+        # Page 2
+        request = self.factory.get(
+            "/",
+            data={**fields_query, "page": 2, "page_size": 100},
+            **self.extra,
+        )
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        for index, instance in enumerate(instances[100:101]):
             self.assertEqual(response.data[index]["_id"], instance.pk)
 
     def test_data_jsonp(self):
