@@ -570,7 +570,6 @@ class XFormViewSet(
         query = request.query_params.get("query")
         token = request.GET.get("token")
         meta = request.GET.get("meta")
-        sort = request.GET.get("sort")
 
         if export_type is None or export_type in ["json", "debug"]:
             # perform default viewset retrieve, no data export
@@ -583,7 +582,6 @@ class XFormViewSet(
             export_type,
             token,
             meta,
-            sort=sort,
         )
 
     @action(methods=["POST"], detail=True)
