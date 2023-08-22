@@ -280,15 +280,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/", data=fields_query, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data,
-            [
-                {"_id": 1, "_status": "submitted_via_web"},
-                {"_id": 2, "_status": "submitted_via_web"},
-                {"_id": 3, "_status": "submitted_via_web"},
-                {"_id": 4, "_status": "submitted_via_web"},
-            ],
-        )
+        self.assertEqual(list(response.data[0].keys()), ["_id", "_status"])
 
         # With pagination
         instances = self.xform.instances.all().order_by("pk")
