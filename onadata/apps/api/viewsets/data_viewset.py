@@ -658,7 +658,7 @@ class DataViewSet(
 
             return Response(serializer.data)
 
-        return custom_response_handler(request, xform, query, export_type, sort=sort)
+        return custom_response_handler(request, xform, query, export_type)
 
     # pylint: disable=too-many-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):

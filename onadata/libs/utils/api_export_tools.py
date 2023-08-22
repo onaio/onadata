@@ -136,7 +136,6 @@ def custom_response_handler(  # noqa: C0901
     dataview=False,
     filename=None,
     metadata=None,
-    sort=None,
 ):
     """
     Returns a HTTP response with export file for download.
@@ -201,7 +200,6 @@ def custom_response_handler(  # noqa: C0901
                 export_type,
                 dataview_pk=dataview_pk,
                 metadata=metadata,
-                sort=sort,
             )
 
         if should_create_new_export(xform, export_type, options, request=request):
@@ -244,7 +242,7 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False, metadata=None, sort=None
+    request, xform, query, export_type, dataview_pk=False, metadata=None
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
@@ -254,12 +252,10 @@ def _generate_new_export(  # noqa: C0901
         "username": xform.user.username,
         "id_string": xform.id_string,
         "host": request.get_host(),
+        "sort": request.query_params.get('sort')
     }
     if query:
         options["query"] = query
-
-    if sort:
-        options["sort"] = sort
 
     options["dataview_pk"] = dataview_pk
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
