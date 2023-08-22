@@ -720,6 +720,11 @@ class DataViewSet(
                         start = (page - 1) * page_size
                         limit = page_size
 
+                        if sort is None:
+                            # Paginated data needs to be sorted. We order by id ascending if
+                            # sort is empty
+                            sort = '{"_id": 1}'
+
                     if should_query_json_fields:
                         data = query_fields_data(
                             xform,
