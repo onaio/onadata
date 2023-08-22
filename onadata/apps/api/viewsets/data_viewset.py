@@ -721,8 +721,8 @@ class DataViewSet(
                         limit = page_size
 
                         if sort is None:
-                            # Paginated data needs to be sorted. We order by id ascending if
-                            # sort is empty
+                            # Paginated data needs to be sorted. We order by
+                            # id ascending if sort is empty
                             sort = '{"_id": 1}'
 
                     if should_query_json_fields:
