@@ -390,6 +390,18 @@ Descending sort query using the age field:
 
     {"age":-1}
 
+Query sorted by id field in ascending.
+
+::
+
+    {"_id":1}
+
+Query sorted by id field in descending.
+
+::
+
+    {"_id":-1}
+
 
 Example of Ascending Sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^
