@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 The /forms API endpoint.
 """
@@ -574,7 +575,14 @@ class XFormViewSet(
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request, xform, query, export_type, token, meta)
+        return custom_response_handler(
+            request,
+            xform,
+            query,
+            export_type,
+            token,
+            meta,
+        )
 
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):

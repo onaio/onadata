@@ -252,6 +252,7 @@ def _generate_new_export(  # noqa: C0901
         "username": xform.user.username,
         "id_string": xform.id_string,
         "host": request.get_host(),
+        "sort": request.query_params.get('sort')
     }
     if query:
         options["query"] = query

@@ -3,11 +3,9 @@
 ParsedInstance model
 """
 import datetime
-import types
 
 from django.conf import settings
 from django.db import connection, models
-from django.db.models.query import EmptyQuerySet
 from django.utils.translation import gettext as _
 
 import six
@@ -130,7 +128,7 @@ def _query_iterator(sql, fields=None, params=None, count=False):
         sql = "SELECT COUNT(*) FROM (" + sql + ") AS CQ"
         fields = ["count"]
 
-    cursor.execute(sql, [str(i) for i in sql_params])
+    cursor.execute(sql, sql_params)
     if fields is None:
         for row in cursor.fetchall():
             yield parse_json(row[0]) if row[0] else None
@@ -141,11 +139,9 @@ def _query_iterator(sql, fields=None, params=None, count=False):
             )
 
 
-def get_etag_hash_from_query(queryset, sql=None, params=None):
+def get_etag_hash_from_query(sql=None, params=None):
     """Returns md5 hash from the date_modified field or"""
-    if not isinstance(queryset, EmptyQuerySet):
-        if sql is None:
-            sql, params = queryset.query.sql_with_params()
+    if sql:
         from_index = sql.find("FROM ")
         sql = (
             "SELECT md5(string_agg(date_modified::text, ''))"
@@ -160,65 +156,76 @@ def get_etag_hash_from_query(queryset, sql=None, params=None):
 
 
 # pylint: disable=too-many-arguments
-def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
+def _start_index_limit(sql, params, start_index, limit):
     if (start_index is not None and start_index < 0) or (
         limit is not None and limit < 0
     ):
         raise ValueError(_("Invalid start/limit params"))
-    if (start_index is not None or limit is not None) and not sql:
-        sql, params = records.query.sql_with_params()
-        params = list(params)
 
     start_index = 0 if limit is not None and start_index is None else start_index
-    # pylint: disable=protected-access
-    has_json_fields = ParsedInstance._has_json_fields(sort)
-    if start_index is not None and (has_json_fields or fields):
+    if start_index is not None:
         params += [start_index]
-        sql = f"{sql} OFFSET %s"
-    if limit is not None and (has_json_fields or fields):
-        sql = f"{sql} LIMIT %s"
+        sql += " OFFSET %s"
+    if limit is not None:
+        sql += " LIMIT %s"
         params += [limit]
-    if (
-        start_index is not None
-        and limit is not None
-        and not fields
-        and not has_json_fields
-    ):
-        end_index = start_index + limit
-        records = records[start_index:end_index]
-    if start_index is not None and limit is None and not fields and not has_json_fields:
-        records = records[start_index:]
 
-    return records, sql, params
-
-
-def _get_instances(xform, start, end):
-    kwargs = {"deleted_at": None}
-
-    if isinstance(start, datetime.datetime):
-        kwargs.update({"date_created__gte": start})
-    if isinstance(end, datetime.datetime):
-        kwargs.update({"date_created__lte": end})
-
-    if xform.is_merged_dataset:
-        xforms = xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
-            "id", flat=True
-        )
-        xform_ids = list(xforms) or [xform.pk]
-        instances = Instance.objects.filter(xform_id__in=xform_ids)
-    else:
-        instances = xform.instances
-
-    return instances.filter(**kwargs)
+    return sql, params
 
 
 def _get_sort_fields(sort):
-    sort = ["id"] if sort is None else sort_from_mongo_sort_str(sort)
+    sort = [] if sort is None else sort_from_mongo_sort_str(sort)
 
     return list(_parse_sort_fields(sort))
 
 
-# pylint: disable=too-many-locals
+def build_sql_where(xform, query, start=None, end=None):
+    """Build SQL WHERE clause"""
+    known_integers = [
+        get_name_from_survey_element(e)
+        for e in xform.get_survey_elements_of_type("integer")
+    ]
+    where = []
+    where_params = []
+
+    if query and isinstance(query, list):
+        for qry in query:
+            _where, _where_params = get_where_clause(qry, known_integers)
+            where += _where
+            where_params += _where_params
+
+    else:
+        where, where_params = get_where_clause(query, known_integers)
+
+    sql_where = "WHERE xform_id in %s AND deleted_at IS NULL"
+
+    if where_params:
+        sql_where += " AND " + " AND ".join(where)
+
+    if isinstance(start, datetime.datetime):
+        sql_where += " AND date_created >= %s"
+        where_params += [start.isoformat()]
+    if isinstance(end, datetime.datetime):
+        sql_where += " AND date_created <= %s"
+        where_params += [end.isoformat()]
+
+    xform_pks = [xform.pk]
+
+    if xform.is_merged_dataset:
+        merged_xform_ids = list(
+            xform.mergedxform.xforms.filter(deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+        if merged_xform_ids:
+            xform_pks = list(merged_xform_ids)
+
+    params = [tuple(xform_pks)] + where_params
+
+    return sql_where, params
+
+
+# pylint: disable=too-many-locals,too-many-statements,too-many-branches
 def get_sql_with_params(
     xform,
     query=None,
@@ -228,22 +235,11 @@ def get_sql_with_params(
     end=None,
     start_index=None,
     limit=None,
-    count=None,
     json_only: bool = True,
 ):
-    """
-    Returns the SQL and related parameters.
-    """
-    records = _get_instances(xform, start, end)
-    params = []
+    """Returns the SQL and related parameters"""
     sort = _get_sort_fields(sort)
     sql = ""
-
-    known_integers = [
-        get_name_from_survey_element(e)
-        for e in xform.get_survey_elements_of_type("integer")
-    ]
-    where, where_params = get_where_clause(query, known_integers)
 
     if fields and isinstance(fields, six.string_types):
         fields = json.loads(fields)
@@ -252,32 +248,25 @@ def get_sql_with_params(
         field_list = ["json->%s" for _i in fields]
         sql = f"SELECT {','.join(field_list)} FROM logger_instance"
 
-        sql_where = ""
-        if where_params:
-            sql_where = " AND " + " AND ".join(where)
-
-        sql += " WHERE xform_id = %s " + sql_where + " AND deleted_at IS NULL"
-        params = [xform.pk] + where_params
     else:
         if json_only:
-            records = records.values_list("json", flat=True)
+            # pylint: disable=protected-access
+            if sort and ParsedInstance._has_json_fields(sort):
+                sql = "SELECT json FROM logger_instance"
 
-        if query and isinstance(query, list):
-            for qry in query:
-                _where, _where_params = get_where_clause(qry, known_integers)
-                records = records.extra(where=_where, params=_where_params)
+            else:
+                sql = "SELECT id,json FROM logger_instance"
 
         else:
-            if where_params:
-                records = records.extra(where=where, params=where_params)
+            sql = "SELECT * FROM logger_instance"
+
+    sql_where, params = build_sql_where(xform, query, start, end)
+    sql += f" {sql_where}"
 
     # apply sorting
-    if not count and sort:
+    if sort:
         # pylint: disable=protected-access
         if ParsedInstance._has_json_fields(sort):
-            if not fields:
-                # we have to do a sql query for json field order
-                sql, params = records.query.sql_with_params()
             params = list(params) + json_order_by_params(
                 sort, none_json_fields=NONE_JSON_FIELDS
             )
@@ -287,54 +276,104 @@ def get_sql_with_params(
             sql = f"{sql} {_json_order_by}"
         else:
             if not fields:
-                records = records.order_by(*sort)
+                sql += " ORDER BY"
 
-    records, sql, params = _start_index_limit(
-        records, sql, fields, params, sort, start_index, limit
-    )
+                for index, sort_field in enumerate(sort):
+                    if sort_field.startswith("-"):
+                        sort_field = sort_field.removeprefix("-")
+                        # It's safe to use string interpolation since this
+                        # is a column and not a value
+                        sql += f" {sort_field} DESC"
+                    else:
+                        sql += f" {sort_field} ASC"
 
-    return sql, params, records
+                    if index != len(sort) - 1:
+                        sql += ","
+
+    sql, params = _start_index_limit(sql, params, start_index, limit)
+
+    return sql, params
 
 
-def query_data(
+def query_count(
     xform,
     query=None,
-    fields=None,
+    date_created_gte=None,
+    date_created_lte=None,
+):
+    """Count number of instances matching query"""
+    sql_where, params = build_sql_where(
+        xform,
+        query,
+        date_created_gte,
+        date_created_lte,
+    )
+    sql = f"SELECT COUNT(id) FROM logger_instance {sql_where}"  # nosec
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        (count,) = cursor.fetchone()
+
+    return count
+
+
+def query_fields_data(
+    xform,
+    fields,
+    query=None,
     sort=None,
     start=None,
     end=None,
     start_index=None,
     limit=None,
-    count=None,
+):
+    """Query the submissions table and return json fields data"""
+    sql, params = get_sql_with_params(
+        xform,
+        query=query,
+        fields=fields,
+        sort=sort,
+        start=start,
+        end=end,
+        start_index=start_index,
+        limit=limit,
+    )
+
+    if isinstance(fields, six.string_types):
+        fields = json.loads(fields)
+
+    return _query_iterator(sql, fields, params)
+
+
+def query_data(
+    xform,
+    query=None,
+    sort=None,
+    start=None,
+    end=None,
+    start_index=None,
+    limit=None,
     json_only: bool = True,
 ):
-    """Query the submissions table and returns the results."""
-
-    sql, params, records = get_sql_with_params(
+    """Query the submissions table and returns the results"""
+    sql, params = get_sql_with_params(
         xform,
-        query,
-        fields,
-        sort,
-        start,
-        end,
-        start_index,
-        limit,
-        count,
+        query=query,
+        sort=sort,
+        start=start,
+        end=end,
+        start_index=start_index,
+        limit=limit,
         json_only=json_only,
     )
-    if fields and isinstance(fields, six.string_types):
-        fields = json.loads(fields)
-    sort = _get_sort_fields(sort)
-    # pylint: disable=protected-access
-    if (ParsedInstance._has_json_fields(sort) or fields) and sql:
-        records = _query_iterator(sql, fields, params, count)
 
-    if count and isinstance(records, types.GeneratorType):
-        return list(records)
-    if count:
-        return [{"count": records.count()}]
+    instances = Instance.objects.raw(sql, params)
 
-    return records
+    for instance in instances.iterator():
+        if json_only:
+            yield instance.json
+        else:
+            yield instance
 
 
 class ParsedInstance(models.Model):

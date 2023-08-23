@@ -3,10 +3,9 @@
 CSV export utility functions.
 """
 from collections import OrderedDict
-from itertools import chain
+from itertools import chain, tee
 
 from django.conf import settings
-from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
@@ -17,8 +16,6 @@ from six import iteritems
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance, query_data
-from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     BAMBOO_DATASET_ID,
@@ -481,49 +478,6 @@ class AbstractDataFrameBuilder:
                         cls._split_gps_fields(list_item, gps_fields)
         record.update(updated_gps_fields)
 
-    # pylint: disable=too-many-arguments
-    def _query_data(
-        self,
-        query="{}",
-        start=0,
-        limit=ParsedInstance.DEFAULT_LIMIT,
-        fields="[]",
-        count=False,
-    ):
-        # query_data takes params as json strings
-        # so we dumps the fields dictionary
-        count_args = {
-            "xform": self.xform,
-            "query": query,
-            "start": self.start,
-            "end": self.end,
-            "fields": "[]",
-            "sort": "{}",
-            "count": True,
-        }
-        count_object = list(query_data(**count_args))
-        record_count = count_object[0]["count"]
-        if record_count < 1:
-            raise NoRecordsFoundError("No records found for your query")
-        # if count was requested, return the count
-        if count:
-            return record_count
-
-        query_args = {
-            "xform": self.xform,
-            "query": query,
-            "fields": fields,
-            "start": self.start,
-            "end": self.end,
-            "sort": "id",
-            "start_index": start,
-            "limit": limit,
-            "count": False,
-        }
-        cursor = query_data(**query_args)
-
-        return cursor
-
 
 # pylint: disable=too-few-public-methods
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
@@ -843,22 +797,17 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 flat_dict.update(reindexed)
             yield flat_dict
 
-    def export_to(self, path, dataview=None):
+    def export_to(self, path, cursor, dataview=None):
         """Export a CSV formated to the given ``path``."""
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.data_dictionary.survey, self.ordered_columns)
+        # creator copy of iterator cursor
+        cursor, ordered_col_cursor = tee(cursor)
+        self._update_ordered_columns_from_data(ordered_col_cursor)
+        # Unpack xform columns and data
+        data = self._format_for_dataframe(cursor)
 
         if dataview:
-            cursor = dataview.query_data(
-                dataview, all_data=True, filter_query=self.filter_query
-            )
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
-
-            self._update_ordered_columns_from_data(cursor)
-
-            data = self._format_for_dataframe(cursor)
-
             columns = list(
                 chain.from_iterable(
                     [
@@ -869,20 +818,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 )
             )
         else:
-            try:
-                cursor = self._query_data(self.filter_query)
-            except NoRecordsFoundError:
-                # Set cursor object to an an empty queryset
-                cursor = self.xform.instances.none()
-
-            self._update_ordered_columns_from_data(cursor)
-
-            if isinstance(cursor, QuerySet):
-                cursor = cursor.iterator()
-
-            # Unpack xform columns and data
-            data = self._format_for_dataframe(cursor)
-
             columns = list(
                 chain.from_iterable(
                     [

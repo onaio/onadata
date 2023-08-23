@@ -1170,7 +1170,7 @@ class ExportBuilder:
             host=host,
         )
 
-        csv_builder.export_to(path, dataview=dataview)
+        csv_builder.export_to(path, data, dataview=dataview)
 
     def get_default_language(self, languages):
         """Return the default languange of the XForm."""

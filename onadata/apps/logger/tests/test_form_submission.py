@@ -21,7 +21,7 @@ from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.parsed_instance import query_data, query_count
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
 
@@ -312,10 +312,8 @@ class TestFormSubmission(TestBase):
         )
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
-
-        cursor = [r for r in query_data(**query_args)]
-        num_data_instances = cursor[0]["count"]
+        query_args = {"xform": self.xform}
+        num_data_instances = query_count(**query_args)
         # make first submission
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
@@ -330,8 +328,8 @@ class TestFormSubmission(TestBase):
         # no new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # edited submission
         xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -369,12 +367,10 @@ class TestFormSubmission(TestBase):
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
 
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
-        query_args["count"] = False
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         with open(xml_edit_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
@@ -390,8 +386,7 @@ class TestFormSubmission(TestBase):
             "tutorial_2012-06-27_11-27-53_w_uuid_edited_again.xml",
         )
         self._make_submission(xml_edit_submission_file_path)
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         edited_instance = self.xform.instances.first()
         instance_history_2 = InstanceHistory.objects.last()
         self.assertEqual(
@@ -457,7 +452,7 @@ class TestFormSubmission(TestBase):
             self._make_submission(path=xml_submission_file_path)
 
     def test_edit_updated_geopoint_cache(self):
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
+        query_args = {"xform": self.xform}
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..",
@@ -470,8 +465,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         # query mongo for the _geopoint field
-        query_args["count"] = False
-        records = query_data(**query_args)
+        records = [item for item in query_data(**query_args)]
         self.assertEqual(len(records), 1)
         # submit the edited instance
         xml_submission_file_path = os.path.join(
@@ -484,7 +478,7 @@ class TestFormSubmission(TestBase):
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
-        records = query_data(**query_args)
+        records = [item for item in query_data(**query_args)]
         self.assertEqual(len(records), 1)
         cached_geopoint = records[0][GEOLOCATION]
         # the cached geopoint should equal the gps field
@@ -549,9 +543,8 @@ class TestFormSubmission(TestBase):
 
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
-        cursor = query_data(**query_args)
-        num_data_instances = cursor[0]["count"]
+        query_args = {"xform": self.xform}
+        num_data_instances = query_count(**query_args)
         # make first submission
         self._make_submission(xml_submission_file_path)
 
@@ -560,8 +553,8 @@ class TestFormSubmission(TestBase):
         # no new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
 
         # create a new user
         alice = self._create_user("alice", "alice")
@@ -590,12 +583,10 @@ class TestFormSubmission(TestBase):
         self.assertEqual(Instance.objects.count(), num_instances + 1)
         # should be a new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history + 1)
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
-        query_args["count"] = False
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         with open(xml_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
