@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.12.2(2033-08-24)
+-------------------
+- Solve intermittent bug where form permissions are not applied for new forms
+  `PR #2470 <https://github.com/onaio/onadata/pull/2470>`
+  [@kelvin-muchiri]
+- Enhance performance when exporting data on endpoint api/v1/data/<form_id>.<format>
+  `PR #2460 <https://github.com/onaio/onadata/pull/2460>`
+  [@kelvin-muchiri]
+
 v3.12.1(2023-08-14)
 -------------------
 
