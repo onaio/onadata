@@ -107,10 +107,9 @@ class BriefcaseViewset(
                 if queryset.first():
                     username = queryset.first().user.username
             elif project_pk:
-                queryset = queryset.filter(project__pk=project_pk)
+                queryset = self.queryset.filter(project__pk=project_pk)
                 if queryset.first():
                     username = queryset.first().user.username
-
 
         obj = get_object_or_404(
             Instance,
@@ -122,7 +121,7 @@ class BriefcaseViewset(
 
         return obj
 
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
     def filter_queryset(self, queryset):
         """
         Filters an XForm submission instances using ODK Aggregate query parameters.
@@ -131,14 +130,18 @@ class BriefcaseViewset(
         form_pk = self.kwargs.get("xform_pk")
         project_pk = self.kwargs.get("project_pk")
 
-        if (not username or not form_pk or not project_pk) and self.request.user.is_anonymous:
+        if (
+            not username or not form_pk or not project_pk
+        ) and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
         if username is not None and self.request.user.is_anonymous:
             profile = None
             if username:
-                profile = get_object_or_404(UserProfile, user__username__iexact=username)
+                profile = get_object_or_404(
+                    UserProfile, user__username__iexact=username
+                )
             elif form_pk:
                 queryset = queryset.filter(pk=form_pk)
                 if queryset.first():
