@@ -10,6 +10,7 @@ from django.http import Http404
 from django.http import UnreadablePostError
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
+from django.test.utils import override_settings
 from guardian.shortcuts import assign_perm
 from mock import patch, Mock, ANY
 from nose import SkipTest
@@ -633,3 +634,30 @@ class TestFormSubmission(TestBase):
         self._make_submission(path=xml_submission_file_path)
         self.assertEqual(400, self.response.status_code)
         self.assertIn("invalid input syntax for type json", str(self.response.message))
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    @patch("onadata.apps.viewer.signals._post_process_submissions")
+    def test_post_save_submission_count_update(self, mock):
+        """Test that submission count is updated asyncronously"""
+        # initial count should be 0
+        self.assertEqual(0, self.xform.instances.count())
+        # publish submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml",
+        )
+
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 201)
+
+        # test that post_save signal is executed
+        instance = self.xform.instances.first()
+        self.assertTrue(mock.called)
+        mock.assert_called_once_with(instance)
+        self.assertEqual(mock.call_count, 1)
+        self.xform.refresh_from_db()
+
+        # test submission count
+        self.assertEqual(1, self.xform.instances.count())
+        self.assertEqual(1, self.xform.num_of_submissions)
