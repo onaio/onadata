@@ -697,6 +697,11 @@ class Instance(models.Model, InstanceBaseClass):
     class Meta:
         app_label = "logger"
         unique_together = ("xform", "uuid")
+        indexes = [
+            models.Index(fields=['date_created']),
+            models.Index(fields=['date_modified']),
+            models.Index(fields=['deleted_at']),
+        ]
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now(), user=None):
@@ -824,9 +829,19 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         _update_xform_submission_count_delete(instance)
 
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
-        update_xform_submission_count_async.apply_async(args=[instance.pk, created])
-        save_full_json_async.apply_async(args=[instance.pk, created])
-        update_project_date_modified_async.apply_async(args=[instance.pk, created])
+        transaction.on_commit(
+            lambda: update_xform_submission_count_async.apply_async(
+                args=[instance.pk, created]
+            )
+        )
+        transaction.on_commit(
+            lambda: save_full_json_async.apply_async(args=[instance.pk, created])
+        )
+        transaction.on_commit(
+            lambda: update_project_date_modified_async.apply_async(
+                args=[instance.pk, created]
+            )
+        )
 
     else:
         update_xform_submission_count(instance.pk, created)

@@ -777,13 +777,18 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
 
     # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_project_users_get_readonly_role_on_add_form(self):
         self._project_create()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         ReadOnlyRole.add(alice_profile.user, self.project)
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
-        self._publish_xls_form_to_project()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project()
+
+        alice_profile.refresh_from_db()
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
         self.assertFalse(OwnerRole.user_has_role(alice_profile.user, self.xform))
 
@@ -1253,6 +1258,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             role_class._remove_obj_permissions(alice_profile.user, self.project)
 
     # pylint: disable=invalid-name
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_project_share_endpoint_form_published_later(self, mock_send_mail):
         # create project
@@ -1280,7 +1286,10 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
 
             # publish form after project sharing
-            self._publish_xls_form_to_project()
+            with self.captureOnCommitCallbacks(execute=True):
+                self._publish_xls_form_to_project()
+
+            alice_profile.user.refresh_from_db()
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.xform))
             # Reset the mock called value to False
             mock_send_mail.called = False
@@ -1673,6 +1682,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         error_msg = "Invalid value for project_id. It must be a positive integer."
         self.assertEqual(str(response.data["detail"]), error_msg)
 
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_publish_to_public_project(self):
         public_project = Project(
             name="demo",
@@ -1682,12 +1692,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             organization=self.user,
         )
         public_project.save()
-
         self.project = public_project
-        self._publish_xls_form_to_project(public=True)
 
-        self.assertEqual(self.xform.shared, True)
-        self.assertEqual(self.xform.shared_data, True)
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project(public=True)
+
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.shared)
+        self.assertTrue(self.xform.shared_data)
 
     def test_public_form_private_project(self):
         self.project = Project(
@@ -1738,6 +1750,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertFalse(self.xform.shared_data)
         self.assertFalse(self.project.shared)
 
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_publish_to_public_project_public_form(self):
         public_project = Project(
             name="demo",
@@ -1747,9 +1760,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             organization=self.user,
         )
         public_project.save()
-
         self.project = public_project
-
         data = {
             "owner": f"http://testserver/api/v1/users/{self.project.organization.username}",
             "public": True,
@@ -1763,10 +1774,13 @@ class TestProjectViewSet(TestAbstractViewSet):
             "title": "transportation_2011_07_25",
             "bamboo_dataset": "",
         }
-        self._publish_xls_form_to_project(publish_data=data, merge=False)
 
-        self.assertEqual(self.xform.shared, True)
-        self.assertEqual(self.xform.shared_data, True)
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project(publish_data=data, merge=False)
+
+        self.xform.refresh_from_db()
+        self.assertTrue(self.xform.shared)
+        self.assertTrue(self.xform.shared_data)
 
     def test_project_all_users_can_share_remove_themselves(self):
         self._publish_xls_form_to_project()
@@ -2913,9 +2927,7 @@ class CreateProjectInvitationTestCase(TestAbstractViewSet):
                 "status": 1,
             },
         )
-        mock_send_mail.assert_called_with(
-            invitation.pk, "https://onadata.com/register"
-            )
+        mock_send_mail.assert_called_with(invitation.pk, "https://onadata.com/register")
 
     def test_email_required(self, mock_send_mail):
         """email is required"""

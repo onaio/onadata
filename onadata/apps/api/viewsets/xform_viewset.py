@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 The /forms API endpoint.
 """
@@ -80,6 +81,7 @@ from onadata.libs.utils.api_export_tools import (
     get_existing_file_format,
     process_async_export,
     response_for_format,
+    _get_export_type,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import json_stream
@@ -573,7 +575,14 @@ class XFormViewSet(
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request, xform, query, export_type, token, meta)
+        return custom_response_handler(
+            request,
+            xform,
+            query,
+            export_type,
+            token,
+            meta,
+        )
 
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
@@ -704,8 +713,9 @@ class XFormViewSet(
                     )
                 else:
                     csv_file.seek(0)
+                    file_name = getattr(csv_file, "name", xls_file and xls_file.name)
                     upload_to = os.path.join(
-                        request.user.username, "csv_imports", csv_file.name
+                        request.user.username, "csv_imports", file_name
                     )
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(
@@ -863,28 +873,24 @@ class XFormViewSet(
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
         """Returns the status of an async export."""
-        job_uuid = request.query_params.get("job_uuid")
-        export_type = request.query_params.get("format")
-        query = request.query_params.get("query")
         xform = self.get_object()
+        export_type = request.query_params.get("format")
 
-        token = request.query_params.get("token")
-        meta = request.query_params.get("meta")
-        data_id = request.query_params.get("data_id")
-        options = parse_request_export_options(request.query_params)
-        options["host"] = request.get_host()
+        if export_type:
+            try:
+                _get_export_type(export_type)
 
-        options.update(
-            {
-                "meta": meta,
-                "token": token,
-                "data_id": data_id,
-            }
-        )
-        if query:
-            options.update({"query": query})
+            except exceptions.ParseError:
+                payload = {"details": _("Export format not supported")}
+                return Response(
+                    data=payload,
+                    status=status.HTTP_403_FORBIDDEN,
+                    content_type="application/json",
+                )
 
-        if request.query_params.get("format") in ["csvzip", "savzip"]:
+        job_uuid = request.query_params.get("job_uuid")
+
+        if export_type in ["csvzip", "savzip"]:
             # Overide renderer and mediatype because all response are
             # suppose to be in json
             # TODO: Avoid overiding the format query param for export type
@@ -903,6 +909,23 @@ class XFormViewSet(
                 except NameError:
                     resp = get_async_response(job_uuid, request, xform)
         else:
+            query = request.query_params.get("query")
+            token = request.query_params.get("token")
+            meta = request.query_params.get("meta")
+            data_id = request.query_params.get("data_id")
+            options = parse_request_export_options(request.query_params)
+            options["host"] = request.get_host()
+            options.update(
+                {
+                    "meta": meta,
+                    "token": token,
+                    "data_id": data_id,
+                }
+            )
+
+            if query:
+                options.update({"query": query})
+
             resp = process_async_export(request, xform, export_type, options)
 
             if isinstance(resp, HttpResponseRedirect):
@@ -917,7 +940,9 @@ class XFormViewSet(
         self.etag_data = f"{timezone.now()}"
 
         return Response(
-            data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
+            data=resp,
+            status=status.HTTP_202_ACCEPTED,
+            content_type="application/json",
         )
 
     def _get_streaming_response(self):

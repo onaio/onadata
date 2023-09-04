@@ -3,6 +3,54 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.12.2(2033-08-24)
+-------------------
+- Solve intermittent bug where form permissions are not applied for new forms
+  `PR #2470 <https://github.com/onaio/onadata/pull/2470>`
+  [@kelvin-muchiri]
+- Enhance performance when exporting data on endpoint api/v1/data/<form_id>.<format>
+  `PR #2460 <https://github.com/onaio/onadata/pull/2460>`
+  [@kelvin-muchiri]
+
+v3.12.1(2023-08-14)
+-------------------
+
+- Fix pagination on endpoint /api/v2/open-data/<id>/data returning duplicates
+  `PR #2467 <https://github.com/onaio/onadata/pull/2467>`
+  [@kelvin-muchiri]
+- Update dependencies
+  `PR @2466 <https://github.com/onaio/onadata/pull/2466>`
+  [@KipSigei]
+- Fix attribute error when uploading xls datasets
+  `PR #2465 <https://github.com/onaio/onadata/pull/2465>`
+  [@FrankApiyo]
+
+v3.12.0(2023-08-07)
+-------------------
+
+- Add indexes to instance model date fields
+  `PR #2393 <https://github.com/onaio/onadata/pull/2393>`
+  [@KipSigei]
+
+v3.11.0(2023-07-28)
+-------------------
+
+- Ensure onadata can work in a multi-domain setup
+  `PR #2450 <https://github.com/onaio/onadata/pull/2450>`
+  [@FrankApiyo]
+- Fix AttributeError: 'ExportBuilder' object has no attribute 'to_google_sheets'
+  `PR #2458 <https://github.com/onaio/onadata/pull/2458>`
+  [@kelvin-muchiri]
+- Enhance performance of open-data endpoint api/v2/open-data/<uuid>/data
+  `PR #2456 <https://github.com/onaio/onadata/pull/2456>`
+  [@kelvin-muchiri]
+- Fix AttributeError: 'NoneType' object has no attribute 'strip' when exporting form data
+  `PR #2453 <https://github.com/onaio/onadata/pull/2453>`
+  [@kelvin-muchiri]
+- Add ability to create, update project invitations
+  `PR #2430 <https://github.com/onaio/onadata/pull/2430>`
+  [@kelvin-muchiri]
+
 v3.10.1(2023-07-20)
 -------------------
 

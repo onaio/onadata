@@ -60,7 +60,14 @@ from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
-from onadata.apps.viewer.models.parsed_instance import DATETIME_FORMAT, query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    DATETIME_FORMAT,
+    query_data,
+    query_fields_data,
+    query_count,
+    ParsedInstance,
+    _get_sort_fields,
+)
 from onadata.apps.viewer.views import attachment_url
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
@@ -569,7 +576,6 @@ def api(request, username=None, id_string=None):  # noqa C901
         return HttpResponseForbidden(_("Not shared."))
 
     query = request.GET.get("query")
-    total_records = xform.num_of_submissions
 
     try:
         args = {
@@ -590,15 +596,12 @@ def api(request, username=None, id_string=None):  # noqa C901
 
             start_index = (page - 1) * page_size
             args["start_index"] = start_index
-
             args["limit"] = page_size
 
-        if query:
-            count_args = args.copy()
-            count_args["count"] = True
-            count_results = list(query_data(**count_args))
-            if count_results:
-                total_records = count_results[0].get("count", total_records)
+            if args.get("sort") is None:
+                # Paginated data needs to be sorted. We order by id ascending if
+                # sort is empty
+                args["sort"] = '{"_id": 1}'
 
         if "start" in request.GET:
             args["start_index"] = int(request.GET.get("start"))
@@ -606,20 +609,38 @@ def api(request, username=None, id_string=None):  # noqa C901
         if "limit" in request.GET:
             args["limit"] = int(request.GET.get("limit"))
 
-        if "count" in request.GET:
-            args["count"] = int(request.GET.get("count")) > 0
+        if "count" in request.GET and int(request.GET.get("count")) > 0:
+            count = query_count(xform, query)
+            cursor = [{"count": count}]
 
-        cursor = query_data(**args)
+        else:
+            has_json_fields = False
+
+            if args.get("sort"):
+                sort_fields = _get_sort_fields(args.get("sort"))
+                # pylint: disable=protected-access
+                has_json_fields = ParsedInstance._has_json_fields(sort_fields)
+
+            should_query_json_fields = bool(args.get("fields")) or has_json_fields
+
+            if should_query_json_fields:
+                cursor = list(query_fields_data(**args))
+
+            else:
+                args.pop("fields")
+                # pylint: disable=unexpected-keyword-arg
+                cursor = list(query_data(**args))
+
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(conditional_escape(str(e)))
 
     if "callback" in request.GET and request.GET.get("callback") != "":
         callback = request.GET.get("callback")
-        response_text = json_util.dumps(list(cursor))
+        response_text = json_util.dumps(cursor)
         response_text = f"{callback}({response_text})"
         response = HttpResponse(response_text)
     else:
-        response = JsonResponse(list(cursor), safe=False)
+        response = JsonResponse(cursor, safe=False)
 
     add_cors_headers(response)
 
@@ -1452,8 +1473,6 @@ def activity_api(request, username):
             query_args["start"] = int(request.GET.get("start"))
         if "limit" in request.GET:
             query_args["limit"] = int(request.GET.get("limit"))
-        if "count" in request.GET:
-            query_args["count"] = int(request.GET.get("count")) > 0
         cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(str(e))
