@@ -3,7 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v3.12.2(2033-08-24)
+v3.13.0(2023-09-04)
+-------------------
+- Add project and form level odk submission-list and download endpoints
+  `PR #2451 <https://github.com/onaio/onadata/pull/2451>`
+  [@KipSigei]
+- Fix async submission count discrepancy
+  `PR #2469 <https://github.com/onaio/onadata/pull/2469>`
+  [@KipSigei]
+
+v3.12.2(2023-08-24)
 -------------------
 - Solve intermittent bug where form permissions are not applied for new forms
   `PR #2470 <https://github.com/onaio/onadata/pull/2470>`
