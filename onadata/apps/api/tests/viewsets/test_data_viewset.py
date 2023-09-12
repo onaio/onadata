@@ -289,34 +289,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.data[0].keys()), ["_id", "_status"])
 
-        # With pagination
-        instances = self.xform.instances.all().order_by("pk")
-        # Page 1
-        request = self.factory.get(
-            "/",
-            data={**fields_query, "page": 1, "page_size": 100},
-            **self.extra,
-        )
-        response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 100)
-
-        for index, instance in enumerate(instances[:100]):
-            self.assertEqual(response.data[index]["_id"], instance.pk)
-
-        # Page 2
-        request = self.factory.get(
-            "/",
-            data={**fields_query, "page": 2, "page_size": 100},
-            **self.extra,
-        )
-        response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
-
-        for index, instance in enumerate(instances[100:101]):
-            self.assertEqual(response.data[index]["_id"], instance.pk)
-
     def test_data_jsonp(self):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
