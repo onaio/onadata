@@ -3564,3 +3564,60 @@ class ExportDataTestCase(SerializeMixin, TestBase):
         self.assertEqual(headers, expected_headers)
         number_records = len(list(csv_reader))
         self.assertEqual(number_records, 4)
+
+    def test_default_ordering(self):
+        """Export data is sorted by id by default"""
+        self._make_submissions()
+        formid = self.xform.pk
+        # sort csv export data by id in descending order
+        request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+        response = self.view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        csv_file_obj = StringIO(
+            "".join([c.decode("utf-8") for c in response.streaming_content])
+        )
+        csv_reader = csv.reader(csv_file_obj)
+        instances = Instance.objects.filter(xform_id=formid).order_by("id")
+        self.assertEqual(instances.count(), 4)
+        headers = next(csv_reader)
+        expected_headers = [
+            "transport/available_transportation_types_to_referral_facility/ambulance",
+            "transport/available_transportation_types_to_referral_facility/bicycle",
+            "transport/available_transportation_types_to_referral_facility/boat_canoe",
+            "transport/available_transportation_types_to_referral_facility/bus",
+            "transport/available_transportation_types_to_referral_facility/donkey_mule_cart",
+            "transport/available_transportation_types_to_referral_facility/keke_pepe",
+            "transport/available_transportation_types_to_referral_facility/lorry",
+            "transport/available_transportation_types_to_referral_facility/motorbike",
+            "transport/available_transportation_types_to_referral_facility/taxi",
+            "transport/available_transportation_types_to_referral_facility/other",
+            "transport/available_transportation_types_to_referral_facility_other",
+            "transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "image1",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(headers, expected_headers)
+        # csv records should be ordered by id in descending order
+        for instance in instances:
+            row = next(csv_reader)
+            self.assertEqual(str(instance.id), row[22])
