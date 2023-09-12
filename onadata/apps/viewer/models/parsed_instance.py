@@ -275,20 +275,19 @@ def get_sql_with_params(
             )
             sql = f"{sql} {_json_order_by}"
         else:
-            if not fields:
-                sql += " ORDER BY"
+            sql += " ORDER BY"
 
-                for index, sort_field in enumerate(sort):
-                    if sort_field.startswith("-"):
-                        sort_field = sort_field.removeprefix("-")
-                        # It's safe to use string interpolation since this
-                        # is a column and not a value
-                        sql += f" {sort_field} DESC"
-                    else:
-                        sql += f" {sort_field} ASC"
+            for index, sort_field in enumerate(sort):
+                if sort_field.startswith("-"):
+                    sort_field = sort_field.removeprefix("-")
+                    # It's safe to use string interpolation since this
+                    # is a column and not a value
+                    sql += f" {sort_field} DESC"
+                else:
+                    sql += f" {sort_field} ASC"
 
-                    if index != len(sort) - 1:
-                        sql += ","
+                if index != len(sort) - 1:
+                    sql += ","
 
     sql, params = _start_index_limit(sql, params, start_index, limit)
 
