@@ -3859,7 +3859,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.data.get("has_hxl_support"))
             # sort csv data in ascending order
-            data = {"win_excel_utf8": True, "sort": '{"_id": 1}'}
+            data = {"win_excel_utf8": True}
             request = self.factory.get("/", data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)
@@ -3888,7 +3888,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, ".csv")
             # sort csv data in ascending order
-            data = {"win_excel_utf8": False, "sort": '{"_id": 1}'}
+            data = {"win_excel_utf8": False}
             request = self.factory.get("/", data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format="csv")
             self.assertEqual(response.status_code, 200)

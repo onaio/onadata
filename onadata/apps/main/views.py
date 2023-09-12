@@ -598,11 +598,6 @@ def api(request, username=None, id_string=None):  # noqa C901
             args["start_index"] = start_index
             args["limit"] = page_size
 
-            if args.get("sort") is None:
-                # Paginated data needs to be sorted. We order by id ascending if
-                # sort is empty
-                args["sort"] = '{"_id": 1}'
-
         if "start" in request.GET:
             args["start_index"] = int(request.GET.get("start"))
 

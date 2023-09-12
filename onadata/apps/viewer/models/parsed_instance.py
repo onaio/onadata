@@ -174,7 +174,7 @@ def _start_index_limit(sql, params, start_index, limit):
 
 
 def _get_sort_fields(sort):
-    sort = [] if sort is None else sort_from_mongo_sort_str(sort)
+    sort = ["id"] if sort is None else sort_from_mongo_sort_str(sort)
 
     return list(_parse_sort_fields(sort))
 
