@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.13.1(2023-09-13)
+-------------------
+- Revert to have data exports default sorting by id
+  `PR #2474 <https://github.com/onaio/onadata/pull/2474>`
+  [@kelvin-muchiri]
+
 v3.13.0(2023-09-04)
 -------------------
 - Add project and form level odk submission-list and download endpoints
