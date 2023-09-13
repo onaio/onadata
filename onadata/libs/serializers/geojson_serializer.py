@@ -66,23 +66,24 @@ def geometry_from_string(points, simple_style):
     that adheres to the simplestyle-spec
     """
 
-    points = points.split(";")
-    pnt_list = [tuple(map(float, reversed(point.split()[:2]))) for point in points]
+    if isinstance(points, str):
+        points = points.split(";")
+        pnt_list = [tuple(map(float, reversed(point.split()[:2]))) for point in points]
 
-    if len(pnt_list) == 1:
-        geometry = (
-            geojson.Point(pnt_list[0])
-            if str_to_bool(simple_style)
-            else geojson.GeometryCollection([geojson.Point(pnt_list[0])])
-        )
-    elif is_polygon(pnt_list):
-        # First and last point are same -> Polygon
-        geometry = geojson.Polygon([pnt_list])
-    else:
-        # First and last point not same -> LineString
-        geometry = geojson.LineString(pnt_list)
+        if len(pnt_list) == 1:
+            geometry = (
+                geojson.Point(pnt_list[0])
+                if str_to_bool(simple_style)
+                else geojson.GeometryCollection([geojson.Point(pnt_list[0])])
+            )
+        elif is_polygon(pnt_list):
+            # First and last point are same -> Polygon
+            geometry = geojson.Polygon([pnt_list])
+        else:
+            # First and last point not same -> LineString
+            geometry = geojson.LineString(pnt_list)
 
-    return geometry
+        return geometry
 
 
 class GeometryField(serializers.GeometryField):
