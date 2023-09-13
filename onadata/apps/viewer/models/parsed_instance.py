@@ -248,7 +248,7 @@ def get_sql_with_params(
         sql = f"SELECT {','.join(field_list)} FROM logger_instance"
 
     else:
-        sql = "SELECT * FROM logger_instance"
+        sql = "SELECT id, json, xml FROM logger_instance"
 
     sql_where, params = build_sql_where(xform, query, start, end)
     sql += f" {sql_where}"
