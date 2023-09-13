@@ -3,6 +3,7 @@
 OpenData tests.
 """
 import os
+import sys
 import json
 from re import search
 from django.test import RequestFactory
@@ -396,7 +397,7 @@ class TestTableauViewSet(TestBase):
         self.view = TableauViewSet.as_view({"get": "data"})
         _open_data = get_or_create_opendata(self.xform)
         uuid = _open_data[0].uuid
-        request = self.factory.get("/", data={"gt_id": 100000}, **self.extra)
+        request = self.factory.get("/", data={"gt_id": sys.maxsize}, **self.extra)
         response = self.view(request, uuid=uuid)
         self.assertEqual(response.status_code, 200)
         row_data = streaming_data(response)

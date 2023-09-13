@@ -3565,22 +3565,19 @@ class ExportDataTestCase(SerializeMixin, TestBase):
         number_records = len(list(csv_reader))
         self.assertEqual(number_records, 4)
 
-    def test_sort_query_param(self):
-        """sort query param works with exports"""
-
+    def test_default_ordering(self):
+        """Export data is sorted by id by default"""
         self._make_submissions()
         formid = self.xform.pk
         # sort csv export data by id in descending order
-        request = self.factory.get(
-            "/", data={"format": "csv", "sort": '{"_id": -1}'}, **self.extra
-        )
+        request = self.factory.get("/", data={"format": "csv"}, **self.extra)
         response = self.view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         csv_file_obj = StringIO(
             "".join([c.decode("utf-8") for c in response.streaming_content])
         )
         csv_reader = csv.reader(csv_file_obj)
-        instances = Instance.objects.filter(xform_id=formid).order_by("-id")
+        instances = Instance.objects.filter(xform_id=formid).order_by("id")
         self.assertEqual(instances.count(), 4)
         headers = next(csv_reader)
         expected_headers = [

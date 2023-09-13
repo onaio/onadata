@@ -174,7 +174,7 @@ def _start_index_limit(sql, params, start_index, limit):
 
 
 def _get_sort_fields(sort):
-    sort = [] if sort is None else sort_from_mongo_sort_str(sort)
+    sort = ["id"] if sort is None else sort_from_mongo_sort_str(sort)
 
     return list(_parse_sort_fields(sort))
 
@@ -258,7 +258,7 @@ def get_sql_with_params(
                 sql = "SELECT id,json FROM logger_instance"
 
         else:
-            sql = "SELECT * FROM logger_instance"
+            sql = "SELECT id,json,xml FROM logger_instance"
 
     sql_where, params = build_sql_where(xform, query, start, end)
     sql += f" {sql_where}"
@@ -275,20 +275,19 @@ def get_sql_with_params(
             )
             sql = f"{sql} {_json_order_by}"
         else:
-            if not fields:
-                sql += " ORDER BY"
+            sql += " ORDER BY"
 
-                for index, sort_field in enumerate(sort):
-                    if sort_field.startswith("-"):
-                        sort_field = sort_field.removeprefix("-")
-                        # It's safe to use string interpolation since this
-                        # is a column and not a value
-                        sql += f" {sort_field} DESC"
-                    else:
-                        sql += f" {sort_field} ASC"
+            for index, sort_field in enumerate(sort):
+                if sort_field.startswith("-"):
+                    sort_field = sort_field.removeprefix("-")
+                    # It's safe to use string interpolation since this
+                    # is a column and not a value
+                    sql += f" {sort_field} DESC"
+                else:
+                    sql += f" {sort_field} ASC"
 
-                    if index != len(sort) - 1:
-                        sql += ","
+                if index != len(sort) - 1:
+                    sql += ","
 
     sql, params = _start_index_limit(sql, params, start_index, limit)
 
