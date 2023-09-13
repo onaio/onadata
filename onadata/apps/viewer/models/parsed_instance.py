@@ -235,7 +235,6 @@ def get_sql_with_params(
     end=None,
     start_index=None,
     limit=None,
-    json_only: bool = True,
 ):
     """Returns the SQL and related parameters"""
     sort = _get_sort_fields(sort)
@@ -249,16 +248,7 @@ def get_sql_with_params(
         sql = f"SELECT {','.join(field_list)} FROM logger_instance"
 
     else:
-        if json_only:
-            # pylint: disable=protected-access
-            if sort and ParsedInstance._has_json_fields(sort):
-                sql = "SELECT json FROM logger_instance"
-
-            else:
-                sql = "SELECT id,json FROM logger_instance"
-
-        else:
-            sql = "SELECT * FROM logger_instance"
+        sql = "SELECT * FROM logger_instance"
 
     sql_where, params = build_sql_where(xform, query, start, end)
     sql += f" {sql_where}"
