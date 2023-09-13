@@ -353,7 +353,6 @@ def query_data(
         end=end,
         start_index=start_index,
         limit=limit,
-        json_only=json_only,
     )
 
     instances = Instance.objects.raw(sql, params)
