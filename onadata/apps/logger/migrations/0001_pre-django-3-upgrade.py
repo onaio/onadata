@@ -1003,7 +1003,7 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
-        migrations.RunPython(recalculate_xform_hash),
+        # migrations.RunPython(recalculate_xform_hash),
         migrations.AddField(
             model_name="instance",
             name="deleted_by",
@@ -1223,8 +1223,8 @@ class Migration(migrations.Migration):
             name="uuid",
             field=models.CharField(db_index=True, default="", max_length=36),
         ),
-        migrations.RunPython(generate_uuid_if_missing),
-        migrations.RunPython(regenerate_instance_json),
+        # migrations.RunPython(generate_uuid_if_missing),
+        # migrations.RunPython(regenerate_instance_json),
         migrations.CreateModel(
             name="XFormVersion",
             fields=[
@@ -1264,5 +1264,5 @@ class Migration(migrations.Migration):
                 "unique_together": {("xform", "version")},
             },
         ),
-        migrations.RunPython(create_initial_xform_version),
+        # migrations.RunPython(create_initial_xform_version),
     ]

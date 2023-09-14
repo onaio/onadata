@@ -8,9 +8,12 @@ import os
 import random
 from datetime import datetime
 
+from celery.result import AsyncResult
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -56,6 +59,7 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.tasks import regenerate_form_instance_json
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -83,7 +87,12 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
     _get_export_type,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    safe_delete,
+    XFORM_REGENERATE_INSTANCE_JSON_TASK,
+    XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,
+)
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -1003,3 +1012,30 @@ class XFormViewSet(
             resp = HttpResponseBadRequest(e)
 
         return resp
+
+    @action(methods=["GET"], detail=True, url_path="regenerate-submission-metadata")
+    def regenerate_instance_json(self, request, *args, **kwargs):
+        """Force metadata update for all submissions under this form
+
+        Updates submission json metadata asynchronously
+        """
+        xform = self.get_object()
+
+        if xform.is_instance_json_regenerated:
+            return Response({"status": "SUCCESS"})
+
+        cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
+
+        if (
+            cache.get(cache_key)
+            and AsyncResult(cache.get(cache_key)).state.upper() == "STARTED"
+        ):
+            return Response({"status": "STARTED"})
+
+        result = regenerate_form_instance_json.apply_async(xform.pk)
+        cache.set(
+            cache_key,
+            result.task_id,
+            XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,
+        )
+        return Response({"status": "STARTED"})

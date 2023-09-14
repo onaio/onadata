@@ -9,12 +9,14 @@ import csv
 import json
 import os
 import re
+import sys
 from builtins import open
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
 from xml.dom import Node, minidom
+from celery.result import AsyncResult
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -5706,3 +5708,97 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
             print(response.data)
             # Ensure response is renderable
             response.render()
+
+
+class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
+    """Tests for regenerate submission json endpoint"""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_xls_form_to_project()
+
+        self.view = XFormViewSet.as_view({"get": "regenerate_instance_json"})
+        self.cache_key = f"xfm-regenerate_instance_json_task-{self.xform.pk}"
+
+    def tearDown(self) -> None:
+        super().tearDown()
+
+        cache.clear()
+
+    def test_authentication(self):
+        """Authentication is required"""
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_form_valid(self):
+        """Form must be valid"""
+        request = self.factory.get("/")
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    def test_regenerates_instance_json(self, mock_regenerate):
+        """Json data for form submissions is regenerated"""
+        task_id = "f78ef7bb-873f-4a28-bc8a-865da43a741f"
+        mock_async_result = AsyncResult(task_id)
+        mock_regenerate.apply_async.return_value = mock_async_result
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"status": "STARTED"})
+        mock_regenerate.apply_async.assert_called_once_with(self.xform.pk)
+        self.assertEqual(cache.get(self.cache_key), task_id)
+
+    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    def test_regenerates_instance_json_no_duplicate(self, mock_regenerate):
+        """An already regenerated instance should not trigger regeneration"""
+        self.xform.is_instance_json_regenerated = True
+        self.xform.save()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"status": "SUCCESS"})
+        mock_regenerate.apply_async.assert_not_called()
+        self.assertFalse(cache.get(self.cache_key))
+
+    def _mock_get_task_meta_pending(self) -> dict[str, str]:
+        return {"status": "PENDING"}
+
+    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_pending)
+    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    def test_task_pending(self, mock_regenerate):
+        """Celery task is in PENDING state
+
+        PENDING means a task is waiting for execution or task id is invalid or expired
+        from the results backend
+        """
+        old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
+        cache.set(self.cache_key, old_task_id)
+        new_task_id = "f78ef7bb-873f-4a28-bc8a-865da43a741f"
+        mock_async_result = AsyncResult(new_task_id)
+        mock_regenerate.apply_async.return_value = mock_async_result
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"status": "STARTED"})
+        mock_regenerate.apply_async.assert_called_once_with(self.xform.pk)
+        self.assertEqual(cache.get(self.cache_key), new_task_id)
+
+    def _mock_get_task_meta_started(self) -> dict[str, str]:
+        return {"status": "STARTED"}
+
+    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_started)
+    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    def test_task_started(self, mock_regenerate):
+        """Celery task is in STARTED state"""
+        old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
+        cache.set(self.cache_key, old_task_id)
+        mock_async_result = AsyncResult(old_task_id)
+        mock_regenerate.apply_async.return_value = mock_async_result
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"status": "STARTED"})
+        mock_regenerate.apply_async.assert_not_called()
+        self.assertEqual(cache.get(self.cache_key), old_task_id)

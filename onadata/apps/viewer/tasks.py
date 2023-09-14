@@ -37,7 +37,6 @@ def _get_export_object(export_id):
         return Export.objects.get(id=export_id)
     except Export.DoesNotExist:
         if getattr(settings, "SLAVE_DATABASES", []):
-
             with use_master:
                 return Export.objects.get(id=export_id)
 
@@ -473,3 +472,9 @@ def delete_expired_failed_exports():
         internal_status=Export.FAILED, created_on__lt=time_threshold
     )
     exports.delete()
+
+
+@app.task(track_started=True)
+def regenerate_form_instance_json(xform_id: str) -> str:
+    """Update form submissions metadata async"""
+    pass
