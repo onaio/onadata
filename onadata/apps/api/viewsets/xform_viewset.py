@@ -1017,9 +1017,9 @@ class XFormViewSet(
     def regenerate_instance_json(self, request, *args, **kwargs):
         """Force json update for all submissions under this form
 
-        Updates json for all submissions asynchronously
+        Update json for the form's submissions asynchronously
         """
-        xform = self.get_object()
+        xform: XForm = self.get_object()
 
         if xform.is_instance_json_regenerated:
             # Async task completed successfully
