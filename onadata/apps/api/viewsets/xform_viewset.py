@@ -1035,12 +1035,12 @@ class XFormViewSet(
             return Response({"status": "STARTED"})
 
         # Task has either failed or does not exist in cache, we create a new async task
-        result: AsyncResult = regenerate_form_instance_json.apply_async(xform.pk)
         # Celery backend expires the result after 1 day (24hrs) as outlined in the docs,
         # https://docs.celeryq.dev/en/latest/userguide/configuration.html#result-expires
         # If after 1 day you create an AsyncResult, the status will be PENDING.
         # We therefore set the cache timeout to 1 day same as the Celery backend result
-        # expiry timeout.
+        # expiry timeout
+        result: AsyncResult = regenerate_form_instance_json.apply_async(xform.pk)
         cache.set(
             cache_key,
             result.task_id,
