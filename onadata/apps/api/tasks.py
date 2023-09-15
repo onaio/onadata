@@ -154,7 +154,10 @@ def send_project_invitation_email_async(
 
 @app.task(track_started=True)
 def regenerate_form_instance_json(xform_id: int):
-    """Regenerate all instances' json for form"""
+    """Regenerate a form's instances json
+
+    Json data recreated afresh and any existing json data is overriden
+    """
     try:
         xform = XForm.objects.get(pk=xform_id)
     except XForm.DoesNotExist as err:
