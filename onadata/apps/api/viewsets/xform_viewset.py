@@ -1021,7 +1021,7 @@ class XFormViewSet(
 
         An update is only triggered if regeneration has never been ran, or
         if  the cache for the last task ran does not exist or, if the
-        last task ran has failed
+        last task ran failed
         """
         xform: XForm = self.get_object()
 
