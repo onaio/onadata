@@ -58,7 +58,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         self.assertTrue(instance.json)
         self.xform.refresh_from_db()
         self.assertTrue(self.xform.is_instance_json_regenerated)
-        # task_id stored in cache should be
+        # task_id stored in cache should be deleted
         self.assertIsNone(cache.get(cache_key))
 
     def test_json_overriden(self):

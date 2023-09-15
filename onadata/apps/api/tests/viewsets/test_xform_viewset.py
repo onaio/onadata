@@ -5789,8 +5789,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
     def test_task_state_not_failed(self, mock_regenerate):
         """We do not regenerate if celery task is in a state other than FAILURE
 
-        For other states, we do nothing. We should wait until task completes or
-        fails
+        FAILURE is the only state that should trigger regeneration
         """
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
         cache.set(self.cache_key, old_task_id)
