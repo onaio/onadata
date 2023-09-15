@@ -58,7 +58,7 @@ XFORM_CHARTS = "xfm-get_form_charts-"
 XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 
 # Cache timeouts used in XForm model
-XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 72 * 60 * 60  # 72 hrs
+XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs
 
 
 def safe_delete(key):

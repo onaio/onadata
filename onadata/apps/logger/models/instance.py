@@ -60,7 +60,6 @@ from onadata.libs.utils.common_tags import (
     LAST_EDITED,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
-    MONGO_STRFTIME,
     NOTES,
     REVIEW_COMMENT,
     REVIEW_DATE,
@@ -237,7 +236,6 @@ def update_xform_submission_count_async(self, instance_id, created):
 def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if created:
-
         # pylint: disable=import-outside-toplevel
         from multidb.pinning import use_master
 
@@ -321,12 +319,12 @@ def _update_xform_submission_count_delete(instance):
 
         # update xform if no instance has geoms
         if (
-            instance.xform.instances.filter(
-                deleted_at__isnull=True
-            ).exclude(geom=None).count() <
-            1
+            instance.xform.instances.filter(deleted_at__isnull=True)
+            .exclude(geom=None)
+            .count()
+            < 1
         ):
-            if (instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths()):
+            if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
                 instance.xform.instances_with_geopoints = True
             else:
                 instance.xform.instances_with_geopoints = False
@@ -508,14 +506,14 @@ class InstanceBaseClass:
                 doc.update(osm.get_tags_with_prefix())
 
             if isinstance(self.deleted_at, datetime):
-                doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+                doc[DELETEDAT] = self.deleted_at.isoformat()
 
             # pylint: disable=no-member
             if self.has_a_review:
                 review = self.get_latest_review()
                 if review:
                     doc[REVIEW_STATUS] = review.status
-                    doc[REVIEW_DATE] = review.date_created.strftime(MONGO_STRFTIME)
+                    doc[REVIEW_DATE] = review.date_created.isoformat()
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
 
@@ -528,10 +526,8 @@ class InstanceBaseClass:
             if not self.date_modified:
                 self.date_modified = self.date_created
 
-            doc[DATE_MODIFIED] = self.date_modified.strftime(MONGO_STRFTIME)
-
-            doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-
+            doc[DATE_MODIFIED] = self.date_modified.isoformat()
+            doc[SUBMISSION_TIME] = self.date_created.isoformat()
             doc[TOTAL_MEDIA] = self.total_media
             doc[MEDIA_COUNT] = self.media_count
             doc[MEDIA_ALL_RECEIVED] = self.media_all_received
@@ -698,9 +694,9 @@ class Instance(models.Model, InstanceBaseClass):
         app_label = "logger"
         unique_together = ("xform", "uuid")
         indexes = [
-            models.Index(fields=['date_created']),
-            models.Index(fields=['date_modified']),
-            models.Index(fields=['deleted_at']),
+            models.Index(fields=["date_created"]),
+            models.Index(fields=["date_modified"]),
+            models.Index(fields=["deleted_at"]),
         ]
 
     @classmethod
@@ -746,8 +742,8 @@ class Instance(models.Model, InstanceBaseClass):
                     media_list.extend([i["media/file"] for i in data["media"]])
             else:
                 media_xpaths = (
-                    self.xform.get_media_survey_xpaths() +
-                    self.xform.get_osm_survey_xpaths()
+                    self.xform.get_media_survey_xpaths()
+                    + self.xform.get_osm_survey_xpaths()
                 )
                 for media_xpath in media_xpaths:
                     media_list.extend(get_values_matching_key(data, media_xpath))
@@ -873,7 +869,7 @@ post_delete.connect(
 pre_delete.connect(
     permanently_delete_attachments,
     sender=Instance,
-    dispatch_uid="permanently_delete_attachments"
+    dispatch_uid="permanently_delete_attachments",
 )
 
 

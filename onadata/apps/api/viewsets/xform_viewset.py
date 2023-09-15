@@ -59,7 +59,7 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.tasks import regenerate_form_instance_json
+from onadata.apps.api.tasks import regenerate_form_instance_json
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -1015,24 +1015,31 @@ class XFormViewSet(
 
     @action(methods=["GET"], detail=True, url_path="regenerate-submission-metadata")
     def regenerate_instance_json(self, request, *args, **kwargs):
-        """Force metadata update for all submissions under this form
+        """Force json update for all submissions under this form
 
-        Updates submission json metadata asynchronously
+        Updates json for all submissions asynchronously
         """
         xform = self.get_object()
 
         if xform.is_instance_json_regenerated:
+            # Async task completed successfully
             return Response({"status": "SUCCESS"})
 
         cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
+        cached_task_id: str = cache.get(cache_key)
 
-        if (
-            cache.get(cache_key)
-            and AsyncResult(cache.get(cache_key)).state.upper() == "STARTED"
-        ):
+        if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
+            # If a task has not failed, we should wait it to complete or fail,
+            # so for now we do nothing
             return Response({"status": "STARTED"})
 
-        result = regenerate_form_instance_json.apply_async(xform.pk)
+        # Task has either failed or does not exist in cache, we create a new async task
+        result: AsyncResult = regenerate_form_instance_json.apply_async(xform.pk)
+        # Celery backend expires the result after 1 day (24hrs) as outlined in the docs,
+        # https://docs.celeryq.dev/en/latest/userguide/configuration.html#result-expires
+        # If after 1 day you create an AsyncResult, the status will be PENDING.
+        # We therefore set the cache timeout to 1 day same as the Celery backend result
+        # expiry timeout.
         cache.set(
             cache_key,
             result.task_id,

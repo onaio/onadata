@@ -5762,17 +5762,13 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         mock_regenerate.apply_async.assert_not_called()
         self.assertFalse(cache.get(self.cache_key))
 
-    def _mock_get_task_meta_pending(self) -> dict[str, str]:
-        return {"status": "PENDING"}
+    def _mock_get_task_meta_failure(self) -> dict[str, str]:
+        return {"status": "FAILURE"}
 
-    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_pending)
+    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_failure)
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
-    def test_task_pending(self, mock_regenerate):
-        """Celery task is in PENDING state
-
-        PENDING means a task is waiting for execution or task id is invalid or expired
-        from the results backend
-        """
+    def test_task_state_failed(self, mock_regenerate):
+        """Celery task is in FAILURE state"""
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
         cache.set(self.cache_key, old_task_id)
         new_task_id = "f78ef7bb-873f-4a28-bc8a-865da43a741f"
@@ -5785,13 +5781,13 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         mock_regenerate.apply_async.assert_called_once_with(self.xform.pk)
         self.assertEqual(cache.get(self.cache_key), new_task_id)
 
-    def _mock_get_task_meta_started(self) -> dict[str, str]:
-        return {"status": "STARTED"}
+    def _mock_get_task_meta_non_failure(self) -> dict[str, str]:
+        return {"status": "FOO"}
 
-    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_started)
+    @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_non_failure)
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
-    def test_task_started(self, mock_regenerate):
-        """Celery task is in STARTED state"""
+    def test_task_state_non_failure(self, mock_regenerate):
+        """Celery task is in a different state other than FAILURE"""
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
         cache.set(self.cache_key, old_task_id)
         mock_async_result = AsyncResult(old_task_id)
