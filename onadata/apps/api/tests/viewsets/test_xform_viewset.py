@@ -5768,7 +5768,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_failure)
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
     def test_task_state_failed(self, mock_regenerate):
-        """Celery task is in FAILURE state"""
+        """We regenerate if old celery task failed"""
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
         cache.set(self.cache_key, old_task_id)
         new_task_id = "f78ef7bb-873f-4a28-bc8a-865da43a741f"
@@ -5786,8 +5786,12 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
 
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_non_failure)
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
-    def test_task_state_non_failure(self, mock_regenerate):
-        """Celery task is in a different state other than FAILURE"""
+    def test_task_state_not_failed(self, mock_regenerate):
+        """We do not regenerate if celery task is in a state other than FAILURE
+
+        For other states, we do nothing. We should wait until task completes or
+        fails
+        """
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
         cache.set(self.cache_key, old_task_id)
         mock_async_result = AsyncResult(old_task_id)
