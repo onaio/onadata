@@ -5752,7 +5752,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
 
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
     def test_regenerates_instance_json_no_duplicate_work(self, mock_regenerate):
-        """If a regeneration has already been run, we do not run it again"""
+        """If a regeneration finished successfully, we do not run it again"""
         self.xform.is_instance_json_regenerated = True
         self.xform.save()
         request = self.factory.get("/", **self.extra)
@@ -5787,7 +5787,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_non_failure)
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
     def test_task_state_not_failed(self, mock_regenerate):
-        """We do not regenerate if celery task is in a state other than FAILURE
+        """We do not regenerate if last celery task is in a state other than FAILURE
 
         FAILURE is the only state that should trigger regeneration if a regeneration
         had earlier been triggered
