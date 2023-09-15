@@ -5751,8 +5751,8 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         self.assertEqual(cache.get(self.cache_key), task_id)
 
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
-    def test_regenerates_instance_json_no_duplicate(self, mock_regenerate):
-        """An already regenerated instance should not trigger regeneration"""
+    def test_regenerates_instance_json_no_duplicate_work(self, mock_regenerate):
+        """If a regeneration has already been run, we do not run it again"""
         self.xform.is_instance_json_regenerated = True
         self.xform.save()
         request = self.factory.get("/", **self.extra)
