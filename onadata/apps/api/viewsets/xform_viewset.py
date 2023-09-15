@@ -1018,7 +1018,10 @@ class XFormViewSet(
         """Force json update for all submissions under this form
 
         Update json for the form's submissions asynchronously.
-        An update is only triggered if it has not be run previously.
+
+        An update is only triggered if regeneration has never been ran, or
+        if  the cache for the last task ran does not exist or, if the
+        last task ran has failed
         """
         xform: XForm = self.get_object()
 
