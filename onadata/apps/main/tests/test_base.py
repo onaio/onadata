@@ -427,6 +427,70 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
 
+    def _publish_submit_geotraces_in_repeats(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "geolocation",
+            "Geotraces.xlsx",
+        )
+
+        self._publish_xls_file_and_set_xform(path)
+
+
+        view = XFormViewSet.as_view({"post": "csv_import"})
+        with open(
+            os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "geolocation",
+                "Geotraces.csv",
+            ),
+            encoding="utf-8",
+        ) as csv_import:
+            post_data = {"csv_file": csv_import}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+
+    def _publish_submit_geoshapes_in_repeats(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "geolocation",
+            "Geoshapes.xlsx",
+        )
+
+        self._publish_xls_file_and_set_xform(path)
+
+
+        view = XFormViewSet.as_view({"post": "csv_import"})
+        with open(
+            os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "geolocation",
+                "Geoshapes.csv",
+            ),
+            encoding="utf-8",
+        ) as csv_import:
+            post_data = {"csv_file": csv_import}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+
     def _publish_markdown(self, md_xlsform, user, project=None, **kwargs):
         """
         Publishes a markdown XLSForm.
