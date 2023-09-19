@@ -1070,27 +1070,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
-        formid = self.xform.pk
-        instance = self.xform.instances.all().order_by("pk")[0]
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
-
-        instance = self.xform.instances.all().order_by("-date_created")[0]
+        instances = self.xform.instances.all().order_by("pk")
+        self.assertEqual(len(instances), 4)
+        instance = instances[2]
         date_modified = instance.date_modified.isoformat()
-
-        query_str = '{"_date_modified": {"$gte": "%s"},' ' "_submitted_by": "%s"}' % (
-            date_modified,
-            "bob",
-        )
+        # greater than or equal to
+        query_str = '{"_date_modified": {"$gte": "%s"}}' % date_modified
         data = {"query": query_str}
         request = self.factory.get("/", data=data, **self.extra)
-        response = view(request, pk=formid)
+        response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        expected_count = self.xform.instances.filter(
-            date_modified__gte=date_modified
-        ).count()
-        self.assertEqual(len(response.data), expected_count)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[2].pk)
+        self.assertEqual(response.data[1]["_id"], instances[3].pk)
+        # greater than
+        query_str = '{"_date_modified": {"$gt": "%s"}}' % date_modified
+        data = {"query": query_str}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[3].pk)
 
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
         self._make_submissions()
