@@ -572,9 +572,9 @@ Query submitted data of a specific form
 ----------------------------------------
 Use the `query` or `data` parameter to pass in a JSON key/value query. 
 
-When quering a date time field whose value is in ISO format such as `2020-12-18T09:36:19.767455+00:00`, it is important to ensure the `+` (plus) is encoded to `%2b`.
+When quering a date time field whose value is in ISO format such as ``2020-12-18T09:36:19.767455+00:00``, it is important to ensure the ``+`` (plus) is encoded to ``%2b``.
 
-`+` without encoding is parsed as whitespace. So `2020-12-18T09:36:19.767455+00:00` should be converted to `2020-12-18T09:36:19.767455%2b00:00`. 
+``+`` without encoding is parsed as whitespace. So ``2020-12-18T09:36:19.767455+00:00`` should be converted to ``2020-12-18T09:36:19.767455%2b00:00``. 
 
 
 Example I
