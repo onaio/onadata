@@ -42,7 +42,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_regenerates_instances_json(self):
         """Regenerates instances json"""
 
-        def mock_get_full_dict(self):
+        def mock_get_full_dict():
             return {}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
@@ -64,7 +64,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_json_overriden(self):
         """Existing json is overriden"""
 
-        def mock_get_full_dict(self):
+        def mock_get_full_dict():
             return {"foo": "bar"}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
