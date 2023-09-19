@@ -616,6 +616,22 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(
             response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
         )
+        # Pagination works with sorting
+        instances = self.xform.instances.all().order_by("-date_modified")
+        self.assertEqual(instances.count(), 4)
+        request = self.factory.get(
+            "/",
+            data={"page": "1", "page_size": "2", "sort": '{"date_modified":-1}'},
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()

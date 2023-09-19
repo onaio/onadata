@@ -794,28 +794,29 @@ class DataViewSet(
         should_paginate = self._should_paginate()
         retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
 
-        if not should_paginate and not is_public_request:
-            # Paginate requests that try to retrieve data that surpasses
-            # the submission retrieval threshold
-            xform = self.get_object()
-            num_of_submissions = xform.num_of_submissions
-            should_paginate = num_of_submissions > retrieval_threshold
-            if should_paginate:
-                self.paginator.page_size = retrieval_threshold
-
-        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
+        if should_paginate:
             query_param_keys = self.request.query_params
             current_page = query_param_keys.get(self.paginator.page_query_param, 1)
             current_page_size = query_param_keys.get(
                 self.paginator.page_size_query_param, retrieval_threshold
             )
-
             self._set_pagination_headers(
                 self.get_object(),
                 current_page=current_page,
                 current_page_size=current_page_size,
             )
 
+        if not should_paginate and not is_public_request:
+            # Paginate requests that try to retrieve data that surpasses
+            # the submission retrieval threshold
+            xform = self.get_object()
+            num_of_submissions = xform.num_of_submissions
+            should_paginate = num_of_submissions > retrieval_threshold
+
+            if should_paginate:
+                self.paginator.page_size = retrieval_threshold
+
+        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
             try:
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.paginate_queryset(self.object_list)
@@ -824,6 +825,7 @@ class DataViewSet(
                 self.object_list = self.paginate_queryset(self.object_list)
 
         stream_data = getattr(settings, "STREAM_DATA", False)
+
         if stream_data:
             response = self._get_streaming_response()
         else:
