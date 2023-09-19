@@ -1631,10 +1631,11 @@ If the upload is still running:
 
 
 Regenerate metadata data for submissions
---------------------------------------
+----------------------------------------
 
-You may find that there may be inconsistencies in metadata returned on endpoint `/api/v1/data` such as `_date_modified` might not be
-formatted in ISO format or might be missing.
+You may find that there may be inconsistencies in metadata returned on endpoint `/api/v1/data <https://github.com/onaio/onadata/blob/main/docs/data.rst#data>` such as ``_date_modified`` might not be
+formatted in ISO format or might be missing. This inconsistencies affect old forms that were created before these changes 
+were introduced.
 
 To regenerate metadata for all data submitted under a specific form:
 
