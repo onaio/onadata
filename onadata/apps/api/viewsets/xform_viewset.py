@@ -1033,8 +1033,8 @@ class XFormViewSet(
         cached_task_id: str = cache.get(cache_key)
 
         if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
-            # FAILURE is the only state that should trigger regeneration if a regeneration
-            # had earlier been triggered
+            # FAILURE is the only state that should trigger regeneration if
+            # a regeneration had earlier been triggered
             return Response({"status": "STARTED"})
 
         # Task has either failed or does not exist in cache, we create a new async task
