@@ -1628,3 +1628,41 @@ If the upload is still running:
        {
            "job_status": "PENDING"
        }
+
+
+Regenerate metadata data for submissions
+--------------------------------------
+
+You may find that there may be inconsistencies in metadata returned on endpoint `/api/v1/data` such as `_date_modified` might not be
+formatted in ISO format or might be missing.
+
+To regenerate metadata for all data submitted under a specific form:
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/regenerate-submission-metadata</pre>
+
+Example
+^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/forms/28058/regenerate-submission-metadata
+
+
+If the job is done:
+
+::
+
+        {
+            "status": "SUCCESS"
+        }
+
+
+If the job is still in progress
+
+::
+
+        {
+            "status": "STARTED"
+        }
