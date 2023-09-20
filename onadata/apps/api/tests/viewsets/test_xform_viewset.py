@@ -8,6 +8,7 @@ import codecs
 import csv
 import json
 import os
+import pytz
 import re
 import sys
 from builtins import open
@@ -2242,6 +2243,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "instances_with_geopoints": False,
             "has_hxl_support": False,
             "hash": "",
+            "is_instance_json_regenerated": False,
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
@@ -3839,18 +3841,24 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self._publish_xls_form_to_project(xlsform_path=xlsform_path)
             # submit one hxl instance
             _submission_time = parse_datetime("2013-02-18 15:54:01Z")
-            self._make_submission(
-                os.path.join(
-                    settings.PROJECT_ROOT,
-                    "apps",
-                    "main",
-                    "tests",
-                    "fixtures",
-                    "hxl_test",
-                    "hxl_example_2.xml",
-                ),
-                forced_submission_time=_submission_time,
-            )
+            mock_date_modified = datetime(2023, 9, 20, 11, 41, 0, tzinfo=pytz.utc)
+
+            with patch(
+                "django.utils.timezone.now", Mock(return_value=mock_date_modified)
+            ):
+                self._make_submission(
+                    os.path.join(
+                        settings.PROJECT_ROOT,
+                        "apps",
+                        "main",
+                        "tests",
+                        "fixtures",
+                        "hxl_test",
+                        "hxl_example_2.xml",
+                    ),
+                    forced_submission_time=_submission_time,
+                )
+
             self.assertTrue(self.xform.has_hxl_support)
 
             view = XFormViewSet.as_view({"get": "retrieve"})
@@ -3868,7 +3876,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             instance = self.xform.instances.first()
             data_id, date_modified = (
                 instance.pk,
-                instance.date_modified.strftime(MONGO_STRFTIME),
+                mock_date_modified.isoformat(),
             )
 
             content = get_response_content(response)
@@ -3879,7 +3887,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_total_media,_media_count,_media_all_received\n\ufeff#age"
                 ",,,,,,,,,,,,,,\n\ufeff"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16,"
-                "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01,"
+                "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
                 "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(content, expected_content)
@@ -3887,7 +3895,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(headers["Content-Type"], "application/csv")
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
-            basename, ext = os.path.splitext(filename)
+            _, ext = os.path.splitext(filename)
             self.assertEqual(ext, ".csv")
             # sort csv data in ascending order
             data = {"win_excel_utf8": False}
@@ -3902,7 +3910,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "tted_by,_total_media,_media_count,_media_all_received\n"
                 "#age,,,,,,,,,,,,,,\n"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16"
-                ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01,"
+                ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
                 "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
             )
 
@@ -3969,7 +3977,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
                 "_total_media,_media_count,_media_all_received\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
-                f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,"
+                f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00,"
                 f"{date_modified},,,201604121155,,bob,0,0,True\n"
             )
             self.assertEqual(expected_content, content)
@@ -3992,7 +4000,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_media_all_received\n"
                 "#age,,,,,,,,,,,,,,\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
-                "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01"
+                "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00"
                 ",%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(expected_content, content)
@@ -4438,7 +4446,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "transportation_filtered_date.csv",
             )
 
-            expected_submission = ["2015-12-02T00:00:00", "2015-12-03T00:00:00"]
+            expected_submission = [
+                "2015-12-02T00:00:00+00:00",
+                "2015-12-03T00:00:00+00:00",
+            ]
             self._validate_csv_export(
                 response, test_file_path, "_submission_time", expected_submission
             )
