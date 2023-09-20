@@ -5011,9 +5011,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(
                 self.xform.instances.values("json___submission_time")[::1],
                 [
-                    {"json___submission_time": "2023-02-03T10:27:41"},
-                    {"json___submission_time": "2023-02-03T10:27:42"},
-                    {"json___submission_time": "2023-03-13T08:42:57"},
+                    {"json___submission_time": "2023-02-03T10:27:41+00:00"},
+                    {"json___submission_time": "2023-02-03T10:27:42+00:00"},
+                    {"json___submission_time": "2023-03-13T08:42:57+00:00"},
                 ],
             )
             self.assertEqual(response.status_code, 200)
