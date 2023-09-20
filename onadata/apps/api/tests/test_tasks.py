@@ -1,9 +1,10 @@
 """Tests for module onadata.apps.api.tasks"""
 import logging
 import sys
-from django.core.cache import cache
 
 from unittest.mock import patch
+
+from django.core.cache import cache
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.tasks import (
@@ -42,7 +43,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_regenerates_instances_json(self):
         """Regenerates instances json"""
 
-        def mock_get_full_dict(self):
+        def mock_get_full_dict(self):  # pylint: disable=unused-argument
             return {}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
@@ -64,7 +65,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_json_overriden(self):
         """Existing json is overriden"""
 
-        def mock_get_full_dict(self):
+        def mock_get_full_dict(self):  # pylint: disable=unused-argument
             return {"foo": "bar"}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
