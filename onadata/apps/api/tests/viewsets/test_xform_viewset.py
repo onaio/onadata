@@ -5758,7 +5758,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"status": "STARTED"})
-        mock_regenerate.apply_async.assert_called_once_with(self.xform.pk)
+        mock_regenerate.apply_async.assert_called_once_with(args=[self.xform.pk])
         self.assertEqual(cache.get(self.cache_key), task_id)
 
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
@@ -5789,7 +5789,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"status": "STARTED"})
-        mock_regenerate.apply_async.assert_called_once_with(self.xform.pk)
+        mock_regenerate.apply_async.assert_called_once_with(args=[self.xform.pk])
         self.assertEqual(cache.get(self.cache_key), new_task_id)
 
     def _mock_get_task_meta_non_failure(self) -> dict[str, str]:
