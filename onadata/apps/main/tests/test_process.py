@@ -75,7 +75,7 @@ class TestProcess(TestBase, SerializeMixin):
         """
         Update stuff like submission time so we can compare within out fixtures
         """
-        for (uuid, submission_time) in iteritems(self.uuid_to_submission_times):
+        for uuid, submission_time in iteritems(self.uuid_to_submission_times):
             i = self.xform.instances.get(uuid=uuid)
             i.date_created = pytz.timezone("UTC").localize(
                 datetime.strptime(submission_time, MONGO_STRFTIME)
@@ -368,7 +368,6 @@ class TestProcess(TestBase, SerializeMixin):
         self.assertEqual(sorted(next(actual_csv)), sorted(expected_list))
 
     def _check_data_for_csv_export(self):
-
         data = [
             {
                 "available_transportation_types_to_referral_facility/ambulance": True,
@@ -391,7 +390,7 @@ class TestProcess(TestBase, SerializeMixin):
         ]
         for d_from_db in self.data_dictionary.get_data_for_excel():
             test_dict = {}
-            for (k, v) in iteritems(d_from_db):
+            for k, v in iteritems(d_from_db):
                 if (
                     k
                     not in [
@@ -476,7 +475,7 @@ class TestProcess(TestBase, SerializeMixin):
                 "image1": "1335783522563.jpg",
                 "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
                 "_uuid": "5b2cc313-fc09-437e-8149-fcd32f695d41",
-                "_submission_time": "2013-02-14T15:37:21",
+                "_submission_time": "2013-02-14T15:37:21+00:00",
                 "_tags": "",
                 "_notes": "",
                 "_version": "2014111",
@@ -492,7 +491,7 @@ class TestProcess(TestBase, SerializeMixin):
                 self.bicycle_key: "weekly",
                 "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
                 "_uuid": "f3d8dc65-91a6-4d0f-9e97-802128083390",
-                "_submission_time": "2013-02-14T15:37:22",
+                "_submission_time": "2013-02-14T15:37:22+00:00",
                 "_tags": "",
                 "_notes": "",
                 "_version": "2014111",
@@ -507,7 +506,7 @@ class TestProcess(TestBase, SerializeMixin):
                 self.ambulance_key: "weekly",
                 "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
                 "_uuid": "9c6f3468-cfda-46e8-84c1-75458e72805d",
-                "_submission_time": "2013-02-14T15:37:23",
+                "_submission_time": "2013-02-14T15:37:23+00:00",
                 "_tags": "",
                 "_notes": "",
                 "_version": "2014111",
@@ -524,7 +523,7 @@ class TestProcess(TestBase, SerializeMixin):
                 self.taxi_key: "daily",
                 "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
                 "_uuid": "9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
-                "_submission_time": "2013-02-14T15:37:24",
+                "_submission_time": "2013-02-14T15:37:24+00:00",
                 "_tags": "",
                 "_notes": "",
                 "_version": "2014111",
@@ -543,7 +542,7 @@ class TestProcess(TestBase, SerializeMixin):
         for row, expected_dict in zip(actual_csv, data):
             test_dict = {}
             row_dict = dict(zip(headers, row))
-            for (k, v) in iteritems(row_dict):
+            for k, v in iteritems(row_dict):
                 if not (v in ["n/a", "False"] or k in additional_headers):
                     test_dict[k] = v
             this_list = []
