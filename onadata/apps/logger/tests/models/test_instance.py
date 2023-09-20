@@ -51,7 +51,7 @@ class TestInstance(TestBase):
         for instance in instances:
             self.assertEqual(
                 instance.json[SUBMISSION_TIME],
-                mock_time.return_value.strftime(MONGO_STRFTIME),
+                mock_time.return_value.isoformat(),
             )
             self.assertEqual(instance.json[XFORM_ID_STRING], xform_id_string)
 
@@ -94,7 +94,7 @@ class TestInstance(TestBase):
         for instance in instances:
             self.assertEqual(
                 instance.json[SUBMISSION_TIME],
-                instance.date_created.strftime(MONGO_STRFTIME),
+                instance.date_created.isoformat(),
             )
 
     def test_set_instances_with_geopoints_on_submission_false(self):

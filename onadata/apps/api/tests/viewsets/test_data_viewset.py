@@ -8,6 +8,7 @@ import datetime
 import json
 import logging
 import os
+import pytz
 import csv
 from io import StringIO
 from builtins import open
@@ -29,7 +30,7 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import patch
+from mock import patch, Mock
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -3377,24 +3378,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        self._make_submission_w_attachment(
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                "transport_2011-07-25_19-05-49_2.xml",
-            ),
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                media_file,
-            ),
-        )
+        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=pytz.utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            self._make_submission_w_attachment(
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    "transport_2011-07-25_19-05-49_2.xml",
+                ),
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    media_file,
+                ),
+            )
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
@@ -3410,7 +3414,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         returned_xml = response.content.decode("utf-8")
         server_time = ET.fromstring(returned_xml).attrib.get("serverTime")
         edited = instance.last_edited is not None
-        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        submission_time = instance.date_created.isoformat()
         attachment = instance.attachments.first()
         expected_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
