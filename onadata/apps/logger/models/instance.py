@@ -338,6 +338,30 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         _update_xform_submission_count_delete(instance)
 
 
+def save_full_json(instance):
+    """Save full json dict"""
+    # Queryset.update ensures the model's save is not called and
+    # the pre_save and post_save signals arent' sent
+    Instance.objects.filter(pk=instance.pk).update(json=instance.get_full_dict())
+
+
+@app.task(bind=True, max_retries=3)
+def save_full_json_async(self, instance_id):
+    """
+    Celery task to asynchrounously generate and save an Instances JSON
+    once a submission has been made
+    """
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+    except Instance.DoesNotExist as e:
+        if self.request.retries > 2:
+            msg = f"Failed to save full JSON for Instance {instance_id}"
+            report_exception(msg, e, sys.exc_info())
+        self.retry(exc=e, countdown=60 * self.request.retries)
+    else:
+        save_full_json(instance)
+
+
 @app.task(bind=True, max_retries=3)
 def update_project_date_modified_async(self, instance_id, created):
     """
@@ -442,10 +466,6 @@ class InstanceBaseClass:
                 self.geom = GeometryCollection(points)
             else:
                 self.geom = None
-
-    def _set_json(self):
-        # pylint: disable=attribute-defined-outside-init
-        self.json = self.get_full_dict()
 
     def get_full_dict(self, load_existing=True):
         """Returns the submission XML as a python dictionary object."""
@@ -752,7 +772,6 @@ class Instance(models.Model, InstanceBaseClass):
         self._check_is_merged_dataset()
         self._check_active(force)
         self._set_geom()
-        self._set_json()
         self._set_survey_type()
         self._set_uuid()
         # pylint: disable=no-member
@@ -790,6 +809,10 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     - Project date modified
     - Update the submission JSON field data
     """
+    # We save the full_json in post_save signal because some implementations
+    # in get_full_dict require the id to be available
+    save_full_json(instance)
+
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
 
@@ -800,6 +823,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
             )
         )
         transaction.on_commit(
+            lambda: save_full_json_async.apply_async(args=[instance.pk])
+        )
+        transaction.on_commit(
             lambda: update_project_date_modified_async.apply_async(
                 args=[instance.pk, created]
             )
@@ -807,6 +833,7 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     else:
         update_xform_submission_count(instance.pk, created)
+        save_full_json(instance)
         update_project_date_modified(instance.pk, created)
 
 
