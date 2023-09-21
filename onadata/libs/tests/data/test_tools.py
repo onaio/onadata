@@ -35,8 +35,7 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_get_form_submissions_grouped_by_field_datetime_to_date(self, mock_time):
+    def test_get_form_submissions_grouped_by_field_datetime_to_date(self):
         now = datetime(2014, 1, 1, tzinfo=utc)
         times = [
             now,
@@ -44,12 +43,12 @@ class TestTools(TestBase):
             now + timedelta(seconds=2),
             now + timedelta(seconds=3),
         ]
-        mock_time.side_effect = times
         self._make_submissions()
 
         for i in self.xform.instances.all().order_by("-pk"):
             i.date_created = times.pop()
             i.save()
+
         count_key = "count"
         fields = ["_submission_time"]
 
