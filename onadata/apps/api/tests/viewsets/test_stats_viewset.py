@@ -4,7 +4,6 @@ from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
 from builtins import open
-from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
@@ -21,9 +20,7 @@ class TestStatsViewSet(TestBase):
         self.factory = RequestFactory()
         self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_submissions_stats(self, mock_time):
-        self._set_mock_time(mock_time)
+    def test_submissions_stats(self):
         self._publish_transportation_form()
         self._make_submissions()
         view = SubmissionStatsViewSet.as_view({"get": "list"})
@@ -62,9 +59,7 @@ class TestStatsViewSet(TestBase):
 
         self.assertDictContainsSubset(data, response.data[0])
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_submissions_stats_with_xform_in_delete_async_queue(self, mock_time):
-        self._set_mock_time(mock_time)
+    def test_submissions_stats_with_xform_in_delete_async_queue(self):
         self._publish_transportation_form()
         self._make_submissions()
         view = SubmissionStatsViewSet.as_view({"get": "list"})

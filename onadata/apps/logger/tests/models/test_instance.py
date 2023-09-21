@@ -222,8 +222,7 @@ class TestInstance(TestBase):
         self.assertEqual(self.xform.instances.count(), 4)
         self.assertEqual(len(data), 3)
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_query_filter_by_datetime_field(self, mock_time):
+    def test_query_filter_by_datetime_field(self):
         self._publish_transportation_form()
         now = datetime(2014, 1, 1, tzinfo=utc)
         times = [
@@ -232,7 +231,6 @@ class TestInstance(TestBase):
             now + timedelta(seconds=2),
             now + timedelta(seconds=3),
         ]
-        mock_time.side_effect = times
         self._make_submissions()
 
         atime = None
