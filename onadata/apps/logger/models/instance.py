@@ -774,7 +774,7 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_survey_type()
         self._set_uuid()
         # pylint: disable=no-member
-        self.version = self.json.get(VERSION, self.xform.version)
+        self.version = self.xform.version
 
         super().save(*args, **kwargs)
 
