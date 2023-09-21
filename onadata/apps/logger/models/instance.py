@@ -182,7 +182,7 @@ def get_id_string_from_xml_str(xml_str):
     return id_string
 
 
-def submission_time():
+def now():
     """Returns current timestamp via timezone.now()."""
     return timezone.now()
 
@@ -339,35 +339,6 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
 
 @app.task(bind=True, max_retries=3)
-def save_full_json_async(self, instance_id, created):
-    """
-    Celery task to asynchrounously generate and save an Instances JSON
-    once a submission has been made
-    """
-    try:
-        save_full_json(instance_id, created)
-    except Instance.DoesNotExist as e:
-        if self.request.retries > 2:
-            msg = f"Failed to save full JSON for Instance {instance_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
-
-
-def save_full_json(instance_id, created):
-    """set json data, ensure the primary key is part of the json data"""
-    if created:
-        try:
-            instance = Instance.objects.get(pk=instance_id)
-        except Instance.DoesNotExist as e:
-            # Retry if run asynchrounously
-            if current_task.request.id:
-                raise e
-        else:
-            instance.json = instance.get_full_dict()
-            instance.save(update_fields=["json"])
-
-
-@app.task(bind=True, max_retries=3)
 def update_project_date_modified_async(self, instance_id, created):
     """
     Celery task to asynchrounously update a Projects last modified date
@@ -482,6 +453,7 @@ class InstanceBaseClass:
         # Get latest dict
         doc = self.get_dict()
         # pylint: disable=no-member
+
         if self.id:
             geopoint = [self.point.y, self.point.x] if self.point else [None, None]
             doc.update(
@@ -516,15 +488,6 @@ class InstanceBaseClass:
                     doc[REVIEW_DATE] = review.date_created.isoformat()
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
-
-            # pylint: disable=attribute-defined-outside-init
-            # pylint: disable=access-member-before-definition
-            if not self.date_created:
-                self.date_created = submission_time()
-
-            # pylint: disable=access-member-before-definition
-            if not self.date_modified:
-                self.date_modified = self.date_created
 
             doc[DATE_MODIFIED] = self.date_modified.isoformat()
             doc[SUBMISSION_TIME] = self.date_created.isoformat()
@@ -646,13 +609,18 @@ class Instance(models.Model, InstanceBaseClass):
         "logger.XForm", null=False, related_name="instances", on_delete=models.CASCADE
     )
     survey_type = models.ForeignKey("logger.SurveyType", on_delete=models.PROTECT)
-
     # shows when we first received this instance
-    date_created = models.DateTimeField(auto_now_add=True)
-
+    date_created = models.DateTimeField(
+        default=now,
+        editable=False,
+        blank=True,
+    )
     # this will end up representing "date last parsed"
-    date_modified = models.DateTimeField(auto_now=True)
-
+    date_modified = models.DateTimeField(
+        default=now,
+        editable=False,
+        blank=True,
+    )
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
     deleted_by = models.ForeignKey(
@@ -776,6 +744,7 @@ class Instance(models.Model, InstanceBaseClass):
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
         force = kwargs.get("force")
+        self.date_modified = now()
 
         if force:
             del kwargs["force"]
@@ -831,9 +800,6 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
             )
         )
         transaction.on_commit(
-            lambda: save_full_json_async.apply_async(args=[instance.pk, created])
-        )
-        transaction.on_commit(
             lambda: update_project_date_modified_async.apply_async(
                 args=[instance.pk, created]
             )
@@ -841,7 +807,6 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     else:
         update_xform_submission_count(instance.pk, created)
-        save_full_json(instance.pk, created)
         update_project_date_modified(instance.pk, created)
 
 

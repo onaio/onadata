@@ -1,11 +1,12 @@
 import os
+import pytz
 from datetime import datetime
 from datetime import timedelta
 
 from django.http.request import HttpRequest
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
-from mock import patch
+from mock import patch, Mock
 
 from onadata.apps.logger.models import XForm, Instance, SubmissionReview
 from onadata.apps.logger.models.instance import (
@@ -23,8 +24,6 @@ from onadata.libs.serializers.submission_review_serializer import (
 )
 from onadata.libs.utils.common_tags import (
     MONGO_STRFTIME,
-    SUBMISSION_TIME,
-    XFORM_ID_STRING,
     SUBMITTED_BY,
 )
 
@@ -36,24 +35,46 @@ class TestInstance(TestBase):
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
         instances = Instance.objects.all()
+        xform_id_string = XForm.objects.all()[0].id_string
 
         for instance in instances:
             self.assertNotEqual(instance.json, {})
-
-    @patch("django.utils.timezone.now")
-    def test_json_assigns_attributes(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
-        self._publish_transportation_form_and_submit_instance()
-
-        xform_id_string = XForm.objects.all()[0].id_string
-        instances = Instance.objects.all()
-
-        for instance in instances:
+            self.assertEqual(instance.json.get("_id"), instance.pk)
             self.assertEqual(
-                instance.json[SUBMISSION_TIME],
-                mock_time.return_value.isoformat(),
+                instance.json.get("_date_modified"), instance.date_modified.isoformat()
             )
-            self.assertEqual(instance.json[XFORM_ID_STRING], xform_id_string)
+            self.assertEqual(
+                instance.json.get("_submission_time"), instance.date_created.isoformat()
+            )
+            self.assertEqual(instance.json.get("_xform_id_string"), xform_id_string)
+
+    def test_updates_json_date_modifed_on_save(self):
+        """_date_modified in json is updated on save"""
+        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=pytz.utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
+            self._publish_transportation_form_and_submit_instance()
+
+        instance = Instance.objects.first()
+        self.assertEqual(instance.date_modified, old_mocked_now)
+        self.assertEqual(
+            instance.json.get("_date_modified"), old_mocked_now.isoformat()
+        )
+
+        # After saving the date_modified in json should update
+        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=pytz.utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.date_modified, mocked_now)
+        self.assertEqual(instance.json.get("_date_modified"), mocked_now.isoformat())
+        # date_created, _submission_time is not altered
+        self.assertEqual(instance.date_created, old_mocked_now)
+        self.assertEqual(
+            instance.json.get("_submission_time"), old_mocked_now.isoformat()
+        )
 
     @patch("django.utils.timezone.now")
     def test_json_stores_user_attribute(self, mock_time):
@@ -86,16 +107,6 @@ class TestInstance(TestBase):
             # the _user key, which is what's used by the JSON REST service
             pi = ParsedInstance.objects.get(instance=instance)
             self.assertEqual(pi.to_dict_for_mongo()[SUBMITTED_BY], "bob")
-
-    def test_json_time_match_submission_time(self):
-        self._publish_transportation_form_and_submit_instance()
-        instances = Instance.objects.all()
-
-        for instance in instances:
-            self.assertEqual(
-                instance.json[SUBMISSION_TIME],
-                instance.date_created.isoformat(),
-            )
 
     def test_set_instances_with_geopoints_on_submission_false(self):
         self._publish_transportation_form()
