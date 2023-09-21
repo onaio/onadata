@@ -467,9 +467,8 @@ class InstanceBaseClass:
             else:
                 self.geom = None
 
-    def get_full_dict(self, load_existing=True):
+    def get_full_dict(self):
         """Returns the submission XML as a python dictionary object."""
-        doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
         # pylint: disable=no-member
@@ -897,7 +896,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     @property
     def json(self):
         """Returns the XML submission as a python dictionary object."""
-        return self.get_full_dict(load_existing=False)
+        return self.get_full_dict()
 
     @property
     def status(self):
