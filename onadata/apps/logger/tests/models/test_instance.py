@@ -48,8 +48,8 @@ class TestInstance(TestBase):
             )
             self.assertEqual(instance.json.get("_xform_id_string"), xform_id_string)
 
-    def test_updates_json_date_modifed_on_save(self):
-        """_date_modified in json is updated on save"""
+    def test_updates_json_date_modified_on_save(self):
+        """_date_modified in `json` field is updated on save"""
         old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=pytz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
