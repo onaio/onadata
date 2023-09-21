@@ -807,12 +807,10 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     - XForm submission count & instances_with_geopoints field
     - Project date modified
-    - Update the submission JSON field data
+    - Update the submission JSON field data. We save the full_json in
+        post_save signal because some implementations in get_full_dict
+        require the id to be available
     """
-    # We save the full_json in post_save signal because some implementations
-    # in get_full_dict require the id to be available
-    save_full_json(instance)
-
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
 
