@@ -35,7 +35,10 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
-    def test_get_form_submissions_grouped_by_field_datetime_to_date(self):
+    def test_get_form_submissions_grouped_by_field_datetime(
+        self,
+    ):  # pylint: disable=invalid-name
+        """Test get_form_submissions_grouped_by_field datetime"""
         now = datetime(2014, 1, 1, tzinfo=utc)
         times = [
             now,
