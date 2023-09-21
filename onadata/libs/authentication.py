@@ -42,7 +42,7 @@ from onadata.libs.utils.email import get_account_lockout_email_data
 
 logger = logging.getLogger("console_logger")
 logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 TEMP_TOKEN_EXPIRY_TIME = getattr(
@@ -127,7 +127,7 @@ class DigestAuthentication(BaseAuthentication):
                 f"IP: {ip_address}, USERNAME: {username}, "
                 f"REMAINING_ATTEMPTS: {remaining_attempts}, USER_AGENT: {user_agent}"
             )
-            logger.info(info_str)
+            logger.debug(info_str)
             error_str = _(
                 "Invalid username/password. "
                 f"For security reasons, after {remaining_attempts} more failed "
