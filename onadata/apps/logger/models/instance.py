@@ -338,13 +338,6 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         _update_xform_submission_count_delete(instance)
 
 
-def save_full_json(instance):
-    """Save full json dict"""
-    # Queryset.update ensures the model's save is not called and
-    # the pre_save and post_save signals arent' sent
-    Instance.objects.filter(pk=instance.pk).update(json=instance.get_full_dict())
-
-
 @app.task(bind=True, max_retries=3)
 def save_full_json_async(self, instance_id):
     """
@@ -360,6 +353,13 @@ def save_full_json_async(self, instance_id):
         self.retry(exc=e, countdown=60 * self.request.retries)
     else:
         save_full_json(instance)
+
+
+def save_full_json(instance: "Instance"):
+    """Save full json dict"""
+    # Queryset.update ensures the model's save is not called and
+    # the pre_save and post_save signals arent' sent
+    Instance.objects.filter(pk=instance.pk).update(json=instance.get_full_dict())
 
 
 @app.task(bind=True, max_retries=3)
