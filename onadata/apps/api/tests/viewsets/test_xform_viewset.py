@@ -5750,7 +5750,10 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
 
     @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
     def test_regenerates_instance_json(self, mock_regenerate):
-        """Json data for form submissions is regenerated"""
+        """Json data for form submissions is regenerated
+
+        Regeneration should be asynchronous
+        """
         task_id = "f78ef7bb-873f-4a28-bc8a-865da43a741f"
         mock_async_result = AsyncResult(task_id)
         mock_regenerate.apply_async.return_value = mock_async_result
