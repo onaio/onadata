@@ -2330,7 +2330,18 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     def test_geotraces_in_repeats(self):
         # publish sample geotrace submissions
-        self._publish_submit_geotraces_in_repeats()
+        md = """
+        | survey | 
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geotrace     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geotraces")
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("Geotraces")
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="geojson")
@@ -2380,7 +2391,18 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     def test_geoshapes_in_repeats(self):
         # publish sample geoshape submissions
-        self._publish_submit_geoshapes_in_repeats()
+        md = """
+        | survey | 
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geoshape     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geoshapes")
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("Geoshapes")
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="geojson")
