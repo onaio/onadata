@@ -59,7 +59,6 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.api.tasks import regenerate_form_instance_json
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -1032,7 +1031,7 @@ class XFormViewSet(
         cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
         cached_task_id: str = cache.get(cache_key)
 
-        if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
+        if cached_task_id and tasks.get_async_status(cached_task_id)['JOB_STATUS'] != "FAILURE":
             # FAILURE is the only state that should trigger regeneration if
             # a regeneration had earlier been triggered
             return Response({"status": "STARTED"})
@@ -1043,7 +1042,7 @@ class XFormViewSet(
         # If after 1 day you create an AsyncResult, the status will be PENDING.
         # We therefore set the cache timeout to 1 day same as the Celery backend result
         # expiry timeout
-        result: AsyncResult = regenerate_form_instance_json.apply_async(args=[xform.pk])
+        result: AsyncResult = tasks.regenerate_form_instance_json.apply_async(args=[xform.pk])
         cache.set(
             cache_key,
             result.task_id,
