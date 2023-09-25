@@ -358,10 +358,9 @@ def save_full_json_async(self, instance_id):
 def save_full_json(instance: "Instance"):
     """Save full json dict"""
     # Queryset.update ensures the model's save is not called and
-    # the pre_save and post_save signals arent' sent
-    json_data = instance.get_full_dict()
-    version = json_data.get(VERSION)
-    Instance.objects.filter(pk=instance.pk).update(json=json_data, version=version)
+    # the pre_save and post_save signals aren't sent
+    json = instance.get_full_dict()
+    Instance.objects.filter(pk=instance.pk).update(json=json, version=json.get(VERSION))
 
 
 @app.task(bind=True, max_retries=3)
