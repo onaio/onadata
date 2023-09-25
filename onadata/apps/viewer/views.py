@@ -56,7 +56,7 @@ from onadata.libs.utils.export_tools import (
     str_to_bool,
 )
 from onadata.libs.utils.google import create_flow
-from onadata.libs.utils.image_tools import image_url
+from onadata.libs.utils.image_tools import image_url, generate_media_download_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
@@ -894,7 +894,7 @@ def attachment_url(request, size="medium"):
 
         return response
     if not attachment.mimetype.startswith("image"):
-        return redirect(attachment.media_file.url)
+        return generate_media_download_url(attachment)
     media_url = image_url(attachment, size)
     if media_url:
         return redirect(media_url)
