@@ -1029,9 +1029,9 @@ class XFormViewSet(
             return Response({"status": "SUCCESS"})
 
         cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
-        cached_task_id: str = cache.get(cache_key)
+        cached_task_id: str | None = cache.get(cache_key)
 
-        if cached_task_id and tasks.get_async_status(cached_task_id)['JOB_STATUS'] != "FAILURE":
+        if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
             # FAILURE is the only state that should trigger regeneration if
             # a regeneration had earlier been triggered
             return Response({"status": "STARTED"})
@@ -1042,7 +1042,9 @@ class XFormViewSet(
         # If after 1 day you create an AsyncResult, the status will be PENDING.
         # We therefore set the cache timeout to 1 day same as the Celery backend result
         # expiry timeout
-        result: AsyncResult = tasks.regenerate_form_instance_json.apply_async(args=[xform.pk])
+        result: AsyncResult = tasks.regenerate_form_instance_json.apply_async(
+            args=[xform.pk]
+        )
         cache.set(
             cache_key,
             result.task_id,

@@ -5748,7 +5748,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
 
-    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    @patch("onadata.apps.api.viewsets.xform_viewset.tasks.regenerate_form_instance_json")
     def test_regenerates_instance_json(self, mock_regenerate):
         """Json data for form submissions is regenerated
 
@@ -5764,7 +5764,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         mock_regenerate.apply_async.assert_called_once_with(args=[self.xform.pk])
         self.assertEqual(cache.get(self.cache_key), task_id)
 
-    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    @patch("onadata.apps.api.viewsets.xform_viewset.tasks.regenerate_form_instance_json")
     def test_regenerates_instance_json_no_duplicate_work(self, mock_regenerate):
         """If a regeneration finished successfully, we do not run it again"""
         self.xform.is_instance_json_regenerated = True
@@ -5780,7 +5780,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         return {"status": "FAILURE"}
 
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_failure)
-    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    @patch("onadata.apps.api.viewsets.xform_viewset.tasks.regenerate_form_instance_json")
     def test_task_state_failed(self, mock_regenerate):
         """We regenerate if old celery task failed"""
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
@@ -5799,7 +5799,7 @@ class RegenerateInstanceJsonTestCase(XFormViewSetBaseTestCase):
         return {"status": "FOO"}
 
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_non_failure)
-    @patch("onadata.apps.api.viewsets.xform_viewset.regenerate_form_instance_json")
+    @patch("onadata.apps.api.viewsets.xform_viewset.tasks.regenerate_form_instance_json")
     def test_task_state_not_failed(self, mock_regenerate):
         """We do not regenerate if last celery task is in a state other than FAILURE
 
