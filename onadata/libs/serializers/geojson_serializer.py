@@ -9,6 +9,7 @@ from rest_framework_gis import serializers
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.common_tools import str_to_bool
+from onadata.libs.utils.dict_tools import get_values_matching_key
 
 
 def create_feature(instance, geo_field, fields):
@@ -65,7 +66,6 @@ def geometry_from_string(points, simple_style):
     `simple_style` param allows building geojson
     that adheres to the simplestyle-spec
     """
-
     points = points.split(";")
     pnt_list = [tuple(map(float, reversed(point.split()[:2]))) for point in points]
 
@@ -126,17 +126,25 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
             geo_field = request.query_params.get("geo_field")
             simple_style = request.query_params.get("simple_style")
             title = request.query_params.get("title")
+
+            if fields:
+                for field in fields.split(","):
+                    ret["properties"][field] = instance.json.get(field)
+
             if geo_field:
+                xform = instance.xform
+                geotrace_xpaths = xform.geotrace_xpaths()
+                polygon_xpaths = xform.polygon_xpaths()
                 if "properties" in ret:
                     if title:
                         ret["properties"]["title"] = instance.json.get(title)
-                    if fields:
-                        for field in fields.split(","):
-                            ret["properties"][field] = instance.json.get(field)
                 points = instance.json.get(geo_field)
+                if geo_field in geotrace_xpaths or geo_field in polygon_xpaths:
+                    value = get_values_matching_key(instance.json, geo_field)
+                    points = next(value)
                 geometry = (
                     geometry_from_string(points, simple_style)
-                    if points
+                    if points and isinstance(points, str)
                     else None
                 )
 
