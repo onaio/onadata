@@ -359,7 +359,9 @@ def save_full_json(instance: "Instance"):
     """Save full json dict"""
     # Queryset.update ensures the model's save is not called and
     # the pre_save and post_save signals arent' sent
-    Instance.objects.filter(pk=instance.pk).update(json=instance.get_full_dict())
+    json_data = instance.get_full_dict()
+    version = json_data.get(VERSION)
+    Instance.objects.filter(pk=instance.pk).update(json=json_data, version=version)
 
 
 @app.task(bind=True, max_retries=3)
@@ -484,7 +486,7 @@ class InstanceBaseClass:
                     STATUS: self.status,
                     TAGS: list(self.tags.names()),
                     NOTES: self.get_notes(),
-                    VERSION: self.version,
+                    VERSION: doc.get(VERSION, self.xform.version),
                     DURATION: self.get_duration(),
                     XFORM_ID_STRING: self._parser.get_xform_id_string(),
                     XFORM_ID: self.xform.pk,
@@ -773,8 +775,6 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_geom()
         self._set_survey_type()
         self._set_uuid()
-        # pylint: disable=no-member
-        self.version = self.xform.version
 
         super().save(*args, **kwargs)
 

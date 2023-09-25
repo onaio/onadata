@@ -97,6 +97,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[media_file],
         )
+        instance.refresh_from_db()
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(instance.json[TOTAL_MEDIA], 2)
         self.assertEqual(instance.json[MEDIA_COUNT], 1)
@@ -183,6 +184,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[media_file],
         )
+        instance.refresh_from_db()
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(instance.json[TOTAL_MEDIA], 2)
         self.assertEqual(instance.json[MEDIA_COUNT], 1)
@@ -254,6 +256,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[media_file],
         )
+        instance.refresh_from_db()
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(instance.json[TOTAL_MEDIA], 2)
         self.assertEqual(instance.json[MEDIA_COUNT], 1)
@@ -326,6 +329,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[file_media, image_media],
         )
+        instance.refresh_from_db()
         self.assertTrue(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(
             instance.attachments.filter(deleted_at__isnull=True).count(), 2
@@ -408,6 +412,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[media_file],
         )
+        instance.refresh_from_db()
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(instance.json[TOTAL_MEDIA], 2)
         self.assertEqual(instance.json[MEDIA_COUNT], 1)
@@ -473,6 +478,7 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[media_file, media2_file],
         )
+        instance.refresh_from_db()
         self.assertFalse(instance.json[MEDIA_ALL_RECEIVED])
         self.assertEqual(instance.json[TOTAL_MEDIA], 2)
         self.assertEqual(instance.json[MEDIA_COUNT], 1)
