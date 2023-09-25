@@ -893,6 +893,11 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         return self.xform_instance.attachments.all()
 
     @property
+    def json(self):
+        """Returns the XML submission as a python dictionary object."""
+        return self.get_full_dict()
+
+    @property
     def status(self):
         """Returns the submission's status"""
         return self.xform_instance.status
