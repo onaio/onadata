@@ -422,8 +422,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
+    @patch("onadata.libs.authentication.report_exception")
+    @patch("onadata.libs.authentication.logger.debug")
     @patch("onadata.apps.api.tasks.send_account_lockout_email.apply_async")
-    def test_login_attempts(self, send_account_lockout_email):
+    def test_login_attempts(self, send_account_lockout_email, mock_logger, rpt_mock):
         view = ConnectViewSet.as_view(
             {"get": "list"}, authentication_classes=(DigestAuthentication,)
         )
@@ -442,7 +444,26 @@ class TestConnectViewSet(TestAbstractViewSet):
             "after 9 more failed login attempts you'll have to "
             "wait 30 minutes before trying again.",
         )
+
+        # test logger
         request_ip = request.META.get("REMOTE_ADDR")
+        user_agent = request.META.get("HTTP_USER_AGENT", None)
+        self.assertTrue(mock_logger.called)
+        info_str = (
+            f"IP: {request_ip}, USERNAME: {self.user.username}, "
+            f"REMAINING_ATTEMPTS: 9, USER_AGENT: {user_agent}"
+        )
+        mock_logger.assert_called_once_with(info_str)
+
+        # test report exception
+        self.assertTrue(rpt_mock.called)
+        rpt_mock.assert_called_once_with(
+            "Authentication Failure",
+            "Invalid username/password. For security reasons, "
+            "after 9 more failed login attempts you'll have to "
+            "wait 30 minutes before trying again.",
+        )
+
         self.assertEqual(cache.get(safe_key(f"login_attempts-{request_ip}-bob")), 1)
 
         # cache value increments with subsequent attempts
