@@ -170,8 +170,8 @@ def regenerate_form_instance_json(xform_id: int):
             # We do not want to trigger Model.save or any signal
             # Queryset.update is a workaround to achieve this.
             # Instance.save and the post/pre signals may contain
-            # some side-effects which we are not interested in. For now
-            # we are only keen on updating the json field
+            # some side-effects which we are not interested in e.g
+            # updating date_modified which we do not want
             Instance.objects.filter(pk=instance.pk).update(
                 json=instance.get_full_dict()
             )
