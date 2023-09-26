@@ -167,7 +167,6 @@ def regenerate_form_instance_json(xform_id: int):
         instances = xform.instances.filter(deleted_at__isnull=True)
 
         for instance in queryset_iterator(instances):
-            instance.json = instance.get_full_dict()
             instance.save()
 
         xform.is_instance_json_regenerated = True

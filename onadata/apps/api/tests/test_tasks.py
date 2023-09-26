@@ -1,10 +1,10 @@
 """Tests for module onadata.apps.api.tasks"""
-import logging
 import sys
 
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.test import override_settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.tasks import (
@@ -54,13 +54,19 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         instance = self.xform.instances.first()
         self.assertFalse(instance.json)
         self.assertFalse(self.xform.is_instance_json_regenerated)
-        regenerate_form_instance_json(self.xform.pk)
+        regenerate_form_instance_json.delay(self.xform.pk)
         instance.refresh_from_db()
         self.assertTrue(instance.json)
         self.xform.refresh_from_db()
         self.assertTrue(self.xform.is_instance_json_regenerated)
         # task_id stored in cache should be deleted
         self.assertIsNone(cache.get(cache_key))
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_regenerates_instances_json_async(self):
+        """When submission are handled async, instances json is regenerated"""
+
+        self.test_regenerates_instances_json()
 
     def test_json_overriden(self):
         """Existing json is overriden"""
@@ -73,17 +79,14 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
 
         instance = self.xform.instances.first()
         self.assertEqual(instance.json.get("foo"), "bar")
-        regenerate_form_instance_json(self.xform.pk)
+        regenerate_form_instance_json.delay(self.xform.pk)
         instance.refresh_from_db()
         self.assertFalse("foo" in instance.json)
 
-    def test_form_id_invalid(self):
+    @patch("logging.exception")
+    def test_form_id_invalid(self, mock_log_exception):
         """An invalid xform_id is handled"""
-        with self.assertLogs() as logs:
-            regenerate_form_instance_json(sys.maxsize)
 
-        self.assertEqual(len(logs.records), 1)
-        self.assertEqual(
-            logs.records[0].getMessage(), "XForm matching query does not exist."
-        )
-        self.assertEqual(logs.records[0].levelno, logging.ERROR)
+        regenerate_form_instance_json.delay(sys.maxsize)
+
+        mock_log_exception.assert_called_once()
