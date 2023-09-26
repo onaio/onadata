@@ -4,7 +4,6 @@ import sys
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import override_settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.tasks import (
@@ -61,12 +60,6 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         self.assertTrue(self.xform.is_instance_json_regenerated)
         # task_id stored in cache should be deleted
         self.assertIsNone(cache.get(cache_key))
-
-    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
-    def test_regenerates_instances_json_async(self):
-        """When submission are handled async, instances json is regenerated"""
-
-        self.test_regenerates_instances_json()
 
     def test_json_overriden(self):
         """Existing json is overriden"""

@@ -167,7 +167,14 @@ def regenerate_form_instance_json(xform_id: int):
         instances = xform.instances.filter(deleted_at__isnull=True)
 
         for instance in queryset_iterator(instances):
-            instance.save()
+            # We do not want to trigger Model.save or any signal
+            # Queryset.update is a workaround to achieve this.
+            # Instance.save and the post/pre signals may contain
+            # some side-effects which we are not interested in. For now
+            # we are only keen on updating the json field
+            Instance.objects.filter(pk=instance.pk).update(
+                json=instance.get_full_dict()
+            )
 
         xform.is_instance_json_regenerated = True
         xform.save()
