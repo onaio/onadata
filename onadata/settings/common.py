@@ -407,6 +407,14 @@ LOGGING = {
             "formatter": "verbose",
             "model": "onadata.apps.main.models.audit.AuditLog",
         },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "auth_debug.log",
+            "backupCount": 5,  # Number of backup files to keep
+            "maxBytes": 1024 * 1024 * 5,  # 5MB
+            "formatter": "profiler",
+            "level": "DEBUG",
+        }
         # 'sql_handler': {
         #     'level': 'DEBUG',
         #     'class': 'logging.StreamHandler',
@@ -421,6 +429,11 @@ LOGGING = {
         # }
     },
     "loggers": {
+        "onadata.libs.authentication": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
         "django.request": {
             "handlers": ["mail_admins", "console"],
             "level": "DEBUG",

@@ -40,8 +40,7 @@ from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.email import get_account_lockout_email_data
 
-logger = logging.getLogger("console_logger")
-logger.addHandler(logging.StreamHandler())
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
