@@ -8,6 +8,7 @@ import datetime
 import json
 import logging
 import os
+import pytz
 import csv
 from io import StringIO
 from builtins import open
@@ -29,7 +30,7 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import patch
+from mock import patch, Mock
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -606,7 +607,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        # Query param returns correct pagination headers
+        # Pagination works with "query" query parameter
         request = self.factory.get(
             "/", data={"page_size": "1", "query": "ambulance"}, **self.extra
         )
@@ -616,6 +617,48 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(
             response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
         )
+        self.assertEqual(len(response.data), 1)
+        # Pagination works with "sort" query parametr
+        instances = self.xform.instances.all().order_by("-date_modified")
+        self.assertEqual(instances.count(), 4)
+        request = self.factory.get(
+            "/",
+            data={"page": "1", "page_size": "2", "sort": '{"date_modified":-1}'},
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
+        # Pagination works with multiple query params
+        instances = (
+            self.xform.instances.all()
+            .order_by("-date_modified")
+            .extra(where=["json::text ~* cast(%s as text)"], params=["ambulance"])
+        )
+        self.assertEqual(instances.count(), 2)
+        request = self.factory.get(
+            "/",
+            data={
+                "page": "1",
+                "page_size": "1",
+                "sort": '{"date_modified":-1}',
+                "query": "ambulance",
+            },
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()
@@ -1070,27 +1113,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
-        formid = self.xform.pk
-        instance = self.xform.instances.all().order_by("pk")[0]
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
-
-        instance = self.xform.instances.all().order_by("-date_created")[0]
+        instances = self.xform.instances.all().order_by("pk")
+        self.assertEqual(len(instances), 4)
+        instance = instances[2]
         date_modified = instance.date_modified.isoformat()
-
-        query_str = '{"_date_modified": {"$gte": "%s"},' ' "_submitted_by": "%s"}' % (
-            date_modified,
-            "bob",
-        )
+        # greater than or equal to
+        query_str = '{"_date_modified": {"$gte": "%s"}}' % date_modified
         data = {"query": query_str}
         request = self.factory.get("/", data=data, **self.extra)
-        response = view(request, pk=formid)
+        response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        expected_count = self.xform.instances.filter(
-            date_modified__gte=date_modified
-        ).count()
-        self.assertEqual(len(response.data), expected_count)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[2].pk)
+        self.assertEqual(response.data[1]["_id"], instances[3].pk)
+        # greater than
+        query_str = '{"_date_modified": {"$gt": "%s"}}' % date_modified
+        data = {"query": query_str}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[3].pk)
 
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
         self._make_submissions()
@@ -2339,7 +2382,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         |        | end repeat   |
         """
         self.xform = self._publish_markdown(
-            md, self.user, self.project, id_string="geotraces")
+            md, self.user, self.project, id_string="geotraces"
+        )
         # publish submissions
         self._publish_submit_geoms_in_repeats("Geotraces")
         view = DataViewSet.as_view({"get": "list"})
@@ -2400,7 +2444,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         |        | end repeat   |
         """
         self.xform = self._publish_markdown(
-            md, self.user, self.project, id_string="geoshapes")
+            md, self.user, self.project, id_string="geoshapes"
+        )
         # publish submissions
         self._publish_submit_geoms_in_repeats("Geoshapes")
         view = DataViewSet.as_view({"get": "list"})
@@ -3194,7 +3239,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         floip_list = json.loads(response.content)
         self.assertTrue(isinstance(floip_list, list))
         floip_row = [x for x in floip_list if x[-2] == "none"][0]
-        self.assertEqual(floip_row[0], response.data[0]["_submission_time"] + "+00:00")
+        self.assertEqual(floip_row[0], response.data[0]["_submission_time"])
         self.assertEqual(floip_row[2], "bob")
         self.assertEqual(floip_row[3], response.data[0]["_uuid"])
         self.assertEqual(
@@ -3361,24 +3406,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        self._make_submission_w_attachment(
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                "transport_2011-07-25_19-05-49_2.xml",
-            ),
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                media_file,
-            ),
-        )
+        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=pytz.utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            self._make_submission_w_attachment(
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    "transport_2011-07-25_19-05-49_2.xml",
+                ),
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    media_file,
+                ),
+            )
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
@@ -3394,7 +3442,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         returned_xml = response.content.decode("utf-8")
         server_time = ET.fromstring(returned_xml).attrib.get("serverTime")
         edited = instance.last_edited is not None
-        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        submission_time = instance.date_created.isoformat()
         attachment = instance.attachments.first()
         expected_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'

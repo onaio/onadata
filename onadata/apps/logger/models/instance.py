@@ -60,7 +60,6 @@ from onadata.libs.utils.common_tags import (
     LAST_EDITED,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
-    MONGO_STRFTIME,
     NOTES,
     REVIEW_COMMENT,
     REVIEW_DATE,
@@ -183,7 +182,7 @@ def get_id_string_from_xml_str(xml_str):
     return id_string
 
 
-def submission_time():
+def now():
     """Returns current timestamp via timezone.now()."""
     return timezone.now()
 
@@ -237,7 +236,6 @@ def update_xform_submission_count_async(self, instance_id, created):
 def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if created:
-
         # pylint: disable=import-outside-toplevel
         from multidb.pinning import use_master
 
@@ -321,12 +319,12 @@ def _update_xform_submission_count_delete(instance):
 
         # update xform if no instance has geoms
         if (
-            instance.xform.instances.filter(
-                deleted_at__isnull=True
-            ).exclude(geom=None).count() <
-            1
+            instance.xform.instances.filter(deleted_at__isnull=True)
+            .exclude(geom=None)
+            .count()
+            < 1
         ):
-            if (instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths()):
+            if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
                 instance.xform.instances_with_geopoints = True
             else:
                 instance.xform.instances_with_geopoints = False
@@ -341,32 +339,28 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
 
 @app.task(bind=True, max_retries=3)
-def save_full_json_async(self, instance_id, created):
+def save_full_json_async(self, instance_id):
     """
     Celery task to asynchrounously generate and save an Instances JSON
     once a submission has been made
     """
     try:
-        save_full_json(instance_id, created)
+        instance = Instance.objects.get(pk=instance_id)
     except Instance.DoesNotExist as e:
         if self.request.retries > 2:
             msg = f"Failed to save full JSON for Instance {instance_id}"
             report_exception(msg, e, sys.exc_info())
         self.retry(exc=e, countdown=60 * self.request.retries)
+    else:
+        save_full_json(instance)
 
 
-def save_full_json(instance_id, created):
-    """set json data, ensure the primary key is part of the json data"""
-    if created:
-        try:
-            instance = Instance.objects.get(pk=instance_id)
-        except Instance.DoesNotExist as e:
-            # Retry if run asynchrounously
-            if current_task.request.id:
-                raise e
-        else:
-            instance.json = instance.get_full_dict()
-            instance.save(update_fields=["json"])
+def save_full_json(instance: "Instance"):
+    """Save full json dict"""
+    # Queryset.update ensures the model's save is not called and
+    # the pre_save and post_save signals aren't sent
+    json = instance.get_full_dict()
+    Instance.objects.filter(pk=instance.pk).update(json=json, version=json.get(VERSION))
 
 
 @app.task(bind=True, max_retries=3)
@@ -474,16 +468,12 @@ class InstanceBaseClass:
             else:
                 self.geom = None
 
-    def _set_json(self):
-        # pylint: disable=attribute-defined-outside-init
-        self.json = self.get_full_dict()
-
-    def get_full_dict(self, load_existing=True):
+    def get_full_dict(self):
         """Returns the submission XML as a python dictionary object."""
-        doc = self.json or {} if load_existing else {}
         # Get latest dict
         doc = self.get_dict()
         # pylint: disable=no-member
+
         if self.id:
             geopoint = [self.point.y, self.point.x] if self.point else [None, None]
             doc.update(
@@ -495,7 +485,7 @@ class InstanceBaseClass:
                     STATUS: self.status,
                     TAGS: list(self.tags.names()),
                     NOTES: self.get_notes(),
-                    VERSION: self.version,
+                    VERSION: doc.get(VERSION, self.xform.version),
                     DURATION: self.get_duration(),
                     XFORM_ID_STRING: self._parser.get_xform_id_string(),
                     XFORM_ID: self.xform.pk,
@@ -508,30 +498,19 @@ class InstanceBaseClass:
                 doc.update(osm.get_tags_with_prefix())
 
             if isinstance(self.deleted_at, datetime):
-                doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+                doc[DELETEDAT] = self.deleted_at.isoformat()
 
             # pylint: disable=no-member
             if self.has_a_review:
                 review = self.get_latest_review()
                 if review:
                     doc[REVIEW_STATUS] = review.status
-                    doc[REVIEW_DATE] = review.date_created.strftime(MONGO_STRFTIME)
+                    doc[REVIEW_DATE] = review.date_created.isoformat()
                     if review.get_note_text():
                         doc[REVIEW_COMMENT] = review.get_note_text()
 
-            # pylint: disable=attribute-defined-outside-init
-            # pylint: disable=access-member-before-definition
-            if not self.date_created:
-                self.date_created = submission_time()
-
-            # pylint: disable=access-member-before-definition
-            if not self.date_modified:
-                self.date_modified = self.date_created
-
-            doc[DATE_MODIFIED] = self.date_modified.strftime(MONGO_STRFTIME)
-
-            doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-
+            doc[DATE_MODIFIED] = self.date_modified.isoformat()
+            doc[SUBMISSION_TIME] = self.date_created.isoformat()
             doc[TOTAL_MEDIA] = self.total_media
             doc[MEDIA_COUNT] = self.media_count
             doc[MEDIA_ALL_RECEIVED] = self.media_all_received
@@ -650,13 +629,18 @@ class Instance(models.Model, InstanceBaseClass):
         "logger.XForm", null=False, related_name="instances", on_delete=models.CASCADE
     )
     survey_type = models.ForeignKey("logger.SurveyType", on_delete=models.PROTECT)
-
     # shows when we first received this instance
-    date_created = models.DateTimeField(auto_now_add=True)
-
+    date_created = models.DateTimeField(
+        default=now,
+        editable=False,
+        blank=True,
+    )
     # this will end up representing "date last parsed"
-    date_modified = models.DateTimeField(auto_now=True)
-
+    date_modified = models.DateTimeField(
+        default=now,
+        editable=False,
+        blank=True,
+    )
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
     deleted_by = models.ForeignKey(
@@ -698,9 +682,9 @@ class Instance(models.Model, InstanceBaseClass):
         app_label = "logger"
         unique_together = ("xform", "uuid")
         indexes = [
-            models.Index(fields=['date_created']),
-            models.Index(fields=['date_modified']),
-            models.Index(fields=['deleted_at']),
+            models.Index(fields=["date_created"]),
+            models.Index(fields=["date_modified"]),
+            models.Index(fields=["deleted_at"]),
         ]
 
     @classmethod
@@ -746,8 +730,8 @@ class Instance(models.Model, InstanceBaseClass):
                     media_list.extend([i["media/file"] for i in data["media"]])
             else:
                 media_xpaths = (
-                    self.xform.get_media_survey_xpaths() +
-                    self.xform.get_osm_survey_xpaths()
+                    self.xform.get_media_survey_xpaths()
+                    + self.xform.get_osm_survey_xpaths()
                 )
                 for media_xpath in media_xpaths:
                     media_list.extend(get_values_matching_key(data, media_xpath))
@@ -780,6 +764,7 @@ class Instance(models.Model, InstanceBaseClass):
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):
         force = kwargs.get("force")
+        self.date_modified = now()
 
         if force:
             del kwargs["force"]
@@ -787,11 +772,8 @@ class Instance(models.Model, InstanceBaseClass):
         self._check_is_merged_dataset()
         self._check_active(force)
         self._set_geom()
-        self._set_json()
         self._set_survey_type()
         self._set_uuid()
-        # pylint: disable=no-member
-        self.version = self.json.get(VERSION, self.xform.version)
 
         super().save(*args, **kwargs)
 
@@ -823,7 +805,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     - XForm submission count & instances_with_geopoints field
     - Project date modified
-    - Update the submission JSON field data
+    - Update the submission JSON field data. We save the full_json in
+        post_save signal because some implementations in get_full_dict
+        require the id to be available
     """
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
@@ -835,7 +819,7 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
             )
         )
         transaction.on_commit(
-            lambda: save_full_json_async.apply_async(args=[instance.pk, created])
+            lambda: save_full_json_async.apply_async(args=[instance.pk])
         )
         transaction.on_commit(
             lambda: update_project_date_modified_async.apply_async(
@@ -845,7 +829,7 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     else:
         update_xform_submission_count(instance.pk, created)
-        save_full_json(instance.pk, created)
+        save_full_json(instance)
         update_project_date_modified(instance.pk, created)
 
 
@@ -873,7 +857,7 @@ post_delete.connect(
 pre_delete.connect(
     permanently_delete_attachments,
     sender=Instance,
-    dispatch_uid="permanently_delete_attachments"
+    dispatch_uid="permanently_delete_attachments",
 )
 
 
@@ -911,7 +895,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     @property
     def json(self):
         """Returns the XML submission as a python dictionary object."""
-        return self.get_full_dict(load_existing=False)
+        return self.get_full_dict()
 
     @property
     def status(self):

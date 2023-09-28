@@ -52,11 +52,16 @@ def floip_rows_list(data):
     """
     Yields a row of FLOIP results data from dict data.
     """
-    _submission_time = (
-        pytz.timezone("UTC")
-        .localize(parse_datetime(data["_submission_time"]))
-        .isoformat()
-    )
+    try:
+        _submission_time = (
+            pytz.timezone("UTC")
+            .localize(parse_datetime(data["_submission_time"]))
+            .isoformat()
+        )
+
+    except ValueError:
+        _submission_time = data["_submission_time"]
+
     for i, key in enumerate(data, 1):
         if not (key.startswith("_") or key in IGNORE_FIELDS):
             instance_id = data["_id"]
@@ -296,7 +301,7 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
                 xml.endElement(self.element_node)
 
         elif isinstance(data, dict):
-            for (key, value) in iteritems(data):
+            for key, value in iteritems(data):
                 if key not in FORMLIST_MANDATORY_FIELDS and value is None:
                     continue
                 xml.startElement(key, {})

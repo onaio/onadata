@@ -43,6 +43,7 @@ from onadata.apps.viewer.models.parsed_instance import (
     get_where_clause,
     query_data,
     query_fields_data,
+    query_count,
     _get_sort_fields,
     ParsedInstance,
 )
@@ -497,7 +498,8 @@ class DataViewSet(
         query = self.request.query_params.get("query")
         base_url = url.split("?")[0]
         if query:
-            num_of_records = self.object_list.count()
+            query = self._parse_query(query)
+            num_of_records = query_count(xform, query=query)
         else:
             num_of_records = xform.num_of_submissions
         next_page_url = None
@@ -660,6 +662,12 @@ class DataViewSet(
 
         return custom_response_handler(request, xform, query, export_type)
 
+    def _parse_query(self, query):
+        """Parse `query` query parameter"""
+        return filter_queryset_xform_meta_perms_sql(
+            self.get_object(), self.request.user, query
+        )
+
     # pylint: disable=too-many-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):
         """
@@ -694,9 +702,7 @@ class DataViewSet(
                 self.object_list = self.object_list[start_index:end_index]
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
-                    query = filter_queryset_xform_meta_perms_sql(
-                        self.get_object(), self.request.user, query
-                    )
+                    query = self._parse_query(query)
                     # pylint: disable=protected-access
                     has_json_fields = sort and ParsedInstance._has_json_fields(
                         _get_sort_fields(sort)
@@ -800,22 +806,23 @@ class DataViewSet(
             xform = self.get_object()
             num_of_submissions = xform.num_of_submissions
             should_paginate = num_of_submissions > retrieval_threshold
+
             if should_paginate:
                 self.paginator.page_size = retrieval_threshold
 
-        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
+        if should_paginate:
             query_param_keys = self.request.query_params
             current_page = query_param_keys.get(self.paginator.page_query_param, 1)
             current_page_size = query_param_keys.get(
                 self.paginator.page_size_query_param, retrieval_threshold
             )
-
             self._set_pagination_headers(
                 self.get_object(),
                 current_page=current_page,
                 current_page_size=current_page_size,
             )
 
+        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
             try:
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.paginate_queryset(self.object_list)
@@ -824,6 +831,7 @@ class DataViewSet(
                 self.object_list = self.paginate_queryset(self.object_list)
 
         stream_data = getattr(settings, "STREAM_DATA", False)
+
         if stream_data:
             response = self._get_streaming_response()
         else:

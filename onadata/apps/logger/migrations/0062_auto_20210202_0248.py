@@ -14,12 +14,11 @@ def regenerate_instance_json(apps, schema_editor):
         xform__downloadable=True,
         xform__deleted_at__isnull=True,
     ):
-        inst.json = inst.get_full_dict(load_existing=False)
+        inst.json = inst.get_full_dict()
         inst.save()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("logger", "0061_auto_20200713_0814"),
     ]

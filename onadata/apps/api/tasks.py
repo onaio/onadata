@@ -18,9 +18,14 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.cache_tools import (
+    safe_delete,
+    XFORM_REGENERATE_INSTANCE_JSON_TASK,
+)
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
 from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.celeryapp import app
+
 
 User = get_user_model()
 
@@ -145,3 +150,35 @@ def send_project_invitation_email_async(
     else:
         email = ProjectInvitationEmail(invitation, url)
         email.send()
+
+
+@app.task(track_started=True)
+def regenerate_form_instance_json(xform_id: int):
+    """Regenerate a form's instances json
+
+    Json data recreated afresh and any existing json data is overriden
+    """
+    try:
+        xform: XForm = XForm.objects.get(pk=xform_id)
+    except XForm.DoesNotExist as err:
+        logging.exception(err)
+
+    else:
+        if not xform.is_instance_json_regenerated:
+            instances = xform.instances.filter(deleted_at__isnull=True)
+
+            for instance in queryset_iterator(instances):
+                # We do not want to trigger Model.save or any signal
+                # Queryset.update is a workaround to achieve this.
+                # Instance.save and the post/pre signals may contain
+                # some side-effects which we are not interested in e.g
+                # updating date_modified which we do not want
+                Instance.objects.filter(pk=instance.pk).update(
+                    json=instance.get_full_dict()
+                )
+
+            xform.is_instance_json_regenerated = True
+            xform.save()
+            # Clear cache used to store the task id from the AsyncResult
+            cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
+            safe_delete(cache_key)

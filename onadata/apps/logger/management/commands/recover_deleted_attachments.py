@@ -35,7 +35,7 @@ def recover_deleted_attachments(form_id: str, stdout=None):
                 if stdout:
                     stdout.write(f"Recovered {attachment.name} ID: {attachment.id}")
             # Regenerate instance JSON
-            instance.json = instance.get_full_dict(load_existing=False)
+            instance.json = instance.get_full_dict()
             instance.save()
 
 

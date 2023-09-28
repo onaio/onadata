@@ -132,14 +132,14 @@ class DictOrganizer:
                 "_parent_index": parent_index,
             }
         )
-        for (k, v) in iteritems(dict_item):
+        for k, v in iteritems(dict_item):
             if isinstance(v, dict) and isinstance(v, list):
                 if k in obs[table_name][-1]:
                     raise AssertionError()
                 obs[table_name][-1][k] = v
         obs[table_name][-1]["_index"] = this_index
 
-        for (k, v) in iteritems(dict_item):
+        for k, v in iteritems(dict_item):
             if isinstance(v, dict):
                 kwargs = {
                     "dict_item": v,
@@ -893,7 +893,7 @@ class XForm(XFormMixin, BaseModel):
     )
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
-
+    is_instance_json_regenerated = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:

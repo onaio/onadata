@@ -37,7 +37,6 @@ def _get_export_object(export_id):
         return Export.objects.get(id=export_id)
     except Export.DoesNotExist:
         if getattr(settings, "SLAVE_DATABASES", []):
-
             with use_master:
                 return Export.objects.get(id=export_id)
 
