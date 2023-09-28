@@ -159,25 +159,26 @@ def regenerate_form_instance_json(xform_id: int):
     Json data recreated afresh and any existing json data is overriden
     """
     try:
-        xform = XForm.objects.get(pk=xform_id)
+        xform: XForm = XForm.objects.get(pk=xform_id)
     except XForm.DoesNotExist as err:
         logging.exception(err)
 
     else:
-        instances = xform.instances.filter(deleted_at__isnull=True)
+        if not xform.is_instance_json_regenerated:
+            instances = xform.instances.filter(deleted_at__isnull=True)
 
-        for instance in queryset_iterator(instances):
-            # We do not want to trigger Model.save or any signal
-            # Queryset.update is a workaround to achieve this.
-            # Instance.save and the post/pre signals may contain
-            # some side-effects which we are not interested in e.g
-            # updating date_modified which we do not want
-            Instance.objects.filter(pk=instance.pk).update(
-                json=instance.get_full_dict()
-            )
+            for instance in queryset_iterator(instances):
+                # We do not want to trigger Model.save or any signal
+                # Queryset.update is a workaround to achieve this.
+                # Instance.save and the post/pre signals may contain
+                # some side-effects which we are not interested in e.g
+                # updating date_modified which we do not want
+                Instance.objects.filter(pk=instance.pk).update(
+                    json=instance.get_full_dict()
+                )
 
-        xform.is_instance_json_regenerated = True
-        xform.save()
-        # Clear cache used to store the task id from the AsyncResult
-        cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
-        safe_delete(cache_key)
+            xform.is_instance_json_regenerated = True
+            xform.save()
+            # Clear cache used to store the task id from the AsyncResult
+            cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
+            safe_delete(cache_key)

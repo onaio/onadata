@@ -83,3 +83,21 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         regenerate_form_instance_json.delay(sys.maxsize)
 
         mock_log_exception.assert_called_once()
+
+    def test_instance_json_already_generated(self):
+        """Regeneration fails for a form whose regeneration has already been done"""
+
+        def mock_get_full_dict(self):  # pylint: disable=unused-argument
+            return {}
+
+        with patch.object(Instance, "get_full_dict", mock_get_full_dict):
+            self._publish_transportation_form_and_submit_instance()
+
+        self.xform.is_instance_json_regenerated = True
+        self.xform.save()
+        instance = self.xform.instances.first()
+        self.assertFalse(instance.json)
+        self.assertTrue(self.xform.is_instance_json_regenerated)
+        regenerate_form_instance_json.delay(self.xform.pk)
+        instance.refresh_from_db()
+        self.assertFalse(instance.json)
