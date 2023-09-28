@@ -84,7 +84,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
 
         mock_log_exception.assert_called_once()
 
-    def test_instance_json_already_generated(self):
+    def test_already_generated(self):
         """Regeneration fails for a form whose regeneration has already been done"""
 
         def mock_get_full_dict(self):  # pylint: disable=unused-argument

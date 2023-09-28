@@ -1,3 +1,9 @@
+"""
+Management command python manage.py regenerate_instance_json <form_ids>
+
+Regenerates a form's instances json asynchronously
+"""
+
 from celery.result import AsyncResult
 
 from django.core.management.base import BaseCommand, CommandError
@@ -33,8 +39,8 @@ class Command(BaseCommand):
 
             except XForm.DoesNotExist:
                 raise CommandError(f"Form {form_id} does not exist")
-            else:
-                self._regenerate_instance_json(xform)
+
+            self._regenerate_instance_json(xform)
 
     def _regenerate_instance_json(self, xform: XForm):
         if xform.is_instance_json_regenerated:

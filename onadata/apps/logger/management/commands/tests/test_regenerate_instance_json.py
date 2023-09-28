@@ -1,8 +1,9 @@
+"""Tests for management command regenerate_instance_json"""
 from io import StringIO
 
-from celery.result import AsyncResult
-
 from unittest.mock import patch, call
+
+from celery.result import AsyncResult
 
 from django.core.management import call_command
 from django.core.cache import cache
@@ -24,7 +25,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
 
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )
+    )  # pylint: disable=line-too-long
     def test_regenerates_instance_json(self, mock_regenerate):
         """Json data for form submissions is regenerated
 
@@ -40,8 +41,8 @@ class RegenerateInstanceJsonTestCase(TestBase):
 
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )
-    def test_regenerates_instance_json_multiple(self, mock_regenerate):
+    )  # pylint: disable=line-too-long
+    def test_multiple_form_ids(self, mock_regenerate):
         """Command supports multiple forms"""
         self._publish_xlsx_file_with_external_choices()
         form2 = XForm.objects.all()[1]
@@ -66,7 +67,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
     )
-    def test_regenerates_instance_json_no_duplicate_work(self, mock_regenerate):
+    def test_no_duplicate_work(self, mock_regenerate):
         """If a regeneration finished successfully, we do not run it again"""
         self.xform.is_instance_json_regenerated = True
         self.xform.save()
