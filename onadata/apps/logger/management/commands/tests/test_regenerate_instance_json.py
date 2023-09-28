@@ -11,6 +11,8 @@ from django.core.cache import cache
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
 
+# pylint: disable=line-too-long
+
 
 class RegenerateInstanceJsonTestCase(TestBase):
     """Tests for management command regenerate_instance_json"""
@@ -25,7 +27,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
 
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )  # pylint: disable=line-too-long
+    )
     def test_regenerates_instance_json(self, mock_regenerate):
         """Json data for form submissions is regenerated
 
@@ -41,7 +43,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
 
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )  # pylint: disable=line-too-long
+    )
     def test_multiple_form_ids(self, mock_regenerate):
         """Command supports multiple forms"""
         self._publish_xlsx_file_with_external_choices()
@@ -66,7 +68,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
 
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )  # pylint: disable=line-too-long
+    )
     def test_no_duplicate_work(self, mock_regenerate):
         """If a regeneration finished successfully, we do not run it again"""
         self.xform.is_instance_json_regenerated = True
@@ -82,7 +84,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_failure)
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )  # pylint: disable=line-too-long
+    )
     def test_task_state_failed(self, mock_regenerate):
         """We regenerate if old celery task failed"""
         old_task_id = "796dc413-e6ea-42b8-b658-e4ac9e22b02b"
@@ -101,7 +103,7 @@ class RegenerateInstanceJsonTestCase(TestBase):
     @patch.object(AsyncResult, "_get_task_meta", _mock_get_task_meta_non_failure)
     @patch(
         "onadata.apps.logger.management.commands.regenerate_instance_json.regenerate_form_instance_json"
-    )  # pylint: disable=line-too-long
+    )
     def test_task_state_not_failed(self, mock_regenerate):
         """We do not regenerate if last celery task is in a state other than FAILURE
 
