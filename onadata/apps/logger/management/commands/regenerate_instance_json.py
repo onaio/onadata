@@ -36,7 +36,7 @@ class Command(BaseCommand):
         if xform.is_instance_json_regenerated:
             # Async task completed successfully
             self.stdout.write(
-                self.style.SUCCESS("Regeneration for %s COMPLETE" % xform.pk)
+                self.style.SUCCESS(f"Regeneration for {xform.pk} COMPLETE")
             )
             return
 
@@ -47,7 +47,7 @@ class Command(BaseCommand):
             # FAILURE is the only state that should trigger regeneration if
             # a regeneration had earlier been triggered
             self.stdout.write(
-                self.style.WARNING("Regeneration for %s IN PROGRESS " % xform.pk)
+                self.style.WARNING(f"Regeneration for {xform.pk} IN PROGRESS")
             )
             return
 
