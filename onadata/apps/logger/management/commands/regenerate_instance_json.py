@@ -15,6 +15,10 @@ class Command(BaseCommand):
     """Regenerate a form's instances json
 
     Json data recreated afresh and any existing json data is overriden
+
+    Usage:
+    python manage.py regenerate_instance_json <form_ids> e.g
+    python manage.py regenerate_instance_json 689 567 453
     """
 
     help = "Regenerate a form's instances json"
@@ -24,11 +28,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for form_id in options["form_ids"]:
-            try:
+            try:  # pylint disable=raise-missing-from
                 xform: XForm = XForm.objects.get(pk=form_id)
 
             except XForm.DoesNotExist:
-                raise CommandError("Form %s does not exist" % form_id)
+                raise CommandError(f"Form {form_id} does not exist")
             else:
                 self._regenerate_instance_json(xform)
 
