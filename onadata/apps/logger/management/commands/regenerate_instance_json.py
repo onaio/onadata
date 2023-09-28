@@ -34,11 +34,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for form_id in options["form_ids"]:
-            try:  # pylint disable=raise-missing-from
+            try:
                 xform: XForm = XForm.objects.get(pk=form_id)
 
             except XForm.DoesNotExist:
-                raise CommandError(f"Form {form_id} does not exist")
+                raise CommandError(
+                    f"Form {form_id} does not exist"
+                )  # pylint disable=raise-missing-from
 
             self._regenerate_instance_json(xform)
 
