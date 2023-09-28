@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 xform: XForm = XForm.objects.get(pk=form_id)
 
             except XForm.DoesNotExist:
-                raise CommandError(  # pylint disable=raise-missing-from
+                raise CommandError(  # pylint: disable=raise-missing-from
                     f"Form {form_id} does not exist"
                 )
 
