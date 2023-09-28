@@ -8,12 +8,9 @@ import os
 import random
 from datetime import datetime
 
-from celery.result import AsyncResult
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -89,8 +86,6 @@ from onadata.libs.utils.api_export_tools import (
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     safe_delete,
-    XFORM_REGENERATE_INSTANCE_JSON_TASK,
-    XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,
 )
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
@@ -1011,43 +1006,3 @@ class XFormViewSet(
             resp = HttpResponseBadRequest(e)
 
         return resp
-
-    @action(methods=["GET"], detail=True, url_path="regenerate-submission-metadata")
-    def regenerate_instance_json(self, request, *args, **kwargs):
-        """Force json update for all submissions under this form
-
-        Update json for the form's submissions asynchronously.
-
-        An update is only triggered if regeneration has never been ran, or
-        if  the cache for the last task ran does not exist or, if the
-        last task ran failed
-        """
-        xform: XForm = self.get_object()
-
-        if xform.is_instance_json_regenerated:
-            # Async task completed successfully
-            return Response({"status": "SUCCESS"})
-
-        cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
-        cached_task_id: str | None = cache.get(cache_key)
-
-        if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
-            # FAILURE is the only state that should trigger regeneration if
-            # a regeneration had earlier been triggered
-            return Response({"status": "STARTED"})
-
-        # Task has either failed or does not exist in cache, we create a new async task
-        # Celery backend expires the result after 1 day (24hrs) as outlined in the docs,
-        # https://docs.celeryq.dev/en/latest/userguide/configuration.html#result-expires
-        # If after 1 day you create an AsyncResult, the status will be PENDING.
-        # We therefore set the cache timeout to 1 day same as the Celery backend result
-        # expiry timeout
-        result: AsyncResult = tasks.regenerate_form_instance_json.apply_async(
-            args=[xform.pk]
-        )
-        cache.set(
-            cache_key,
-            result.task_id,
-            XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,
-        )
-        return Response({"status": "STARTED"})
