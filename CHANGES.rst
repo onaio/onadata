@@ -4,6 +4,9 @@ Changelog for Onadata
 ``* represents releases that introduce new migrations``
 
 v3.14.0(2023-10-02)
+- Ensure sas token is appended to azure blob attachment url
+  `PR #2482 <https://github.com/onaio/onadata/pull/2482>`
+  [@KipSigei]
 - Ensure geotrace and geoshape in repeats is included in GeoJSON data endpoint
   `PR #2478 <https://github.com/onaio/onadata/pull/2478>`
   [@KipSigei]
