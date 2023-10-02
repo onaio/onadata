@@ -4,6 +4,7 @@ Permissions module.
 """
 import json
 from collections import defaultdict
+from functools import lru_cache
 
 from django.apps import apps
 from django.db.models import Q
@@ -519,6 +520,7 @@ def _get_group_users_with_perms(obj, attach_perms=False, user_perms=None):
     return group_users
 
 
+@lru_cache(maxsize=None)
 def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
     """
     Returns a list of users with their permissions on an object obj.
@@ -547,6 +549,7 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
 
 
 # pylint: disable=invalid-name
+@lru_cache(maxsize=None)
 def get_object_users_with_permissions(
     obj, username=False, with_group_users=False  # pylint: disable=invalid-name
 ):
