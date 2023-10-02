@@ -3,6 +3,8 @@
 Organization Serializer
 """
 
+from functools import lru_cache
+
 from django.contrib.auth import get_user_model
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
@@ -123,6 +125,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         Return organization members.
         """
 
+        @lru_cache(maxsize=None)
         def _create_user_list(user_list):
             users_list = []
             for u in user_list:

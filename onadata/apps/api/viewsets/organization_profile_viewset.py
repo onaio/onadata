@@ -8,6 +8,7 @@ import json
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Prefetch
 from django.utils.module_loading import import_string
 
 from rest_framework import status
@@ -16,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import permissions
-from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.models.organization_profile import OrganizationProfile, OrgProfileUserObjectPermission, OrgProfileGroupObjectPermission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
@@ -56,8 +57,35 @@ class OrganizationProfileViewSet(
     """
     List, Retrieve, Update, Create/Register Organizations.
     """
-
-    queryset = OrganizationProfile.objects.filter(user__is_active=True)
+    queryset = (
+        OrganizationProfile.objects.select_related("user__profile")
+        .prefetch_related(
+            Prefetch(
+                "organizationprofile",
+                queryset=OrganizationProfile.objects.filter(user__is_active=True)
+                .select_related("user")
+                .prefetch_related("user")
+                .prefetch_related("userprofileuserobjectpermission_set")
+                .prefetch_related("orgprofileuserobjectpermission_set")
+            ),
+        )
+        .prefetch_related(
+            Prefetch(
+                "orgprofileuserobjectpermission_set",
+                queryset=OrgProfileUserObjectPermission.objects.select_related(
+                    "user__profile__organizationprofile", "permission"
+                ),
+            )
+        )
+        .prefetch_related(
+            Prefetch(
+                "orgprofilegroupobjectpermission_set",
+                queryset=OrgProfileGroupObjectPermission.objects.select_related(
+                    "group", "permission"
+                ),
+            )
+        )
+    )
     serializer_class = serializer_from_settings()
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]
