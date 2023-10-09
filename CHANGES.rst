@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.14.1(2023-10-09)
+-------------------
+- Rebuilding to pick the latest google export changes.
+  [@kelvin-muchiri]
+
 v3.14.0(2023-10-02)
+-------------------
 - Ensure sas token is appended to azure blob attachment url
   `PR #2482 <https://github.com/onaio/onadata/pull/2482>`
   [@KipSigei]
