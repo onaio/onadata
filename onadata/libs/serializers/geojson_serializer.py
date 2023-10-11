@@ -141,9 +141,10 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
                 points = instance.json.get(geo_field)
                 if geo_field in geotrace_xpaths or geo_field in polygon_xpaths:
                     value = get_values_matching_key(instance.json, geo_field)
+                    # handle empty geoms
                     try:
                         points = next(value)
-                    except TypeError:
+                    except StopIteration:
                         points = None
                 geometry = (
                     geometry_from_string(points, simple_style)

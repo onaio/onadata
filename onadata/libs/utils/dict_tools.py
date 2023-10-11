@@ -22,8 +22,14 @@ def get_values_matching_key(doc, key):
                         yield item
                 elif isinstance(v, list):
                     for i in v:
-                        for j in _get_values(i, key):
-                            yield j
+                        if isinstance(i, (dict, list)):
+                            try:
+                                for j in _get_values(i, key):
+                                    yield j
+                            except StopIteration:
+                                continue
+                        elif i == key:
+                            yield i
 
     return _get_values(doc, key)
 
