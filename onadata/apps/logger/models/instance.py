@@ -765,6 +765,7 @@ class Instance(models.Model, InstanceBaseClass):
     def save(self, *args, **kwargs):
         force = kwargs.get("force")
         self.date_modified = now()
+        self.json = self.get_dict()  # XML converted to json
 
         if force:
             del kwargs["force"]
