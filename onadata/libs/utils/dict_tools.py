@@ -11,6 +11,7 @@ def get_values_matching_key(doc, key):
     """
 
     def _get_values(doc, key):
+        # pylint: disable=too-many-nested-blocks
         if doc is not None:
             if key in doc:
                 yield doc[key]

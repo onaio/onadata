@@ -2504,6 +2504,118 @@ class TestDataViewSet(SerializeMixin, TestBase):
         }
         self.assertEqual(response.data, data)
 
+    def test_empty_geotraces_in_repeats(self):
+        # publish sample geotrace submissions
+        md = """
+        | survey | 
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geotrace     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geotraces"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("empty_geotraces")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from geo_field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.geotrace_xpaths(), ["segment/blueline"])
+        # test LineString geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": None,
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [36.809057, -1.269392],
+                            [36.803303, -1.271966],
+                            [36.805943, -1.268118],
+                            [36.808822, -1.269405],
+                        ],
+                    },  
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
+    def test_empty_geoshapes_in_repeats(self):
+        # publish sample geoshape submissions
+        md = """
+        | survey | 
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geoshape     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geoshapes"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("empty_geoshapes")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from specific field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.polygon_xpaths(), ["segment/blueline"])
+        # test Polygon geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": None,
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [36.79198, -1.29728],
+                                [36.785793, -1.298009],
+                                [36.789744, -1.29961],
+                                [36.790625, -1.300146],
+                                [36.792107, -1.300897],
+                                [36.79198, -1.29728],
+                            ]
+                        ],
+                    },
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
     def test_instances_with_geopoints(self):
         # publish sample geo submissions
         self._publish_submit_geojson()
