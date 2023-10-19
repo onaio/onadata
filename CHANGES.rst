@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.14.2(2023-10-19)
+-------------------
+
+- Gracefully handle empty geoshapes and geotraces in data
+  `PR #2489 <https://github.com/onaio/onadata/pull/2489>`
+  [@KipSigei]
+- Save XML to JSON data in pre-save
+  `PR #2486 <https://github.com/onaio/onadata/pull/2486>`
+  [@kelvin-muchiri]
+
 v3.14.1(2023-10-09)
 -------------------
 - Rebuilding to pick the latest google export changes.
