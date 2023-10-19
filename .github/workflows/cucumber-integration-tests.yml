@@ -21,15 +21,15 @@ jobs:
       - name: Update integration test application properties
         run: |
           sed -i 's/LogTestRail=false/LogTestRail=true/g' onadata/integration-tests/src/test/resources/application.properties
-          sed -i 's/baseUrl=<onadata_baseUrl>/baseUrl='$(echo $BASE_URL)'/g' onadata/integration-tests/src/test/resources/application.properties
-          sed -i 's/TestRailusername=<testrail_username>/TestRailusername='$(echo $TEST_RAIL_USERNAME)'/g' onadata/integration-tests/src/test/resources/application.properties
-          sed -i 's/TestRailpassword=<testrail_password>/TestRailpassword='$(echo $TEST_RAIL_PASSWORD)'/g' onadata/integration-tests/src/test/resources/application.properties
-          sed -i 's/TestRailurl=<testrail_url>/TestRailurl='$(echo $TEST_RAIL_URL)'/g' onadata/integration-tests/src/test/resources/application.properties
+          sed -i 's/baseUrl=<onadata_baseUrl>/baseUrl='$(echo $TEST_ONADATA_BASEURL)'/g' onadata/integration-tests/src/test/resources/application.properties
+          sed -i 's/TestRailusername=<testrail_username>/TestRailusername='$(echo $TEST_TESTRAIL_USERNAME)'/g' onadata/integration-tests/src/test/resources/application.properties
+          sed -i 's/TestRailpassword=<testrail_password>/TestRailpassword='$(echo $TEST_TESTRAIL_PASSWORD )'/g' onadata/integration-tests/src/test/resources/application.properties
+          sed -i 's/TestRailurl=<testrail_url>/TestRailurl='$(echo $TEST_TESTRAIL_URL)'/g' onadata/integration-tests/src/test/resources/application.properties
         env:
-          BASE_URL: ${{ secrets.BASE_URL }}
-          TEST_RAIL_USERNAME: ${{ secrets.TEST_RAIL_USERNAME }}
-          TEST_RAIL_PASSWORD: ${{ secrets.TEST_RAIL_PASSWORD }}
-          TEST_RAIL_URL: ${{ secrets.TEST_RAIL_URL }}
+          TEST_ONADATA_BASEURL: ${{ secrets.TEST_ONADATA_BASEURL }}
+          TEST_TESTRAIL_USERNAME: ${{ secrets.TEST_TESTRAIL_USERNAME }}
+          TEST_TESTRAIL_PASSWORD: ${{ secrets.TEST_TESTRAIL_PASSWORD }}
+          TEST_TESTRAIL_URL: ${{ secrets.TEST_TESTRAIL_URL }}
 
 
       - name: Wait (max 5 mins) for onadata server to be reachable
