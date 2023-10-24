@@ -25,6 +25,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
     """
     Test the /api/v1/files endpoint
     """
+
     def setUp(self):
         super(TestMediaViewSet, self).setUp()
         self.retrieve_view = MediaViewSet.as_view({"get": "retrieve"})
@@ -41,13 +42,15 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         self.assertEqual(type(response.content), bytes)
 
     def test_anon_retrieve_view(self):
-        request = self.factory.get(
-            "/", {"filename": self.attachment.media_file.name}
-        )
+        """Test that anonymous users shouldn't retrieve media"""
+        request = self.factory.get("/", {"filename": self.attachment.media_file.name})
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 404, response)
 
     def test_retrieve_no_perms(self):
+        """Test that users without permissions to retrieve media
+        shouldn't be able to retrieve media
+        """
         # create new user
         new_user = self._create_user("new_user", "new_user")
         self.extra = {"HTTP_AUTHORIZATION": f"Token {new_user.auth_token.key}"}
@@ -60,6 +63,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         self.assertEqual(response.status_code, 404, response)
 
     def test_returned_media_is_based_on_form_perms(self):
+        """Test that attachments are returned based on form meta permissions"""
         request = self.factory.get(
             "/", {"filename": self.attachment.media_file.name}, **self.extra
         )
@@ -74,14 +78,13 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
 
         instance = ShareXForm(self.xform, new_user.username, EditorRole.name)
         instance.save()
-        auth_extra = {
-            'HTTP_AUTHORIZATION': f'Token {new_user.auth_token.key}'
-        }
+        auth_extra = {"HTTP_AUTHORIZATION": f"Token {new_user.auth_token.key}"}
 
         # New user should not be able to view media for
         # submissions which they did not submit
-        request = self.factory.get('/', {"filename": self.attachment.media_file.name},
-                                   **auth_extra)
+        request = self.factory.get(
+            "/", {"filename": self.attachment.media_file.name}, **auth_extra
+        )
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 404)
 
@@ -125,8 +128,10 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
 
     @patch("onadata.libs.utils.image_tools.get_storage_class")
     @patch("onadata.libs.utils.image_tools.boto3.client")
-    def test_anon_retrieve_view_from_s3(self, mock_presigned_urls, mock_get_storage_class):
-
+    def test_anon_retrieve_view_from_s3(
+        self, mock_presigned_urls, mock_get_storage_class
+    ):
+        """Test that anonymous user cannot retrieve media from s3"""
         expected_url = (
             "https://testing.s3.amazonaws.com/doe/attachments/"
             "4_Media_file/media.png?"
@@ -139,17 +144,19 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
             return_value=expected_url
         )
         mock_get_storage_class()().bucket.name = "onadata"
-        request = self.factory.get(
-            "/", {"filename": self.attachment.media_file.name}
-        )
+        request = self.factory.get("/", {"filename": self.attachment.media_file.name})
         response = self.retrieve_view(request, pk=self.attachment.pk)
 
         self.assertEqual(response.status_code, 404, response)
 
     @patch("onadata.libs.utils.image_tools.get_storage_class")
     @patch("onadata.libs.utils.image_tools.boto3.client")
-    def test_retrieve_view_from_s3_no_perms(self, mock_presigned_urls, mock_get_storage_class):
-
+    def test_retrieve_view_from_s3_no_perms(
+        self, mock_presigned_urls, mock_get_storage_class
+    ):
+        """Test that authenticated user without correct perms
+        cannot retrieve media from s3
+        """
         expected_url = (
             "https://testing.s3.amazonaws.com/doe/attachments/"
             "4_Media_file/media.png?"
