@@ -7,14 +7,14 @@ List, Create, Update, Delete MetaData objects.
 from django.conf import settings
 from django.http import Http404
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
 
 from rest_framework.response import Response
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import ParseError
 
+from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models import Attachment
+from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -30,14 +30,19 @@ class MediaViewSet(
     CacheControlMixin,
     ETagsMixin,
     BaseViewset,
-    viewsets.ViewSet,
+    viewsets.ReadOnlyModelViewSet,
 ):
     """A view to redirect to actual attachments url"""
 
-    permission_classes = (AllowAny,)
+    queryset = Attachment.objects.filter(
+        instance__deleted_at__isnull=True, deleted_at__isnull=True
+    )
+    filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
+    lookup_field = "pk"
+    permission_classes = (AttachmentObjectPermissions,)
 
     # pylint: disable=invalid-name
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, *args, **kwargs):
         """
         Redirect to final attachment url
 
@@ -49,14 +54,14 @@ class MediaViewSet(
 
         return HttpResponseRedirect: redirects to final image url
         """
+        pk = kwargs.get("pk")
         try:
             int(pk)
         except ValueError as exc:
             raise Http404() from exc
         else:
             filename = request.query_params.get("filename")
-            attachments = Attachment.objects.all()
-            obj = get_object_or_404(attachments, pk=pk)
+            obj = self.get_object()
 
             if obj.media_file.name != filename:
                 raise Http404()
