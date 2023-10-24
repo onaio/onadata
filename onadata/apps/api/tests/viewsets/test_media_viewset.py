@@ -1,5 +1,7 @@
 import os
 import urllib
+
+from django.utils import timezone
 from mock import MagicMock, patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -40,6 +42,16 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 200, response)
         self.assertEqual(type(response.content), bytes)
+
+        # test when the submission is soft deleted
+        self.attachment.instance.deleted_at = timezone.now()
+        self.attachment.instance.save()
+
+        request = self.factory.get(
+            "/", {"filename": self.attachment.media_file.name}, **self.extra
+        )
+        response = self.retrieve_view(request, pk=self.attachment.pk)
+        self.assertEqual(response.status_code, 404, response)
 
     def test_anon_retrieve_view(self):
         """Test that anonymous users shouldn't retrieve media"""
