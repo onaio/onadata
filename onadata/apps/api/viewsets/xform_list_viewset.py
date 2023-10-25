@@ -3,7 +3,7 @@
 OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 
@@ -31,6 +31,7 @@ from onadata.libs.serializers.xform_serializer import (
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
+from onadata.libs.utils.model_tools import queryset_iterator
 
 BaseViewset = get_baseviewset_class()
 
@@ -167,10 +168,15 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context = self.get_serializer_context()
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
         context[REPEAT_INDEX_TAGS] = "_,_"
-        serializer = XFormManifestSerializer(object_list, many=True, context=context)
 
-        return Response(
-            serializer.data, headers=get_openrosa_headers(request, location=False)
+        def serialize_data():
+            for obj in queryset_iterator(object_list, chunksize=20):
+                serializer = XFormManifestSerializer(obj, context=context)
+                yield serializer.data
+
+        return StreamingHttpResponse(
+            serialize_data(),
+            headers=get_openrosa_headers(request, location=False),
         )
 
     @action(methods=["GET", "HEAD"], detail=True)
