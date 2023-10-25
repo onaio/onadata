@@ -168,13 +168,22 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context = self.get_serializer_context()
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
         context[REPEAT_INDEX_TAGS] = "_,_"
+        total_count = object_list.count()
 
         def serialize_data():
             yield "["
 
+            count = 0
+
             for obj in queryset_iterator(object_list, chunksize=20):
+                count += 1
                 serializer = XFormManifestSerializer(obj, context=context)
-                yield serializer.data
+
+                if count == total_count:
+                    yield serializer.data
+
+                else:
+                    yield f"{serializer.data},"
 
             yield "]"
 
