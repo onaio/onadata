@@ -168,28 +168,24 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context = self.get_serializer_context()
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
         context[REPEAT_INDEX_TAGS] = "_,_"
-        total_count = object_list.count()
 
         def serialize_data():
-            yield "["
-
-            count = 0
+            yield """<?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""
 
             for obj in queryset_iterator(object_list, chunksize=20):
-                count += 1
                 serializer = XFormManifestSerializer(obj, context=context)
+                filename = serializer.data["filename"]
+                hash = serializer.data["hash"]
+                url = serializer.data["downloadUrl"]
 
-                if count == total_count:
-                    yield serializer.data
+                yield f"""<mediaFile><filename>{filename}</filename><hash>{hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"""
 
-                else:
-                    yield f"{serializer.data},"
-
-            yield "]"
+            yield "</manifest>"
 
         return StreamingHttpResponse(
             serialize_data(),
-            content_type="application/json",
+            content_type="text/xml; charset=utf-8",
             headers=get_openrosa_headers(request, location=False),
         )
 
