@@ -170,9 +170,13 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context[REPEAT_INDEX_TAGS] = "_,_"
 
         def serialize_data():
+            yield "["
+
             for obj in queryset_iterator(object_list, chunksize=20):
                 serializer = XFormManifestSerializer(obj, context=context)
                 yield serializer.data
+
+            yield "]"
 
         return StreamingHttpResponse(
             serialize_data(),
