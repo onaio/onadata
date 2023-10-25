@@ -189,6 +189,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return StreamingHttpResponse(
             serialize_data(),
+            content_type="application/json",
             headers=get_openrosa_headers(request, location=False),
         )
 
