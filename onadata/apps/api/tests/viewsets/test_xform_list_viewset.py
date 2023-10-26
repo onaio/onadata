@@ -907,7 +907,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         request.META.update(auth(request.META, auth_response))
 
         # make request
-        response = self.view(request, pk=self.xform.pk, format="csv")
+        response = self.view(request, pk=self.xform.pk)
 
         # test
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>{}</filename><hash>{}</hash><downloadUrl>{}</downloadUrl></mediaFile></manifest>"""  # noqa
