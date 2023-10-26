@@ -173,7 +173,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             yield """<?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""
 
-            for obj in queryset_iterator(object_list, chunksize=20):
+            for obj in queryset_iterator(object_list):
                 serializer = XFormManifestSerializer(obj, context=context)
                 filename = serializer.data["filename"]
                 hash = serializer.data["hash"]
