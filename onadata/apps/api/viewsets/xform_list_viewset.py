@@ -170,6 +170,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context[REPEAT_INDEX_TAGS] = "_,_"
 
         def serialize_data():
+            # pylint: disable=line-too-long
             yield """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""  # noqa
 
             for obj in queryset_iterator(object_list):
@@ -177,7 +178,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
                 filename = serializer.data["filename"]
                 md5_hash = serializer.data["hash"]
                 url = serializer.data["downloadUrl"]
-
+                # pylint: disable=line-too-long
                 yield f"<mediaFile><filename>{filename}</filename><hash>{md5_hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"  # noqa
 
             yield "</manifest>"
