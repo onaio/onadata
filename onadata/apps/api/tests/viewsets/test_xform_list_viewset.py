@@ -854,7 +854,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>{}</filename><hash>{}</hash><downloadUrl>{}</downloadUrl></mediaFile></manifest>"""  # noqa
-        expected_downloadUrl = f"http://testserver/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv?group_delimiter=.&repeat_index_tags=_,_"
+        expected_downloadUrl = f"http://testserver/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv?group_delimiter=.&repeat_index_tags=_,_"  # noqa
         expected_hash = md5(
             self.xform.last_submission_time.isoformat().encode("utf-8")
         ).hexdigest()
@@ -911,7 +911,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         # test
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>{}</filename><hash>{}</hash><downloadUrl>{}</downloadUrl></mediaFile></manifest>"""  # noqa
-        expected_downloadUrl = f"http://testserver/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv?group_delimiter=.&repeat_index_tags=_,_"
+        expected_downloadUrl = f"http://testserver/bob/xformsMedia/{self.xform.pk}/{self.metadata.pk}.csv?group_delimiter=.&repeat_index_tags=_,_"  # noqa
         expected_content = manifest_xml.format(
             "transportation.csv", "md5:", expected_downloadUrl
         )

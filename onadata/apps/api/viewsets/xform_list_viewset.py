@@ -170,7 +170,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context[REPEAT_INDEX_TAGS] = "_,_"
 
         def serialize_data():
-            yield """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""
+            yield """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""  # noqa
 
             for obj in queryset_iterator(object_list):
                 serializer = XFormManifestSerializer(obj, context=context)
@@ -178,7 +178,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
                 hash = serializer.data["hash"]
                 url = serializer.data["downloadUrl"]
 
-                yield f"<mediaFile><filename>{filename}</filename><hash>{hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"
+                yield f"<mediaFile><filename>{filename}</filename><hash>{hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"  # noqa
 
             yield "</manifest>"
 
