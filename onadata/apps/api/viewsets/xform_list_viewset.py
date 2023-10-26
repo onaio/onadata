@@ -175,10 +175,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             for obj in queryset_iterator(object_list):
                 serializer = XFormManifestSerializer(obj, context=context)
                 filename = serializer.data["filename"]
-                hash = serializer.data["hash"]
+                md5_hash = serializer.data["hash"]
                 url = serializer.data["downloadUrl"]
 
-                yield f"<mediaFile><filename>{filename}</filename><hash>{hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"  # noqa
+                yield f"<mediaFile><filename>{filename}</filename><hash>{md5_hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"  # noqa
 
             yield "</manifest>"
 
