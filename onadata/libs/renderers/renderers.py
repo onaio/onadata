@@ -317,6 +317,8 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
 
 
 class StreamRendererMixin:
+    """Mixin class for renderers support stream responses"""
+
     def _get_current_buffer_data(self):
         if hasattr(self, "stream"):
             ret = self.stream.getvalue()
