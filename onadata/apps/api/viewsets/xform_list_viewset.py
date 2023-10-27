@@ -31,7 +31,6 @@ from onadata.libs.serializers.xform_serializer import (
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
-from onadata.libs.utils.model_tools import queryset_iterator
 
 BaseViewset = get_baseviewset_class()
 
@@ -78,11 +77,11 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return obj
 
-    def get_renderers(self):
+    def get_serializer_class(self):
         if self.action and self.action == "manifest":
-            return [XFormManifestRenderer()]
+            return XFormManifestSerializer
 
-        return super().get_renderers()
+        return super().get_serializer_class()
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get("username")
@@ -169,22 +168,8 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
         context[REPEAT_INDEX_TAGS] = "_,_"
 
-        def serialize_data():
-            # pylint: disable=line-too-long
-            yield """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest">"""  # noqa
-
-            for obj in queryset_iterator(object_list):
-                serializer = XFormManifestSerializer(obj, context=context)
-                filename = serializer.data["filename"]
-                md5_hash = serializer.data["hash"]
-                url = serializer.data["downloadUrl"]
-                # pylint: disable=line-too-long
-                yield f"<mediaFile><filename>{filename}</filename><hash>{md5_hash}</hash><downloadUrl>{url}</downloadUrl></mediaFile>"  # noqa
-
-            yield "</manifest>"
-
         return StreamingHttpResponse(
-            serialize_data(),
+            XFormManifestRenderer().stream_data(object_list, self.get_serializer),
             content_type="text/xml; charset=utf-8",
             headers=get_openrosa_headers(request, location=False),
         )
