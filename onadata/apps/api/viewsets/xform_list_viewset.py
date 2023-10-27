@@ -78,12 +78,17 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         return obj
 
     def get_serializer_class(self):
+        """Return the class to use for the serializer"""
         if self.action == "manifest":
             return XFormManifestSerializer
 
         return super().get_serializer_class()
 
     def get_serializer(self, *args, **kwargs):
+        """
+        Return the serializer instance that should be used for validating and
+        deserializing input, and for serializing output.
+        """
         if self.action == "manifest":
             kwargs.setdefault("context", self.get_serializer_context())
             kwargs["context"][GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
