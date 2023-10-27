@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
+from rest_framework.permissions import IsAuthenticated
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models import Attachment
@@ -39,7 +40,7 @@ class MediaViewSet(
     )
     filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = "pk"
-    permission_classes = (AttachmentObjectPermissions,)
+    permission_classes = (IsAuthenticated, AttachmentObjectPermissions,)
 
     # pylint: disable=invalid-name
     def retrieve(self, request, *args, **kwargs):
