@@ -334,16 +334,11 @@ class StreamRendererMixin:
 
         # pylint: disable=attribute-defined-outside-init
         self.stream = StringIO()
-
         xml = SimplerXMLGenerator(self.stream, self.charset)
         xml.startDocument()
-
         yield self._get_current_buffer_data()
-
         xml.startElement(self.root_node, {"xmlns": self.xmlns})
-
         yield self._get_current_buffer_data()
-
         data = iter(data)
 
         try:
@@ -371,8 +366,8 @@ class StreamRendererMixin:
                 break
 
         xml.endElement(self.root_node)
+        yield self._get_current_buffer_data()
         xml.endDocument()
-
         yield self._get_current_buffer_data()
 
 
