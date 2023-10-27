@@ -312,6 +312,7 @@ class ProjectViewSet(
         """Soft deletes a project"""
         project = self.get_object()
         user = request.user
+        cache.delete(f"{PROJ_OWNER_CACHE}{project.id}")
         project.soft_delete(user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

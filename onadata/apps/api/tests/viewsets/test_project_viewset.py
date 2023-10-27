@@ -2549,6 +2549,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request.user = self.user
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 204)
+        self.assertIsNone(cache.get(f"{PROJ_OWNER_CACHE}{project_id}"))
 
         self.project = Project.objects.get(pk=project_id)
 
