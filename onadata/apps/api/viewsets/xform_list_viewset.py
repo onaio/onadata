@@ -78,10 +78,18 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         return obj
 
     def get_serializer_class(self):
-        if self.action and self.action == "manifest":
+        if self.action == "manifest":
             return XFormManifestSerializer
 
         return super().get_serializer_class()
+
+    def get_serializer(self, *args, **kwargs):
+        if self.action == "manifest":
+            kwargs.setdefault("context", self.get_serializer_context())
+            kwargs["context"][GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
+            kwargs["context"][REPEAT_INDEX_TAGS] = "_,_"
+
+        return super().get_serializer(*args, **kwargs)
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get("username")
@@ -164,9 +172,6 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         object_list = MetaData.objects.filter(
             data_type="media", object_id=self.object.pk
         )
-        context = self.get_serializer_context()
-        context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
-        context[REPEAT_INDEX_TAGS] = "_,_"
 
         return StreamingHttpResponse(
             XFormManifestRenderer().stream_data(object_list, self.get_serializer),
