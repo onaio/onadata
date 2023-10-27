@@ -316,8 +316,63 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
             xml.characters(smart_str(data))
 
 
+class StreamRendererMixin:
+    """Mixin class for renderers that support stream responses"""
+
+    def _get_current_buffer_data(self):
+        if hasattr(self, "stream"):
+            ret = self.stream.getvalue()
+            self.stream.truncate(0)
+            self.stream.seek(0)
+            return ret
+        return None
+
+    def stream_data(self, data, serializer):
+        """Returns a streaming response."""
+        if data is None:
+            yield ""
+
+        # pylint: disable=attribute-defined-outside-init
+        self.stream = StringIO()
+        xml = SimplerXMLGenerator(self.stream, self.charset)
+        xml.startDocument()
+        yield self._get_current_buffer_data()
+        xml.startElement(self.root_node, {"xmlns": self.xmlns})
+        yield self._get_current_buffer_data()
+        data = iter(data)
+
+        try:
+            out = next(data)
+        except StopIteration:
+            out = None
+
+        while out:
+            try:
+                next_item = next(data)
+                out = serializer(out).data
+                out, attributes = _pop_xml_attributes(out)
+                xml.startElement(self.element_node, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.element_node)
+                yield self._get_current_buffer_data()
+                out = next_item
+            except StopIteration:
+                out = serializer(out).data
+                out, attributes = _pop_xml_attributes(out)
+                xml.startElement(self.element_node, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.element_node)
+                yield self._get_current_buffer_data()
+                break
+
+        xml.endElement(self.root_node)
+        yield self._get_current_buffer_data()
+        xml.endDocument()
+        yield self._get_current_buffer_data()
+
+
 # pylint: disable=too-few-public-methods
-class XFormManifestRenderer(XFormListRenderer):
+class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     """
     XFormManifestRenderer - render XFormManifest XML.
     """
@@ -346,21 +401,13 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
         return super().render(data, accepted_media_type, renderer_context)
 
 
-class InstanceXMLRenderer(XMLRenderer):
+class InstanceXMLRenderer(XMLRenderer, StreamRendererMixin):
     """
     InstanceXMLRenderer - Renders Instance XML
     """
 
     root_tag_name = "submission-batch"
     item_tag_name = "submission-item"
-
-    def _get_current_buffer_data(self):
-        if hasattr(self, "stream"):
-            ret = self.stream.getvalue()
-            self.stream.truncate(0)
-            self.stream.seek(0)
-            return ret
-        return None
 
     def stream_data(self, data, serializer):
         """Returns a streaming response."""

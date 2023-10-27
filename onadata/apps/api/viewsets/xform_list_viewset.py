@@ -3,7 +3,7 @@
 OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 
@@ -77,11 +77,24 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return obj
 
-    def get_renderers(self):
-        if self.action and self.action == "manifest":
-            return [XFormManifestRenderer()]
+    def get_serializer_class(self):
+        """Return the class to use for the serializer"""
+        if self.action == "manifest":
+            return XFormManifestSerializer
 
-        return super().get_renderers()
+        return super().get_serializer_class()
+
+    def get_serializer(self, *args, **kwargs):
+        """
+        Return the serializer instance that should be used for validating and
+        deserializing input, and for serializing output.
+        """
+        if self.action == "manifest":
+            kwargs.setdefault("context", self.get_serializer_context())
+            kwargs["context"][GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
+            kwargs["context"][REPEAT_INDEX_TAGS] = "_,_"
+
+        return super().get_serializer(*args, **kwargs)
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get("username")
@@ -164,13 +177,11 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         object_list = MetaData.objects.filter(
             data_type="media", object_id=self.object.pk
         )
-        context = self.get_serializer_context()
-        context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
-        context[REPEAT_INDEX_TAGS] = "_,_"
-        serializer = XFormManifestSerializer(object_list, many=True, context=context)
 
-        return Response(
-            serializer.data, headers=get_openrosa_headers(request, location=False)
+        return StreamingHttpResponse(
+            XFormManifestRenderer().stream_data(object_list, self.get_serializer),
+            content_type="text/xml; charset=utf-8",
+            headers=get_openrosa_headers(request, location=False),
         )
 
     @action(methods=["GET", "HEAD"], detail=True)
