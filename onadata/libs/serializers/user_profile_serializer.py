@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -19,6 +19,7 @@ import six
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tools import get_host_domain
@@ -438,7 +439,11 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         """
         Returns user's API Token.
         """
-        return obj.user.auth_token.key
+        try:
+            token = obj.user.auth_token
+        except ObjectDoesNotExist:
+            token = Token.objects.create(user=obj.user)
+        return token.key
 
     def get_temp_token(self, obj):
         """
