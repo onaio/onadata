@@ -105,6 +105,28 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(dict(response.data), self.data)
 
+    def test_get_profile_user_no_auth_token(self):
+        # delete auth token
+        token = Token.objects.get(user=self.user)
+        old_token_key = token.key
+        token.delete()
+
+        view = ConnectViewSet.as_view(
+            {"get": "list"},
+            authentication_classes=(
+                DigestAuthentication,
+                authentication.BasicAuthentication,
+            ),
+        )
+        request = self.factory.get("/")
+        auth = BasicAuth("bob", "bobbob")
+        request.META.update(auth(request.META))
+        request.session = self.client.session
+
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data.get("api_token"), old_token_key)
+
     def test_using_valid_temp_token(self):
         request = self.factory.get("/", **self.extra)
         request.session = self.client.session
