@@ -3,9 +3,17 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.14.3(2023-10-30)
+-------------------
+- Stream response on endpoint /<username>/xformsManifest/<form_id>
+  `PR #2493 <https://github.com/onaio/onadata/pull/2493>`
+  [@kelvin-muchiri]
+- Allow only authenticated users with correct permissions to download media
+  `PR #2492 <https://github.com/onaio/onadata/pull/2492>`
+  [@KipSigei]
+
 v3.14.2(2023-10-19)
 -------------------
-
 - Gracefully handle empty geoshapes and geotraces in data
   `PR #2489 <https://github.com/onaio/onadata/pull/2489>`
   [@KipSigei]
