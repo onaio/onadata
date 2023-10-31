@@ -14,7 +14,6 @@ from rest_framework.exceptions import ParseError
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models import Attachment
-from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -37,7 +36,6 @@ class MediaViewSet(
     queryset = Attachment.objects.filter(
         instance__deleted_at__isnull=True, deleted_at__isnull=True
     )
-    filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = "pk"
     permission_classes = (AttachmentObjectPermissions,)
 
