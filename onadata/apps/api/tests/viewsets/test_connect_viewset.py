@@ -106,6 +106,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(dict(response.data), self.data)
 
     def test_get_profile_user_no_auth_token(self):
+        """
+        Test new user auth token is generated when user doesn't have an
+        existing one
+        """
         # delete auth token
         token = Token.objects.get(user=self.user)
         old_token_key = token.key
