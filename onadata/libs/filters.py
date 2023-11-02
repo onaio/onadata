@@ -17,7 +17,14 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.apps.logger.models import Instance, Project, XForm, DataView, MergedXForm
+from onadata.apps.logger.models import (
+    Instance,
+    Project,
+    XForm,
+    DataView,
+    MergedXForm,
+    Attachment,
+)
 from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
@@ -147,8 +154,8 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
         org_users = set(
-            [group.team.organization for group in request.user.groups.all()] +
-            [o.user for o in filtered_queryset]
+            [group.team.organization for group in request.user.groups.all()]
+            + [o.user for o in filtered_queryset]
         )
 
         return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
@@ -330,6 +337,8 @@ class XFormPermissionFilterMixin:
         xform = request.query_params.get("xform")
         dataview = request.query_params.get("dataview")
         merged_xform = request.query_params.get("merged_xform")
+        filename = request.query_params.get("filename")
+
         public_forms = XForm.objects.none()
         dataview_kwargs = {}
         if dataview:
@@ -352,6 +361,13 @@ class XFormPermissionFilterMixin:
             int_or_parse_error(
                 xform, "Invalid value for formid. It must be a positive integer."
             )
+            self.xform = get_object_or_404(XForm, pk=xform)
+            xform_qs = XForm.objects.filter(pk=self.xform.pk)
+            public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
+        elif filename:
+            attachment_id = view.kwargs.get("pk")
+            attachment = get_object_or_404(Attachment, pk=attachment_id)
+            xform = attachment.instance.xform.pk
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
@@ -515,7 +531,6 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """Attachment filter."""
 
     def filter_queryset(self, request, queryset, view):
-
         queryset = self._xform_filter_queryset(
             request, queryset, view, "instance__xform"
         )
@@ -697,10 +712,9 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         public_xform_id = _public_xform_id_or_none(view.kwargs.get("pk"))
         if public_xform_id:
             form_exports = queryset.filter(xform_id=public_xform_id)
-            current_user_form_exports = (
-                form_exports.filter(*has_submitted_by_key)
-                .filter(options__query___submitted_by=request.user.username)
-            )
+            current_user_form_exports = form_exports.filter(
+                *has_submitted_by_key
+            ).filter(options__query___submitted_by=request.user.username)
             other_form_exports = form_exports.exclude(*has_submitted_by_key)
             return current_user_form_exports | other_form_exports
 

@@ -91,11 +91,10 @@ def get_attachment_url(attachment, suffix=None):
     """
     Returns the attachment URL for a given suffix
     """
-    xform = attachment.instance.xform
     kwargs = {"pk": attachment.pk}
     url = (
         f"{reverse('files-detail', kwargs=kwargs)}"
-        f"?filename={attachment.media_file.name}&xform={xform.pk}"
+        f"?filename={attachment.media_file.name}"
     )
     if suffix:
         url += f"&suffix={suffix}"
