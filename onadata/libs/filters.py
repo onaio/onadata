@@ -367,8 +367,7 @@ class XFormPermissionFilterMixin:
         elif filename:
             attachment_id = view.kwargs.get("pk")
             attachment = get_object_or_404(Attachment, pk=attachment_id)
-            xform = attachment.instance.xform.pk
-            self.xform = get_object_or_404(XForm, pk=xform)
+            self.xform = attachment.instance.xform
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
         else:
