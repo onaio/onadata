@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.14.4(2023-11-07)
+-------------------
+- Bump oidc version to v1.0.3
+  `PR #2501 <https://github.com/onaio/onadata/pull/2501>`
+  [@kelvin-muchiri]
+- Improve performance for attachments xform meta permissions check
+  `PR #2499 <https://github.com/onaio/onadata/pull/2499>`
+  [@KipSigei]
+- Create user auth token if doesn't exist upon retrieval
+  `PR #2496 <https://github.com/onaio/onadata/pull/2496>`
+  [@ciremusyoka]
+
 v3.14.3(2023-10-30)
 -------------------
 - Stream response on endpoint /<username>/xformsManifest/<form_id>
