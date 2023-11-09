@@ -3,6 +3,7 @@ RegistrationForm model
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils.functional import cached_property
 
 from onadata.apps.logger.models import EntityList, XForm
 from onadata.libs.models import AbstractBase
@@ -16,12 +17,6 @@ class RegistrationForm(AbstractBase):
         related_name="registration_forms",
         on_delete=models.CASCADE,
     )
-    save_to = models.JSONField(
-        default=dict,
-        help_text=_(
-            "Maps the save_to field saved in the XLSForm to the original field"
-        ),
-    )
     xform = models.ForeignKey(
         XForm,
         related_name="registration_lists",
@@ -31,3 +26,16 @@ class RegistrationForm(AbstractBase):
 
     def __str__(self):
         return f"{self.xform}|{self.entity_list.name}"
+
+    @cached_property
+    def save_to(self) -> dict[str, str]:
+        """Maps the save_to alias to the original field"""
+        result = {}
+        fields = self.xform.json.get("children", [])
+        entity_properties = filter(lambda field: "bind" in field, fields)
+
+        for field in entity_properties:
+            alias = field["bind"]["entities:saveto"]
+            result[alias] = field["name"]
+
+        return result

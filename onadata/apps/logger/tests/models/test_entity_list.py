@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.db.utils import IntegrityError, DataError
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import EntityList
+from onadata.apps.logger.models import EntityList, Project
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -31,13 +31,23 @@ class EntityListTestCase(TestBase):
         self.assertEqual(entity_list.created_at, self.mocked_now)
         self.assertEqual(entity_list.updated_at, self.mocked_now)
 
-    def test_name_unique(self):
-        """No duplicate name allowed"""
+    def test_name_project_unique_together(self):
+        """No duplicate name and project allowed"""
 
         EntityList.objects.create(name="trees", project=self.project)
 
         with self.assertRaises(IntegrityError):
             EntityList.objects.create(name="trees", project=self.project)
+
+        # We can create existing name, new project
+        project = Project.objects.create(
+            name="Project X",
+            organization=self.user,
+            created_by=self.user,
+        )
+        EntityList.objects.create(name="trees", project=project)
+        # We can create new name, existing project
+        EntityList.objects.create(name="immunization", project=self.project)
 
     def test_max_name_length(self):
         """Field `name` should not exceed 255 characters"""
