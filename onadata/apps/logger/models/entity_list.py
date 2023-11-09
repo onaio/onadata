@@ -18,8 +18,6 @@ class EntityList(AbstractBase):
 
     name = models.CharField(
         max_length=255,
-        unique=True,
-        db_index=True,
         help_text=_("The name that the follow-up form will reference"),
     )
     project = models.ForeignKey(
@@ -27,6 +25,12 @@ class EntityList(AbstractBase):
         related_name="entity_lists",
         on_delete=models.CASCADE,
     )
+
+    class Meta(AbstractBase.Meta):
+        unique_together = (
+            "name",
+            "project",
+        )
 
     def __str__(self):
         return f"{self.name}|{self.project}"
