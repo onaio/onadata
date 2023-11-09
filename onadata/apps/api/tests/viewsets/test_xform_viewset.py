@@ -59,6 +59,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.logger.views import delete_xform
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
@@ -4350,6 +4351,41 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.data_view.refresh_from_db()
         self.assertIsNotNone(self.data_view.deleted_at)
         self.assertIn("-deleted-at-", self.data_view.name)
+
+    def test_delete_xform_endpoint(self):
+        """
+        Tests that the delete_xform view soft deletes xforms
+        """
+        # publish form and make submissions
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", "tutorial.xlsx"
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "libs",
+                "tests",
+                "utils",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "uuid{}".format(x),
+                "submission.xml",
+            )
+            self._make_submission(path)
+
+        # Make request to delete
+        request = self.factory.post("/", **self.extra)
+        request.user = self.xform.user
+        response = delete_xform(
+            request, username=self.xform.user.username, id_string=self.xform.id_string
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.content, b"")
+        self.xform.refresh_from_db()
+        self.assertIsNotNone(self.xform.deleted_at)
 
     def test_multitple_enketo_urls(self):
         with HTTMock(enketo_mock):

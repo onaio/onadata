@@ -46,7 +46,6 @@ from onadata.libs.utils.logger_tools import (
     PublishXForm,
     inject_instanceid,
     publish_form,
-    remove_xform,
     response_with_mimetype_and_name,
     safe_create_instance,
 )
@@ -504,8 +503,8 @@ def delete_xform(request, username, id_string):
         {"user__username__iexact": username, "id_string__iexact": id_string}
     )
 
-    # delete xform and submissions
-    remove_xform(xform)
+    # Delete xform
+    xform.soft_delete(user=request.user)
 
     audit = {}
     audit_log(
