@@ -273,7 +273,7 @@ pre_save.connect(
 
 
 def create_entity_list(sender, instance=None, created=False, **kwargs):
-    """Create an EntityList for a form defines entities"""
+    """Create an EntityList for a form that defines entities"""
     if created and instance.json.get("entity_related"):
         children = instance.json.get("children", [])
 
