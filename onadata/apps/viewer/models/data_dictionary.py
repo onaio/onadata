@@ -20,7 +20,7 @@ from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
-from onadata.apps.logger.models import EntityList, RegistrationForm
+from onadata.apps.logger.models import EntityList, RegistrationForm, FollowUpForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (
@@ -298,4 +298,34 @@ post_save.connect(
     create_entity_list,
     sender=DataDictionary,
     dispatch_uid="create_entity_list_datadictionary",
+)
+
+
+def create_follow_up_form(sender, instance=None, created=False, **kwargs):
+    """Create a FollowUpForm for a form that consumes entities
+
+    Check if a form consumes data from a dataset that is an EntityList. If so,
+    we create a FollowUpForm
+    """
+    children = instance.json.get("children", [])
+
+    for child in children:
+        if child["type"] == "select one" and "itemset" in child:
+            dataset_name = child["itemset"].split(".")[0]
+
+            try:
+                entity_list = EntityList.objects.get(
+                    name=dataset_name, project=instance.project
+                )
+
+            except EntityList.DoesNotExist:
+                continue
+
+            FollowUpForm.objects.get_or_create(entity_list=entity_list, xform=instance)
+
+
+post_save.connect(
+    create_follow_up_form,
+    sender=DataDictionary,
+    dispatch_uid="create_follow_up_datadictionary",
 )

@@ -3,6 +3,9 @@ import os
 import pytz
 from datetime import datetime
 from unittest.mock import patch
+
+from django.db.utils import IntegrityError
+
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import FollowUpForm, EntityList
 
@@ -42,3 +45,16 @@ class FollowUpFormTestCase(TestBase):
         )
         self.assertEqual(self.entity_list.follow_up_forms.count(), 1)
         self.assertEqual(self.xform.follow_up_lists.count(), 1)
+
+    def test_no_duplicate_entity_list_xform(self):
+        """No duplicates allowed for existing entity_list and xform"""
+        FollowUpForm.objects.create(
+            entity_list=self.entity_list,
+            xform=self.xform,
+        )
+
+        with self.assertRaises(IntegrityError):
+            FollowUpForm.objects.create(
+                entity_list=self.entity_list,
+                xform=self.xform,
+            )
