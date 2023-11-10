@@ -20,7 +20,7 @@ from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
-from onadata.apps.logger.models import EntityList
+from onadata.apps.logger.models import EntityList, RegistrationForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.cache_tools import (
@@ -274,7 +274,7 @@ pre_save.connect(
 
 def create_entity_list(sender, instance=None, created=False, **kwargs):
     """Create an EntityList for a form that defines entities"""
-    if created and instance.json.get("entity_related"):
+    if instance.json.get("entity_related"):
         children = instance.json.get("children", [])
 
         for child in children:
@@ -286,7 +286,9 @@ def create_entity_list(sender, instance=None, created=False, **kwargs):
                         entity_list, _ = EntityList.objects.get_or_create(
                             name=dataset, project=instance.project
                         )
-                        entity_list.registration_forms.create(xform=instance)
+                        RegistrationForm.objects.get_or_create(
+                            entity_list=entity_list, xform=instance
+                        )
                         break
 
                 break
