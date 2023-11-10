@@ -5196,6 +5196,106 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data.get("error"), "csv_file not a csv file")
 
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_replace_form_entities_save_to(self, mock_send_message):
+        """Replacing entity properties works works"""
+        with HTTMock(enketo_mock):
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_registration.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+            registration_form = self.xform.registration_lists.first()
+            self.assertEqual(
+                registration_form.save_to,
+                {
+                    "geometry": "location",
+                    "species": "species",
+                    "circumference_cm": "circumference",
+                },
+            )
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_registration_replace_save_to.xlsx",
+            )
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(mock_send_message.called)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
+            self.xform.refresh_from_db()
+            registration_form = self.xform.registration_lists.first()
+            self.assertEqual(
+                registration_form.save_to,
+                {
+                    "location": "location",
+                    "species": "species",
+                },
+            )
+
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_replace_form_entities_list_name(self, mock_send_message):
+        """Replacing entities list_name works"""
+        with HTTMock(enketo_mock):
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_registration.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+            registration_form = self.xform.registration_lists.first()
+            self.assertEqual(registration_form.entity_list.name, "trees")
+            self.assertEqual(EntityList.objects.count(), 1)
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_registration_replace_list_name.xlsx",
+            )
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
+            entity_list = EntityList.objects.get(
+                name="trees_registration", project=self.project
+            )
+            self.assertTrue(
+                RegistrationForm.objects.filter(
+                    entity_list=entity_list, xform=self.xform
+                ).exists()
+            )
+            self.assertEqual(EntityList.objects.count(), 2)
+            self.assertEqual(self.xform.registration_lists.count(), 2)
+
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
     """Tests for exporting form data asynchronously"""

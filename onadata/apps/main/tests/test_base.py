@@ -16,6 +16,7 @@ from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import signals
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
@@ -27,7 +28,7 @@ from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
@@ -360,8 +361,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _set_auth_headers(self, username, password):
         return {
-            "HTTP_AUTHORIZATION": "Basic " +
-            base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+            "HTTP_AUTHORIZATION": "Basic "
+            + base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
                 "utf-8"
             ),
         }
@@ -401,8 +402,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             "tests",
             "fixtures",
             "geolocation",
-            ("GeoLocationFormNoPolylineOrPolygon.xlsx"
-             if only_geopoints else "GeoLocationForm.xlsx"),
+            (
+                "GeoLocationFormNoPolylineOrPolygon.xlsx"
+                if only_geopoints
+                else "GeoLocationForm.xlsx"
+            ),
         )
 
         self._publish_xls_file_and_set_xform(path)
@@ -493,3 +497,10 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 if None in row:
                     row.pop(None)
                 self.assertDictContainsSubset(row, data[index])
+
+    def _mute_post_save_signals(self, target_signals: list[tuple]):
+        """Disable post_save signals"""
+
+        for signal in target_signals:
+            model, dispatch_uid = signal
+            signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)

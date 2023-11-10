@@ -24,6 +24,12 @@ class RegistrationForm(AbstractBase):
         help_text=_("XForm that creates entities"),
     )
 
+    class Meta(AbstractBase.Meta):
+        unique_together = (
+            "entity_list",
+            "xform",
+        )
+
     def __str__(self):
         return f"{self.xform}|{self.entity_list.name}"
 
@@ -32,7 +38,9 @@ class RegistrationForm(AbstractBase):
         """Maps the save_to alias to the original field"""
         result = {}
         fields = self.xform.json.get("children", [])
-        entity_properties = filter(lambda field: "bind" in field, fields)
+        entity_properties = filter(
+            lambda field: "bind" in field and "entities:saveto" in field["bind"], fields
+        )
 
         for field in entity_properties:
             alias = field["bind"]["entities:saveto"]
