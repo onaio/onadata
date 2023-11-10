@@ -15,6 +15,12 @@ class FollowUpForm(AbstractBase):
     No changes are made to any entities
     """
 
+    class Meta(AbstractBase.Meta):
+        unique_together = (
+            "entity_list",
+            "xform",
+        )
+
     entity_list = models.ForeignKey(
         EntityList,
         related_name="follow_up_forms",

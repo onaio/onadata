@@ -61,6 +61,7 @@ from onadata.apps.logger.models import (
     XForm,
     EntityList,
     RegistrationForm,
+    FollowUpForm,
 )
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
@@ -697,8 +698,8 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 for index, row in enumerate(csv_reader):
                     self.assertEqual(row, expected_data[index])
 
-    def test_publish_xlsform_w_entities(self):
-        """Publishing an XLSForm with entities definition works"""
+    def test_publish_entities_registration_form(self):
+        """Publishing an XLSForm that creates entities works"""
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()
             path = os.path.join(
@@ -720,9 +721,9 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 self.assertEqual(RegistrationForm.objects.count(), 1)
                 entity_list = EntityList.objects.first()
                 reg_form = RegistrationForm.objects.first()
-                xform = XForm.objects.all().order_by("pk").first()
+                latest_form = XForm.objects.all().order_by("-pk").first()
                 self.assertEqual(entity_list.name, "trees")
-                self.assertEqual(reg_form.xform, xform)
+                self.assertEqual(reg_form.xform, latest_form)
                 self.assertEqual(
                     reg_form.save_to,
                     {
@@ -732,6 +733,54 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                     },
                 )
                 self.assertEqual(reg_form.entity_list, entity_list)
+
+    def test_publish_entities_follow_up_form(self):
+        """Publishing an XLSForm that consumes entities works"""
+        # Publish registration form
+        md = """
+        | survey   |
+        |          | type               | name          | label                    | save_to          |
+        |          | geopoint           | location      | Tree location            | geometry         |
+        |          | select_one species | species       | Tree species             | species          |
+        |          | integer            | circumference | Tree circumference in cm | circumference_cm |
+        | choices  |                    |               |                          |                  |
+        |          | list_name          | name          | label                    |                  |
+        |          | species            | wallaba       | Wallaba                  |                  |
+        |          | species            | mora          | Mora                     |                  |
+        |          | species            | purpleheart   | Purpleheart              |                  |
+        |          | species            | greenheart    | Greenheart               |                  |
+        | settings |                    |               |                          |                  |
+        |          | form_title         | form_id       |                          |                  |
+        |          | Trees registration | trees_reg     |                          |                  |
+        | entities |                    |               |                          |                  |
+        |          | list_name          | label         |                          |                  |
+        |          | trees              |  foo          |                          |                  |"""
+        self._publish_markdown(md, self.user)
+
+        with HTTMock(enketo_mock):
+            xforms = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_follow_up.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(xforms + 1, XForm.objects.count())
+                self.assertEqual(response.status_code, 201)
+                latest_form = XForm.objects.all().order_by("-pk").first()
+                self.assertTrue(
+                    FollowUpForm.objects.filter(
+                        entity_list__name="trees", xform=latest_form
+                    ).exists()
+                )
 
 
 class TestXFormViewSet(XFormViewSetBaseTestCase):
