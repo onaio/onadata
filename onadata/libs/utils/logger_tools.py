@@ -947,12 +947,6 @@ def inject_instanceid(xml_str, uuid):
     return xml_str
 
 
-def remove_xform(xform):
-    """Deletes an XForm ``xform``."""
-    # delete xform, and all related models
-    xform.delete()
-
-
 class PublishXForm:
     "A class to publish an XML XForm file."
 
