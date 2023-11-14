@@ -130,6 +130,7 @@ class ProjectInvitationEmail:
                 "project_name": self.invitation.project.name,
                 "invitation_url": self.url,
                 "organization": organization,
+                "invited_by": self.invitation.project.organization.email,
             },
         }
 
@@ -137,17 +138,31 @@ class ProjectInvitationEmail:
 
     def get_email_data(self) -> dict[str, str]:
         """Get the email data to be sent"""
-        message_path = "projects/invitation.txt"
-        subject_path = "projects/invitation_subject.txt"
         template_data = self.get_template_data()
-        email_data = {
-            "subject": render_to_string(subject_path, template_data["subject"]),
-            "message_txt": render_to_string(
+        custom_subject = getattr(settings, "PROJECT_INVITATION_SUBJECT", None)
+        custom_message = getattr(settings, "PROJECT_INVITATION_MESSAGE", None)
+
+        if custom_subject:
+            subject = custom_subject.format(**template_data["subject"])
+
+        else:
+            subject_path = "projects/invitation_subject.txt"
+            subject = render_to_string(subject_path, template_data["subject"])
+
+        if custom_message:
+            message = custom_message.format(**template_data["body"])
+
+        else:
+            message_path = "projects/invitation.txt"
+            message = render_to_string(
                 message_path,
                 template_data["body"],
-            ),
+            )
+
+        return {
+            "subject": subject,
+            "message_txt": message,
         }
-        return email_data
 
     def send(self) -> None:
         """Send project invitation email"""

@@ -166,6 +166,8 @@ class ProjectInvitationEmailTestCase(TestBase):
         self.user.profile.save()
         self.project.name = "Test Invitation"
         self.project.save()
+        self.user.email = "user@foo.com"
+        self.user.save()
         self.invitation = ProjectInvitation.objects.create(
             email="janedoe@example.com",
             project=self.project,
@@ -204,6 +206,7 @@ class ProjectInvitationEmailTestCase(TestBase):
                 "project_name": "Test Invitation",
                 "invitation_url": "https://example.com/register",
                 "organization": "Test User",
+                "invited_by": "user@foo.com",
             },
         }
         data = self.email.get_template_data()
@@ -231,8 +234,8 @@ class ProjectInvitationURLTestCase(TestBase):
         }
     )
     @override_settings(ALLOWED_HOSTS=["*"])
-    def test_url_configured(self):
-        """settings.PROJECT_INVITATION_URL is set"""
+    def test_url_configured_for_host(self):
+        """settings.PROJECT_INVITATION_URL is set for specific host"""
         self.custom_request.META["HTTP_HOST"] = "new-domain.com"
         url = get_project_invitation_url(self.custom_request)
         self.assertEqual(url, "https://new-domain.com/register")
