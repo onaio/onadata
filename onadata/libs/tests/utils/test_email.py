@@ -207,6 +207,7 @@ class ProjectInvitationEmailTestCase(TestBase):
                 "invitation_url": "https://example.com/register",
                 "organization": "Test User",
                 "invited_by": "user@foo.com",
+                "username": "janedoe@example.com",
             },
         }
         data = self.email.get_template_data()

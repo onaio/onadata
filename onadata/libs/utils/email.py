@@ -131,6 +131,7 @@ class ProjectInvitationEmail:
                 "invitation_url": self.url,
                 "organization": organization,
                 "invited_by": self.invitation.project.organization.email,
+                "username": self.invitation.email,
             },
         }
 
