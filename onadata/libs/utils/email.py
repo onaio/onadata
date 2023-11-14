@@ -140,8 +140,12 @@ class ProjectInvitationEmail:
     def get_email_data(self) -> dict[str, str]:
         """Get the email data to be sent"""
         template_data = self.get_template_data()
-        custom_subject = getattr(settings, "PROJECT_INVITATION_SUBJECT", None)
-        custom_message = getattr(settings, "PROJECT_INVITATION_MESSAGE", None)
+        custom_subject: str | None = getattr(
+            settings, "PROJECT_INVITATION_SUBJECT", None
+        )
+        custom_message: str | None = getattr(
+            settings, "PROJECT_INVITATION_MESSAGE", None
+        )
 
         if custom_subject:
             subject = custom_subject.format(**template_data["subject"])
