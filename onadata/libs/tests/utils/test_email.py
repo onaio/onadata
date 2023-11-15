@@ -213,6 +213,44 @@ class ProjectInvitationEmailTestCase(TestBase):
         data = self.email.get_template_data()
         self.assertEqual(data, expected_data)
 
+    @override_settings(
+        DEPLOYMENT_NAME="Misfit",
+        PROJECT_INVITATION_SUBJECT="Invitation to join {deployment_name}",
+        PROJECT_INVITATION_MESSAGE=(
+            "Hello {username}\n\n"
+            "You have been added to {project_name} in the"
+            " {organization} account on Misfit.\n\n"
+            "To begin using Misfit, please verify your account"
+            " first by clicking the link below:\n\n"
+            "{invitation_url}\n\n"
+            "Then, enter you first and last name, desired username,"
+            " and password and click Join. Once complete, please notify"
+            " your project admin {invited_by} and we'll activate your account.\n\n"
+        ),
+    )
+    @patch("onadata.libs.utils.email.send_generic_email")
+    def test_send_custom_message(self, mock_send):
+        """Custom subject and message works"""
+        self.email.send()
+        email_data = {
+            "subject": "Invitation to join Misfit",
+            "message_txt": (
+                "Hello janedoe@example.com\n\n"
+                "You have been added to Test Invitation in the"
+                " Test User account on Misfit.\n\n"
+                "To begin using Misfit, please verify your account"
+                " first by clicking the link below:\n\n"
+                "https://example.com/register\n\n"
+                "Then, enter you first and last name, desired username,"
+                " and password and click Join. Once complete, please notify"
+                " your project admin user@foo.com and we'll activate your account.\n\n"
+            ),
+        }
+        mock_send.assert_called_with(
+            self.invitation.email,
+            **email_data,
+        )
+
 
 class ProjectInvitationURLTestCase(TestBase):
     """Tests for get_project_invitation_url"""
