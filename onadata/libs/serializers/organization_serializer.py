@@ -4,6 +4,7 @@ Organization Serializer
 """
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
@@ -20,6 +21,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.cache_tools import ORG_USERS_PERMISSIONS_CACHE
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -142,6 +144,14 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 )
             return users_list
 
+        if obj:
+            # set org users permissions to cache
+            all_users_list = cache.get(f"{ORG_USERS_PERMISSIONS_CACHE}{obj.user.username}")
+            if all_users_list:
+                return all_users_list
+
+            cache.set(f"{ORG_USERS_PERMISSIONS_CACHE}{obj.user.username}", all_users_list)
+
         members = get_organization_members(obj) if obj else []
         owners = get_organization_owners(obj) if obj else []
 
@@ -151,4 +161,8 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         members_list = _create_user_list(members)
         owners_list = _create_user_list(owners)
 
-        return owners_list + members_list
+        all_users_list = owners_list + members_list
+
+        cache.set(f"{ORG_USERS_PERMISSIONS_CACHE}{obj.user.username}", all_users_list)
+
+        return all_users_list

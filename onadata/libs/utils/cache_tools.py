@@ -27,6 +27,9 @@ project_cache_prefixes = [
 IS_ORG = "ups-is_org-"
 USER_PROFILE_PREFIX = "user_profile-"
 
+# Cache names used in organization_serializer
+ORG_USERS_PERMISSIONS_CACHE = "org_users_permissions-"
+
 # Cache names user in xform_serializer
 XFORM_PERMISSIONS_CACHE = "xfs-get_xform_permissions"
 ENKETO_URL_CACHE = "xfs-get_enketo_url"

@@ -29,6 +29,7 @@ from onadata.libs.permissions import (
 )
 from onadata.libs.serializers.fields.organization_field import OrganizationField
 from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
+from onadata.libs.utils.cache_tools import ORG_USERS_PERMISSIONS_CACHE, safe_delete
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT
 
@@ -161,6 +162,8 @@ class OrganizationMemberSerializer(serializers.Serializer):
         if username:
             user = User.objects.get(username=username)
 
+            # Clear permissions cache
+            safe_delete(f"{ORG_USERS_PERMISSIONS_CACHE}{organization.user.username}")
             add_user_to_organization(organization, user)
             _set_organization_role_to_user(organization, user, role)
 
