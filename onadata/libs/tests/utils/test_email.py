@@ -199,7 +199,7 @@ class ProjectInvitationEmailTestCase(TestBase):
             " admin allowing you to begin data collection.</p>\n"
             "<p>To begin using Misfit, please create an account first by"
             " clicking the link below:</p>\n"
-            "<p>https://example.com/register</p>\n"
+            "<p><a href='https://example.com/register'>https://example.com/register</a></p>\n"
             "<p>Thanks,</p>\n<p>The Team at Misfit</p>\n"
         )
         mock_send.assert_called_with(
