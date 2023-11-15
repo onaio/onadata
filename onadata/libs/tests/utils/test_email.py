@@ -174,6 +174,7 @@ class ProjectInvitationEmailTestCase(TestBase):
             project=self.project,
             role="editor",
             status=ProjectInvitation.Status.PENDING,
+            invited_by=self.user,
         )
         self.email = ProjectInvitationEmail(
             self.invitation, "https://example.com/register"
@@ -221,6 +222,23 @@ class ProjectInvitationEmailTestCase(TestBase):
                 "invitation_url": "https://example.com/register",
                 "organization": "Test User",
                 "invited_by": "user@foo.com",
+                "username": "janedoe@example.com",
+            },
+        }
+        data = self.email.get_template_data()
+        self.assertEqual(data, expected_data)
+
+        # invitation invited_by is null
+        self.invitation.invited_by = None
+        self.invitation.save()
+        expected_data = {
+            "subject": {"deployment_name": "Misfit"},
+            "body": {
+                "deployment_name": "Misfit",
+                "project_name": "Test Invitation",
+                "invitation_url": "https://example.com/register",
+                "organization": "Test User",
+                "invited_by": None,
                 "username": "janedoe@example.com",
             },
         }

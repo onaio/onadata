@@ -124,6 +124,11 @@ class ProjectInvitationEmail:
         """Get context data for the templates"""
         deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
         organization = self.invitation.project.organization.profile.name
+        invited_by = None
+
+        if self.invitation.invited_by:
+            invited_by = self.invitation.invited_by.email
+
         data = {
             "subject": {"deployment_name": deployment_name},
             "body": {
@@ -131,7 +136,7 @@ class ProjectInvitationEmail:
                 "project_name": self.invitation.project.name,
                 "invitation_url": self.url,
                 "organization": organization,
-                "invited_by": self.invitation.project.organization.email,
+                "invited_by": invited_by,
                 "username": self.invitation.email,
             },
         }
