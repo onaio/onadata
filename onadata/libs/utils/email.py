@@ -3,8 +3,9 @@
 email utility functions.
 """
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.http import HttpRequest
+from django.utils.html import strip_tags
 from django.template.loader import render_to_string
 from six.moves.urllib.parse import urlencode
 from rest_framework.reverse import reverse
@@ -158,17 +159,24 @@ class ProjectInvitationEmail:
             message = custom_message.format(**template_data["body"])
 
         else:
-            message_path = "projects/invitation.txt"
+            message_path = "projects/invitation_message.html"
             message = render_to_string(
                 message_path,
                 template_data["body"],
             )
 
-        return {
-            "subject": subject,
-            "message_txt": message,
-        }
+        return (
+            subject,
+            message,
+        )
 
     def send(self) -> None:
         """Send project invitation email"""
-        send_generic_email(self.invitation.email, **self.get_email_data())
+        subject, message = self.get_email_data()
+        send_mail(
+            subject,
+            strip_tags(message),
+            settings.DEFAULT_FROM_EMAIL,
+            (self.invitation.email,),
+            html_message=message,
+        )

@@ -155,6 +155,7 @@ class TestEmail(TestBase):
         self.assertNotIn("\n", email_data.get("subject"))
 
 
+@override_settings(DEFAULT_FROM_EMAIL="no-reply@mail.misfit.com")
 class ProjectInvitationEmailTestCase(TestBase):
     """Tests for class ProjectInvitationEmail"""
 
@@ -179,21 +180,34 @@ class ProjectInvitationEmailTestCase(TestBase):
         )
 
     @override_settings(DEPLOYMENT_NAME="Misfit")
-    @patch("onadata.libs.utils.email.send_generic_email")
+    @patch("onadata.libs.utils.email.send_mail")
     def test_send(self, mock_send):
         """Email is sent successfully"""
         self.email.send()
-        email_data = {
-            "subject": "Invitation to Join a Project on Misfit",
-            "message_txt": "\nHello,\n\nYou have been added to Test Invitation by"
-            " a project admin allowing you to begin data collection.\n\nTo begin"
-            " using Misfit, please create an account first by clicking the link below:"
-            "\nhttps://example.com/register"
-            "\n\nThanks,\nThe Team at Misfit\n",
-        }
+        expected_subject = "Invitation to Join a Project on Misfit"
+        expected_message = (
+            "\nHello,\n"
+            "You have been added to Test Invitation by a project admin allowing"
+            " you to begin data collection.\n"
+            "To begin using Misfit, please create an account first by"
+            " clicking the link below:\n"
+            "https://example.com/register\n"
+            "Thanks,\nThe Team at Misfit\n"
+        )
+        expected_html_message = (
+            "\n<p>Hello,</p>\n<p>You have been added to Test Invitation by a project"
+            " admin allowing you to begin data collection.</p>\n"
+            "<p>To begin using Misfit, please create an account first by"
+            " clicking the link below:</p>\n"
+            "<p>https://example.com/register</p>\n"
+            "<p>Thanks,</p>\n<p>The Team at Misfit</p>\n"
+        )
         mock_send.assert_called_with(
-            self.invitation.email,
-            **email_data,
+            expected_subject,
+            expected_message,
+            "no-reply@mail.misfit.com",
+            (self.invitation.email,),
+            html_message=expected_html_message,
         )
 
     @override_settings(DEPLOYMENT_NAME="Misfit")
@@ -217,38 +231,50 @@ class ProjectInvitationEmailTestCase(TestBase):
         DEPLOYMENT_NAME="Misfit",
         PROJECT_INVITATION_SUBJECT="Invitation to join {deployment_name}",
         PROJECT_INVITATION_MESSAGE=(
-            "Hello {username}\n\n"
-            "You have been added to {project_name} in the"
-            " {organization} account on Misfit.\n\n"
-            "To begin using Misfit, please verify your account"
-            " first by clicking the link below:\n\n"
-            "{invitation_url}\n\n"
-            "Then, enter you first and last name, desired username,"
+            "<p>Hello {username}</p>"
+            "<p>You have been added to {project_name} in the"
+            " {organization} account on Misfit.</p>"
+            "<p>To begin using Misfit, please verify your account"
+            " first by clicking the link below:</p>"
+            "<p>{invitation_url}</p>"
+            "<p>Then, enter you first and last name, desired username,"
             " and password and click Join. Once complete, please notify"
-            " your project admin {invited_by} and we'll activate your account.\n\n"
+            " your project admin {invited_by} and we'll activate your account.</p>"
         ),
     )
-    @patch("onadata.libs.utils.email.send_generic_email")
+    @patch("onadata.libs.utils.email.send_mail")
     def test_send_custom_message(self, mock_send):
         """Custom subject and message works"""
         self.email.send()
-        email_data = {
-            "subject": "Invitation to join Misfit",
-            "message_txt": (
-                "Hello janedoe@example.com\n\n"
-                "You have been added to Test Invitation in the"
-                " Test User account on Misfit.\n\n"
-                "To begin using Misfit, please verify your account"
-                " first by clicking the link below:\n\n"
-                "https://example.com/register\n\n"
-                "Then, enter you first and last name, desired username,"
-                " and password and click Join. Once complete, please notify"
-                " your project admin user@foo.com and we'll activate your account.\n\n"
-            ),
-        }
+        expected_subject = "Invitation to join Misfit"
+        expected_message = (
+            "Hello janedoe@example.com"
+            "You have been added to Test Invitation in the"
+            " Test User account on Misfit."
+            "To begin using Misfit, please verify your account"
+            " first by clicking the link below:"
+            "https://example.com/register"
+            "Then, enter you first and last name, desired username,"
+            " and password and click Join. Once complete, please notify"
+            " your project admin user@foo.com and we'll activate your account."
+        )
+        expected_html_message = (
+            "<p>Hello janedoe@example.com</p>"
+            "<p>You have been added to Test Invitation in the"
+            " Test User account on Misfit.</p>"
+            "<p>To begin using Misfit, please verify your account"
+            " first by clicking the link below:</p>"
+            "<p>https://example.com/register</p>"
+            "<p>Then, enter you first and last name, desired username,"
+            " and password and click Join. Once complete, please notify"
+            " your project admin user@foo.com and we'll activate your account.</p>"
+        )
         mock_send.assert_called_with(
-            self.invitation.email,
-            **email_data,
+            expected_subject,
+            expected_message,
+            "no-reply@mail.misfit.com",
+            (self.invitation.email,),
+            html_message=expected_html_message,
         )
 
 
