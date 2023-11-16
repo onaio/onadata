@@ -110,7 +110,7 @@ dict2xml==1.7.3
     # via onadata
 dill==0.3.7
     # via pylint
-django==3.2.20
+django==3.2.23
     # via
     #   django-activity-stream
     #   django-cors-headers
