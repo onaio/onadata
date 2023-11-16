@@ -225,7 +225,10 @@ class TestBriefcaseClient(TestBase):
         instances = Instance.objects.filter(
             xform__user=self.user, xform__id_string=self.xform.id_string
         )
+        # check # of submissions
         self.assertEqual(instances.count(), 1)
+        # check # of attachments
+        self.assertEqual(Attachment.objects.count(), 1)
 
     @classmethod
     def tearDownClass(cls):
