@@ -219,7 +219,7 @@ jobs:
 
       - name: Run Trivy vulnerability for Slack summary
         uses: aquasecurity/trivy-action@master
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        if: github.event_name == 'push'
         with:
           image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           format: json
