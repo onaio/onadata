@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ODK BriefcaseClient utils module"""
+import glob
 import logging
 import mimetypes
 import os
@@ -280,24 +281,42 @@ class BriefcaseClient:
         """
         xml_doc = clean_and_parse_xml(xml_file.read())
         xml = StringIO()
+        xml_string = ""
         de_node = xml_doc.documentElement
-        for node in de_node.firstChild.childNodes:
-            xml.write(node.toxml())
+        if de_node.firstChild.nodeName == "data":
+            for node in de_node.firstChild.childNodes:
+                xml_string = node.toxml()
+                xml.write(xml_string)
+        else:
+            xml_string = de_node.toxml()
+            xml.write(xml_string)
         new_xml_file = ContentFile(xml.getvalue().encode("utf-8"))
         new_xml_file.content_type = "text/xml"
         xml.close()
         attachments = []
 
-        for attach in de_node.getElementsByTagName("mediaFile"):
-            filename_node = attach.getElementsByTagName("filename")
-            filename = filename_node[0].childNodes[0].nodeValue
-            if filename in files:
-                file_obj = default_storage.open(
-                    os.path.join(instance_dir_path, filename)
-                )
-                mimetype, _encoding = mimetypes.guess_type(file_obj.name)
-                media_obj = django_file(file_obj, "media_files[]", mimetype)
-                attachments.append(media_obj)
+        if de_node.firstChild.nodeName == "data":
+            for attach in de_node.getElementsByTagName("mediaFile"):
+                filename_node = attach.getElementsByTagName("filename")
+                filename = filename_node[0].childNodes[0].nodeValue
+                if filename in files:
+                    file_obj = default_storage.open(
+                        os.path.join(instance_dir_path, filename)
+                    )
+                    mimetype, _encoding = mimetypes.guess_type(file_obj.name)
+                    media_obj = django_file(file_obj, "media_files[]", mimetype)
+                    attachments.append(media_obj)
+        else:
+            available_photos = glob.glob(
+                os.path.join(default_storage.base_location, instance_dir_path, "*.jpg")
+            )
+            for photo_path in available_photos:
+                _pdir, photo = os.path.split(photo_path)
+                if xml_string.find(photo) > 0:
+                    file_obj = default_storage.open(photo_path)
+                    mimetype, _encoding = mimetypes.guess_type(file_obj.name)
+                    media_obj = django_file(file_obj, "media_files[]", mimetype)
+                    attachments.append(media_obj)
 
         create_instance(self.user.username, new_xml_file, attachments)
 
