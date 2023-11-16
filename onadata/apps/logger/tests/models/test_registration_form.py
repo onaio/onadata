@@ -1,5 +1,6 @@
 """Tests for module onadata.apps.logger.models.registration_form"""
 
+import json
 import os
 import pytz
 from datetime import datetime
@@ -8,7 +9,7 @@ from unittest.mock import patch
 from django.db.utils import IntegrityError
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import RegistrationForm, EntityList
+from onadata.apps.logger.models import RegistrationForm, EntityList, XFormVersion
 from onadata.apps.viewer.models import DataDictionary
 
 
@@ -30,10 +31,19 @@ class RegistrationFormTestCase(TestBase):
             [(DataDictionary, "create_entity_list_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
+        xform_version = XFormVersion.objects.create(
+            xform=self.xform,
+            version=self.xform.version,
+            xls=self.xform.xls,
+            xml=self.xform.xml,
+            json=json.dumps(self.xform.json),
+        )
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
+            version=xform_version,
+            json=self.xform.json,
         )
         self.assertEqual(RegistrationForm.objects.count(), 1)
         self.assertEqual(f"{reg_form}", f"{reg_form.xform}|trees")
@@ -41,20 +51,26 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(reg_form.entity_list, entity_list)
         self.assertEqual(reg_form.created_at, self.mocked_now)
         self.assertEqual(reg_form.updated_at, self.mocked_now)
+        self.assertEqual(reg_form.version, xform_version)
+        self.assertEqual(reg_form.json, self.xform.json)
+        # Related names are correct
+        self.assertEqual(entity_list.registration_forms.count(), 1)
+        self.assertEqual(self.xform.registration_lists.count(), 1)
+        self.assertEqual(xform_version.registration_forms.count(), 1)
 
-    def test_related_name(self):
-        """Related names foreign keys are correct"""
+    def test_optional_fields(self):
+        """Optional fields and their defaults are correct"""
         self._mute_post_save_signals(
             [(DataDictionary, "create_entity_list_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        RegistrationForm.objects.create(
+        reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
         )
-        self.assertEqual(entity_list.registration_forms.count(), 1)
-        self.assertEqual(self.xform.registration_lists.count(), 1)
+        self.assertIsNone(reg_form.version)
+        self.assertEqual(reg_form.json, {})
 
     def test_save_to(self):
         """Property `save_to` works correctly"""
@@ -71,6 +87,7 @@ class RegistrationFormTestCase(TestBase):
         form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
+            json=self.xform.json,
         )
         self.assertEqual(form.save_to, save_to)
 
