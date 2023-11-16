@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.validators import ValidationError
+from django.db import OperationalError
 from django.http import Http404
 from django.utils.translation import gettext as _
 
@@ -121,7 +122,7 @@ class BriefcaseViewset(
 
         return obj
 
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     def filter_queryset(self, queryset):
         """
         Filters an XForm submission instances using ODK Aggregate query parameters.
@@ -188,7 +189,28 @@ class BriefcaseViewset(
 
         num_entries = _parse_int(num_entries)
         if num_entries:
-            instances = instances[:num_entries]
+            try:
+                instances = instances[:num_entries]
+            except OperationalError:
+                # Create an optimization fence
+                # Define the base query
+                inner_raw_sql = str(instances.query)
+
+                # Create the outer query with the LIMIT clause
+                outer_query = (
+                    f"SELECT id, uuid FROM ({inner_raw_sql}) AS items "  # nosec
+                    "ORDER BY id ASC LIMIT %s"  # nosec
+                )
+                raw_queryset = Instance.objects.raw(outer_query, [num_entries])
+                # convert raw queryset to queryset
+                instances_data = [
+                    {"pk": item.id, "uuid": item.uuid}
+                    for item in raw_queryset.iterator()
+                ]
+                # Create QuerySet from the instances dict
+                instances = Instance.objects.filter(
+                    pk__in=[item["pk"] for item in instances_data]
+                ).values("pk", "uuid")
 
         # Using len() instead of .count() to prevent an extra
         # database call; len() will load the instances in memory allowing
