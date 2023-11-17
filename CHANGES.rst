@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.15.0(2023-11-17)
+-------------------
+- Upgrade Django to version 3.2.23
+  `PR #2507 <https://github.com/onaio/onadata/pull/2507>`
+  [@kelvin-muchiri]
+- Custom project invitation template
+  `PR #2506 <https://github.com/onaio/onadata/pull/2506>`
+  [@kelvin-muchiri]
+- Soft delete xform from legacy UI
+  `PR #2506 <https://github.com/onaio/onadata/pull/2503>`
+  [@FrankApiyo]
+
 v3.14.4(2023-11-07)
 -------------------
 - Bump oidc version to v1.0.3
