@@ -72,6 +72,47 @@ def _parse_int(num):
         return None
 
 
+def _query_optimization_fence(instances, num_entries):
+    """
+    Enhances query performance by using an optimization fence.
+
+    This utility function creates an optimization fence around the provided
+    queryset instances. It encapsulates the original query within a
+    SELECT statement with an ORDER BY and LIMIT clause,
+    optimizing the database query for improved performance.
+
+    Parameters:
+    - instances: QuerySet
+        The input QuerySet of instances to be optimized.
+    - num_entries: int
+        The number of instances to be included in the optimized result set.
+
+    Returns:
+    QuerySet
+        An optimized QuerySet containing selected fields ('pk' and 'uuid')
+        based on the provided instances.
+    """
+    inner_raw_sql = str(instances.query)
+
+    # Create the outer query with the LIMIT clause
+    outer_query = (
+        f"SELECT id, uuid FROM ({inner_raw_sql}) AS items "  # nosec
+        "ORDER BY id ASC LIMIT %s"  # nosec
+    )
+    raw_queryset = Instance.objects.raw(outer_query, [num_entries])
+    # convert raw queryset to queryset
+    instances_data = [
+        {"pk": item.id, "uuid": item.uuid}
+        for item in raw_queryset.iterator()
+    ]
+    # Create QuerySet from the instances dict
+    instances = Instance.objects.filter(
+        pk__in=[item["pk"] for item in instances_data]
+    ).values("pk", "uuid")
+
+    return instances
+
+
 # pylint: disable=too-many-ancestors
 class BriefcaseViewset(
     mixins.CreateModelMixin,
@@ -192,25 +233,7 @@ class BriefcaseViewset(
             try:
                 instances = instances[:num_entries]
             except OperationalError:
-                # Create an optimization fence
-                # Define the base query
-                inner_raw_sql = str(instances.query)
-
-                # Create the outer query with the LIMIT clause
-                outer_query = (
-                    f"SELECT id, uuid FROM ({inner_raw_sql}) AS items "  # nosec
-                    "ORDER BY id ASC LIMIT %s"  # nosec
-                )
-                raw_queryset = Instance.objects.raw(outer_query, [num_entries])
-                # convert raw queryset to queryset
-                instances_data = [
-                    {"pk": item.id, "uuid": item.uuid}
-                    for item in raw_queryset.iterator()
-                ]
-                # Create QuerySet from the instances dict
-                instances = Instance.objects.filter(
-                    pk__in=[item["pk"] for item in instances_data]
-                ).values("pk", "uuid")
+                instances = _query_optimization_fence(instances, num_entries)
 
         # Using len() instead of .count() to prevent an extra
         # database call; len() will load the instances in memory allowing
