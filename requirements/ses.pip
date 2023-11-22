@@ -14,7 +14,7 @@ botocore==1.31.22
     # via
     #   boto3
     #   s3transfer
-django==3.2.20
+django==3.2.23
     # via
     #   -r requirements/ses.in
     #   django-ses
