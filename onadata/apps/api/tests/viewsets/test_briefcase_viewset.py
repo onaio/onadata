@@ -12,9 +12,11 @@ from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.tests.viewsets import test_abstract_viewset
-from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
-from onadata.apps.api.viewsets.xform_submission_viewset import \
-    XFormSubmissionViewSet
+from onadata.apps.api.viewsets.briefcase_viewset import (
+    BriefcaseViewset,
+    _query_optimization_fence,
+)
+from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -661,6 +663,20 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
                         (u'{{media_id}}', str(self.attachment.id))):
                 text = text.replace(*var)
             self.assertContains(response, instanceId, status_code=200)
+
+    def test_query_optimization_fence(self):
+        self._publish_xml_form()
+        self._make_submissions()
+        instances = ordered_instances(self.xform)
+        optimized_instances = _query_optimization_fence(instances, 4)
+        self.assertEqual(instances.count(), optimized_instances.count())
+        op_sql_query = (
+            'SELECT "logger_instance"."id", "logger_instance"."uuid" FROM "logger_instance"'
+            f' WHERE "logger_instance"."id" IN ({optimized_instances[0].get("pk")},'
+            f' {optimized_instances[1].get("pk")}, {optimized_instances[2].get("pk")},'
+            f' {optimized_instances[3].get("pk")})'
+        )
+        self.assertEqual(str(optimized_instances.query), op_sql_query)
 
     def tearDown(self):
         # remove media files
