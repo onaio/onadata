@@ -27,7 +27,7 @@ from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
@@ -360,8 +360,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _set_auth_headers(self, username, password):
         return {
-            "HTTP_AUTHORIZATION": "Basic " +
-            base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+            "HTTP_AUTHORIZATION": "Basic "
+            + base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
                 "utf-8"
             ),
         }
@@ -401,8 +401,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             "tests",
             "fixtures",
             "geolocation",
-            ("GeoLocationFormNoPolylineOrPolygon.xlsx"
-             if only_geopoints else "GeoLocationForm.xlsx"),
+            (
+                "GeoLocationFormNoPolylineOrPolygon.xlsx"
+                if only_geopoints
+                else "GeoLocationForm.xlsx"
+            ),
         )
 
         self._publish_xls_file_and_set_xform(path)

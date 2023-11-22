@@ -137,6 +137,58 @@ class TestCSVDataFrameBuilder(TestBase):
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
 
+    def test_export_nested_groups_and_repeats(self):
+        """Export works well for nested groups and repeats"""
+        md_xform = """
+        | survey  |                         |              |               |
+        |         | type                    | name         | label         |
+        |         | begin group             | company      |               |
+        |         | begin group             | teams        |               |
+        |         | begin repeat            | team         |               |
+        |         | text                    | team_name    | Name of team? |
+        |         | begin group             | engineers    |               |
+        |         | begin group             | frontend     |               |
+        |         | begin group             | frameworks   |               |
+        |         | select_multiple js_fw   | js_framework | JS Framework? |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        |         | end repeat              |              |               |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        | choices |                         |              |               |
+        |         | list_name               | name         | label         |
+        |         | js_fw                   | react        | React         |
+        |         | js_fw                   | angular      | Angular       |"""
+        self.xform = self._publish_markdown(
+            md_xform, self.user, id_string="tech_companies"
+        )
+        cursor = [
+            {
+                "company/teams/team": [
+                    {
+                        "company/teams/team/team_name": "Onadata",
+                        "company/teams/team/engineers/frontend/frameworks/js_framework": "react",
+                    },
+                ]
+            }
+        ]
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username, self.xform.id_string, include_images=False
+        )
+        csv_df_builder.export_to(temp_file.name, cursor)
+        csv_fixture_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "fixtures",
+            "nested_repeats",
+            "tech_companies.csv",
+        )
+        temp_file.close()
+        with open(temp_file.name) as csv_file:
+            self._test_csv_files(csv_file, csv_fixture_path)
+        os.unlink(temp_file.name)
+
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
         """
@@ -961,6 +1013,54 @@ class TestCSVDataFrameBuilder(TestBase):
             }
         ]
         self.maxDiff = None
+        self.assertEqual(expected_result, result)
+
+        # repeast within groups
+        md_xform = """
+        | survey  |                         |              |               |
+        |         | type                    | name         | label         |
+        |         | begin group             | company      |               |
+        |         | begin group             | teams        |               |
+        |         | begin repeat            | team         |               |
+        |         | text                    | team_name    | Name of team? |
+        |         | begin group             | engineers    |               |
+        |         | begin group             | frontend     |               |
+        |         | begin group             | frameworks   |               |
+        |         | select_multiple js_fw   | js_framework | JS Framework? |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        |         | end repeat              |              |               |
+        |         | end group               |              |               |
+        |         | end group               |              |               |
+        | choices |                         |              |               |
+        |         | list_name               | name         | label         |
+        |         | js_fw                   | react        | React         |
+        |         | js_fw                   | angular      | Angular       |"""
+        xform = self._publish_markdown(md_xform, self.user, id_string="tech_companies")
+        cursor = [
+            {
+                "company/teams/team": [
+                    {
+                        "company/teams/team/team_name": "Onadata",
+                        "company/teams/team/engineers/frontend/frameworks/js_framework": "react",
+                    },
+                ]
+            }
+        ]
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False,
+        )
+        result = [k for k in csv_df_builder._format_for_dataframe(cursor)]
+        expected_result = [
+            {
+                "company/teams/team[1]/team_name": "Onadata",
+                "company/teams/team[1]/engineers/frontend/frameworks/js_framework": "react",
+            }
+        ]
         self.assertEqual(expected_result, result)
 
     @override_settings(EXTRA_COLUMNS=["_xform_id"])
