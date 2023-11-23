@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.16.0(2023-11-23)
+-------------------
+- Add custom template tag: settings_value
+  `PR #2510 <https://github.com/onaio/onadata/pull/2510>`
+  [@FrankApiyo]
+- Enhancement: Handle Statement Timeout in Briefcase Viewset 
+  `PR #2508 <https://github.com/onaio/onadata/pull/2508>`
+  [@KipSigei]
+- Trigger database call to correctly capture OperationalError
+  `PR #2513 <https://github.com/onaio/onadata/pull/2513>`
+  [@KipSigei]
+- Upgrade Django for omitted requirements files
+  `PR #2512 <https://github.com/onaio/onadata/pull/2512>`
+  [@kelvin-muchiri]
+
 v3.15.0(2023-11-17)
 -------------------
 - Upgrade Django to version 3.2.23
