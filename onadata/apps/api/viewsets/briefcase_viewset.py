@@ -233,7 +233,7 @@ class BriefcaseViewset(
             try:
                 paginated_instances = instances[:num_entries]
                 # trigger a database call
-                _ = len(instances)
+                _ = len(paginated_instances)
                 instances = paginated_instances
             except OperationalError:
                 instances = _query_optimization_fence(instances, num_entries)
