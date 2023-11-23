@@ -309,6 +309,25 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data.get("forms")), 0)
         self.assertEqual(response.status_code, 200)
 
+    def test_xform_delete_project_forms_endpoint(self):
+        self._publish_xls_form_to_project()
+
+        view = ProjectViewSet.as_view({"get": "forms"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        # soft delete form
+        self.xform.soft_delete(user=self.user)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
     # pylint: disable=invalid-name
     def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
         self._publish_xls_form_to_project()
