@@ -163,7 +163,7 @@ class ProjectViewSet(
 
             return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-        xforms = XForm.objects.filter(project=project)
+        xforms = XForm.objects.filter(project=project, deleted_at__isnull=True)
         serializer = XFormSerializer(xforms, context={"request": request}, many=True)
 
         return Response(serializer.data)
