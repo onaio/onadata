@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.17.0(2023-11-24)
+-------------------
+- Create Composite Index for xform_id and id fields 
+`PR #2519 <https://github.com/onaio/onadata/pull/2519>`
+  [@KipSigei]
+- Filter out soft-deleted xforms from project forms endpoint
+  `PR #2515 <https://github.com/onaio/onadata/pull/2515>`
+  [@KipSigei]
+- Check length of paginated instances in briefcase viewset 
+  `PR #2517 <https://github.com/onaio/onadata/pull/2517>`
+  [@KipSigei]
+
 v3.16.0(2023-11-23)
 -------------------
 - Add custom template tag: settings_value
