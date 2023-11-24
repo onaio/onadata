@@ -685,6 +685,7 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["date_created"]),
             models.Index(fields=["date_modified"]),
             models.Index(fields=["deleted_at"]),
+            models.Index(fields=["xform_id", "id"]),
         ]
 
     @classmethod
