@@ -38,7 +38,7 @@ class RegistrationForm(AbstractBase):
         """Maps the save_to alias to the original field
 
         Args:
-            version (str | None): XFormVersion to use to get properties
+            version (str | None): XFormVersion version to use to get properties
 
         Returns:
             dict: properties used to create entities mapped to their
