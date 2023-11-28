@@ -16,6 +16,7 @@ class Entity(AbstractBase):
         related_name="entities",
     )
     json = models.JSONField(default=dict)
+    version = models.CharField(max_length=255, null=True)
 
     def __str__(self) -> str:
         return f"{self.pk}|{self.registration_form}"

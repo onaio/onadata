@@ -22,7 +22,19 @@ class EntityTestCase(TestBase):
         """We can create an Entity"""
         reg_form = self.xform.registration_lists.first()
         entity_json = {"foo": "very_foo"}
-        entity = Entity.objects.create(registration_form=reg_form, json=entity_json)
+        entity = Entity.objects.create(
+            registration_form=reg_form,
+            json=entity_json,
+            version="x",
+        )
         self.assertEqual(entity.registration_form, reg_form)
         self.assertEqual(entity.json, entity_json)
+        self.assertEqual(entity.version, "x")
         self.assertEqual(f"{entity}", f"{entity.pk}|{reg_form}")
+
+    def test_optional_fields(self):
+        """Defaults for optional fields are correct"""
+        reg_form = self.xform.registration_lists.first()
+        entity_json = {"foo": "very_foo"}
+        entity = Entity.objects.create(registration_form=reg_form, json=entity_json)
+        self.assertIsNone(entity.version)
