@@ -42,7 +42,7 @@ class RegistrationForm(AbstractBase):
 
         Returns:
             dict: properties used to create entities mapped to their
-                  original names
+            original names
         """
         if version:
             xform_version = XFormVersion.objects.get(version=version, xform=self.xform)
