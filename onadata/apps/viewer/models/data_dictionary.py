@@ -287,7 +287,9 @@ def create_entity_list(sender, instance=None, created=False, **kwargs):
                             name=dataset, project=instance.project
                         )
                         RegistrationForm.objects.get_or_create(
-                            entity_list=entity_list, xform=instance
+                            entity_list=entity_list,
+                            xform=instance,
+                            json=instance.json,
                         )
                         break
 
