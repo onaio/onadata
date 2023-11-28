@@ -1,9 +1,10 @@
 """
 RegistrationForm model
 """
+import json
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.utils.functional import cached_property
 
 from onadata.apps.logger.models import EntityList, XForm, XFormVersion
 from onadata.libs.models import AbstractBase
@@ -23,14 +24,6 @@ class RegistrationForm(AbstractBase):
         on_delete=models.CASCADE,
         help_text=_("XForm that creates entities"),
     )
-    version = models.ForeignKey(
-        XFormVersion,
-        related_name="registration_forms",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
-    json = models.JSONField(default=dict)
 
     class Meta(AbstractBase.Meta):
         unique_together = (
@@ -41,11 +34,17 @@ class RegistrationForm(AbstractBase):
     def __str__(self):
         return f"{self.xform}|{self.entity_list.name}"
 
-    @cached_property
-    def save_to(self) -> dict[str, str]:
+    def get_save_to(self, version: str | None = None) -> dict[str, str]:
         """Maps the save_to alias to the original field"""
+        if version:
+            xform_version = XFormVersion.objects.get(version=version, xform=self.xform)
+            xform_json = json.loads(xform_version.json)
+
+        else:
+            xform_json = self.xform.json
+
         result = {}
-        fields = self.json.get("children", [])
+        fields = xform_json.get("children", [])
         entity_properties = filter(
             lambda field: "bind" in field and "entities:saveto" in field["bind"], fields
         )
