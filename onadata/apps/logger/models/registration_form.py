@@ -35,7 +35,15 @@ class RegistrationForm(AbstractBase):
         return f"{self.xform}|{self.entity_list.name}"
 
     def get_save_to(self, version: str | None = None) -> dict[str, str]:
-        """Maps the save_to alias to the original field"""
+        """Maps the save_to alias to the original field
+
+        Args:
+            version (str | None): XFormVersion to use to get properties
+
+        Returns:
+            dict: properties used to create entities mapped to their
+                  original names
+        """
         if version:
             xform_version = XFormVersion.objects.get(version=version, xform=self.xform)
             xform_json = json.loads(xform_version.json)
