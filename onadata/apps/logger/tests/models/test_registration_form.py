@@ -31,19 +31,10 @@ class RegistrationFormTestCase(TestBase):
             [(DataDictionary, "create_entity_list_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
-        xform_version = XFormVersion.objects.create(
-            xform=self.xform,
-            version=self.xform.version,
-            xls=self.xform.xls,
-            xml=self.xform.xml,
-            json=json.dumps(self.xform.json),
-        )
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
-            version=xform_version,
-            json=self.xform.json,
         )
         self.assertEqual(RegistrationForm.objects.count(), 1)
         self.assertEqual(f"{reg_form}", f"{reg_form.xform}|trees")
@@ -51,45 +42,111 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(reg_form.entity_list, entity_list)
         self.assertEqual(reg_form.created_at, self.mocked_now)
         self.assertEqual(reg_form.updated_at, self.mocked_now)
-        self.assertEqual(reg_form.version, xform_version)
-        self.assertEqual(reg_form.json, self.xform.json)
         # Related names are correct
         self.assertEqual(entity_list.registration_forms.count(), 1)
         self.assertEqual(self.xform.registration_lists.count(), 1)
-        self.assertEqual(xform_version.registration_forms.count(), 1)
 
-    def test_optional_fields(self):
-        """Optional fields and their defaults are correct"""
+    def test_get_save_to(self):
+        """Method `get_save_to` works correctly"""
         self._mute_post_save_signals(
             [(DataDictionary, "create_entity_list_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        reg_form = RegistrationForm.objects.create(
-            entity_list=entity_list,
-            xform=self.xform,
-        )
-        self.assertIsNone(reg_form.version)
-        self.assertEqual(reg_form.json, {})
-
-    def test_save_to(self):
-        """Property `save_to` works correctly"""
-        self._mute_post_save_signals(
-            [(DataDictionary, "create_entity_list_datadictionary")]
-        )
-        self._publish_xls_file_and_set_xform(self.form_path)
-        entity_list = EntityList.objects.create(name="trees", project=self.project)
-        save_to = {
-            "geometry": "location",
-            "species": "species",
-            "circumference_cm": "circumference",
-        }
         form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
-            json=self.xform.json,
         )
-        self.assertEqual(form.save_to, save_to)
+        self.assertEqual(
+            form.get_save_to(),
+            {
+                "geometry": "location",
+                "species": "species",
+                "circumference_cm": "circumference",
+            },
+        )
+        # Passing version argument works
+        x_version_json = {
+            "name": "data",
+            "type": "survey",
+            "title": "Trees registration",
+            "version": "x",
+            "children": [
+                {
+                    "bind": {"required": "yes", "entities:saveto": "location"},
+                    "name": "location",
+                    "type": "geopoint",
+                    "label": "Tree location",
+                },
+                {
+                    "bind": {"required": "yes", "entities:saveto": "species"},
+                    "name": "species",
+                    "type": "select one",
+                    "label": "Tree species",
+                    "children": [
+                        {"name": "wallaba", "label": "Wallaba"},
+                        {"name": "mora", "label": "Mora"},
+                        {"name": "purpleheart", "label": "Purpleheart"},
+                        {"name": "greenheart", "label": "Greenheart"},
+                    ],
+                    "list_name": "species",
+                },
+                {
+                    "bind": {"required": "yes", "entities:saveto": "circumference"},
+                    "name": "circumference",
+                    "type": "integer",
+                    "label": "Tree circumference in cm",
+                },
+                {"name": "intake_notes", "type": "text", "label": "Intake notes"},
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": "true"},
+                    "children": [
+                        {
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                            "name": "instanceID",
+                            "type": "calculate",
+                        },
+                        {
+                            "bind": {
+                                "calculate": 'concat(${circumference}, "cm ", ${species})'
+                            },
+                            "name": "instanceName",
+                            "type": "calculate",
+                        },
+                        {
+                            "name": "entity",
+                            "type": "entity",
+                            "parameters": {
+                                "label": 'concat(${circumference}, "cm ", ${species})',
+                                "create": "1",
+                                "dataset": "trees",
+                            },
+                        },
+                    ],
+                },
+            ],
+            "id_string": "trees_registration",
+            "sms_keyword": "trees_registration",
+            "entity_related": "true",
+            "default_language": "default",
+        }
+        XFormVersion.objects.create(
+            xform=self.xform,
+            version="x",
+            xls=self.xform.xls,
+            xml=self.xform.xml,
+            json=json.dumps(x_version_json),
+        )
+        self.assertEqual(
+            form.get_save_to("x"),
+            {
+                "location": "location",
+                "species": "species",
+                "circumference": "circumference",
+            },
+        )
 
     def test_entity_list_xform_unique(self):
         """No duplicates allowed for existing entity_list and xform"""

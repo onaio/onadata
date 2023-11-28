@@ -725,7 +725,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 self.assertEqual(entity_list.name, "trees")
                 self.assertEqual(reg_form.xform, latest_form)
                 self.assertEqual(
-                    reg_form.save_to,
+                    reg_form.get_save_to(),
                     {
                         "geometry": "location",
                         "species": "species",
@@ -5330,7 +5330,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
             registration_form = self.xform.registration_lists.first()
             self.assertEqual(
-                registration_form.save_to,
+                registration_form.get_save_to(),
                 {
                     "geometry": "location",
                     "species": "species",
@@ -5360,7 +5360,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.xform.refresh_from_db()
             registration_form = self.xform.registration_lists.first()
             self.assertEqual(
-                registration_form.save_to,
+                registration_form.get_save_to(),
                 {
                     "location": "location",
                     "species": "species",

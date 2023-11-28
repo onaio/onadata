@@ -2,6 +2,7 @@
 """
 DataDictionary model.
 """
+import json
 import os
 from io import BytesIO, StringIO
 
@@ -274,8 +275,13 @@ pre_save.connect(
 
 def create_entity_list(sender, instance=None, created=False, **kwargs):
     """Create an EntityList for a form that defines entities"""
-    if instance.json.get("entity_related"):
-        children = instance.json.get("children", [])
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    if instance_json.get("entity_related"):
+        children = instance_json.get("children", [])
 
         for child in children:
             if child.get("name") == "meta":
@@ -289,8 +295,8 @@ def create_entity_list(sender, instance=None, created=False, **kwargs):
                         RegistrationForm.objects.get_or_create(
                             entity_list=entity_list,
                             xform=instance,
-                            json=instance.json,
                         )
+
                         break
 
                 break
@@ -309,7 +315,12 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
     Check if a form consumes data from a dataset that is an EntityList. If so,
     we create a FollowUpForm
     """
-    children = instance.json.get("children", [])
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    children = instance_json.get("children", [])
 
     for child in children:
         if child["type"] == "select one" and "itemset" in child:
