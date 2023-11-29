@@ -28,7 +28,7 @@ class RegistrationFormTestCase(TestBase):
         """We can create a RegistrationForm"""
         mock_now.return_value = self.mocked_now
         self._mute_post_save_signals(
-            [(DataDictionary, "create_entity_list_datadictionary")]
+            [(DataDictionary, "create_registration_form_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
@@ -49,7 +49,7 @@ class RegistrationFormTestCase(TestBase):
     def test_get_save_to(self):
         """Method `get_save_to` works correctly"""
         self._mute_post_save_signals(
-            [(DataDictionary, "create_entity_list_datadictionary")]
+            [(DataDictionary, "create_registration_form_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
@@ -151,7 +151,7 @@ class RegistrationFormTestCase(TestBase):
     def test_entity_list_xform_unique(self):
         """No duplicates allowed for existing entity_list and xform"""
         self._mute_post_save_signals(
-            [(DataDictionary, "create_entity_list_datadictionary")]
+            [(DataDictionary, "create_registration_form_datadictionary")]
         )
         self._publish_xls_file_and_set_xform(self.form_path)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
