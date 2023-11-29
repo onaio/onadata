@@ -20,7 +20,7 @@ class EntityTestCase(TestBase):
 
     def test_creation(self):
         """We can create an Entity"""
-        reg_form = self.xform.registration_lists.first()
+        reg_form = self.xform.registration_forms.first()
         entity_json = {"foo": "very_foo"}
         entity = Entity.objects.create(
             registration_form=reg_form,
@@ -34,7 +34,7 @@ class EntityTestCase(TestBase):
 
     def test_optional_fields(self):
         """Defaults for optional fields are correct"""
-        reg_form = self.xform.registration_lists.first()
+        reg_form = self.xform.registration_forms.first()
         entity_json = {"foo": "very_foo"}
         entity = Entity.objects.create(registration_form=reg_form, json=entity_json)
         self.assertIsNone(entity.version)
