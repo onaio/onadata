@@ -5316,27 +5316,29 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_entities_save_to(self, mock_send_message):
-        """Replacing entity properties works works"""
+        """Replacing entity properties works"""
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+        registration_form = self.xform.registration_forms.first()
+        self.assertEqual(
+            registration_form.get_save_to(),
+            {
+                "geometry": "location",
+                "species": "species",
+                "circumference_cm": "circumference",
+            },
+        )
+
         with HTTMock(enketo_mock):
-            xls_file_path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "entities",
-                "trees_registration.xlsx",
-            )
-            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_forms.first()
-            self.assertEqual(
-                registration_form.get_save_to(),
-                {
-                    "geometry": "location",
-                    "species": "species",
-                    "circumference_cm": "circumference",
-                },
-            )
+            # Replace form created above
             view = XFormViewSet.as_view({"patch": "partial_update"})
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT,
@@ -5370,21 +5372,19 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_entities_list_name(self, mock_send_message):
         """Replacing entities list_name works"""
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
         with HTTMock(enketo_mock):
-            xls_file_path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "entities",
-                "trees_registration.xlsx",
-            )
-            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_forms.first()
-            self.assertEqual(registration_form.entity_list.name, "trees")
-            self.assertEqual(EntityList.objects.count(), 1)
-            # replace form created above
+            # Replace form created above
             view = XFormViewSet.as_view({"patch": "partial_update"})
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT,
@@ -5428,21 +5428,19 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_remove_entities(self, mock_send_message):
         """Removing entities definition disables registration form"""
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
         with HTTMock(enketo_mock):
-            xls_file_path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "entities",
-                "trees_registration.xlsx",
-            )
-            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_forms.first()
-            self.assertEqual(registration_form.entity_list.name, "trees")
-            self.assertEqual(EntityList.objects.count(), 1)
-            # replace form created above
+            # Replace form created above
             view = XFormViewSet.as_view({"patch": "partial_update"})
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT,
