@@ -273,8 +273,12 @@ pre_save.connect(
 )
 
 
-def create_entity_list(sender, instance=None, created=False, **kwargs):
-    """Create an EntityList for a form that defines entities"""
+def create_registration_form(sender, instance=None, created=False, **kwargs):
+    """Create a RegistrationForm for a form that defines entities
+
+    Create an EntityList if it does not exist. If it exists, use the
+    the existing EntityList
+    """
     instance_json = instance.json
 
     if isinstance(instance_json, str):
@@ -303,9 +307,9 @@ def create_entity_list(sender, instance=None, created=False, **kwargs):
 
 
 post_save.connect(
-    create_entity_list,
+    create_registration_form,
     sender=DataDictionary,
-    dispatch_uid="create_entity_list_datadictionary",
+    dispatch_uid="create_registration_form_datadictionary",
 )
 
 
