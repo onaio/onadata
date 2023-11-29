@@ -35,6 +35,7 @@ class RegistrationFormTestCase(TestBase):
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
             xform=self.xform,
+            is_active=True,
         )
         self.assertEqual(RegistrationForm.objects.count(), 1)
         self.assertEqual(f"{reg_form}", f"{reg_form.xform}|trees")
@@ -42,6 +43,7 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(reg_form.entity_list, entity_list)
         self.assertEqual(reg_form.created_at, self.mocked_now)
         self.assertEqual(reg_form.updated_at, self.mocked_now)
+        self.assertTrue(reg_form.is_active)
         # Related names are correct
         self.assertEqual(entity_list.registration_forms.count(), 1)
         self.assertEqual(self.xform.registration_forms.count(), 1)
@@ -165,3 +167,16 @@ class RegistrationFormTestCase(TestBase):
                 entity_list=entity_list,
                 xform=self.xform,
             )
+
+    def test_optional_fields(self):
+        """Defaults for optional fields correct"""
+        self._mute_post_save_signals(
+            [(DataDictionary, "create_registration_form_datadictionary")]
+        )
+        self._publish_xls_file_and_set_xform(self.form_path)
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        reg_form = RegistrationForm.objects.create(
+            entity_list=entity_list,
+            xform=self.xform,
+        )
+        self.assertTrue(reg_form.is_active)
