@@ -5465,6 +5465,51 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             reg_form = self.xform.registration_forms.first()
             self.assertFalse(reg_form.is_active)
 
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_registration_form_disabled(self, mock_send_message):
+        """Existing RegistrationForm if disabled is activated"""
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+        registration_form = self.xform.registration_forms.first()
+        # Disable registration form
+        registration_form.is_active = False
+        registration_form.save()
+        registration_form.refresh_from_db()
+        self.assertFalse(registration_form.is_active)
+
+        with HTTMock(enketo_mock):
+            # Replace form created above
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_registration.xlsx",
+            )
+
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
+            registration_form.refresh_from_db()
+            self.assertTrue(registration_form.is_active)
+
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
     """Tests for exporting form data asynchronously"""
