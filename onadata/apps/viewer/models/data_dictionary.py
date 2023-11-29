@@ -348,7 +348,7 @@ post_save.connect(
 )
 
 
-def disable_registraion_form(sender, instance=None, created=False, **kwargs):
+def disable_registration_form(sender, instance=None, created=False, **kwargs):
     """Disable registration form if form no longer contains entities definitions"""
     instance_json = instance.json
 
@@ -363,7 +363,7 @@ def disable_registraion_form(sender, instance=None, created=False, **kwargs):
 
 
 post_save.connect(
-    disable_registraion_form,
+    disable_registration_form,
     sender=DataDictionary,
     dispatch_uid="disable_registration_form_datadictionary",
 )
