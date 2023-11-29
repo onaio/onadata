@@ -5408,8 +5408,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             entity_list = EntityList.objects.get(
                 name="trees_registration", project=self.project
             )
-            # A new RegistrationForm referencing the new entity list
-            # is created for the XForm
+            # A new RegistrationForm referencing the new entity list is
+            # created for the XForm
             self.assertTrue(
                 RegistrationForm.objects.filter(
                     entity_list=entity_list, xform=self.xform
@@ -5417,6 +5417,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
             self.assertEqual(EntityList.objects.count(), 2)
             self.assertEqual(self.xform.registration_forms.count(), 2)
+            # RegistrationForm contributing to the previous EntityList
+            # should be disabled
+            registration_forms = self.xform.registration_forms.all().order_by("pk")
+            prev_registration_form = registration_forms[0]
+            new_registration_form = registration_forms[1]
+            self.assertFalse(prev_registration_form.is_active)
+            self.assertTrue(new_registration_form.is_active)
 
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_remove_entities(self, mock_send_message):

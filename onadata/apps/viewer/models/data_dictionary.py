@@ -296,10 +296,24 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
                         entity_list, _ = EntityList.objects.get_or_create(
                             name=dataset, project=instance.project
                         )
-                        RegistrationForm.objects.get_or_create(
+                        (
+                            _,
+                            registration_form_created,
+                        ) = RegistrationForm.objects.get_or_create(
                             entity_list=entity_list,
                             xform=instance,
                         )
+
+                        if registration_form_created:
+                            # RegistrationForm contributing to any previous
+                            # EntityList should be disabled
+                            for (
+                                registration_form
+                            ) in instance.registration_forms.exclude(
+                                entity_list=entity_list, is_active=True
+                            ):
+                                registration_form.is_active = False
+                                registration_form.save()
 
                         break
 
