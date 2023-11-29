@@ -44,7 +44,7 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(reg_form.updated_at, self.mocked_now)
         # Related names are correct
         self.assertEqual(entity_list.registration_forms.count(), 1)
-        self.assertEqual(self.xform.registration_lists.count(), 1)
+        self.assertEqual(self.xform.registration_forms.count(), 1)
 
     def test_get_save_to(self):
         """Method `get_save_to` works correctly"""

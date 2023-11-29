@@ -5325,7 +5325,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "trees_registration.xlsx",
             )
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_lists.first()
+            registration_form = self.xform.registration_forms.first()
             self.assertEqual(
                 registration_form.get_save_to(),
                 {
@@ -5355,7 +5355,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
             )
             self.xform.refresh_from_db()
-            registration_form = self.xform.registration_lists.first()
+            registration_form = self.xform.registration_forms.first()
             self.assertEqual(
                 registration_form.get_save_to(),
                 {
@@ -5378,7 +5378,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "trees_registration.xlsx",
             )
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_lists.first()
+            registration_form = self.xform.registration_forms.first()
             self.assertEqual(registration_form.entity_list.name, "trees")
             self.assertEqual(EntityList.objects.count(), 1)
             # replace form created above
@@ -5413,7 +5413,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 ).exists()
             )
             self.assertEqual(EntityList.objects.count(), 2)
-            self.assertEqual(self.xform.registration_lists.count(), 2)
+            self.assertEqual(self.xform.registration_forms.count(), 2)
 
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_remove_entities(self, mock_send_message):
@@ -5429,7 +5429,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "trees_registration.xlsx",
             )
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
-            registration_form = self.xform.registration_lists.first()
+            registration_form = self.xform.registration_forms.first()
             self.assertEqual(registration_form.entity_list.name, "trees")
             self.assertEqual(EntityList.objects.count(), 1)
             # replace form created above
@@ -5452,7 +5452,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             mock_send_message.called_with(
                 self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
             )
-            reg_form = self.xform.registration_lists.first()
+            reg_form = self.xform.registration_forms.first()
             self.assertFalse(reg_form.is_active)
 
 

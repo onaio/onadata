@@ -20,7 +20,7 @@ class RegistrationForm(AbstractBase):
     )
     xform = models.ForeignKey(
         XForm,
-        related_name="registration_lists",
+        related_name="registration_forms",
         on_delete=models.CASCADE,
         help_text=_("XForm that creates entities"),
     )

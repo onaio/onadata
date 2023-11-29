@@ -357,7 +357,7 @@ def disable_registraion_form(sender, instance=None, created=False, **kwargs):
 
     if not instance_json.get("entity_related"):
         # If form creates entities, disable the registration forms
-        for registration_form in instance.registration_lists.filter(is_active=True):
+        for registration_form in instance.registration_forms.filter(is_active=True):
             registration_form.is_active = False
             registration_form.save()
 
