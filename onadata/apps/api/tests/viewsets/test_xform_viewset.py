@@ -711,28 +711,31 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 "entities",
                 "trees_registration.xlsx",
             )
+
             with open(path, "rb") as xls_file:
                 post_data = {"xls_file": xls_file}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = self.view(request)
-                self.assertEqual(xforms + 1, XForm.objects.count())
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(EntityList.objects.count(), 1)
-                self.assertEqual(RegistrationForm.objects.count(), 1)
-                entity_list = EntityList.objects.first()
-                reg_form = RegistrationForm.objects.first()
-                latest_form = XForm.objects.all().order_by("-pk").first()
-                self.assertEqual(entity_list.name, "trees")
-                self.assertEqual(reg_form.xform, latest_form)
-                self.assertEqual(
-                    reg_form.get_save_to(),
-                    {
-                        "geometry": "location",
-                        "species": "species",
-                        "circumference_cm": "circumference",
-                    },
-                )
-                self.assertEqual(reg_form.entity_list, entity_list)
+
+            self.assertEqual(xforms + 1, XForm.objects.count())
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(EntityList.objects.count(), 1)
+            self.assertEqual(RegistrationForm.objects.count(), 1)
+            entity_list = EntityList.objects.first()
+            reg_form = RegistrationForm.objects.first()
+            latest_form = XForm.objects.all().order_by("-pk").first()
+            self.assertEqual(entity_list.name, "trees")
+            self.assertEqual(reg_form.xform, latest_form)
+            self.assertEqual(
+                reg_form.get_save_to(),
+                {
+                    "geometry": "location",
+                    "species": "species",
+                    "circumference_cm": "circumference",
+                },
+            )
+            self.assertEqual(reg_form.entity_list, entity_list)
+            self.assertTrue(reg_form.is_active)
 
     def test_follow_up_form(self):
         """Publishing an XLSForm that consumes entities works"""
