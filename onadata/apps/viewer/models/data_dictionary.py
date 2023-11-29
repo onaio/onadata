@@ -342,3 +342,24 @@ post_save.connect(
     sender=DataDictionary,
     dispatch_uid="create_follow_up_datadictionary",
 )
+
+
+def disable_registraion_form(sender, instance=None, created=False, **kwargs):
+    """Disable registration form if form no longer contains entities definitions"""
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    if not instance_json.get("entity_related"):
+        # If form creates entities, disable the registration forms
+        for registration_form in instance.registration_lists.filter(is_active=True):
+            registration_form.is_active = False
+            registration_form.save()
+
+
+post_save.connect(
+    disable_registraion_form,
+    sender=DataDictionary,
+    dispatch_uid="disable_registration_form_datadictionary",
+)

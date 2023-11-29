@@ -24,6 +24,7 @@ class RegistrationForm(AbstractBase):
         on_delete=models.CASCADE,
         help_text=_("XForm that creates entities"),
     )
+    is_active = models.BooleanField(default=True)
 
     class Meta(AbstractBase.Meta):
         unique_together = (
