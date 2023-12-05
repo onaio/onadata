@@ -21,6 +21,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.restservice.models import RestService
+from onadata.apps.restservice.services.textit import ServiceDefinition
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.utils.common_tools import get_uuid
 
@@ -1159,7 +1161,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             )
             with open(submission_path, "rb") as sf:
                 data = {"xml_submission_file": sf, "media_file": f}
-                request = self.factory.post(f"/projects/{self.xform.project.pk}/submission", data)
+                request = self.factory.post(
+                    f"/projects/{self.xform.project.pk}/submission", data
+                )
                 count = Instance.objects.filter(xform=self.xform).count()
                 request.user = AnonymousUser()
                 response = self.view(request, xform_pk=self.xform.pk)
@@ -1207,7 +1211,9 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             with open(submission_path, "rb") as sf:
                 data = {"xml_submission_file": sf, "media_file": f}
                 count = Instance.objects.filter(xform=self.xform).count()
-                request = self.factory.post(f"/projects/{self.xform.project.pk}/submission", data)
+                request = self.factory.post(
+                    f"/projects/{self.xform.project.pk}/submission", data
+                )
                 response = self.view(request)
                 self.assertEqual(response.status_code, 401)
                 auth = DigestAuth("bob", "bobbob")
@@ -1225,3 +1231,92 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 self.assertEqual(
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
+
+    @mock.patch.object(ServiceDefinition, "send")
+    def test_new_submission_sent_to_rapidpro(self, mock_send):
+        """Submission created is sent to RapidPro"""
+        rest_service = RestService.objects.create(
+            service_url="https://rapidpro.ona.io/api/v2/flow_starts.json",
+            xform=self.xform,
+            name="textit",
+        )
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post("/submission", data)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+                auth = DigestAuth("bob", "bobbob")
+                request.META.update(auth(request.META, response))
+                response = self.view(request, username=self.user.username)
+                self.assertContains(response, "Successful submission", status_code=201)
+                instance = Instance.objects.all().order_by("-pk")[0]
+                mock_send.assert_called_once_with(rest_service.service_url, instance)
+
+    @mock.patch.object(ServiceDefinition, "send")
+    def test_edit_submission_sent_to_rapidpro(self, mock_send):
+        """Submission edited is sent to RapidPro"""
+        rest_service = RestService.objects.create(
+            service_url="https://rapidpro.ona.io/api/v2/flow_starts.json",
+            xform=self.xform,
+            name="textit",
+        )
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                f"{s}_edited.xml",
+            )
+
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post("/submission", data)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 401)
+                auth = DigestAuth("bob", "bobbob")
+                request.META.update(auth(request.META, response))
+                response = self.view(request, username=self.user.username)
+                self.assertContains(response, "Successful submission", status_code=201)
+                new_uuid = "6b2cc313-fc09-437e-8139-fcd32f695d41"
+                instance = Instance.objects.get(uuid=new_uuid)
+                mock_send.assert_called_once_with(rest_service.service_url, instance)
