@@ -24,8 +24,8 @@ class ServiceDefinition(RestServiceInterface):
     def send(self, url, data=None):
         """Post submisison JSON data to an external service that accepts a JSON post."""
         if data:
-            # We do instance.get_full_dict() instead of instance.json because
-            # when an instance is processed asynchronously, the json may not be upto date
+            # We use Instance.get_full_dict() instead of Instance.json because
+            # when asynchronous processing is enabled, the json may not be upto date
             post_data = json.dumps(data.get_full_dict())
             headers = {"Content-Type": "application/json"}
             try:
