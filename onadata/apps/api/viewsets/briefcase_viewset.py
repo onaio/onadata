@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 
 import six
 from rest_framework import exceptions, mixins, permissions, status, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.renderers import BrowsableAPIRenderer
@@ -125,7 +126,7 @@ class BriefcaseViewset(
     https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).
     """
 
-    authentication_classes = (DigestAuthentication,)
+    authentication_classes = (DigestAuthentication, TokenAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     queryset = XForm.objects.all()
     permission_classes = (permissions.IsAuthenticated, ViewDjangoObjectPermissions)
