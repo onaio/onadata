@@ -132,6 +132,31 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertContains(response, expected_submission_list)
 
+    def test_view_submission_list_token_auth(self):
+        view = BriefcaseViewset.as_view({'get': 'list'})
+        self._publish_xml_form()
+        self._make_submissions()
+        # use Token auth in self.extra
+        request = self.factory.get(
+            self._submission_list_url,
+            data={'formId': self.xform.id_string}, **self.extra)
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        submission_list_path = os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'view', 'submissionList.xml')
+        instances = ordered_instances(self.xform)
+
+        self.assertEqual(instances.count(), NUM_INSTANCES)
+
+        last_index = instances[instances.count() - 1].pk
+        with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
+            expected_submission_list = f.read()
+            expected_submission_list = \
+                expected_submission_list.replace(
+                    '{{resumptionCursor}}', '%s' % last_index)
+            self.assertContains(response, expected_submission_list)
+
     def test_view_submission_list_w_xformid(self):
         view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
@@ -357,6 +382,37 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         request.META.update(auth(request.META, response))
         response = view(request, username=self.user.username)
+        text = "uuid:%s" % instanceId
+        download_submission_path = os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'view', 'downloadSubmission.xml')
+        with codecs.open(download_submission_path, encoding='utf-8') as f:
+            text = f.read()
+            for var in ((u'{{submissionDate}}',
+                         instance.date_created.isoformat()),
+                        (u'{{form_id}}', str(self.xform.id)),
+                        (u'{{media_id}}', str(self.attachment.id))):
+                text = text.replace(*var)
+            self.assertContains(response, instanceId, status_code=200)
+            self.assertMultiLineEqual(response.content.decode('utf-8'), text)
+
+    def test_view_downloadSubmission_w_token_auth(self):
+        view = BriefcaseViewset.as_view({'get': 'retrieve'})
+        self._publish_xml_form()
+        self.maxDiff = None
+        self._submit_transport_instance_w_attachment()
+        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
+        instance = Instance.objects.get(uuid=instanceId)
+        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
+                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
+                     'formId': self.xform.id_string,
+                     'instanceId': instanceId}
+        params = {'formId': formId}
+        # use Token auth in self.extra
+        request = self.factory.get(
+            self._download_submission_url, data=params, **self.extra)
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
         text = "uuid:%s" % instanceId
         download_submission_path = os.path.join(
             self.main_directory, 'fixtures', 'transportation',
