@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.17.1(2023-12-11)
+-------------------
+- Enable TokenAuthentication on briefcase viewset
+  `PR #2523 <https://github.com/onaio/onadata/pull/2523>`
+  [@KipSigei]
+- Fix stale data sent to RapidPro when asynchronous processing of submissions is enabled
+  `PR #2522 <https://github.com/onaio/onadata/pull/2522>`
+  [@kelvin-muchiri]
+
 v3.17.0(2023-11-24)
 -------------------
 - Create Composite Index for xform_id and id fields 
