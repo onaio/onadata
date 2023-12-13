@@ -44,6 +44,21 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
+    def test_get_xform_list_w_token_auth(self):
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        path = os.path.join(os.path.dirname(__file__), "..", "fixtures", "formList.xml")
+        with open(path, encoding="utf-8") as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content.decode("utf-8")
+            self.assertEqual(content, form_list_xml % data)
+            self.assertTrue(response.has_header("X-OpenRosa-Version"))
+            self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+            self.assertTrue(response.has_header("Date"))
+            self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
     def test_get_xform_list_xform_pk_filter_anon(self):
         """
         Test formList xform_pk filter for anonymous user.
@@ -720,6 +735,27 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
+    def test_retrieve_xform_xml_w_token_auth(self):
+        self.view = XFormListViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__), "..", "fixtures", "Transportation Form.xml"
+        )
+
+        with open(path, encoding="utf-8") as f:
+            form_xml = f.read().strip()
+            data = {"form_uuid": self.xform.uuid}
+            content = response.render().content.decode("utf-8").strip()
+            content = content.replace(self.xform.version, "20141112071722")
+            self.assertEqual(content, form_xml % data)
+            self.assertTrue(response.has_header("X-OpenRosa-Version"))
+            self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+            self.assertTrue(response.has_header("Date"))
+            self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
     def _load_metadata(self, xform=None):
         data_value = "screenshot.png"
         data_type = "media"
@@ -740,6 +776,28 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         auth = DigestAuth("bob", "bobbob")
         request = self.factory.get("/")
         request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
+        manifest_xml = """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {
+            "hash": self.metadata.hash,
+            "pk": self.metadata.pk,
+            "xform": self.xform.pk,
+        }
+        content = "".join(
+            [i.decode("utf-8").strip() for i in response.streaming_content]
+        )
+        self.assertEqual(content, manifest_xml % data)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def test_retrieve_xform_manifest_w_token_auth(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListViewSet.as_view({"get": "manifest"})
+        request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
 
@@ -803,6 +861,15 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         auth = DigestAuth("bob", "bobbob")
         request = self.factory.get("/")
         request.META.update(auth(request.META, response))
+        response = self.view(
+            request, pk=self.xform.pk, metadata=self.metadata.pk, format="png"
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_xform_media_w_token_auth(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListViewSet.as_view({"get": "media", "head": "media"})
+        request = self.factory.get("/", **self.extra)
         response = self.view(
             request, pk=self.xform.pk, metadata=self.metadata.pk, format="png"
         )
