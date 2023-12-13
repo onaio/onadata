@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import permissions, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -48,6 +49,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     authentication_classes = (
         DigestAuthentication,
         EnketoTokenAuthentication,
+        TokenAuthentication,
     )
     content_negotiation_class = MediaFileContentNegotiation
     filter_class = filters.FormIDFilter
