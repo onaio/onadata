@@ -83,7 +83,12 @@ def generate_aws_media_url(
         signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
         region_name=getattr(settings, "AWS_S3_REGION_NAME", ""),
     )
-    s3_client = boto3.client("s3", config=s3_config)
+    s3_client = boto3.client(
+        "s3",
+        config=s3_config,
+        aws_access_key_id=s3_class.access_key,
+        aws_secret_access_key=s3_class.secret_key,
+    )
 
     # Generate a presigned URL for the S3 object
     return s3_client.generate_presigned_url(
