@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.17.2(2023-12-18)
+-------------------
+- Security Updates
+  `PR #2529 <https://github.com/onaio/onadata/pull/2529>`
+  [@KipSigei]
+- Enable Token Authentication on Form List API
+  `PR #2525 <https://github.com/onaio/onadata/pull/2525>`
+  [@KipSigei]
+- Set AWS credentials when generating pre-signed URLS
+  `PR #2527 <https://github.com/onaio/onadata/pull/2527>`
+  [@ukanga]
+
 v3.17.1(2023-12-11)
 -------------------
 - Enable TokenAuthentication on briefcase viewset
