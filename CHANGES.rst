@@ -5,6 +5,9 @@ Changelog for Onadata
 
 v3.17.1(2023-12-11)
 -------------------
+- Security Updates
+  `PR #2529 <https://github.com/onaio/onadata/pull/2529>`
+  [@KipSigei]
 - Enable TokenAuthentication on briefcase viewset
   `PR #2523 <https://github.com/onaio/onadata/pull/2523>`
   [@KipSigei]
