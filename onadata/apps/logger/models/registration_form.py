@@ -6,7 +6,9 @@ import json
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from onadata.apps.logger.models import EntityList, XForm, XFormVersion
+from onadata.apps.logger.models.entity_list import EntityList
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.libs.models import AbstractBase
 
 

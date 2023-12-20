@@ -3,7 +3,7 @@ Entity model
 """
 from django.db import models
 
-from onadata.apps.logger.models import RegistrationForm
+from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.libs.models import AbstractBase
 
 
