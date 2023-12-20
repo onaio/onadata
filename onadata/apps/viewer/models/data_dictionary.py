@@ -352,6 +352,8 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                 )
 
             except EntityList.DoesNotExist:
+                # No EntityList dataset was found with the specified
+                # name, we simply do nothing
                 continue
 
             FollowUpForm.objects.get_or_create(entity_list=entity_list, xform=instance)
