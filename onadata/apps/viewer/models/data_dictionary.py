@@ -284,42 +284,42 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if instance_json.get("entity_related"):
-        children = instance_json.get("children", [])
+    if not instance_json.get("entity_related"):
+        return
 
-        for child in children:
-            if child.get("name") == "meta":
-                for meta_child in child.get("children"):
-                    if meta_child.get("name") == "entity":
-                        parameters = meta_child.get("parameters", {})
-                        dataset = parameters.get("dataset")
-                        entity_list, _ = EntityList.objects.get_or_create(
-                            name=dataset, project=instance.project
-                        )
-                        (
-                            registration_form,
-                            registration_form_created,
-                        ) = RegistrationForm.objects.get_or_create(
-                            entity_list=entity_list,
-                            xform=instance,
-                        )
+    children = instance_json.get("children", [])
+    meta_list = filter(lambda child: child.get("name") == "meta", children)
 
-                        if registration_form_created:
-                            # RegistrationForm contributing to any previous
-                            # EntityList should be disabled
-                            for form in instance.registration_forms.exclude(
-                                entity_list=entity_list, is_active=True
-                            ):
-                                form.is_active = False
-                                form.save()
-                        else:
-                            # If previously disabled, enable it
-                            registration_form.is_active = True
-                            registration_form.save()
+    for meta in meta_list:
+        for child in meta.get("children", []):
+            if child.get("name") == "entity":
+                parameters = child.get("parameters", {})
+                dataset = parameters.get("dataset")
+                entity_list, _ = EntityList.objects.get_or_create(
+                    name=dataset, project=instance.project
+                )
+                (
+                    registration_form,
+                    registration_form_created,
+                ) = RegistrationForm.objects.get_or_create(
+                    entity_list=entity_list,
+                    xform=instance,
+                )
 
-                        break
+                if registration_form_created:
+                    # RegistrationForm contributing to any previous
+                    # EntityList should be disabled
+                    for form in instance.registration_forms.exclude(
+                        entity_list=entity_list, is_active=True
+                    ):
+                        form.is_active = False
+                        form.save()
+                else:
+                    # If previously disabled, enable it
+                    registration_form.is_active = True
+                    registration_form.save()
 
-                break
+                return
 
 
 post_save.connect(
