@@ -15,6 +15,7 @@ class Entity(AbstractBase):
         on_delete=models.CASCADE,
         related_name="entities",
     )
+    xml = models.TextField()
     json = models.JSONField(default=dict)
     version = models.CharField(max_length=255, null=True)
 
