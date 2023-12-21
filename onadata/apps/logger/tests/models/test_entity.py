@@ -26,10 +26,12 @@ class EntityTestCase(TestBase):
             registration_form=reg_form,
             json=entity_json,
             version="x",
+            xml="<foo>bar</foo>",
         )
         self.assertEqual(entity.registration_form, reg_form)
         self.assertEqual(entity.json, entity_json)
         self.assertEqual(entity.version, "x")
+        self.assertEqual(entity.xml, "<foo>bar</foo>")
         self.assertEqual(f"{entity}", f"{entity.pk}|{reg_form}")
 
     def test_optional_fields(self):
