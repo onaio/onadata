@@ -29,7 +29,7 @@ class FollowUpForm(AbstractBase):
     )
     xform = models.ForeignKey(
         XForm,
-        related_name="follow_up_lists",
+        related_name="follow_up_forms",
         on_delete=models.CASCADE,
         help_text=_("XForm that consumes entities"),
     )
