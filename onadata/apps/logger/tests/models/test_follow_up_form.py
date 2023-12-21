@@ -44,7 +44,7 @@ class FollowUpFormTestCase(TestBase):
             xform=self.xform,
         )
         self.assertEqual(self.entity_list.follow_up_forms.count(), 1)
-        self.assertEqual(self.xform.follow_up_lists.count(), 1)
+        self.assertEqual(self.xform.follow_up_forms.count(), 1)
 
     def test_no_duplicate_entity_list_xform(self):
         """No duplicates allowed for existing entity_list and xform"""
