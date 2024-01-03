@@ -239,9 +239,6 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         size = f.tell()
         f.seek(0)
 
-        # pylint: disable=import-outside-toplevel
-        from onadata.apps.main.models.meta_data import MetaData
-
         data_file = InMemoryUploadedFile(
             file=f,
             field_name="data_file",
