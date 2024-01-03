@@ -778,11 +778,20 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 self.assertEqual(XForm.objects.count(), 2)
                 self.assertEqual(response.status_code, 201)
                 latest_form = XForm.objects.all().order_by("-pk").first()
+                entity_list = EntityList.objects.first()
                 self.assertTrue(
                     FollowUpForm.objects.filter(
                         entity_list__name="trees", xform=latest_form
                     ).exists()
                 )
+                self.assertTrue(
+                    MetaData.objects.filter(
+                        object_id=latest_form.pk,
+                        data_type="media",
+                        data_value=f"entity_list {entity_list.pk} trees",
+                    ).exists()
+                )
+
         # Follow up form references multiple entity lists
         md = """
         | survey   |
@@ -5510,6 +5519,36 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
             registration_form.refresh_from_db()
             self.assertTrue(registration_form.is_active)
+
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_replace_followup_form(self, mock_send_message):
+        """We can replace a followup form successfully"""
+        self._project_create()
+        EntityList.objects.create(name="trees", project=self.project)
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_follow_up.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        with HTTMock(enketo_mock):
+            # Replace form created above
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

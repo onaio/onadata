@@ -6,6 +6,7 @@ import json
 import os
 from io import BytesIO, StringIO
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.db import transaction
@@ -24,6 +25,7 @@ from pyxform.xls2json_backends import xlsx_value_to_str
 from onadata.apps.logger.models import EntityList, RegistrationForm, FollowUpForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -357,6 +359,14 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                 continue
 
             FollowUpForm.objects.get_or_create(entity_list=entity_list, xform=instance)
+            xform = XForm.objects.get(pk=instance.pk)
+            content_type = ContentType.objects.get_for_model(xform)
+            MetaData.objects.get_or_create(
+                object_id=xform.pk,
+                content_type=content_type,
+                data_type="media",
+                data_value=f"entity_list {entity_list.pk} {entity_list.name}",
+            )
 
 
 post_save.connect(
