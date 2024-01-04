@@ -33,6 +33,7 @@ class FollowUpForm(AbstractBase):
         on_delete=models.CASCADE,
         help_text=_("XForm that consumes entities"),
     )
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.xform}|{self.entity_list.name}"

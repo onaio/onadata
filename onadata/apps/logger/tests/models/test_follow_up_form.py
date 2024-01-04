@@ -29,10 +29,12 @@ class FollowUpFormTestCase(TestBase):
         form = FollowUpForm.objects.create(
             entity_list=self.entity_list,
             xform=self.xform,
+            is_active=True,
         )
         self.assertEqual(FollowUpForm.objects.count(), 1)
         self.assertEqual(f"{form}", f"{form.xform}|trees")
         self.assertEqual(form.xform, self.xform)
+        self.assertTrue(form.is_active)
         self.assertEqual(form.entity_list, self.entity_list)
         self.assertEqual(form.created_at, self.mocked_now)
         self.assertEqual(form.updated_at, self.mocked_now)
@@ -58,3 +60,11 @@ class FollowUpFormTestCase(TestBase):
                 entity_list=self.entity_list,
                 xform=self.xform,
             )
+
+    def test_optional_fields(self):
+        """Defaults for optional fields correct"""
+        form = FollowUpForm.objects.create(
+            entity_list=self.entity_list,
+            xform=self.xform,
+        )
+        self.assertTrue(form.is_active)

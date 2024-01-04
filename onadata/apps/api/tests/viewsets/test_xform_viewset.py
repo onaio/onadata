@@ -5550,6 +5550,100 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
             )
 
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_followup_form_remove_dataset(self, mock_send_message):
+        """FollowUpForm is deactivated if entity dataset reference removed"""
+        self._project_create()
+        EntityList.objects.create(name="trees", project=self.project)
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_follow_up.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+        form = FollowUpForm.objects.filter(
+            entity_list__name="trees", xform=self.xform
+        ).first()
+        self.assertIsNotNone(form)
+        self.assertTrue(form.is_active)
+
+        with HTTMock(enketo_mock):
+            # Replace form created above
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_follow_up_remove_dataset.xlsx",
+            )
+
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
+            form.refresh_from_db()
+            self.assertFalse(form.is_active)
+
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_followup_form_reactivate_dataset(self, mock_send_message):
+        """FollowUpForm is re-activated if previously activated
+
+        If entity dataset is referenced again, deactivate FollowUpForm
+        is re-activated
+        """
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_follow_up_remove_dataset.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+        # Simulate deactivated FollowUpForm
+        form = FollowUpForm.objects.create(entity_list=entity_list, xform=self.xform, is_active=False)
+        self.assertFalse(form.is_active)
+
+        with HTTMock(enketo_mock):
+            # Replace form created above
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "entities",
+                "trees_follow_up.xlsx",
+            )
+
+            with open(xls_file_path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+            self.assertEqual(response.status_code, 200)
+            mock_send_message.called_with(
+                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+            )
+            form.refresh_from_db()
+            self.assertTrue(form.is_active)
+
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
     """Tests for exporting form data asynchronously"""
