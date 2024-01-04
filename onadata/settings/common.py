@@ -636,14 +636,18 @@ GOOGLE_FLOW = {
     }
 }
 GOOGLE_FLOW_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-CSP_CONNECT_SRC = ["https://maps.googleapis.com", "http://localhost:8000"]
+CSP_CONNECT_SRC = [
+    "https://maps.googleapis.com",
+    "http://localhost:8000",
+    "http://localhost",
+]
 CSP_FONT_SRC = [
     "http://netdna.bootstrapcdn.com",
     "https://netdna.bootstrapcdn.com",
     "https://fonts.gstatic.com",
     "data:",
 ]
-CSP_FRAME_SRC = ["http://localhost:8000"]
+CSP_FRAME_SRC = ["http://localhost:8000", "http://localhost"]
 CSP_IMG_SRC = [
     "'self'",
     "data:",
@@ -653,6 +657,7 @@ CSP_IMG_SRC = [
     "https://code.jquery.com",
     "https://www.dropbox.com",
     "http://localhost:8000",
+    "http://localhost",
 ]
 CSP_FRAME_ANCESTORS = ["http://localhost:8000"]
 CSP_SCRIPT_SRC = [
@@ -664,6 +669,7 @@ CSP_SCRIPT_SRC = [
     "https://maps.googleapis.com",
     "http://a.tiles.mapbox.com",
     "http://localhost:8000",
+    "http://localhost",
     "'unsafe-eval'",
     "'unsafe-hashes'",
     "'sha256-FCfJFhLnM7FTKq9fzONrOpi3h5WfmVM7YZD94t/7kJo='",
@@ -675,6 +681,7 @@ CSP_STYLE_SRC = [
     "https://fonts.googleapis.com/",
     "https://www.dropbox.com",
     "http://localhost:8000",
+    "http://localhost",
     "'unsafe-hashes'",
     "'sha256-2EA12+9d+s6rrc0rkdIjfmjbh6p2o0ZSXs4wbZuk/tA='",
     "'sha256-SDLD8eJrQqbeuh9+xh0t5VE9P3oV9KP/BhfZq96U2RI='",
