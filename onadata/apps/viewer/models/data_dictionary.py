@@ -340,6 +340,8 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
         instance_json = json.loads(instance_json)
 
     children = instance_json.get("children", [])
+    active_entity_datasets: list[str] = []
+    xform = XForm.objects.get(pk=instance.pk)
 
     for child in children:
         if child["type"] == "select one" and "itemset" in child:
@@ -355,8 +357,16 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                 # name, we simply do nothing
                 continue
 
-            FollowUpForm.objects.get_or_create(entity_list=entity_list, xform=instance)
-            xform = XForm.objects.get(pk=instance.pk)
+            active_entity_datasets.append(entity_list.name)
+            follow_up_form, created = FollowUpForm.objects.get_or_create(
+                entity_list=entity_list, xform=instance
+            )
+
+            if not created and not follow_up_form.is_active:
+                # If previously deactivated, re-activate
+                follow_up_form.is_active = True
+                follow_up_form.save()
+
             content_type = ContentType.objects.get_for_model(xform)
             MetaData.objects.get_or_create(
                 object_id=xform.pk,
@@ -364,6 +374,13 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                 data_type="media",
                 data_value=f"entity_list {entity_list.pk} {entity_list.name}",
             )
+
+    # Deactivate the XForm's FollowUpForms whose EntityList are not referenced by the updated
+    # XForm version
+    inactive_follow_up_forms = FollowUpForm.objects.filter(xform=xform).exclude(
+        entity_list__name__in=active_entity_datasets
+    )
+    inactive_follow_up_forms.update(is_active=False)
 
 
 post_save.connect(
