@@ -53,6 +53,20 @@ class HTTPResponseNotAllowedMiddleware:
         return response
 
 
+class CustomReferrerPolicyMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        refferer_policy = getattr(settings, "REFERRER_POLICY", "same-origin")
+        response = self.get_response(request)
+
+        # Set your custom Referrer Policy header
+        response['Referrer-Policy'] = refferer_policy
+
+        return response
+
+
 class LocaleMiddlewareWithTweaks(LocaleMiddleware):
     """
     Overrides LocaleMiddleware from django with:
