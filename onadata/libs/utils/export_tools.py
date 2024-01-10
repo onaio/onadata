@@ -11,8 +11,8 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta
-from django.http import HttpRequest
 from typing import Iterator
+from django.http import HttpRequest
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
