@@ -24,7 +24,8 @@ from savReaderWriter import SavWriter
 from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
@@ -1002,3 +1003,39 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         for a in Attachment.objects.all():
             self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
+
+
+class GenerateExportTestCase(TestAbstractViewSet):
+    """Tests for method `generate_export`"""
+
+    def test_generate_export_entity_list(self):
+        """Generate export for EntityList dataset works"""
+        # Publish registration form and create "trees" Entitylist dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Make submission to trees_registration form
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+        self._make_submission(submission_path)
+        entity_list = EntityList.objects.get(name="trees")
+        metadata = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value=f"entity_list {entity_list.pk} {entity_list.name}",
+        )
+        export = generate_export("csv", self.xform, metadata=metadata)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)

@@ -12,6 +12,7 @@ import re
 import sys
 from datetime import datetime, timedelta
 from django.http import HttpRequest
+from typing import Iterator
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -36,7 +37,14 @@ try:
 except ImportError:
     SPSSIOError = Exception
 
-from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    OsmData,
+    XForm,
+    EntityList,
+    Entity,
+)
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
@@ -109,9 +117,41 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
+def query_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
+    """Get entity data for a an EntityList dataset
+
+    Args:
+        metadata (MetaData): The XForm's MetaData object
+
+    Returns:
+        An iterator of dicts which represent the json data for
+        Entities belonging to the dataset
+    """
+    if not metadata.data_value.startswith("entity_list"):
+        yield {}
+
+    else:
+        pk = metadata.data_value.split()[1]
+
+        try:
+            entity_list = EntityList.objects.get(pk=pk)
+
+        except EntityList.DoesNotExist as err:
+            report_exception("Entity Export Failure", err, sys.exc_info())
+            yield {}
+
+        else:
+            entities = Entity.objects.filter(registration_form__entity_list=entity_list)
+
+            for entity in queryset_iterator(entities):
+                yield entity.json
+
+
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 @retry(MAX_RETRIES)
-def generate_export(export_type, xform, export_id=None, options=None):  # noqa C901
+def generate_export(
+    export_type, xform, export_id=None, options=None, metadata=None
+):  # noqa C901
     """
     Create appropriate export object given the export type.
 
@@ -133,6 +173,10 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     """
     username = xform.user.username
     id_string = xform.id_string
+
+    if options is None:
+        options = {}
+
     end = options.get("end")
     extension = options.get("extension", export_type)
     filter_query = options.get("query")
@@ -169,13 +213,18 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
             0
         ].get("count")
     else:
-        records = query_data(
-            xform,
-            query=filter_query,
-            start=start,
-            end=end,
-            sort=sort,
-        )
+        if metadata and metadata.data_value.startswith("entity_list"):
+            # Get entities
+            records = query_entity_list_dataset(metadata)
+
+        else:
+            records = query_data(
+                xform,
+                query=filter_query,
+                start=start,
+                end=end,
+                sort=sort,
+            )
 
         if filter_query:
             total_records = query_count(

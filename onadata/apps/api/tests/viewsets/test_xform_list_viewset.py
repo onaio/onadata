@@ -20,6 +20,7 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
 
@@ -962,6 +963,56 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response["Content-Disposition"], "attachment; filename=transportation.csv"
+        )
+
+    def test_retrieve_xform_media_entity_list_dataset(self):
+        """EntityList dataset is returned"""
+        # Publish registration form and create "trees" Entitylist dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Make submission to trees_registration form
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+        self._make_submission(submission_path)
+        entity_list = EntityList.objects.get(name="trees")
+        metadata = MetaData.objects.create(
+            content_object=self.xform,
+            data_type="media",
+            data_value=f"entity_list {entity_list.pk} {entity_list.name}",
+        )
+        self.view = XFormListViewSet.as_view({"get": "media", "head": "media"})
+        request = self.factory.get("/")
+        response = self.view(
+            request, pk=self.xform.pk, metadata=metadata.pk, format="csv"
+        )
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.head("/")
+        response = self.view(
+            request, pk=self.xform.pk, metadata=metadata.pk, format="csv"
+        )
+        auth = DigestAuth("bob", "bobbob")
+        request = self.factory.get("/")
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, pk=self.xform.pk, metadata=metadata.pk, format="csv"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Disposition"], "attachment; filename=trees.csv"
         )
 
     def test_retrieve_xform_manifest_linked_form(self):
