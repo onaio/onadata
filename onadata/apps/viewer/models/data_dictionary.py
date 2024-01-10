@@ -375,8 +375,8 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                 data_value=f"entity_list {entity_list.pk} {entity_list.name}",
             )
 
-    # Deactivate the XForm's FollowUpForms whose EntityList are not referenced by the updated
-    # XForm version
+    # Deactivate the XForm's FollowUpForms whose EntityList are not
+    # referenced by the updated XForm version
     inactive_follow_up_forms = FollowUpForm.objects.filter(xform=xform).exclude(
         entity_list__name__in=active_entity_datasets
     )
