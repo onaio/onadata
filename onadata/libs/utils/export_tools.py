@@ -117,7 +117,7 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
-def query_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
+def get_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
     """Get entity data for a an EntityList dataset
 
     Args:
@@ -215,7 +215,7 @@ def generate_export(
     else:
         if metadata and metadata.data_value.startswith("entity_list"):
             # Get entities
-            records = query_entity_list_dataset(metadata)
+            records = get_entity_list_dataset(metadata)
 
         else:
             records = query_data(
