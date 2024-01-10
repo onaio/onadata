@@ -252,7 +252,7 @@ def _generate_new_export(  # noqa: C0901
         "username": xform.user.username,
         "id_string": xform.id_string,
         "host": request.get_host(),
-        "sort": request.query_params.get('sort')
+        "sort": request.query_params.get("sort"),
     }
     if query:
         options["query"] = query
@@ -315,7 +315,9 @@ def _generate_new_export(  # noqa: C0901
         else:
             options.update(parse_request_export_options(request.query_params))
 
-            export = generate_export(export_type, xform, None, options)
+            export = generate_export(
+                export_type, xform, None, options, metadata=metadata
+            )
 
         audit = {"xform": xform.id_string, "export_type": export_type}
         log.audit_log(
