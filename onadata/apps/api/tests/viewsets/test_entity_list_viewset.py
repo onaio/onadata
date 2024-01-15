@@ -70,6 +70,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "id": first.pk,
                 "name": "trees",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+                "public": False,
                 "num_registration_forms": 1,
                 "num_follow_up_forms": 1,
             },
@@ -78,6 +79,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "id": second.pk,
                 "name": "immunization",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+                "public": False,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
             },
@@ -86,6 +88,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "id": third.pk,
                 "name": "savings",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+                "public": False,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
             },
@@ -124,6 +127,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "id": first.pk,
                 "name": "immunization",
                 "project": f"http://testserver/api/v1/projects/{public_project.pk}",
+                "public": True,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
             }
@@ -136,6 +140,12 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
         self.assertEqual(len(response.data), 2)
 
-    def test_private_entity_lists_permissions(self):
-        """Private EntityLists can only be viewed with appropriate permissions"""
-        pass
+    def test_pagination(self):
+        """Pagination works"""
+        self._project_create()
+        EntityList.objects.create(name="dataset_1", project=self.project)
+        EntityList.objects.create(name="dataset_2", project=self.project)
+        request = self.factory.get("/", data={"page": 1, "page_size": 1}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
