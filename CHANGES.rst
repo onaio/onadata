@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.17.3(2024-01-15)
+-------------------
+- Explicitly set AWS_S3_ENDPOINT_URL in boto3 configs
+  `PR #2540 <https://github.com/onaio/onadata/pull/2540>`
+  [@KipSigei]
+
 v3.17.2(2023-12-18)
 -------------------
 - Security Updates
