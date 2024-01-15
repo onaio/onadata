@@ -188,7 +188,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         expected_data = {
             "id": self.entity_list.pk,
             "name": "trees",
-            "project": f"http://testserver/api/v1/projects/{self.entity_list.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             "public": False,
             "created_at": created_at,
             "updated_at": updated_at,
@@ -252,3 +252,9 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
+
+
+class GetEntitiesTestCase(TestAbstractViewSet):
+    """Tests for GET Entities"""
+
+    pass
