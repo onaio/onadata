@@ -8,6 +8,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.anon_user_public_entity_lists_mixin import (
     AnonymousUserPublicEntityListsMixin,
 )
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.entity_serializer import EntityListSerializer
 
 
@@ -24,3 +25,4 @@ class EntityListViewSet(
     queryset = EntityList.objects.all().order_by("pk")
     serializer_class = EntityListSerializer
     permission_classes = (AllowAny,)
+    pagination_class = StandardPageNumberPagination

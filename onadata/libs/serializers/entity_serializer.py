@@ -14,6 +14,7 @@ class EntityListSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field="pk",
         queryset=Project.objects.all(),
     )
+    public = serializers.BooleanField(source="project.shared")
     num_registration_forms = serializers.SerializerMethodField()
     num_follow_up_forms = serializers.SerializerMethodField()
 
@@ -32,6 +33,7 @@ class EntityListSerializer(serializers.HyperlinkedModelSerializer):
             "id",
             "name",
             "project",
+            "public",
             "num_registration_forms",
             "num_follow_up_forms",
         )
