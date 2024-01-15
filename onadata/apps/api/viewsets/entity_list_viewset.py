@@ -14,6 +14,8 @@ from onadata.libs.serializers.entity_serializer import EntityListSerializer
 
 BaseViewset = get_baseviewset_class()
 
+# pylint: disable=too-many-ancestors
+
 
 class EntityListViewSet(
     AnonymousUserPublicEntityListsMixin,
