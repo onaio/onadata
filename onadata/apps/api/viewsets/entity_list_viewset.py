@@ -9,7 +9,10 @@ from onadata.libs.mixins.anon_user_public_entity_lists_mixin import (
     AnonymousUserPublicEntityListsMixin,
 )
 from onadata.libs.pagination import StandardPageNumberPagination
-from onadata.libs.serializers.entity_serializer import EntityListSerializer
+from onadata.libs.serializers.entity_serializer import (
+    EntityListSerializer,
+    EntityListDetailSerializer,
+)
 
 
 BaseViewset = get_baseviewset_class()
@@ -28,3 +31,10 @@ class EntityListViewSet(
     serializer_class = EntityListSerializer
     permission_classes = (AllowAny,)
     pagination_class = StandardPageNumberPagination
+
+    def get_serializer_class(self):
+        """Override get_serializer_class"""
+        if self.action == "retrieve":
+            return EntityListDetailSerializer
+
+        return super().get_serializer_class()

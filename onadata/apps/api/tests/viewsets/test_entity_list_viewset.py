@@ -1,8 +1,11 @@
 """Tests for module onadata.apps.api.viewsets.entity_list_viewset"""
 
+import json
 import os
+import sys
 
 from django.conf import settings
+from django.test import override_settings
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -16,18 +19,6 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"get": "list"})
-
-    def test_authentication(self):
-        """No authentication is required
-
-        EntityLists under public projects can be viewed by annonymous
-        users
-        """
-        request = self.factory.get("/")
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.get("Cache-Control"))
-        self.assertEqual(response.data, [])
 
     def test_get_all(self):
         """GET all EntityLists works"""
@@ -149,3 +140,96 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+
+@override_settings(TIME_ZONE="UTC")
+class GetSingleEntityListTestCase(TestAbstractViewSet):
+    """Tests for GET single EntityList"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"get": "retrieve"})
+        # Publish registration form and create "trees" EntityList dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Publish follow up form for "trees" dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_follow_up.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.entity_list = EntityList.objects.first()
+
+    def test_get_entity_list(self):
+        """Returns a single EntityList"""
+        registration_form = self.entity_list.registration_forms.first()
+        follow_up_form = self.entity_list.follow_up_forms.first()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.get("Cache-Control"))
+        created_at = self.entity_list.created_at.isoformat().replace("+00:00", "Z")
+        updated_at = self.entity_list.updated_at.isoformat().replace("+00:00", "Z")
+        expected_data = {
+            "id": self.entity_list.pk,
+            "name": "trees",
+            "project": f"http://testserver/api/v1/projects/{self.entity_list.pk}",
+            "public": False,
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "num_registration_forms": 1,
+            "num_follow_up_forms": 1,
+            "registration_forms": [
+                {
+                    "title": "Trees registration",
+                    "xform": f"http://testserver/api/v1/forms/{registration_form.xform.pk}",
+                    "id_string": "trees_registration",
+                    "save_to": [
+                        "geometry",
+                        "species",
+                        "circumference_cm",
+                    ],
+                },
+            ],
+            "follow_up_forms": [
+                {
+                    "title": "Trees follow-up",
+                    "xform": f"http://testserver/api/v1/forms/{follow_up_form.xform.pk}",
+                    "id_string": "trees_follow_up",
+                }
+            ],
+        }
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot view a private EntityList"""
+        # Anonymous user cannot view private EntityList
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user can view public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_does_not_exist(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
