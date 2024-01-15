@@ -10,6 +10,7 @@ from django.test import override_settings
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.logger.models import EntityList, Project
+from onadata.libs.models.share_project import ShareProject
 
 
 class GetEntityListsTestCase(TestAbstractViewSet):
@@ -233,3 +234,21 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
+
+    def test_shared_entity_list(self):
+        """A user can view an EntityList shared with them"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        # Share project with Alice
+        ShareProject(self.project, "alice", "readonly-no-download")
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
