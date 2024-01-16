@@ -991,7 +991,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     def convert_to_alias(field_name: str) -> str:
         """Convert field name to it's alias"""
         alias_field_name = field_name
-        # We split along /, if any to take care of groups
+        # We split along / to take care of group questions
         parts = field_name.split("/")
         # Replace field parts with alias
         for part in parts:
@@ -1009,6 +1009,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         """
         for field_name in list(data):
             if isinstance(data[field_name], list):
+                # Handle repeat question
                 for child_data in data[field_name]:
                     parse_instance_json(child_data)
 
