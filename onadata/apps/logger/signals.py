@@ -5,7 +5,8 @@ logger signals module
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from onadata.apps.logger.models import Instance, Entity, RegistrationForm
+from onadata.apps.logger.models import Instance, RegistrationForm
+from onadata.libs.utils.logger_tools import create_entity as create_new_entity
 
 
 # pylint: disable=unused-argument
@@ -19,8 +20,4 @@ def create_entity(sender, instance=Instance | None, created=False, **kwargs):
             registration_form = RegistrationForm.objects.filter(
                 xform=instance.xform, is_active=True
             ).first()
-            Entity.objects.create(
-                registration_form=registration_form,
-                xml=instance.xml,
-                json=instance.get_dict(),
-            )
+            create_new_entity(instance, registration_form)

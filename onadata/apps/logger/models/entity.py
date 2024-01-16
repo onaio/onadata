@@ -3,6 +3,7 @@ Entity model
 """
 from django.db import models
 
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.libs.models import AbstractBase
 
@@ -14,6 +15,13 @@ class Entity(AbstractBase):
         RegistrationForm,
         on_delete=models.CASCADE,
         related_name="entities",
+    )
+    instance = models.OneToOneField(
+        Instance,
+        on_delete=models.SET_NULL,
+        related_name="entity",
+        null=True,
+        blank=True,
     )
     xml = models.TextField()
     json = models.JSONField(default=dict)
