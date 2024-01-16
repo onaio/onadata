@@ -980,13 +980,27 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         Entity
 
         Returns:
-            A newly created Entity
+            Entity: A newly created Entity
     """
     instance_json: dict[str, Any] = instance.get_dict()
     # Getting a mapping of save_to field to the field name
     mapped_properties = registration_form.get_save_to(instance.version)
     # Field names with an alias defined
     target_fields = list(mapped_properties.values())
+
+    def convert_to_alias(field_name: str) -> str:
+        """Convert field name to it's alias"""
+        alias_field_name = field_name
+        # We split along /, if any to take care of groups
+        parts = field_name.split("/")
+        # Replace field parts with alias
+        for part in parts:
+            if part in target_fields:
+                for alias, field in mapped_properties.items():
+                    if field == part:
+                        alias_field_name = alias_field_name.replace(field, alias)
+
+        return alias_field_name
 
     def parse_instance_json(data: dict[str, Any]) -> None:
         """Parse the original json, replacing field names with their alias
@@ -1000,17 +1014,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
 
             else:
                 if field_name in target_fields:
-                    alias_field_name = field_name
-                    # We split along /, if any to take care of groups
-                    parts = field_name.split("/")
-                    # Replace field parts with alias
-                    for part in parts:
-                        if part in target_fields:
-                            for alias, field in mapped_properties.items():
-                                if field == part:
-                                    alias_field_name = alias_field_name.replace(
-                                        field, alias
-                                    )
+                    alias_field_name = convert_to_alias(field_name)
 
                     if alias_field_name != field_name:
                         data[alias_field_name] = data[field_name]
