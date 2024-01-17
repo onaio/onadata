@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import onadata.apps.logger.models.instance
 
 
 class Migration(migrations.Migration):
@@ -61,32 +60,6 @@ class Migration(migrations.Migration):
             options={
                 'abstract': False,
             },
-        ),
-        migrations.RemoveIndex(
-            model_name='instance',
-            name='logger_inst_deleted_at_da31a3_idx',
-        ),
-        migrations.RemoveIndex(
-            model_name='instance',
-            name='logger_instance_id_xform_id_index',
-        ),
-        migrations.AlterField(
-            model_name='instance',
-            name='date_created',
-            field=models.DateTimeField(blank=True, default=onadata.apps.logger.models.instance.now, editable=False),
-        ),
-        migrations.AlterField(
-            model_name='instance',
-            name='date_modified',
-            field=models.DateTimeField(blank=True, default=onadata.apps.logger.models.instance.now, editable=False),
-        ),
-        migrations.AddIndex(
-            model_name='instance',
-            index=models.Index(fields=['deleted_at'], name='logger_inst_deleted_da31a3_idx'),
-        ),
-        migrations.AddIndex(
-            model_name='instance',
-            index=models.Index(fields=['xform_id', 'id'], name='logger_inst_xform_i_504638_idx'),
         ),
         migrations.AddField(
             model_name='registrationform',
