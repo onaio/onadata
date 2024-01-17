@@ -1000,6 +1000,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
                 for alias, field in mapped_properties.items():
                     if field == part:
                         alias_field_name = alias_field_name.replace(field, alias)
+                        break
 
         return alias_field_name
 

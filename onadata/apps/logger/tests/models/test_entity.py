@@ -37,7 +37,7 @@ class EntityTestCase(TestBase):
             "circumference_cm": 300,
             "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
             "_xform_id_string": "trees_registration",
-            "_version": "202311070702",
+            "_version": "2022110901",
         }
         xml = (
             "<data xmlns:jr='http://openrosa.org/javarosa' xmlns:orx="

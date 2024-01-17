@@ -1340,15 +1340,6 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             "instances",
             "trees_registration.xml",
         )
-        entity_json = {
-            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
-            "geometry": "-1.286905 36.772845 0 0",
-            "species": "purpleheart",
-            "circumference_cm": 300,
-            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            "_xform_id_string": "trees_registration",
-            "_version": "202311070702",
-        }
 
         with open(submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
@@ -1365,7 +1356,16 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             entity = Entity.objects.first()
             self.assertEqual(entity.registration_form.xform, self.xform)
             self.assertEqual(entity.xml, instance.xml)
-            self.assertEqual(entity.json, entity_json)
+            expected_json = {
+                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+                "_xform_id_string": "trees_registration",
+                "_version": "2022110901",
+            }
+            self.assertEqual(entity.json, expected_json)
 
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""

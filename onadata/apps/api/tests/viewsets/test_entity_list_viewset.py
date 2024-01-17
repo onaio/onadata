@@ -235,8 +235,8 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
 
-    def test_shared_entity_list(self):
-        """A user can view an EntityList shared with them"""
+    def test_shared_project(self):
+        """A user can view a project shared with them"""
         alice_data = {
             "username": "alice",
             "email": "aclie@example.com",
@@ -257,4 +257,132 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
 class GetEntitiesTestCase(TestAbstractViewSet):
     """Tests for GET Entities"""
 
-    pass
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"get": "entities"})
+        # Publish registration form and create "trees" EntityList dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Publish follow up form for "trees" dataset
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_follow_up.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Make submissions which will then create Entities
+        paths = [
+            os.path.join(
+                self.main_directory,
+                "fixtures",
+                "entities",
+                "instances",
+                "trees_registration.xml",
+            ),
+            os.path.join(
+                self.main_directory,
+                "fixtures",
+                "entities",
+                "instances",
+                "trees_registration_2.xml",
+            ),
+        ]
+
+        for path in paths:
+            self._make_submission(path)
+
+        self.entity_list = EntityList.objects.first()
+        self.expected_data = [
+            {
+                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+                "_xform_id_string": "trees_registration",
+                "_version": "2022110901",
+            },
+            {
+                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+                "geometry": "-1.305796 36.791849 0 0",
+                "species": "wallaba",
+                "circumference_cm": 100,
+                "intake_notes": "Looks malnourished",
+                "meta/instanceID": "uuid:648e4106-2224-4bd7-8bf9-859102fc6fae",
+                "_xform_id_string": "trees_registration",
+                "_version": "2022110901",
+            },
+        ]
+
+    def test_get_all(self):
+        """All Entities are returned"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.expected_data)
+        self.assertIsNotNone(response.get("Cache-Control"))
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot view Entities for a private EntityList"""
+        # Anonymous user cannot view private EntityList
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user can view public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.expected_data)
+
+    def test_shared_project(self):
+        """A user can view Entities for a project shared with them"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        # Share project with Alice
+        ShareProject(self.project, "alice", "readonly-no-download")
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.expected_data)
+
+    def test_pagination(self):
+        """Pagination works"""
+        request = self.factory.get("/", data={"page": 1, "page_size": 1}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        expected_data = [
+            {
+                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+                "_xform_id_string": "trees_registration",
+                "_version": "2022110901",
+            }
+        ]
+        self.assertEqual(response.data, expected_data)
