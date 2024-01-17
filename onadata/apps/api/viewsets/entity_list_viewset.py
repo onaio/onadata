@@ -39,6 +39,8 @@ class EntityListViewSet(
     def get_queryset(self):
         if self.action == "retrieve":
             queryset = super().get_queryset()
+            # Prefetch related objects to be rendered for performance
+            # optimization
             return queryset.prefetch_related(
                 "registration_forms",
                 "follow_up_forms",
@@ -62,8 +64,9 @@ class EntityListViewSet(
         entity_list = self.get_object()
         entities_qs = (
             Entity.objects.filter(registration_form__entity_list=entity_list)
-            .only("json")
-            .order_by("pk")
+            # To improve performance, we specify only the column(s)
+            # we are interested in
+            .only("json").order_by("pk")
         )
         queryset = self.filter_queryset(entities_qs)
         page = self.paginate_queryset(queryset)
