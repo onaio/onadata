@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" id="trees_registration" version="2022110901">
+   <formhub>
+      <uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid>
+   </formhub>
+   <location>-1.305796 36.791849 0 0</location>
+   <species>wallaba</species>
+   <circumference>100</circumference>
+   <intake_notes>Looks malnourished</intake_notes>
+   <meta>
+      <instanceID>uuid:648e4106-2224-4bd7-8bf9-859102fc6fae</instanceID>
+   </meta>
+</data>

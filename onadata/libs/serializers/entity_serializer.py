@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from onadata.apps.logger.models import (
+    Entity,
     EntityList,
     FollowUpForm,
     Project,
@@ -111,3 +112,14 @@ class EntityListDetailSerializer(EntityListSerializer):
             "registration_forms",
             "follow_up_forms",
         )
+
+
+class EntitySerializer(serializers.ModelSerializer):
+    """Serializer for Entity"""
+
+    def to_representation(self, instance):
+        return instance.json
+
+    class Meta:
+        model = Entity
+        fields = ("json",)
