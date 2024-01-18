@@ -1,5 +1,6 @@
 """Tests for module onadata.apps.logger.models.entity_list"""
 import pytz
+import os
 from datetime import datetime
 from unittest.mock import patch
 
@@ -66,3 +67,18 @@ class EntityListTestCase(TestBase):
 
         # 255 characters succeeds
         EntityList.objects.create(name=invalid_name[:-1], project=self.project)
+
+    def test_properties(self):
+        """Returns the correct dataset properties"""
+        # Publish XLSForm and implicity create EntityList
+        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
+        form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        form_path = os.path.join(fixture_dir, "trees_registration_height.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        entity_list = EntityList.objects.first()
+        # The properties should be from all forms creating Entities for the dataset
+        self.assertEqual(
+            entity_list.properties,
+            ["geometry", "species", "circumference_cm", "height_m"],
+        )
