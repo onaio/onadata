@@ -252,7 +252,7 @@ class AbstractDataFrameBuilder:
         include_reviews=False,
         language=None,
         host=None,
-        entity_list=EntityList | None,
+        entity_list: EntityList | None = None,
     ):
         self.username = username
         self.id_string = id_string
@@ -518,7 +518,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         include_reviews=False,
         language=None,
         host=None,
-        entity_list=EntityList | None,
+        entity_list: EntityList | None = None,
     ):
         super().__init__(
             username,
