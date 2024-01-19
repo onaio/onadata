@@ -202,7 +202,13 @@ def custom_response_handler(  # noqa: C0901
                 metadata=metadata,
             )
 
-        if should_create_new_export(xform, export_type, options, request=request):
+        if should_create_new_export(
+            xform,
+            export_type,
+            options,
+            request=request,
+            metadata=metadata,
+        ):
             export = _new_export()
         else:
             export = newest_export_for(xform, export_type, options)

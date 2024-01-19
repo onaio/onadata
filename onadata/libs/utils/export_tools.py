@@ -421,7 +421,7 @@ def check_pending_export(
     return export
 
 
-def should_create_new_export(xform, export_type, options, request=None):
+def should_create_new_export(xform, export_type, options, request=None, metadata=None):
     """
     Function that determines whether to create a new export.
     param: xform
@@ -443,6 +443,9 @@ def should_create_new_export(xform, export_type, options, request=None):
         request
         and (frozenset(list(request.GET)) & frozenset(["start", "end", "data_id"]))
     ) or not split_select_multiples:
+        return True
+
+    if metadata.data_value.startswith("entity_list"):
         return True
 
     export_options_kwargs = get_export_options_query_kwargs(options)
