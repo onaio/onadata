@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
 from unittest.mock import Mock, patch
-from xml.dom import Node, minidom
+from xml.dom import Node
+from defusedxml import minidom
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -5616,7 +5617,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         )
         self._publish_xls_form_to_project(xlsform_path=xls_file_path)
         # Simulate deactivated FollowUpForm
-        form = FollowUpForm.objects.create(entity_list=entity_list, xform=self.xform, is_active=False)
+        form = FollowUpForm.objects.create(
+            entity_list=entity_list, xform=self.xform, is_active=False
+        )
         self.assertFalse(form.is_active)
 
         with HTTMock(enketo_mock):
