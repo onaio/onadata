@@ -236,7 +236,7 @@ def generate_export(
             0
         ].get("count")
     else:
-        if entity_list:
+        if entity_list is not None:
             # Get entities
             records = get_entity_list_dataset(entity_list)
 

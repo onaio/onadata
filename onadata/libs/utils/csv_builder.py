@@ -818,12 +818,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def export_to(self, path, cursor, dataview=None):
         """Export a CSV formated to the given ``path``."""
-        # Unpack xform columns and data
-        data = self._format_for_dataframe(cursor)
         columns = []
         columns_with_hxl = None
 
-        if not self.entity_list:
+        if self.entity_list is None:
             self.ordered_columns = OrderedDict()
             self._build_ordered_columns(
                 self.data_dictionary.survey, self.ordered_columns
@@ -831,6 +829,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # creator copy of iterator cursor
             cursor, ordered_col_cursor = tee(cursor)
             self._update_ordered_columns_from_data(ordered_col_cursor)
+            # Unpack xform columns and data
+            data = self._format_for_dataframe(cursor)
 
             if dataview:
                 columns = list(
@@ -866,6 +866,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         else:
             columns = ["name", "label"] + self.entity_list.properties
+            # Unpack xform columns and data
+            data = self._format_for_dataframe(cursor)
 
         write_to_csv(
             path,
