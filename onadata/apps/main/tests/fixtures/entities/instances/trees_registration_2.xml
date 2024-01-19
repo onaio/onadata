@@ -9,5 +9,9 @@
    <intake_notes>Looks malnourished</intake_notes>
    <meta>
       <instanceID>uuid:648e4106-2224-4bd7-8bf9-859102fc6fae</instanceID>
+      <instanceName>100cm wallaba</instanceName>
+      <entity create="1" dataset="trees" id="517185b4-bc06-450c-a6ce-44605dec5480">
+         <label>100cm wallaba</label>
+      </entity>
    </meta>
 </data>
