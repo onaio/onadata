@@ -44,10 +44,10 @@ class EntityList(AbstractBase):
         dataset
         """
         registration_forms_qs = self.registration_forms.filter(is_active=True)
-        dataset_properties = []
+        dataset_properties = set()
 
         for form in registration_forms_qs:
-            form_properties = list(form.get_save_to().keys())
-            dataset_properties += form_properties
+            form_properties = set(form.get_save_to().keys())
+            dataset_properties.update(form_properties)
 
-        return dataset_properties
+        return list(dataset_properties)

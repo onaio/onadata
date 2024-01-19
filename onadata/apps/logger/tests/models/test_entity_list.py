@@ -78,7 +78,7 @@ class EntityListTestCase(TestBase):
         self._publish_xls_file_and_set_xform(form_path)
         entity_list = EntityList.objects.first()
         # The properties should be from all forms creating Entities for the dataset
-        self.assertEqual(
+        self.assertCountEqual(
             entity_list.properties,
             ["geometry", "species", "circumference_cm", "height_m"],
         )
