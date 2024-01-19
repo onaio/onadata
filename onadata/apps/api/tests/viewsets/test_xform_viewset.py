@@ -15,7 +15,8 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
-from xml.dom import Node, minidom
+from xml.dom import Node
+from defusedxml import minidom
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType

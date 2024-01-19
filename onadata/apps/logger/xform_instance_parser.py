@@ -4,7 +4,8 @@ XForm submission XML parser utility functions.
 """
 import logging
 import re
-from xml.dom import minidom, Node
+from xml.dom import Node
+from defusedxml import minidom
 
 import dateutil.parser
 
