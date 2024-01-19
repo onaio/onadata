@@ -118,7 +118,14 @@ def get_or_create_export(export_id, xform, export_type, options):
 
 
 def get_entity_list_from_metadata(metadata: MetaData) -> EntityList | None:
-    """Get EntityList from MetaData object"""
+    """Get EntityList from MetaData object
+
+    Args:
+        metadata (Metadata): The follow up XForm's MetaData object
+
+    Returns:
+        EntityList object if found, None otherwise
+    """
     if not metadata.data_value.startswith("entity_list"):
         return None
 
@@ -134,21 +141,17 @@ def get_entity_list_from_metadata(metadata: MetaData) -> EntityList | None:
     return entity_list
 
 
-def get_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
+def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
     """Get entity data for a an EntityList dataset
 
     Args:
-        metadata (MetaData): The XForm's MetaData object
+        entity_list (EntityList): The EntityList whose data
+        will be returned
 
     Returns:
         An iterator of dicts which represent the json data for
         Entities belonging to the dataset
     """
-    entity_list = get_entity_list_from_metadata(metadata)
-
-    if not entity_list:
-        yield {}
-
     entities = Entity.objects.filter(registration_form__entity_list=entity_list)
     dataset_properties = entity_list.properties
 
@@ -208,6 +211,9 @@ def generate_export(
     }
     entity_list = None
 
+    if metadata:
+        entity_list = get_entity_list_from_metadata(metadata)
+
     if xform is None:
         xform = XForm.objects.get(
             user__username__iexact=username, id_string__iexact=id_string
@@ -230,10 +236,9 @@ def generate_export(
             0
         ].get("count")
     else:
-        if metadata and metadata.data_value.startswith("entity_list"):
+        if entity_list:
             # Get entities
-            records = get_entity_list_dataset(metadata)
-            entity_list = get_entity_list_from_metadata(metadata)
+            records = get_entity_list_dataset(entity_list)
 
         else:
             records = query_data(
