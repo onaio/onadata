@@ -117,6 +117,23 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
+def get_entity_list_from_metadata(metadata: MetaData) -> EntityList | None:
+    """Get EntityList from MetaData object"""
+    if not metadata.data_value.startswith("entity_list"):
+        return None
+
+    pk = metadata.data_value.split()[1]
+
+    try:
+        entity_list = EntityList.objects.get(pk=pk)
+
+    except EntityList.DoesNotExist as err:
+        report_exception("Entity Export Failure", err, sys.exc_info())
+        return None
+
+    return entity_list
+
+
 def get_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
     """Get entity data for a an EntityList dataset
 
@@ -127,24 +144,23 @@ def get_entity_list_dataset(metadata: MetaData) -> Iterator[dict]:
         An iterator of dicts which represent the json data for
         Entities belonging to the dataset
     """
-    if not metadata.data_value.startswith("entity_list"):
+    entity_list = get_entity_list_from_metadata(metadata)
+
+    if not entity_list:
         yield {}
 
-    else:
-        pk = metadata.data_value.split()[1]
+    entities = Entity.objects.filter(registration_form__entity_list=entity_list)
+    dataset_properties = entity_list.properties
 
-        try:
-            entity_list = EntityList.objects.get(pk=pk)
+    for entity in queryset_iterator(entities):
+        data = {
+            "name": entity.uuid,
+            "label": entity.json.get("meta/entity/label", ""),
+        }
+        for prop in dataset_properties:
+            data[prop] = entity.json.get(prop, "")
 
-        except EntityList.DoesNotExist as err:
-            report_exception("Entity Export Failure", err, sys.exc_info())
-            yield {}
-
-        else:
-            entities = Entity.objects.filter(registration_form__entity_list=entity_list)
-
-            for entity in queryset_iterator(entities):
-                yield entity.json
+        yield data
 
 
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
@@ -190,6 +206,7 @@ def generate_export(
         Export.SAV_ZIP_EXPORT: "to_zipped_sav",
         Export.GOOGLE_SHEETS_EXPORT: "to_google_sheets",
     }
+    entity_list = None
 
     if xform is None:
         xform = XForm.objects.get(
@@ -216,6 +233,7 @@ def generate_export(
         if metadata and metadata.data_value.startswith("entity_list"):
             # Get entities
             records = get_entity_list_dataset(metadata)
+            entity_list = get_entity_list_from_metadata(metadata)
 
         else:
             records = query_data(
@@ -307,6 +325,7 @@ def generate_export(
             options=options,
             columns_with_hxl=columns_with_hxl,
             total_records=total_records,
+            entity_list=entity_list,
         )
     except NoRecordsFoundError:
         pass

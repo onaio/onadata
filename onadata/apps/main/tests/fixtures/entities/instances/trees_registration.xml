@@ -19,6 +19,10 @@
       \n
       <instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>
       \n
+      <instanceName>300cm purpleheart</instanceName>
+      <entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">
+         <label>300cm purpleheart</label>
+      </entity>
    </meta>
    \n
 </data>

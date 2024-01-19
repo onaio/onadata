@@ -1144,6 +1144,7 @@ class ExportBuilder:
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
         show_choice_labels = options.get("show_choice_labels", False)
         language = options.get("language")
+        entity_list = kwargs.get("entity_list")
 
         csv_builder = CSVDataFrameBuilder(
             username,
@@ -1168,6 +1169,7 @@ class ExportBuilder:
             include_reviews=self.INCLUDE_REVIEWS,
             language=language,
             host=host,
+            entity_list=entity_list,
         )
 
         csv_builder.export_to(path, data, dataview=dataview)

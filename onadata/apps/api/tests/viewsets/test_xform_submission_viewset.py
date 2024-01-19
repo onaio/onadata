@@ -1362,10 +1362,13 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 "species": "purpleheart",
                 "circumference_cm": 300,
                 "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+                "meta/instanceName": "300cm purpleheart",
+                "meta/entity/label": "300cm purpleheart",
                 "_xform_id_string": "trees_registration",
                 "_version": "2022110901",
             }
             self.assertEqual(entity.json, expected_json)
+            self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
 
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""

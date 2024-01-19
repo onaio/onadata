@@ -10,6 +10,7 @@ from builtins import chr, open
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.tests.test_base import TestBase
@@ -2025,3 +2026,65 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(row, expected_row)
 
         csv_file.close()
+
+    def test_entity_list_dataset(self):
+        """Export for an EntityList dataset is correct"""
+        # Publish registration form
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.first()
+        cursor = [
+            {
+                "name": 1,
+                "label": "300cm purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+            }
+        ]
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+            entity_list=entity_list,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "label",
+            "geometry",
+            "species",
+            "circumference_cm",
+        ]
+        self.assertCountEqual(header, expected_header)
+        expected_row = [
+            "1",
+            "300cm purpleheart",
+            "-1.286905 36.772845 0 0",
+            "purpleheart",
+            "300",
+        ]
+        row = next(csv_reader)
+        self.assertCountEqual(row, expected_row)

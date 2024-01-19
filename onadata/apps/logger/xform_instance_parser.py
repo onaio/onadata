@@ -94,6 +94,9 @@ def get_meta_from_xml(xml_str, meta_name):
 
     uuid_tag = uuid_tags[0]
 
+    if meta_name == "entity":
+        return uuid_tag
+
     return uuid_tag.firstChild.nodeValue.strip() if uuid_tag.firstChild else None
 
 
@@ -167,9 +170,9 @@ def clean_and_parse_xml(xml_string):
 
     Returns an XML object via minidom.parseString(xml_string)
     """
-    clean_xml_str = xml_string.strip()
-    clean_xml_str = re.sub(r">\s+<", "><", smart_str(clean_xml_str))
-    xml_obj = minidom.parseString(smart_str(clean_xml_str))
+    clean_xml_str = smart_str(xml_string.strip())
+    clean_xml_str = re.sub(r">\s+<", "><", clean_xml_str)
+    xml_obj = minidom.parseString(clean_xml_str)
     return xml_obj
 
 
@@ -324,11 +327,11 @@ def _get_all_attributes(node):
     """
     if hasattr(node, "hasAttributes") and node.hasAttributes():
         for key in node.attributes.keys():
-            yield key, node.getAttribute(key)
+            yield key, node.getAttribute(key), node.tagName
 
     for child in node.childNodes:
-        for pair in _get_all_attributes(child):
-            yield pair
+        for result in _get_all_attributes(child):
+            yield result
 
 
 class XFormInstanceParser:
@@ -386,9 +389,13 @@ class XFormInstanceParser:
         # pylint: disable=attribute-defined-outside-init
         self._attributes = {}
         all_attributes = list(_get_all_attributes(self._root_node))
-        for key, value in all_attributes:
+        for key, value, tagName in all_attributes:
             # Since enketo forms may have the template attribute in
             # multiple xml tags, overriding and log when this occurs
+            if tagName == "entity":
+                # We ignore attributes for the entity node
+                continue
+
             if key in self._attributes:
                 logger = logging.getLogger("console_logger")
                 logger.debug(
@@ -447,3 +454,9 @@ def parse_xform_instance(xml_str, data_dictionary):
     """
     parser = XFormInstanceParser(xml_str, data_dictionary)
     return parser.get_flat_dict_with_attributes()
+
+
+def get_entity_uuid_from_xml(xml):
+    """Returns the uuid for the XML submission's entity"""
+    entity_node = get_meta_from_xml(xml, "entity")
+    return entity_node.getAttribute("id")
