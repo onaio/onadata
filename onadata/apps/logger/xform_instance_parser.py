@@ -389,10 +389,10 @@ class XFormInstanceParser:
         # pylint: disable=attribute-defined-outside-init
         self._attributes = {}
         all_attributes = list(_get_all_attributes(self._root_node))
-        for key, value, tagName in all_attributes:
+        for key, value, node_name in all_attributes:
             # Since enketo forms may have the template attribute in
             # multiple xml tags, overriding and log when this occurs
-            if tagName == "entity":
+            if node_name == "entity":
                 # We ignore attributes for the entity node
                 continue
 
