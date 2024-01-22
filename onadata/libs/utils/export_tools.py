@@ -1102,7 +1102,7 @@ def get_repeat_index_tags(index_tags):
     return index_tags
 
 
-def generate_entity_list_dataset(entity_list: EntityList) -> GenericExport:
+def generate_entity_list_export(entity_list: EntityList) -> GenericExport:
     """Generates a CSV for an EntityList dataset"""
     username = entity_list.project.organization.username
     records = get_entity_list_dataset(entity_list)
