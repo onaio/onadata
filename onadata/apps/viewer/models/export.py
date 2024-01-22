@@ -339,7 +339,7 @@ class GenericExport(ExportAbstractBase):
         if options is None:
             options = {}
 
-        instance_ct = cls.get_object_content_type
+        instance_ct = cls.get_object_content_type(instance)
         export_options = get_export_options_query_kwargs(options)
         # Get the most recent Export
         try:
