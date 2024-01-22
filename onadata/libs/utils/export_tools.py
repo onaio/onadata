@@ -1129,7 +1129,7 @@ def generate_entity_list_dataset(entity_list: EntityList) -> GenericExport:
     temp_file.close()
     dir_name, basename = os.path.split(export_filename)
     # Create export object
-    export = GenericExport(
+    export = GenericExport.objects.create(
         content_object=entity_list,
         export_type=Export.CSV_EXPORT,
         filedir=dir_name,
