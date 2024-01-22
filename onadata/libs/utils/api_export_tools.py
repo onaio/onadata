@@ -707,7 +707,7 @@ def get_entity_list_export(request, entity_list, filename):
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
-    path, ext = os.path.splitext(export.filename)
+    __, ext = os.path.splitext(export.filename)
     ext = ext[1:]
 
     return response_with_mimetype_and_name(
