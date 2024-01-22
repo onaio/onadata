@@ -22,7 +22,9 @@ from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
-from onadata.apps.logger.models import EntityList, RegistrationForm, FollowUpForm
+from onadata.apps.logger.models.entity_list import EntityList
+from onadata.apps.logger.models.registration_form import RegistrationForm
+from onadata.apps.logger.models.follow_up_form import FollowUpForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData

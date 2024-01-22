@@ -67,6 +67,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     get_metadata_format,
+    get_entity_list_export,
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
@@ -581,16 +582,16 @@ def get_media_file_response(metadata, request=None):
     except ValidationError:
         obj, filename = get_data_value_objects(metadata.data_value)
         if obj:
+            export_type = get_metadata_format(metadata.data_value)
+
+            if isinstance(obj, EntityList):
+                return get_entity_list_export(request, obj, filename)
+
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj
 
             if isinstance(obj, DataView):
                 xform = obj.xform
-
-            elif isinstance(obj, EntityList):
-                xform = XForm.objects.get(pk=metadata.object_id)
-
-            export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
                 request,

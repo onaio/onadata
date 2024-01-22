@@ -29,6 +29,7 @@ class RegistrationForm(AbstractBase):
     is_active = models.BooleanField(default=True)
 
     class Meta(AbstractBase.Meta):
+        app_label = "logger"
         unique_together = (
             "entity_list",
             "xform",
