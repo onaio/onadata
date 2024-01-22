@@ -401,7 +401,7 @@ class GenericExport(ExportAbstractBase):
             # if new, check if we've hit our limit for exports for this instance,
             # if so, delete oldest
             instance_ct = ContentType.objects.get_for_model(self.content_object)
-            num_existing_exports = self.objects.filter(
+            num_existing_exports = GenericExport.objects.filter(
                 content_type=instance_ct,
                 object_id=self.content_object.id,
                 export_type=self.export_type,
@@ -428,7 +428,7 @@ class GenericExport(ExportAbstractBase):
         if self.filename:
             self.internal_status = self.SUCCESSFUL
 
-        models.Model.save(self, *args, *kwargs)
+        super().save(*args, **kwargs)
 
 
 post_delete.connect(export_delete_callback, sender=GenericExport)

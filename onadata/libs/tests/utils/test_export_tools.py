@@ -26,7 +26,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -1034,3 +1034,4 @@ class GenerateExportTestCase(TestAbstractViewSet):
         export = generate_entity_list_dataset(entity_list)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
+        self.assertEqual(GenericExport.objects.count(), 1)
