@@ -38,7 +38,7 @@ from onadata.libs.utils.export_builder import (
 from onadata.libs.utils.export_tools import (
     check_pending_export,
     generate_attachments_zip_export,
-    generate_entity_list_dataset,
+    generate_entity_list_export,
     generate_export,
     generate_geojson_export,
     generate_kml_export,
@@ -1031,7 +1031,7 @@ class GenerateExportTestCase(TestAbstractViewSet):
         )
         self._make_submission(submission_path)
         entity_list = EntityList.objects.get(name="trees")
-        export = generate_entity_list_dataset(entity_list)
+        export = generate_entity_list_export(entity_list)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         self.assertEqual(GenericExport.objects.count(), 1)

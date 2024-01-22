@@ -58,7 +58,7 @@ from onadata.libs.utils.export_tools import (
     check_pending_export,
     get_latest_generic_export,
     generate_attachments_zip_export,
-    generate_entity_list_dataset,
+    generate_entity_list_export,
     generate_export,
     generate_external_export,
     generate_geojson_export,
@@ -674,12 +674,12 @@ def _get_google_credential(request):
     return credential
 
 
-def get_entity_list_export(request, entity_list, filename):
+def get_entity_list_export_response(request, entity_list, filename):
     """Returns an EntityList dataset export"""
 
     # Check if we need to re-generate,
     def _new_export():
-        return generate_entity_list_dataset(entity_list)
+        return generate_entity_list_export(entity_list)
 
     if should_create_new_export(
         entity_list, Export.CSV_EXPORT, {}, request=request, is_generic=True
