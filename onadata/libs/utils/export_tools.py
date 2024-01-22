@@ -389,7 +389,7 @@ def check_pending_export(
 
 
 def should_create_new_export(
-    object, export_type, options, request=None, is_generic=False
+    instance, export_type, options, request=None, is_generic=False
 ):
     """
     Function that determines whether to create a new export.
@@ -417,16 +417,16 @@ def should_create_new_export(
     export_options_kwargs = get_export_options_query_kwargs(options)
 
     if is_generic:
-        object_ct = GenericExport.get_object_content_type(object)
+        object_ct = GenericExport.get_object_content_type(instance)
         export_query = GenericExport.objects.filter(
             content_type=object_ct,
-            object_id=object.id,
+            object_id=instance.id,
             export_type=export_type,
             **export_options_kwargs,
         )
     else:
         export_query = Export.objects.filter(
-            xform=object, export_type=export_type, **export_options_kwargs
+            xform=instance, export_type=export_type, **export_options_kwargs
         )
 
     if options.get(EXPORT_QUERY_KEY) is None:
@@ -434,11 +434,11 @@ def should_create_new_export(
 
     if is_generic:
         return export_query.count() == 0 or bool(
-            GenericExport.exports_outdated(object, export_type, options=options)
+            GenericExport.exports_outdated(instance, export_type, options=options)
         )
 
     return export_query.count() == 0 or bool(
-        Export.exports_outdated(object, export_type, options=options)
+        Export.exports_outdated(instance, export_type, options=options)
     )
 
 
