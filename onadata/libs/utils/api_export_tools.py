@@ -56,7 +56,9 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.export_tools import (
     check_pending_export,
+    get_latest_generic_export,
     generate_attachments_zip_export,
+    generate_entity_list_dataset,
     generate_export,
     generate_external_export,
     generate_geojson_export,
@@ -202,13 +204,7 @@ def custom_response_handler(  # noqa: C0901
                 metadata=metadata,
             )
 
-        if should_create_new_export(
-            xform,
-            export_type,
-            options,
-            request=request,
-            metadata=metadata,
-        ):
+        if should_create_new_export(xform, export_type, options, request=request):
             export = _new_export()
         else:
             export = newest_export_for(xform, export_type, options)
@@ -321,9 +317,7 @@ def _generate_new_export(  # noqa: C0901
         else:
             options.update(parse_request_export_options(request.query_params))
 
-            export = generate_export(
-                export_type, xform, None, options, metadata=metadata
-            )
+            export = generate_export(export_type, xform, None, options)
 
         audit = {"xform": xform.id_string, "export_type": export_type}
         log.audit_log(
@@ -678,3 +672,48 @@ def _get_google_credential(request):
         )
         return HttpResponseRedirect(authorization_url)
     return credential
+
+
+def get_entity_list_export(request, entity_list, filename):
+    """Returns an EntityList dataset export"""
+
+    # Check if we need to re-generate,
+    def _new_export():
+        return generate_entity_list_dataset(entity_list)
+
+    if should_create_new_export(
+        entity_list, Export.CSV_EXPORT, {}, request=request, is_generic=True
+    ):
+        export = _new_export()
+    else:
+        export = get_latest_generic_export(entity_list, Export.CSV_EXPORT, {})
+
+        if not export.filename and not export.error_message:
+            export = _new_export()
+
+    # Log export
+    audit = {"entity_list": entity_list.name, "export_type": Export.CSV_EXPORT}
+    log.audit_log(
+        log.Actions.EXPORT_DOWNLOADED,
+        request.user,
+        entity_list.project.user,
+        _(f"Downloaded {Export.CSV_EXPORT.upper()} export on '{entity_list.name}'."),
+        audit,
+        request,
+    )
+
+    if export.filename is None and export.error_message:
+        raise exceptions.ParseError(export.error_message)
+
+    # get extension from file_path, exporter could modify to
+    # xlsx if it exceeds limits
+    path, ext = os.path.splitext(export.filename)
+    ext = ext[1:]
+
+    return response_with_mimetype_and_name(
+        Export.EXPORT_MIMES[ext],
+        filename,
+        extension=ext,
+        show_date=False,
+        file_path=export.filepath,
+    )

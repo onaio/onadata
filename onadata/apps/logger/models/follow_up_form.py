@@ -17,6 +17,7 @@ class FollowUpForm(AbstractBase):
     """
 
     class Meta(AbstractBase.Meta):
+        app_label = "logger"
         unique_together = (
             "entity_list",
             "xform",

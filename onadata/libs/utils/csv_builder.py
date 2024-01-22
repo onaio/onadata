@@ -269,6 +269,7 @@ class AbstractDataFrameBuilder:
             settings, "EXTRA_COLUMNS", []
         )
         self.entity_list = entity_list
+        self.include_images = include_images
 
         if include_reviews:
             self.extra_columns = self.extra_columns + [
@@ -277,15 +278,19 @@ class AbstractDataFrameBuilder:
                 REVIEW_DATE,
             ]
 
-        if xform:
-            self.xform = xform
+        if entity_list is None:
+            if xform:
+                self.xform = xform
+            else:
+                self.xform = XForm.objects.get(
+                    id_string=self.id_string, user__username=self.username
+                )
         else:
-            self.xform = XForm.objects.get(
-                id_string=self.id_string, user__username=self.username
-            )
+            self.xform = None
+            self.include_images = False
+
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
-        self.include_images = include_images
         self.include_hxl = include_hxl
         self.win_excel_utf8 = win_excel_utf8
         self.total_records = total_records
@@ -307,11 +312,16 @@ class AbstractDataFrameBuilder:
         self._setup()
 
     def _setup(self):
-        self.data_dictionary = self.xform
-        self.select_multiples = self._collect_select_multiples(
-            self.data_dictionary, self.language
-        )
-        self.gps_fields = self._collect_gps_fields(self.data_dictionary)
+        self.data_dictionary = None
+        self.select_multiples = {}
+        self.gps_fields = []
+
+        if self.entity_list is None:
+            self.data_dictionary = self.xform
+            self.select_multiples = self._collect_select_multiples(
+                self.data_dictionary, self.language
+            )
+            self.gps_fields = self._collect_gps_fields(self.data_dictionary)
 
     @classmethod
     def _fields_to_select(cls, data_dictionary):

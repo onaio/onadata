@@ -37,3 +37,6 @@ class Entity(AbstractBase):
             self.uuid = get_entity_uuid_from_xml(self.xml)
 
         super().save(*args, **kwargs)
+
+    class Meta(AbstractBase.Meta):
+        app_label = "logger"

@@ -1,7 +1,10 @@
 """
 EntityList model
 """
+from datetime import datetime
 
+from django.contrib.contenttypes.fields import GenericRelation
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils.functional import cached_property
 
@@ -26,8 +29,10 @@ class EntityList(AbstractBase):
         related_name="entity_lists",
         on_delete=models.CASCADE,
     )
+    exports = GenericRelation("viewer.GenericExport")
 
     class Meta(AbstractBase.Meta):
+        app_label = "logger"
         unique_together = (
             "name",
             "project",
@@ -51,3 +56,24 @@ class EntityList(AbstractBase):
             dataset_properties.update(form_properties)
 
         return list(dataset_properties)
+
+    @cached_property
+    def last_entity_creation_time(self) -> datetime | None:
+        """The date and time the latest Entity was created"""
+        try:
+            latest_entity = self.entities.latest("created_at")
+
+        except ObjectDoesNotExist:
+            return None
+
+        return latest_entity.created_at
+
+    @cached_property
+    def last_entity_update_time(self) -> datetime | None:
+        """The date and time of the latest Entity to be updated"""
+        try:
+            latest_entity = self.entities.latest("updated_at")
+        except ObjectDoesNotExist:
+            return None
+
+        return latest_entity.updated_at

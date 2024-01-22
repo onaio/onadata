@@ -20,6 +20,7 @@ from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db.models.query import QuerySet
+from onadata.libs.utils.export_builder import ExportBuilder
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -47,7 +48,11 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
+from onadata.apps.viewer.models.export import (
+    Export,
+    GenericExport,
+    get_export_options_query_kwargs,
+)
 from onadata.apps.viewer.models.parsed_instance import (
     query_data,
     query_count,
@@ -117,30 +122,6 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
-def get_entity_list_from_metadata(metadata: MetaData) -> EntityList | None:
-    """Get EntityList from MetaData object
-
-    Args:
-        metadata (Metadata): The follow up XForm's MetaData object
-
-    Returns:
-        EntityList object if found, None otherwise
-    """
-    if not metadata.data_value.startswith("entity_list"):
-        return None
-
-    pk = metadata.data_value.split()[1]
-
-    try:
-        entity_list = EntityList.objects.get(pk=pk)
-
-    except EntityList.DoesNotExist as err:
-        report_exception("Entity Export Failure", err, sys.exc_info())
-        return None
-
-    return entity_list
-
-
 def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
     """Get entity data for a an EntityList dataset
 
@@ -168,9 +149,7 @@ def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
 
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 @retry(MAX_RETRIES)
-def generate_export(
-    export_type, xform, export_id=None, options=None, metadata=None
-):  # noqa C901
+def generate_export(export_type, xform, export_id=None, options=None):  # noqa C901
     """
     Create appropriate export object given the export type.
 
@@ -209,10 +188,6 @@ def generate_export(
         Export.SAV_ZIP_EXPORT: "to_zipped_sav",
         Export.GOOGLE_SHEETS_EXPORT: "to_google_sheets",
     }
-    entity_list = None
-
-    if metadata:
-        entity_list = get_entity_list_from_metadata(metadata)
 
     if xform is None:
         xform = XForm.objects.get(
@@ -236,18 +211,13 @@ def generate_export(
             0
         ].get("count")
     else:
-        if entity_list is not None:
-            # Get entities
-            records = get_entity_list_dataset(entity_list)
-
-        else:
-            records = query_data(
-                xform,
-                query=filter_query,
-                start=start,
-                end=end,
-                sort=sort,
-            )
+        records = query_data(
+            xform,
+            query=filter_query,
+            start=start,
+            end=end,
+            sort=sort,
+        )
 
         if filter_query:
             total_records = query_count(
@@ -261,9 +231,6 @@ def generate_export(
 
     if isinstance(records, QuerySet):
         records = records.iterator()
-
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.utils.export_builder import ExportBuilder
 
     export_builder = ExportBuilder()
     export_builder.TRUNCATE_GROUP_TITLE = (  # noqa
@@ -330,7 +297,6 @@ def generate_export(
             options=options,
             columns_with_hxl=columns_with_hxl,
             total_records=total_records,
-            entity_list=entity_list,
         )
     except NoRecordsFoundError:
         pass
@@ -421,7 +387,9 @@ def check_pending_export(
     return export
 
 
-def should_create_new_export(xform, export_type, options, request=None, metadata=None):
+def should_create_new_export(
+    object, export_type, options, request=None, is_generic=False
+):
     """
     Function that determines whether to create a new export.
     param: xform
@@ -445,22 +413,32 @@ def should_create_new_export(xform, export_type, options, request=None, metadata
     ) or not split_select_multiples:
         return True
 
-    if metadata and metadata.data_value.startswith("entity_list"):
-        return True
-
     export_options_kwargs = get_export_options_query_kwargs(options)
-    export_query = Export.objects.filter(
-        xform=xform, export_type=export_type, **export_options_kwargs
-    )
+
+    if is_generic:
+        object_ct = GenericExport.get_object_content_type(object)
+        export_query = GenericExport.objects.filter(
+            content_type=object_ct,
+            object_id=object.id,
+            export_type=export_type,
+            **export_options_kwargs,
+        )
+    else:
+        export_query = Export.objects.filter(
+            xform=object, export_type=export_type, **export_options_kwargs
+        )
+
     if options.get(EXPORT_QUERY_KEY) is None:
         export_query = export_query.exclude(options__has_key=EXPORT_QUERY_KEY)
 
-    if export_query.count() == 0 or Export.exports_outdated(
-        xform, export_type, options=options
-    ):
-        return True
+    if is_generic:
+        return export_query.count() == 0 or bool(
+            GenericExport.exports_outdated(object, export_type, options=options)
+        )
 
-    return False
+    return export_query.count() == 0 or bool(
+        Export.exports_outdated(object, export_type, options=options)
+    )
 
 
 def newest_export_for(xform, export_type, options):
@@ -1121,3 +1099,62 @@ def get_repeat_index_tags(index_tags):
                 )
 
     return index_tags
+
+
+def generate_entity_list_dataset(entity_list: EntityList) -> GenericExport:
+    """Generates a CSV for an EntityList dataset"""
+    username = entity_list.project.organization.username
+    records = get_entity_list_dataset(entity_list)
+    export_builder = ExportBuilder()
+    extension = Export.CSV_EXPORT
+    temp_file = NamedTemporaryFile(suffix=("." + extension))
+    export_builder.to_flat_csv_export(
+        temp_file.name, records, username, None, None, entity_list=entity_list
+    )
+    # Generate filename
+    basename = f'{entity_list.name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")}'
+    filename = basename + "." + extension
+
+    # Check filename is unique
+    while not GenericExport.is_filename_unique(entity_list, filename):
+        filename = increment_index_in_filename(filename)
+
+    file_path = os.path.join(
+        username, "exports", entity_list.name, Export.CSV_EXPORT, filename
+    )
+    # seek to the beginning as required by storage classes
+    temp_file.seek(0)
+    export_filename = default_storage.save(file_path, File(temp_file, file_path))
+    temp_file.close()
+    dir_name, basename = os.path.split(export_filename)
+    # Create export object
+    export = GenericExport(
+        content_object=entity_list,
+        export_type=Export.CSV_EXPORT,
+        filedir=dir_name,
+        filename=basename,
+        internal_status=Export.SUCCESSFUL,
+    )
+    return export
+
+
+def get_latest_generic_export(
+    instance, export_type, options=None
+) -> GenericExport | None:
+    """Retrieve the latest GenericExport"""
+    export_options_kwargs = get_export_options_query_kwargs(options)
+    object_content_type = GenericExport.get_object_content_type(instance)
+    export_query = GenericExport.objects.filter(
+        content_type=object_content_type,
+        object_id=instance.id,
+        export_type=export_type,
+        **export_options_kwargs,
+    )
+
+    try:
+        latest_export = export_query.latest("created_on")
+
+    except GenericExport.DoesNotExist:
+        return None
+
+    return latest_export

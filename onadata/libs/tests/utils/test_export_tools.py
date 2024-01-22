@@ -25,7 +25,6 @@ from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
@@ -39,6 +38,7 @@ from onadata.libs.utils.export_builder import (
 from onadata.libs.utils.export_tools import (
     check_pending_export,
     generate_attachments_zip_export,
+    generate_entity_list_dataset,
     generate_export,
     generate_geojson_export,
     generate_kml_export,
@@ -1031,11 +1031,6 @@ class GenerateExportTestCase(TestAbstractViewSet):
         )
         self._make_submission(submission_path)
         entity_list = EntityList.objects.get(name="trees")
-        metadata = MetaData.objects.create(
-            content_object=self.xform,
-            data_type="media",
-            data_value=f"entity_list {entity_list.pk} {entity_list.name}",
-        )
-        export = generate_export("csv", self.xform, metadata=metadata)
+        export = generate_entity_list_dataset(entity_list)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
