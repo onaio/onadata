@@ -60,6 +60,7 @@ class EntityList(AbstractBase):
     @cached_property
     def last_entity_creation_time(self) -> datetime | None:
         """The date and time the latest Entity was created"""
+        # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")
 
         try:
@@ -75,6 +76,7 @@ class EntityList(AbstractBase):
     @cached_property
     def last_entity_update_time(self) -> datetime | None:
         """The date and time of the latest Entity to be updated"""
+        # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")
 
         try:
