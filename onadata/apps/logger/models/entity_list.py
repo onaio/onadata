@@ -60,8 +60,12 @@ class EntityList(AbstractBase):
     @cached_property
     def last_entity_creation_time(self) -> datetime | None:
         """The date and time the latest Entity was created"""
+        from onadata.apps.logger.models.entity import Entity
+
         try:
-            latest_entity = self.entities.latest("created_at")
+            latest_entity = Entity.objects.filter(
+                registration_form__entity_list=self
+            ).latest("created_at")
 
         except ObjectDoesNotExist:
             return None
@@ -71,8 +75,12 @@ class EntityList(AbstractBase):
     @cached_property
     def last_entity_update_time(self) -> datetime | None:
         """The date and time of the latest Entity to be updated"""
+        from onadata.apps.logger.models.entity import Entity
+
         try:
-            latest_entity = self.entities.latest("updated_at")
+            latest_entity = Entity.objects.filter(
+                registration_form__entity_list=self
+            ).latest("updated_at")
         except ObjectDoesNotExist:
             return None
 
