@@ -23,7 +23,13 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from onadata.libs.utils.api_export_tools import get_metadata_format
-from onadata.apps.logger.models import DataView, Instance, XForm, XFormVersion
+from onadata.apps.logger.models import (
+    DataView,
+    EntityList,
+    Instance,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EnketoError
@@ -647,6 +653,14 @@ class XFormManifestSerializer(serializers.Serializer):
 
         return url
 
+    def _generate_hash(self, data) -> str:
+        md5_hash = hashlib.new(
+            "md5",
+            data,
+            usedforsecurity=False,
+        ).hexdigest()
+        return f"md5:{md5_hash}"
+
     @check_obj
     def get_hash(self, obj):
         """
@@ -664,6 +678,12 @@ class XFormManifestSerializer(serializers.Serializer):
             xform = None
             if dataset_type == "xform":
                 xform = XForm.objects.filter(pk=pk).only("last_submission_time").first()
+
+            elif dataset_type == "entity_list":
+                entity_list = EntityList.objects.filter(pk=pk).first()
+                hsh = self._generate_hash(
+                    entity_list.last_entity_creation_time.isoformat().encode("utf-8")
+                )
             else:
                 data_view = (
                     DataView.objects.filter(pk=pk)
@@ -674,12 +694,9 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                md5_hash = hashlib.new(
-                    "md5",
-                    xform.last_submission_time.isoformat().encode("utf-8"),
-                    usedforsecurity=False,
-                ).hexdigest()
-                hsh = f"md5:{md5_hash}"
+                hsh = self._generate_hash(
+                    xform.last_submission_time.isoformat().encode("utf-8")
+                )
 
         return f"{hsh or 'md5:'}"
 
