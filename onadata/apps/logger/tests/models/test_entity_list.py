@@ -133,6 +133,12 @@ class EntityListTestCase(TestBase):
             },
         )
         self.assertEqual(entity_list.cached_last_entity_update_time, self.mocked_now)
+        # Returns None if the value stored in cache is invalid
+        cache.set(
+            "entity_list_updates",
+            {entity_list.pk: {"last_update_time": "foo"}},
+        )
+        self.assertIsNone(entity_list.cached_last_entity_update_time)
 
     def test_persisted_last_entity_update_time(self):
         """Property `persisted_last_entity_update_time` works"""
@@ -145,6 +151,10 @@ class EntityListTestCase(TestBase):
         entity_list.metadata = {"last_entity_update_time": self.mocked_now.isoformat()}
         entity_list.save()
         self.assertEqual(entity_list.persisted_last_entity_update_time, self.mocked_now)
+        # Returns None if value persisted in DB is invalid
+        entity_list.metadata = {"last_entity_update_time": "foo"}
+        entity_list.save()
+        self.assertIsNone(entity_list.persisted_last_entity_update_time)
 
     def test_last_entity_update_time(self):
         """Property `last_entity_update_time` works"""

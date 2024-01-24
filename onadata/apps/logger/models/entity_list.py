@@ -114,7 +114,11 @@ class EntityList(AbstractBase):
         if time_str is None:
             return None
 
-        return datetime.fromisoformat(time_str)
+        try:
+            return datetime.fromisoformat(time_str)
+
+        except ValueError:
+            return None
 
     @property
     # pylint: disable=invalid-name
@@ -129,7 +133,11 @@ class EntityList(AbstractBase):
         if time_str is None:
             return None
 
-        return datetime.fromisoformat(time_str)
+        try:
+            return datetime.fromisoformat(time_str)
+
+        except ValueError:
+            return None
 
     @property
     def last_entity_update_time(self) -> datetime | None:
