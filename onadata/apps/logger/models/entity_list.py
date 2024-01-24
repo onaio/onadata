@@ -97,9 +97,9 @@ class EntityList(AbstractBase):
     def cached_last_entity_update_time(self) -> datetime | None:
         """The date and time of the latest Entity to be updated stored in cache
 
-        Returns None if not available in cache. The data is available in the
-        cache if new Entities have been created since the last cron job
-        that persists the data in the database ran
+        The data is available in the cache if new Entities have been
+        created since the cron job that persists the data in the
+        database was last ran
 
         Returns:
             datetime | None: The datetime or None if unvailable
