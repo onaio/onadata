@@ -109,9 +109,8 @@ class EntityList(AbstractBase):
         return datetime.fromisoformat(time_str)
 
     @property
-    def persisted_last_entity_update_time(
-        self,
-    ) -> datetime | None:  # pylint: disable=invalid-name
+    # pylint: disable=invalid-name
+    def persisted_last_entity_update_time(self) -> datetime | None:
         """The date and time of the latest Entity to be updated persisted in DB
 
         Returns None if not available in the database
