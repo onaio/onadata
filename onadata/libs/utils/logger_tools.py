@@ -1053,7 +1053,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     cached_updates[pk][ENTITY_LIST_UPDATES_LAST_UPDATE_TIME] = last_update_time
     # We set None as the timeout (no expiry). A cron job responsible for
     # reading the cache and persisting the data to the database should delete
-    # the cache upon completion
+    # the cached data upon completion
     cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
 
     return entity
