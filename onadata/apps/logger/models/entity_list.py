@@ -76,10 +76,8 @@ class EntityList(AbstractBase):
         This value is queried from the database. It could be a
         serious performance problem if the record set is large.
 
-        Returns None if no Entities are available
-
         Returns:
-            datetime | None: The datetime or None if unvailable
+            datetime | None: The datetime or None if no Entities are unvailable
         """
         # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")  # noqa
