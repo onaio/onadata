@@ -25,7 +25,7 @@ class EntityList(AbstractBase):
     """
 
     # Keys for the metadata JSON field
-    METADATA_LAST_ENTITY_UPDATE_TIME = "last_entity_update_time"
+    METADATA_ENTITY_UPDATE_TIME = "last_entity_update_time"
 
     name = models.CharField(
         max_length=255,
@@ -109,14 +109,14 @@ class EntityList(AbstractBase):
         return datetime.fromisoformat(time_str)
 
     @property
-    def persisted_last_entity_update_time(self) -> datetime | None:
+    def persisted_last_entity_update_time(
+        self,
+    ) -> datetime | None:  # pylint: disable=invalid-name
         """The date and time of the latest Entity to be updated persisted in DB
 
         Returns None if not available in the database
         """
-        time_str: str | None = self.metadata.get(
-            EntityList.METADATA_LAST_ENTITY_UPDATE_TIME
-        )
+        time_str: str | None = self.metadata.get(EntityList.METADATA_ENTITY_UPDATE_TIME)
 
         if time_str is None:
             return None
