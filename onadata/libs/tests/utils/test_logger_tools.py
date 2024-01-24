@@ -760,7 +760,7 @@ class CreateEntityTestCase(TestBase):
                 }
             },
         )
-        # dict stored in cache has `inc` key is missing
+        # dict stored in cache has `inc` key missing
         cache.delete("entity_list_updates")
         Entity.objects.all().delete()
         cache.set(
@@ -782,7 +782,7 @@ class CreateEntityTestCase(TestBase):
                 }
             },
         )
-        # dict stored in cache has `last_update_time` key is missing
+        # dict stored in cache has `last_update_time` key missing
         cache.delete("entity_list_updates")
         Entity.objects.all().delete()
         cache.set(
