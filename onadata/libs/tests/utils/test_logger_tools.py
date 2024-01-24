@@ -734,7 +734,7 @@ class CreateEntityTestCase(TestBase):
 
         The existing count represents the number of new Entities
         created since the cron job that commits the cache data to
-        the DB was last ran
+        the DB was last run
         """
         entity_list_pk = self.registration_form.entity_list.pk
         old_update_time = datetime(2024, 1, 24, 11, 31, 0, tzinfo=pytz.utc)

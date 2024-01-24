@@ -97,7 +97,7 @@ class EntityList(AbstractBase):
 
         The data is available in the cache if new Entities have been
         created since the cron job that persists the data in the
-        database was last ran
+        database was last run
 
         Returns:
             datetime | None: The datetime or None if unvailable
