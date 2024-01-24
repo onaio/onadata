@@ -1036,7 +1036,21 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         json=instance_json,
         instance=instance,
     )
-    # Update the cache
+
+    # Update the cached data that tracks how many new Entities have
+    # been created since the last job that persists the data to
+    # the DB was last run.
+
+    # "Why not increment the counter stored in the DB at this point
+    # instead of storing it in cache?" you may ask.
+    # Well, to improve performance, we apply the principle of a write-through
+    # cache. The number of submissions can be many and there is no point
+    # of hitting the DB just to increment a simple counter for every new
+    # Entity created. Therefore, we instead increment the value in cache,
+    # then periodically run a cron job to add the value in cache to the
+    # persisted value in the DB (write-through cache). When the job completes,
+    # we delete or reset the cache counter
+
     last_update_time = entity.updated_at.isoformat()
     pk = registration_form.entity_list.pk
     cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
@@ -1053,7 +1067,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     cached_updates[pk][ENTITY_LIST_UPDATES_LAST_UPDATE_TIME] = last_update_time
     # We set None as the timeout (no expiry). A cron job responsible for
     # reading the cache and persisting the data to the database should delete
-    # the cached data upon completion
+    # the cached data upon completion.
     cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
 
     return entity
