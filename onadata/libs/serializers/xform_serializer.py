@@ -681,9 +681,11 @@ class XFormManifestSerializer(serializers.Serializer):
 
             elif dataset_type == "entity_list":
                 entity_list = EntityList.objects.filter(pk=pk).first()
-                hsh = self._generate_hash(
-                    entity_list.last_entity_creation_time.isoformat().encode("utf-8")
-                )
+
+                if entity_list.last_entity_update_time is not None:
+                    hsh = self._generate_hash(
+                        entity_list.last_entity_update_time.isoformat().encode("utf-8")
+                    )
             else:
                 data_view = (
                     DataView.objects.filter(pk=pk)

@@ -57,6 +57,11 @@ XFORM_SUBMISSION_STAT = "xfm-get_form_submissions_grouped_by_field-"
 XFORM_CHARTS = "xfm-get_form_charts-"
 XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 
+# Cache names related to Entities
+ENTITY_LIST_UPDATES = "entity_list_updates"
+ENTITY_LIST_UPDATES_INC = "inc"
+ENTITY_LIST_UPDATES_LAST_UPDATE_TIME = "last_update_time"
+
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
 
