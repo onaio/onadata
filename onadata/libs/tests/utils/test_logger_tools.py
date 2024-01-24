@@ -2,24 +2,29 @@
 """
 Test logger_tools utility functions.
 """
+import json
 import os
+import pytz
 import re
 from io import BytesIO
+from datetime import datetime
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, Entity, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
+    create_entity,
     create_instance,
     generate_content_disposition_header,
     get_first_record,
@@ -648,3 +653,150 @@ class TestLoggerTools(PyxformTestCase, TestBase):
                 req,
             )
             self.assertContains(ret[0].content.decode(), "Improperly formatted XML.")
+
+
+class CreateEntityTestCase(TestBase):
+    """Tests for method `create_entity`"""
+
+    def setUp(self):
+        super().setUp()
+        cache.delete("entity_list_updates")
+        # Mute signal that creates Entity when Instance is saved
+        self._mute_post_save_signals([(Instance, "create_entity")])
+        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
+        form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        self.xform.versions.create(
+            xls=self.xform.xls,
+            version=self.xform.version,
+            xml=self.xform.xml,
+            json=json.dumps(self.xform.json),
+        )
+        self.xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="202311070702">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        self.instance = Instance.objects.create(
+            xml=self.xml,
+            user=self.user,
+            xform=self.xform,
+            version=self.xform.version,
+        )
+        self.registration_form = RegistrationForm.objects.first()
+
+    def test_entity_created(self):
+        """Entity is created successfully"""
+        create_entity(self.instance, self.registration_form)
+        entity = Entity.objects.first()
+        self.assertEqual(entity.registration_form, self.registration_form)
+        self.assertEqual(entity.instance, self.instance)
+        self.assertEqual(entity.xml, self.xml)
+        expected_json = {
+            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+            "geometry": "-1.286905 36.772845 0 0",
+            "species": "purpleheart",
+            "circumference_cm": 300,
+            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            "meta/instanceName": "300cm purpleheart",
+            "meta/entity/label": "300cm purpleheart",
+            "_xform_id_string": "trees_registration",
+            "_version": "2022110901",
+        }
+        self.assertCountEqual(entity.json, expected_json)
+        self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
+        entity_list_pk = self.registration_form.entity_list.pk
+        self.assertEqual(
+            cache.get("entity_list_updates"),
+            {
+                entity_list_pk: {
+                    "inc": 1,
+                    "last_update_time": entity.updated_at.isoformat(),
+                }
+            },
+        )
+
+    def test_cache_data_update(self):
+        """An existing value stored in cache is updated
+
+        The existing count represents the number of new Entities
+        created since the cron job that commits the cache data to
+        the DB was last ran
+        """
+        entity_list_pk = self.registration_form.entity_list.pk
+        old_update_time = datetime(2024, 1, 24, 11, 31, 0, tzinfo=pytz.utc)
+        # Simulate existing cache data
+        cache.set(
+            "entity_list_updates",
+            {
+                entity_list_pk: {
+                    "inc": 7,
+                    "last_update_time": old_update_time.isoformat(),
+                }
+            },
+        )
+        # Cache should be updated
+        create_entity(self.instance, self.registration_form)
+        entity = Entity.objects.first()
+        self.assertEqual(
+            cache.get("entity_list_updates"),
+            {
+                entity_list_pk: {
+                    "inc": 8,
+                    "last_update_time": entity.updated_at.isoformat(),
+                }
+            },
+        )
+        # dict stored in cache has `inc` key is missing
+        cache.delete("entity_list_updates")
+        Entity.objects.all().delete()
+        cache.set(
+            "entity_list_updates",
+            {
+                entity_list_pk: {
+                    "last_update_time": old_update_time.isoformat(),
+                }
+            },
+        )
+        create_entity(self.instance, self.registration_form)
+        entity = Entity.objects.first()
+        self.assertEqual(
+            cache.get("entity_list_updates"),
+            {
+                entity_list_pk: {
+                    "inc": 1,
+                    "last_update_time": entity.updated_at.isoformat(),
+                }
+            },
+        )
+        # dict stored in cache has `last_update_time` key is missing
+        cache.delete("entity_list_updates")
+        Entity.objects.all().delete()
+        cache.set(
+            "entity_list_updates",
+            {entity_list_pk: {"inc": 23}},
+        )
+        create_entity(self.instance, self.registration_form)
+        entity = Entity.objects.first()
+        self.assertEqual(
+            cache.get("entity_list_updates"),
+            {
+                entity_list_pk: {
+                    "inc": 24,
+                    "last_update_time": entity.updated_at.isoformat(),
+                }
+            },
+        )

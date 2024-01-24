@@ -1034,6 +1034,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         registration_form=registration_form,
         xml=instance.xml,
         json=instance_json,
+        instance=instance,
     )
     # Update the cache
     last_update_time = entity.updated_at.isoformat()
@@ -1041,16 +1042,16 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
 
     if (
-        cached_updates.get(pk) is not None
-        and cached_updates[pk].get(ENTITY_LIST_UPDATES_INC) is not None
+        cached_updates.get(pk) is None
+        or cached_updates[pk].get(ENTITY_LIST_UPDATES_INC) is None
     ):
-        cached_updates[pk][ENTITY_LIST_UPDATES_INC] += 1
-
-    else:
         cached_updates[pk] = {ENTITY_LIST_UPDATES_INC: 1}
 
+    else:
+        cached_updates[pk][ENTITY_LIST_UPDATES_INC] += 1
+
     cached_updates[pk][ENTITY_LIST_UPDATES_LAST_UPDATE_TIME] = last_update_time
-    # We set None as the timeout (no expiry). The cron job responsible for
+    # We set None as the timeout (no expiry). A cron job responsible for
     # reading the cache and persisting the data to the database should delete
     # the cache upon completion
     cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
