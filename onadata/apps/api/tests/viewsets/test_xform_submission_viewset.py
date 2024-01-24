@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import UnreadablePostError
 from django.test import TransactionTestCase
@@ -1369,6 +1370,11 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             }
             self.assertEqual(entity.json, expected_json)
             self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
+            pk = entity.registration_form.entity_list.pk
+            self.assertEqual(
+                cache.get("entity_list_updates"),
+                {pk: {"inc": 1, "last_update_time": entity.updated_at.isoformat()}},
+            )
 
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""

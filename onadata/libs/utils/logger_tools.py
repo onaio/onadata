@@ -24,6 +24,7 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError,
 )
+from django.core.cache import cache
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
 from django.db.models import Q
@@ -86,6 +87,11 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
+from onadata.libs.utils.cache_tools import (
+    ENTITY_LIST_UPDATES,
+    ENTITY_LIST_UPDATES_INC,
+    ENTITY_LIST_UPDATES_LAST_UPDATE_TIME,
+)
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
@@ -1024,9 +1030,29 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
                         del data[field_name]
 
     parse_instance_json(instance_json)
-
-    return Entity.objects.create(
+    entity = Entity.objects.create(
         registration_form=registration_form,
         xml=instance.xml,
         json=instance_json,
     )
+    # Update the cache
+    last_update_time = entity.updated_at.isoformat()
+    pk = registration_form.entity_list.pk
+    cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
+
+    if (
+        cached_updates.get(pk) is not None
+        and cached_updates[pk].get(ENTITY_LIST_UPDATES_INC) is not None
+    ):
+        cached_updates[pk][ENTITY_LIST_UPDATES_INC] += 1
+
+    else:
+        cached_updates[pk] = {ENTITY_LIST_UPDATES_INC: 1}
+
+    cached_updates[pk][ENTITY_LIST_UPDATES_LAST_UPDATE_TIME] = last_update_time
+    # We set None as the timeout (no expiry). The cron job responsible for
+    # reading the cache and persisting the data to the database should delete
+    # the cache upon completion
+    cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
+
+    return entity
