@@ -55,6 +55,10 @@ class EntityList(AbstractBase):
 
         Multiple forms can define matching or different properties for the same
         dataset
+
+        Returns:
+            list: properties defined by all forms creating Entities for
+            the dataset
         """
         registration_forms_qs = self.registration_forms.filter(is_active=True)
         dataset_properties = set()
@@ -73,6 +77,9 @@ class EntityList(AbstractBase):
         serious performance problem if the record set is large.
 
         Returns None if no Entities are available
+
+        Returns:
+            datetime | None: The datetime or None if unvailable
         """
         # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")  # noqa
@@ -93,6 +100,9 @@ class EntityList(AbstractBase):
         Returns None if not available in cache. The data is available in the
         cache if new Entities have been created since the last cron job
         that persists the data in the database ran
+
+        Returns:
+            datetime | None: The datetime or None if unvailable
         """
         cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
 
@@ -113,7 +123,8 @@ class EntityList(AbstractBase):
     def persisted_last_entity_update_time(self) -> datetime | None:
         """The date and time of the latest Entity to be updated persisted in DB
 
-        Returns None if not available in the database
+        Returns:
+            datetime | None: The datetime or None if unvailable
         """
         time_str: str | None = self.metadata.get(EntityList.METADATA_ENTITY_UPDATE_TIME)
 
@@ -129,6 +140,9 @@ class EntityList(AbstractBase):
         First checks the cache, if value not found; checks the
         persisted value in database, if value not found;
         queries the database to get the absolute value
+
+        Returns:
+            datetime | None: The datetime or None if unvailable
         """
         return (
             self.cached_last_entity_update_time
