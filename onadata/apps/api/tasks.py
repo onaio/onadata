@@ -186,6 +186,5 @@ def regenerate_form_instance_json(xform_id: int):
 
 
 @app.task
-# pylint: disable=invalid-name
-def persist_cached_entity_updates_async():
+def persist_cached_entity_updates_async():  # pylint: disable=invalid-name
     persist_cached_entity_updates()
