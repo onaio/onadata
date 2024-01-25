@@ -262,6 +262,5 @@ def share_project_async(project_id, username, role, remove=False):
 
 
 @app.task
-# pylint: disable=invalid-name
-def persist_cached_entity_updates_async():
+def persist_cached_entity_updates_async():  # pylint: disable=invalid-name
     persist_cached_entity_updates()
