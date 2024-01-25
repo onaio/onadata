@@ -14,11 +14,12 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
+from django.utils import timezone
 
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance, Entity, RegistrationForm
+from onadata.apps.logger.models import Instance, Entity, EntityList, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
@@ -28,6 +29,7 @@ from onadata.libs.utils.logger_tools import (
     create_instance,
     generate_content_disposition_header,
     get_first_record,
+    persist_cached_entity_updates,
     safe_create_instance,
 )
 
@@ -737,8 +739,8 @@ class CreateEntityTestCase(TestBase):
         the DB was last run
         """
         entity_list_pk = self.registration_form.entity_list.pk
-        old_update_time = datetime(2024, 1, 24, 11, 31, 0, tzinfo=pytz.utc)
         # Simulate existing cache data
+        old_update_time = datetime(2024, 1, 24, 11, 31, 0, tzinfo=pytz.utc)
         cache.set(
             "entity_list_updates",
             {
@@ -798,5 +800,135 @@ class CreateEntityTestCase(TestBase):
                     "inc": 24,
                     "last_update_time": entity.updated_at.isoformat(),
                 }
+            },
+        )
+
+
+class PersistEntityUpdatesTestCase(TestBase):
+    """Tests for method `persist_cached_entity_updates`"""
+
+    def setUp(self):
+        super().setUp()
+
+        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
+        form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+
+    def test_persists_updates(self):
+        """Cached updates are stored in the DB"""
+        entity_list = EntityList.objects.first()
+        # Simulate existing cache data
+        now = timezone.now()
+        cache.set(
+            "entity_list_updates",
+            {
+                entity_list.pk: {
+                    "inc": 7,
+                    "last_update_time": now.isoformat(),
+                }
+            },
+        )
+        # Before persisting
+        self.assertEqual(entity_list.metadata, {})
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(
+            entity_list.metadata,
+            {"num_entities": 7, "last_entity_update_time": now.isoformat()},
+        )
+        self.assertEqual(cache.get("entity_list_updates"), {})
+
+    def test_num_entities_incremented(self):
+        """Persisted entities count is incremented"""
+        entity_list = EntityList.objects.first()
+        # Simulate existing cache data
+        now = timezone.now()
+        cache.set(
+            "entity_list_updates",
+            {
+                entity_list.pk: {
+                    "inc": 7,
+                    "last_update_time": now.isoformat(),
+                }
+            },
+        )
+        # Simulate existing persisted data
+        old_update_time = datetime(2024, 1, 24, 11, 31, 0, tzinfo=pytz.utc)
+        old_metadata = {
+            "num_entities": 3,
+            "last_entity_update_time": old_update_time.isoformat(),
+        }
+        entity_list.metadata = old_metadata
+        entity_list.save()
+        # Before persisting
+        self.assertEqual(entity_list.metadata, old_metadata)
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(
+            entity_list.metadata,
+            {"num_entities": 10, "last_entity_update_time": now.isoformat()},
+        )
+
+    def test_no_cached_data(self):
+        """No cached data available"""
+        # Simulate existing cache data
+        entity_list = EntityList.objects.first()
+        # Before persisting
+        self.assertEqual(entity_list.metadata, {})
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_list.metadata, {})
+
+    def test_cached_data_invalid(self):
+        """Invalid cached data is handled"""
+        entity_list = EntityList.objects.first()
+        # Simulate invalid cache data
+        cache.set("entity_list_updates", "foo")
+        # Before persisting
+        self.assertEqual(entity_list.metadata, {})
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_list.metadata, {})
+        # Simulate invalid child data
+        cache.set("entity_list_updates", {entity_list.pk: "foo"})
+        # Before persisting
+        self.assertEqual(entity_list.metadata, {})
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_list.metadata, {})
+
+    def test_existing_metadata(self):
+        """Existing metadata is preserved"""
+        entity_list = EntityList.objects.first()
+        # Simulate existing metadata
+        entity_list.metadata = {"num_registration_forms": 3}
+        entity_list.save()
+        # Simulate existing cache data
+        now = timezone.now()
+        cache.set(
+            "entity_list_updates",
+            {
+                entity_list.pk: {
+                    "inc": 7,
+                    "last_update_time": now.isoformat(),
+                }
+            },
+        )
+        # Before persisting
+        self.assertEqual(entity_list.metadata, {"num_registration_forms": 3})
+        persist_cached_entity_updates()
+        # After persisting
+        entity_list.refresh_from_db()
+        self.assertEqual(
+            entity_list.metadata,
+            {
+                "num_registration_forms": 3,
+                "num_entities": 7,
+                "last_entity_update_time": now.isoformat(),
             },
         )

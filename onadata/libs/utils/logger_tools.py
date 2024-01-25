@@ -51,6 +51,7 @@ from rest_framework.response import Response
 from onadata.apps.logger.models import (
     Attachment,
     Entity,
+    EntityList,
     Instance,
     RegistrationForm,
     XForm,
@@ -92,6 +93,7 @@ from onadata.libs.utils.cache_tools import (
     ENTITY_LIST_UPDATES_INC,
     ENTITY_LIST_UPDATES_LAST_UPDATE_TIME,
 )
+from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
@@ -986,8 +988,8 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         registration_form (RegistrationForm): RegistrationForm creating the
         Entity
 
-        Returns:
-            Entity: A newly created Entity
+    Returns:
+        Entity: A newly created Entity
     """
     instance_json: dict[str, Any] = instance.get_dict()
     # Getting a mapping of save_to field to the field name
@@ -1071,3 +1073,42 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
 
     return entity
+
+
+def persist_cached_entity_updates():
+    """Persists the cached entity list updates to the database"""
+    cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
+
+    if not isinstance(cached_updates, dict):
+        safe_delete(ENTITY_LIST_UPDATES)
+        return
+
+    for entity_list_pk, data in list(cached_updates.items()):
+        if not isinstance(data, dict):
+            continue
+
+        try:
+            entity_list = EntityList.objects.get(pk=entity_list_pk)
+
+        except EntityList.DoesNotExist:
+            continue
+
+        if data.get(ENTITY_LIST_UPDATES_INC) is not None:
+            new_num_entities = (
+                entity_list.metadata.get(EntityList.METADATA_NUM_ENTITIES, 0)
+                + data[ENTITY_LIST_UPDATES_INC]
+            )
+            entity_list.metadata[EntityList.METADATA_NUM_ENTITIES] = new_num_entities
+
+        if data.get(ENTITY_LIST_UPDATES_LAST_UPDATE_TIME) is not None:
+            entity_list.metadata[EntityList.METADATA_ENTITY_UPDATE_TIME] = data[
+                ENTITY_LIST_UPDATES_LAST_UPDATE_TIME
+            ]
+
+        entity_list.save()
+        # Delete cached data for EntityList
+        del cached_updates[entity_list_pk]
+
+    # We do not delete the cache key since it may have been updated while
+    # we were persisting the previously cached data
+    cache.set(ENTITY_LIST_UPDATES, cached_updates)

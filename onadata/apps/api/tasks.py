@@ -20,6 +20,7 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
+from onadata.celeryapp import app
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
@@ -28,7 +29,7 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.celeryapp import app
+from onadata.libs.utils.logger_tools import persist_cached_entity_updates
 
 logger = logging.getLogger(__name__)
 
@@ -258,3 +259,8 @@ def share_project_async(project_id, username, role, remove=False):
     else:
         share = ShareProject(project, username, role, remove)
         share.save()
+
+
+@app.task
+def persist_cached_entity_updates_async():
+    persist_cached_entity_updates()
