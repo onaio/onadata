@@ -26,6 +26,7 @@ class EntityList(AbstractBase):
 
     # Keys for the metadata JSON field
     METADATA_ENTITY_UPDATE_TIME = "last_entity_update_time"
+    METADATA_NUM_ENTITIES = "num_entities"
 
     name = models.CharField(
         max_length=255,
