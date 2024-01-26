@@ -42,7 +42,9 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_regenerates_instances_json(self):
         """Regenerates instances json"""
 
-        def mock_get_full_dict(self):  # pylint: disable=unused-argument
+        def mock_get_full_dict(
+            self, include_related=True
+        ):  # pylint: disable=unused-argument
             return {}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
@@ -64,7 +66,9 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_json_overriden(self):
         """Existing json is overriden"""
 
-        def mock_get_full_dict(self):  # pylint: disable=unused-argument
+        def mock_get_full_dict(
+            self, include_related=True
+        ):  # pylint: disable=unused-argument
             return {"foo": "bar"}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
@@ -87,7 +91,9 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
     def test_already_generated(self):
         """Regeneration fails for a form whose regeneration has already been done"""
 
-        def mock_get_full_dict(self):  # pylint: disable=unused-argument
+        def mock_get_full_dict(
+            self, include_related=True
+        ):  # pylint: disable=unused-argument
             return {}
 
         with patch.object(Instance, "get_full_dict", mock_get_full_dict):
