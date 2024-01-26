@@ -389,7 +389,8 @@ class TestInstance(TestBase):
         instance = Instance.objects.first()
         mock_json_async.assert_called()
         # _notes, _tags, _attachments should be missing since getting related
-        # objects is performance intensive and should be handled async
+        # objects is performance intensive and should be handled async. Here
+        # we mock the async task to simulate a failed async job
         self.assertEqual(
             instance.json,
             {
