@@ -79,9 +79,6 @@ from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
-ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
-    settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
-)
 # pylint: disable=invalid-name
 User = get_user_model()
 storage = get_storage_class()()
@@ -834,9 +831,12 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
 
-    if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
+    if (
+        hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
+        and settings.ASYNC_POST_SUBMISSION_PROCESSING_ENABLED
+    ):
         # We first save metadata data without related objects
-        # (non-performance intensive metadata) first since we
+        # (metadata from non-performance intensive tasks) first since we
         # do not know when the async processing will complete
         save_full_json(instance, False)
 
