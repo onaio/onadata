@@ -79,9 +79,6 @@ from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
-ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = getattr(
-    settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED", False
-)
 # pylint: disable=invalid-name
 User = get_user_model()
 storage = get_storage_class()()
@@ -355,12 +352,17 @@ def save_full_json_async(self, instance_id):
         save_full_json(instance)
 
 
-def save_full_json(instance: "Instance"):
-    """Save full json dict"""
+def save_full_json(instance: "Instance", include_related=True):
+    """Save full json dict
+
+    Args:
+        include_related (bool): Whether to include related objects
+    """
     # Queryset.update ensures the model's save is not called and
     # the pre_save and post_save signals aren't sent
-    json = instance.get_full_dict()
-    Instance.objects.filter(pk=instance.pk).update(json=json, version=json.get(VERSION))
+    Instance.objects.filter(pk=instance.pk).update(
+        json=instance.get_full_dict(include_related)
+    )
 
 
 @app.task(bind=True, max_retries=3)
@@ -468,62 +470,77 @@ class InstanceBaseClass:
             else:
                 self.geom = None
 
-    def get_full_dict(self):
-        """Returns the submission XML as a python dictionary object."""
+    def get_full_dict(self, include_related=True):
+        """Returns the submission XML as a python dictionary object
+
+        Include metadata
+
+        Args:
+            include_related (bool): Whether to include related objects
+            or not
+        """
         # Get latest dict
         doc = self.get_dict()
-        # pylint: disable=no-member
+        # Update dict
+        geopoint = [self.point.y, self.point.x] if self.point else [None, None]
+        doc.update(
+            {
+                UUID: self.uuid,
+                BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
+                STATUS: self.status,
+                VERSION: self.version,
+                DURATION: self.get_duration(),
+                XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                XFORM_ID: self.xform.pk,
+                GEOLOCATION: geopoint,
+                SUBMITTED_BY: self.user.username if self.user else None,
+                DATE_MODIFIED: self.date_modified.isoformat(),
+                SUBMISSION_TIME: self.date_created.isoformat(),
+                TOTAL_MEDIA: self.total_media,
+                MEDIA_COUNT: self.media_count,
+                MEDIA_ALL_RECEIVED: self.media_all_received,
+            }
+        )
+
+        if isinstance(self.deleted_at, datetime):
+            doc[DELETEDAT] = self.deleted_at.isoformat()
+
+        edited = False
+
+        if hasattr(self, "last_edited"):
+            edited = self.last_edited is not None
+
+        doc[EDITED] = edited
+
+        if edited:
+            doc.update({LAST_EDITED: convert_to_serializable_date(self.last_edited)})
 
         if self.id:
-            geopoint = [self.point.y, self.point.x] if self.point else [None, None]
-            doc.update(
-                {
-                    UUID: self.uuid,
-                    ID: self.id,
-                    BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-                    ATTACHMENTS: _get_attachments_from_instance(self),
-                    STATUS: self.status,
-                    TAGS: list(self.tags.names()),
-                    NOTES: self.get_notes(),
-                    VERSION: doc.get(VERSION, self.xform.version),
-                    DURATION: self.get_duration(),
-                    XFORM_ID_STRING: self._parser.get_xform_id_string(),
-                    XFORM_ID: self.xform.pk,
-                    GEOLOCATION: geopoint,
-                    SUBMITTED_BY: self.user.username if self.user else None,
-                }
-            )
+            doc[ID] = self.id
 
-            for osm in self.osm_data.all():
-                doc.update(osm.get_tags_with_prefix())
-
-            if isinstance(self.deleted_at, datetime):
-                doc[DELETEDAT] = self.deleted_at.isoformat()
-
-            # pylint: disable=no-member
-            if self.has_a_review:
-                review = self.get_latest_review()
-                if review:
-                    doc[REVIEW_STATUS] = review.status
-                    doc[REVIEW_DATE] = review.date_created.isoformat()
-                    if review.get_note_text():
-                        doc[REVIEW_COMMENT] = review.get_note_text()
-
-            doc[DATE_MODIFIED] = self.date_modified.isoformat()
-            doc[SUBMISSION_TIME] = self.date_created.isoformat()
-            doc[TOTAL_MEDIA] = self.total_media
-            doc[MEDIA_COUNT] = self.media_count
-            doc[MEDIA_ALL_RECEIVED] = self.media_all_received
-
-            edited = False
-            if hasattr(self, "last_edited"):
-                edited = self.last_edited is not None
-
-            doc[EDITED] = edited
-            if edited:
+            if include_related:
                 doc.update(
-                    {LAST_EDITED: convert_to_serializable_date(self.last_edited)}
+                    {
+                        ATTACHMENTS: _get_attachments_from_instance(self),
+                        TAGS: list(self.tags.names()),
+                        NOTES: self.get_notes(),
+                    }
                 )
+
+                for osm in self.osm_data.all():
+                    doc.update(osm.get_tags_with_prefix())
+
+                # pylint: disable=no-member
+                if self.has_a_review:
+                    review = self.get_latest_review()
+
+                    if review:
+                        doc[REVIEW_STATUS] = review.status
+                        doc[REVIEW_DATE] = review.date_created.isoformat()
+
+                        if review.get_note_text():
+                            doc[REVIEW_COMMENT] = review.get_note_text()
+
         return doc
 
     def _set_parser(self):
@@ -766,7 +783,7 @@ class Instance(models.Model, InstanceBaseClass):
     def save(self, *args, **kwargs):
         force = kwargs.get("force")
         self.date_modified = now()
-        self.json = self.get_dict()  # XML converted to json
+        self.version = self.get_dict().get(VERSION, self.xform.version)
 
         if force:
             del kwargs["force"]
@@ -814,7 +831,15 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
 
-    if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
+    if (
+        hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
+        and settings.ASYNC_POST_SUBMISSION_PROCESSING_ENABLED
+    ):
+        # We first save metadata data without related objects
+        # (metadata from non-performance intensive tasks) first since we
+        # do not know when the async processing will complete
+        save_full_json(instance, False)
+
         transaction.on_commit(
             lambda: update_xform_submission_count_async.apply_async(
                 args=[instance.pk, created]

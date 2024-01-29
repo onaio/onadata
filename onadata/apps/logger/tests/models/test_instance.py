@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.http.request import HttpRequest
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
+from django.test import override_settings
 from mock import patch, Mock
 
 from onadata.apps.logger.models import XForm, Instance, SubmissionReview
@@ -34,19 +35,35 @@ class TestInstance(TestBase):
 
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
-        instances = Instance.objects.all()
-        xform_id_string = XForm.objects.all()[0].id_string
+        instance = Instance.objects.first()
 
-        for instance in instances:
-            self.assertNotEqual(instance.json, {})
-            self.assertEqual(instance.json.get("_id"), instance.pk)
-            self.assertEqual(
-                instance.json.get("_date_modified"), instance.date_modified.isoformat()
-            )
-            self.assertEqual(
-                instance.json.get("_submission_time"), instance.date_created.isoformat()
-            )
-            self.assertEqual(instance.json.get("_xform_id_string"), xform_id_string)
+        self.assertEqual(
+            instance.json,
+            {
+                "_id": instance.pk,
+                "_tags": [],
+                "_uuid": "5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_notes": [],
+                "image1": "1335783522563.jpg",
+                "_edited": False,
+                "_status": "submitted_via_web",
+                "_version": "2014111",
+                "_duration": "",
+                "_xform_id": instance.xform.pk,
+                "_attachments": [],
+                "_geolocation": [None, None],
+                "_media_count": 0,
+                "_total_media": 1,
+                "_submitted_by": "bob",
+                "_date_modified": instance.date_modified.isoformat(),
+                "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_submission_time": instance.date_created.isoformat(),
+                "_xform_id_string": "transportation_2011_07_25",
+                "_bamboo_dataset_id": "",
+                "_media_all_received": False,
+                "transport/available_transportation_types_to_referral_facility": "none",
+            },
+        )
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
@@ -363,3 +380,38 @@ class TestInstance(TestBase):
         string_value = "Hello World"
         result = numeric_checker(string_value)
         self.assertEqual(result, "Hello World")
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    @patch("onadata.apps.logger.models.instance.save_full_json_async.apply_async")
+    def test_light_tasks_synchronous(self, mock_json_async):
+        """Metadata from light tasks is always processed synchronously"""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        mock_json_async.assert_called()
+        # _notes, _tags, _attachments should be missing since getting related
+        # objects is performance intensive and should be handled async. Here
+        # we mock the async task to simulate a failed async job
+        self.assertEqual(
+            instance.json,
+            {
+                "_id": instance.pk,
+                "_uuid": "5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "image1": "1335783522563.jpg",
+                "_edited": False,
+                "_status": "submitted_via_web",
+                "_version": "2014111",
+                "_duration": "",
+                "_xform_id": instance.xform.pk,
+                "_geolocation": [None, None],
+                "_media_count": 0,
+                "_total_media": 1,
+                "_submitted_by": "bob",
+                "_date_modified": instance.date_modified.isoformat(),
+                "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_submission_time": instance.date_created.isoformat(),
+                "_xform_id_string": "transportation_2011_07_25",
+                "_bamboo_dataset_id": "",
+                "_media_all_received": False,
+                "transport/available_transportation_types_to_referral_facility": "none",
+            },
+        )

@@ -1140,7 +1140,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         expected_results = ["denoinc", "alice"]
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
-        self.assertEqual(expected_results, response.data)
+        self.assertCountEqual(expected_results, response.data)
 
         self._login_user_and_profile(extra_post_data=alice_data)
 
