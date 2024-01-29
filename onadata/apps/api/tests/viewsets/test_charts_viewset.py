@@ -524,3 +524,35 @@ class TestChartsViewSet(TestBase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data, initial_data)
+
+    def test_charts_group_by_select_one(self):
+        """
+        Test that the chart endpoint works correctly
+        when grouping with select one field
+        """
+        data = {"field_name": "gender", "group_by": "pizza_fan"}
+        request = self.factory.get("/charts", data)
+        force_authenticate(request, user=self.user)
+        initial_data = {
+            "data": [
+                {"gender": ["Male"], "items": [{"pizza_fan": ["No"], "count": 1}]},
+                {
+                    "gender": ["Female"],
+                    "items": [
+                        {"pizza_fan": ["No"], "count": 1},
+                        {"pizza_fan": ["Yes"], "count": 1},
+                    ],
+                },
+            ],
+            "data_type": "categorized",
+            "field_label": "Gender",
+            "field_xpath": "gender",
+            "field_name": "gender",
+            "field_type": "select one",
+            "grouped_by": "pizza_fan",
+            "xform": self.xform.pk,
+        }
+
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, initial_data)
