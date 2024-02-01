@@ -8,9 +8,10 @@ from sys import stdout
 
 from django.conf import settings
 from django.db import OperationalError, connection
-from django.http import HttpResponseNotAllowed
+from django.http import HttpResponseNotAllowed, HttpResponseRedirect
 from django.middleware.locale import LocaleMiddleware
 from django.template import loader
+from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
@@ -120,3 +121,19 @@ class OperationalErrorMiddleware(BaseMiddleware):
                 settings.ALREADY_RAISED = False
 
         return None
+
+class SSLMiddleware:
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Check if the request is not secure and the SECURE_SSL_REDIRECT setting is True
+        if not request.is_secure():
+            # Redirect to the same URL with https scheme
+            secure_url = request.build_absolute_uri().replace('http://', 'https://')
+            return HttpResponseRedirect(secure_url)
+
+        # Continue with the regular response handling
+        response = self.get_response(request)
+        return response
