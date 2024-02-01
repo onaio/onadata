@@ -80,7 +80,7 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_vi
         "count(*) as count "
         "FROM %(table)s WHERE "
         + restricted_string
-        + "AND deleted_at IS NULL "
+        + " AND deleted_at IS NULL "
         + additional_filters
         + " GROUP BY %(json)s, %(group_by)s"
         + " ORDER BY %(json)s, %(group_by)s"
