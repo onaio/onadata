@@ -72,7 +72,7 @@ class EntityList(AbstractBase):
         return list(dataset_properties)
 
     @property
-    def current_last_entity_update_time(self) -> datetime | None:
+    def queried_last_entity_update_time(self) -> datetime | None:
         """The absolute date and time of the latest Entity to be updated
 
         This value is queried from the database. It could be a
@@ -155,7 +155,7 @@ class EntityList(AbstractBase):
         return (
             self.cached_last_entity_update_time
             or self.persisted_last_entity_update_time
-            or self.current_last_entity_update_time
+            or self.queried_last_entity_update_time
         )
 
     @property
