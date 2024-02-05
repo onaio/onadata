@@ -24,14 +24,19 @@ class EntityListSerializer(serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source="project.shared")
     num_registration_forms = serializers.SerializerMethodField()
     num_follow_up_forms = serializers.SerializerMethodField()
+    num_entities = serializers.SerializerMethodField()
 
-    def get_num_registration_forms(self, obj) -> int:
+    def get_num_registration_forms(self, obj: EntityList) -> int:
         """Returns number of RegistrationForms for EntityList object"""
         return obj.registration_forms.count()
 
-    def get_num_follow_up_forms(self, obj) -> int:
+    def get_num_follow_up_forms(self, obj: EntityList) -> int:
         """Returns number of FollowUpForms consuming Entities from dataset"""
         return obj.follow_up_forms.count()
+
+    def get_num_entities(self, obj: EntityList) -> int:
+        """Returns number of Entities"""
+        return obj.get_num_entities()
 
     class Meta:
         model = EntityList
@@ -43,6 +48,7 @@ class EntityListSerializer(serializers.HyperlinkedModelSerializer):
             "public",
             "num_registration_forms",
             "num_follow_up_forms",
+            "num_entities",
         )
 
 
@@ -109,6 +115,7 @@ class EntityListDetailSerializer(EntityListSerializer):
             "updated_at",
             "num_registration_forms",
             "num_follow_up_forms",
+            "num_entities",
             "registration_forms",
             "follow_up_forms",
         )

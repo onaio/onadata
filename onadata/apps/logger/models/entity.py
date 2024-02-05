@@ -1,12 +1,16 @@
 """
 Entity model
 """
+
+from django.contrib.auth import get_user_model
 from django.db import models
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.xform_instance_parser import get_entity_uuid_from_xml
 from onadata.libs.models import AbstractBase
+
+User = get_user_model()
 
 
 class Entity(AbstractBase):
@@ -28,6 +32,10 @@ class Entity(AbstractBase):
     json = models.JSONField(default=dict)
     version = models.CharField(max_length=255, null=True)
     uuid = models.CharField(max_length=249, default="", db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User, related_name="deleted_entities", null=True, on_delete=models.SET_NULL
+    )
 
     def __str__(self) -> str:
         return f"{self.pk}|{self.registration_form}"
