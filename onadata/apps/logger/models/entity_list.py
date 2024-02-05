@@ -158,26 +158,12 @@ class EntityList(AbstractBase):
             or self.current_last_entity_update_time
         )
 
-    def get_num_entities(self, force_update=False) -> int:
+    @property
+    def num_entities(self) -> int:
         """Returns the total number of Entities
-
-        Args:
-            force_update (bool): If true, a query will be
-            made and the result used to update the data
-            in metadata
 
         Returns:
             int: The number of Entities an EntityList dataset
             has
         """
-        if not force_update:
-            return self.metadata.get(self.METADATA_NUM_ENTITIES, 0)
-
-        # pylint: disable=invalid-name
-        Entity = apps.get_model("logger.entity")
-        count = Entity.objects.filter(
-            registration_form__entity_list=self, deleted_at__isnull=True
-        ).count()
-        self.metadata = {**self.metadata, self.METADATA_NUM_ENTITIES: count}
-        self.save(update_fields=["metadata", "updated_at"])
-        return count
+        return self.metadata.get(self.METADATA_NUM_ENTITIES, 0)
