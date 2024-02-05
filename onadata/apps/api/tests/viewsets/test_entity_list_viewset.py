@@ -63,7 +63,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
         # Force metadata entities count update
-        first.get_num_entities(True)
+        first.metadata = {**first.metadata, "num_entities": 1}
+        first.save()
         second = qs[1]
         third = qs[2]
         # Make request
@@ -206,7 +207,8 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         )
         self._make_submission(submission_path)
         # Force update of metadata count
-        self.entity_list.get_num_entities(True)
+        self.entity_list.metadata = {**self.entity_list.metadata, "num_entities": 1}
+        self.entity_list.save()
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
