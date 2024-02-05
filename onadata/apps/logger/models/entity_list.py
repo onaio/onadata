@@ -160,7 +160,11 @@ class EntityList(AbstractBase):
 
     @property
     def queried_num_entities(self) -> int:
-        """The total number of Entities queried from the database"""
+        """The total number of Entities queried from the database
+
+        Returns:
+            int: The Entity count
+        """
         # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")  # noqa
 
