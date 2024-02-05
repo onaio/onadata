@@ -73,7 +73,7 @@ class EntityList(AbstractBase):
 
     @property
     def queried_last_entity_update_time(self) -> datetime | None:
-        """The absolute date and time of the latest Entity to be updated
+        """The datetime of the latest Entity to be updated queried from DB
 
         This value is queried from the database. It could be a
         serious performance problem if the record set is large.
@@ -160,7 +160,7 @@ class EntityList(AbstractBase):
 
     @property
     def queried_num_entities(self) -> int:
-        """The total number of Entities as queried from the database"""
+        """The total number of Entities queried from the database"""
         # pylint: disable=invalid-name
         Entity = apps.get_model("logger.entity")  # noqa
 
