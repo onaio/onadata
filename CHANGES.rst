@@ -3,7 +3,7 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v3.17.4(2024-02-05)
+v3.18.0(2024-02-05)
 -------------------
 - Fix SQL syntax error when grouping by select one
   `PR #2549 <https://github.com/onaio/onadata/pull/2549>`
