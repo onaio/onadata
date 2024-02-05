@@ -94,25 +94,25 @@ class EntityListTestCase(TestBase):
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.assertEqual(entity_list.metadata, {})
 
-    def test_current_last_entity_update_time(self):
-        """Property `current_last_entity_update_time` works"""
+    def test_queried_last_entity_update_time(self):
+        """Property `queried_last_entity_update_time` works"""
         form_path = os.path.join(self.fixture_dir, "trees_registration.xlsx")
         self._publish_xls_file_and_set_xform(form_path)
         entity_list = EntityList.objects.first()
         # Returns None if no Entities exist
-        self.assertIsNone(entity_list.current_last_entity_update_time)
+        self.assertIsNone(entity_list.queried_last_entity_update_time)
         registration_form = entity_list.registration_forms.first()
         entity_1 = registration_form.entities.create(json={"entity_id": "1"})
         entity_2 = registration_form.entities.create(json={"entity_id": "2"})
         # Returns the datetime of the latest entity created
         entity_list.refresh_from_db()
         self.assertEqual(
-            entity_list.current_last_entity_update_time, entity_2.updated_at
+            entity_list.queried_last_entity_update_time, entity_2.updated_at
         )
         # Returns the datetime of the latest entity updated
         entity_1.save()
         self.assertEqual(
-            entity_list.current_last_entity_update_time, entity_1.updated_at
+            entity_list.queried_last_entity_update_time, entity_1.updated_at
         )
 
     def test_cached_last_entity_update_time(self):
