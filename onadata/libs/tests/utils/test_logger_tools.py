@@ -677,7 +677,7 @@ class CreateEntityTestCase(TestBase):
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
-            '"http://openrosa.org/xforms" id="trees_registration" version="202311070702">'
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
             "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
             "<location>-1.286905 36.772845 0 0</location>"
             "<species>purpleheart</species>"
