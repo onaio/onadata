@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import IntegrityError, DataError
 
@@ -204,3 +205,55 @@ class EntityListTestCase(TestBase):
             name="count_missing", project=self.project
         )
         self.assertEqual(entity_list.num_entities, 0)
+
+    def test_queried_num_entities(self):
+        """Method `queried_num_entites` works correctly"""
+        entity_json = {
+            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+            "geometry": "-1.286905 36.772845 0 0",
+            "species": "purpleheart",
+            "circumference_cm": 300,
+            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            "meta/instanceName": "300cm purpleheart",
+            "meta/entity/label": "300cm purpleheart",
+            "_xform_id_string": "trees_registration",
+            "_version": "2022110901",
+        }
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="202311070702">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        form_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "trees_registration.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(form_path)
+        reg_form = self.xform.registration_forms.first()
+        entity_list = EntityList.objects.get(name="trees")
+        # Before creating Entity
+        self.assertEqual(entity_list.queried_num_entities, 0)
+        reg_form.entities.create(
+            json=entity_json,
+            version=self.xform.version,
+            xml=xml,
+        )
+        self.assertEqual(entity_list.queried_num_entities, 1)

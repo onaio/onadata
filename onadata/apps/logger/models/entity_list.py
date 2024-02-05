@@ -159,6 +159,16 @@ class EntityList(AbstractBase):
         )
 
     @property
+    def queried_num_entities(self) -> int:
+        """The total number of Entities as queried from the database"""
+        # pylint: disable=invalid-name
+        Entity = apps.get_model("logger.entity")  # noqa
+
+        return Entity.objects.filter(
+            registration_form__entity_list=self, deleted_at__isnull=True
+        ).count()
+
+    @property
     def num_entities(self) -> int:
         """Returns the total number of Entities
 
