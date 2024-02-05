@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.17.4(2024-02-05)
+-------------------
+- Fix SQL syntax error when grouping by select one
+  `PR #2549 <https://github.com/onaio/onadata/pull/2549>`
+  [@KipSigei]
+- Process Instance metadata from light tasks synchronously
+  `PR #2547 <https://github.com/onaio/onadata/pull/2547>`
+  [@kelvin-muchiri]
+
 v3.17.3(2024-01-15)
 -------------------
 - Explicitly set AWS_S3_ENDPOINT_URL in boto3 configs
