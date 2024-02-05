@@ -146,8 +146,7 @@ class EntityList(AbstractBase):
         """The date and time of the latest Entity to be updated
 
         First checks the cache, if value not found; checks the
-        persisted value in database, if value not found;
-        queries the database to get the absolute value
+        persisted value in database
 
         Returns:
             datetime | None: The datetime or None if unvailable
@@ -155,7 +154,6 @@ class EntityList(AbstractBase):
         return (
             self.cached_last_entity_update_time
             or self.persisted_last_entity_update_time
-            or self.queried_last_entity_update_time
         )
 
     @property

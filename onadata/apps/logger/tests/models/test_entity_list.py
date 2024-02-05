@@ -182,16 +182,12 @@ class EntityListTestCase(TestBase):
         # Simulate existing Entities
         registration_form = entity_list.registration_forms.first()
         registration_form.entities.create(json={"entity_id": "1"})
-        entity_2 = registration_form.entities.create(json={"entity_id": "2"})
+        registration_form.entities.create(json={"entity_id": "2"})
         # Cached last update time is given priority first
         self.assertEqual(entity_list.last_entity_update_time, cached_time)
         # Persisted last update time is given priority second
         cache.delete("entity_list_updates")
         self.assertEqual(entity_list.last_entity_update_time, persisted_time)
-        # Queried last update time is given priority last
-        entity_list.metadata = {}
-        entity_list.save()
-        self.assertEqual(entity_list.last_entity_update_time, entity_2.updated_at)
 
     def test_get_num_entities(self):
         """Method `get_num_entities` works correctly"""
