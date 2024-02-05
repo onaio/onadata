@@ -2,6 +2,7 @@
 """
 Test onadata.libs.serializers.xform_serializer
 """
+import json
 import os
 
 from unittest.mock import MagicMock
@@ -79,6 +80,13 @@ class TestXFormManifestSerializer(TestCase, TestBase):
             "trees_registration.xlsx",
         )
         self._publish_xls_file(xlsx_path)
+        reg_form = XForm.objects.first()
+        reg_form.versions.create(
+            xls=reg_form.xls,
+            version=reg_form.version,
+            xml=reg_form.xml,
+            json=json.dumps(reg_form.json),
+        )
         # Publish follow up form
         xlsx_path = os.path.join(
             self.this_directory,
