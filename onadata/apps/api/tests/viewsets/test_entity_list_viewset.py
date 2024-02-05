@@ -45,17 +45,32 @@ class GetEntityListsTestCase(TestAbstractViewSet):
             "trees_follow_up.xlsx",
         )
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        # Make submission on tree_registration form
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+        self._make_submission(submission_path)
         # Create more EntityLists explicitly
         EntityList.objects.create(name="immunization", project=self.project)
         EntityList.objects.create(name="savings", project=self.project)
+        qs = EntityList.objects.all().order_by("pk")
+        first = qs[0]
+        # Force metadata entities count update
+        first.get_num_entities(True)
+        second = qs[1]
+        third = qs[2]
         # Make request
         request = self.factory.get("/", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.get("Cache-Control"))
-        first = EntityList.objects.all()[0]
-        second = EntityList.objects.all()[1]
-        third = EntityList.objects.all()[2]
         expected_data = [
             {
                 "url": f"http://testserver/api/v1/entity-lists/{first.pk}",
@@ -65,6 +80,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "public": False,
                 "num_registration_forms": 1,
                 "num_follow_up_forms": 1,
+                "num_entities": 1,
             },
             {
                 "url": f"http://testserver/api/v1/entity-lists/{second.pk}",
@@ -74,6 +90,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "public": False,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
+                "num_entities": 0,
             },
             {
                 "url": f"http://testserver/api/v1/entity-lists/{third.pk}",
@@ -83,6 +100,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "public": False,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
+                "num_entities": 0,
             },
         ]
         self.assertEqual(response.data, expected_data)
@@ -122,6 +140,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "public": True,
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
+                "num_entities": 0,
             }
         ]
         self.assertEqual(response.data, expected_data)
@@ -174,6 +193,20 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         )
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         self.entity_list = EntityList.objects.first()
+        # Make submission on tree_registration form
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+        self._make_submission(submission_path)
+        # Force update of metadata count
+        self.entity_list.get_num_entities(True)
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -194,6 +227,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
             "updated_at": updated_at,
             "num_registration_forms": 1,
             "num_follow_up_forms": 1,
+            "num_entities": 1,
             "registration_forms": [
                 {
                     "title": "Trees registration",

@@ -65,7 +65,7 @@ class EntityListViewSet(
         entities_qs = (
             Entity.objects.filter(registration_form__entity_list=entity_list)
             # To improve performance, we specify only the column(s)
-            # we are interested in
+            # we are interested in using .only
             .only("json").order_by("pk")
         )
         queryset = self.filter_queryset(entities_qs)
