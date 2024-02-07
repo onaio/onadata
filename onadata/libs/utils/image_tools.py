@@ -82,7 +82,7 @@ def generate_aws_media_url(
     aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
     s3_config = Config(
         signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
-        region_name=getattr(settings, "AWS_S3_REGION_NAME", ""),
+        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
     )
     s3_client = boto3.client(
         "s3",
