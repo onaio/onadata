@@ -90,7 +90,6 @@ def generate_aws_media_url(
         endpoint_url=aws_endpoint_url,
         aws_access_key_id=s3_class.access_key,
         aws_secret_access_key=s3_class.secret_key,
-        region_name=s3_class.region_name,
     )
 
     # Generate a presigned URL for the S3 object
