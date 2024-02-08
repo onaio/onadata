@@ -79,10 +79,10 @@ def generate_aws_media_url(
     """Generate S3 URL."""
     s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
     bucket_name = s3_class.bucket.name
-    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", "")
+    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
     s3_config = Config(
         signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
-        region_name=getattr(settings, "AWS_S3_REGION_NAME", ""),
+        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
     )
     s3_client = boto3.client(
         "s3",
