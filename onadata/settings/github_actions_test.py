@@ -11,7 +11,7 @@ from onadata.settings.common import *  # noqa pylint: disable=W0401,W0614
 # database settings
 DATABASES = {
     "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "ENGINE": "psqlextra.backend",
         "NAME": "onadata",
         "USER": "onadata",
         "PASSWORD": "onadata",
@@ -69,3 +69,5 @@ VERIFIED_KEY_TEXT = "ALREADY_ACTIVATED"
 ODK_TOKEN_FERNET_KEY = "ROsB4T8s1rCJskAdgpTQEKfH2x2K_EX_YBi3UFyoYng="  # nosec
 OPENID_CONNECT_PROVIDERS = {}
 AUTH_PASSWORD_VALIDATORS = []
+POSTGRES_EXTRA_DB_BACKEND_BASE = "django.contrib.gis.db.backends.postgis"
+INSTALLED_APPS += ("psqlextra",)
