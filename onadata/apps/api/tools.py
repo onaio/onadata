@@ -557,7 +557,7 @@ def get_media_file_response(metadata, request=None):
         obj, filename = get_data_value_objects(metadata.data_value)
         if obj:
             dataview = obj if isinstance(obj, DataView) else False
-            xform = obj.xform if isinstance(obj, DataView) else obj
+            xform = obj.xform if isinstance(obj, XForm) else obj
             export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
