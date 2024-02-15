@@ -123,6 +123,29 @@ def raise_bad_status_line(arg):
 
 
 class XFormViewSetBaseTestCase(TestAbstractViewSet):
+    def setUp(self):
+        super().setUp()
+
+        self.registration_form_md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
+
     def _make_submission_over_date_range(self, start, days=1):
         self._publish_xls_form_to_project()
 
@@ -5646,6 +5669,141 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             )
             form.refresh_from_db()
             self.assertTrue(form.is_active)
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_registration_form(self):
+        """Response a for an XForm contributing entities is correct"""
+        # Publish registration form
+        xform = self._publish_markdown(self.registration_form_md, self.user)
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = {
+            "url": f"http://testserver/api/v1/forms/{xform.pk}",
+            "formid": xform.pk,
+            "metadata": [],
+            "owner": "http://testserver/api/v1/users/bob",
+            "created_by": "http://testserver/api/v1/users/bob",
+            "public": False,
+            "public_data": False,
+            "public_key": "",
+            "require_auth": False,
+            "submission_count_for_today": 0,
+            "tags": [],
+            "title": xform.title,
+            "users": [
+                {
+                    "is_org": False,
+                    "metadata": {},
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "user": "bob",
+                    "role": "owner",
+                }
+            ],
+            "enketo_url": None,
+            "enketo_preview_url": None,
+            "enketo_single_submit_url": None,
+            "num_of_submissions": 0,
+            "last_submission_time": None,
+            "form_versions": [],
+            "data_views": [],
+            "xls_available": False,
+            "contributes_entities_to": {
+                "id": entity_list.pk,
+                "name": "trees",
+                "is_active": True,
+            },
+            "description": "",
+            "downloadable": True,
+            "allows_sms": False,
+            "encrypted": False,
+            "sms_id_string": xform.sms_id_string,
+            "id_string": xform.id_string,
+            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+            "uuid": xform.uuid,
+            "bamboo_dataset": "",
+            "instances_with_geopoints": False,
+            "instances_with_osm": False,
+            "version": None,
+            "has_hxl_support": False,
+            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
+            "hash": xform.hash,
+            "is_merged_dataset": False,
+            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+        }
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_list_registration_form(self):
+        """Getting a list of registration forms is correct"""
+        # Publish registration form
+        xform = self._publish_markdown(self.registration_form_md, self.user)
+        view = XFormViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = [
+            {
+                "url": f"http://testserver/api/v1/forms/{xform.pk}",
+                "formid": xform.pk,
+                "owner": "http://testserver/api/v1/users/bob",
+                "created_by": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "public_key": "",
+                "require_auth": False,
+                "tags": [],
+                "title": xform.title,
+                "users": [
+                    {
+                        "is_org": False,
+                        "metadata": {},
+                        "first_name": "Bob",
+                        "last_name": "erama",
+                        "user": "bob",
+                        "role": "owner",
+                    }
+                ],
+                "enketo_url": None,
+                "enketo_preview_url": None,
+                "enketo_single_submit_url": None,
+                "num_of_submissions": 0,
+                "last_submission_time": None,
+                "data_views": [],
+                "xls_available": False,
+                "contributes_entities_to": {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                },
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": xform.sms_id_string,
+                "id_string": xform.id_string,
+                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+                "uuid": xform.uuid,
+                "bamboo_dataset": "",
+                "instances_with_geopoints": False,
+                "instances_with_osm": False,
+                "version": None,
+                "has_hxl_support": False,
+                "last_updated_at": xform.last_updated_at.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "hash": xform.hash,
+                "is_merged_dataset": False,
+                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+            }
+        ]
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

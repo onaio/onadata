@@ -354,6 +354,19 @@ class XFormMixin:
             obj.last_submission_time.isoformat() if obj.last_submission_time else None
         )
 
+    def get_contributes_entities_to(self, obj: XForm):
+        """Return the EntityList that the form contributes Entities to"""
+        registration_form = obj.registration_forms.filter(is_active=True).first()
+
+        if registration_form is None:
+            return None
+
+        return {
+            "id": registration_form.entity_list.pk,
+            "name": registration_form.entity_list.name,
+            "is_active": registration_form.is_active,
+        }
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     """XForm base serializer."""
@@ -391,6 +404,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
+    contributes_entities_to = serializers.SerializerMethodField()
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -416,6 +430,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "shared_data",
             "deleted_at",
             "deleted_by",
+            "is_instance_json_regenerated",
         )
 
 
@@ -460,6 +475,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
+    contributes_entities_to = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -484,6 +500,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "shared_data",
             "deleted_at",
             "deleted_by",
+            "is_instance_json_regenerated",
         )
 
     def get_metadata(self, obj):
