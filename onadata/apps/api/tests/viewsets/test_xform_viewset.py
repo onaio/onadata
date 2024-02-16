@@ -2523,6 +2523,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "instances_with_geopoints": False,
             "has_hxl_support": False,
             "hash": "",
+            "is_instance_json_regenerated": False,
             "contributes_entities_to": None,
             "consumes_entities_from": [],
         }
@@ -5741,6 +5742,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
             "hash": xform.hash,
             "is_merged_dataset": False,
+            "is_instance_json_regenerated": False,
             "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
         }
         self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
@@ -5809,6 +5811,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 ),
                 "hash": xform.hash,
                 "is_merged_dataset": False,
+                "is_instance_json_regenerated": False,
                 "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
             }
         ]
@@ -5819,9 +5822,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         """Response a for an XForm consuming entities is correct"""
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_markdown(
-            self.follow_up_form_md, self.user, project=self.project
-        )
+        xform = self._publish_markdown(self.follow_up_form_md, self.user, self.project)
         xform.refresh_from_db()
         view = XFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
@@ -5900,6 +5901,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
             "hash": xform.hash,
             "is_merged_dataset": False,
+            "is_instance_json_regenerated": False,
             "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
         }
         self.assertEqual(response.data, expected_data)
@@ -5908,7 +5910,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_get_list_follow_up_form(self):
         """Getting a list of follow up forms is correct"""
         # Publish registration form
-        xform = self._publish_markdown(self.follow_up_form_md, self.user)
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(self.follow_up_form_md, self.user, self.project)
+        xform.refresh_from_db()
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
@@ -5970,10 +5975,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 ),
                 "hash": xform.hash,
                 "is_merged_dataset": False,
+                "is_instance_json_regenerated": False,
                 "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
             }
         ]
-        self.assertEqual(response.data, expected_data)
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
