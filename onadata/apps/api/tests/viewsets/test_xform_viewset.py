@@ -146,6 +146,15 @@ class XFormViewSetBaseTestCase(TestAbstractViewSet):
         |          | list_name          | label                                      |                          |                                            |
         |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
 
+        self.follow_up_form_md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+
     def _make_submission_over_date_range(self, start, days=1):
         self._publish_xls_form_to_project()
 
@@ -5716,6 +5725,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "name": "trees",
                 "is_active": True,
             },
+            "consumes_entities_from": [],
             "description": "",
             "downloadable": True,
             "allows_sms": False,
@@ -5781,6 +5791,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     "name": "trees",
                     "is_active": True,
                 },
+                "consumes_entities_from": [],
                 "description": "",
                 "downloadable": True,
                 "allows_sms": False,
@@ -5804,6 +5815,167 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             }
         ]
         self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_follow_up_form(self):
+        """Response a for an XForm consuming entities is correct"""
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(
+            self.follow_up_form_md, self.user, project=self.project
+        )
+        xform.refresh_from_db()
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        metadata = MetaData.objects.order_by("-pk").first()
+        expected_data = {
+            "url": f"http://testserver/api/v1/forms/{xform.pk}",
+            "formid": xform.pk,
+            "metadata": [
+                OrderedDict(
+                    [
+                        ("id", metadata.pk),
+                        ("xform", xform.pk),
+                        ("data_value", f"entity_list {entity_list.pk} trees"),
+                        ("data_type", "media"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{metadata.pk}"),
+                        ("date_created", metadata.date_created),
+                    ]
+                )
+            ],
+            "owner": "http://testserver/api/v1/users/bob",
+            "created_by": "http://testserver/api/v1/users/bob",
+            "public": False,
+            "public_data": False,
+            "public_key": "",
+            "require_auth": False,
+            "submission_count_for_today": 0,
+            "tags": [],
+            "title": xform.title,
+            "users": [
+                {
+                    "is_org": False,
+                    "metadata": {},
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "user": "bob",
+                    "role": "owner",
+                }
+            ],
+            "enketo_url": None,
+            "enketo_preview_url": None,
+            "enketo_single_submit_url": None,
+            "num_of_submissions": 0,
+            "last_submission_time": None,
+            "form_versions": [],
+            "data_views": [],
+            "xls_available": False,
+            "contributes_entities_to": None,
+            "consumes_entities_from": [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+            "description": "",
+            "downloadable": True,
+            "allows_sms": False,
+            "encrypted": False,
+            "sms_id_string": xform.sms_id_string,
+            "id_string": xform.id_string,
+            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+            "uuid": xform.uuid,
+            "bamboo_dataset": "",
+            "instances_with_geopoints": False,
+            "instances_with_osm": False,
+            "version": None,
+            "has_hxl_support": False,
+            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
+            "hash": xform.hash,
+            "is_merged_dataset": False,
+            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+        }
+        self.assertEqual(response.data, expected_data)
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_list_follow_up_form(self):
+        """Getting a list of follow up forms is correct"""
+        # Publish registration form
+        xform = self._publish_markdown(self.follow_up_form_md, self.user)
+        view = XFormViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = [
+            {
+                "url": f"http://testserver/api/v1/forms/{xform.pk}",
+                "formid": xform.pk,
+                "owner": "http://testserver/api/v1/users/bob",
+                "created_by": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "public_key": "",
+                "require_auth": False,
+                "tags": [],
+                "title": xform.title,
+                "users": [
+                    {
+                        "is_org": False,
+                        "metadata": {},
+                        "first_name": "Bob",
+                        "last_name": "erama",
+                        "user": "bob",
+                        "role": "owner",
+                    }
+                ],
+                "enketo_url": None,
+                "enketo_preview_url": None,
+                "enketo_single_submit_url": None,
+                "num_of_submissions": 0,
+                "last_submission_time": None,
+                "data_views": [],
+                "xls_available": False,
+                "contributes_entities_to": None,
+                "consumes_entities_from": [
+                    {
+                        "id": entity_list.pk,
+                        "name": "trees",
+                        "is_active": True,
+                    }
+                ],
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": xform.sms_id_string,
+                "id_string": xform.id_string,
+                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+                "uuid": xform.uuid,
+                "bamboo_dataset": "",
+                "instances_with_geopoints": False,
+                "instances_with_osm": False,
+                "version": None,
+                "has_hxl_support": False,
+                "last_updated_at": xform.last_updated_at.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "hash": xform.hash,
+                "is_merged_dataset": False,
+                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+            }
+        ]
+        self.assertEqual(response.data, expected_data)
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
