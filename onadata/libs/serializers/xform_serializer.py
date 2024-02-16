@@ -449,7 +449,6 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "shared_data",
             "deleted_at",
             "deleted_by",
-            "is_instance_json_regenerated",
         )
 
 
@@ -520,7 +519,6 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "shared_data",
             "deleted_at",
             "deleted_by",
-            "is_instance_json_regenerated",
         )
 
     def get_metadata(self, obj):
