@@ -2526,7 +2526,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "instances_with_geopoints": False,
             "has_hxl_support": False,
             "hash": "",
-            "is_instance_json_regenerated": False,
+            "contributes_entities_to": None,
+            "consumes_entities_from": [],
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
