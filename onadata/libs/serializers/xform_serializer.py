@@ -356,7 +356,7 @@ class XFormMixin:
 
     def get_contributes_entities_to(self, obj: XForm):
         """Return the EntityList that the form contributes Entities to"""
-        registration_form = obj.registration_forms.filter(is_active=True).first()
+        registration_form = obj.registration_forms.first()
 
         if registration_form is None:
             return None
@@ -366,6 +366,24 @@ class XFormMixin:
             "name": registration_form.entity_list.name,
             "is_active": registration_form.is_active,
         }
+
+    def get_consumes_entities_from(self, obj: XForm):
+        """Return the EntityLIst that the form consumes Entities"""
+        queryset = obj.follow_up_forms.all()
+
+        if not queryset:
+            return []
+
+        return list(
+            map(
+                lambda follow_up_form: {
+                    "id": follow_up_form.entity_list.pk,
+                    "name": follow_up_form.entity_list.name,
+                    "is_active": follow_up_form.is_active,
+                },
+                queryset,
+            )
+        )
 
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
@@ -405,6 +423,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
     contributes_entities_to = serializers.SerializerMethodField()
+    consumes_entities_from = serializers.SerializerMethodField()
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -476,6 +495,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
     contributes_entities_to = serializers.SerializerMethodField()
+    consumes_entities_from = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
