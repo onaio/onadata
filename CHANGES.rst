@@ -5,7 +5,7 @@ Changelog for Onadata
 
 v3.19.0(2024-02-20)
 -------------------
-- Upgrade package pricing
+- Upgrade package pricing to version v1.1.1
 
 v3.18.0(2024-02-05)
 -------------------
