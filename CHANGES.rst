@@ -3,6 +3,11 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.18.1(2024-02-21)
+- Fix bug invalid endpoint when fetching media files
+  `PR #2551 <https://github.com/onaio/onadata/pull/2551>`
+  [@kelvin-muchiri]
+
 v3.18.0(2024-02-05)
 -------------------
 - Fix SQL syntax error when grouping by select one
