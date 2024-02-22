@@ -9,7 +9,7 @@ import ssl
 
 from django.conf import settings
 
-from paho.mqtt import publish
+import paho.mqtt.client as mqttClient
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.messaging.backends.base import BaseBackend
@@ -151,14 +151,12 @@ class MQTTBackend(BaseBackend):
         """
         topic = self.get_topic(instance)
         payload = get_payload(instance)
-        # send it
 
-        return publish.single(
-            topic,
-            payload=payload,
-            hostname=self.host,
-            port=self.port,
-            tls=self.cert_info,
-            qos=self.qos,
-            retain=self.retain,
-        )
+        # send it
+        client = mqttClient.Client()
+        if self.cert_info:
+            client.tls_set(**self.cert_info)
+        client.connect(self.host, self.port)
+        client.publish(topic, payload, self.qos, self.retain)
+        client.disconnect()
+        return True
