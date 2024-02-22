@@ -385,15 +385,19 @@ class AbstractDataFrameBuilder:
                 if value_select_multiples:
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: (
-                                label
+                            (
+                                choice.replace("/" + name, "/" + label)
                                 if show_choice_labels
-                                else record[key].split()[selections.index(choice)]
+                                else choice
+                            ): (
+                                (
+                                    label
+                                    if show_choice_labels
+                                    else record[key].split()[selections.index(choice)]
+                                )
+                                if choice in selections
+                                else None
                             )
-                            if choice in selections
-                            else None
                             for choice, name, label in choices
                         }
                     )
@@ -402,20 +406,23 @@ class AbstractDataFrameBuilder:
                     # False and set to True for items in selections
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: choice in selections
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if show_choice_labels
+                                else choice
+                            ): choice
+                            in selections
                             for choice, name, label in choices
                         }
                     )
                 else:
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: YES
-                            if choice in selections
-                            else NO
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if show_choice_labels
+                                else choice
+                            ): (YES if choice in selections else NO)
                             for choice, name, label in choices
                         }
                     )
@@ -698,6 +705,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         is_repeating_section ensures that child questions of repeating sections
         are not considered columns
         """
+        if is_repeating_section:
+            return
+
         for child in survey_element.children:
             if isinstance(child, Section):
                 child_is_repeating = False
@@ -729,9 +739,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 if key in self.ordered_columns.keys():
                     self.ordered_columns[key] = remove_dups_from_list_maintain_order(
                         [
-                            choice.replace("/" + name, "/" + label)
-                            if self.show_choice_labels
-                            else choice
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if self.show_choice_labels
+                                else choice
+                            )
                             for choice, name, label in choices
                         ]
                     )

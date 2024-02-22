@@ -1805,3 +1805,223 @@ class TestCSVDataFrameBuilder(TestBase):
             [(key, result[key]) for key in list(result) if key in list(cursor[0])]
         )
         self.assertEqual(cursor[0], result)
+
+    def test_repeat_in_groups_multiples_split(self):
+        """Repeat in nested groups multiple choices w/split works"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+        cursor = [
+            {
+                "name": "Bob",
+                "age": 24,
+                "grp1/grp2/browser_use": [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": "2010",
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": "2011",
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            },
+        ]
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=True,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "age",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/year",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers/firefox",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers/chrome",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers/ie",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers/safari",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/year",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/browsers/firefox",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/browsers/chrome",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/browsers/ie",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/browsers/safari",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Bob",
+            "24",
+            "2010",
+            "True",
+            "False",
+            "False",
+            "True",
+            "2011",
+            "True",
+            "True",
+            "False",
+            "False",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertEqual(row, expected_row)
+
+        csv_file.close()
+
+    def test_repeat_in_groups_multiples_no_split(self):
+        """Repeat in nested groups multiple choices w/o split works"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+        cursor = [
+            {
+                "name": "Bob",
+                "age": 24,
+                "grp1/grp2/browser_use": [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": "2010",
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": "2011",
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            },
+        ]
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "age",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/year",
+            "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/year",
+            "grp1/grp2/browser_use[2]/grp3/grp4/grp5/browsers",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Bob",
+            "24",
+            "2010",
+            "firefox safari",
+            "2011",
+            "firefox chrome",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertEqual(row, expected_row)
+
+        csv_file.close()
