@@ -600,7 +600,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     # order repeat according to xform order
                     _item = get_ordered_repeat_value(key, item)
                     if key in _item and _item[key] == "n/a":
-                        # See https://github.com/onaio/zebra/issues/6830
                         # handles the case of a repeat construct in the data but the
                         # form has no repeat construct defined using begin repeat for
                         # example when you have a hidden value that has a repeat_count
