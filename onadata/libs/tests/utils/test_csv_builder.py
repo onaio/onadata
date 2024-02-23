@@ -1806,8 +1806,8 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         self.assertEqual(cursor[0], result)
 
-    def test_split_select_multiples_within_repeat_group(self):
-        """Select multiple choices nested within groups and repeats are split"""
+    def test_select_multiples_grouped_repeating_w_split(self):
+        """Select multiple choices within group within repeat with split"""
         md_xform = """
         | survey  |                          |              |                   |
         |         | type                     | name         | label             |
@@ -1922,8 +1922,8 @@ class TestCSVDataFrameBuilder(TestBase):
 
         csv_file.close()
 
-    def test_select_multiples_within_repeat_group(self):
-        """Select multiple choices nested within groups and repeats w/o split"""
+    def test_select_multiples_grouped_repeating_wo_split(self):
+        """Select multiple choices within group within repeat without split"""
         md_xform = """
         | survey  |                          |              |                   |
         |         | type                     | name         | label             |
