@@ -91,6 +91,7 @@ from onadata.libs.utils.user_auth import (
     set_profile_data,
 )
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form
+import onadata
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -1576,6 +1577,11 @@ def service_health(request):
     else:
         service_statuses["Cache-Service"] = "OK"
 
+    if onadata.__version__:
+        service_statuses["onadata-version"] = onadata.__version__
+    else:
+        service_statuses["onadata-version"] = "Unable to find onadata version"
+
     return JsonResponse(
         service_statuses,
         status=HTTPStatus.INTERNAL_SERVER_ERROR if service_degraded else HTTPStatus.OK,
@@ -1599,7 +1605,6 @@ def username_list(request):
 
 # pylint: disable=too-few-public-methods
 class OnaAuthorizationView(AuthorizationView):
-
     """
     Overrides the AuthorizationView provided by oauth2_provider
     and adds the user to the context
