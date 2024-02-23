@@ -708,12 +708,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if isinstance(child, Section):
                 child_is_repeating = False
 
-                if isinstance(child, GroupedSection) and is_repeating_section:
+                if isinstance(child, RepeatingSection) or (
+                    isinstance(child, GroupedSection) and is_repeating_section
+                ):
                     child_is_repeating = True
 
-                elif isinstance(child, RepeatingSection):
+                if isinstance(child, RepeatingSection):
                     ordered_columns[child.get_abbreviated_xpath()] = []
-                    child_is_repeating = True
 
                 cls._build_ordered_columns(child, ordered_columns, child_is_repeating)
             elif (
