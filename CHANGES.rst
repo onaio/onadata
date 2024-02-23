@@ -3,7 +3,14 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.18.2(2024-02-23)
+-------------------
+- Improve perfomance of /status endpoint
+  `PR #2551 <https://github.com/onaio/onadata/pull/2558>`
+  [@FrankApiyo]
+
 v3.18.1(2024-02-21)
+-------------------
 - Fix bug invalid endpoint when fetching media files
   `PR #2551 <https://github.com/onaio/onadata/pull/2551>`
   [@kelvin-muchiri]
