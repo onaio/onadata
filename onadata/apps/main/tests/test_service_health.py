@@ -1,7 +1,6 @@
 import json
 from django.http import HttpRequest
-from django.db.utils import DatabaseError
-from mock import patch
+from django.test import override_settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import service_health
@@ -20,21 +19,21 @@ class TestServiceHealthView(TestBase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            json.loads(resp.content.decode('utf-8')),
-            {
-                'default-Database': 'OK',
-                'Cache-Service': 'OK'
-            })
+            json.loads(resp.content.decode("utf-8")),
+            {"default-Database": "OK", "Cache-Service": "OK"},
+        )
 
-        with patch('onadata.apps.main.views.XForm') as xform_mock:
-            xform_mock.objects.using().first.side_effect = DatabaseError(
-                'Some database error')
+        sql_statement_with_error = "SELECT id FROM non_existent_table limit 1;"
+
+        with override_settings(CHECK_DB_SQL_STATEMENT=sql_statement_with_error):
             resp = service_health(req)
-
             self.assertEqual(resp.status_code, 500)
+            response_json = json.loads(resp.content.decode("utf-8"))
+            self.assertEqual(response_json["Cache-Service"], "OK")
             self.assertEqual(
-                json.loads(resp.content.decode('utf-8')),
-                {
-                    'default-Database': 'Degraded state; Some database error',
-                    'Cache-Service': 'OK'
-                })
+                response_json["default-Database"][:111],
+                (
+                    'Degraded state; relation "non_existent_table" does not exist'
+                    + f"\nLINE 1: {sql_statement_with_error}"
+                ),
+            )

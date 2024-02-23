@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
+from django.db import connections
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -1552,7 +1553,13 @@ def service_health(request):
     for database in getattr(settings, "DATABASES").keys():
         # pylint: disable=broad-except
         try:
-            XForm.objects.using(database).first()
+            with connections[database].cursor() as cursor:
+                fetch_first_xform_sql = (
+                    getattr(settings, "CHECK_DB_SQL_STATEMENT", None)
+                    or "SELECT id FROM logger_xform limit 1;"
+                )
+                cursor.execute(fetch_first_xform_sql)
+                cursor.fetchall()
         except Exception as e:
             service_statuses[f"{database}-Database"] = f"Degraded state; {e}"
             service_degraded = True
