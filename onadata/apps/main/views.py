@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
+from django.db import connections
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -90,6 +91,7 @@ from onadata.libs.utils.user_auth import (
     set_profile_data,
 )
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form
+import onadata
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -1552,7 +1554,13 @@ def service_health(request):
     for database in getattr(settings, "DATABASES").keys():
         # pylint: disable=broad-except
         try:
-            XForm.objects.using(database).first()
+            with connections[database].cursor() as cursor:
+                fetch_first_xform_sql = (
+                    getattr(settings, "CHECK_DB_SQL_STATEMENT", None)
+                    or "SELECT id FROM logger_xform limit 1;"
+                )
+                cursor.execute(fetch_first_xform_sql)
+                cursor.fetchall()
         except Exception as e:
             service_statuses[f"{database}-Database"] = f"Degraded state; {e}"
             service_degraded = True
@@ -1568,6 +1576,11 @@ def service_health(request):
         service_statuses["Cache-Service"] = f"Degraded state; {e}"
     else:
         service_statuses["Cache-Service"] = "OK"
+
+    if onadata.__version__:
+        service_statuses["onadata-version"] = onadata.__version__
+    else:
+        service_statuses["onadata-version"] = "Unable to find onadata version"
 
     return JsonResponse(
         service_statuses,
@@ -1592,7 +1605,6 @@ def username_list(request):
 
 # pylint: disable=too-few-public-methods
 class OnaAuthorizationView(AuthorizationView):
-
     """
     Overrides the AuthorizationView provided by oauth2_provider
     and adds the user to the context
