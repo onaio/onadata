@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 
 import unicodecsv as csv
 from pyxform.question import Question
-from pyxform.section import RepeatingSection, Section
+from pyxform.section import RepeatingSection, Section, GroupedSection
 from six import iteritems
 
 from onadata.apps.logger.models import OsmData
@@ -704,15 +704,17 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         is_repeating_section ensures that child questions of repeating sections
         are not considered columns
         """
-        if is_repeating_section:
-            return
-
         for child in survey_element.children:
             if isinstance(child, Section):
                 child_is_repeating = False
-                if isinstance(child, RepeatingSection):
+
+                if isinstance(child, GroupedSection) and is_repeating_section:
+                    child_is_repeating = True
+
+                elif isinstance(child, RepeatingSection):
                     ordered_columns[child.get_abbreviated_xpath()] = []
                     child_is_repeating = True
+
                 cls._build_ordered_columns(child, ordered_columns, child_is_repeating)
             elif (
                 isinstance(child, Question)
