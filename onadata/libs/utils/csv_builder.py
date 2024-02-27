@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 
 import unicodecsv as csv
 from pyxform.question import Question
-from pyxform.section import RepeatingSection, Section
+from pyxform.section import RepeatingSection, Section, GroupedSection
 from six import iteritems
 
 from onadata.apps.logger.models import OsmData
@@ -385,15 +385,19 @@ class AbstractDataFrameBuilder:
                 if value_select_multiples:
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: (
-                                label
+                            (
+                                choice.replace("/" + name, "/" + label)
                                 if show_choice_labels
-                                else record[key].split()[selections.index(choice)]
+                                else choice
+                            ): (
+                                (
+                                    label
+                                    if show_choice_labels
+                                    else record[key].split()[selections.index(choice)]
+                                )
+                                if choice in selections
+                                else None
                             )
-                            if choice in selections
-                            else None
                             for choice, name, label in choices
                         }
                     )
@@ -402,20 +406,23 @@ class AbstractDataFrameBuilder:
                     # False and set to True for items in selections
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: choice in selections
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if show_choice_labels
+                                else choice
+                            ): choice
+                            in selections
                             for choice, name, label in choices
                         }
                     )
                 else:
                     record.update(
                         {
-                            choice.replace("/" + name, "/" + label)
-                            if show_choice_labels
-                            else choice: YES
-                            if choice in selections
-                            else NO
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if show_choice_labels
+                                else choice
+                            ): (YES if choice in selections else NO)
                             for choice, name, label in choices
                         }
                     )
@@ -593,7 +600,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     # order repeat according to xform order
                     _item = get_ordered_repeat_value(key, item)
                     if key in _item and _item[key] == "n/a":
-                        # See https://github.com/onaio/zebra/issues/6830
                         # handles the case of a repeat construct in the data but the
                         # form has no repeat construct defined using begin repeat for
                         # example when you have a hidden value that has a repeat_count
@@ -701,9 +707,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         for child in survey_element.children:
             if isinstance(child, Section):
                 child_is_repeating = False
+
+                if isinstance(child, RepeatingSection) or (
+                    isinstance(child, GroupedSection) and is_repeating_section
+                ):
+                    child_is_repeating = True
+
                 if isinstance(child, RepeatingSection):
                     ordered_columns[child.get_abbreviated_xpath()] = []
-                    child_is_repeating = True
+
                 cls._build_ordered_columns(child, ordered_columns, child_is_repeating)
             elif (
                 isinstance(child, Question)
@@ -729,9 +741,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 if key in self.ordered_columns.keys():
                     self.ordered_columns[key] = remove_dups_from_list_maintain_order(
                         [
-                            choice.replace("/" + name, "/" + label)
-                            if self.show_choice_labels
-                            else choice
+                            (
+                                choice.replace("/" + name, "/" + label)
+                                if self.show_choice_labels
+                                else choice
+                            )
                             for choice, name, label in choices
                         ]
                     )
