@@ -783,4 +783,4 @@ class EntityListProjectFilter(filters.BaseFilterBackend):
         if project_id:
             return queryset.filter(project__pk=project_id)
 
-        return super().filter_queryset(request, queryset, view)
+        return queryset
