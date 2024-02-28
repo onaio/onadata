@@ -162,6 +162,22 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
+    def test_filtering_by_project(self):
+        """Filter by project id works"""
+        self._project_create()
+        project_2 = Project.objects.create(
+            name="Other project",
+            created_by=self.user,
+            organization=self.user,
+        )
+        EntityList.objects.create(name="dataset_1", project=self.project)
+        EntityList.objects.create(name="dataset_2", project=project_2)
+        request = self.factory.get("/", data={"project": project_2.pk}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "dataset_2")
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):

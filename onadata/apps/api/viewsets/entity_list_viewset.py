@@ -6,6 +6,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
+from onadata.libs.filters import EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.anon_user_public_entity_lists_mixin import (
@@ -35,6 +36,7 @@ class EntityListViewSet(
     serializer_class = EntityListSerializer
     permission_classes = (AllowAny,)
     pagination_class = StandardPageNumberPagination
+    filter_backends = (EntityListProjectFilter,)
 
     def get_queryset(self):
         if self.action == "retrieve":
