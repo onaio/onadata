@@ -142,16 +142,78 @@ class TestProjectViewSet(TestAbstractViewSet):
                     1,
                 )
 
+    @override_settings(TIME_ZONE="UTC")
     def test_projects_list(self):
-        self._project_create()
+        self._publish_xls_form_to_project()
+        self.project.refresh_from_db()
         request = self.factory.get("/", **self.extra)
         request.user = self.user
         response = self.view(request)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
-        serializer = BaseProjectSerializer(self.project, context={"request": request})
-
-        self.assertEqual(response.data, [serializer.data])
+        expected_data = [
+            OrderedDict(
+                [
+                    ("url", f"http://testserver/api/v1/projects/{self.project.pk}"),
+                    ("projectid", self.project.pk),
+                    ("owner", "http://testserver/api/v1/users/bob"),
+                    ("created_by", "http://testserver/api/v1/users/bob"),
+                    (
+                        "metadata",
+                        {
+                            "category": "governance",
+                            "location": "Naivasha, Kenya",
+                            "description": "Some description",
+                        },
+                    ),
+                    ("starred", False),
+                    (
+                        "users",
+                        [
+                            {
+                                "is_org": False,
+                                "metadata": {},
+                                "first_name": "Bob",
+                                "last_name": "erama",
+                                "user": "bob",
+                                "role": "owner",
+                            }
+                        ],
+                    ),
+                    (
+                        "forms",
+                        [
+                            OrderedDict(
+                                [
+                                    ("name", "transportation_2011_07_25"),
+                                    ("formid", self.xform.pk),
+                                    ("id_string", "transportation_2011_07_25"),
+                                    ("is_merged_dataset", False),
+                                    ("contributes_entities_to", None),
+                                    ("consumes_entities_from", []),
+                                ]
+                            )
+                        ],
+                    ),
+                    ("public", False),
+                    ("tags", []),
+                    ("num_datasets", 1),
+                    ("last_submission_date", None),
+                    ("teams", []),
+                    ("name", "demo"),
+                    (
+                        "date_created",
+                        self.project.date_created.isoformat().replace("+00:00", "Z"),
+                    ),
+                    (
+                        "date_modified",
+                        self.project.date_modified.isoformat().replace("+00:00", "Z"),
+                    ),
+                    ("deleted_at", None),
+                ]
+            )
+        ]
+        self.assertEqual(response.data, expected_data)
         self.assertIn("created_by", list(response.data[0]))
 
     def test_projects_list_with_pagination(self):

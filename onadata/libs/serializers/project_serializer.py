@@ -218,11 +218,51 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     formid = serializers.ReadOnlyField(source="id")
     name = serializers.ReadOnlyField(source="title")
+    contributes_entities_to = serializers.SerializerMethodField()
+    consumes_entities_from = serializers.SerializerMethodField()
+
+    def get_contributes_entities_to(self, obj: XForm):
+        """Return the EntityList that the form contributes Entities to"""
+        registration_form = obj.registration_forms.first()
+
+        if registration_form is None:
+            return None
+
+        return {
+            "id": registration_form.entity_list.pk,
+            "name": registration_form.entity_list.name,
+            "is_active": registration_form.is_active,
+        }
+
+    def get_consumes_entities_from(self, obj: XForm):
+        """Return the EntityLIst that the form consumes Entities"""
+        queryset = obj.follow_up_forms.all()
+
+        if not queryset:
+            return []
+
+        return list(
+            map(
+                lambda follow_up_form: {
+                    "id": follow_up_form.entity_list.pk,
+                    "name": follow_up_form.entity_list.name,
+                    "is_active": follow_up_form.is_active,
+                },
+                queryset,
+            )
+        )
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
         model = XForm
-        fields = ("name", "formid", "id_string", "is_merged_dataset")
+        fields = (
+            "name",
+            "formid",
+            "id_string",
+            "is_merged_dataset",
+            "contributes_entities_to",
+            "consumes_entities_from",
+        )
 
 
 # pylint: disable=too-few-public-methods
