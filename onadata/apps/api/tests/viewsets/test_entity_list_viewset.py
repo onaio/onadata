@@ -21,6 +21,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "list"})
 
+    @override_settings(TIME_ZONE="UTC")
     def test_get_all(self):
         """GET all EntityLists works"""
         # Publish registration form and create "trees" EntityList dataset
@@ -79,6 +80,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "trees",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
+                "created_at": first.created_at.isoformat().replace("+00:00", "Z"),
+                "updated_at": first.updated_at.isoformat().replace("+00:00", "Z"),
                 "num_registration_forms": 1,
                 "num_follow_up_forms": 1,
                 "num_entities": 1,
@@ -89,6 +92,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "immunization",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
+                "created_at": second.created_at.isoformat().replace("+00:00", "Z"),
+                "updated_at": second.updated_at.isoformat().replace("+00:00", "Z"),
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
                 "num_entities": 0,
@@ -99,6 +104,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "savings",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
+                "created_at": third.created_at.isoformat().replace("+00:00", "Z"),
+                "updated_at": third.updated_at.isoformat().replace("+00:00", "Z"),
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
                 "num_entities": 0,
