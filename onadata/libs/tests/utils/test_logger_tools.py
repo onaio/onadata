@@ -717,6 +717,7 @@ class CreateEntityTestCase(TestBase):
             "meta/entity/label": "300cm purpleheart",
             "_xform_id_string": "trees_registration",
             "_version": "2022110901",
+            "_id": entity.pk,
         }
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
