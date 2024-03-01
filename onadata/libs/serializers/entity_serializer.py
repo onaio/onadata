@@ -41,6 +41,8 @@ class EntityListSerializer(serializers.HyperlinkedModelSerializer):
             "name",
             "project",
             "public",
+            "created_at",
+            "updated_at",
             "num_registration_forms",
             "num_follow_up_forms",
             "num_entities",
