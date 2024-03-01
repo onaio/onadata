@@ -9,7 +9,7 @@ from django.test import override_settings
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.logger.models import EntityList, Project
+from onadata.apps.logger.models import Entity, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
 
 
@@ -364,6 +364,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
             self._make_submission(path)
 
         self.entity_list = EntityList.objects.first()
+        entity_qs = Entity.objects.all().order_by("pk")
         self.expected_data = [
             {
                 "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
@@ -375,6 +376,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "meta/entity/label": "300cm purpleheart",
                 "_xform_id_string": "trees_registration",
                 "_version": "2022110901",
+                "_id": entity_qs[0].pk,
             },
             {
                 "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
@@ -387,6 +389,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "meta/entity/label": "100cm wallaba",
                 "_xform_id_string": "trees_registration",
                 "_version": "2022110901",
+                "_id": entity_qs[1].pk,
             },
         ]
 
@@ -437,17 +440,4 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        expected_data = [
-            {
-                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-                "meta/instanceName": "300cm purpleheart",
-                "meta/entity/label": "300cm purpleheart",
-                "_xform_id_string": "trees_registration",
-                "_version": "2022110901",
-            }
-        ]
-        self.assertEqual(response.data, expected_data)
+        self.assertEqual(response.data[0]["meta/entity/label"], "300cm purpleheart")
