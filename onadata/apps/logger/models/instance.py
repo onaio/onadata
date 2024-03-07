@@ -901,13 +901,13 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     xml = models.TextField()
     # old instance id
-    uuid = models.CharField(max_length=249, default="")
+    uuid = models.CharField(max_length=249, default="", db_index=True)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     submission_date = models.DateTimeField(null=True, default=None)
     geom = models.GeometryCollectionField(null=True)
-    checksum = models.CharField(max_length=64, null=True, blank=True)
+    checksum = models.CharField(max_length=64, null=True, blank=True, db_index=True)
 
     @property
     def xform(self):
