@@ -889,7 +889,7 @@ class XForm(XFormMixin, BaseModel):
     has_hxl_support = models.BooleanField(default=False)
     last_updated_at = models.DateTimeField(auto_now=True)
     hash = models.CharField(
-        _("Hash"), max_length=36, blank=True, null=True, default=None
+        _("Hash"), max_length=128, blank=True, null=True, default=None
     )
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
@@ -962,7 +962,7 @@ class XForm(XFormMixin, BaseModel):
 
         # Capture urls within form title
         if re.search(
-            r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$",  # noqa
+            r"^(?:http(s)?:\/\/)?[\w\-.]+(?:\.[\w\-.]+)+[\w\-.~:/?#[\]@!\$&'()*+,;=]+$",  # noqa
             self.title,
         ):
             raise XLSFormError(_("Invalid title value; value shouldn't match a URL"))
@@ -970,14 +970,14 @@ class XForm(XFormMixin, BaseModel):
         self.title = title_xml
 
     def get_hash(self):
-        """Returns the MD5 hash of the forms XML content prefixed by 'md5:'"""
-        md5_hash = hashlib.new(
-            "md5", self.xml.encode("utf-8"), usedforsecurity=False
+        """Returns the sha256 hash of the forms XML content prefixed by 'sha256:'"""
+        sha256_hash = hashlib.new(
+            "sha256", self.xml.encode("utf-8"), usedforsecurity=False
         ).hexdigest()
-        return f"md5:{md5_hash}"
+        return f"sha256:{sha256_hash}"
 
     def set_hash(self):
-        """Sets the MD5 hash of the form."""
+        """Sets the sha256 hash of the form."""
         self.hash = self.get_hash()
 
     def _set_encrypted_field(self):

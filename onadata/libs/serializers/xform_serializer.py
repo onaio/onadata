@@ -650,7 +650,7 @@ class XFormManifestSerializer(serializers.Serializer):
     @check_obj
     def get_hash(self, obj):
         """
-        Returns MD5 hash based on last_submission_time for a media linked form.
+        Returns sha256 hash based on last_submission_time for a media linked form.
         """
         filename = obj.data_value
         hsh = obj.file_hash
@@ -674,14 +674,14 @@ class XFormManifestSerializer(serializers.Serializer):
                     xform = data_view.xform
 
             if xform and xform.last_submission_time:
-                md5_hash = hashlib.new(
-                    "md5",
+                sha256_hash = hashlib.new(
+                    "sha256",
                     xform.last_submission_time.isoformat().encode("utf-8"),
                     usedforsecurity=False,
                 ).hexdigest()
-                hsh = f"md5:{md5_hash}"
+                hsh = f"sha256:{sha256_hash}"
 
-        return f"{hsh or 'md5:'}"
+        return f"{hsh or 'sha256:'}"
 
     @check_obj
     def get_filename(self, obj):

@@ -94,13 +94,13 @@ class Attachment(models.Model):
 
     @property
     def file_hash(self):
-        """Returns the MD5 hash of the file."""
-        md5_hash = ""
+        """Returns the sha256 hash of the file."""
+        sha256_hash = ""
         if self.media_file.storage.exists(self.media_file.name):
-            md5_hash = hashlib.new(
-                "md5", self.media_file.read(), usedforsecurity=False
+            sha256_hash = hashlib.new(
+                "sha256", self.media_file.read(), usedforsecurity=False
             ).hexdigest()
-        return md5_hash
+        return sha256_hash
 
     @property
     def filename(self):
