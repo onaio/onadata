@@ -45,7 +45,7 @@ class MatcherContext:
 
     debug: bool
     nsmap_xpath: "Dict[str, str]"
-    nsmap_subs: "NSMAPSubs"
+    nsmap_subs: "NSMAPSubs"  # noqa: F821
     content_str: str
 
 
@@ -545,7 +545,7 @@ def reorder_attributes(root):
 
 
 def xpath_clean_result_strings(
-    nsmap_subs: "NSMAPSubs", results: "Set[_Element]"
+    nsmap_subs: "NSMAPSubs", results: "Set[_Element]"  # noqa: F821
 ) -> "Set[str]":
     """
     Clean XPath results: stringify, remove namespace declarations, clean up whitespace.
