@@ -36,7 +36,7 @@ class SubmissionReviewViewSet(AuthenticateHeaderMixin, CacheControlMixin,
     serializer_class = SubmissionReviewSerializer
     permission_classes = [SubmissionReviewPermissions]
     filter_backends = (DjangoFilterBackend, )
-    filter_fields = ('instance', 'created_by', 'status')
+    filterset_fields = ('instance', 'created_by', 'status')
 
     def destroy(self, request, *args, **kwargs):
         """

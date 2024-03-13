@@ -52,7 +52,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         TokenAuthentication,
     )
     content_negotiation_class = MediaFileContentNegotiation
-    filter_class = filters.FormIDFilter
+    filterset_class = filters.FormIDFilter
     filter_backends = (
         filters.XFormListObjectPermissionFilter,
         filters.XFormListXFormPKFilter,

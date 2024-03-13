@@ -323,7 +323,7 @@ class XFormViewSet(
         filters.XFormOwnerFilter,
         DjangoFilterBackend,
     )
-    filter_fields = ("instances_with_osm",)
+    filterset_fields = ("instances_with_osm",)
 
     public_forms_endpoint = "public"
 
