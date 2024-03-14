@@ -962,22 +962,19 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 s + ".xml",
             )
             with open(submission_path, "rb"):
-                # When require_auth is enabled and
-                # no auth is passed to the request should fail
+                # When require_auth is enabled and HEAD requests to
+                # the /<form-pk>/submission endpoint should succeed
                 request = self.factory.head(f"/enketo/{self.xform.pk}/submission")
-                response = self.view(request)
-                self.assertEqual(response.status_code, 401)
-
-                # When require_auth is enabled & no auth passed is ok
-                request = self.factory.head(f"/enketo/{self.xform.pk}/submission")
-                request.user = self.xform.user
                 response = self.view(request, xform_pk=self.xform.pk)
 
-                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.status_code, 204)
                 self.assertTrue(response.has_header("X-OpenRosa-Version"))
 
                 # Test Content-Length header is available
-                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertEqual(
+                    response.headers["X-OpenRosa-Accept-Content-Length"],
+                    str(settings.DEFAULT_CONTENT_LENGTH),
+                )
                 self.assertTrue(response.has_header("Date"))
                 self.assertEqual(
                     response["Location"],
