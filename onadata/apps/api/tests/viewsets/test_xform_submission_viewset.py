@@ -1078,6 +1078,25 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
 
+
+                # Don't allow posting submission when require_auth is set to true
+                self.xform.user.profile.require_auth = True
+                self.xform.user.profile.save()
+                count = Instance.objects.filter(xform=self.xform).count()
+                response = self.view(request, xform_pk=self.xform.pk)
+                self.assertEqual(response.status_code, 401)
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/forms/{self.xform.pk}/submission",
+                )
+                self.assertEqual(
+                    Instance.objects.filter(xform=self.xform).count(), count
+                )
+
     def test_post_submission_using_form_pk_while_authenticated(self):
         """
         Test that one is able to submit data using the forms
