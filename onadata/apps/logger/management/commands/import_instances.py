@@ -26,11 +26,14 @@ class Command(BaseCommand):
     import_instances - import ODK instances from a zipped file.
     """
 
-    args = "username path"
     help = gettext_lazy(
         "Import a zip file, a directory containing zip files "
         "or a directory of ODK instances"
     )
+
+    def add_arguments(self, parser):
+        parser.add_argument("username", type=str)
+        parser.add_argument("path", type=str)
 
     def _log_import(self, results):
         total_count, success_count, errors = results
@@ -44,10 +47,8 @@ class Command(BaseCommand):
 
     # pylint: disable=unused-argument
     def handle(self, *args, **kwargs):
-        if len(args) < 2:
-            raise CommandError(_("Usage: <command> username file/path."))
-        username = args[0]
-        path = args[1]
+        username = kwargs["username"]
+        path = kwargs["path"]
         is_async = False
         if len(args) > 2:
             if isinstance(args[2], str):
@@ -63,7 +64,6 @@ class Command(BaseCommand):
         # make sure path exists
         if not os.path.exists(path):
             raise CommandError(_(f"The specified path '{path}' does not exist."))
-
         for directory, subdirs, files in os.walk(path):
             # check if the directory has an odk directory
             if "odk" in subdirs:

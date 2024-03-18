@@ -225,7 +225,7 @@ def set_api_permissions_for_user(user):
     models = [UserProfile, XForm, MergedXForm, Project, Team, OrganizationProfile, Note]
     for model in models:
         for perm in get_perms_for_model(model):
-            assign_perm(f"{perm.content_type.app_label}.{perm.codename}", user)
+            assign_perm(perm, user)
 
 
 def get_user_default_project(user):

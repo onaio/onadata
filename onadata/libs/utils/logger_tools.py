@@ -758,7 +758,7 @@ def publish_form(callback):
                 ("An error occurred while publishing the form. Please try again.")
             ),
         }
-    except (AttributeError, DuplicateUUIDError, ValidationError) as e:
+    except (AttributeError, DuplicateUUIDError, ValidationError, TypeError) as e:
         report_exception(f"Form publishing exception: {e}", text(e), sys.exc_info())
         return {"type": "alert-error", "text": text(e)}
 
