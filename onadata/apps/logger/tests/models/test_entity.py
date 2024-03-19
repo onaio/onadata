@@ -1,4 +1,5 @@
 """Tests for module onadata.apps.logger.models.entity"""
+
 import os
 import json
 import pytz
@@ -68,16 +69,15 @@ class EntityTestCase(TestBase):
         instance.json = instance.get_full_dict()
         instance.save()
         instance.refresh_from_db()
-
         entity = Entity.objects.create(
             registration_form=reg_form,
-            json=entity_json,
+            json={**entity_json},
             version=self.xform.version,
             xml=xml,
             instance=instance,
         )
         self.assertEqual(entity.registration_form, reg_form)
-        self.assertEqual(entity.json, entity_json)
+        self.assertEqual(entity.json, {**entity_json, "_id": entity.pk})
         self.assertEqual(entity.version, self.xform.version)
         self.assertEqual(entity.xml, xml)
         self.assertEqual(entity.instance, instance)
@@ -89,6 +89,6 @@ class EntityTestCase(TestBase):
         reg_form = self.xform.registration_forms.first()
         entity = Entity.objects.create(registration_form=reg_form)
         self.assertIsNone(entity.version)
-        self.assertEqual(entity.json, {})
+        self.assertEqual(entity.json, {"_id": entity.pk})
         self.assertIsNone(entity.instance)
         self.assertEqual(entity.xml, "")
