@@ -217,9 +217,6 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
             "trees_registration.xml",
         )
         self._make_submission(submission_path)
-        # Force update of metadata count
-        self.entity_list.metadata = {**self.entity_list.metadata, "num_entities": 1}
-        self.entity_list.save()
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -229,6 +226,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.get("Cache-Control"))
+        self.entity_list.refresh_from_db()
         created_at = self.entity_list.created_at.isoformat().replace("+00:00", "Z")
         updated_at = self.entity_list.updated_at.isoformat().replace("+00:00", "Z")
         expected_data = {
