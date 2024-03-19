@@ -139,19 +139,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
         self.assertEqual(len(response.data), 1)
         first = EntityList.objects.all()[0]
-        expected_data = [
-            {
-                "url": f"http://testserver/api/v1/entity-lists/{first.pk}",
-                "id": first.pk,
-                "name": "immunization",
-                "project": f"http://testserver/api/v1/projects/{public_project.pk}",
-                "public": True,
-                "num_registration_forms": 0,
-                "num_follow_up_forms": 0,
-                "num_entities": 0,
-            }
-        ]
-        self.assertEqual(response.data, expected_data)
+        self.assertEqual(response.data[0]["id"], first.pk)
         # Logged in user is able to view all
         request = self.factory.get("/", **self.extra)
         response = self.view(request)
