@@ -2,9 +2,11 @@
 """
 DataDictionary model.
 """
+import json
 import os
 from io import BytesIO, StringIO
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models.signals import post_save, pre_save
 from django.db import transaction
@@ -20,8 +22,12 @@ from pyxform.utils import has_external_choices
 from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
+from onadata.apps.logger.models.entity_list import EntityList
+from onadata.apps.logger.models.registration_form import RegistrationForm
+from onadata.apps.logger.models.follow_up_form import FollowUpForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -235,9 +241,6 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         size = f.tell()
         f.seek(0)
 
-        # pylint: disable=import-outside-toplevel
-        from onadata.apps.main.models.meta_data import MetaData
-
         data_file = InMemoryUploadedFile(
             file=f,
             field_name="data_file",
@@ -268,4 +271,143 @@ def save_project(sender, instance=None, created=False, **kwargs):
 
 pre_save.connect(
     save_project, sender=DataDictionary, dispatch_uid="save_project_datadictionary"
+)
+
+
+def create_registration_form(sender, instance=None, created=False, **kwargs):
+    """Create a RegistrationForm for a form that defines entities
+
+    Create an EntityList if it does not exist. If it exists, use the
+    the existing EntityList
+    """
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    if not instance_json.get("entity_related"):
+        return
+
+    children = instance_json.get("children", [])
+    meta_list = filter(lambda child: child.get("name") == "meta", children)
+
+    for meta in meta_list:
+        for child in meta.get("children", []):
+            if child.get("name") == "entity":
+                parameters = child.get("parameters", {})
+                dataset = parameters.get("dataset")
+                entity_list, _ = EntityList.objects.get_or_create(
+                    name=dataset, project=instance.project
+                )
+                (
+                    registration_form,
+                    registration_form_created,
+                ) = RegistrationForm.objects.get_or_create(
+                    entity_list=entity_list,
+                    xform=instance,
+                )
+
+                if registration_form_created:
+                    # RegistrationForm contributing to any previous
+                    # EntityList should be disabled
+                    for form in instance.registration_forms.exclude(
+                        entity_list=entity_list, is_active=True
+                    ):
+                        form.is_active = False
+                        form.save()
+                else:
+                    # If previously disabled, enable it
+                    registration_form.is_active = True
+                    registration_form.save()
+
+                return
+
+
+post_save.connect(
+    create_registration_form,
+    sender=DataDictionary,
+    dispatch_uid="create_registration_form_datadictionary",
+)
+
+
+def create_follow_up_form(sender, instance=None, created=False, **kwargs):
+    """Create a FollowUpForm for a form that consumes entities
+
+    Check if a form consumes data from a dataset that is an EntityList. If so,
+    we create a FollowUpForm
+    """
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    children = instance_json.get("children", [])
+    active_entity_datasets: list[str] = []
+    xform = XForm.objects.get(pk=instance.pk)
+
+    for child in children:
+        if child["type"] == "select one" and "itemset" in child:
+            dataset_name = child["itemset"].split(".")[0]
+
+            try:
+                entity_list = EntityList.objects.get(
+                    name=dataset_name, project=instance.project
+                )
+
+            except EntityList.DoesNotExist:
+                # No EntityList dataset was found with the specified
+                # name, we simply do nothing
+                continue
+
+            active_entity_datasets.append(entity_list.name)
+            follow_up_form, created = FollowUpForm.objects.get_or_create(
+                entity_list=entity_list, xform=instance
+            )
+
+            if not created and not follow_up_form.is_active:
+                # If previously deactivated, re-activate
+                follow_up_form.is_active = True
+                follow_up_form.save()
+
+            content_type = ContentType.objects.get_for_model(xform)
+            MetaData.objects.get_or_create(
+                object_id=xform.pk,
+                content_type=content_type,
+                data_type="media",
+                data_value=f"entity_list {entity_list.pk} {entity_list.name}",
+            )
+
+    # Deactivate the XForm's FollowUpForms whose EntityList are not
+    # referenced by the updated XForm version
+    inactive_follow_up_forms = FollowUpForm.objects.filter(xform=xform).exclude(
+        entity_list__name__in=active_entity_datasets
+    )
+    inactive_follow_up_forms.update(is_active=False)
+
+
+post_save.connect(
+    create_follow_up_form,
+    sender=DataDictionary,
+    dispatch_uid="create_follow_up_datadictionary",
+)
+
+
+def disable_registration_form(sender, instance=None, created=False, **kwargs):
+    """Disable registration form if form no longer contains entities definitions"""
+    instance_json = instance.json
+
+    if isinstance(instance_json, str):
+        instance_json = json.loads(instance_json)
+
+    if not instance_json.get("entity_related"):
+        # If form creates entities, disable the registration forms
+        for registration_form in instance.registration_forms.filter(is_active=True):
+            registration_form.is_active = False
+            registration_form.save()
+
+
+post_save.connect(
+    disable_registration_form,
+    sender=DataDictionary,
+    dispatch_uid="disable_registration_form_datadictionary",
 )

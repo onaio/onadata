@@ -693,7 +693,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             created_by=user,
             user=user,
             xml=survey.to_xml(),
-            json=survey.to_json(),
+            json=json.loads(survey.to_json()),
             project=project,
         )
         xform.save()

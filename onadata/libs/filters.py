@@ -344,17 +344,19 @@ class XFormPermissionFilterMixin:
         if dataview:
             int_or_parse_error(
                 dataview,
-                "Invalid value for dataview ID. It must be a positive integer."
+                "Invalid value for dataview ID. It must be a positive integer.",
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
             # filter with fitlered dataset query
             dataview_kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
-                get_filter_kwargs(self.dataview.query))
+                get_filter_kwargs(self.dataview.query)
+            )
             xform_qs = XForm.objects.filter(pk=self.dataview.xform.pk)
         elif merged_xform:
             int_or_parse_error(
                 merged_xform,
-                "Invalid value for Merged Dataset ID. It must be a positive integer.")
+                "Invalid value for Merged Dataset ID. It must be a positive integer.",
+            )
             self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
             xform_qs = self.merged_xform.xforms.all()
         elif xform:
@@ -378,10 +380,7 @@ class XFormPermissionFilterMixin:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
-        return {
-            **{f"{keyword}__in": xforms},
-            **dataview_kwargs
-        }
+        return {**{f"{keyword}__in": xforms}, **dataview_kwargs}
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._xform_filter(request, view, keyword)
@@ -746,5 +745,20 @@ class PublicDatasetsFilter:
         """Return a queryset of shared=True data if the user is anonymous."""
         if request and request.user.is_anonymous:
             return queryset.filter(shared=True)
+
+        return queryset
+
+
+# pylint: disable=too-few-public-methods
+class EntityListProjectFilter(filters.BaseFilterBackend):
+    """EntityList `project` filter."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        """Filter by project id"""
+        project_id = request.query_params.get("project")
+
+        if project_id:
+            return queryset.filter(project__pk=project_id)
 
         return queryset

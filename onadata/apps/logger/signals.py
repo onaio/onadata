@@ -5,53 +5,30 @@ logger signals module
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from onadata.apps.logger.models import MergedXForm
-from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models.xform import clear_project_cache
-from onadata.libs.permissions import OwnerRole
-from onadata.libs.utils.cache_tools import (
-    IS_ORG,
-    safe_delete,
-)
-from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.apps.logger.models import Entity, Instance, RegistrationForm
+from onadata.libs.utils.logger_tools import create_entity as create_new_entity
 
 
 # pylint: disable=unused-argument
-@receiver(
-    post_save, sender=MergedXForm, dispatch_uid="set_project_perms_to_merged_xform"
-)
-def set_project_object_permissions(sender, instance=None, created=False, **kwargs):
-    """Apply project permission to the merged form."""
-    if created:
-        OwnerRole.add(instance.user, instance)
-        OwnerRole.add(instance.user, instance.xform_ptr)
-
-        if instance.created_by and instance.user != instance.created_by:
-            OwnerRole.add(instance.created_by, instance)
-            OwnerRole.add(instance.created_by, instance.xform_ptr)
-
-        set_project_perms_to_xform(instance, instance.project)
-        set_project_perms_to_xform(instance.xform_ptr, instance.project)
+@receiver(post_save, sender=Instance, dispatch_uid="create_entity")
+def create_entity(sender, instance=Instance | None, created=False, **kwargs):
+    """Create an Entity if an Instance's form is also RegistrationForm"""
+    if created and instance:
+        if RegistrationForm.objects.filter(
+            xform=instance.xform, is_active=True
+        ).exists():
+            registration_form = RegistrationForm.objects.filter(
+                xform=instance.xform, is_active=True
+            ).first()
+            create_new_entity(instance, registration_form)
 
 
-# pylint: disable=unused-argument
-def set_xform_object_permissions(sender, instance=None, created=False, **kwargs):
-    """Apply project permissions to the user that created the form."""
-    # clear cache
-    project = instance.project
-    project.refresh_from_db()
-    clear_project_cache(project.pk)
-    safe_delete(f"{IS_ORG}{instance.pk}")
-
-    if created:
-        OwnerRole.add(instance.user, instance)
-
-        if instance.created_by and instance.user != instance.created_by:
-            OwnerRole.add(instance.created_by, instance)
-
-        set_project_perms_to_xform(instance, project)
-
-
-post_save.connect(
-    set_xform_object_permissions, sender=XForm, dispatch_uid="xform_object_permissions"
-)
+@receiver(post_save, sender=Entity, dispatch_uid="update_entity_json")
+def update_entity_json(sender, instance=Entity | None, created=False, **kwargs):
+    """Update and Entity json on creation"""
+    if created and instance:
+        json = instance.json
+        json["_id"] = instance.pk
+        # Queryset.update ensures the model's save is not called and
+        # the pre_save and post_save signals aren't sent
+        Entity.objects.filter(pk=instance.pk).update(json=json)

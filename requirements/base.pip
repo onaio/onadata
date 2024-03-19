@@ -304,7 +304,7 @@ pytz==2023.3
     #   djangorestframework
     #   fleming
     #   onadata
-pyxform==1.12.1
+pyxform==1.12.2
     # via
     #   onadata
     #   pyfloip

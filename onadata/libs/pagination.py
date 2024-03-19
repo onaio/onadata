@@ -15,6 +15,7 @@ from rest_framework.pagination import (
     replace_query_param,
 )
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 
 class StandardPageNumberPagination(PageNumberPagination):
@@ -72,6 +73,10 @@ class StandardPageNumberPagination(PageNumberPagination):
                 links.append(f'<{link}>; rel="{rel}"')
 
         return {"Link": ", ".join(links)}
+
+    def get_paginated_response(self, data):
+        """Override to remove the OrderedDict response"""
+        return Response(data)
 
 
 class CountOverridablePaginator(Paginator):

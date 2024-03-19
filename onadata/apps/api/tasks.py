@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
+from onadata.celeryapp import app
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
@@ -24,7 +25,6 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
 from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.celeryapp import app
 
 
 User = get_user_model()
