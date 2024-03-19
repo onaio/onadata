@@ -25,7 +25,6 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
 from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.libs.utils.logger_tools import persist_cached_entity_updates
 
 
 User = get_user_model()
@@ -183,8 +182,3 @@ def regenerate_form_instance_json(xform_id: int):
             # Clear cache used to store the task id from the AsyncResult
             cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
             safe_delete(cache_key)
-
-
-@app.task
-def persist_cached_entity_updates_async():  # pylint: disable=invalid-name
-    persist_cached_entity_updates()
