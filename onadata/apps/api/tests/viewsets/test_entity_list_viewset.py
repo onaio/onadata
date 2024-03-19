@@ -63,9 +63,6 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         EntityList.objects.create(name="savings", project=self.project)
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
-        # Force metadata entities count update
-        first.metadata = {**first.metadata, "num_entities": 1}
-        first.save()
         second = qs[1]
         third = qs[2]
         # Make request
