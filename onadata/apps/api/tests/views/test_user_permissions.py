@@ -87,6 +87,8 @@ class TestUserPermissions(TestAbstractViewSet):
         # More info: https://code.djangoproject.com/ticket/30024
         data.pop("enketo_preview_url")
         data.pop("last_submission_time")
+        data.pop("contributes_entities_to")
+        data.pop("consumes_entities_from")
 
         request = self.factory.put("/", data=data, **self.extra)
         response = view(request, pk=self.xform.id)
