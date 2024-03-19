@@ -24,10 +24,9 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-from django.core.cache import cache
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -51,7 +50,6 @@ from rest_framework.response import Response
 from onadata.apps.logger.models import (
     Attachment,
     Entity,
-    EntityList,
     Instance,
     RegistrationForm,
     XForm,
@@ -88,12 +86,6 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
-from onadata.libs.utils.cache_tools import (
-    ENTITY_LIST_UPDATES,
-    ENTITY_LIST_UPDATES_INC,
-    ENTITY_LIST_UPDATES_LAST_UPDATE_TIME,
-)
-from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
@@ -1038,77 +1030,9 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         json=instance_json,
         instance=instance,
     )
-
-    # Update the cached data that tracks how many new Entities have
-    # been created since the last job that persists the data to
-    # the DB was last run.
-
-    # "Why not increment the counter stored in the DB at this point
-    # instead of storing it in cache?" you may ask.
-    # Well, to improve performance, we apply the principle of a write-through
-    # cache. The number of submissions can be many and there is no point
-    # of hitting the DB just to increment a simple counter for every new
-    # Entity created. Therefore, we instead increment the value in cache,
-    # then periodically run a cron job to add the value in cache to the
-    # persisted value in the DB (write-through cache). When the job completes,
-    # we delete or reset the cache counter
-
-    last_update_time = entity.updated_at.isoformat()
-    pk = registration_form.entity_list.pk
-    cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
-
-    if (
-        cached_updates.get(pk) is None
-        or cached_updates[pk].get(ENTITY_LIST_UPDATES_INC) is None
-    ):
-        cached_updates[pk] = {ENTITY_LIST_UPDATES_INC: 1}
-
-    else:
-        cached_updates[pk][ENTITY_LIST_UPDATES_INC] += 1
-
-    cached_updates[pk][ENTITY_LIST_UPDATES_LAST_UPDATE_TIME] = last_update_time
-    # We set None as the timeout (no expiry). A cron job responsible for
-    # reading the cache and persisting the data to the database should delete
-    # the cached data upon completion.
-    cache.set(ENTITY_LIST_UPDATES, cached_updates, None)
+    entity_list = registration_form.entity_list
+    entity_list.last_entity_update_time = entity.updated_at
+    entity_list.num_entities = F("num_entities") + 1
+    entity_list.save()
 
     return entity
-
-
-def persist_cached_entity_updates():
-    """Persists the cached entity list updates to the database"""
-    cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
-
-    if not isinstance(cached_updates, dict):
-        safe_delete(ENTITY_LIST_UPDATES)
-        return
-
-    for entity_list_pk, data in list(cached_updates.items()):
-        if not isinstance(data, dict):
-            continue
-
-        try:
-            entity_list = EntityList.objects.get(pk=entity_list_pk)
-
-        except EntityList.DoesNotExist:
-            continue
-
-        if data.get(ENTITY_LIST_UPDATES_INC) is not None:
-            new_num_entities = (
-                entity_list.metadata.get(EntityList.METADATA_NUM_ENTITIES, 0)
-                + data[ENTITY_LIST_UPDATES_INC]
-            )
-            entity_list.metadata[EntityList.METADATA_NUM_ENTITIES] = new_num_entities
-
-        if data.get(ENTITY_LIST_UPDATES_LAST_UPDATE_TIME) is not None:
-            entity_list.metadata[EntityList.METADATA_ENTITY_UPDATE_TIME] = data[
-                ENTITY_LIST_UPDATES_LAST_UPDATE_TIME
-            ]
-
-        entity_list.save()
-        # Delete cached data for EntityList
-        del cached_updates[entity_list_pk]
-
-    # We do not delete the cache key since it may have been updated while
-    # we were persisting the previously cached data
-    cache.set(ENTITY_LIST_UPDATES, cached_updates)

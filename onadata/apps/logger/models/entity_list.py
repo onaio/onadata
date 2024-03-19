@@ -6,17 +6,12 @@ from datetime import datetime
 
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericRelation
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from onadata.apps.logger.models.project import Project
 from onadata.libs.models import AbstractBase
-from onadata.libs.utils.cache_tools import (
-    ENTITY_LIST_UPDATES,
-    ENTITY_LIST_UPDATES_LAST_UPDATE_TIME,
-)
 
 
 class EntityList(AbstractBase):
@@ -24,10 +19,6 @@ class EntityList(AbstractBase):
 
     Entities of the same type are organized in entity lists
     """
-
-    # Keys for the metadata JSON field
-    METADATA_ENTITY_UPDATE_TIME = "last_entity_update_time"
-    METADATA_NUM_ENTITIES = "num_entities"
 
     name = models.CharField(
         max_length=255,
@@ -38,7 +29,8 @@ class EntityList(AbstractBase):
         related_name="entity_lists",
         on_delete=models.CASCADE,
     )
-    metadata = models.JSONField(default=dict)
+    num_entities = models.IntegerField(default=0)
+    last_entity_update_time = models.DateTimeField(blank=True, null=True)
     exports = GenericRelation("viewer.GenericExport")
 
     class Meta(AbstractBase.Meta):
@@ -94,69 +86,6 @@ class EntityList(AbstractBase):
         return latest_entity.updated_at
 
     @property
-    def cached_last_entity_update_time(self) -> datetime | None:
-        """The date and time of the latest Entity to be updated stored in cache
-
-        The data is available in the cache if new Entities have been
-        created since the cron job that persists the data in the
-        database was last run
-
-        Returns:
-            datetime | None: The datetime or None if unvailable
-        """
-        cached_updates: dict[int, dict] = cache.get(ENTITY_LIST_UPDATES, {})
-
-        if cached_updates.get(self.pk) is None:
-            return None
-
-        time_str: str | None = cached_updates[self.pk].get(
-            ENTITY_LIST_UPDATES_LAST_UPDATE_TIME
-        )
-
-        if time_str is None:
-            return None
-
-        try:
-            return datetime.fromisoformat(time_str)
-
-        except ValueError:
-            return None
-
-    @property
-    # pylint: disable=invalid-name
-    def persisted_last_entity_update_time(self) -> datetime | None:
-        """The date and time of the latest Entity to be updated persisted in DB
-
-        Returns:
-            datetime | None: The datetime or None if unvailable
-        """
-        time_str: str | None = self.metadata.get(EntityList.METADATA_ENTITY_UPDATE_TIME)
-
-        if time_str is None:
-            return None
-
-        try:
-            return datetime.fromisoformat(time_str)
-
-        except ValueError:
-            return None
-
-    @property
-    def last_entity_update_time(self) -> datetime | None:
-        """The date and time of the latest Entity to be updated
-
-        First checks the cache, if value not found; checks the
-        persisted value in database
-
-        Returns:
-            datetime | None: The datetime or None if unvailable
-        """
-        return (
-            self.cached_last_entity_update_time
-            or self.persisted_last_entity_update_time
-        )
-
-    @property
     def queried_num_entities(self) -> int:
         """The total number of Entities queried from the database
 
@@ -169,13 +98,3 @@ class EntityList(AbstractBase):
         return Entity.objects.filter(
             registration_form__entity_list=self, deleted_at__isnull=True
         ).count()
-
-    @property
-    def num_entities(self) -> int:
-        """Returns the total number of Entities
-
-        Returns:
-            int: The number of Entities an EntityList dataset
-            has
-        """
-        return self.metadata.get(self.METADATA_NUM_ENTITIES, 0)

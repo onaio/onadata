@@ -29,7 +29,6 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.libs.utils.logger_tools import persist_cached_entity_updates
 
 logger = logging.getLogger(__name__)
 
@@ -259,8 +258,3 @@ def share_project_async(project_id, username, role, remove=False):
     else:
         share = ShareProject(project, username, role, remove)
         share.save()
-
-
-@app.task
-def persist_cached_entity_updates_async():  # pylint: disable=invalid-name
-    persist_cached_entity_updates()
