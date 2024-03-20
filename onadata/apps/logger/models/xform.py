@@ -315,11 +315,11 @@ class XFormMixin:
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
         text_re = re.compile(r"(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)", re.DOTALL)
-        output_re = re.compile("\n.*(<output.*>)\n(  )*")
+        output_re = re.compile(r"\n.*(<output.*>)\n(  )*")
         pretty_xml = text_re.sub(
             lambda m: "".join(m.group(1, 2, 3)), self.xml.decode("utf-8")
         )
-        inline_output = output_re.sub("\g<1>", pretty_xml)  # noqa
+        inline_output = output_re.sub(r"\g<1>", pretty_xml)  # noqa
         inline_output = re.compile(r"<label>\s*\n*\s*\n*\s*</label>").sub(
             "<label></label>", inline_output
         )
