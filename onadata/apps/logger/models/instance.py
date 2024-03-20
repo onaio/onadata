@@ -20,7 +20,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-import pytz
 from deprecated import deprecated
 from taggit.managers import TaggableManager
 
@@ -188,12 +187,7 @@ def _update_submission_count_for_today(
     form_id: int, incr: bool = True, date_created=None
 ):
     # Track submissions made today
-    current_timzone_name = timezone.get_current_timezone_name()
-    current_timezone = pytz.timezone(current_timzone_name)
-    today = datetime.today()
-    current_date = current_timezone.localize(
-        datetime(today.year, today.month, today.day)
-    ).isoformat()
+    current_date = timezone.localtime().isoformat()
     date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}"
     count_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}"
 
@@ -201,8 +195,8 @@ def _update_submission_count_for_today(
         cache.set(date_cache_key, current_date, 86400)
 
     if date_created:
-        date_created = current_timezone.localize(
-            datetime(date_created.year, date_created.month, date_created.day)
+        date_created = date_created.astimezone(
+            timezone.get_current_timezone()
         ).isoformat()
 
     current_count = cache.get(count_cache_key)
