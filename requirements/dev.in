@@ -2,15 +2,16 @@
 -r base.in
 
 django-extensions
-ipdb
-pylint
-pylint-django
-yapf
-isort
-prospector
-httmock
-mock
-requests_mock
-tblib
 flake8
 flaky
+httmock
+ipdb
+isort
+mock
+pre-commit
+prospector
+pylint
+pylint-django
+requests_mock
+tblib
+yapf
