@@ -63,7 +63,7 @@ def add_service(request, username, id_string):
                     message += Template("{{ field.errors }}").render(
                         Context({"field": field})
                     )
-        if request.is_ajax():
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
             response = {"status": status, "message": message}
             if restservice:
                 response["restservice"] = f"{restservice}"
