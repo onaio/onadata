@@ -971,7 +971,7 @@ def charts(request, username, id_string):
 
     summaries = build_chart_data(xform, lang_index, page)
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         template = "charts_snippet.html"
     else:
         template = "charts.html"
