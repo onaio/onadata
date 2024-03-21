@@ -197,6 +197,8 @@ google-auth-oauthlib==1.2.0
     # via onadata
 greenlet==3.0.3
     # via sqlalchemy
+hiredis==2.3.2
+    # via redis
 httplib2==0.22.0
     # via onadata
 idna==3.6
@@ -309,7 +311,9 @@ pyxform==1.12.2
 recaptcha-client==1.0.6
     # via onadata
 redis==5.0.3
-    # via django-redis
+    # via
+    #   django-redis
+    #   onadata
 referencing==0.34.0
     # via
     #   jsonschema
