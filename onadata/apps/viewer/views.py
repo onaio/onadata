@@ -24,10 +24,10 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-import pytz
 import requests
 from dict2xml import dict2xml
 from dpath import util as dpath_util
@@ -56,7 +56,7 @@ from onadata.libs.utils.export_tools import (
     str_to_bool,
 )
 from onadata.libs.utils.google import create_flow
-from onadata.libs.utils.image_tools import image_url, generate_media_download_url
+from onadata.libs.utils.image_tools import generate_media_download_url, image_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
@@ -82,12 +82,12 @@ def _get_start_end_submission_time(request):
     end = None
     try:
         if request.GET.get("start"):
-            start = pytz.timezone("UTC").localize(
-                datetime.strptime(request.GET["start"], "%y_%m_%d_%H_%M_%S")
-            )
+            start = datetime.strptime(
+                request.GET["start"], "%y_%m_%d_%H_%M_%S"
+            ).astimezone(timezone.utc)
         if request.GET.get("end"):
-            end = pytz.timezone("UTC").localize(
-                datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S")
+            end = datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S").astimezone(
+                timezone.utc
             )
     except ValueError:
         return HttpResponseBadRequest(

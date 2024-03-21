@@ -6,7 +6,6 @@ import math
 import sys
 from datetime import datetime
 
-from celery import current_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
@@ -20,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from celery import current_task
 from deprecated import deprecated
 from taggit.managers import TaggableManager
 
@@ -32,8 +32,6 @@ from onadata.apps.logger.xform_instance_parser import (
     get_uuid_from_xml,
 )
 from onadata.celeryapp import app
-from onadata.libs.utils.common_tools import report_exception
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -74,8 +72,9 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID,
     XFORM_ID_STRING,
 )
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 # pylint: disable=invalid-name

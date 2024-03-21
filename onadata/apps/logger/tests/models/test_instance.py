@@ -3,7 +3,7 @@
 Test Instance model.
 """
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from django.http.request import HttpRequest
 from django.test import override_settings
@@ -67,7 +67,7 @@ class TestInstance(TestBase):
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
-        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=timezone.utc)
+        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
             self._publish_transportation_form_and_submit_instance()
@@ -79,7 +79,7 @@ class TestInstance(TestBase):
         )
 
         # After saving the date_modified in json should update
-        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             instance.save()
