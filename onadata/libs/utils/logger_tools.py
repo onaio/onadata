@@ -37,7 +37,6 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
 
-import pytz
 from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
@@ -842,8 +841,7 @@ def set_default_openrosa_headers(response):
     """Sets the default OpenRosa headers into a ``response`` object."""
     response["Content-Type"] = "text/html; charset=utf-8"
     response["X-OpenRosa-Accept-Content-Length"] = DEFAULT_CONTENT_LENGTH
-    tz = pytz.timezone(settings.TIME_ZONE)
-    dt = datetime.now(tz).strftime("%a, %d %b %Y %H:%M:%S %Z")
+    dt = timezone.localtime().strftime("%a, %d %b %Y %H:%M:%S %Z")
     response["Date"] = dt
     response[OPEN_ROSA_VERSION_HEADER] = OPEN_ROSA_VERSION
     response["Content-Type"] = DEFAULT_CONTENT_TYPE

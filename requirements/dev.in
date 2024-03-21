@@ -2,14 +2,13 @@
 -r base.in
 
 django-extensions
-flake8
 flaky
 httmock
 ipdb
 isort
 mock
 pre-commit
-prospector
+prospector>=1.10.3
 pylint
 pylint-django
 requests_mock

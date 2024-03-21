@@ -8,7 +8,6 @@ import codecs
 import csv
 import json
 import os
-import pytz
 import re
 from builtins import open
 from collections import OrderedDict
@@ -33,7 +32,6 @@ from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
 from mock import Mock, patch
-from onadata.libs.utils.api_export_tools import get_existing_file_format
 from rest_framework import status
 
 from onadata.apps.api.tests.mocked_data import (
@@ -58,8 +56,8 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
-from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.logger.views import delete_xform
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
@@ -78,6 +76,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
+from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE,
@@ -3840,7 +3839,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self._publish_xls_form_to_project(xlsform_path=xlsform_path)
             # submit one hxl instance
             _submission_time = parse_datetime("2013-02-18 15:54:01Z")
-            mock_date_modified = datetime(2023, 9, 20, 11, 41, 0, tzinfo=pytz.utc)
+            mock_date_modified = datetime(2023, 9, 20, 11, 41, 0, tzinfo=utc)
 
             with patch(
                 "django.utils.timezone.now", Mock(return_value=mock_date_modified)

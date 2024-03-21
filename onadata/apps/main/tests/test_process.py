@@ -16,9 +16,9 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.test.testcases import SerializeMixin
 from django.urls import reverse
+from django.utils import timezone
 
 import openpyxl
-import pytz
 import requests
 from django_digest.test import Client as DigestClient
 from flaky import flaky
@@ -77,9 +77,9 @@ class TestProcess(TestBase, SerializeMixin):
         """
         for uuid, submission_time in iteritems(self.uuid_to_submission_times):
             i = self.xform.instances.get(uuid=uuid)
-            i.date_created = pytz.timezone("UTC").localize(
-                datetime.strptime(submission_time, MONGO_STRFTIME)
-            )
+            i.date_created = datetime.strptime(
+                submission_time, MONGO_STRFTIME
+            ).astimezone(timezone.utc)
             i.json = i.get_full_dict()
             i.save()
 

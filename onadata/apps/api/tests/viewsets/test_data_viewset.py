@@ -4,15 +4,14 @@ Test /data API endpoint implementation.
 """
 from __future__ import unicode_literals
 
+import csv
 import datetime
 import json
 import logging
 import os
-import pytz
-import csv
-from io import StringIO
 from builtins import open
 from datetime import timedelta
+from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -30,7 +29,7 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import patch, Mock
+from mock import Mock, patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -2374,7 +2373,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_geotraces_in_repeats(self):
         # publish sample geotrace submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2436,7 +2435,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_geoshapes_in_repeats(self):
         # publish sample geoshape submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2507,7 +2506,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_empty_geotraces_in_repeats(self):
         # publish sample geotrace submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2551,7 +2550,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
                             [36.805943, -1.268118],
                             [36.808822, -1.269405],
                         ],
-                    },  
+                    },
                     "properties": {"id": instances[1].pk, "xform": self.xform.pk},
                 },
             ],
@@ -2561,7 +2560,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_empty_geoshapes_in_repeats(self):
         # publish sample geoshape submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -3518,7 +3517,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=pytz.utc)
+        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=timezone.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             self._make_submission_w_attachment(
