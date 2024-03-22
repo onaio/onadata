@@ -175,7 +175,7 @@ djangorestframework-xml==2.0.0
     # via onadata
 dnspython==2.6.1
     # via pymongo
-docutils==0.20.1
+docutils==0.19
     # via sphinx
 dpath==2.1.6
     # via onadata
@@ -358,7 +358,7 @@ six==1.16.0
     #   tableschema
 snowballstemmer==2.2.0
     # via sphinx
-sphinx==7.2.6
+sphinx==6.2.1
     # via onadata
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
