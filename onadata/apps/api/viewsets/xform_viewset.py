@@ -26,7 +26,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
 
 import six
 from django_filters.rest_framework import DjangoFilterBackend
@@ -406,7 +405,6 @@ class XFormViewSet(
         return Response(data=resp, status=resp_code, headers=headers)
 
     @action(methods=["GET", "HEAD"], detail=True)
-    @never_cache
     def form(self, request, **kwargs):
         """Returns the XLSForm in any of JSON, XML, XLS(X), CSV formats."""
         form = self.get_object()
