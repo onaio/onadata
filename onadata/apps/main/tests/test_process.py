@@ -77,9 +77,9 @@ class TestProcess(TestBase, SerializeMixin):
         """
         for uuid, submission_time in iteritems(self.uuid_to_submission_times):
             i = self.xform.instances.get(uuid=uuid)
-            i.date_created = datetime.strptime(
-                submission_time, MONGO_STRFTIME
-            ).astimezone(timezone.utc)
+            i.date_created = datetime.strptime(submission_time, MONGO_STRFTIME).replace(
+                tzinfo=timezone.utc
+            )
             i.json = i.get_full_dict()
             i.save()
 
