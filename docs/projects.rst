@@ -204,7 +204,7 @@ You can share a project with a user or multiple users by ``PUT`` a payload with
 	</pre>
 
 Example 1: Sharing with a specific user
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
     curl -X PUT -d username=alice -d role=readonly https://api.ona.io/api/v1/projects/1/share
@@ -215,8 +215,8 @@ Response
 
     HTTP 204 NO CONTENT
 
-Example 2: Sharing with mutliple users
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example 2: Sharing with more than one user
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
     curl -X PUT -d username=alice,jake -d role=readonly https://api.ona.io/api/v1/projects/1/share
@@ -528,14 +528,14 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X GET https://api.ona.io/api/v1/projects/1/invitations
 
 Response
 ^^^^^^^^
 
 ::
-    
+
         [
             {
                 "id": 1,
@@ -571,16 +571,16 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X GET https://api.ona.io/api/v1/projects/1/invitations?status=2
 
 Response
 ^^^^^^^^
 
 ::
-        
+
         [
-        
+
             {
                 "id": 2,
                 "email":"johndoe@example.com",
@@ -604,7 +604,7 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X POST -d "email=janedoe@example.com" -d "role=readonly" https://api.ona.io/api/v1/projects/1/invitations
 
 
@@ -629,16 +629,16 @@ Response
 ^^^^^^^^
 
 ::
-    
+
         {
             "id": 1,
             "email": "janedoe@example.com",
             "role": "readonly",
             "status": 1,
         }
-    
 
-The link embedded in the email will be of the format ``http://{url}`` 
+
+The link embedded in the email will be of the format ``http://{url}``
 where:
 
 - ``url`` - is the URL the recipient will be redirected to on clicking the link. The default is ``{domain}/api/v1/profiles`` where ``domain`` is domain where the API is hosted.
@@ -667,14 +667,14 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X PUT -d "email=janedoe@example.com" -d "role=editor" -d "invitation_id=1"  https://api.ona.io/api/v1/projects/1/invitations/1
 
 Response
 ^^^^^^^^
 
 ::
-    
+
         {
             "id": 1,
             "email": "janedoe@example.com",
@@ -696,11 +696,11 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/resend-invitation
 
 
-``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend.
 
 - Must be a ``ProjectInvitation`` whose status is **Pending**
 
@@ -708,7 +708,7 @@ Response
 ^^^^^^^^
 
 ::
-    
+
         {
             "message": "Success"
         }
@@ -727,10 +727,10 @@ Example
 ^^^^^^^
 
 ::
-        
+
         curl -X POST -d "invitation_id=6" https://api.ona.io/api/v1/projects/1/revoke-invitation
 
-``invitation_id``: The primary key of the ``ProjectInvitation`` to resend. 
+``invitation_id``: The primary key of the ``ProjectInvitation`` to resend.
 
 - Must be a ``ProjectInvitation`` whose status is **Pending**
 
@@ -738,7 +738,7 @@ Response
 ^^^^^^^^
 
 ::
-    
+
         {
             "message": "Success"
         }

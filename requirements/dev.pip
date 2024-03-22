@@ -196,7 +196,7 @@ djangorestframework-xml==2.0.0
     # via onadata
 dnspython==2.6.1
     # via pymongo
-docutils==0.20.1
+docutils==0.19
     # via sphinx
 dodgy==0.2.1
     # via prospector
@@ -504,7 +504,7 @@ snowballstemmer==2.2.0
     # via
     #   pydocstyle
     #   sphinx
-sphinx==7.2.6
+sphinx==6.2.1
     # via onadata
 sphinxcontrib-applehelp==1.0.8
     # via sphinx
