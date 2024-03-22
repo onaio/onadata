@@ -6,7 +6,6 @@ User authentication API support to access API tokens.
 """
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
-from django.utils.decorators import classonlymethod
 from django.utils.translation import gettext as _
 
 from multidb.pinning import use_master
