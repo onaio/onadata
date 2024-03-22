@@ -186,17 +186,17 @@ def _update_submission_count_for_today(
     form_id: int, incr: bool = True, date_created=None
 ):
     # Track submissions made today
-    current_date = timezone.localtime().isoformat()
-    date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}"
+    current_date = timezone.localdate().isoformat()
+    date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{form_id}"
     count_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}"
 
     if not cache.get(date_cache_key) == current_date:
         cache.set(date_cache_key, current_date, 86400)
 
     if date_created:
-        date_created = date_created.astimezone(
-            timezone.get_current_timezone()
-        ).isoformat()
+        date_created = (
+            date_created.astimezone(timezone.get_current_timezone()).date().isoformat()
+        )
 
     current_count = cache.get(count_cache_key)
     if not current_count and incr:

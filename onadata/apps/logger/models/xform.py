@@ -1158,7 +1158,7 @@ class XForm(XFormMixin, BaseModel):
     @property
     def submission_count_for_today(self):
         """Returns the submissions count for the current day."""
-        current_date = timezone.localtime().isoformat()
+        current_date = timezone.localdate().isoformat()
         count = (
             cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}")
             if cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}")
