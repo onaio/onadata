@@ -49,9 +49,9 @@ backoff==1.10.0
     # via analytics-python
 billiard==4.2.0
     # via celery
-boto3==1.34.68
+boto3==1.34.69
     # via dataflows-tabulator
-botocore==1.34.68
+botocore==1.34.69
     # via
     #   boto3
     #   s3transfer
@@ -84,7 +84,7 @@ click==8.1.7
     #   dataflows-tabulator
     #   datapackage
     #   tableschema
-click-didyoumean==0.3.0
+click-didyoumean==0.3.1
     # via celery
 click-plugins==1.1.1
     # via celery
@@ -95,7 +95,7 @@ cryptography==42.0.5
     #   jwcrypto
     #   onadata
     #   pyjwt
-dataflows-tabulator==1.54.1
+dataflows-tabulator==1.54.3
     # via
     #   datapackage
     #   tableschema
@@ -348,7 +348,7 @@ platformdirs==4.2.0
     #   pylint
     #   virtualenv
     #   yapf
-pre-commit==3.6.2
+pre-commit==3.7.0
     # via -r requirements/dev.in
 prompt-toolkit==3.0.43
     # via
@@ -464,7 +464,7 @@ requests==2.31.0
     #   tableschema
 requests-mock==1.11.0
     # via -r requirements/dev.in
-requests-oauthlib==1.4.0
+requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 requirements-detector==1.2.2
     # via prospector
@@ -518,7 +518,7 @@ sphinxcontrib-qthelp==1.0.7
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
-sqlalchemy==2.0.28
+sqlalchemy==2.0.29
     # via dataflows-tabulator
 sqlparse==0.4.4
     # via

@@ -13,6 +13,7 @@ from builtins import open
 from datetime import timedelta
 from io import StringIO
 from tempfile import NamedTemporaryFile
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.core.cache import cache
@@ -29,7 +30,6 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import Mock, patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -1805,7 +1805,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(records_to_be_deleted),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
+        send_message_mock.assert_called_with(
             [str(i.pk) for i in records_to_be_deleted],
             formid,
             XFORM,
@@ -1905,7 +1905,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(records_to_be_deleted),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
+        send_message_mock.assert_called_with(
             [str(i.pk) for i in records_to_be_deleted],
             formid,
             XFORM,
@@ -2058,7 +2058,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(deleted_instances_subset),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
+        send_message_mock.assert_called_with(
             [str(i.pk) for i in deleted_instances_subset],
             formid,
             XFORM,

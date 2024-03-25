@@ -4,13 +4,13 @@ Test Instance model.
 """
 import os
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 from django.http.request import HttpRequest
 from django.test import override_settings
 from django.utils.timezone import utc
 
 from django_digest.test import DigestAuth
-from mock import Mock, patch
 
 from onadata.apps.logger.models import Instance, SubmissionReview, XForm
 from onadata.apps.logger.models.instance import (

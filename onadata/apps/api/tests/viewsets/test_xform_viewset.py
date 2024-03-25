@@ -14,6 +14,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
+from unittest.mock import Mock, patch
 from xml.dom import Node, minidom
 
 from django.conf import settings
@@ -31,7 +32,6 @@ import jwt
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
-from mock import Mock, patch
 from rest_framework import status
 
 from onadata.apps.api.tests.mocked_data import (
@@ -214,7 +214,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 self.assertEqual(response.status_code, 200)
             # send message upon form update
             self.assertTrue(mock_send_message.called)
-            mock_send_message.called_with(
+            mock_send_message.assert_called_with(
                 self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
             )
 

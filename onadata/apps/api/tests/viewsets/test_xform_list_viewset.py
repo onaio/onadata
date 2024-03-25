@@ -1,13 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Test XFormListViewSet module.
+"""
 import os
 from builtins import open
 from hashlib import md5
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TransactionTestCase
 from django.urls import reverse
+
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -16,10 +21,14 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     XFormListViewSet,
 )
 from onadata.apps.main.models import MetaData
-from onadata.libs.permissions import DataEntryRole, ReadOnlyRole, OwnerRole
+from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
+    """
+    Test XFormListViewSet module.
+    """
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = XFormListViewSet.as_view({"get": "list"})

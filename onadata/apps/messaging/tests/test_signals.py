@@ -4,10 +4,12 @@ Tests Messaging app signals.
 """
 from __future__ import unicode_literals
 
-from actstream.models import Action
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.test.utils import override_settings
-from mock import patch
+
+from actstream.models import Action
 
 from onadata.apps.messaging.signals import messaging_backends_handler
 
@@ -20,12 +22,11 @@ class TestSignals(TestCase):
     # pylint: disable=invalid-name
     @override_settings(
         NOTIFICATION_BACKENDS={
-            'mqtt': {
-                'BACKEND': 'onadata.apps.messaging.backends.base.BaseBackend'
-            },
+            "mqtt": {"BACKEND": "onadata.apps.messaging.backends.base.BaseBackend"},
         },
-        MESSAGING_ASYNC_NOTIFICATION=True)
-    @patch('onadata.apps.messaging.signals.call_backend_async.apply_async')
+        MESSAGING_ASYNC_NOTIFICATION=True,
+    )
+    @patch("onadata.apps.messaging.signals.call_backend_async.apply_async")
     def test_messaging_backends_handler_async(self, call_backend_async_mock):
         """
         Test messaging backends handler function.
@@ -33,15 +34,15 @@ class TestSignals(TestCase):
         messaging_backends_handler(Action, instance=Action(id=9), created=True)
         self.assertTrue(call_backend_async_mock.called)
         call_backend_async_mock.assert_called_with(
-            ('onadata.apps.messaging.backends.base.BaseBackend', 9, None),
-            countdown=2)
+            ("onadata.apps.messaging.backends.base.BaseBackend", 9, None), countdown=2
+        )
 
-    @override_settings(NOTIFICATION_BACKENDS={
-        'mqtt': {
-            'BACKEND': 'onadata.apps.messaging.backends.base.BaseBackend'
-        },
-    })
-    @patch('onadata.apps.messaging.signals.call_backend')
+    @override_settings(
+        NOTIFICATION_BACKENDS={
+            "mqtt": {"BACKEND": "onadata.apps.messaging.backends.base.BaseBackend"},
+        }
+    )
+    @patch("onadata.apps.messaging.signals.call_backend")
     def test_messaging_backends_handler(self, call_backend_mock):
         """
         Test messaging backends handler function.
@@ -49,4 +50,5 @@ class TestSignals(TestCase):
         messaging_backends_handler(Action, instance=Action(id=9), created=True)
         self.assertTrue(call_backend_mock.called)
         call_backend_mock.assert_called_with(
-            'onadata.apps.messaging.backends.base.BaseBackend', 9, None)
+            "onadata.apps.messaging.backends.base.BaseBackend", 9, None
+        )

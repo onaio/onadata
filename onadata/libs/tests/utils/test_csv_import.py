@@ -4,27 +4,26 @@ import os
 import re
 from builtins import open
 from io import BytesIO
+from unittest.mock import patch
 from xml.etree.ElementTree import fromstring
 
-import mock
+from django.conf import settings
+
 import unicodecsv as ucsv
 from celery.backends.rpc import BacklogLimitExceeded
-from django.conf import settings
-from mock import patch
 
 from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import (
-    XFORM,
-    SUBMISSION_EDITED,
     SUBMISSION_CREATED,
+    SUBMISSION_EDITED,
+    XFORM,
 )
 from onadata.libs.utils import csv_import
 from onadata.libs.utils.common_tags import IMPORTED_VIA_CSV_BY
-from onadata.libs.utils.csv_import import get_submission_meta_dict
+from onadata.libs.utils.csv_import import get_columns_by_type, get_submission_meta_dict
 from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.utils.csv_import import get_columns_by_type
 
 
 def strip_xml_uuid(s):
@@ -60,7 +59,7 @@ class CSVImportTestCase(TestBase):
         resp = csv_import.submit_csv("userX", XForm(), 123456)
         self.assertIsNotNone(resp.get("error"))
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
     def test_submit_csv_xml_params(self, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -87,8 +86,8 @@ class CSVImportTestCase(TestBase):
         )
         self.assertEqual(safe_create_args[4], None)
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
-    @mock.patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
     def test_submit_csv_xml_location_property_test(self, d2x, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -173,7 +172,7 @@ class CSVImportTestCase(TestBase):
         )
         # message sent upon submission edit
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
+        send_message_mock.assert_called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
 
     def test_import_non_utf8_csv(self):
         xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xlsx")
@@ -309,7 +308,7 @@ class CSVImportTestCase(TestBase):
         # repeats should be 6
         self.assertEqual(6, len(instance.json.get("children")))
 
-    @mock.patch("onadata.libs.utils.csv_import.AsyncResult")
+    @patch("onadata.libs.utils.csv_import.AsyncResult")
     def test_get_async_csv_submission_status(self, AsyncResult):
         result = csv_import.get_async_csv_submission_status(None)
         self.assertEqual(result, {"error": "Empty job uuid", "job_status": "FAILURE"})
@@ -383,7 +382,7 @@ class CSVImportTestCase(TestBase):
 
         self.assertEqual(g_csv_reader.fieldnames[10], c_csv_reader.fieldnames[10])
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
     def test_submit_csv_instance_id_consistency(self, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -426,7 +425,7 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(self.xform.num_of_submissions, count + 1)
         # message sent upon submission creation
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_CREATED)
+        send_message_mock.assert_called_with(self.xform.id, XFORM, SUBMISSION_CREATED)
 
     def test_excel_date_conversion(self):
         """Convert date from 01/01/1900 to 01-01-1900"""

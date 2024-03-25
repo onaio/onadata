@@ -7,6 +7,7 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 from operator import itemgetter
+from unittest.mock import MagicMock, Mock, patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -18,7 +19,6 @@ from django.utils import timezone
 import dateutil.parser
 import requests
 from httmock import HTTMock, urlmatch
-from mock import MagicMock, Mock, patch
 from rest_framework.authtoken.models import Token
 from six import iteritems
 

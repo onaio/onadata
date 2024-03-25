@@ -10,6 +10,7 @@ import re
 from datetime import datetime
 from hashlib import md5
 from io import BytesIO
+from unittest.mock import patch
 from xml.dom import Node, minidom
 
 from django.conf import settings
@@ -22,7 +23,6 @@ import openpyxl
 import requests
 from django_digest.test import Client as DigestClient
 from flaky import flaky
-from mock import patch
 from six import iteritems
 
 from onadata.apps.logger.models import XForm

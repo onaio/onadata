@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Tests the MediaViewSet.
+"""
+# pylint: disable=too-many-lines
 import os
 import urllib
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
-from mock import MagicMock, patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
@@ -103,7 +108,6 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
     @patch("onadata.libs.utils.image_tools.get_storage_class")
     @patch("onadata.libs.utils.image_tools.boto3.client")
     def test_retrieve_view_from_s3(self, mock_presigned_urls, mock_get_storage_class):
-
         expected_url = (
             "https://testing.s3.amazonaws.com/doe/attachments/"
             "4_Media_file/media.png?"
