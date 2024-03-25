@@ -84,10 +84,10 @@ def _get_start_end_submission_time(request):
         if request.GET.get("start"):
             start = datetime.strptime(
                 request.GET["start"], "%y_%m_%d_%H_%M_%S"
-            ).astimezone(timezone.utc)
+            ).replace(tzinfo=timezone.utc)
         if request.GET.get("end"):
-            end = datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S").astimezone(
-                timezone.utc
+            end = datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S").replace(
+                tzinfo=timezone.utc
             )
     except ValueError:
         return HttpResponseBadRequest(
