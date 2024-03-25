@@ -67,11 +67,11 @@ class TestSubmissionReviewViewSet(TestBase):
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
         mock_send_message.assert_called_with(
-            submission_review.id,
-            submission_review.instance.xform.id,
-            XFORM,
-            submission_review.created_by,
-            SUBMISSION_REVIEWED,
+            instance_id=submission_review.instance_id,
+            target_id=submission_review.instance.xform.id,
+            target_type=XFORM,
+            user=submission_review.created_by,
+            message_verb=SUBMISSION_REVIEWED,
         )
 
     @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
@@ -102,11 +102,11 @@ class TestSubmissionReviewViewSet(TestBase):
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
         mock_send_message.assert_called_with(
-            [s.id for s in self.xform.instances.all()],
-            self.xform.id,
-            XFORM,
-            request.user,
-            SUBMISSION_REVIEWED,
+            instance_id=[s.id for s in self.xform.instances.all()],
+            target_id=self.xform.id,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_REVIEWED,
         )
         for item in response.data:
             # the note should match what we provided

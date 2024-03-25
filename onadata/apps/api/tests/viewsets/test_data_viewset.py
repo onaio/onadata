@@ -1806,11 +1806,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         self.assertTrue(send_message_mock.called)
         send_message_mock.assert_called_with(
-            [str(i.pk) for i in records_to_be_deleted],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
@@ -1906,11 +1906,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         self.assertTrue(send_message_mock.called)
         send_message_mock.assert_called_with(
-            [str(i.pk) for i in records_to_be_deleted],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.num_of_submissions
@@ -2059,11 +2059,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         self.assertTrue(send_message_mock.called)
         send_message_mock.assert_called_with(
-            [str(i.pk) for i in deleted_instances_subset],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+            instance_id=[str(i.pk) for i in deleted_instances_subset],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
 
         # Test that num of submissions for the form is successfully updated
