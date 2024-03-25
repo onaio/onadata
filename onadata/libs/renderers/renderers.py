@@ -53,7 +53,7 @@ def floip_rows_list(data):
     """
     try:
         _submission_time = (
-            parse_datetime(data["_submission_time"]).astimezone(timezone.utc)
+            parse_datetime(data["_submission_time"]).replace(tzinfo=timezone.utc)
         ).isoformat()
 
     except ValueError:
