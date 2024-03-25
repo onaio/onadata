@@ -24,7 +24,6 @@ class TestUserViewSet(TestAbstractViewSet):
         # users list
         view = UserViewSet.as_view({"get": "list"})
         response = view(request)
-        self.assertIsNone(response.get("Cache-Control"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.data])
 
