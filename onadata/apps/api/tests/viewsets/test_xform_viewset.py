@@ -215,7 +215,11 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             # send message upon form update
             self.assertTrue(mock_send_message.called)
             mock_send_message.assert_called_with(
-                self.xform.id, self.xform.id, XFORM, request.user, FORM_UPDATED
+                instance_id=self.xform.id,
+                target_id=self.xform.id,
+                target_type=XFORM,
+                user=request.user,
+                message_verb=FORM_UPDATED,
             )
 
     def test_form_publishing_using_invalid_text_xls_form(self):
