@@ -1,6 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Test OSMViewSet module.
+"""
 import csv
 import os
 from io import StringIO
+from unittest.mock import patch
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -8,8 +13,6 @@ from django.db.transaction import TransactionManagementError
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
-
-from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
@@ -25,6 +28,10 @@ from onadata.libs.utils.osm import save_osm_data
 
 
 class TestOSMViewSet(TestAbstractViewSet):
+    """
+    Test OSMViewSet module.
+    """
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self._login_user_and_profile()

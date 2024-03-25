@@ -6,21 +6,21 @@ Tests the UserProfileViewSet.
 import datetime
 import json
 import os
-from six.moves.urllib.parse import urlparse, parse_qs
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
-from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 import requests
 from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
-from mock import patch, call
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
@@ -30,9 +30,8 @@ from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
 from onadata.libs.authentication import DigestAuthentication
-from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
 from onadata.libs.permissions import EditorRole
-
+from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
 
 User = get_user_model()
 

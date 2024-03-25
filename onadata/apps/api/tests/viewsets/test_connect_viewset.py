@@ -2,8 +2,8 @@
 """
 Test /user API endpoint
 """
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -12,19 +12,19 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
+
 from django_digest.backend.db import update_partial_digests
-from django_digest.test import DigestAuth, BasicAuth
-from mock import patch
+from django_digest.test import BasicAuth, DigestAuth
 from rest_framework import authentication
 from rest_framework.authtoken.models import Token
 
-from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.models.odk_token import ODKToken
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
-from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
 

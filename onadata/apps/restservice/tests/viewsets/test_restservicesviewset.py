@@ -2,9 +2,9 @@
 """
 Test /restservices API endpoint implementation.
 """
-from django.test.utils import override_settings
+from unittest.mock import patch
 
-from mock import patch
+from django.test.utils import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.main.models.meta_data import MetaData

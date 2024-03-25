@@ -1,27 +1,26 @@
-import jwt
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.test import TestCase
 from django.http.request import HttpRequest
+from django.test import TestCase
 
-from mock import patch, MagicMock
+import jwt
 from oauth2_provider.models import AccessToken
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models.temp_token import TempToken
-from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.authentication import (
     DigestAuthentication,
+    MasterReplicaOAuth2Validator,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
     check_lockout,
     get_api_token,
-    MasterReplicaOAuth2Validator,
 )
-
+from onadata.libs.utils.common_tags import API_TOKEN
 
 JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "jwt")
 JWT_ALGORITHM = getattr(settings, "JWT_ALGORITHM", "HS256")

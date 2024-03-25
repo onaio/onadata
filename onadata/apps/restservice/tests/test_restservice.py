@@ -4,11 +4,10 @@ Test RestService model
 """
 import os
 import time
+from unittest.mock import patch
 
 from django.test.utils import override_settings
 from django.urls import reverse
-
-from mock import patch
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData

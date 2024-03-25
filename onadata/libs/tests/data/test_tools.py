@@ -1,19 +1,27 @@
-from datetime import datetime, timedelta
-from django.utils.timezone import utc
+# -*- coding: utf-8 -*-
+"""
+Test onadata.libs.data.query module
+"""
 import os
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
-from mock import patch
+from django.utils.timezone import utc
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.data.query import (
-    get_form_submissions_grouped_by_field,
     get_date_fields,
     get_field_records,
+    get_form_submissions_grouped_by_field,
 )
 
 
 class TestTools(TestBase):
+    """
+    Test onadata.libs.data.query module
+    """
+
     def setUp(self):
         super().setUp()
         self._create_user_and_login()
