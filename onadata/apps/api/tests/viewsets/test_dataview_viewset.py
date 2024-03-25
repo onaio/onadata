@@ -212,7 +212,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
         response_data = json.loads(json.dumps(response.data))
         self.assertEqual(
-            response_data, {"detail": "No Attachment matches the given query"}
+            response_data, {"detail": "No Attachment matches the given query."}
         )
 
         # a user with permissions can view a specific attachment object
