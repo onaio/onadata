@@ -55,6 +55,7 @@ from onadata.libs.permissions import (
     get_role,
     get_role_in_org,
     is_organization,
+    get_team_project_default_permissions,
 )
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
@@ -75,6 +76,7 @@ from onadata.libs.utils.logger_tools import (
     publish_form,
     response_with_mimetype_and_name,
 )
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import (
     set_project_perms_to_xform,
     set_project_perms_to_xform_async,
@@ -227,11 +229,21 @@ def remove_user_from_team(team, user):
             remove_perm(perm.codename, user, members_team)
 
 
-def add_user_to_organization(organization, user):
+def add_user_to_organization(organization, user, role=None):
     """Add a user to an organization"""
 
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
+
+    if role is not None:
+        role_cls = ROLES.get(role)
+        role_cls.add(user, organization)
+
+        if role == OwnerRole.name:
+            role_cls.add(user, organization.userprofile_ptr)
+            # Add user to their respective team
+            owners_team = get_or_create_organization_owners_team(organization)
+            add_user_to_team(owners_team, user)
 
 
 def get_organization_members(organization):
@@ -814,3 +826,30 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
+
+
+def add_user_to_org_and_share_projects(organization, user, org_role):
+    """Add user to organization and share all projects"""
+    add_user_to_organization(organization, user, org_role)
+
+    def share(project, role):
+        share = ShareProject(project, user.username, role)
+        share.save()
+
+    project_qs = organization.user.project_org.all()
+
+    if org_role in [OwnerRole.name, ManagerRole.name]:
+        for project in queryset_iterator(project_qs):
+            share(project, org_role)
+
+    else:
+        team = get_organization_members_team(organization)
+
+        for project in queryset_iterator(project_qs):
+            if project.created_by == user:
+                share(project, org_role)
+            else:
+                # Assign default permissions to non-admins or if the project
+                # wasn't created by user
+                project_role = get_team_project_default_permissions(team, project)
+                share(project, project_role)

@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
@@ -182,3 +183,21 @@ def regenerate_form_instance_json(xform_id: int):
             # Clear cache used to store the task id from the AsyncResult
             cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
             safe_delete(cache_key)
+
+
+@app.task()
+def add_user_to_org_and_share_projects_async(org_id, user_id, role):
+    """Add user to organization and share projects asynchronously"""
+    organization = OrganizationProfile.objects.get(pk=org_id)
+    user = User.objects.get(pk=user_id)
+
+    tools.add_user_to_org_and_share_projects(organization, user, role)
+
+
+@app.task()
+def remove_user_from_org_async(org_id, user_id):
+    """Remove user from organization asynchronously"""
+    organization = OrganizationProfile.objects.get(pk=org_id)
+    user = User.objects.get(pk=user_id)
+
+    tools.remove_user_from_organization(organization, user)
