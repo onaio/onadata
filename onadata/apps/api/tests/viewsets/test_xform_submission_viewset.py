@@ -4,6 +4,7 @@ Test XFormSubmissionViewSet module.
 """
 import os
 from builtins import open  # pylint: disable=redefined-builtin
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -11,7 +12,6 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import UnreadablePostError
 from django.test import TransactionTestCase
 
-import mock
 import simplejson as json
 from django_digest.test import DigestAuth
 
@@ -843,7 +843,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         data_responses = [i[4] for i in json.loads(data)]
         self.assertTrue(any(i in data_responses for i in instance_json.values()))
 
-    @mock.patch(
+    @patch(
         "onadata.apps.api.viewsets.xform_submission_viewset.SubmissionSerializer"
     )  # noqa
     def test_post_submission_unreadable_post_error(self, MockSerializer):
@@ -1232,7 +1232,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
 
-    @mock.patch.object(ServiceDefinition, "send")
+    @patch.object(ServiceDefinition, "send")
     def test_new_submission_sent_to_rapidpro(self, mock_send):
         """Submission created is sent to RapidPro"""
         rest_service = RestService.objects.create(
@@ -1276,7 +1276,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 instance = Instance.objects.all().order_by("-pk")[0]
                 mock_send.assert_called_once_with(rest_service.service_url, instance)
 
-    @mock.patch.object(ServiceDefinition, "send")
+    @patch.object(ServiceDefinition, "send")
     def test_edit_submission_sent_to_rapidpro(self, mock_send):
         """Submission edited is sent to RapidPro"""
         rest_service = RestService.objects.create(
