@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/azure.pip --strip-extras requirements/azure.in
 #
-asgiref==3.7.2
+asgiref==3.8.1
     # via django
 azure-core==1.30.1
     # via
@@ -22,7 +22,7 @@ cryptography==42.0.5
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==4.0
+django==4.1.13
     # via
     #   -r requirements/azure.in
     #   django-storages
