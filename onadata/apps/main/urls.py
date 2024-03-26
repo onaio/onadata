@@ -368,42 +368,42 @@ urlpatterns = [
     re_path(
         r"^(?P<username>[^/]+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-username",
     ),
     re_path(
         r"^projects/(?P<project_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-projects",
     ),
     re_path(
         r"^enketo/(?P<xform_pk>\w+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-enketo",
     ),
     re_path(
         r"^forms/(?P<xform_pk>\w+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-forms",
     ),
     re_path(
         r"^enketo-preview/(?P<xform_pk>\w+)/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-enketo-preview",
     ),
     re_path(
         r"^(?P<username>[^/]+)/(?P<xform_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-username-xform",
     ),
     re_path(
         r"^preview/(?P<username>[^/]+)/(?P<xform_pk>\d+)/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-preview-xform",
     ),
     re_path(
         r"^preview/(?P<username>[^/]+)/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
-        name="form-list",
+        name="form-list-preview-username",
     ),
     re_path(
         r"^(?P<username>[^/]+)/xformsManifest/(?P<pk>[\d+^/]+)$",
