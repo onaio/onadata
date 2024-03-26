@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v3.19.0(2024-03-26)
+-------------------
+- Security Remediations
+  `PR #2569 <https://github.com/onaio/onadata/pull/2569>`
+  [@KipSigei]
+- Add Instance History indexing to checksum & uuid fields
+  `PR #2564 <https://github.com/onaio/onadata/pull/2564>`
+  [@KipSigei]
+- Add migration to update old enketo urls
+  `PR #2552 <https://github.com/onaio/onadata/pull/2552>`
+  [@ciremusyoka]
+- Ignore child questions of grouped sections within repeating sections during CSV export
+  `PR #2559 <https://github.com/onaio/onadata/pull/2559>`
+  [@kelvin-muchiri]
+
 v3.18.2(2024-02-23)
 -------------------
 - Improve perfomance of /status endpoint
