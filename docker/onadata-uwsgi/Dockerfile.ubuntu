@@ -13,7 +13,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20240123
+FROM ubuntu:focal-20240123 as base
 
 ARG release_version=v3.18.2
 
@@ -48,31 +48,31 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y && apt-get update -q
 
 # Install OnaData Dependencies
 RUN apt-get install -y --no-install-recommends \
-        libproj-dev \
-        gdal-bin \
-        memcached \
-        libmemcached-dev \
-        supervisor \
-        python3.10 \
-        python3.10-dev \
-        python3-pip \
-        python3-setuptools \
-        libssl-dev \
-        libpq-dev \
-        gfortran \
-        libatlas-base-dev \
-        libjpeg-dev \
-        libxml2-dev \
-        libxslt1-dev \
-        libpython3.10-dev \
-        zlib1g-dev \
-        ghostscript \
-        python3-celery \
-        python3-sphinx \
-        libtool \
-        openjdk-11-jre-headless \
-        libpcre3 \
-        libpcre3-dev \
+    libproj-dev \
+    gdal-bin \
+    memcached \
+    libmemcached-dev \
+    supervisor \
+    python3.10 \
+    python3.10-dev \
+    python3-pip \
+    python3-setuptools \
+    libssl-dev \
+    libpq-dev \
+    gfortran \
+    libatlas-base-dev \
+    libjpeg-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libpython3.10-dev \
+    zlib1g-dev \
+    ghostscript \
+    python3-celery \
+    python3-sphinx \
+    libtool \
+    openjdk-11-jre-headless \
+    libpcre3 \
+    libpcre3-dev \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
@@ -100,12 +100,16 @@ RUN python3.10 -m pip install --no-cache-dir -U pip && \
     python3.10 -m pip install setuptools==65.5.1 && \
     python3.10 -m pip install --no-cache-dir pyyaml uwsgitop
 
-
+FROM base as docs
 # Compile API Docs
 RUN make -C docs html
 
+FROM base as runserver
+
 EXPOSE 8000
+
+USER onadata
 
 CMD ["/usr/local/bin/uwsgi", "--ini", "/uwsgi.ini"]
 
-USER onadata
+
