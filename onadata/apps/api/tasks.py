@@ -186,16 +186,16 @@ def regenerate_form_instance_json(xform_id: int):
 
 
 @app.task()
-def add_user_to_org_and_share_projects_async(org_id, user_id, role):
+def add_org_user_and_share_projects_async(org_id, user_id, role):
     """Add user to organization and share projects asynchronously"""
     organization = OrganizationProfile.objects.get(pk=org_id)
     user = User.objects.get(pk=user_id)
 
-    tools.add_user_to_org_and_share_projects(organization, user, role)
+    tools.add_org_user_and_share_projects(organization, user, role)
 
 
 @app.task()
-def remove_user_from_org_async(org_id, user_id):
+def remove_org_user_async(org_id, user_id):
     """Remove user from organization asynchronously"""
     organization = OrganizationProfile.objects.get(pk=org_id)
     user = User.objects.get(pk=user_id)

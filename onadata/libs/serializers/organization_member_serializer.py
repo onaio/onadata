@@ -13,8 +13,8 @@ from onadata.apps.api.tools import (
     get_organization_members,
 )
 from onadata.apps.api.tasks import (
-    add_user_to_org_and_share_projects_async,
-    remove_user_from_org_async,
+    add_org_user_and_share_projects_async,
+    remove_org_user_async,
 )
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (
@@ -117,10 +117,10 @@ class OrganizationMemberSerializer(serializers.Serializer):
             user = User.objects.get(username=username)
 
             if remove:
-                remove_user_from_org_async.apply_async(args=[organization.pk, user.pk])
+                remove_org_user_async.apply_async(args=[organization.pk, user.pk])
 
             else:
-                add_user_to_org_and_share_projects_async.apply_async(
+                add_org_user_and_share_projects_async.apply_async(
                     args=[organization.pk, user.pk, role]
                 )
 

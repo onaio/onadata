@@ -832,7 +832,9 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     return resp
 
 
-def add_user_to_org_and_share_projects(organization, user, org_role):
+def add_org_user_and_share_projects(
+    organization: OrganizationProfile, user, org_role: str = None
+):
     """Add user to organization and share all projects"""
     add_user_to_organization(organization, user, org_role)
 
