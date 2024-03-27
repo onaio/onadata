@@ -24,7 +24,6 @@ from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-import pytz
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
@@ -315,11 +314,11 @@ class XFormMixin:
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
         text_re = re.compile(r"(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)", re.DOTALL)
-        output_re = re.compile("\n.*(<output.*>)\n(  )*")
+        output_re = re.compile(r"\n.*(<output.*>)\n(  )*")
         pretty_xml = text_re.sub(
             lambda m: "".join(m.group(1, 2, 3)), self.xml.decode("utf-8")
         )
-        inline_output = output_re.sub("\g<1>", pretty_xml)  # noqa
+        inline_output = output_re.sub(r"\g<1>", pretty_xml)  # noqa
         inline_output = re.compile(r"<label>\s*\n*\s*\n*\s*</label>").sub(
             "<label></label>", inline_output
         )
@@ -1159,12 +1158,7 @@ class XForm(XFormMixin, BaseModel):
     @property
     def submission_count_for_today(self):
         """Returns the submissions count for the current day."""
-        current_timzone_name = timezone.get_current_timezone_name()
-        current_timezone = pytz.timezone(current_timzone_name)
-        today = datetime.today()
-        current_date = current_timezone.localize(
-            datetime(today.year, today.month, today.day)
-        ).isoformat()
+        current_date = timezone.localdate().isoformat()
         count = (
             cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}")
             if cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}")

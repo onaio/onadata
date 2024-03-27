@@ -1,22 +1,26 @@
+# -*- coding: utf-8 -*-
+"""
+Test ChartsViewSet.
+"""
 import json
 import os
-import mock
+from unittest.mock import patch
 
-from django.utils import timezone
 from django.core.cache import cache
+from django.db.utils import DataError
 from django.test.utils import override_settings
-from rest_framework.test import APIClient
-from rest_framework.test import APIRequestFactory
-from rest_framework.test import force_authenticate
+from django.utils import timezone
+
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
+
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
-from django.db.utils import DataError
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.renderers.renderers import DecimalJSONRenderer
+from onadata.libs.utils.cache_tools import XFORM_CHARTS
 from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.utils.cache_tools import XFORM_CHARTS
-from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
 def raise_data_error(a):
@@ -48,7 +52,6 @@ MD2 = """
 
 
 class TestChartsViewSet(TestBase):
-
     def setUp(self):
         super(self.__class__, self).setUp()
         # publish tutorial form as it has all the different field types
@@ -193,7 +196,7 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data["field_name"], "date")
         self.assertEqual(response.data["data_type"], "time_based")
 
-    @mock.patch("onadata.libs.data.query._execute_query", side_effect=raise_data_error)
+    @patch("onadata.libs.data.query._execute_query", side_effect=raise_data_error)
     def test_get_on_date_field_with_invalid_data(self, mock_execute_query):
         data = {"field_name": "date"}
         request = self.factory.get("/charts", data)

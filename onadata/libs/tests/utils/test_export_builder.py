@@ -13,10 +13,10 @@ import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
+from unittest.mock import patch
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
-from mock import patch
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls

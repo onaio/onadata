@@ -2,10 +2,11 @@
 """
 Test onadata.libs.utils.project_utils
 """
+from unittest.mock import MagicMock, patch
+
 from django.test.utils import override_settings
 
 from kombu.exceptions import OperationalError
-from mock import MagicMock, patch
 from requests import Response
 
 from onadata.apps.logger.models import Project

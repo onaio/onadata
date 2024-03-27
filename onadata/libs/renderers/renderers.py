@@ -13,7 +13,6 @@ from django.utils.dateparse import parse_datetime
 from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
 
-import pytz
 import six
 from rest_framework import negotiation
 from rest_framework.renderers import (
@@ -54,10 +53,8 @@ def floip_rows_list(data):
     """
     try:
         _submission_time = (
-            pytz.timezone("UTC")
-            .localize(parse_datetime(data["_submission_time"]))
-            .isoformat()
-        )
+            parse_datetime(data["_submission_time"]).replace(tzinfo=timezone.utc)
+        ).isoformat()
 
     except ValueError:
         _submission_time = data["_submission_time"]

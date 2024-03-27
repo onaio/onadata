@@ -1,17 +1,15 @@
-
 """Tests for onadata.apps.main.signals module"""
 
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-import pytz
-
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
+from onadata.apps.logger.models import Project, ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import ProjectInvitation, Project
-from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.permissions import EditorRole, ManagerRole
+from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
 
@@ -27,7 +25,7 @@ class AcceptProjectInvitationTestCase(TestBase):
             project=self.project,
             role="editor",
         )
-        self.mocked_now = datetime(2023, 6, 21, 14, 29, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 6, 21, 14, 29, 0, tzinfo=timezone.utc)
 
     def test_accept_invitation(self):
         """Accept invitation works"""

@@ -106,7 +106,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+          python -Wa manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
   unit-tests-2:
     name: Django Unit Tests (API, Logger)
     runs-on: ubuntu-22.04
@@ -164,7 +164,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python manage.py test onadata/apps/api onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
+          python -Wa manage.py test onadata/apps/api onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4
   security-check:
     name: Trivy Security Checks
     runs-on: ubuntu-22.04

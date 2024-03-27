@@ -6,9 +6,7 @@ User authentication API support to access API tokens.
 """
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
-from django.utils.decorators import classonlymethod
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
 
 from multidb.pinning import use_master
 from rest_framework import mixins, status, viewsets
@@ -203,9 +201,3 @@ class ConnectViewSet(
             data={"odk_token": token.raw_key, "expires": token.expires},
             status=status_code,
         )
-
-    @classonlymethod
-    def as_view(cls, actions=None, **initkwargs):  # noqa
-        view = super(ConnectViewSet, cls).as_view(actions, **initkwargs)
-
-        return never_cache(view)

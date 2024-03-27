@@ -193,7 +193,7 @@ def clone_xlsform(request, username):
 
     context = {"message": message, "message_list": message_list}
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         res = (
             loader.render_to_string("message.html", context=context, request=request)
             .replace("'", r"\'")
@@ -915,7 +915,7 @@ def edit(request, username, id_string):  # noqa C901
 
         xform.update()
 
-        if request.is_ajax():
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return HttpResponse(_("Updated succeeded."))
         return HttpResponseRedirect(
             reverse(show, kwargs={"username": username, "id_string": id_string})
@@ -1327,7 +1327,7 @@ def set_perm(request, username, id_string):  # noqa C901
             request,
         )
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"status": "success"})
 
     return HttpResponseRedirect(

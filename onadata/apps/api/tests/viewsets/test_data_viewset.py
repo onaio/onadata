@@ -4,16 +4,16 @@ Test /data API endpoint implementation.
 """
 from __future__ import unicode_literals
 
+import csv
 import datetime
 import json
 import logging
 import os
-import pytz
-import csv
-from io import StringIO
 from builtins import open
 from datetime import timedelta
+from io import StringIO
 from tempfile import NamedTemporaryFile
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.core.cache import cache
@@ -30,7 +30,6 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import patch, Mock
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -1806,12 +1805,12 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(records_to_be_deleted),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [str(i.pk) for i in records_to_be_deleted],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
@@ -1906,12 +1905,12 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(records_to_be_deleted),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [str(i.pk) for i in records_to_be_deleted],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.num_of_submissions
@@ -2059,12 +2058,12 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(deleted_instances_subset),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [str(i.pk) for i in deleted_instances_subset],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in deleted_instances_subset],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
 
         # Test that num of submissions for the form is successfully updated
@@ -2374,7 +2373,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_geotraces_in_repeats(self):
         # publish sample geotrace submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2436,7 +2435,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_geoshapes_in_repeats(self):
         # publish sample geoshape submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2507,7 +2506,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_empty_geotraces_in_repeats(self):
         # publish sample geotrace submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -2551,7 +2550,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
                             [36.805943, -1.268118],
                             [36.808822, -1.269405],
                         ],
-                    },  
+                    },
                     "properties": {"id": instances[1].pk, "xform": self.xform.pk},
                 },
             ],
@@ -2561,7 +2560,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_empty_geoshapes_in_repeats(self):
         # publish sample geoshape submissions
         md = """
-        | survey | 
+        | survey |
         |        | type         | name           | label           | required | calculation |
         |        | begin repeat | segment        | Waterway trace  |          |             |
         |        | calculate    | point_position |                 |          | position(..)|
@@ -3518,7 +3517,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=pytz.utc)
+        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=timezone.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             self._make_submission_w_attachment(

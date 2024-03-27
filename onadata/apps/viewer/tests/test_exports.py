@@ -1,49 +1,53 @@
+# -*- coding: utf-8 -*-
+"""
+Test exports
+"""
 import csv
 import datetime
 import json
 import os
 from io import StringIO
 from time import sleep
+from unittest.mock import patch
 
-import openpyxl
-
-from celery import current_app
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.http import Http404
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
-from mock import patch
+
+import openpyxl
+from celery import current_app
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import delete_data
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.parsed_instance import query_data, query_count
+from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.tasks import create_xlsx_export
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.apps.viewer.views import (
-    delete_export,
-    export_list,
     create_export,
-    export_progress,
+    delete_export,
     export_download,
+    export_list,
+    export_progress,
 )
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_builder import dict_to_joined_export
 from onadata.libs.utils.export_tools import (
+    clean_keys_of_slashes,
     generate_export,
     increment_index_in_filename,
-    clean_keys_of_slashes,
 )
 
 AMBULANCE_KEY = (
-    "transport/available_transportation_types_to_referral_fac" "ility/ambulance"
+    "transport/available_transportation_types_to_referral_facility/ambulance"
 )
 AMBULANCE_KEY_DOTS = (
-    "transport.available_transportation_types_to_referra" "l_facility.ambulance"
+    "transport.available_transportation_types_to_referral_facility.ambulance"
 )
 
 

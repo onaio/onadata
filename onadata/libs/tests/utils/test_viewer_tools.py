@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
 import os
+from unittest.mock import patch
 
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
@@ -8,8 +9,6 @@ from django.http import Http404
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
-
-from mock import patch
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase

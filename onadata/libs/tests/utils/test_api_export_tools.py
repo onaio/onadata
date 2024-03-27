@@ -2,27 +2,30 @@
 """
 Test api_export_tools module.
 """
-from collections import OrderedDict, defaultdict
-
-import mock
 import datetime
-from google.oauth2.credentials import Credentials
-from celery.backends.rpc import BacklogLimitExceeded
+from collections import OrderedDict, defaultdict
+from unittest.mock import patch
+
 from django.http import Http404
 from django.test.utils import override_settings
+
+from celery.backends.rpc import BacklogLimitExceeded
+from google.oauth2.credentials import Credentials
 from kombu.exceptions import OperationalError
 from rest_framework.request import Request
 
 from onadata.apps.logger.models import XForm
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import TokenStorageModel
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
-    get_async_response, get_existing_file_format, process_async_export,
-    response_for_format,
+    _get_google_credential,
+    get_async_response,
+    get_existing_file_format,
     get_metadata_format,
-    _get_google_credential
+    process_async_export,
+    response_for_format,
 )
 from onadata.libs.utils.async_status import SUCCESSFUL, status_msg
 
@@ -38,7 +41,7 @@ class TestApiExportTools(TestBase):
         "client_id": "client-id",
         "client_secret": "client-secret",
         "scopes": ["https://www.googleapis.com/auth/drive.file"],
-        "expiry": datetime.datetime(2016, 8, 18, 12, 43, 30, 316792)
+        "expiry": datetime.datetime(2016, 8, 18, 12, 43, 30, 316792),
     }
 
     def _create_old_export(self, xform, export_type, options, filename=None):
@@ -48,22 +51,23 @@ class TestApiExportTools(TestBase):
             export_type=export_type,
             options=options,
             filename=filename,
-            internal_status=Export.SUCCESSFUL).save()
+            internal_status=Export.SUCCESSFUL,
+        ).save()
         # pylint: disable=attribute-defined-outside-init
-        self.export = Export.objects.filter(
-            xform=xform, export_type=export_type)[0]
+        self.export = Export.objects.filter(xform=xform, export_type=export_type)[0]
 
     def test_get_google_credentials(self):
         """
         Test create_async_export deletes credential when invalid
         """
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.user
         request.query_params = {}
         request.data = {}
         credential = self.google_credential
-        t = TokenStorageModel(id=self.user,
-                              credential=Credentials(**credential, token=None))
+        t = TokenStorageModel(
+            id=self.user, credential=Credentials(**credential, token=None)
+        )
         t.save()
         self.assertFalse(t.credential.valid)
         response = _get_google_credential(request)
@@ -71,7 +75,7 @@ class TestApiExportTools(TestBase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             response.url[:71],
-            'https://accounts.google.com/o/oauth2/auth?response_type=code&client_id='
+            "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=",
         )
         with self.assertRaises(TokenStorageModel.DoesNotExist):
             TokenStorageModel.objects.get(id=self.user)
@@ -81,15 +85,17 @@ class TestApiExportTools(TestBase):
         Test create_async_export does not get rid of valid credential
         """
 
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.user
         request.query_params = {}
         request.data = {}
-        self.google_credential['expiry'] = \
-            datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
+        self.google_credential[
+            "expiry"
+        ] = datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
         credential = self.google_credential
-        t = TokenStorageModel(id=self.user,
-                              credential=Credentials(**credential, token="token"))
+        t = TokenStorageModel(
+            id=self.user, credential=Credentials(**credential, token="token")
+        )
         t.save()
         self.assertTrue(t.credential.valid)
         credential = _get_google_credential(request)
@@ -102,15 +108,14 @@ class TestApiExportTools(TestBase):
         Test process_async_export creates a new export.
         """
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
         export_type = "csv"
         options = defaultdict(dict)
 
-        resp = process_async_export(
-            request, self.xform, export_type, options=options)
+        resp = process_async_export(request, self.xform, export_type, options=options)
 
-        self.assertIn('job_uuid', resp)
+        self.assertIn("job_uuid", resp)
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -122,24 +127,24 @@ class TestApiExportTools(TestBase):
         options = {
             "group_delimiter": "/",
             "remove_group_name": False,
-            "split_select_multiples": True
+            "split_select_multiples": True,
         }
 
-        request = Request(self.factory.post('/'))
+        request = Request(self.factory.post("/"))
         request.user = self.user
         export_type = "csv"
 
         self._create_old_export(
-            self.xform, export_type, options, filename="test_async_export")
+            self.xform, export_type, options, filename="test_async_export"
+        )
 
-        resp = process_async_export(
-            request, self.xform, export_type, options=options)
+        resp = process_async_export(request, self.xform, export_type, options=options)
 
-        self.assertEqual(resp['job_status'], status_msg[SUCCESSFUL])
+        self.assertEqual(resp["job_status"], status_msg[SUCCESSFUL])
         self.assertIn("export_url", resp)
 
     # pylint: disable=invalid-name
-    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_get_async_response_export_does_not_exist(self, AsyncResult):
         """
@@ -150,19 +155,19 @@ class TestApiExportTools(TestBase):
             """Mock AsyncResult"""
 
             def __init__(self):
-                self.state = 'SUCCESS'
+                self.state = "SUCCESS"
                 self.result = 1
 
         AsyncResult.return_value = MockAsyncResult()
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
 
         with self.assertRaises(Http404):
-            get_async_response('job_uuid', request, self.xform)
+            get_async_response("job_uuid", request, self.xform)
 
     # pylint: disable=invalid-name
-    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_get_async_response_export_backlog_limit(self, AsyncResult):
         """
@@ -182,11 +187,11 @@ class TestApiExportTools(TestBase):
 
         AsyncResult.return_value = MockAsyncResult()
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
 
-        result = get_async_response('job_uuid', request, self.xform)
-        self.assertEqual(result, {'job_status': 'PENDING'})
+        result = get_async_response("job_uuid", request, self.xform)
+        self.assertEqual(result, {"job_status": "PENDING"})
 
     def test_response_for_format(self):
         """
@@ -196,13 +201,12 @@ class TestApiExportTools(TestBase):
         xform = XForm.objects.filter().last()
         self.assertIsNotNone(xform)
         self.assertIsInstance(response_for_format(xform).data, dict)
-        self.assertIsInstance(response_for_format(xform, 'json').data, dict)
-        self.assertTrue(
-            hasattr(response_for_format(xform, 'xls').data, 'file'))
+        self.assertIsInstance(response_for_format(xform, "json").data, dict)
+        self.assertTrue(hasattr(response_for_format(xform, "xls").data, "file"))
 
         xform.xls.storage.delete(xform.xls.name)
         with self.assertRaises(Http404):
-            response_for_format(xform, 'xls')
+            response_for_format(xform, "xls")
 
     def test_get_metadata_format(self):
         """
@@ -210,16 +214,13 @@ class TestApiExportTools(TestBase):
         """
         self._publish_xlsx_file()
         xform = XForm.objects.filter().last()
-        data_value = "xform_geojson {} {}".format(
-            xform.pk, xform.id_string)
+        data_value = "xform_geojson {} {}".format(xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual("geojson", fmt)
-        data_value = "dataview_geojson {} {}".format(
-            xform.pk, xform.id_string)
+        data_value = "dataview_geojson {} {}".format(xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual("geojson", fmt)
-        data_value = "xform {} {}".format(
-            xform.pk, xform.id_string)
+        data_value = "xform {} {}".format(xform.pk, xform.id_string)
         fmt = get_metadata_format(data_value)
         self.assertEqual(fmt, "csv")
 
@@ -229,57 +230,57 @@ class TestApiExportTools(TestBase):
         """
         self._publish_xlsx_file()
         xform = XForm.objects.filter().last()
-        fmt = get_existing_file_format(xform.xls, 'xlsx')
+        fmt = get_existing_file_format(xform.xls, "xlsx")
         self.assertEqual("xlsx", fmt)
         # ensure it picks existing file extension regardless
         # of format passed in request params
-        fmt = get_existing_file_format(xform.xls, 'xls')
+        fmt = get_existing_file_format(xform.xls, "xls")
         self.assertEqual("xlsx", fmt)
 
     # pylint: disable=invalid-name
-    @mock.patch(
-        'onadata.libs.utils.api_export_tools.viewer_task.create_async_export')
+    @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
     def test_process_async_export_connection_error(self, mock_task):
         """
         Test process_async_export creates a new export.
         """
         mock_task.side_effect = ExportConnectionError
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
         export_type = "csv"
         options = defaultdict(dict)
 
         with self.assertRaises(ServiceUnavailable):
-            process_async_export(
-                request, self.xform, export_type, options=options)
+            process_async_export(request, self.xform, export_type, options=options)
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     def test_get_async_response_connection_error(self, AsyncResult):
         """
         Test get_async_response connection error.
         """
         AsyncResult.side_effect = OperationalError
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
 
         with self.assertRaises(ServiceUnavailable):
-            get_async_response('job_uuid', request, self.xform)
+            get_async_response("job_uuid", request, self.xform)
 
-    @mock.patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @patch("onadata.libs.utils.api_export_tools.AsyncResult")
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_get_async_response_when_result_changes_in_subsequent_calls(
-            self, AsyncResult):
+        self, AsyncResult
+    ):
         """
         Test get_async_response export does not exist.
         """
 
         class MockAsyncResult(object):  # pylint: disable=R0903
             """Mock AsyncResult"""
-            res = [1, {'PENDING': 'PENDING'}]
+
+            res = [1, {"PENDING": "PENDING"}]
 
             def __init__(self):
                 self.state = "PENDING"
@@ -291,8 +292,8 @@ class TestApiExportTools(TestBase):
 
         AsyncResult.return_value = MockAsyncResult()
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
+        request = self.factory.post("/")
         request.user = self.user
 
-        result = get_async_response('job_uuid', request, self.xform)
-        self.assertEqual(result, {'job_status': 'PENDING', 'progress': '1'})
+        result = get_async_response("job_uuid", request, self.xform)
+        self.assertEqual(result, {"job_status": "PENDING", "progress": "1"})

@@ -6,7 +6,6 @@ import math
 import sys
 from datetime import datetime
 
-from celery import current_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
@@ -20,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-import pytz
+from celery import current_task
 from deprecated import deprecated
 from taggit.managers import TaggableManager
 
@@ -33,8 +32,6 @@ from onadata.apps.logger.xform_instance_parser import (
     get_uuid_from_xml,
 )
 from onadata.celeryapp import app
-from onadata.libs.utils.common_tools import report_exception
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -75,8 +72,9 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID,
     XFORM_ID_STRING,
 )
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 # pylint: disable=invalid-name
@@ -188,22 +186,17 @@ def _update_submission_count_for_today(
     form_id: int, incr: bool = True, date_created=None
 ):
     # Track submissions made today
-    current_timzone_name = timezone.get_current_timezone_name()
-    current_timezone = pytz.timezone(current_timzone_name)
-    today = datetime.today()
-    current_date = current_timezone.localize(
-        datetime(today.year, today.month, today.day)
-    ).isoformat()
-    date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}" f"{form_id}"
+    current_date = timezone.localdate().isoformat()
+    date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{form_id}"
     count_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}"
 
     if not cache.get(date_cache_key) == current_date:
         cache.set(date_cache_key, current_date, 86400)
 
     if date_created:
-        date_created = current_timezone.localize(
-            datetime(date_created.year, date_created.month, date_created.day)
-        ).isoformat()
+        date_created = (
+            date_created.astimezone(timezone.get_current_timezone()).date().isoformat()
+        )
 
     current_count = cache.get(count_cache_key)
     if not current_count and incr:
