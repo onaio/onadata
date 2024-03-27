@@ -842,7 +842,7 @@ def add_user_to_org_and_share_projects(organization, user, org_role):
 
     project_qs = organization.user.project_org.all()
 
-    if org_role in [OwnerRole.name]:
+    if org_role == OwnerRole.name:
         # New owners have owner role on all projects
         for project in queryset_iterator(project_qs):
             share(project, org_role)
