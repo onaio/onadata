@@ -239,11 +239,15 @@ def add_user_to_organization(organization, user, role=None):
         role_cls = ROLES.get(role)
         role_cls.add(user, organization)
 
+        owners_team = get_or_create_organization_owners_team(organization)
+
         if role == OwnerRole.name:
             role_cls.add(user, organization.userprofile_ptr)
             # Add user to their respective team
-            owners_team = get_or_create_organization_owners_team(organization)
             add_user_to_team(owners_team, user)
+
+        else:
+            remove_user_from_team(owners_team, user)
 
 
 def get_organization_members(organization):
@@ -838,18 +842,20 @@ def add_user_to_org_and_share_projects(organization, user, org_role):
 
     project_qs = organization.user.project_org.all()
 
-    if org_role in [OwnerRole.name, ManagerRole.name]:
+    if org_role in [OwnerRole.name]:
+        # New owners have owner role on all projects
         for project in queryset_iterator(project_qs):
             share(project, org_role)
 
     else:
+        # New members & managers gain default team permissions on projects
         team = get_organization_members_team(organization)
 
         for project in queryset_iterator(project_qs):
-            if project.created_by == user:
+            if org_role == ManagerRole.name and project.created_by == user:
+                # New managers are only granted the manager role on the
+                # projects they created
                 share(project, org_role)
             else:
-                # Assign default permissions to non-admins or if the project
-                # wasn't created by user
                 project_role = get_team_project_default_permissions(team, project)
                 share(project, project_role)
