@@ -17,13 +17,14 @@ from django.utils.datastructures import MultiValueDict
 
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
     safe_delete,
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
 )
-from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.celeryapp import app
 
@@ -221,3 +222,17 @@ def remove_org_user_async(org_id, user_id):
 
     else:
         tools.remove_user_from_organization(organization, user)
+
+
+@app.task()
+def share_project_async(project_id, username, role, remove=False):
+    """Share project asynchronously"""
+    try:
+        project = Project.objects.get(pk=project_id)
+
+    except Project.DoesNotExist as err:
+        logger.exception(err)
+
+    else:
+        share = ShareProject(project, username, role, remove)
+        share.save()
