@@ -248,6 +248,7 @@ def add_user_to_organization(organization, user, role=None):
 
         else:
             remove_user_from_team(owners_team, user)
+            OwnerRole.remove_obj_permissions(user, organization.userprofile_ptr)
 
 
 def get_organization_members(organization):

@@ -7,7 +7,10 @@ from onadata.apps.api.models.organization_profile import (
     Team,
     get_organization_members_team,
 )
-from onadata.apps.api.tools import add_org_user_and_share_projects
+from onadata.apps.api.tools import (
+    add_org_user_and_share_projects,
+    add_user_to_organization,
+)
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import DataEntryRole, ManagerRole, OwnerRole
@@ -16,8 +19,78 @@ from onadata.libs.permissions import DataEntryRole, ManagerRole, OwnerRole
 User = get_user_model()
 
 
+class AddUserToOrganizationTestCase(TestBase):
+    """Add tests for add_user_to_organization"""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.org_user = User.objects.create(username="onaorg")
+        alice = self._create_user("alice", "1234&&")
+        self.org = OrganizationProfile.objects.create(
+            user=self.org_user, name="Ona Org", creator=alice
+        )
+
+    def test_add_owner(self):
+        """Owner is added to organization"""
+        add_user_to_organization(self.org, self.user, "owner")
+
+        self.user.refresh_from_db()
+        owner_team = Team.objects.get(name=f"{self.org_user.username}#Owners")
+        members_team = Team.objects.get(name=f"{self.org_user.username}#members")
+        self.assertTrue(
+            owner_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertTrue(
+            members_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.org))
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.org.userprofile_ptr))
+
+        # If role changes, user is removed from owners team
+        add_user_to_organization(self.org, self.user, "editor")
+
+        self.user.refresh_from_db()
+        owner_team.refresh_from_db()
+
+        self.assertFalse(
+            owner_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertFalse(OwnerRole.user_has_role(self.user, self.org))
+        self.assertFalse(OwnerRole.user_has_role(self.user, self.org.userprofile_ptr))
+
+    def test_non_owner(self):
+        """Non-owners add to organization"""
+        add_user_to_organization(self.org, self.user, "manager")
+
+        self.user.refresh_from_db()
+        owner_team = Team.objects.get(name=f"{self.org_user.username}#Owners")
+        members_team = Team.objects.get(name=f"{self.org_user.username}#members")
+        self.assertFalse(
+            owner_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertTrue(
+            members_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertTrue(ManagerRole.user_has_role(self.user, self.org))
+
+    def test_role_none(self):
+        """role param is None or not provided"""
+        add_user_to_organization(self.org, self.user)
+
+        self.user.refresh_from_db()
+        owner_team = Team.objects.get(name=f"{self.org_user.username}#Owners")
+        members_team = Team.objects.get(name=f"{self.org_user.username}#members")
+        self.assertFalse(
+            owner_team.user_set.filter(username=self.user.username).exists()
+        )
+        self.assertTrue(
+            members_team.user_set.filter(username=self.user.username).exists()
+        )
+
+
 class AddOrgUserAndShareProjectsTestCase(TestBase):
-    """Tests for method add_org_user_and_share_projects"""
+    """Tests for add_org_user_and_share_projects"""
 
     def setUp(self) -> None:
         super().setUp()
