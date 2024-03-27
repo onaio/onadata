@@ -186,7 +186,9 @@ def regenerate_form_instance_json(xform_id: int):
 
 
 @app.task()
-def add_org_user_and_share_projects_async(org_id, user_id, role):
+def add_org_user_and_share_projects_async(
+    org_id, user_id, role
+):  # pylint: invalid-name
     """Add user to organization and share projects asynchronously"""
     organization = OrganizationProfile.objects.get(pk=org_id)
     user = User.objects.get(pk=user_id)
