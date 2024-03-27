@@ -27,6 +27,8 @@ from onadata.apps.logger.models import Instance, ProjectInvitation, XForm
 from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.celeryapp import app
 
+logger = logging.getLogger(__name__)
+
 
 User = get_user_model()
 
@@ -146,7 +148,7 @@ def send_project_invitation_email_async(
         invitation = ProjectInvitation.objects.get(id=invitation_id)
 
     except ProjectInvitation.DoesNotExist as err:
-        logging.exception(err)
+        logger.exception(err)
 
     else:
         email = ProjectInvitationEmail(invitation, url)
@@ -162,7 +164,7 @@ def regenerate_form_instance_json(xform_id: int):
     try:
         xform: XForm = XForm.objects.get(pk=xform_id)
     except XForm.DoesNotExist as err:
-        logging.exception(err)
+        logger.exception(err)
 
     else:
         if not xform.is_instance_json_regenerated:
@@ -187,19 +189,35 @@ def regenerate_form_instance_json(xform_id: int):
 
 @app.task()
 def add_org_user_and_share_projects_async(
-    org_id, user_id, role
+    org_id, user_id, role=None
 ):  # pylint: disable=invalid-name
     """Add user to organization and share projects asynchronously"""
-    organization = OrganizationProfile.objects.get(pk=org_id)
-    user = User.objects.get(pk=user_id)
+    try:
+        organization = OrganizationProfile.objects.get(pk=org_id)
+        user = User.objects.get(pk=user_id)
 
-    tools.add_org_user_and_share_projects(organization, user, role)
+    except OrganizationProfile.DoesNotExist as err:
+        logger.exception(err)
+
+    except User.DoesNotExist as err:
+        logger.exception(err)
+
+    else:
+        tools.add_org_user_and_share_projects(organization, user, role)
 
 
 @app.task()
 def remove_org_user_async(org_id, user_id):
     """Remove user from organization asynchronously"""
-    organization = OrganizationProfile.objects.get(pk=org_id)
-    user = User.objects.get(pk=user_id)
+    try:
+        organization = OrganizationProfile.objects.get(pk=org_id)
+        user = User.objects.get(pk=user_id)
 
-    tools.remove_user_from_organization(organization, user)
+    except OrganizationProfile.DoesNotExist as err:
+        logger.exception(err)
+
+    except User.DoesNotExist as err:
+        logger.exception(err)
+
+    else:
+        tools.remove_user_from_organization(organization, user)
