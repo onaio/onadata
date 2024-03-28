@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
@@ -188,7 +189,15 @@ def regenerate_form_instance_json(xform_id: int):
             safe_delete(cache_key)
 
 
-@app.task()
+class ShareProjectBaseTask(app.Task):
+    autoretry_for = (
+        DatabaseError,
+        ConnectionError,
+    )
+    retry_backoff = 3
+
+
+@app.task(base=ShareProjectBaseTask)
 def add_org_user_and_share_projects_async(
     org_id, user_id, role=None
 ):  # pylint: disable=invalid-name
@@ -207,7 +216,7 @@ def add_org_user_and_share_projects_async(
         tools.add_org_user_and_share_projects(organization, user, role)
 
 
-@app.task()
+@app.task(base=ShareProjectBaseTask)
 def remove_org_user_async(org_id, user_id):
     """Remove user from organization asynchronously"""
     try:
@@ -224,7 +233,7 @@ def remove_org_user_async(org_id, user_id):
         tools.remove_user_from_organization(organization, user)
 
 
-@app.task()
+@app.task(base=ShareProjectBaseTask)
 def share_project_async(project_id, username, role, remove=False):
     """Share project asynchronously"""
     try:

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError, OperationalError
 
 from onadata.apps.api.tasks import (
     send_project_invitation_email_async,
@@ -131,27 +132,56 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
 
     def test_user_added_to_org(self, mock_add):
         """User is added to organization"""
-        add_org_user_and_share_projects_async(self.org.pk, self.user.pk, "manager")
+        add_org_user_and_share_projects_async.delay(
+            self.org.pk, self.user.pk, "manager"
+        )
         mock_add.assert_called_once_with(self.org, self.user, "manager")
 
     def test_role_optional(self, mock_add):
         """role param is optional"""
-        add_org_user_and_share_projects_async(self.org.pk, self.user.pk)
+        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
         mock_add.assert_called_once_with(self.org, self.user, None)
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_org_id(self, mock_log, mock_add):
         """Invalid org_id is handled"""
-        add_org_user_and_share_projects_async(sys.maxsize, self.user.pk)
+        add_org_user_and_share_projects_async.delay(sys.maxsize, self.user.pk)
         mock_add.assert_not_called()
         mock_log.assert_called_once()
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_user_id(self, mock_log, mock_add):
         """Invalid org_id is handled"""
-        add_org_user_and_share_projects_async(self.org.pk, sys.maxsize)
+        add_org_user_and_share_projects_async.delay(self.org.pk, sys.maxsize)
         mock_add.assert_not_called()
         mock_log.assert_called_once()
+
+    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
+    def test_database_error(self, mock_retry, mock_add):
+        """We retry calls if DatabaseError is raised"""
+        mock_add.side_effect = DatabaseError()
+        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
+    def test_connection_error(self, mock_retry, mock_add):
+        """We retry calls if ConnectionError is raised"""
+        mock_add.side_effect = ConnectionError()
+        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
+    def test_operation_error(self, mock_retry, mock_add):
+        """We retry calls if OperationError is raised"""
+        mock_add.side_effect = OperationalError()
+        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
 
 
 @patch("onadata.apps.api.tasks.tools.remove_user_from_organization")
@@ -169,19 +199,46 @@ class RemoveOrgUserAsyncTestCase(TestBase):
 
     def test_user_removed_from_org(self, mock_remove):
         """User is removed from organization"""
-        remove_org_user_async(self.org.pk, self.user.pk)
+        remove_org_user_async.delay(self.org.pk, self.user.pk)
         mock_remove.assert_called_once_with(self.org, self.user)
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_org_id(self, mock_log, mock_remove):
         """Invalid org_id is handled"""
-        remove_org_user_async(sys.maxsize, self.user.pk)
+        remove_org_user_async.delay(sys.maxsize, self.user.pk)
         mock_remove.assert_not_called()
         mock_log.assert_called_once()
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_user_id(self, mock_log, mock_remove):
         """Invalid org_id is handled"""
-        remove_org_user_async(self.org.pk, sys.maxsize)
+        remove_org_user_async.delay(self.org.pk, sys.maxsize)
         mock_remove.assert_not_called()
         mock_log.assert_called_once()
+
+    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
+    def test_database_error(self, mock_retry, mock_remove):
+        """We retry calls if DatabaseError is raised"""
+        mock_remove.side_effect = DatabaseError()
+        remove_org_user_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
+    def test_connection_error(self, mock_retry, mock_remove):
+        """We retry calls if ConnectionError is raised"""
+        mock_remove.side_effect = ConnectionError()
+        remove_org_user_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
+    def test_operation_error(self, mock_retry, mock_remove):
+        """We retry calls if OperationError is raised"""
+        mock_remove.side_effect = OperationalError()
+        remove_org_user_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
