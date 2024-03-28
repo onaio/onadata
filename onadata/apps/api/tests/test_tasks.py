@@ -271,6 +271,13 @@ class ShareProjectAsyncTestCase(TestBase):
 
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
 
+    @patch("onadata.apps.api.tasks.logger.exception")
+    def test_invalid_project_id(self, mock_log):
+        """Invalid org_id is handled"""
+        share_project_async.delay(sys.maxsize, "alice", "manager")
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
+        mock_log.assert_called_once()
+
     @patch.object(ShareProject, "save")
     @patch("onadata.apps.api.tasks.share_project_async.retry")
     def test_database_error(self, mock_retry, mock_share):
