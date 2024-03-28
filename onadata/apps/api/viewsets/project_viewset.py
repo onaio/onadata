@@ -33,7 +33,6 @@ from onadata.libs.serializers.project_serializer import (
 from onadata.libs.serializers.share_project_serializer import (
     RemoveUserFromProjectSerializer,
     ShareProjectSerializer,
-    propagate_project_permissions_async,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.serializers.xform_serializer import (
@@ -48,6 +47,7 @@ from onadata.libs.serializers.project_invitation_serializer import (
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.project_utils import propagate_project_permissions_async
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_PROJECT_SUBJECT
 
 # pylint: disable=invalid-name
@@ -64,7 +64,6 @@ class ProjectViewSet(
     BaseViewset,
     ModelViewSet,
 ):
-
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
@@ -182,7 +181,7 @@ class ProjectViewSet(
             remove = strtobool(remove)
 
         if remove:
-            serializer = RemoveUserFromProjectSerializer(data=data)
+            serializer = RemoveUserFromProjectSerializer(data={**data, remove: True})
         else:
             serializer = ShareProjectSerializer(data=data)
         if serializer.is_valid():

@@ -16,6 +16,7 @@ from rest_framework import status
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
     get_organization_members_team,
+    Team,
 )
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
@@ -297,6 +298,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        team = Team.objects.get(name=f"{self.organization.user.username}#members")
+        self.assertTrue(team.user_set.filter(username="aboy").exists())
 
     def test_inactive_members_not_listed(self):
         self._org_create()

@@ -2488,8 +2488,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             mock_rm_xform_perms,
         ):  # noqa
             mock_rm_xform_perms.side_effect = Exception()
-            with self.assertRaises(Exception):
-                response = view(request, pk=projectid)
+            response = view(request, pk=projectid)
             # permissions have not changed for both xform and project
             self.assertTrue(role_class.user_has_role(alice, self.xform))
             self.assertTrue(role_class.user_has_role(alice, self.project))
