@@ -19,12 +19,6 @@ class ShareProjectTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
-    @patch("onadata.libs.models.share_project.safe_delete")
-    def test_share(self, mock_safe_delete, mock_propagate):
-        """A project is shared with a user
-
-        Permissions assigned to project, xform and dataview
-        """
         self._publish_transportation_form()
         md_xform = """
         | survey  |
@@ -42,20 +36,53 @@ class ShareProjectTestCase(TestBase):
             name="Demo", organization=self.user, created_by=self.user
         )
         self._publish_markdown(md_xform, self.user, project)
-        form = XForm.objects.all().order_by("-pk")[0]
+        self.dataview_form = XForm.objects.all().order_by("-pk")[0]
         DataView.objects.create(
             name="Demo",
-            xform=form,
+            xform=self.dataview_form,
             project=self.project,
             matches_parent=True,
             columns=[],
         )
-        alice = self._create_user("alice", "Yuao8(-)")
-        instance = ShareProject(self.project, alice, "manager")
+        self.alice = self._create_user("alice", "Yuao8(-)")
+
+    @patch("onadata.libs.models.share_project.safe_delete")
+    def test_share(self, mock_safe_delete, mock_propagate):
+        """A project is shared with a user
+
+        Permissions assigned to project, xform and dataview
+        """
+        instance = ShareProject(self.project, self.alice, "manager")
         instance.save()
-        self.assertTrue(ManagerRole.user_has_role(alice, self.project))
-        self.assertTrue(ManagerRole.user_has_role(alice, self.xform))
-        self.assertTrue(ManagerRole.user_has_role(alice, form))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
+        mock_propagate.assert_called_once_with(args=[self.project.pk])
+        # Cache is invalidated
+        mock_safe_delete.assert_has_calls(
+            [
+                call(f"ps-project_owner-{self.project.pk}"),
+                call(f"ps-project_permissions-{self.project.pk}"),
+            ]
+        )
+
+    @patch("onadata.libs.models.share_project.safe_delete")
+    def test_remove(self, mock_safe_delete, mock_propagate):
+        """A user is removed from a project"""
+        # Add user
+        ManagerRole.add(self.alice, self.project)
+        ManagerRole.add(self.alice, self.xform)
+        ManagerRole.add(self.alice, self.dataview_form)
+
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
+        # Remove user
+        instance = ShareProject(self.project, self.alice, "manager", True)
+        instance.save()
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.xform))
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.dataview_form))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_safe_delete.assert_has_calls(
