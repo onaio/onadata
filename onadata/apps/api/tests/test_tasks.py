@@ -13,10 +13,13 @@ from onadata.apps.api.tasks import (
     regenerate_form_instance_json,
     add_org_user_and_share_projects_async,
     remove_org_user_async,
+    share_project_async,
+    ShareProject,
 )
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import ProjectInvitation, Instance
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import ManagerRole
 from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.utils.email import ProjectInvitationEmail
 
@@ -239,6 +242,61 @@ class RemoveOrgUserAsyncTestCase(TestBase):
         """We retry calls if OperationError is raised"""
         mock_remove.side_effect = OperationalError()
         remove_org_user_async.delay(self.org.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
+
+
+class ShareProjectAsyncTestCase(TestBase):
+    """Tests for share_project_async"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+        self.alice = self._create_user("alice", "Yuao8(-)")
+
+    def test_share(self):
+        """Project is shared with user"""
+        share_project_async.delay(self.project.id, "alice", "manager")
+
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
+
+    def test_remove(self):
+        """User is removed from project"""
+        # Add user to project
+        ManagerRole.add(self.alice, self.project)
+        # Remove user
+        share_project_async.delay(self.project.id, "alice", "manager", True)
+
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
+
+    @patch.object(ShareProject, "save")
+    @patch("onadata.apps.api.tasks.share_project_async.retry")
+    def test_database_error(self, mock_retry, mock_share):
+        """We retry calls if DatabaseError is raised"""
+        mock_share.side_effect = DatabaseError()
+        share_project_async.delay(self.project.id, self.user.pk, "manager")
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch.object(ShareProject, "save")
+    @patch("onadata.apps.api.tasks.share_project_async.retry")
+    def test_connection_error(self, mock_retry, mock_share):
+        """We retry calls if ConnectionError is raised"""
+        mock_share.side_effect = ConnectionError()
+        share_project_async.delay(self.project.pk, self.user.pk, "manager")
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch.object(ShareProject, "save")
+    @patch("onadata.apps.api.tasks.share_project_async.retry")
+    def test_operation_error(self, mock_retry, mock_share):
+        """We retry calls if OperationError is raised"""
+        mock_share.side_effect = OperationalError()
+        share_project_async.delay(self.project.pk, self.user.pk, "manager")
         self.assertTrue(mock_retry.called)
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], OperationalError))
