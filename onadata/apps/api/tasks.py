@@ -222,7 +222,10 @@ def add_org_user_and_share_projects_async(
 
         if email_msg and email_subject and user.email:
             send_mail(
-                subject=email_subject, message=email_msg, recipient_list=(user.email,)
+                email_subject,
+                email_msg,
+                settings.DEFAULT_FROM_EMAIL,
+                (user.email,),
             )
 
 

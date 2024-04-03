@@ -7,6 +7,7 @@ from unittest.mock import patch
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, OperationalError
+from django.test import override_settings
 
 from onadata.apps.api.tasks import (
     send_project_invitation_email_async,
@@ -186,6 +187,7 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], OperationalError))
 
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
     @patch("onadata.apps.api.tasks.send_mail")
     def test_send_mail(self, mock_email, mock_add):
         """Send mail works"""
@@ -195,12 +197,14 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
             self.org.pk, self.user.pk, "manager", "Subject", "Body"
         )
         mock_email.assert_called_with(
-            subject="Subject",
-            message="Body",
-            recipient_list=("bob@example.com",),
+            "Subject",
+            "Body",
+            "noreply@ona.io",
+            ("bob@example.com",),
         )
         mock_add.assert_called_once_with(self.org, self.user, "manager")
 
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
     @patch("onadata.apps.api.tasks.send_mail")
     def test_user_email_none(self, mock_email, mock_add):
         """Email not sent if user email is None"""
