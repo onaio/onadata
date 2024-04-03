@@ -214,7 +214,7 @@ class RemoveOrgUserAsyncTestCase(TestBase):
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_user_id(self, mock_log, mock_remove):
-        """Invalid org_id is handled"""
+        """Invalid user_id is handled"""
         remove_org_user_async.delay(self.org.pk, sys.maxsize)
         mock_remove.assert_not_called()
         mock_log.assert_called_once()
@@ -273,7 +273,7 @@ class ShareProjectAsyncTestCase(TestBase):
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_project_id(self, mock_log):
-        """Invalid org_id is handled"""
+        """Invalid projecct_id is handled"""
         share_project_async.delay(sys.maxsize, "alice", "manager")
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
         mock_log.assert_called_once()
