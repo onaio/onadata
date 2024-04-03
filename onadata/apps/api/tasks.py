@@ -11,6 +11,7 @@ from celery.result import AsyncResult
 from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
+from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.utils import timezone
@@ -199,7 +200,11 @@ class ShareProjectBaseTask(app.Task):
 
 @app.task(base=ShareProjectBaseTask)
 def add_org_user_and_share_projects_async(
-    org_id, user_id, role=None
+    org_id: int,
+    user_id: int,
+    role: str = None,
+    email_subject: str = None,
+    email_msg: str = None,
 ):  # pylint: disable=invalid-name
     """Add user to organization and share projects asynchronously"""
     try:
@@ -214,6 +219,11 @@ def add_org_user_and_share_projects_async(
 
     else:
         tools.add_org_user_and_share_projects(organization, user, role)
+
+        if email_msg and email_subject and user.email:
+            send_mail(
+                subject=email_subject, message=email_msg, recipient_list=(user.email,)
+            )
 
 
 @app.task(base=ShareProjectBaseTask)

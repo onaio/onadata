@@ -3,7 +3,6 @@
 The OrganizationMemberSerializer - manages a users access in an organization
 """
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
@@ -23,18 +22,9 @@ from onadata.libs.permissions import (
     is_organization,
 )
 from onadata.libs.serializers.fields.organization_field import OrganizationField
-from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT
+from onadata.settings.common import SHARE_ORG_SUBJECT
 
 User = get_user_model()
-
-
-def _compose_send_email(organization, user, email_msg, email_subject=None):
-
-    if not email_subject:
-        email_subject = SHARE_ORG_SUBJECT.format(user.username, organization.name)
-
-    # send out email message.
-    send_mail(email_subject, email_msg, DEFAULT_FROM_EMAIL, (user.email,))
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
@@ -110,7 +100,9 @@ class OrganizationMemberSerializer(serializers.Serializer):
         username = validated_data.get("username")
         role = validated_data.get("role")
         email_msg = validated_data.get("email_msg")
-        email_subject = validated_data.get("email_subject")
+        email_subject = validated_data.get(
+            "email_subject", SHARE_ORG_SUBJECT.format(username, organization.name)
+        )
         remove = validated_data.get("remove")
 
         if username:
@@ -121,11 +113,8 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
             else:
                 add_org_user_and_share_projects_async.apply_async(
-                    args=[organization.pk, user.pk, role]
+                    args=[organization.pk, user.pk, role, email_subject, email_msg]
                 )
-
-                if email_msg:
-                    _compose_send_email(organization, user, email_msg, email_subject)
 
         return organization
 

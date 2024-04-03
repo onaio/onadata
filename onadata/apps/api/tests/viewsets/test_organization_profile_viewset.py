@@ -684,7 +684,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 400)
 
-    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
+    @patch("onadata.apps.api.tasks.send_mail")
     def test_add_members_to_org_email(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -701,14 +701,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(mock_email.called)
         mock_email.assert_called_with(
-            "aboy, You have been added to Dennis" " organisation.",
-            "You have been add to denoinc",
-            "noreply@ona.io",
-            ("aboy@org.com",),
+            subject="aboy, You have been added to Dennis" " organisation.",
+            message="You have been add to denoinc",
+            recipient_list=("aboy@org.com",),
         )
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
 
-    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
+    @patch("onadata.apps.api.tasks.send_mail")
     def test_add_members_to_org_email_custom_subj(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -729,10 +728,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(mock_email.called)
         mock_email.assert_called_with(
-            "Your are made",
-            "You have been add to denoinc",
-            "noreply@ona.io",
-            ("aboy@org.com",),
+            subject="Your are made",
+            message="You have been add to denoinc",
+            recipient_list=("aboy@org.com",),
         )
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
 

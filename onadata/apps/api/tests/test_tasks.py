@@ -186,6 +186,30 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], OperationalError))
 
+    @patch("onadata.apps.api.tasks.send_mail")
+    def test_send_mail(self, mock_email, mock_add):
+        """Send mail works"""
+        self.user.email = "bob@example.com"
+        self.user.save()
+        add_org_user_and_share_projects_async.delay(
+            self.org.pk, self.user.pk, "manager", "Subject", "Body"
+        )
+        mock_email.assert_called_with(
+            subject="Subject",
+            message="Body",
+            recipient_list=("bob@example.com",),
+        )
+        mock_add.assert_called_once_with(self.org, self.user, "manager")
+
+    @patch("onadata.apps.api.tasks.send_mail")
+    def test_user_email_none(self, mock_email, mock_add):
+        """Email not sent if user email is None"""
+        add_org_user_and_share_projects_async.delay(
+            self.org.pk, self.user.pk, "manager", "Subject", "Body"
+        )
+        mock_email.assert_not_called()
+        mock_add.assert_called_once_with(self.org, self.user, "manager")
+
 
 @patch("onadata.apps.api.tasks.tools.remove_user_from_organization")
 class RemoveOrgUserAsyncTestCase(TestBase):
