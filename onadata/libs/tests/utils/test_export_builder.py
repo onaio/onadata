@@ -51,6 +51,11 @@ def _logger_fixture_path(*args):
     )
 
 
+def _str_if_bytes(val):
+    """Returns val as string if it is of type bytes otherwise returns bytes"""
+    return str(val, "utf-8") if isinstance(val, bytes) else val
+
+
 class TestExportBuilder(TestBase):
     """Test onadata.libs.utils.export_builder functions."""
 
@@ -2904,46 +2909,44 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "osm.sav"), returnHeader=True) as reader:
             rows = list(reader)
             expected_column_headers = [
-                x.encode("utf-8")
-                for x in [
-                    "photo",
-                    "osm_road",
-                    "osm_building",
-                    "fav_color",
-                    "form_completed",
-                    "meta.instanceID",
-                    "@_id",
-                    "@_uuid",
-                    "@_submission_time",
-                    "@_index",
-                    "@_parent_table_name",
-                    "@_review_comment",
-                    f"@{REVIEW_DATE}",
-                    "@_review_status",
-                    "@_parent_index",
-                    "@_tags",
-                    "@_notes",
-                    "@_version",
-                    "@_duration",
-                    "@_submitted_by",
-                    "osm_road_ctr_lat",
-                    "osm_road_ctr_lon",
-                    "osm_road_highway",
-                    "osm_road_lanes",
-                    "osm_road_name",
-                    "osm_road_way_id",
-                    "osm_building_building",
-                    "osm_building_building_levels",
-                    "osm_building_ctr_lat",
-                    "osm_building_ctr_lon",
-                    "osm_building_name",
-                    "osm_building_way_id",
-                ]
+                "photo",
+                "osm_road",
+                "osm_building",
+                "fav_color",
+                "form_completed",
+                "meta.instanceID",
+                "@_id",
+                "@_uuid",
+                "@_submission_time",
+                "@_index",
+                "@_parent_table_name",
+                "@_review_comment",
+                f"@{REVIEW_DATE}",
+                "@_review_status",
+                "@_parent_index",
+                "@_tags",
+                "@_notes",
+                "@_version",
+                "@_duration",
+                "@_submitted_by",
+                "osm_road_ctr_lat",
+                "osm_road_ctr_lon",
+                "osm_road_highway",
+                "osm_road_lanes",
+                "osm_road_name",
+                "osm_road_way_id",
+                "osm_building_building",
+                "osm_building_building_levels",
+                "osm_building_ctr_lat",
+                "osm_building_ctr_lon",
+                "osm_building_name",
+                "osm_building_way_id",
             ]
-            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][29], b"Rejected")
-            self.assertEqual(rows[1][30], b"Wrong Location")
-            self.assertEqual(rows[1][31], b"2021-05-25T02:27:19")
+            actual_headers = list(map(_str_if_bytes, rows[0]))
+            self.assertEqual(sorted(actual_headers), sorted(expected_column_headers))
+            self.assertEqual(_str_if_bytes(rows[1][29]), "Rejected")
+            self.assertEqual(_str_if_bytes(rows[1][30]), "Wrong Location")
+            self.assertEqual(_str_if_bytes(rows[1][31]), "2021-05-25T02:27:19")
 
     # pylint: disable=invalid-name
     def test_zipped_csv_export_with_osm_data(self):
