@@ -759,16 +759,16 @@ class TestExportBuilder(TestBase):
             self.assertTrue(len(rows) > 1)
 
             # expensed 1
-            self.assertEqual(rows[0][0], "expensed")
+            self.assertEqual(rows[0][0], b"expensed")
             self.assertEqual(rows[1][0], 1)
 
             # A/q1 1
-            self.assertEqual(rows[0][1], "A.q1")
+            self.assertEqual(rows[0][1], b"A.q1")
             self.assertEqual(rows[1][1], 1)
 
             # _submission_time is a date string
-            self.assertEqual(rows[0][5], "@_submission_time")
-            self.assertEqual(rows[1][5], "2016-11-21 03:43:43")
+            self.assertEqual(rows[0][5], b"@_submission_time")
+            self.assertEqual(rows[1][5], b"2016-11-21 03:43:43")
 
     # pylint: disable=invalid-name
     def test_zipped_sav_export_with_duplicate_field_different_groups(self):
@@ -951,35 +951,35 @@ class TestExportBuilder(TestBase):
             rows = list(reader)
             self.assertTrue(len(rows) > 1)
 
-            self.assertEqual(rows[0][0], "expensed")
-            self.assertEqual(rows[1][0], "1")
+            self.assertEqual(rows[0][0], b"expensed")
+            self.assertEqual(rows[1][0], b"1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][1], "expensed.1")
+            self.assertEqual(rows[0][1], b"expensed.1")
             self.assertEqual(rows[1][1], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][2], "expensed.0")
+            self.assertEqual(rows[0][2], b"expensed.0")
             self.assertEqual(rows[1][2], 0)
 
-            self.assertEqual(rows[0][3], "A.q1")
-            self.assertEqual(rows[1][3], "1")
+            self.assertEqual(rows[0][3], b"A.q1")
+            self.assertEqual(rows[1][3], b"1")
 
             # ensure you get a numeric value for multiple select with choice
             # filters
-            self.assertEqual(rows[0][6], "A.q2")
-            self.assertEqual(rows[1][6], "1")
+            self.assertEqual(rows[0][6], b"A.q2")
+            self.assertEqual(rows[1][6], b"1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][4], "A.q1.1")
+            self.assertEqual(rows[0][4], b"A.q1.1")
             self.assertEqual(rows[1][4], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][5], "A.q1.0")
+            self.assertEqual(rows[0][5], b"A.q1.0")
             self.assertEqual(rows[1][5], 0)
 
-            self.assertEqual(rows[0][12], "@_submission_time")
-            self.assertEqual(rows[1][12], "2016-11-21 03:43:43")
+            self.assertEqual(rows[0][12], b"@_submission_time")
+            self.assertEqual(rows[1][12], b"2016-11-21 03:43:43")
 
         shutil.rmtree(temp_dir)
 
@@ -1012,12 +1012,12 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
             rows = list(reader)
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[1][0], "1")
+            self.assertEqual(rows[1][0], b"1")
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
             self.assertEqual(rows[1][1], 1)
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
             self.assertEqual(rows[1][2], 0)
-            self.assertEqual(rows[1][6], "2016-11-21 03:43:43")
+            self.assertEqual(rows[1][6], b"2016-11-21 03:43:43")
 
         shutil.rmtree(temp_dir)
 
@@ -1053,12 +1053,12 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
             rows = list(reader)
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[1][0], "2 09")
+            self.assertEqual(rows[1][0], b"2 09")
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
             self.assertEqual(rows[1][1], 2)
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[1][2], "09")
-            self.assertEqual(rows[1][6], "2016-11-21 03:43:43")
+            self.assertEqual(rows[1][2], b"09")
+            self.assertEqual(rows[1][6], b"2016-11-21 03:43:43")
 
         shutil.rmtree(temp_dir)
 
@@ -2941,9 +2941,9 @@ class TestExportBuilder(TestBase):
                 ]
             ]
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][29], "Rejected")
-            self.assertEqual(rows[1][30], "Wrong Location")
-            self.assertEqual(rows[1][31], "2021-05-25T02:27:19")
+            self.assertEqual(rows[1][29], b"Rejected")
+            self.assertEqual(rows[1][30], b"Wrong Location")
+            self.assertEqual(rows[1][31], b"2021-05-25T02:27:19")
 
     # pylint: disable=invalid-name
     def test_zipped_csv_export_with_osm_data(self):
@@ -3075,12 +3075,12 @@ class TestExportBuilder(TestBase):
                 ]
             ]
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][0], "1424308569120.jpg")
-            self.assertEqual(rows[1][1], "OSMWay234134797.osm")
-            self.assertEqual(rows[1][2], "23.708174238006087")
-            self.assertEqual(rows[1][4], "tertiary")
-            self.assertEqual(rows[1][6], "Patuatuli Road")
-            self.assertEqual(rows[1][13], "kol")
+            self.assertEqual(rows[1][0], b"1424308569120.jpg")
+            self.assertEqual(rows[1][1], b"OSMWay234134797.osm")
+            self.assertEqual(rows[1][2], b"23.708174238006087")
+            self.assertEqual(rows[1][4], b"tertiary")
+            self.assertEqual(rows[1][6], b"Patuatuli Road")
+            self.assertEqual(rows[1][13], b"kol")
 
     def test_show_choice_labels(self):
         """
