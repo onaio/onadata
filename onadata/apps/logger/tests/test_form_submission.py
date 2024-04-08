@@ -4,25 +4,25 @@ Test data submissions.
 """
 import os
 import re
-
 from contextlib import contextmanager
-from django.http import Http404
-from django.http import UnreadablePostError
-from django_digest.test import DigestAuth
-from django_digest.test import Client as DigestClient
+from unittest.mock import ANY, Mock, patch
+
+from django.http import Http404, UnreadablePostError
 from django.test.utils import override_settings
+
+from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
 from guardian.shortcuts import assign_perm
-from mock import patch, Mock, ANY
 from nose import SkipTest
 
-from onadata.apps.main.models.user_profile import UserProfile
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import query_data, query_count
+from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
 

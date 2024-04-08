@@ -1,22 +1,30 @@
-from six.moves.urllib.parse import urlencode
-from mock import patch
+# -*- coding: utf-8 -*-
+"""
+Test onadata.utils.emails module.
+"""
+from unittest.mock import patch
+
 from django.test import RequestFactory
 from django.test.utils import override_settings
+
+from six.moves.urllib.parse import urlencode
+
+from onadata.apps.logger.models import ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.email import (
+    ProjectInvitationEmail,
+    get_project_invitation_url,
     get_verification_email_data,
     get_verification_url,
-    get_project_invitation_url,
 )
-from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.apps.logger.models import ProjectInvitation
 from onadata.libs.utils.user_auth import get_user_default_project
-
 
 VERIFICATION_URL = "http://ab.cd.ef"
 
 
 class TestEmail(TestBase):
+    """Test onadata.utils.email module"""
+
     def setUp(self):
         self.email = "john@doe.com"
         self.username = ("johndoe",)

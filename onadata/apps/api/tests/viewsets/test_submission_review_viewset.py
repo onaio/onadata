@@ -3,15 +3,16 @@ Submission Review ViewSet Tests Module
 """
 from __future__ import unicode_literals
 
-from mock import patch
+from unittest.mock import patch
+
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.viewsets.submission_review_viewset import SubmissionReviewViewSet
-from onadata.apps.logger.models import SubmissionReview, Instance
+from onadata.apps.logger.models import Instance, SubmissionReview
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.messaging.constants import XFORM, SUBMISSION_REVIEWED
-from onadata.libs.permissions import EditorRole, OwnerRole, ManagerRole
-from onadata.libs.utils.common_tags import REVIEW_STATUS, REVIEW_COMMENT
+from onadata.apps.messaging.constants import SUBMISSION_REVIEWED, XFORM
+from onadata.libs.permissions import EditorRole, ManagerRole, OwnerRole
+from onadata.libs.utils.common_tags import REVIEW_COMMENT, REVIEW_STATUS
 
 
 class TestSubmissionReviewViewSet(TestBase):
@@ -65,12 +66,12 @@ class TestSubmissionReviewViewSet(TestBase):
         )
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
-        mock_send_message.called_with(
-            submission_review.id,
-            submission_review.instance.xform.id,
-            XFORM,
-            submission_review.created_by,
-            SUBMISSION_REVIEWED,
+        mock_send_message.assert_called_with(
+            instance_id=submission_review.instance_id,
+            target_id=submission_review.instance.xform.id,
+            target_type=XFORM,
+            user=submission_review.created_by,
+            message_verb=SUBMISSION_REVIEWED,
         )
 
     @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
@@ -100,12 +101,12 @@ class TestSubmissionReviewViewSet(TestBase):
         already_seen = []
         # sends message upon saving the submission review
         self.assertTrue(mock_send_message.called)
-        mock_send_message.called_with(
-            [s.id for s in self.xform.instances.all()],
-            self.xform.id,
-            XFORM,
-            request.user,
-            SUBMISSION_REVIEWED,
+        mock_send_message.assert_called_with(
+            instance_id=[s.id for s in self.xform.instances.all()],
+            target_id=self.xform.id,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_REVIEWED,
         )
         for item in response.data:
             # the note should match what we provided

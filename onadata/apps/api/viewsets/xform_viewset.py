@@ -26,7 +26,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
 
 import six
 from django_filters.rest_framework import DjangoFilterBackend
@@ -76,17 +75,14 @@ from onadata.libs.serializers.xform_serializer import (
     XFormVersionListSerializer,
 )
 from onadata.libs.utils.api_export_tools import (
+    _get_export_type,
     custom_response_handler,
     get_async_response,
     get_existing_file_format,
     process_async_export,
     response_for_format,
-    _get_export_type,
 )
-from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
-    safe_delete,
-)
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -409,7 +405,6 @@ class XFormViewSet(
         return Response(data=resp, status=resp_code, headers=headers)
 
     @action(methods=["GET", "HEAD"], detail=True)
-    @never_cache
     def form(self, request, **kwargs):
         """Returns the XLSForm in any of JSON, XML, XLS(X), CSV formats."""
         form = self.get_object()

@@ -5,7 +5,6 @@ OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 from django.conf import settings
 from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.cache import never_cache
 
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import permissions, viewsets
@@ -151,7 +150,6 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return queryset
 
-    @never_cache
     def list(self, request, *args, **kwargs):
         # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())

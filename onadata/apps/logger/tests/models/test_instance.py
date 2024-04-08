@@ -1,15 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Test Instance model.
+"""
 import os
-import pytz
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 from django.http.request import HttpRequest
-from django.utils.timezone import utc
-from django_digest.test import DigestAuth
 from django.test import override_settings
-from mock import patch, Mock
+from django.utils.timezone import utc
 
-from onadata.apps.logger.models import XForm, Instance, SubmissionReview
+from django_digest.test import DigestAuth
+
+from onadata.apps.logger.models import Instance, SubmissionReview, XForm
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
@@ -23,10 +26,7 @@ from onadata.apps.viewer.models.parsed_instance import (
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
-from onadata.libs.utils.common_tags import (
-    MONGO_STRFTIME,
-    SUBMITTED_BY,
-)
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
 
 
 class TestInstance(TestBase):
@@ -67,7 +67,7 @@ class TestInstance(TestBase):
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
-        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=pytz.utc)
+        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
             self._publish_transportation_form_and_submit_instance()
@@ -79,7 +79,7 @@ class TestInstance(TestBase):
         )
 
         # After saving the date_modified in json should update
-        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=pytz.utc)
+        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             instance.save()

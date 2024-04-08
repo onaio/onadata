@@ -1,33 +1,36 @@
 # -*- coding: utf-8 -*-
 """Test DataViewViewSet"""
+import csv
 import json
 import os
-import csv
-
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
 from django.conf import settings
-from django.test.utils import override_settings
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.test.utils import override_settings
 from django.utils.timezone import utc
-from mock import patch
+
 from openpyxl import load_workbook
 
-from onadata.libs.permissions import ReadOnlyRole
-from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models import Instance, Attachment
-from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.viewer.models.export import Export
-from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.viewsets.dataview_viewset import (
     DataViewViewSet,
+    apply_filters,
     filter_to_field_lookup,
     get_field_lookup,
     get_filter_kwargs,
-    apply_filters,
 )
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import Attachment, Instance
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.viewer.models.export import Export
+from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -35,12 +38,10 @@ from onadata.libs.utils.cache_tools import (
     PROJECT_LINKED_DATAVIEWS,
 )
 from onadata.libs.utils.common_tags import EDITED, MONGO_STRFTIME
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
-from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -211,7 +212,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         )
         self.assertEqual(response.status_code, 404)
         response_data = json.loads(json.dumps(response.data))
-        self.assertEqual(response_data, {"detail": "Not found."})
+        self.assertEqual(
+            response_data, {"detail": "No Attachment matches the given query."}
+        )
 
         # a user with permissions can view a specific attachment object
         attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})

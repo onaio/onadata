@@ -5,13 +5,13 @@ Test logger_tools utility functions.
 import os
 import re
 from io import BytesIO
+from unittest.mock import patch
 
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 
 from defusedxml.ElementTree import ParseError
-from mock import patch
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance

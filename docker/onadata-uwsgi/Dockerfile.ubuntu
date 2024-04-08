@@ -44,10 +44,10 @@ ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
 # Add Deadsnake Repository
-RUN add-apt-repository ppa:deadsnakes/ppa -y && apt-get update -q
-
 # Install OnaData Dependencies
-RUN apt-get install -y --no-install-recommends \
+RUN add-apt-repository 'ppa:deadsnakes/ppa' -y \
+    && apt-get update -q \
+    && apt-get install -y --no-install-recommends \
     libproj-dev \
     gdal-bin \
     memcached \
@@ -111,5 +111,3 @@ EXPOSE 8000
 USER onadata
 
 CMD ["/usr/local/bin/uwsgi", "--ini", "/uwsgi.ini"]
-
-

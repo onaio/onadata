@@ -3,24 +3,24 @@
 Test ProjectViewSet module.
 """
 import json
-import pytz
 import os
-
 from collections import OrderedDict
-from six import iteritems
-from operator import itemgetter
 from datetime import datetime
+from operator import itemgetter
+from unittest.mock import MagicMock, Mock, patch
 
 from django.conf import settings
-from django.db.models import Q
-from django.core.cache import cache
-from django.test import override_settings
 from django.contrib.auth import get_user_model
-from rest_framework.authtoken.models import Token
-from httmock import HTTMock, urlmatch
-from mock import MagicMock, patch, Mock
+from django.core.cache import cache
+from django.db.models import Q
+from django.test import override_settings
+from django.utils import timezone
+
 import dateutil.parser
 import requests
+from httmock import HTTMock, urlmatch
+from rest_framework.authtoken.models import Token
+from six import iteritems
 
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
@@ -34,11 +34,10 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Project, XForm, XFormVersion, ProjectInvitation
+from onadata.apps.logger.models import Project, ProjectInvitation, XForm, XFormVersion
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
@@ -55,6 +54,7 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 
 User = get_user_model()
 
@@ -3320,7 +3320,7 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         )
         post_data = {"invitation_id": invitation.pk}
         request = self.factory.post("/", data=post_data, **self.extra)
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=pytz.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             response = self.view(request, pk=self.project.pk)
@@ -3423,7 +3423,7 @@ class ResendInvitationTestCase(TestAbstractViewSet):
             email="jandoe@example.com", role="editor"
         )
         post_data = {"invitation_id": invitation.pk}
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=pytz.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
         request = self.factory.post("/", data=post_data, **self.extra)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):

@@ -4,13 +4,13 @@ Test /orgs API endpoint implementation.
 """
 import json
 from builtins import str as text
+from unittest.mock import patch
 
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
 from django.test.utils import override_settings
 
 from guardian.shortcuts import get_perms
-from mock import patch
 from rest_framework import status
 
 from onadata.apps.api.models.organization_profile import (
