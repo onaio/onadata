@@ -287,7 +287,7 @@ def flatten_split_select_multiples(
     for key, value in row.items():
         if key in select_multiples and isinstance(value, dict):
             picked_choices = [
-                k for k, v in value.items() if v in ["1", "TRUE"] or v == k
+                k for k, v in value.items() if v.upper() in ["1", "TRUE"] or v == k
             ]
             new_value = " ".join(picked_choices)
             row.update({key: new_value})
@@ -295,6 +295,18 @@ def flatten_split_select_multiples(
             # Handle cases where select_multiples are within a group
             new_value = flatten_split_select_multiples(value, select_multiples)
             row.update({key: new_value})
+        elif isinstance(value, list):
+            # Handle case where we have repeat questions
+            new_value = []
+
+            for repeat_question in value:
+                flattened_question = flatten_split_select_multiples(
+                    repeat_question, select_multiples
+                )
+                new_value.append(flattened_question)
+
+            row.update({key: new_value})
+
     return row
 
 
