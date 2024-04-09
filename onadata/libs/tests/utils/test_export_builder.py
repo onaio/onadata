@@ -1172,7 +1172,7 @@ class TestExportBuilder(TestBase):
             rows = list(reader)
 
             # Check that columns are present
-            self.assertIn("Sport", _str_if_bytes(rows[0]))
+            self.assertIn("Sport", [_str_if_bytes(item) for item in rows[0]])
             # Check for sport in first 5 characters
             # because rows contains 'sport@d4b6'
             self.assertIn("sport", list(map(_str_if_bytes, [x[0:5] for x in rows[0]])))
