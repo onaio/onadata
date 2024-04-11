@@ -603,6 +603,24 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["odk_token"], odk_token)
         self.assertEqual(response.data["expires"], expires)
 
+    def test_deactivate_token_when_expires_is_None(self):
+        """
+        Test that when a token's .expires field is nil, it will be deactivated
+        and a new one created in it's place
+        """
+        view = ConnectViewSet.as_view({"post": "odk_token", "get": "odk_token"})
+
+        # Create an active tokens
+        token = ODKToken.objects.create(user=self.user)
+        ODKToken.objects.filter(pk=token.pk).update(expires=None)
+
+        request = self.factory.get("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 1)
+        self.assertNotEqual(response.data["odk_token"], token.raw_key)
+
     def test_deactivates_multiple_active_odk_token(self):
         """
         Test that the viewset deactivates tokens when two or more are
