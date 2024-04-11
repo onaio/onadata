@@ -1,7 +1,6 @@
 """Tests for module onadata.apps.logger.models.registration_form"""
 
 import json
-import os
 import pytz
 from datetime import datetime
 from unittest.mock import patch
@@ -20,8 +19,6 @@ class RegistrationFormTestCase(TestBase):
         super().setUp()
 
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
-        self.form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
 
     @patch("django.utils.timezone.now")
     def test_creation(self, mock_now):
@@ -30,7 +27,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self._publish_xls_file_and_set_xform(self.form_path)
+        self.xform = self._publish_registration_form()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -53,7 +50,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self._publish_xls_file_and_set_xform(self.form_path)
+        self.xform = self._publish_registration_form()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         form = RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -155,7 +152,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self._publish_xls_file_and_set_xform(self.form_path)
+        self.xform = self._publish_registration_form()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -173,7 +170,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self._publish_xls_file_and_set_xform(self.form_path)
+        self.xform = self._publish_registration_form()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,

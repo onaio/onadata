@@ -2,7 +2,6 @@
 """
 Test logger_tools utility functions.
 """
-import json
 import os
 import re
 from io import BytesIO
@@ -659,15 +658,7 @@ class CreateEntityTestCase(TestBase):
         super().setUp()
         # Mute signal that creates Entity when Instance is saved
         self._mute_post_save_signals([(Instance, "create_entity")])
-        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
-        form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
-        self.xform.versions.create(
-            xls=self.xform.xls,
-            version=self.xform.version,
-            xml=self.xform.xml,
-            json=json.dumps(self.xform.json),
-        )
+        self.xform = self._publish_registration_form()
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='

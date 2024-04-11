@@ -25,27 +25,9 @@ class GetEntityListsTestCase(TestAbstractViewSet):
     def test_get_all(self):
         """GET all EntityLists works"""
         # Publish registration form and create "trees" EntityList dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_registration_form()
         # Publish follow up form for "trees" dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_follow_up.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_follow_up_form()
         # Make submission on tree_registration form
         submission_path = os.path.join(
             settings.PROJECT_ROOT,
@@ -180,27 +162,9 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "retrieve"})
         # Publish registration form and create "trees" EntityList dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_registration_form()
         # Publish follow up form for "trees" dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_follow_up.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_follow_up_form()
         self.entity_list = EntityList.objects.first()
         # Make submission on tree_registration form
         submission_path = os.path.join(
@@ -304,27 +268,9 @@ class GetEntitiesTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "entities"})
         # Publish registration form and create "trees" EntityList dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_registration_form()
         # Publish follow up form for "trees" dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_follow_up.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_follow_up_form()
         # Make submissions which will then create Entities
         paths = [
             os.path.join(

@@ -2,7 +2,6 @@
 """
 Test onadata.libs.serializers.xform_serializer
 """
-import json
 import os
 
 from unittest.mock import MagicMock
@@ -73,28 +72,9 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         serializer = XFormManifestSerializer()
         self._create_user_and_login()
         # Publish registration form
-        xlsx_path = os.path.join(
-            self.this_directory,
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_file(xlsx_path)
-        reg_form = XForm.objects.first()
-        reg_form.versions.create(
-            xls=reg_form.xls,
-            version=reg_form.version,
-            xml=reg_form.xml,
-            json=json.dumps(reg_form.json),
-        )
+        self._publish_registration_form()
         # Publish follow up form
-        xlsx_path = os.path.join(
-            self.this_directory,
-            "fixtures",
-            "entities",
-            "trees_follow_up.xlsx",
-        )
-        self._publish_xls_file(xlsx_path)
+        self._publish_follow_up_form()
         follow_up_xform = XForm.objects.order_by("pk").reverse()[0]
         entity_list = self.project.entity_lists.first()
         # Make submission to create new Entity

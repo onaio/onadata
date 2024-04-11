@@ -29,7 +29,13 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-from onadata.apps.logger.models import Attachment, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    Project,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.views import submission
@@ -699,3 +705,76 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         xform.save()
 
         return xform
+
+    def _publish_registration_form(self):
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
+
+        if not hasattr(self, "project"):
+            self._project_create()
+        elif self.project.created_by != self.user:
+            self._project_create()
+
+        data_dict = self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        latest_form = XForm.objects.all().order_by("-pk").first()
+        XFormVersion.objects.create(
+            xform=latest_form,
+            version="2022110901",
+            xml=data_dict.xml,
+            json=json.dumps(data_dict.json),
+        )
+        return latest_form
+
+    def _publish_follow_up_form(self):
+        md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+
+        if not hasattr(self, "project"):
+            self._project_create()
+        elif self.project.created_by != self.user:
+            self._project_create()
+
+        data_dict = self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_follow_up",
+            title="Trees follow-up",
+        )
+        latest_form = XForm.objects.all().order_by("-pk").first()
+        XFormVersion.objects.create(
+            xform=latest_form,
+            version="2022111801",
+            xml=data_dict.xml,
+            json=json.dumps(data_dict.json),
+        )
+        return latest_form

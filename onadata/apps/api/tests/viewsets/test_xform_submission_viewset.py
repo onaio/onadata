@@ -1323,16 +1323,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_create_entity(self):
         """An Entity is created for if the form is a RegistrationForm"""
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform = self._publish_registration_form()
         submission_path = os.path.join(
             self.main_directory,
             "fixtures",
@@ -1373,16 +1364,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform = self._publish_registration_form()
         registration_form = self.xform.registration_forms.first()
         # deactivate registration form
         registration_form.is_active = False

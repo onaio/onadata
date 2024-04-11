@@ -1,5 +1,5 @@
 """Tests for module onadata.apps.logger.models.follow_up_form"""
-import os
+
 import pytz
 from datetime import datetime
 from unittest.mock import patch
@@ -17,9 +17,7 @@ class FollowUpFormTestCase(TestBase):
         super().setUp()
 
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
-        form_path = os.path.join(fixture_dir, "trees_follow_up.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
+        self.xform = self._publish_follow_up_form()
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 
     @patch("django.utils.timezone.now")

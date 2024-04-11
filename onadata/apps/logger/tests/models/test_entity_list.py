@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from unittest.mock import patch
 
-from django.conf import settings
 from django.db.utils import IntegrityError, DataError
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -75,10 +74,29 @@ class EntityListTestCase(TestBase):
     def test_properties(self):
         """Returns the correct dataset properties"""
         # Publish XLSForm and implicity create EntityList
-        form_path = os.path.join(self.fixture_dir, "trees_registration.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
-        form_path = os.path.join(self.fixture_dir, "trees_registration_height.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
+        self._publish_registration_form()
+        height_md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | height                                     | Tree height in m         | height_m                                   |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration_height                  | 2022110901               | concat(${height}, "m ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${height}, "m ", ${species}) |                          |                                            |"""
+        self._publish_markdown(
+            height_md, self.user, self.project, id_string="trees_registration_height"
+        )
         entity_list = EntityList.objects.first()
         # The properties should be from all forms creating Entities for the dataset
         self.assertCountEqual(
@@ -94,8 +112,7 @@ class EntityListTestCase(TestBase):
 
     def test_queried_last_entity_update_time(self):
         """Property `queried_last_entity_update_time` works"""
-        form_path = os.path.join(self.fixture_dir, "trees_registration.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
+        self._publish_registration_form()
         entity_list = EntityList.objects.first()
         # Returns None if no Entities exist
         self.assertIsNone(entity_list.queried_last_entity_update_time)
@@ -144,16 +161,7 @@ class EntityListTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        form_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_file_and_set_xform(form_path)
+        self.xform = self._publish_registration_form()
         reg_form = self.xform.registration_forms.first()
         entity_list = EntityList.objects.get(name="trees")
         # Before creating Entity

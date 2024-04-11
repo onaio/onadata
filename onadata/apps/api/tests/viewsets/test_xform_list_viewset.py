@@ -968,16 +968,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
     def test_retrieve_xform_media_entity_list_dataset(self):
         """EntityList dataset is returned"""
         # Publish registration form and create "trees" Entitylist dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_registration_form()
         # Make submission to trees_registration form
         submission_path = os.path.join(
             self.main_directory,

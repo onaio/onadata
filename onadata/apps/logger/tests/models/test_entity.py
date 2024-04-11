@@ -1,7 +1,5 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
-import os
-import json
 import pytz
 from datetime import datetime
 
@@ -18,15 +16,7 @@ class EntityTestCase(TestBase):
         # Mute signal that creates Entity when Instance is saved
         self._mute_post_save_signals([(Instance, "create_entity")])
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
-        form_path = os.path.join(fixture_dir, "trees_registration.xlsx")
-        self._publish_xls_file_and_set_xform(form_path)
-        self.xform.versions.create(
-            xls=self.xform.xls,
-            version=self.xform.version,
-            xml=self.xform.xml,
-            json=json.dumps(self.xform.json),
-        )
+        self.xform = self._publish_registration_form()
 
     def test_creation(self):
         """We can create an Entity"""

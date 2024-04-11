@@ -1011,16 +1011,7 @@ class GenerateExportTestCase(TestAbstractViewSet):
     def test_generate_export_entity_list(self):
         """Generate export for EntityList dataset works"""
         # Publish registration form and create "trees" Entitylist dataset
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "trees_registration.xlsx",
-        )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self._publish_registration_form()
         # Make submission to trees_registration form
         submission_path = os.path.join(
             self.main_directory,
