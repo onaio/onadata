@@ -54,6 +54,7 @@ class ShareProjectTestCase(TestBase):
         """
         instance = ShareProject(self.project, self.alice, "manager")
         instance.save()
+        self.alice.refresh_from_db()
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
