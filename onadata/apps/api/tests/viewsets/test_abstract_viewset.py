@@ -693,8 +693,10 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         kwargs["name"] = "data"
         survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
         survey["sms_keyword"] = survey["id_string"]
+
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
+
         data_dict = DataDictionary(
             created_by=user,
             user=user,
@@ -733,12 +735,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         | entities |                    |                                            |                          |                                            |
         |          | list_name          | label                                      |                          |                                            |
         |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
-
-        if not hasattr(self, "project"):
-            self._project_create()
-        elif self.project.created_by != self.user:
-            self._project_create()
-
         self._publish_markdown(
             md,
             self.user,
@@ -759,12 +755,6 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         |         | form_title                     | form_id         |  version                         |          |
         |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
         """
-
-        if not hasattr(self, "project"):
-            self._project_create()
-        elif self.project.created_by != self.user:
-            self._project_create()
-
         self._publish_markdown(
             md,
             self.user,

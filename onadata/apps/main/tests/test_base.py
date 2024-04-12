@@ -458,9 +458,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         kwargs["name"] = "data"
         survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
         survey["sms_keyword"] = survey["id_string"]
+
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
-        xform = DataDictionary(
+
+        data_dict = DataDictionary(
             created_by=user,
             user=user,
             xml=survey.to_xml(),
@@ -468,9 +470,16 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             project=project,
             version=survey.get("version"),
         )
-        xform.save()
+        data_dict.save()
+        latest_form = XForm.objects.all().order_by("-pk").first()
+        XFormVersion.objects.create(
+            xform=latest_form,
+            version=survey.get("version"),
+            xml=data_dict.xml,
+            json=json.dumps(data_dict.json),
+        )
 
-        return xform
+        return data_dict
 
     def _test_csv_response(self, response, csv_file_path):
         headers = dict(response.items())
@@ -527,11 +536,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         | entities |                    |                                            |                          |                                            |
         |          | list_name          | label                                      |                          |                                            |
         |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
-
-        if not hasattr(self, "project"):
-            self.project = get_user_default_project(self.user)
-
-        data_dict = self._publish_markdown(
+        self._publish_markdown(
             md,
             self.user,
             self.project,
@@ -539,12 +544,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             title="Trees registration",
         )
         latest_form = XForm.objects.all().order_by("-pk").first()
-        XFormVersion.objects.create(
-            xform=latest_form,
-            version="2022110901",
-            xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
-        )
+
         return latest_form
 
     def _publish_follow_up_form(self):
@@ -556,11 +556,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         |         | form_title                     | form_id         |  version                         |          |
         |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
         """
-
-        if not hasattr(self, "project"):
-            self.project = get_user_default_project(self.user)
-
-        data_dict = self._publish_markdown(
+        self._publish_markdown(
             md,
             self.user,
             self.project,
@@ -568,10 +564,5 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             title="Trees follow-up",
         )
         latest_form = XForm.objects.all().order_by("-pk").first()
-        XFormVersion.objects.create(
-            xform=latest_form,
-            version="2022111801",
-            xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
-        )
+
         return latest_form
