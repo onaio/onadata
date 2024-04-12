@@ -34,19 +34,16 @@ from onadata.apps.logger.models import (
     Instance,
     Project,
     XForm,
-    XFormVersion,
 )
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main import tests as main_tests
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import MetaData, UserProfile
-from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.test_utils.pyxform_test_case import PyxformMarkdown
 from onadata.libs.utils.common_tools import merge_dicts
-from onadata.libs.utils.user_auth import get_user_default_project
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -101,7 +98,7 @@ def get_mocked_response_for_file(file_object, filename, status_code=200):
 
 
 # pylint: disable=too-many-instance-attributes
-class TestAbstractViewSet(PyxformMarkdown, TestCase):
+class TestAbstractViewSet(TestBase):
     """
     Base test class for API viewsets.
     """
@@ -688,80 +685,3 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         request.session = self.client.session
 
         return request
-
-    def _publish_markdown(self, md, user, project=None, **kwargs):
-        kwargs["name"] = "data"
-        survey = self.md_to_pyxform_survey(md, kwargs=kwargs)
-        survey["sms_keyword"] = survey["id_string"]
-
-        if not project or not hasattr(self, "project"):
-            project = get_user_default_project(user)
-
-        data_dict = DataDictionary(
-            created_by=user,
-            user=user,
-            xml=survey.to_xml(),
-            json=json.loads(survey.to_json()),
-            project=project,
-        )
-        data_dict.save()
-        latest_form = XForm.objects.all().order_by("-pk").first()
-        XFormVersion.objects.create(
-            xform=latest_form,
-            version=survey.get("version"),
-            xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
-        )
-
-        return data_dict
-
-    def _publish_registration_form(self):
-        md = """
-        | survey   |
-        |          | type               | name                                       | label                    | save_to                                    |
-        |          | geopoint           | location                                   | Tree location            | geometry                                   |
-        |          | select_one species | species                                    | Tree species             | species                                    |
-        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
-        |          | text               | intake_notes                               | Intake notes             |                                            |
-        | choices  |                    |                                            |                          |                                            |
-        |          | list_name          | name                                       | label                    |                                            |
-        |          | species            | wallaba                                    | Wallaba                  |                                            |
-        |          | species            | mora                                       | Mora                     |                                            |
-        |          | species            | purpleheart                                | Purpleheart              |                                            |
-        |          | species            | greenheart                                 | Greenheart               |                                            |
-        | settings |                    |                                            |                          |                                            |
-        |          | form_title         | form_id                                    | version                  | instance_name                              |
-        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
-        | entities |                    |                                            |                          |                                            |
-        |          | list_name          | label                                      |                          |                                            |
-        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
-        self._publish_markdown(
-            md,
-            self.user,
-            self.project,
-            id_string="trees_registration",
-            title="Trees registration",
-        )
-        latest_form = XForm.objects.all().order_by("-pk").first()
-
-        return latest_form
-
-    def _publish_follow_up_form(self):
-        md = """
-        | survey  |
-        |         | type                           | name            | label                            | required |
-        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
-        | settings|                                |                 |                                  |          |
-        |         | form_title                     | form_id         |  version                         |          |
-        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
-        """
-        self._publish_markdown(
-            md,
-            self.user,
-            self.project,
-            id_string="trees_follow_up",
-            title="Trees follow-up",
-        )
-        latest_form = XForm.objects.all().order_by("-pk").first()
-
-        return latest_form

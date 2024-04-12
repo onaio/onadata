@@ -462,6 +462,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
 
+        self.project = project
         data_dict = DataDictionary(
             created_by=user,
             user=user,
@@ -516,7 +517,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             model, dispatch_uid = signal
             signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)
 
-    def _publish_registration_form(self):
+    def _publish_registration_form(self, project=None):
         md = """
         | survey   |
         |          | type               | name                                       | label                    | save_to                                    |
@@ -539,7 +540,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self._publish_markdown(
             md,
             self.user,
-            self.project,
+            project,
             id_string="trees_registration",
             title="Trees registration",
         )
@@ -547,7 +548,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         return latest_form
 
-    def _publish_follow_up_form(self):
+    def _publish_follow_up_form(self, project=None):
         md = """
         | survey  |
         |         | type                           | name            | label                            | required |
@@ -559,7 +560,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self._publish_markdown(
             md,
             self.user,
-            self.project,
+            project,
             id_string="trees_follow_up",
             title="Trees follow-up",
         )
