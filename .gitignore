@@ -22,6 +22,23 @@ build
 /onadata/test_data_media
 /onadata/media
 /onadata/static
+/onadata/docs
+/onadata/dynatable
+/onadata/galleria/
+/onadata/gis/
+/onadata/guardian/
+/onadata/images/
+/onadata/img
+/onadata/js
+/onadata/rest_framework
+/onadata/tutorials
+/onadata/css/
+/onadata/tutorials/
+/onadata/bower_components
+/onadata/bootstrap/
+/onadata/admin/
+/onadata/*.html
+
 
 .~lock.*
 .DS_Store
