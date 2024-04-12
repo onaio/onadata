@@ -599,3 +599,107 @@ class CSVImportTestCase(TestBase):
         self.assertTrue(
             submission.json["section_B/year_established"].startswith("1890")
         )
+
+    def test_select_multiples_grouped_repeating_w_split(self):
+        """Select multiple choices within group within repeat with split"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+        with open(
+            os.path.join(
+                self.fixtures_dir, "csv_import_multiple_split_group_repeat.csv"
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+            self.assertEqual(Instance.objects.count(), 1)
+            submission = Instance.objects.first()
+            self.assertEqual(
+                submission.json["grp1/grp2/browser_use"],
+                [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2010,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2011,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            )
+
+    def test_select_multiples_grouped_repeating_wo_split(self):
+        """Select multiple choices within group within repeat without split"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+        with open(
+            os.path.join(
+                self.fixtures_dir, "csv_import_multiple_wo_split_group_repeat.csv"
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+            self.assertEqual(Instance.objects.count(), 1)
+            submission = Instance.objects.first()
+            self.assertEqual(
+                submission.json["grp1/grp2/browser_use"],
+                [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2010,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2011,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            )
