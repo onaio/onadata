@@ -121,38 +121,6 @@ def raise_bad_status_line(arg):
 
 
 class XFormViewSetBaseTestCase(TestAbstractViewSet):
-    def setUp(self):
-        super().setUp()
-
-        self.registration_form_md = """
-        | survey   |
-        |          | type               | name                                       | label                    | save_to                                    |
-        |          | geopoint           | location                                   | Tree location            | geometry                                   |
-        |          | select_one species | species                                    | Tree species             | species                                    |
-        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
-        |          | text               | intake_notes                               | Intake notes             |                                            |
-        | choices  |                    |                                            |                          |                                            |
-        |          | list_name          | name                                       | label                    |                                            |
-        |          | species            | wallaba                                    | Wallaba                  |                                            |
-        |          | species            | mora                                       | Mora                     |                                            |
-        |          | species            | purpleheart                                | Purpleheart              |                                            |
-        |          | species            | greenheart                                 | Greenheart               |                                            |
-        | settings |                    |                                            |                          |                                            |
-        |          | form_title         | form_id                                    | version                  | instance_name                              |
-        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
-        | entities |                    |                                            |                          |                                            |
-        |          | list_name          | label                                      |                          |                                            |
-        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
-
-        self.follow_up_form_md = """
-        | survey  |
-        |         | type                           | name            | label                            | required |
-        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
-        | settings|                                |                 |                                  |          |
-        |         | form_title                     | form_id         |  version                         |          |
-        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
-        """
-
     def _make_submission_over_date_range(self, start, days=1):
         self._publish_xls_form_to_project()
 
@@ -5196,7 +5164,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_get_single_registration_form(self):
         """Response a for an XForm contributing entities is correct"""
         # Publish registration form
-        xform = self._publish_markdown(self.registration_form_md, self.user)
+        xform = self._publish_registration_form()
         view = XFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=xform.pk)
@@ -5265,7 +5233,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_get_list_registration_form(self):
         """Getting a list of registration forms is correct"""
         # Publish registration form
-        xform = self._publish_markdown(self.registration_form_md, self.user)
+        xform = self._publish_registration_form()
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
@@ -5336,8 +5304,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         """Response a for an XForm consuming entities is correct"""
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_markdown(self.follow_up_form_md, self.user, self.project)
-        xform.refresh_from_db()
+        xform = self._publish_follow_up_form(self.project)
         view = XFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=xform.pk)
@@ -5426,8 +5393,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         # Publish registration form
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_markdown(self.follow_up_form_md, self.user, self.project)
-        xform.refresh_from_db()
+        xform = self._publish_follow_up_form(self.project)
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)

@@ -98,7 +98,7 @@ def get_mocked_response_for_file(file_object, filename, status_code=200):
 
 
 # pylint: disable=too-many-instance-attributes
-class TestAbstractViewSet(TestBase):
+class TestAbstractViewSet(TestBase, TestCase):
     """
     Base test class for API viewsets.
     """
