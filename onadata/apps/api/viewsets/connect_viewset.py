@@ -178,7 +178,9 @@ class ConnectViewSet(
                     user=user, status=ODKToken.ACTIVE
                 )
 
-                if not created and timezone.now() > token.expires:
+                if not token.expires or (
+                    not created and timezone.now() > token.expires
+                ):
                     token.status = ODKToken.INACTIVE
                     token.save()
                     token = ODKToken.objects.create(user=user)
