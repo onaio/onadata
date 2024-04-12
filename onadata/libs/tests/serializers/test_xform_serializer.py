@@ -72,9 +72,9 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         serializer = XFormManifestSerializer()
         self._create_user_and_login()
         # Publish registration form
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         # Publish follow up form
-        self._publish_follow_up_form()
+        self._publish_follow_up_form(self.user)
         follow_up_xform = XForm.objects.order_by("pk").reverse()[0]
         entity_list = self.project.entity_lists.first()
         # Make submission to create new Entity

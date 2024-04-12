@@ -74,7 +74,7 @@ class EntityListTestCase(TestBase):
     def test_properties(self):
         """Returns the correct dataset properties"""
         # Publish XLSForm and implicity create EntityList
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         height_md = """
         | survey   |
         |          | type               | name                                       | label                    | save_to                                    |
@@ -112,7 +112,7 @@ class EntityListTestCase(TestBase):
 
     def test_queried_last_entity_update_time(self):
         """Property `queried_last_entity_update_time` works"""
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         entity_list = EntityList.objects.first()
         # Returns None if no Entities exist
         self.assertIsNone(entity_list.queried_last_entity_update_time)
@@ -161,7 +161,7 @@ class EntityListTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         reg_form = self.xform.registration_forms.first()
         entity_list = EntityList.objects.get(name="trees")
         # Before creating Entity

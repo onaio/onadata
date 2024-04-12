@@ -517,7 +517,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             model, dispatch_uid = signal
             signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)
 
-    def _publish_registration_form(self, project=None):
+    def _publish_registration_form(self, user, project=None):
         md = """
         | survey   |
         |          | type               | name                                       | label                    | save_to                                    |
@@ -539,7 +539,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
         self._publish_markdown(
             md,
-            self.user,
+            user,
             project,
             id_string="trees_registration",
             title="Trees registration",
@@ -548,7 +548,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         return latest_form
 
-    def _publish_follow_up_form(self, project=None):
+    def _publish_follow_up_form(self, user, project=None):
         md = """
         | survey  |
         |         | type                           | name            | label                            | required |
@@ -559,7 +559,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         """
         self._publish_markdown(
             md,
-            self.user,
+            user,
             project,
             id_string="trees_follow_up",
             title="Trees follow-up",

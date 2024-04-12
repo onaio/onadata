@@ -5164,7 +5164,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_get_single_registration_form(self):
         """Response a for an XForm contributing entities is correct"""
         # Publish registration form
-        xform = self._publish_registration_form()
+        xform = self._publish_registration_form(self.user)
         view = XFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=xform.pk)
@@ -5233,7 +5233,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     def test_get_list_registration_form(self):
         """Getting a list of registration forms is correct"""
         # Publish registration form
-        xform = self._publish_registration_form()
+        xform = self._publish_registration_form(self.user)
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
@@ -5304,7 +5304,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         """Response a for an XForm consuming entities is correct"""
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_follow_up_form(self.project)
+        xform = self._publish_follow_up_form(self.user, self.project)
         view = XFormViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=xform.pk)
@@ -5377,7 +5377,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "bamboo_dataset": "",
             "instances_with_geopoints": False,
             "instances_with_osm": False,
-            "version": None,
+            "version": xform.version,
             "has_hxl_support": False,
             "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
             "hash": xform.hash,
@@ -5393,7 +5393,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         # Publish registration form
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_follow_up_form(self.project)
+        xform = self._publish_follow_up_form(self.user, self.project)
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
@@ -5448,7 +5448,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "bamboo_dataset": "",
                 "instances_with_geopoints": False,
                 "instances_with_osm": False,
-                "version": None,
+                "version": xform.version,
                 "has_hxl_support": False,
                 "last_updated_at": xform.last_updated_at.isoformat().replace(
                     "+00:00", "Z"

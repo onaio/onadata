@@ -17,7 +17,7 @@ class FollowUpFormTestCase(TestBase):
         super().setUp()
 
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        self.xform = self._publish_follow_up_form()
+        self.xform = self._publish_follow_up_form(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 
     @patch("django.utils.timezone.now")

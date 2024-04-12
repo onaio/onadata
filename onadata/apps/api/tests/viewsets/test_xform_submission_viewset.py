@@ -1323,7 +1323,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_create_entity(self):
         """An Entity is created for if the form is a RegistrationForm"""
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         submission_path = os.path.join(
             self.main_directory,
             "fixtures",
@@ -1364,7 +1364,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         registration_form = self.xform.registration_forms.first()
         # deactivate registration form
         registration_form.is_active = False

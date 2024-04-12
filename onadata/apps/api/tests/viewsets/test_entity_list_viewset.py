@@ -25,9 +25,9 @@ class GetEntityListsTestCase(TestAbstractViewSet):
     def test_get_all(self):
         """GET all EntityLists works"""
         # Publish registration form and create "trees" EntityList dataset
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         # Publish follow up form for "trees" dataset
-        self._publish_follow_up_form()
+        self._publish_follow_up_form(self.user)
         # Make submission on tree_registration form
         submission_path = os.path.join(
             settings.PROJECT_ROOT,
@@ -164,9 +164,9 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "retrieve"})
         # Publish registration form and create "trees" EntityList dataset
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         # Publish follow up form for "trees" dataset
-        self._publish_follow_up_form()
+        self._publish_follow_up_form(self.user)
         self.entity_list = EntityList.objects.first()
         # Make submission on tree_registration form
         submission_path = os.path.join(
@@ -272,9 +272,9 @@ class GetEntitiesTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "entities"})
         # Publish registration form and create "trees" EntityList dataset
-        self._publish_registration_form()
+        self._publish_registration_form(self.user)
         # Publish follow up form for "trees" dataset
-        self._publish_follow_up_form()
+        self._publish_follow_up_form(self.user)
         # Make submissions which will then create Entities
         paths = [
             os.path.join(

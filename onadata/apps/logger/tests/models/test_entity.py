@@ -16,7 +16,7 @@ class EntityTestCase(TestBase):
         # Mute signal that creates Entity when Instance is saved
         self._mute_post_save_signals([(Instance, "create_entity")])
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
 
     def test_creation(self):
         """We can create an Entity"""

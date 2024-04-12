@@ -27,7 +27,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -50,7 +50,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         form = RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -152,7 +152,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         RegistrationForm.objects.create(
             entity_list=entity_list,
@@ -170,7 +170,7 @@ class RegistrationFormTestCase(TestBase):
         self._mute_post_save_signals(
             [(DataDictionary, "create_registration_form_datadictionary")]
         )
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
             entity_list=entity_list,

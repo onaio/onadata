@@ -658,7 +658,7 @@ class CreateEntityTestCase(TestBase):
         super().setUp()
         # Mute signal that creates Entity when Instance is saved
         self._mute_post_save_signals([(Instance, "create_entity")])
-        self.xform = self._publish_registration_form()
+        self.xform = self._publish_registration_form(self.user)
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
