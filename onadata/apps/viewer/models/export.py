@@ -64,7 +64,7 @@ class ExportConnectionError(Exception):
         return _("Export server is down.")
 
 
-class ExportAbstractBase(models.Model):
+class ExportBaseModel(models.Model):
     XLSX_EXPORT = "xlsx"
     CSV_EXPORT = "csv"
     KML_EXPORT = "kml"
@@ -216,14 +216,14 @@ class ExportAbstractBase(models.Model):
         abstract = True
 
 
-class Export(ExportAbstractBase):
+class Export(ExportBaseModel):
     """
     Class representing a data export from an XForm
     """
 
     xform = models.ForeignKey("logger.XForm", on_delete=models.CASCADE)
 
-    class Meta(ExportAbstractBase.Meta):
+    class Meta(ExportBaseModel.Meta):
         app_label = "viewer"
         unique_together = (("xform", "filename"),)
 
@@ -317,12 +317,12 @@ class Export(ExportAbstractBase):
 post_delete.connect(export_delete_callback, sender=Export)
 
 
-class GenericExport(ExportAbstractBase):
+class GenericExport(ExportBaseModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey()
 
-    class Meta(ExportAbstractBase.Meta):
+    class Meta(ExportBaseModel.Meta):
         app_label = "viewer"
         unique_together = (("content_type", "object_id", "filename"),)
 

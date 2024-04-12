@@ -59,8 +59,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "trees",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
-                "created_at": first.created_at.isoformat().replace("+00:00", "Z"),
-                "updated_at": first.updated_at.isoformat().replace("+00:00", "Z"),
+                "date_created": first.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": first.date_modified.isoformat().replace("+00:00", "Z"),
                 "num_registration_forms": 1,
                 "num_follow_up_forms": 1,
                 "num_entities": 1,
@@ -71,8 +71,10 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "immunization",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
-                "created_at": second.created_at.isoformat().replace("+00:00", "Z"),
-                "updated_at": second.updated_at.isoformat().replace("+00:00", "Z"),
+                "date_created": second.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": second.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
                 "num_entities": 0,
@@ -83,8 +85,8 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "name": "savings",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
                 "public": False,
-                "created_at": third.created_at.isoformat().replace("+00:00", "Z"),
-                "updated_at": third.updated_at.isoformat().replace("+00:00", "Z"),
+                "date_created": third.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": third.date_modified.isoformat().replace("+00:00", "Z"),
                 "num_registration_forms": 0,
                 "num_follow_up_forms": 0,
                 "num_entities": 0,
@@ -188,15 +190,17 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.get("Cache-Control"))
         self.entity_list.refresh_from_db()
-        created_at = self.entity_list.created_at.isoformat().replace("+00:00", "Z")
-        updated_at = self.entity_list.updated_at.isoformat().replace("+00:00", "Z")
+        date_created = self.entity_list.date_created.isoformat().replace("+00:00", "Z")
+        date_modified = self.entity_list.date_modified.isoformat().replace(
+            "+00:00", "Z"
+        )
         expected_data = {
             "id": self.entity_list.pk,
             "name": "trees",
             "project": f"http://testserver/api/v1/projects/{self.project.pk}",
             "public": False,
-            "created_at": created_at,
-            "updated_at": updated_at,
+            "date_created": date_created,
+            "date_modified": date_modified,
             "num_registration_forms": 1,
             "num_follow_up_forms": 1,
             "num_entities": 1,

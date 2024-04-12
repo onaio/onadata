@@ -1,20 +1,20 @@
 """
 ProjectInvitation class
 """
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from onadata.apps.logger.models.project import Project
-from onadata.libs.models.base_model import BaseModel
 
 User = get_user_model()
 
 
-class ProjectInvitation(BaseModel):
+class ProjectInvitation(models.Model):
     """ProjectInvitation model class"""
 
-    class Meta(BaseModel.Meta):
+    class Meta:
         app_label = "logger"
 
     class Status(models.IntegerChoices):

@@ -11,10 +11,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from onadata.apps.logger.models.project import Project
-from onadata.libs.models import AbstractBase
+from onadata.libs.models import BaseModel
 
 
-class EntityList(AbstractBase):
+class EntityList(BaseModel):
     """The dataset where each entity will be save to
 
     Entities of the same type are organized in entity lists
@@ -33,7 +33,7 @@ class EntityList(AbstractBase):
     last_entity_update_time = models.DateTimeField(blank=True, null=True)
     exports = GenericRelation("viewer.GenericExport")
 
-    class Meta(AbstractBase.Meta):
+    class Meta(BaseModel.Meta):
         app_label = "logger"
         unique_together = (
             "name",
@@ -79,11 +79,11 @@ class EntityList(AbstractBase):
         try:
             latest_entity = Entity.objects.filter(
                 registration_form__entity_list=self
-            ).latest("updated_at")
+            ).latest("date_modified")
         except ObjectDoesNotExist:
             return None
 
-        return latest_entity.updated_at
+        return latest_entity.date_modified
 
     @property
     def queried_num_entities(self) -> int:

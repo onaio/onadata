@@ -38,8 +38,8 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(f"{reg_form}", f"{reg_form.xform}|trees")
         self.assertEqual(reg_form.xform, self.xform)
         self.assertEqual(reg_form.entity_list, entity_list)
-        self.assertEqual(reg_form.created_at, self.mocked_now)
-        self.assertEqual(reg_form.updated_at, self.mocked_now)
+        self.assertEqual(reg_form.date_created, self.mocked_now)
+        self.assertEqual(reg_form.date_modified, self.mocked_now)
         self.assertTrue(reg_form.is_active)
         # Related names are correct
         self.assertEqual(entity_list.registration_forms.count(), 1)

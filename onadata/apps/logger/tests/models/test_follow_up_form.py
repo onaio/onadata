@@ -34,8 +34,8 @@ class FollowUpFormTestCase(TestBase):
         self.assertEqual(form.xform, self.xform)
         self.assertTrue(form.is_active)
         self.assertEqual(form.entity_list, self.entity_list)
-        self.assertEqual(form.created_at, self.mocked_now)
-        self.assertEqual(form.updated_at, self.mocked_now)
+        self.assertEqual(form.date_created, self.mocked_now)
+        self.assertEqual(form.date_modified, self.mocked_now)
 
     def test_related_name(self):
         """Related names for foreign keys work"""

@@ -1,1 +1,1 @@
-from .abstract_base import AbstractBase  # noqa
+from .base_model import BaseModel  # noqa

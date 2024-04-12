@@ -1031,7 +1031,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         instance=instance,
     )
     entity_list = registration_form.entity_list
-    entity_list.last_entity_update_time = entity.updated_at
+    entity_list.last_entity_update_time = entity.date_modified
     entity_list.num_entities = F("num_entities") + 1
     entity_list.save()
 

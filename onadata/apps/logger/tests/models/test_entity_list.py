@@ -36,8 +36,8 @@ class EntityListTestCase(TestBase):
         self.assertEqual(f"{entity_list}", f"trees|{self.project}")
         self.assertEqual(entity_list.name, "trees")
         self.assertEqual(entity_list.project, self.project)
-        self.assertEqual(entity_list.created_at, self.mocked_now)
-        self.assertEqual(entity_list.updated_at, self.mocked_now)
+        self.assertEqual(entity_list.date_created, self.mocked_now)
+        self.assertEqual(entity_list.date_modified, self.mocked_now)
         self.assertEqual(entity_list.num_entities, 2)
         self.assertEqual(entity_list.last_entity_update_time, self.mocked_now)
 
@@ -122,12 +122,12 @@ class EntityListTestCase(TestBase):
         # Returns the datetime of the latest entity created
         entity_list.refresh_from_db()
         self.assertEqual(
-            entity_list.queried_last_entity_update_time, entity_2.updated_at
+            entity_list.queried_last_entity_update_time, entity_2.date_modified
         )
         # Returns the datetime of the latest entity updated
         entity_1.save()
         self.assertEqual(
-            entity_list.queried_last_entity_update_time, entity_1.updated_at
+            entity_list.queried_last_entity_update_time, entity_1.date_modified
         )
 
     def test_queried_num_entities(self):

@@ -709,4 +709,4 @@ class CreateEntityTestCase(TestBase):
         entity_list = self.registration_form.entity_list
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.num_entities, 1)
-        self.assertEqual(entity_list.last_entity_update_time, entity.updated_at)
+        self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)

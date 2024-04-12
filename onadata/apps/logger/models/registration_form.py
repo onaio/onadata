@@ -1,6 +1,7 @@
 """
 RegistrationForm model
 """
+
 import json
 
 from django.db import models
@@ -9,10 +10,10 @@ from django.utils.translation import gettext_lazy as _
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
-from onadata.libs.models import AbstractBase
+from onadata.libs.models import BaseModel
 
 
-class RegistrationForm(AbstractBase):
+class RegistrationForm(BaseModel):
     """Form that creates entities in an entity list"""
 
     entity_list = models.ForeignKey(
@@ -28,7 +29,7 @@ class RegistrationForm(AbstractBase):
     )
     is_active = models.BooleanField(default=True)
 
-    class Meta(AbstractBase.Meta):
+    class Meta(BaseModel.Meta):
         app_label = "logger"
         unique_together = (
             "entity_list",

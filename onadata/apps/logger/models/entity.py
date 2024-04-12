@@ -8,12 +8,12 @@ from django.db import models
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.xform_instance_parser import get_entity_uuid_from_xml
-from onadata.libs.models import AbstractBase
+from onadata.libs.models import BaseModel
 
 User = get_user_model()
 
 
-class Entity(AbstractBase):
+class Entity(BaseModel):
     """An entity created by a registration form"""
 
     registration_form = models.ForeignKey(
@@ -46,5 +46,5 @@ class Entity(AbstractBase):
 
         super().save(*args, **kwargs)
 
-    class Meta(AbstractBase.Meta):
+    class Meta(BaseModel.Meta):
         app_label = "logger"
