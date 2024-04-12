@@ -25,7 +25,6 @@ from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
@@ -55,7 +54,7 @@ def _logger_fixture_path(*args):
     return os.path.join(settings.PROJECT_ROOT, "libs", "tests", "fixtures", *args)
 
 
-class TestExportTools(TestBase, TestAbstractViewSet):
+class TestExportTools(TestAbstractViewSet):
     """
     Test export_tools functions.
     """
