@@ -695,16 +695,23 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         survey["sms_keyword"] = survey["id_string"]
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
-        xform = DataDictionary(
+        data_dict = DataDictionary(
             created_by=user,
             user=user,
             xml=survey.to_xml(),
             json=json.loads(survey.to_json()),
             project=project,
         )
-        xform.save()
+        data_dict.save()
+        latest_form = XForm.objects.all().order_by("-pk").first()
+        XFormVersion.objects.create(
+            xform=latest_form,
+            version=survey.get("version"),
+            xml=data_dict.xml,
+            json=json.dumps(data_dict.json),
+        )
 
-        return xform
+        return data_dict
 
     def _publish_registration_form(self):
         md = """
@@ -732,7 +739,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         elif self.project.created_by != self.user:
             self._project_create()
 
-        data_dict = self._publish_markdown(
+        self._publish_markdown(
             md,
             self.user,
             self.project,
@@ -740,12 +747,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             title="Trees registration",
         )
         latest_form = XForm.objects.all().order_by("-pk").first()
-        XFormVersion.objects.create(
-            xform=latest_form,
-            version="2022110901",
-            xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
-        )
+
         return latest_form
 
     def _publish_follow_up_form(self):
@@ -763,7 +765,7 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
         elif self.project.created_by != self.user:
             self._project_create()
 
-        data_dict = self._publish_markdown(
+        self._publish_markdown(
             md,
             self.user,
             self.project,
@@ -771,10 +773,5 @@ class TestAbstractViewSet(PyxformMarkdown, TestCase):
             title="Trees follow-up",
         )
         latest_form = XForm.objects.all().order_by("-pk").first()
-        XFormVersion.objects.create(
-            xform=latest_form,
-            version="2022111801",
-            xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
-        )
+
         return latest_form
