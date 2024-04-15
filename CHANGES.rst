@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.0.1(2024-04-15)
+------------------
+- When an odk token expires is None, deactivate and replace
+  `PR #2583 <https://github.com/onaio/onadata/pull/2583>` 
+  [@FrankApiyo]
+- Flatten select multiples in repeating sections during CSV import
+  `PR #2578 <https://github.com/onaio/onadata/pull/2578>` 
+  [@kelvin-muchiri]
+
+v4.0.0(2024-04-08)
+------------------
+- Remove redundant Dockerfile used for development
+  `PR #2575 <https://github.com/onaio/onadata/pull/2575>` 
+  [@kelvin-muchiri]
+- Add user to organization asynchronously
+  `PR #2574 <https://github.com/onaio/onadata/pull/2574>` 
+  [@kelvin-muchiri]
+- Upgrade to Django 4.2
+  `PR #2572 <https://github.com/onaio/onadata/pull/2572>` 
+  [@ukanga]
+
 v3.19.0(2024-03-26)
 -------------------
 - Security Remediations
