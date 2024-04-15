@@ -12,7 +12,6 @@ from django.db.models.base import ModelBase
 import six
 from guardian.shortcuts import assign_perm, get_perms, get_users_with_perms, remove_perm
 
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.project import (
     Project,
     ProjectGroupObjectPermission,
@@ -571,15 +570,17 @@ def get_object_users_with_permissions(
             except UserProfile.DoesNotExist:
                 profile = UserProfile.objects.create(user=user)
 
-            result.append({
-                "user": user.username if username else user,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "role": get_role(permissions, obj),
-                "is_org": is_organization(profile),
-                "gravatar": profile.gravatar,
-                "metadata": profile.metadata,
-            })
+            result.append(
+                {
+                    "user": user.username if username else user,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": get_role(permissions, obj),
+                    "is_org": is_organization(profile),
+                    "gravatar": profile.gravatar,
+                    "metadata": profile.metadata,
+                }
+            )
 
     return result
 
@@ -615,8 +616,6 @@ def exclude_items_from_queryset_using_xform_meta_perms(xform, user, queryset):
     ):
         return queryset
     if user.has_perm(CAN_VIEW_XFORM_DATA, xform):
-        if queryset.model is Attachment:
-            return queryset.exclude(~Q(instance__user=user), instance__xform=xform)
         return queryset.exclude(~Q(user=user), xform=xform)
     return queryset.none()
 

@@ -34,9 +34,7 @@ class MediaViewSet(
 ):
     """A view to redirect to actual attachments url"""
 
-    queryset = Attachment.objects.filter(
-        instance__deleted_at__isnull=True, deleted_at__isnull=True
-    )
+    queryset = Attachment.objects.filter(deleted_at__isnull=True)
     filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = "pk"
     permission_classes = (AttachmentObjectPermissions,)

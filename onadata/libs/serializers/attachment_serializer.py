@@ -52,7 +52,7 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
     download_url = serializers.SerializerMethodField()
     small_download_url = serializers.SerializerMethodField()
     medium_download_url = serializers.SerializerMethodField()
-    xform = serializers.ReadOnlyField(source="instance.xform.pk")
+    xform = serializers.SerializerMethodField()
     instance = serializers.PrimaryKeyRelatedField(queryset=Instance.objects.all())
     filename = serializers.ReadOnlyField(source="media_file.name")
 
@@ -70,6 +70,16 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
             "medium_download_url",
         )
         model = Attachment
+
+    @check_obj
+    def get_xform(self, obj):
+        """
+        Return xform_id - old forms xform id is in submission instance xform_id
+        """
+        if obj.xform is None:
+            return obj.instance.xform_id
+
+        return obj.xform_id
 
     @check_obj
     def get_download_url(self, obj):

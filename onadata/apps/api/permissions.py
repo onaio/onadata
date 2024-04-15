@@ -370,7 +370,7 @@ class AttachmentObjectPermissions(
         model_cls = XForm
         user = request.user
 
-        return self._has_object_permission(request, model_cls, user, obj.instance.xform)
+        return self._has_object_permission(request, model_cls, user, obj.xform)
 
 
 class ConnectViewsetPermissions(IsAuthenticated):

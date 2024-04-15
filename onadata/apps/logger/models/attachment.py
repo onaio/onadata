@@ -50,6 +50,13 @@ class Attachment(models.Model):
 
     OSM = "osm"
 
+    xform = models.ForeignKey(
+        "logger.XForm",
+        related_name="xform_attachments",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
     instance = models.ForeignKey(
         "logger.Instance", related_name="attachments", on_delete=models.CASCADE
     )
