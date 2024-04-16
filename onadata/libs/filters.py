@@ -534,7 +534,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         queryset = self._xform_filter_queryset(request, queryset, view, "xform")
-        xform = self.xform
+        xform = self.xform if hasattr(self, 'xform') else None
         # Ensure queryset is filtered by XForm meta permissions
         if xform is None:
             xform_ids = list(set(queryset.values_list("xform", flat=True)))
@@ -544,7 +544,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
         if xform is not None:
             queryset = exclude_items_from_queryset_using_xform_meta_perms(
-                self.xform, request.user, queryset
+                xform, request.user, queryset
             )
 
         instance_id = request.query_params.get("instance")
