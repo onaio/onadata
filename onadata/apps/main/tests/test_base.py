@@ -248,7 +248,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         self.factory = APIRequestFactory()
         if auth is None:
-            auth = DigestAuth("bob", "bob")
+            auth = DigestAuth(self.login_username, self.login_password)
 
         tmp_file = None
 
@@ -306,7 +306,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                     data["media_file"] = open(attachment_path, "rb")
 
             url = f"/{self.user.username}/submission"
-            auth = DigestAuth("bob", "bob")
+            auth = DigestAuth(self.login_username, self.login_password)
             self.factory = APIRequestFactory()
             request = self.factory.post(url, data)
             request.user = self.user
