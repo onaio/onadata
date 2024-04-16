@@ -377,7 +377,8 @@ class XFormPermissionFilterMixin:
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
         else:
-            xform_qs = XForm.objects.all()
+            # No form filter supplied - return empty list.
+            xform_qs = XForm.objects.none()
         xform_qs = xform_qs.filter(deleted_at=None)
 
         if request.user.is_anonymous:
@@ -534,7 +535,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         queryset = self._xform_filter_queryset(request, queryset, view, "xform")
-        xform = self.xform if hasattr(self, 'xform') else None
+        xform = getattr(self, "xform", None)
         # Ensure queryset is filtered by XForm meta permissions
         if xform is None:
             xform_ids = list(set(queryset.values_list("xform", flat=True)))
