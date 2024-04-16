@@ -5219,7 +5219,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "bamboo_dataset": "",
             "instances_with_geopoints": False,
             "instances_with_osm": False,
-            "version": None,
+            "version": xform.version,
             "has_hxl_support": False,
             "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
             "hash": xform.hash,
@@ -5286,7 +5286,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "bamboo_dataset": "",
                 "instances_with_geopoints": False,
                 "instances_with_osm": False,
-                "version": None,
+                "version": xform.version,
                 "has_hxl_support": False,
                 "last_updated_at": xform.last_updated_at.isoformat().replace(
                     "+00:00", "Z"

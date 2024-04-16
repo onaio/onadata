@@ -16,7 +16,7 @@ from django.utils import timezone
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.tests.viewsets import test_abstract_viewset
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.briefcase_viewset import (
     BriefcaseViewset,
     _query_optimization_fence,
@@ -33,18 +33,19 @@ def ordered_instances(xform):
     return Instance.objects.filter(xform=xform).order_by("id")
 
 
-class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
+class TestBriefcaseViewSet(TestAbstractViewSet):
     """
     Test BriefcaseViewset
     """
 
     def setUp(self):
-        super(test_abstract_viewset.TestAbstractViewSet, self).setUp()
+        super().setUp()
+
         self.factory = APIRequestFactory()
-        self._login_user_and_profile()
         self.login_username = "bob"
         self.login_password = "bobbob"
-        self.maxDiff = None
+        self.user.set_password(self.login_password)
+        self.user.save()
         self.form_def_path = os.path.join(
             self.main_directory, "fixtures", "transportation", "transportation.xml"
         )
@@ -395,10 +396,10 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
             )
             with codecs.open(submission_list_path, encoding="utf-8") as f:
                 expected_submission_list = f.read()
-                last_expected_submission_list = (
-                    expected_submission_list
-                ) = expected_submission_list.replace(
-                    "{{resumptionCursor}}", "%s" % last_index
+                last_expected_submission_list = expected_submission_list = (
+                    expected_submission_list.replace(
+                        "{{resumptionCursor}}", "%s" % last_index
+                    )
                 )
                 self.assertContains(response, expected_submission_list)
             last_index += 2
