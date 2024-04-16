@@ -15,7 +15,7 @@ from io import StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import signals
 from django.test import RequestFactory, TransactionTestCase
@@ -273,7 +273,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             url = f"/{url_prefix}submission"
 
             request = self.factory.post(url, post_data)
-            request.user = self.user
+            request.user = authenticate(
+                request, username=auth.username, password=auth.password
+            )
 
             # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=username)
@@ -309,7 +311,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             auth = DigestAuth(self.login_username, self.login_password)
             self.factory = APIRequestFactory()
             request = self.factory.post(url, data)
-            request.user = self.user
+            request.user = authenticate(
+                request, username=auth.username, password=auth.password
+            )
             # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=self.user.username)
 
