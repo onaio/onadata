@@ -189,6 +189,8 @@ class TestAbstractViewSet(TestBase, TestCase):
             )
         )
         self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
+        self.login_username = self.profile_data["username"]
+        self.login_password = self.profile_data["password1"]
 
     def _org_create(self, org_data=None):
         org_data = {} if org_data is None else org_data

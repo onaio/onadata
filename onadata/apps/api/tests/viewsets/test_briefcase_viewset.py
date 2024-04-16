@@ -14,7 +14,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from django_digest.test import DigestAuth
-from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.briefcase_viewset import (
@@ -41,9 +40,6 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
     def setUp(self):
         super().setUp()
 
-        self.factory = APIRequestFactory()
-        self.login_username = "bob"
-        self.login_password = "bobbob"
         self.form_def_path = os.path.join(
             self.main_directory, "fixtures", "transportation", "transportation.xml"
         )
