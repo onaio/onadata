@@ -437,6 +437,7 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                 mimetype=content_type,
                 name=filename,
                 extension=extension,
+                user=instance.user,
             )
     if remove_deleted_media:
         instance.soft_delete_attachments()

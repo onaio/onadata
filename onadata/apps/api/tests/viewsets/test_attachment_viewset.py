@@ -287,6 +287,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension="MP4",
             name=filename,
             media_file=media_file,
+            xform=self.xform,
         )
 
         Attachment.objects.create(
@@ -295,6 +296,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension="PDF",
             name=filename,
             media_file=media_file,
+            xform=self.xform,
         )
         Attachment.objects.create(
             instance=self.xform.instances.first(),
@@ -302,6 +304,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension="TXT",
             name=filename,
             media_file=media_file,
+            xform=self.xform,
         )
         Attachment.objects.create(
             instance=self.xform.instances.first(),
@@ -309,6 +312,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension="MP3",
             name=filename,
             media_file=media_file,
+            xform=self.xform,
         )
         Attachment.objects.create(
             instance=self.xform.instances.first(),
@@ -316,12 +320,13 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             extension="GEOJSON",
             name=geojson_filename,
             media_file=geojson_media_file,
+            xform=self.xform,
         )
-        data = {}
+        data = {"xform": self.xform.pk}
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 6)
 
@@ -329,8 +334,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data["type"] = "image"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["mimetype"], "image/jpeg")
@@ -339,8 +344,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data["type"] = "audio"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["mimetype"], "audio/mp3")
@@ -349,8 +354,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data["type"] = "video"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["mimetype"], "video/mp4")
@@ -359,8 +364,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data["type"] = "document"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 3)
         self.assertEqual(response.data[0]["mimetype"], "application/pdf")

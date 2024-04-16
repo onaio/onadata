@@ -76,6 +76,12 @@ class Attachment(models.Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    # submitted_by user
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
     class Meta:
         app_label = "logger"
