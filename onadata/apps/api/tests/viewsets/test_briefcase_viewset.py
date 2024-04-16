@@ -44,8 +44,6 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
         self.factory = APIRequestFactory()
         self.login_username = "bob"
         self.login_password = "bobbob"
-        self.user.set_password(self.login_password)
-        self.user.save()
         self.form_def_path = os.path.join(
             self.main_directory, "fixtures", "transportation", "transportation.xml"
         )
