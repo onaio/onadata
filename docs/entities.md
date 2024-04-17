@@ -9,9 +9,7 @@ The following endpoints provides access to Entities related data: Where:
 
 ## Get EntityLists
 
-```
-GET /api/v1/entity-lists
-```
+`GET /api/v1/entity-lists`
 
 **Example**
 
@@ -39,9 +37,7 @@ GET /api/v1/entity-lists
 
 To get EntityLists for a specific project
 
-```
-GET /api/v1/entity-lists?project=<project_id>
-```
+`GET /api/v1/entity-lists?project=<project_id>`
 
 **Example**
 
@@ -69,9 +65,7 @@ GET /api/v1/entity-lists?project=<project_id>
 
 ## Get a single EntityList
 
-```
-GET /api/v1/entity-lists/<entity_list_id>
-```
+`GET /api/v1/entity-lists/<entity_list_id>`
 
 **Example**
 
@@ -114,9 +108,7 @@ GET /api/v1/entity-lists/<entity_list_id>
 
 ## Get Entities
 
-```
-GET api/v1/entity-lists/<entity_list_id>/entities
-```
+`GET api/v1/entity-lists/<entity_list_id>/entities`
 
 **Example**
 
