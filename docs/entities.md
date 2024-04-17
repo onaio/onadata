@@ -4,7 +4,7 @@ Entities allow you to share information between forms, enabling the collection o
 
 The following endpoints provides access to Entities related data: Where:
 
-- _Entity_ - Each item that gets managed by an ODK workflow. Entities are automatically created from submissions of form that contains entity definitions.
+- _Entity_ - Each item that gets managed by an ODK workflow. Entities are automatically created from submissions receieved from a form that contains entity definitions.
 - _EntityList_ - a dataset that contains Entities of the same type.
 
 ## Get EntityLists
