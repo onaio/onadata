@@ -217,11 +217,17 @@ class TestWidgetViewSet(TestAbstractViewSet):
             }
         )
 
+        # empty - no xform filter
         request = self.factory.get("/", **self.extra)
         response = view(request)
-
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 0)
+
+        # not empty - xform filter
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_widget_permission_create(self):
 
@@ -313,7 +319,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         )
 
         request = self.factory.get("/", **self.extra)
-        response = view(request)
+        response = view(request, formid=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
@@ -322,8 +328,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         ReadOnlyRole.add(self.user, self.xform)
 
         request = self.factory.get("/", **self.extra)
-        response = view(request)
-
+        response = view(request, formid=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
@@ -498,7 +503,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         request = self.factory.get("/", **self.extra)
         response = view(request, formid=self.xform.pk)
-
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 

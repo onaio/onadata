@@ -108,7 +108,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         _id = response_data.get("id")
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.view(request, pk=_id)
         expected_dict = {
             "name": "textit",
@@ -239,18 +239,18 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     def test_retrieve(self):
         """Test retrieving a service via API."""
         rest = RestService(
-            name="testservice", service_url="http://serviec.io", xform=self.xform
+            name="testservice", service_url="http://service.io", xform=self.xform
         )
         rest.save()
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.view(request, pk=rest.pk)
 
         data = {
             "id": rest.pk,
             "xform": self.xform.pk,
             "name": "testservice",
-            "service_url": "http://serviec.io",
+            "service_url": "http://service.io",
             "active": True,
             "inactive_reason": "",
         }

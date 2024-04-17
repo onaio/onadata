@@ -181,7 +181,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
     def test_list_view(self):
         self._submit_transport_instance_w_attachment()
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
@@ -192,7 +192,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.attachment.instance.deleted_at = timezone.now()
         self.attachment.instance.save()
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 0)
@@ -200,7 +200,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
     def test_data_list_with_xform_in_delete_async(self):
         self._submit_transport_instance_w_attachment()
 
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
@@ -209,7 +209,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         self.xform.deleted_at = timezone.now()
         self.xform.save()
-        request = self.factory.get("/", **self.extra)
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), initial_count - 1)
