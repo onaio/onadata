@@ -582,11 +582,10 @@ def get_media_file_response(metadata, request=None):
     except ValidationError:
         obj, filename = get_data_value_objects(metadata.data_value)
         if obj:
-            export_type = get_metadata_format(metadata.data_value)
-
             if isinstance(obj, EntityList):
                 return get_entity_list_export_response(request, obj, filename)
 
+            export_type = get_metadata_format(metadata.data_value)
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
 
