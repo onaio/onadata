@@ -9,9 +9,6 @@ from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.filters import EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.anon_user_public_entity_lists_mixin import (
-    AnonymousUserPublicEntityListsMixin,
-)
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.entity_serializer import (
     EntitySerializer,
@@ -26,7 +23,6 @@ BaseViewset = get_baseviewset_class()
 
 
 class EntityListViewSet(
-    AnonymousUserPublicEntityListsMixin,
     CacheControlMixin,
     ETagsMixin,
     BaseViewset,
@@ -39,8 +35,12 @@ class EntityListViewSet(
     filter_backends = (EntityListProjectFilter,)
 
     def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if self.request and self.request.user.is_anonymous:
+            queryset = queryset.filter(project__shared=True)
+
         if self.action == "retrieve":
-            queryset = super().get_queryset()
             # Prefetch related objects to be rendered for performance
             # optimization
             return queryset.prefetch_related(
@@ -48,7 +48,7 @@ class EntityListViewSet(
                 "follow_up_forms",
             )
 
-        return super().get_queryset()
+        return queryset
 
     def get_serializer_class(self):
         """Override get_serializer_class"""
