@@ -2,11 +2,7 @@
 EntityList model
 """
 
-from datetime import datetime
-
-from django.apps import apps
 from django.contrib.contenttypes.fields import GenericRelation
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -62,39 +58,3 @@ class EntityList(BaseModel):
             dataset_properties.update(form_properties)
 
         return list(dataset_properties)
-
-    @property
-    def queried_last_entity_update_time(self) -> datetime | None:
-        """The datetime of the latest Entity to be updated queried from DB
-
-        This value is queried from the database. It could be a
-        serious performance problem if the record set is large.
-
-        Returns:
-            datetime | None: The datetime or None if no Entities are unvailable
-        """
-        # pylint: disable=invalid-name
-        Entity = apps.get_model("logger.entity")  # noqa
-
-        try:
-            latest_entity = Entity.objects.filter(
-                registration_form__entity_list=self
-            ).latest("date_modified")
-        except ObjectDoesNotExist:
-            return None
-
-        return latest_entity.date_modified
-
-    @property
-    def queried_num_entities(self) -> int:
-        """The total number of Entities queried from the database
-
-        Returns:
-            int: The Entity count
-        """
-        # pylint: disable=invalid-name
-        Entity = apps.get_model("logger.entity")  # noqa
-
-        return Entity.objects.filter(
-            registration_form__entity_list=self, deleted_at__isnull=True
-        ).count()
