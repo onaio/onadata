@@ -588,10 +588,7 @@ def get_media_file_response(metadata, request=None):
                 return get_entity_list_export_response(request, obj, filename)
 
             dataview = obj if isinstance(obj, DataView) else False
-            xform = obj
-
-            if isinstance(obj, DataView):
-                xform = obj.xform
+            xform = obj.xform if isinstance(obj, DataView) else obj
 
             return custom_response_handler(
                 request,
