@@ -6,6 +6,7 @@ import sys
 
 from django.conf import settings
 from django.test import override_settings
+from django.utils import timezone
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -374,3 +375,15 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["meta/entity/label"], "300cm purpleheart")
+
+    def test_deleted_ignored(self):
+        """Deleted Entities are ignored"""
+        entity_qs = Entity.objects.all().order_by("pk")
+        entity_first = entity_qs.first()
+        entity_first.deleted_at = timezone.now()
+        entity_first.save()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.expected_data[-1]])
+        self.assertIsNotNone(response.get("Cache-Control"))

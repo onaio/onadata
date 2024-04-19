@@ -62,10 +62,13 @@ class EntityListViewSet(
 
     @action(methods=["GET"], detail=True)
     def entities(self, request, *args, **kwargs):
-        """Returns a list of Entities"""
+        """Returns a list of Entities for a single EntityList"""
         entity_list = self.get_object()
         entities_qs = (
-            Entity.objects.filter(registration_form__entity_list=entity_list)
+            Entity.objects.filter(
+                registration_form__entity_list=entity_list,
+                deleted_at__isnull=True,
+            )
             # To improve performance, we specify only the column(s)
             # we are interested in using .only
             .only("json").order_by("pk")
