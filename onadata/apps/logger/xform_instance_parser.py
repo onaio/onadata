@@ -171,9 +171,9 @@ def clean_and_parse_xml(xml_string):
 
     Returns an XML object via minidom.parseString(xml_string)
     """
-    clean_xml_str = smart_str(xml_string.strip())
-    clean_xml_str = re.sub(r">\s+<", "><", clean_xml_str)
+    clean_xml_str = re.sub(r">\s+<", "><", smart_str(xml_string.strip()))
     xml_obj = minidom.parseString(clean_xml_str)
+
     return xml_obj
 
 
