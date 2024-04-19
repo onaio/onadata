@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import base64
 import csv
-import json
 import os
 import re
 import socket
@@ -471,7 +470,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             created_by=user,
             user=user,
             xml=survey.to_xml(),
-            json=json.loads(survey.to_json()),
+            json=survey.to_json_dict(),
             project=project,
             version=survey.get("version"),
         )
@@ -481,7 +480,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             xform=latest_form,
             version=survey.get("version"),
             xml=data_dict.xml,
-            json=json.dumps(data_dict.json),
+            json=survey.to_json(),
         )
 
         return data_dict
