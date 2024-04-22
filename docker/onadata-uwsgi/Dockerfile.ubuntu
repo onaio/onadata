@@ -1,21 +1,7 @@
-FROM python:3.10 as intermediate
+FROM python:3.10.14-bookworm as base
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV PYTHONUNBUFFERED 1
-
+ARG release_version=v4.0.1
 ARG optional_packages
-
-# Download public key for github.com
-RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-# Install optional requirements
-# Read more on the ssh argument here: https://docs.docker.com/develop/develop-images/build_enhancements/#using-ssh-to-access-private-data-in-builds
-# hadolint ignore=DL3013
-RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
-
-FROM ubuntu:focal-20240123
-
-ARG release_version=v3.18.2
 
 # Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
@@ -31,10 +17,15 @@ RUN apt-get update -q && \
     binutils \
     build-essential \
     locales \
-    netcat \
+    netcat-traditional \
     gcc \
     pkg-config \
     git \
+    openssh-client \
+    libreadline-dev \
+    libbz2-dev \
+    libffi-dev \
+    curl \
     automake
 
 # Generate and set en_US.UTF-8 locale
@@ -43,20 +34,13 @@ ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 RUN dpkg-reconfigure locales
 
-# Add Deadsnake Repository
+
 # Install OnaData Dependencies
-RUN add-apt-repository 'ppa:deadsnakes/ppa' -y \
-    && apt-get update -q \
-    && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     libproj-dev \
     gdal-bin \
     memcached \
     libmemcached-dev \
-    supervisor \
-    python3.10 \
-    python3.10-dev \
-    python3-pip \
-    python3-setuptools \
     libssl-dev \
     libpq-dev \
     gfortran \
@@ -64,13 +48,9 @@ RUN add-apt-repository 'ppa:deadsnakes/ppa' -y \
     libjpeg-dev \
     libxml2-dev \
     libxslt1-dev \
-    libpython3.10-dev \
     zlib1g-dev \
     ghostscript \
-    python3-celery \
-    python3-sphinx \
     libtool \
-    openjdk-11-jre-headless \
     libpcre3 \
     libpcre3-dev \
     && apt-get autoremove -y \
@@ -78,33 +58,106 @@ RUN add-apt-repository 'ppa:deadsnakes/ppa' -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create OnaData user and add to tty group
-RUN useradd -G tty -m onadata
+RUN useradd -G tty -m onadata \
+    && mkdir -p /srv/onadata \
+    && chown -R onadata:onadata /srv/onadata
 
-# Clone Repository and Change owner
-RUN mkdir -p /srv/onadata
+USER onadata
+
+# Download public key for github.com
+RUN mkdir ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+RUN curl https://pyenv.run | bash
+
+ENV HOME /home/onadata
+ENV PYENV_ROOT="$HOME/.pyenv"
+ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+RUN pyenv install 3.10.14 && pyenv global 3.10.14 && pyenv rehash
+
+# FROM base as requirements
 
 COPY ../../ /srv/onadata/
-
-RUN chown -R onadata:onadata /srv/onadata
 
 # Install service requirements
 WORKDIR /srv/onadata
 
-COPY --from=intermediate /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/dist-packages/
+USER root
+
+# ENV GIT_SSH_COMMAND="ssh -vvv"
+RUN mkdir -p /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
+RUN echo $(ssh-add -l) && echo $SSH_AUTH_SOCK
+RUN --mount=type=ssh echo $(ssh-add -l) && echo $SSH_AUTH_SOCK
 # hadolint ignore=DL3013
-RUN python3.10 -m pip install --no-cache-dir -U pip && \
-    python3.10 -m pip install --no-cache-dir -r requirements/base.pip && \
-    python3.10 -m pip install --no-cache-dir -r requirements/s3.pip && \
-    python3.10 -m pip install --no-cache-dir -r requirements/ses.pip && \
-    python3.10 -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python3.10 -m pip install setuptools==65.5.1 && \
-    python3.10 -m pip install --no-cache-dir pyyaml uwsgitop
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then /home/onadata/.pyenv/versions/3.10.14/bin/pip install --no-cache-dir ${optional_packages} ; fi
+RUN chown -R onadata:onadata /home/onadata/.pyenv/versions/3.10.14/lib/python3.10/site-packages
+
+USER onadata
+
+# hadolint ignore=DL3013
+RUN python -m pip install --no-cache-dir -U pip && \
+    python -m pip install --no-cache-dir -r requirements/base.pip && \
+    python -m pip install --no-cache-dir -r requirements/s3.pip && \
+    python -m pip install --no-cache-dir -r requirements/ses.pip && \
+    python -m pip install --no-cache-dir -r requirements/azure.pip && \
+    python -m pip install --no-cache-dir setuptools==69.2.0 && \
+    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12
+
+FROM base as docs
+ENV PYENV_ROOT="$HOME/.pyenv"
+ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+COPY --from=base /home/onadata/.pyenv/ /home/onadata/.pyenv/
+COPY --from=base /srv/onadata/ /srv/onadata/
+USER root
+RUN chown -R onadata:onadata /srv/onadata/
+USER onadata
 
 # Compile API Docs
 RUN make -C docs html
 
-EXPOSE 8000
+
+FROM ubuntu:jammy-20240405 as runtime
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install prerequisite packages
+RUN apt-get update -q && \
+    apt-get install -y --no-install-recommends locales netcat
+
+# # Generate and set en_US.UTF-8 locale
+RUN locale-gen en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+RUN dpkg-reconfigure locales
+
+
+# # Install OnaData Dependencies
+RUN apt-get install -y --no-install-recommends \
+    gdal-bin \
+    git-core \
+    openjdk-11-jre-headless \
+    libxml2-dev \
+    libxslt1-dev \
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create OnaData user and add to tty group
+RUN useradd -G tty -m onadata \
+    && mkdir -p /srv/onadata \
+    && chown -R onadata:onadata /srv/onadata
+
+COPY --from=base /home/onadata/.pyenv/ /home/onadata/.pyenv/
+COPY --from=docs /srv/onadata/ /srv/onadata/
+
+RUN chown -R onadata:onadata /srv/onadata/
 
 USER onadata
+WORKDIR /srv/onadata
 
-CMD ["/usr/local/bin/uwsgi", "--ini", "/uwsgi.ini"]
+ENV HOME /home/onadata
+ENV PYTHON_VERSION 3.10.14
+ENV PYENV_ROOT="$HOME/.pyenv"
+ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+CMD ["uwsgi", "--ini", "uwsgi.ini"]
