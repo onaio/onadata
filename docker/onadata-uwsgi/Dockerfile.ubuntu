@@ -1,4 +1,4 @@
-FROM python:3.10 as intermediate
+FROM python:3.10.14-bullseye as intermediate
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONUNBUFFERED 1
@@ -13,7 +13,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20240123
+FROM ubuntu:focal-20240410
 
 ARG release_version=v3.18.2
 
@@ -48,6 +48,8 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y && apt-get update -q
 
 # Install OnaData Dependencies
 RUN apt-get install -y --no-install-recommends \
+        libc-bin=2.31-0ubuntu9.15  \
+        libgnutls30=3.6.13-2ubuntu1.11 \
         libproj-dev \
         gdal-bin \
         memcached \
