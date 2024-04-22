@@ -18,9 +18,9 @@ def populate_attachment_xform(apps, schema_editor):
         # Queryset.update is a workaround to achieve this.
         # Model.save and the post/pre signals may contain
         # some side-effects which we are not interested in
-        Attachment.objects.filter(pk=attachment.pk).update(
-            xform=attachment.instance.xform_id,
-            user=attachment.instance.user_id,
+        Attachment.objects.filter(pk=attachment["pk"]).update(
+            xform=attachment["instance__xform"],
+            user=attachment["instance__user"],
         )
         count -= 1
         print("f{count} remaining")
