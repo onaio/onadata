@@ -14,9 +14,8 @@ def populate_attachment_xform(apps, schema_editor):
     for attachment in queryset.iterator(chunk_size=100):
         # We do not want to trigger Model.save or any signal
         # Queryset.update is a workaround to achieve this.
-        # Instance.save and the post/pre signals may contain
-        # some side-effects which we are not interested in e.g
-        # updating date_modified which we do not want
+        # Model.save and the post/pre signals may contain
+        # some side-effects which we are not interested in
         Attachment.objects.filter(pk=attachment.pk).update(
             xform=attachment.instance.xform
         )
