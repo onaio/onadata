@@ -17,3 +17,6 @@
 **/*tests
 **/*test
 **/*__pycache__
+onadata/media
+onadata/test_data_media
+onadata/test_media
