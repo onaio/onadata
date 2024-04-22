@@ -6,7 +6,9 @@ from django.db import migrations
 def populate_attachment_xform(apps, schema_editor):
     """Populate xform field for Attachments"""
     Attachment = apps.get_model("logger", "Attachment")
-    queryset = Attachment.objects.filter(xform__isnull=True)
+    queryset = Attachment.objects.filter(xform__isnull=True).values(
+        "pk", "instance__xform", "instance__user"
+    )
     count = queryset.count()
     print("Start populating attachment xform...")
     print(f"Found {count} records")
@@ -17,7 +19,8 @@ def populate_attachment_xform(apps, schema_editor):
         # Model.save and the post/pre signals may contain
         # some side-effects which we are not interested in
         Attachment.objects.filter(pk=attachment.pk).update(
-            xform=attachment.instance.xform
+            xform=attachment.instance.xform_id,
+            user=attachment.instance.user_id,
         )
         count -= 1
         print("f{count} remaining")
