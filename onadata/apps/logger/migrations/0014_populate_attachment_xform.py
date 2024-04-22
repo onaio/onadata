@@ -23,7 +23,7 @@ def populate_attachment_xform(apps, schema_editor):
             user=attachment["instance__user"],
         )
         count -= 1
-        print("f{count} remaining")
+        print(f"{count} remaining")
 
     print("Done populating attachment xform!")
 
