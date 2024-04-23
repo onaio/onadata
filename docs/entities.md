@@ -23,7 +23,7 @@ The following endpoints provides access to Entities related data: Where:
         "url":"http://testserver/api/v2/entity-lists/9",
         "id":9,
         "name":"trees",
-        "project":"http://testserver/api/v2/projects/9",
+        "project":"http://testserver/api/v1/projects/9",
         "public":false,
         "date_created":"2024-04-17T11:26:24.630117Z",
         "date_modified":"2024-04-17T11:26:25.050823Z",
@@ -51,7 +51,7 @@ To get EntityLists for a specific project
         "url":"http://testserver/api/v2/entity-lists/9",
         "id":9,
         "name":"trees",
-        "project":"http://testserver/api/v2/projects/9",
+        "project":"http://testserver/api/v1/projects/9",
         "public":false,
         "date_created":"2024-04-17T11:26:24.630117Z",
         "date_modified":"2024-04-17T11:26:25.050823Z",
@@ -77,7 +77,7 @@ To get EntityLists for a specific project
 {
    "id":16,
    "name":"trees",
-   "project":"http://testserver/api/v2/projects/13",
+   "project":"http://testserver/api/v1/projects/13",
    "public":false,
    "date_created":"2024-04-17T11:43:08.530848Z",
    "date_modified":"2024-04-17T11:43:09.030105Z",
@@ -87,7 +87,7 @@ To get EntityLists for a specific project
    "registration_forms":[
       {
          "title":"Trees registration",
-         "xform":"http://testserver/api/v2/forms/15",
+         "xform":"http://testserver/api/v1/forms/15",
          "id_string":"trees_registration",
          "save_to":[
             "geometry",
@@ -99,7 +99,7 @@ To get EntityLists for a specific project
    "follow_up_forms":[
       {
          "title":"Trees follow-up",
-         "xform":"http://testserver/api/v2/forms/16",
+         "xform":"http://testserver/api/v1/forms/16",
          "id_string":"trees_follow_up"
       }
    ]
