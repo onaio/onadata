@@ -55,7 +55,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
         expected_data = [
             {
-                "url": f"http://testserver/api/v1/entity-lists/{first.pk}",
+                "url": f"http://testserver/api/v2/entity-lists/{first.pk}",
                 "id": first.pk,
                 "name": "trees",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
@@ -67,7 +67,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "num_entities": 1,
             },
             {
-                "url": f"http://testserver/api/v1/entity-lists/{second.pk}",
+                "url": f"http://testserver/api/v2/entity-lists/{second.pk}",
                 "id": second.pk,
                 "name": "immunization",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
@@ -81,7 +81,7 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "num_entities": 0,
             },
             {
-                "url": f"http://testserver/api/v1/entity-lists/{third.pk}",
+                "url": f"http://testserver/api/v2/entity-lists/{third.pk}",
                 "id": third.pk,
                 "name": "savings",
                 "project": f"http://testserver/api/v1/projects/{self.project.pk}",
