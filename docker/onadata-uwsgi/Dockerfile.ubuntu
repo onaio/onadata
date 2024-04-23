@@ -15,7 +15,7 @@ RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional
 
 FROM ubuntu:focal-20240410
 
-ARG release_version=v3.18.2
+ARG release_version=v3.19.0
 
 # Silence configuration prompts
 ENV DEBIAN_FRONTEND noninteractive
