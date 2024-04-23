@@ -37,7 +37,6 @@ from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
-from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
 
@@ -150,4 +149,3 @@ router.register(r"teams", TeamViewSet)
 router.register(r"user", ConnectViewSet, basename="connect")
 router.register(r"users", UserViewSet, basename="user")
 router.register(r"widgets", WidgetViewSet, basename="widgets")
-router.register(r"entity-lists", EntityListViewSet, basename="entity_list")

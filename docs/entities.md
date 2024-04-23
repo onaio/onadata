@@ -9,21 +9,21 @@ The following endpoints provides access to Entities related data: Where:
 
 ## Get EntityLists
 
-`GET /api/v1/entity-lists`
+`GET /api/v2/entity-lists`
 
 **Example**
 
-`curl -X GET https://api.ona.io/api/v1/entity-lists`
+`curl -X GET https://api.ona.io/api/v2/entity-lists`
 
 **Response**
 
 ```
 [
     {
-        "url":"http://testserver/api/v1/entity-lists/9",
+        "url":"http://testserver/api/v2/entity-lists/9",
         "id":9,
         "name":"trees",
-        "project":"http://testserver/api/v1/projects/9",
+        "project":"http://testserver/api/v2/projects/9",
         "public":false,
         "date_created":"2024-04-17T11:26:24.630117Z",
         "date_modified":"2024-04-17T11:26:25.050823Z",
@@ -37,21 +37,21 @@ The following endpoints provides access to Entities related data: Where:
 
 To get EntityLists for a specific project
 
-`GET /api/v1/entity-lists?project=<project_id>`
+`GET /api/v2/entity-lists?project=<project_id>`
 
 **Example**
 
-`curl -X GET https://api.ona.io/api/v1/entity-lists?project=9`
+`curl -X GET https://api.ona.io/api/v2/entity-lists?project=9`
 
 **Response**
 
 ```
 [
     {
-        "url":"http://testserver/api/v1/entity-lists/9",
+        "url":"http://testserver/api/v2/entity-lists/9",
         "id":9,
         "name":"trees",
-        "project":"http://testserver/api/v1/projects/9",
+        "project":"http://testserver/api/v2/projects/9",
         "public":false,
         "date_created":"2024-04-17T11:26:24.630117Z",
         "date_modified":"2024-04-17T11:26:25.050823Z",
@@ -65,11 +65,11 @@ To get EntityLists for a specific project
 
 ## Get a single EntityList
 
-`GET /api/v1/entity-lists/<entity_list_id>`
+`GET /api/v2/entity-lists/<entity_list_id>`
 
 **Example**
 
-`curl -X GET https://api.ona.io/api/v1/entity-lists/1`
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1`
 
 **Response**
 
@@ -77,7 +77,7 @@ To get EntityLists for a specific project
 {
    "id":16,
    "name":"trees",
-   "project":"http://testserver/api/v1/projects/13",
+   "project":"http://testserver/api/v2/projects/13",
    "public":false,
    "date_created":"2024-04-17T11:43:08.530848Z",
    "date_modified":"2024-04-17T11:43:09.030105Z",
@@ -87,7 +87,7 @@ To get EntityLists for a specific project
    "registration_forms":[
       {
          "title":"Trees registration",
-         "xform":"http://testserver/api/v1/forms/15",
+         "xform":"http://testserver/api/v2/forms/15",
          "id_string":"trees_registration",
          "save_to":[
             "geometry",
@@ -99,7 +99,7 @@ To get EntityLists for a specific project
    "follow_up_forms":[
       {
          "title":"Trees follow-up",
-         "xform":"http://testserver/api/v1/forms/16",
+         "xform":"http://testserver/api/v2/forms/16",
          "id_string":"trees_follow_up"
       }
    ]
@@ -108,11 +108,11 @@ To get EntityLists for a specific project
 
 ## Get Entities
 
-`GET api/v1/entity-lists/<entity_list_id>/entities`
+`GET api/v2/entity-lists/<entity_list_id>/entities`
 
 **Example**
 
-`curl -X GET https://api.ona.io/api/v1/entity-lists/1/entities`
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities`
 
 **Response**
 
