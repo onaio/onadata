@@ -50,6 +50,13 @@ class Attachment(models.Model):
 
     OSM = "osm"
 
+    xform = models.ForeignKey(
+        "logger.XForm",
+        related_name="xform_attachments",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
     instance = models.ForeignKey(
         "logger.Instance", related_name="attachments", on_delete=models.CASCADE
     )
@@ -66,6 +73,12 @@ class Attachment(models.Model):
     deleted_by = models.ForeignKey(
         get_user_model(),
         related_name="deleted_attachments",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    # submitted_by user
+    user = models.ForeignKey(
+        get_user_model(),
         null=True,
         on_delete=models.SET_NULL,
     )

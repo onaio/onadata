@@ -823,6 +823,10 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
     """
     if instance.deleted_at is not None:
         _update_xform_submission_count_delete(instance)
+        # mark attachments also as deleted.
+        instance.attachments.filter(deleted_at__isnull=True).update(
+            deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
+        )
 
     if (
         hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")

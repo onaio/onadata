@@ -34,7 +34,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
     """
 
     def setUp(self):
-        super(TestMediaViewSet, self).setUp()
+        super().setUp()
         self.retrieve_view = MediaViewSet.as_view({"get": "retrieve"})
 
         self._publish_xls_form_to_project()

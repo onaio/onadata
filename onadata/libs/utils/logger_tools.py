@@ -114,9 +114,11 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
             versioned_xform = XFormVersion.objects.create(
                 xform=xform,
                 xls=xform.xls,
-                json=xform.json
-                if isinstance(xform.json, str)
-                else json.dumps(xform.json),
+                json=(
+                    xform.json
+                    if isinstance(xform.json, str)
+                    else json.dumps(xform.json)
+                ),
                 version=xform.version,
                 created_by=user,
                 xml=xform.xml,
@@ -421,17 +423,21 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
         if len(filename) > 100:
             raise AttachmentNameError(filename)
         media_in_submission = filename in instance.get_expected_media() or [
-            instance.xml.decode("utf-8").find(filename) != -1
-            if isinstance(instance.xml, bytes)
-            else instance.xml.find(filename) != -1
+            (
+                instance.xml.decode("utf-8").find(filename) != -1
+                if isinstance(instance.xml, bytes)
+                else instance.xml.find(filename) != -1
+            )
         ]
         if media_in_submission:
             Attachment.objects.get_or_create(
+                xform=xform,
                 instance=instance,
                 media_file=f,
                 mimetype=content_type,
                 name=filename,
                 extension=extension,
+                user=instance.user,
             )
     if remove_deleted_media:
         instance.soft_delete_attachments()
