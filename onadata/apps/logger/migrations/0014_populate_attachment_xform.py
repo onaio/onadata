@@ -29,6 +29,7 @@ def populate_attachment_xform(apps, schema_editor):
 
 
 def reverse_populate_attachment_xform(apps, schema_editor):
+    """Reverse populate xform field when migrations are unapplied"""
     Attachment = apps.get_model("logger", "Attachment")
     queryset = Attachment.objects.filter(xform__isnull=False).values("pk")
 
