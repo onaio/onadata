@@ -28,7 +28,7 @@ def populate_attachment_xform(apps, schema_editor):
     print("Done populating attachment xform!")
 
 
-def reverse_populate_attachement_xform(apps, schema_editor):
+def reverse_populate_attachment_xform(apps, schema_editor):
     Attachment = apps.get_model("logger", "Attachment")
     queryset = Attachment.objects.filter(xform__isnull=False).values("pk")
 
@@ -44,6 +44,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            populate_attachment_xform, reverse_populate_attachement_xform
+            populate_attachment_xform, reverse_populate_attachment_xform
         )
     ]
