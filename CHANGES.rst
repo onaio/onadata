@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.1.0(2024-05-03)
+------------------
+- Fix API docs not created when building image
+  `PR #2589 <https://github.com/onaio/onadata/pull/2589>`
+  [@kelvin-muchiri]
+- Add xform to attachment model
+  `PR #2587 <https://github.com/onaio/onadata/pull/2587>`
+  [@ukanga]
+
 v4.0.1(2024-04-15)
 ------------------
 - When an odk token expires is None, deactivate and replace
