@@ -29,9 +29,12 @@ RUN apt-get update -q && \
     automake
 
 # Generate and set en_US.UTF-8 locale
-RUN locale-gen en_US.UTF-8
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
 RUN dpkg-reconfigure locales
 
 
@@ -101,19 +104,24 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/ses.pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
     python -m pip install --no-cache-dir setuptools==69.2.0 && \
-    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12
+    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
 
 FROM base as docs
+
 ENV PYENV_ROOT="$HOME/.pyenv"
 ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 COPY --from=base /home/onadata/.pyenv/ /home/onadata/.pyenv/
 COPY --from=base /srv/onadata/ /srv/onadata/
+
 USER root
+
 RUN chown -R onadata:onadata /srv/onadata/
+
 USER onadata
 
-# Compile API Docs
-RUN make -C docs html
+# install sphinx and build API docs.
+RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
+    make -C docs html
 
 
 FROM ubuntu:jammy-20240405 as runtime
