@@ -20,16 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -37,7 +37,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup SSH Agent and add Github to known hosts
         env:
@@ -60,7 +60,7 @@ jobs:
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
@@ -77,7 +77,7 @@ jobs:
 
       - name: (Alpine) Build and push
         id: docker-build-alpine
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         if: github.event.inputs.buildAlpine
         with:
           context: .
@@ -108,7 +108,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan result to Github security lab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -129,7 +129,7 @@ jobs:
           echo "SUMMARY=$summary" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
             {
