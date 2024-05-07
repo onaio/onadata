@@ -3,6 +3,10 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+Next release
+-------------
+- Rebuild docker image with pyenv and on Ubuntu 22.04 runtime image.
+
 v4.1.0(2024-05-03)
 ------------------
 - Fix API docs not created when building image
@@ -15,22 +19,22 @@ v4.1.0(2024-05-03)
 v4.0.1(2024-04-15)
 ------------------
 - When an odk token expires is None, deactivate and replace
-  `PR #2583 <https://github.com/onaio/onadata/pull/2583>` 
+  `PR #2583 <https://github.com/onaio/onadata/pull/2583>`
   [@FrankApiyo]
 - Flatten select multiples in repeating sections during CSV import
-  `PR #2578 <https://github.com/onaio/onadata/pull/2578>` 
+  `PR #2578 <https://github.com/onaio/onadata/pull/2578>`
   [@kelvin-muchiri]
 
 v4.0.0(2024-04-08)
 ------------------
 - Remove redundant Dockerfile used for development
-  `PR #2575 <https://github.com/onaio/onadata/pull/2575>` 
+  `PR #2575 <https://github.com/onaio/onadata/pull/2575>`
   [@kelvin-muchiri]
 - Add user to organization asynchronously
-  `PR #2574 <https://github.com/onaio/onadata/pull/2574>` 
+  `PR #2574 <https://github.com/onaio/onadata/pull/2574>`
   [@kelvin-muchiri]
 - Upgrade to Django 4.2
-  `PR #2572 <https://github.com/onaio/onadata/pull/2572>` 
+  `PR #2572 <https://github.com/onaio/onadata/pull/2572>`
   [@ukanga]
 
 v3.19.0(2024-03-26)
@@ -98,13 +102,13 @@ v3.17.1(2023-12-11)
 
 v3.17.0(2023-11-24)
 -------------------
-- Create Composite Index for xform_id and id fields 
+- Create Composite Index for xform_id and id fields
   `PR #2519 <https://github.com/onaio/onadata/pull/2519>`
   [@KipSigei]
 - Filter out soft-deleted xforms from project forms endpoint
   `PR #2515 <https://github.com/onaio/onadata/pull/2515>`
   [@KipSigei]
-- Check length of paginated instances in briefcase viewset 
+- Check length of paginated instances in briefcase viewset
   `PR #2517 <https://github.com/onaio/onadata/pull/2517>`
   [@KipSigei]
 
@@ -113,7 +117,7 @@ v3.16.0(2023-11-23)
 - Add custom template tag: settings_value
   `PR #2510 <https://github.com/onaio/onadata/pull/2510>`
   [@FrankApiyo]
-- Enhancement: Handle Statement Timeout in Briefcase Viewset 
+- Enhancement: Handle Statement Timeout in Briefcase Viewset
   `PR #2508 <https://github.com/onaio/onadata/pull/2508>`
   [@KipSigei]
 - Trigger database call to correctly capture OperationalError
@@ -274,7 +278,7 @@ v3.10.0(2023-07-03)
 v3.9.2(2023-06-19)
 ------------------
 
-- Fix open-data endpoint timeout bug 
+- Fix open-data endpoint timeout bug
   `PR #2435 <https://github.com/onaio/onadata/pull/2435>`
   [@kelvin-muchiri]
 
@@ -461,7 +465,7 @@ v3.6.0(2022-10-31)
 
 v3.5.0(2022-10-06)
 ------------------
-- Fix org members permissions 
+- Fix org members permissions
   `PR #2323 <https://github.com/onaio/onadata/pull/2323>`_
   [@KipSigei]
 - Add pagination to projects endpoint
@@ -576,19 +580,19 @@ v3.1.0(2022-07-08)
 v3.0.4(2022-06-14)
 ------------------
 
-- Add geojson simplestyle-spec support 
+- Add geojson simplestyle-spec support
   `PR #2255 <https://github.com/onaio/onadata/pull/2255>`_
   [@KipSigei]
-- Fix data type of filtered /data JSON response 
+- Fix data type of filtered /data JSON response
   `PR #2256 <https://github.com/onaio/onadata/pull/2256>`_
   [@ukanga]
-- Use xlsx file object instead of absolute path 
+- Use xlsx file object instead of absolute path
   `PR #2257 <https://github.com/onaio/onadata/pull/2257>`_
   [@KipSigei]
-- Add netcat to allow liveness/readiness probes that make use of open port checks. 
+- Add netcat to allow liveness/readiness probes that make use of open port checks.
   `PR #2259 <https://github.com/onaio/onadata/pull/2259>`_
   [@ukanga]
-- Fix netcat package include in Dockerfile 
+- Fix netcat package include in Dockerfile
   `PR #2260 <https://github.com/onaio/onadata/pull/2260>`_
   [@ukanga]
 
@@ -889,7 +893,7 @@ v2.5.6(2021-06-02)
 v2.5.5(2021-05-17)
 ------------------
 
-- Add documentation for the messaging endpoint 
+- Add documentation for the messaging endpoint
   `PR #2026 <https://github.com/onaio/onadata/pull/2026>`_
   [@DavisRayM]
 - Fix submission deletion endpoint error
