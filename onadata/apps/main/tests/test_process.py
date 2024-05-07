@@ -11,7 +11,8 @@ from datetime import datetime
 from hashlib import md5
 from io import BytesIO
 from unittest.mock import patch
-from xml.dom import Node, minidom
+from xml.dom import Node
+from defusedxml import minidom
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile

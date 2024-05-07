@@ -769,3 +769,18 @@ class PublicDatasetsFilter:
             return queryset.filter(shared=True)
 
         return queryset
+
+
+# pylint: disable=too-few-public-methods
+class EntityListProjectFilter(filters.BaseFilterBackend):
+    """EntityList `project` filter."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        """Filter by project id"""
+        project_id = request.query_params.get("project")
+
+        if project_id:
+            return queryset.filter(project__pk=project_id)
+
+        return queryset

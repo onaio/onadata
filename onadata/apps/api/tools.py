@@ -36,7 +36,13 @@ from onadata.apps.api.models.organization_profile import (
     get_organization_members_team,
 )
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models import DataView, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    DataView,
+    Instance,
+    Project,
+    XForm,
+    EntityList,
+)
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
@@ -61,6 +67,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     get_metadata_format,
+    get_entity_list_export_response,
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
@@ -540,6 +547,8 @@ def get_media_file_response(metadata, request=None):
             model = DataView
         elif value.startswith("xform"):
             model = XForm
+        elif value.startswith("entity_list"):
+            model = EntityList
 
         if model:
             parts = value.split()
@@ -573,9 +582,12 @@ def get_media_file_response(metadata, request=None):
     except ValidationError:
         obj, filename = get_data_value_objects(metadata.data_value)
         if obj:
+            if isinstance(obj, EntityList):
+                return get_entity_list_export_response(request, obj, filename)
+
+            export_type = get_metadata_format(metadata.data_value)
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
-            export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
                 request,

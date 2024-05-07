@@ -1137,13 +1137,14 @@ class ExportBuilder:
         end = kwargs.get("end")
         dataview = kwargs.get("dataview")
         xform = kwargs.get("xform")
-        options = kwargs.get("options")
+        options = kwargs.get("options", {})
         total_records = kwargs.get("total_records")
         host = options.get("host") if options else None
         win_excel_utf8 = options.get("win_excel_utf8") if options else False
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
         show_choice_labels = options.get("show_choice_labels", False)
         language = options.get("language")
+        entity_list = kwargs.get("entity_list")
 
         csv_builder = CSVDataFrameBuilder(
             username,
@@ -1168,6 +1169,7 @@ class ExportBuilder:
             include_reviews=self.INCLUDE_REVIEWS,
             language=language,
             host=host,
+            entity_list=entity_list,
         )
 
         csv_builder.export_to(path, data, dataview=dataview)

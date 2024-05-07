@@ -13,6 +13,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section, GroupedSection
 from six import iteritems
 
+from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -251,6 +252,7 @@ class AbstractDataFrameBuilder:
         include_reviews=False,
         language=None,
         host=None,
+        entity_list: EntityList | None = None,
     ):
         self.username = username
         self.id_string = id_string
@@ -266,6 +268,8 @@ class AbstractDataFrameBuilder:
         self.extra_columns = self.ADDITIONAL_COLUMNS + getattr(
             settings, "EXTRA_COLUMNS", []
         )
+        self.entity_list = entity_list
+        self.include_images = include_images
 
         if include_reviews:
             self.extra_columns = self.extra_columns + [
@@ -274,15 +278,19 @@ class AbstractDataFrameBuilder:
                 REVIEW_DATE,
             ]
 
-        if xform:
-            self.xform = xform
+        if entity_list is None:
+            if xform:
+                self.xform = xform
+            else:
+                self.xform = XForm.objects.get(
+                    id_string=self.id_string, user__username=self.username
+                )
         else:
-            self.xform = XForm.objects.get(
-                id_string=self.id_string, user__username=self.username
-            )
+            self.xform = None
+            self.include_images = False
+
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
-        self.include_images = include_images
         self.include_hxl = include_hxl
         self.win_excel_utf8 = win_excel_utf8
         self.total_records = total_records
@@ -304,11 +312,16 @@ class AbstractDataFrameBuilder:
         self._setup()
 
     def _setup(self):
-        self.data_dictionary = self.xform
-        self.select_multiples = self._collect_select_multiples(
-            self.data_dictionary, self.language
-        )
-        self.gps_fields = self._collect_gps_fields(self.data_dictionary)
+        self.data_dictionary = None
+        self.select_multiples = {}
+        self.gps_fields = []
+
+        if self.entity_list is None:
+            self.data_dictionary = self.xform
+            self.select_multiples = self._collect_select_multiples(
+                self.data_dictionary, self.language
+            )
+            self.gps_fields = self._collect_gps_fields(self.data_dictionary)
 
     @classmethod
     def _fields_to_select(cls, data_dictionary):
@@ -515,6 +528,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         include_reviews=False,
         language=None,
         host=None,
+        entity_list: EntityList | None = None,
     ):
         super().__init__(
             username,
@@ -539,6 +553,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             include_reviews,
             language,
             host,
+            entity_list,
         )
 
         self.ordered_columns = OrderedDict()
@@ -813,45 +828,56 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def export_to(self, path, cursor, dataview=None):
         """Export a CSV formated to the given ``path``."""
-        self.ordered_columns = OrderedDict()
-        self._build_ordered_columns(self.data_dictionary.survey, self.ordered_columns)
-        # creator copy of iterator cursor
-        cursor, ordered_col_cursor = tee(cursor)
-        self._update_ordered_columns_from_data(ordered_col_cursor)
-        # Unpack xform columns and data
-        data = self._format_for_dataframe(cursor)
+        columns = []
+        columns_with_hxl = None
 
-        if dataview:
-            columns = list(
-                chain.from_iterable(
-                    [
-                        [xpath] if cols is None else cols
-                        for (xpath, cols) in iteritems(self.ordered_columns)
-                        if [c for c in dataview.columns if xpath.startswith(c)]
-                    ]
-                )
+        if self.entity_list is None:
+            self.ordered_columns = OrderedDict()
+            self._build_ordered_columns(
+                self.data_dictionary.survey, self.ordered_columns
             )
+            # creator copy of iterator cursor
+            cursor, ordered_col_cursor = tee(cursor)
+            self._update_ordered_columns_from_data(ordered_col_cursor)
+            # Unpack xform columns and data
+            data = self._format_for_dataframe(cursor)
+
+            if dataview:
+                columns = list(
+                    chain.from_iterable(
+                        [
+                            [xpath] if cols is None else cols
+                            for (xpath, cols) in iteritems(self.ordered_columns)
+                            if [c for c in dataview.columns if xpath.startswith(c)]
+                        ]
+                    )
+                )
+            else:
+                columns = list(
+                    chain.from_iterable(
+                        [
+                            [xpath] if cols is None else cols
+                            for (xpath, cols) in iteritems(self.ordered_columns)
+                        ]
+                    )
+                )
+
+                # add extra columns
+                columns += list(self.extra_columns)
+
+                for field in self.data_dictionary.get_survey_elements_of_type("osm"):
+                    columns += OsmData.get_tag_keys(
+                        self.xform, field.get_abbreviated_xpath(), include_prefix=True
+                    )
+
+            columns_with_hxl = self.include_hxl and get_columns_with_hxl(
+                self.data_dictionary.survey_elements
+            )
+
         else:
-            columns = list(
-                chain.from_iterable(
-                    [
-                        [xpath] if cols is None else cols
-                        for (xpath, cols) in iteritems(self.ordered_columns)
-                    ]
-                )
-            )
-
-            # add extra columns
-            columns += list(self.extra_columns)
-
-            for field in self.data_dictionary.get_survey_elements_of_type("osm"):
-                columns += OsmData.get_tag_keys(
-                    self.xform, field.get_abbreviated_xpath(), include_prefix=True
-                )
-
-        columns_with_hxl = self.include_hxl and get_columns_with_hxl(
-            self.data_dictionary.survey_elements
-        )
+            columns = ["name", "label"] + self.entity_list.properties
+            # Unpack xform columns and data
+            data = self._format_for_dataframe(cursor)
 
         write_to_csv(
             path,

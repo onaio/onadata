@@ -16,6 +16,7 @@ from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models import signals
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
@@ -27,7 +28,7 @@ from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import Instance, XForm, XFormVersion
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
@@ -246,7 +247,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
         self.factory = APIRequestFactory()
         if auth is None:
-            auth = DigestAuth("bob", "bob")
+            auth = DigestAuth(self.login_username, self.login_password)
 
         tmp_file = None
 
@@ -271,7 +272,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             url = f"/{url_prefix}submission"
 
             request = self.factory.post(url, post_data)
-            request.user = authenticate(username=auth.username, password=auth.password)
+            request.user = authenticate(
+                request, username=auth.username, password=auth.password
+            )
 
             # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=username)
@@ -304,10 +307,12 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                     data["media_file"] = open(attachment_path, "rb")
 
             url = f"/{self.user.username}/submission"
-            auth = DigestAuth("bob", "bob")
+            auth = DigestAuth(self.login_username, self.login_password)
             self.factory = APIRequestFactory()
             request = self.factory.post(url, data)
-            request.user = authenticate(username="bob", password="bob")
+            request.user = authenticate(
+                request, username=auth.username, password=auth.password
+            )
             # pylint: disable=attribute-defined-outside-init
             self.response = submission(request, username=self.user.username)
 
@@ -360,8 +365,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _set_auth_headers(self, username, password):
         return {
-            "HTTP_AUTHORIZATION": "Basic " +
-            base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+            "HTTP_AUTHORIZATION": "Basic "
+            + base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
                 "utf-8"
             ),
         }
@@ -401,8 +406,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             "tests",
             "fixtures",
             "geolocation",
-            ("GeoLocationFormNoPolylineOrPolygon.xlsx"
-             if only_geopoints else "GeoLocationForm.xlsx"),
+            (
+                "GeoLocationFormNoPolylineOrPolygon.xlsx"
+                if only_geopoints
+                else "GeoLocationForm.xlsx"
+            ),
         )
 
         self._publish_xls_file_and_set_xform(path)
@@ -453,18 +461,29 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         kwargs["name"] = "data"
         survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
         survey["sms_keyword"] = survey["id_string"]
+
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
-        xform = DataDictionary(
+            self.project = project
+
+        data_dict = DataDictionary(
             created_by=user,
             user=user,
             xml=survey.to_xml(),
-            json=survey.to_json(),
+            json=survey.to_json_dict(),
             project=project,
+            version=survey.get("version"),
         )
-        xform.save()
+        data_dict.save()
+        latest_form = XForm.objects.all().order_by("-pk").first()
+        XFormVersion.objects.create(
+            xform=latest_form,
+            version=survey.get("version"),
+            xml=data_dict.xml,
+            json=survey.to_json(),
+        )
 
-        return xform
+        return data_dict
 
     def _test_csv_response(self, response, csv_file_path):
         headers = dict(response.items())
@@ -493,3 +512,61 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 if None in row:
                     row.pop(None)
                 self.assertDictContainsSubset(row, data[index])
+
+    def _mute_post_save_signals(self, target_signals: list[tuple]):
+        """Disable post_save signals"""
+
+        for signal in target_signals:
+            model, dispatch_uid = signal
+            signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)
+
+    def _publish_registration_form(self, user, project=None):
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |"""
+        self._publish_markdown(
+            md,
+            user,
+            project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        latest_form = XForm.objects.all().order_by("-pk").first()
+
+        return latest_form
+
+    def _publish_follow_up_form(self, user, project=None):
+        md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+        self._publish_markdown(
+            md,
+            user,
+            project,
+            id_string="trees_follow_up",
+            title="Trees follow-up",
+        )
+        latest_form = XForm.objects.all().order_by("-pk").first()
+
+        return latest_form

@@ -24,9 +24,8 @@ from savReaderWriter import SavWriter
 from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
+from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -38,6 +37,7 @@ from onadata.libs.utils.export_builder import (
 from onadata.libs.utils.export_tools import (
     check_pending_export,
     generate_attachments_zip_export,
+    generate_entity_list_export,
     generate_export,
     generate_geojson_export,
     generate_kml_export,
@@ -54,7 +54,7 @@ def _logger_fixture_path(*args):
     return os.path.join(settings.PROJECT_ROOT, "libs", "tests", "fixtures", *args)
 
 
-class TestExportTools(TestBase, TestAbstractViewSet):
+class TestExportTools(TestAbstractViewSet):
     """
     Test export_tools functions.
     """
@@ -1002,3 +1002,26 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         for a in Attachment.objects.all():
             self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
+
+
+class GenerateExportTestCase(TestAbstractViewSet):
+    """Tests for method `generate_export`"""
+
+    def test_generate_export_entity_list(self):
+        """Generate export for EntityList dataset works"""
+        # Publish registration form and create "trees" Entitylist dataset
+        self._publish_registration_form(self.user)
+        # Make submission to trees_registration form
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+        self._make_submission(submission_path)
+        entity_list = EntityList.objects.get(name="trees")
+        export = generate_entity_list_export(entity_list)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        self.assertEqual(GenericExport.objects.count(), 1)

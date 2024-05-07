@@ -15,7 +15,8 @@ from datetime import datetime, timedelta
 from http.client import BadStatusLine
 from io import StringIO
 from unittest.mock import Mock, patch
-from xml.dom import Node, minidom
+from xml.dom import Node
+from defusedxml import minidom
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -54,7 +55,13 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    Project,
+    XForm,
+    EntityList,
+)
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -138,21 +145,17 @@ class XFormViewSetBaseTestCase(TestAbstractViewSet):
             curr_time += timedelta(days=days)
 
 
-class TestXFormViewSet(XFormViewSetBaseTestCase):
-    """Test XFormViewSet"""
+class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
+    """Tests for publishing an XLSForm"""
 
     def setUp(self):
-        super(TestXFormViewSet, self).setUp()
-        self.view = XFormViewSet.as_view(
-            {
-                "get": "list",
-            }
-        )
+        super().setUp()
+
+        self.view = XFormViewSet.as_view({"post": "create"})
 
     def test_form_publishing_arabic(self):
         with HTTMock(enketo_mock):
             xforms = XForm.objects.count()
-            view = XFormViewSet.as_view({"post": "create"})
             path = os.path.join(
                 settings.PROJECT_ROOT,
                 "apps",
@@ -164,9 +167,547 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             with open(path, "rb") as xls_file:
                 post_data = {"xls_file": xls_file}
                 request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
+                response = self.view(request)
                 self.assertEqual(xforms + 1, XForm.objects.count())
                 self.assertEqual(response.status_code, 201)
+
+    def test_publish_xlsform(self):
+        with HTTMock(enketo_urls_mock):
+            data = {
+                "owner": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": "transportation_2011_07_25",
+                "id_string": "transportation_2011_07_25",
+                "title": "transportation_2011_07_25",
+                "bamboo_dataset": "",
+            }
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                xform = self.user.xforms.get(id_string="transportation_2011_07_25")
+                data.update({"url": "http://testserver/api/v1/forms/%s" % xform.pk})
+
+                self.assertDictContainsSubset(data, response.data)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEqual("owner", response.data["users"][0]["role"])
+
+                # pylint: disable=no-member
+                self.assertIsNotNone(
+                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
+                )
+                self.assertIsNotNone(
+                    MetaData.objects.get(
+                        object_id=xform.id, data_type="enketo_preview_url"
+                    )
+                )
+
+                # Ensure XFormVersion object is created on XForm publish
+                versions_count = XFormVersion.objects.filter(xform=xform).count()
+                self.assertEqual(versions_count, 1)
+
+    def test_publish_xlsforms_with_same_id_string(self):
+        with HTTMock(enketo_urls_mock):
+            counter = XForm.objects.count()
+            data = {
+                "owner": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": "transportation_2011_07_25",
+                "id_string": "transportation_2011_07_25",
+                "title": "transportation_2011_07_25",
+                "bamboo_dataset": "",
+            }
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                xform = self.user.xforms.all()[0]
+                data.update(
+                    {
+                        "url": "http://testserver/api/v1/forms/%s" % xform.pk,
+                        "has_id_string_changed": False,
+                    }
+                )
+                self.assertDictContainsSubset(data, response.data)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEqual("owner", response.data["users"][0]["role"])
+
+                # pylint: disable=no-member
+                self.assertIsNotNone(
+                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
+                )
+                self.assertIsNotNone(
+                    MetaData.objects.get(
+                        object_id=xform.id, data_type="enketo_preview_url"
+                    )
+                )
+
+            self.assertEqual(counter + 1, XForm.objects.count())
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_copy.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                xform = self.user.xforms.get(id_string="Transportation_2011_07_25_1")
+                data.update(
+                    {
+                        "url": "http://testserver/api/v1/forms/%s" % xform.pk,
+                        "id_string": "Transportation_2011_07_25_1",
+                        "title": "Transportation_2011_07_25",
+                        "sms_id_string": "Transportation_2011_07_25",
+                        "has_id_string_changed": True,
+                    }
+                )
+
+                self.assertDictContainsSubset(data, response.data)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEqual("owner", response.data["users"][0]["role"])
+
+                # pylint: disable=no-member
+                self.assertIsNotNone(
+                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
+                )
+                self.assertIsNotNone(
+                    MetaData.objects.get(
+                        object_id=xform.id, data_type="enketo_preview_url"
+                    )
+                )
+
+            xform = XForm.objects.get(id_string="transportation_2011_07_25")
+            self.assertIsInstance(xform, XForm)
+            self.assertEqual(counter + 2, XForm.objects.count())
+
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_upload(self, mock_requests):
+        with HTTMock(enketo_mock):
+            xls_url = "https://ona.io/examples/forms/tutorial/form.xlsx"
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
+
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+
+                mock_requests.get.assert_called_with(xls_url)
+                xls_file.close()
+
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_with_no_extension(self, mock_requests):
+        with HTTMock(enketo_mock, xls_url_no_extension_mock):
+            xls_url = "https://ona.io/examples/forms/tutorial/form"
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_version.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
+
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
+        self, mock_requests
+    ):
+        with HTTMock(
+            enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v1
+        ):
+            xls_url = "https://ona.io/examples/forms/tutorial/form"
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
+
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
+        self, mock_requests
+    ):
+        with HTTMock(
+            enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v2
+        ):
+            xls_url = "https://ona.io/examples/forms/tutorial/form"
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_different_id_string.xlsx",
+            )
+
+            with open(path, "rb") as xls_file:
+                mock_response = get_mocked_response_for_file(
+                    xls_file, "transportation_different_id_string.xlsx", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
+
+                post_data = {"xls_url": xls_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    # pylint: disable=invalid-name
+    @patch("onadata.apps.main.forms.requests")
+    def test_publish_csvform_using_url_upload(self, mock_requests):
+        with HTTMock(enketo_mock):
+            csv_url = "https://ona.io/examples/forms/tutorial/form.csv"
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "api",
+                "tests",
+                "fixtures",
+                "text_and_integer.csv",
+            )
+
+            with open(path, "rb") as csv_file:
+                mock_response = get_mocked_response_for_file(
+                    csv_file, "text_and_integer.csv", 200
+                )
+                mock_requests.head.return_value = mock_response
+                mock_requests.get.return_value = mock_response
+
+                post_data = {"csv_url": csv_url}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+
+                mock_requests.get.assert_called_with(csv_url)
+                csv_file.close()
+
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    # pylint: disable=invalid-name
+    def test_publish_select_external_xlsform(self):
+        with HTTMock(enketo_urls_mock):
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "api",
+                "tests",
+                "fixtures",
+                "select_one_external.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                # pylint: disable=no-member
+                meta_count = MetaData.objects.count()
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                xform = self.user.xforms.all()[0]
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                metadata = MetaData.objects.get(
+                    object_id=xform.id, data_value="itemsets.csv"
+                )
+                self.assertIsNotNone(metadata)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEqual("owner", response.data["users"][0]["role"], self.user)
+
+    def test_publish_csv_with_universal_newline_xlsform(self):
+        with HTTMock(enketo_mock):
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "api",
+                "tests",
+                "fixtures",
+                "universal_newline.csv",
+            )
+            with open(path, encoding="utf-8") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201, response.data)
+
+    def test_publish_xlsform_anon(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.xlsx",
+        )
+        username = "Anon"
+        error_msg = "User with username %s does not exist." % username
+        with open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file, "owner": username}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get("Cache-Control"), None)
+            self.assertEqual(response.data.get("message"), error_msg)
+
+    def test_publish_invalid_xls_form(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.bad_id.xlsx",
+        )
+        with open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get("Cache-Control"), None)
+            error_msg = (
+                "In strict mode, the XForm ID must be "
+                "a valid slug and contain no spaces."
+                " Please ensure that you have set an"
+                " id_string in the settings sheet or "
+                "have modified the filename to not "
+                "contain any spaces."
+            )
+            self.assertEqual(response.data.get("text"), error_msg)
+
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation_ampersand_in_title.xlsx",
+        )
+        with open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get("Cache-Control"), None)
+            error_msg = (
+                "Title shouldn't have any invalid xml characters " "('>' '&' '<')"
+            )
+            self.assertEqual(response.data.get("text"), error_msg)
+
+    def test_publish_invalid_xls_form_no_choices(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.no_choices.xlsx",
+        )
+        with open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get("Cache-Control"), None)
+            error_msg = (
+                "There should be a choices sheet in this xlsform. "
+                "Please ensure that the choices sheet has the mandatory columns "
+                "'list_name', 'name', and 'label'."
+            )
+            self.assertEqual(response.data.get("text"), error_msg)
+
+    def test_upload_xml_form_file(self):
+        with HTTMock(enketo_mock):
+            path = os.path.join(
+                os.path.dirname(__file__), "..", "fixtures", "forms", "contributions"
+            )
+            form_path = os.path.join(path, "contributions.xml")
+            xforms = XForm.objects.count()
+
+            with open(form_path, encoding="utf-8") as xml_file:
+                post_data = {"xml_file": xml_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(xforms + 1, XForm.objects.count())
+                self.assertEqual(response.status_code, 201)
+
+            instances_path = os.path.join(path, "instances")
+            for uuid in os.listdir(instances_path):
+                s_path = os.path.join(instances_path, uuid, "submission.xml")
+                self._make_submission(s_path)
+            xform = XForm.objects.last()
+            self.assertEqual(xform.instances.count(), 6)
+
+    def test_form_publishing_floip(self):
+        with HTTMock(enketo_mock):
+            xforms = XForm.objects.count()
+            path = os.path.join(
+                os.path.dirname(__file__),
+                "../",
+                "fixtures",
+                "flow-results-example-1.json",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"floip_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(xforms + 1, XForm.objects.count())
+
+    def test_external_choice_integer_name_xlsform(self):
+        """Test that names with integers are converted to strings"""
+        with HTTMock(enketo_urls_mock):
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "api",
+                "tests",
+                "fixtures",
+                "integer_name_test.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                # pylint: disable=no-member
+                meta_count = MetaData.objects.count()
+                post_data = {"xls_file": xls_file}
+                request = self.factory.post("/", data=post_data, **self.extra)
+                response = self.view(request)
+                xform = self.user.xforms.all()[0]
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                metadata = MetaData.objects.get(
+                    object_id=xform.id, data_value="itemsets.csv"
+                )
+                self.assertIsNotNone(metadata)
+
+                csv_reader = csv.reader(codecs.iterdecode(metadata.data_file, "utf-8"))
+                expected_data = [
+                    ["list_name", "name", "label", "state", "county"],
+                    ["states", "1", "Texas", "", ""],
+                    ["states", "2", "Washington", "", ""],
+                    ["counties", "b1", "King", "2", ""],
+                    ["counties", "b2", "Pierce", "2", ""],
+                    ["counties", "b3", "King", "1", ""],
+                    ["counties", "b4", "Cameron", "1", ""],
+                    ["cities", "dumont", "Dumont", "1", "b3"],
+                    ["cities", "finney", "Finney", "1", "b3"],
+                    ["cities", "brownsville", "brownsville", "1", "b4"],
+                    ["cities", "harlingen", "harlingen", "1", "b4"],
+                    ["cities", "seattle", "Seattle", "2", "b3"],
+                    ["cities", "redmond", "Redmond", "2", "b3"],
+                    ["cities", "tacoma", "Tacoma", "2", "b2"],
+                    ["cities", "puyallup", "Puyallup", "2", "b2"],
+                ]
+                for index, row in enumerate(csv_reader):
+                    self.assertEqual(row, expected_data[index])
+
+
+class TestXFormViewSet(XFormViewSetBaseTestCase):
+    """Test XFormViewSet"""
+
+    def setUp(self):
+        super(TestXFormViewSet, self).setUp()
+        self.view = XFormViewSet.as_view(
+            {
+                "get": "list",
+            }
+        )
 
     @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     def test_replace_form_with_external_choices(self, mock_send_message):
@@ -1367,441 +1908,6 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self.assertEqual(username_cookie.split(":")[0], "bob")
             self.assertEqual(uid_cookie.split(":")[0], "bob")
 
-    def test_publish_xlsform(self):
-        with HTTMock(enketo_urls_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-            data = {
-                "owner": "http://testserver/api/v1/users/bob",
-                "public": False,
-                "public_data": False,
-                "description": "",
-                "downloadable": True,
-                "allows_sms": False,
-                "encrypted": False,
-                "sms_id_string": "transportation_2011_07_25",
-                "id_string": "transportation_2011_07_25",
-                "title": "transportation_2011_07_25",
-                "bamboo_dataset": "",
-            }
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(response.status_code, 201)
-                xform = self.user.xforms.get(id_string="transportation_2011_07_25")
-                data.update({"url": "http://testserver/api/v1/forms/%s" % xform.pk})
-
-                self.assertDictContainsSubset(data, response.data)
-                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEqual("owner", response.data["users"][0]["role"])
-
-                # pylint: disable=no-member
-                self.assertIsNotNone(
-                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
-                )
-                self.assertIsNotNone(
-                    MetaData.objects.get(
-                        object_id=xform.id, data_type="enketo_preview_url"
-                    )
-                )
-
-                # Ensure XFormVersion object is created on XForm publish
-                versions_count = XFormVersion.objects.filter(xform=xform).count()
-                self.assertEqual(versions_count, 1)
-
-    def test_publish_xlsforms_with_same_id_string(self):
-        with HTTMock(enketo_urls_mock):
-            counter = XForm.objects.count()
-            view = XFormViewSet.as_view({"post": "create"})
-            data = {
-                "owner": "http://testserver/api/v1/users/bob",
-                "public": False,
-                "public_data": False,
-                "description": "",
-                "downloadable": True,
-                "allows_sms": False,
-                "encrypted": False,
-                "sms_id_string": "transportation_2011_07_25",
-                "id_string": "transportation_2011_07_25",
-                "title": "transportation_2011_07_25",
-                "bamboo_dataset": "",
-            }
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation.xlsx",
-            )
-            with open(path, "rb") as xls_file:
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(response.status_code, 201)
-                xform = self.user.xforms.all()[0]
-                data.update(
-                    {
-                        "url": "http://testserver/api/v1/forms/%s" % xform.pk,
-                        "has_id_string_changed": False,
-                    }
-                )
-                self.assertDictContainsSubset(data, response.data)
-                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEqual("owner", response.data["users"][0]["role"])
-
-                # pylint: disable=no-member
-                self.assertIsNotNone(
-                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
-                )
-                self.assertIsNotNone(
-                    MetaData.objects.get(
-                        object_id=xform.id, data_type="enketo_preview_url"
-                    )
-                )
-
-            self.assertEqual(counter + 1, XForm.objects.count())
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation_copy.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(response.status_code, 201)
-                xform = self.user.xforms.get(id_string="Transportation_2011_07_25_1")
-                data.update(
-                    {
-                        "url": "http://testserver/api/v1/forms/%s" % xform.pk,
-                        "id_string": "Transportation_2011_07_25_1",
-                        "title": "Transportation_2011_07_25",
-                        "sms_id_string": "Transportation_2011_07_25",
-                        "has_id_string_changed": True,
-                    }
-                )
-
-                self.assertDictContainsSubset(data, response.data)
-                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEqual("owner", response.data["users"][0]["role"])
-
-                # pylint: disable=no-member
-                self.assertIsNotNone(
-                    MetaData.objects.get(object_id=xform.id, data_type="enketo_url")
-                )
-                self.assertIsNotNone(
-                    MetaData.objects.get(
-                        object_id=xform.id, data_type="enketo_preview_url"
-                    )
-                )
-
-            xform = XForm.objects.get(id_string="transportation_2011_07_25")
-            self.assertIsInstance(xform, XForm)
-            self.assertEqual(counter + 2, XForm.objects.count())
-
-    # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.requests")
-    def test_publish_xlsform_using_url_upload(self, mock_requests):
-        with HTTMock(enketo_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-
-            xls_url = "https://ona.io/examples/forms/tutorial/form.xlsx"
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation_different_id_string.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                mock_response = get_mocked_response_for_file(
-                    xls_file, "transportation_different_id_string.xlsx", 200
-                )
-                mock_requests.head.return_value = mock_response
-                mock_requests.get.return_value = mock_response
-
-                post_data = {"xls_url": xls_url}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-
-                mock_requests.get.assert_called_with(xls_url)
-                xls_file.close()
-
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(XForm.objects.count(), pre_count + 1)
-
-    # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.requests")
-    def test_publish_xlsform_using_url_with_no_extension(self, mock_requests):
-        with HTTMock(enketo_mock, xls_url_no_extension_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-
-            xls_url = "https://ona.io/examples/forms/tutorial/form"
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation_different_id_string.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                mock_response = get_mocked_response_for_file(
-                    xls_file, "transportation_version.xlsx", 200
-                )
-                mock_requests.head.return_value = mock_response
-                mock_requests.get.return_value = mock_response
-
-                post_data = {"xls_url": xls_url}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-
-                self.assertEqual(response.status_code, 201, response.data)
-                self.assertEqual(XForm.objects.count(), pre_count + 1)
-
-    # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.requests")
-    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
-        self, mock_requests
-    ):
-        with HTTMock(
-            enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v1
-        ):
-            view = XFormViewSet.as_view({"post": "create"})
-
-            xls_url = "https://ona.io/examples/forms/tutorial/form"
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation_different_id_string.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                mock_response = get_mocked_response_for_file(
-                    xls_file, "transportation_different_id_string.xlsx", 200
-                )
-                mock_requests.head.return_value = mock_response
-                mock_requests.get.return_value = mock_response
-
-                post_data = {"xls_url": xls_url}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(XForm.objects.count(), pre_count + 1)
-
-    # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.requests")
-    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
-        self, mock_requests
-    ):
-        with HTTMock(
-            enketo_mock, xls_url_no_extension_mock_content_disposition_attr_jumbled_v2
-        ):
-            view = XFormViewSet.as_view({"post": "create"})
-
-            xls_url = "https://ona.io/examples/forms/tutorial/form"
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "main",
-                "tests",
-                "fixtures",
-                "transportation",
-                "transportation_different_id_string.xlsx",
-            )
-
-            with open(path, "rb") as xls_file:
-                mock_response = get_mocked_response_for_file(
-                    xls_file, "transportation_different_id_string.xlsx", 200
-                )
-                mock_requests.head.return_value = mock_response
-                mock_requests.get.return_value = mock_response
-
-                post_data = {"xls_url": xls_url}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(XForm.objects.count(), pre_count + 1)
-
-    # pylint: disable=invalid-name
-    @patch("onadata.apps.main.forms.requests")
-    def test_publish_csvform_using_url_upload(self, mock_requests):
-        with HTTMock(enketo_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-
-            csv_url = "https://ona.io/examples/forms/tutorial/form.csv"
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "api",
-                "tests",
-                "fixtures",
-                "text_and_integer.csv",
-            )
-
-            with open(path, "rb") as csv_file:
-                mock_response = get_mocked_response_for_file(
-                    csv_file, "text_and_integer.csv", 200
-                )
-                mock_requests.head.return_value = mock_response
-                mock_requests.get.return_value = mock_response
-
-                post_data = {"csv_url": csv_url}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-
-                mock_requests.get.assert_called_with(csv_url)
-                csv_file.close()
-
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(XForm.objects.count(), pre_count + 1)
-
-    # pylint: disable=invalid-name
-    def test_publish_select_external_xlsform(self):
-        with HTTMock(enketo_urls_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "api",
-                "tests",
-                "fixtures",
-                "select_one_external.xlsx",
-            )
-            with open(path, "rb") as xls_file:
-                # pylint: disable=no-member
-                meta_count = MetaData.objects.count()
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                xform = self.user.xforms.all()[0]
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
-                metadata = MetaData.objects.get(
-                    object_id=xform.id, data_value="itemsets.csv"
-                )
-                self.assertIsNotNone(metadata)
-                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
-                self.assertEqual("owner", response.data["users"][0]["role"], self.user)
-
-    def test_publish_csv_with_universal_newline_xlsform(self):
-        with HTTMock(enketo_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "api",
-                "tests",
-                "fixtures",
-                "universal_newline.csv",
-            )
-            with open(path, encoding="utf-8") as xls_file:
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(response.status_code, 201, response.data)
-
-    def test_publish_xlsform_anon(self):
-        view = XFormViewSet.as_view({"post": "create"})
-        path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "transportation.xlsx",
-        )
-        username = "Anon"
-        error_msg = "User with username %s does not exist." % username
-        with open(path, "rb") as xls_file:
-            post_data = {"xls_file": xls_file, "owner": username}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get("Cache-Control"), None)
-            self.assertEqual(response.data.get("message"), error_msg)
-
-    def test_publish_invalid_xls_form(self):
-        view = XFormViewSet.as_view({"post": "create"})
-        path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "transportation.bad_id.xlsx",
-        )
-        with open(path, "rb") as xls_file:
-            post_data = {"xls_file": xls_file}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get("Cache-Control"), None)
-            error_msg = (
-                "In strict mode, the XForm ID must be "
-                "a valid slug and contain no spaces."
-                " Please ensure that you have set an"
-                " id_string in the settings sheet or "
-                "have modified the filename to not "
-                "contain any spaces."
-            )
-            self.assertEqual(response.data.get("text"), error_msg)
-
-        path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "transportation_ampersand_in_title.xlsx",
-        )
-        with open(path, "rb") as xls_file:
-            post_data = {"xls_file": xls_file}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get("Cache-Control"), None)
-            error_msg = (
-                "Title shouldn't have any invalid xml characters " "('>' '&' '<')"
-            )
-            self.assertEqual(response.data.get("text"), error_msg)
-
     @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
         with HTTMock(enketo_mock):
@@ -1813,30 +1919,6 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 self.assertTrue(mock_set_title.called)
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.content.decode("utf-8"), error_msg)
-
-    def test_publish_invalid_xls_form_no_choices(self):
-        view = XFormViewSet.as_view({"post": "create"})
-        path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "transportation.no_choices.xlsx",
-        )
-        with open(path, "rb") as xls_file:
-            post_data = {"xls_file": xls_file}
-            request = self.factory.post("/", data=post_data, **self.extra)
-            response = view(request)
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get("Cache-Control"), None)
-            error_msg = (
-                "There should be a choices sheet in this xlsform. "
-                "Please ensure that the choices sheet has the mandatory columns "
-                "'list_name', 'name', and 'label'."
-            )
-            self.assertEqual(response.data.get("text"), error_msg)
 
     def test_partial_update(self):
         with HTTMock(enketo_mock):
@@ -4974,30 +5056,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             # reused options, should generate new with new submission
             self.assertEqual(count + 3, Export.objects.all().count())
 
-    def test_upload_xml_form_file(self):
-        with HTTMock(enketo_mock):
-            path = os.path.join(
-                os.path.dirname(__file__), "..", "fixtures", "forms", "contributions"
-            )
-            form_path = os.path.join(path, "contributions.xml")
-
-            xforms = XForm.objects.count()
-            view = XFormViewSet.as_view({"post": "create"})
-
-            with open(form_path, encoding="utf-8") as xml_file:
-                post_data = {"xml_file": xml_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(xforms + 1, XForm.objects.count())
-                self.assertEqual(response.status_code, 201)
-
-            instances_path = os.path.join(path, "instances")
-            for uuid in os.listdir(instances_path):
-                s_path = os.path.join(instances_path, uuid, "submission.xml")
-                self._make_submission(s_path)
-            xform = XForm.objects.last()
-            self.assertEqual(xform.instances.count(), 6)
-
     def test_created_by_field_on_cloned_forms(self):
         """
         Test that the created by field is not empty for cloned forms
@@ -5019,23 +5077,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(count + 1, XForm.objects.count())
             cloned_form = XForm.objects.last()
             self.assertEqual(cloned_form.created_by.username, "alice")
-
-    def test_form_publishing_floip(self):
-        with HTTMock(enketo_mock):
-            xforms = XForm.objects.count()
-            view = XFormViewSet.as_view({"post": "create"})
-            path = os.path.join(
-                os.path.dirname(__file__),
-                "../",
-                "fixtures",
-                "flow-results-example-1.json",
-            )
-            with open(path, "rb") as xls_file:
-                post_data = {"floip_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                self.assertEqual(response.status_code, 201, response.data)
-                self.assertEqual(xforms + 1, XForm.objects.count())
 
     def test_xlsx_import(self):
         """Ensure XLSX imports work as expected and dates are formatted correctly"""
@@ -5091,53 +5132,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.data.get("additions"), 9)
             self.assertEqual(response.data.get("updates"), 0)
 
-    def test_external_choice_integer_name_xlsform(self):
-        """Test that names with integers are converted to strings"""
-        with HTTMock(enketo_urls_mock):
-            view = XFormViewSet.as_view({"post": "create"})
-            path = os.path.join(
-                settings.PROJECT_ROOT,
-                "apps",
-                "api",
-                "tests",
-                "fixtures",
-                "integer_name_test.xlsx",
-            )
-            with open(path, "rb") as xls_file:
-                # pylint: disable=no-member
-                meta_count = MetaData.objects.count()
-                post_data = {"xls_file": xls_file}
-                request = self.factory.post("/", data=post_data, **self.extra)
-                response = view(request)
-                xform = self.user.xforms.all()[0]
-                self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
-                metadata = MetaData.objects.get(
-                    object_id=xform.id, data_value="itemsets.csv"
-                )
-                self.assertIsNotNone(metadata)
-
-                csv_reader = csv.reader(codecs.iterdecode(metadata.data_file, "utf-8"))
-                expected_data = [
-                    ["list_name", "name", "label", "state", "county"],
-                    ["states", "1", "Texas", "", ""],
-                    ["states", "2", "Washington", "", ""],
-                    ["counties", "b1", "King", "2", ""],
-                    ["counties", "b2", "Pierce", "2", ""],
-                    ["counties", "b3", "King", "1", ""],
-                    ["counties", "b4", "Cameron", "1", ""],
-                    ["cities", "dumont", "Dumont", "1", "b3"],
-                    ["cities", "finney", "Finney", "1", "b3"],
-                    ["cities", "brownsville", "brownsville", "1", "b4"],
-                    ["cities", "harlingen", "harlingen", "1", "b4"],
-                    ["cities", "seattle", "Seattle", "2", "b3"],
-                    ["cities", "redmond", "Redmond", "2", "b3"],
-                    ["cities", "tacoma", "Tacoma", "2", "b2"],
-                    ["cities", "puyallup", "Puyallup", "2", "b2"],
-                ]
-                for index, row in enumerate(csv_reader):
-                    self.assertEqual(row, expected_data[index])
-
     def test_csv_xls_import_errors(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(
@@ -5165,6 +5159,307 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.data.get("error"), "csv_file not a csv file")
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_registration_form(self):
+        """Response a for an XForm contributing entities is correct"""
+        # Publish registration form
+        xform = self._publish_registration_form(self.user)
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = {
+            "url": f"http://testserver/api/v1/forms/{xform.pk}",
+            "formid": xform.pk,
+            "metadata": [],
+            "owner": "http://testserver/api/v1/users/bob",
+            "created_by": "http://testserver/api/v1/users/bob",
+            "public": False,
+            "public_data": False,
+            "public_key": "",
+            "require_auth": False,
+            "submission_count_for_today": 0,
+            "tags": [],
+            "title": xform.title,
+            "users": [
+                {
+                    "is_org": False,
+                    "metadata": {},
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "user": "bob",
+                    "role": "owner",
+                }
+            ],
+            "enketo_url": None,
+            "enketo_preview_url": None,
+            "enketo_single_submit_url": None,
+            "num_of_submissions": 0,
+            "last_submission_time": None,
+            "form_versions": [],
+            "data_views": [],
+            "xls_available": False,
+            "contributes_entities_to": {
+                "id": entity_list.pk,
+                "name": "trees",
+                "is_active": True,
+            },
+            "consumes_entities_from": [],
+            "description": "",
+            "downloadable": True,
+            "allows_sms": False,
+            "encrypted": False,
+            "sms_id_string": xform.sms_id_string,
+            "id_string": xform.id_string,
+            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+            "uuid": xform.uuid,
+            "bamboo_dataset": "",
+            "instances_with_geopoints": False,
+            "instances_with_osm": False,
+            "version": xform.version,
+            "has_hxl_support": False,
+            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
+            "hash": xform.hash,
+            "is_merged_dataset": False,
+            "is_instance_json_regenerated": False,
+            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+        }
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_list_registration_form(self):
+        """Getting a list of registration forms is correct"""
+        # Publish registration form
+        xform = self._publish_registration_form(self.user)
+        view = XFormViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = [
+            {
+                "url": f"http://testserver/api/v1/forms/{xform.pk}",
+                "formid": xform.pk,
+                "owner": "http://testserver/api/v1/users/bob",
+                "created_by": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "public_key": "",
+                "require_auth": False,
+                "tags": [],
+                "title": xform.title,
+                "users": [
+                    {
+                        "is_org": False,
+                        "metadata": {},
+                        "first_name": "Bob",
+                        "last_name": "erama",
+                        "user": "bob",
+                        "role": "owner",
+                    }
+                ],
+                "enketo_url": None,
+                "enketo_preview_url": None,
+                "enketo_single_submit_url": None,
+                "num_of_submissions": 0,
+                "last_submission_time": None,
+                "data_views": [],
+                "xls_available": False,
+                "contributes_entities_to": {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                },
+                "consumes_entities_from": [],
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": xform.sms_id_string,
+                "id_string": xform.id_string,
+                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+                "uuid": xform.uuid,
+                "bamboo_dataset": "",
+                "instances_with_geopoints": False,
+                "instances_with_osm": False,
+                "version": xform.version,
+                "has_hxl_support": False,
+                "last_updated_at": xform.last_updated_at.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "hash": xform.hash,
+                "is_merged_dataset": False,
+                "is_instance_json_regenerated": False,
+                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+            }
+        ]
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_follow_up_form(self):
+        """Response a for an XForm consuming entities is correct"""
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_follow_up_form(self.user, self.project)
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        metadata = MetaData.objects.order_by("-pk").first()
+        expected_data = {
+            "url": f"http://testserver/api/v1/forms/{xform.pk}",
+            "formid": xform.pk,
+            "metadata": [
+                OrderedDict(
+                    [
+                        ("id", metadata.pk),
+                        ("xform", xform.pk),
+                        ("data_value", f"entity_list {entity_list.pk} trees"),
+                        ("data_type", "media"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{metadata.pk}"),
+                        ("date_created", metadata.date_created),
+                    ]
+                )
+            ],
+            "owner": "http://testserver/api/v1/users/bob",
+            "created_by": "http://testserver/api/v1/users/bob",
+            "public": False,
+            "public_data": False,
+            "public_key": "",
+            "require_auth": False,
+            "submission_count_for_today": 0,
+            "tags": [],
+            "title": xform.title,
+            "users": [
+                {
+                    "is_org": False,
+                    "metadata": {},
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "user": "bob",
+                    "role": "owner",
+                }
+            ],
+            "enketo_url": None,
+            "enketo_preview_url": None,
+            "enketo_single_submit_url": None,
+            "num_of_submissions": 0,
+            "last_submission_time": None,
+            "form_versions": [],
+            "data_views": [],
+            "xls_available": False,
+            "contributes_entities_to": None,
+            "consumes_entities_from": [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+            "description": "",
+            "downloadable": True,
+            "allows_sms": False,
+            "encrypted": False,
+            "sms_id_string": xform.sms_id_string,
+            "id_string": xform.id_string,
+            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+            "uuid": xform.uuid,
+            "bamboo_dataset": "",
+            "instances_with_geopoints": False,
+            "instances_with_osm": False,
+            "version": xform.version,
+            "has_hxl_support": False,
+            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
+            "hash": xform.hash,
+            "is_merged_dataset": False,
+            "is_instance_json_regenerated": False,
+            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+        }
+        self.assertEqual(response.data, expected_data)
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_list_follow_up_form(self):
+        """Getting a list of follow up forms is correct"""
+        # Publish registration form
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_follow_up_form(self.user, self.project)
+        view = XFormViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        entity_list = EntityList.objects.get(name="trees")
+        expected_data = [
+            {
+                "url": f"http://testserver/api/v1/forms/{xform.pk}",
+                "formid": xform.pk,
+                "owner": "http://testserver/api/v1/users/bob",
+                "created_by": "http://testserver/api/v1/users/bob",
+                "public": False,
+                "public_data": False,
+                "public_key": "",
+                "require_auth": False,
+                "tags": [],
+                "title": xform.title,
+                "users": [
+                    {
+                        "is_org": False,
+                        "metadata": {},
+                        "first_name": "Bob",
+                        "last_name": "erama",
+                        "user": "bob",
+                        "role": "owner",
+                    }
+                ],
+                "enketo_url": None,
+                "enketo_preview_url": None,
+                "enketo_single_submit_url": None,
+                "num_of_submissions": 0,
+                "last_submission_time": None,
+                "data_views": [],
+                "xls_available": False,
+                "contributes_entities_to": None,
+                "consumes_entities_from": [
+                    {
+                        "id": entity_list.pk,
+                        "name": "trees",
+                        "is_active": True,
+                    }
+                ],
+                "description": "",
+                "downloadable": True,
+                "allows_sms": False,
+                "encrypted": False,
+                "sms_id_string": xform.sms_id_string,
+                "id_string": xform.id_string,
+                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
+                "uuid": xform.uuid,
+                "bamboo_dataset": "",
+                "instances_with_geopoints": False,
+                "instances_with_osm": False,
+                "version": xform.version,
+                "has_hxl_support": False,
+                "last_updated_at": xform.last_updated_at.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "hash": xform.hash,
+                "is_merged_dataset": False,
+                "is_instance_json_regenerated": False,
+                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
+            }
+        ]
+        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

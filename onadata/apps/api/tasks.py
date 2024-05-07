@@ -20,6 +20,7 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
+from onadata.celeryapp import app
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
@@ -28,7 +29,6 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
-from onadata.celeryapp import app
 
 logger = logging.getLogger(__name__)
 

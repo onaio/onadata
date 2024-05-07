@@ -28,10 +28,23 @@ def populate_attachment_xform(apps, schema_editor):
     print("Done populating attachment xform!")
 
 
+def reverse_populate_attachment_xform(apps, schema_editor):
+    """Reverse populate xform field when migrations are unapplied"""
+    Attachment = apps.get_model("logger", "Attachment")
+    queryset = Attachment.objects.filter(xform__isnull=False).values("pk")
+
+    for attachment in queryset.iterator(chunk_size=100):
+        Attachment.objects.filter(pk=attachment["pk"]).update(xform=None, user=None)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
         ("logger", "0013_add_xform_to_logger_attachment"),
     ]
 
-    operations = [migrations.RunPython(populate_attachment_xform)]
+    operations = [
+        migrations.RunPython(
+            populate_attachment_xform, reverse_populate_attachment_xform
+        )
+    ]
