@@ -288,7 +288,7 @@ pytz==2024.1
     # via
     #   django-query-builder
     #   fleming
-pxform==2.0.3
+pyxform==1.12.2
     # via
     #   onadata
     #   pyfloip
