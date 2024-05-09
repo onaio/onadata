@@ -14,8 +14,8 @@ from unittest import TestCase
 from lxml import etree
 
 from pyxform.builder import create_survey_element_from_dict
+from pyxform.constants import NSMAP
 from pyxform.errors import PyXFormError
-from pyxform.utils import NSMAP
 from pyxform.validators.odk_validate import ODKValidateError, check_xform
 from pyxform.xls2json import workbook_to_json
 
