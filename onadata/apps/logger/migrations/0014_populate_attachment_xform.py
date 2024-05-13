@@ -6,9 +6,7 @@ from django.db import migrations
 def populate_attachment_xform(apps, schema_editor):
     """Populate xform field for Attachments"""
     Attachment = apps.get_model("logger", "Attachment")
-    queryset = Attachment.objects.filter(xform__isnull=True).values(
-        "pk", "instance__xform", "instance__user"
-    )
+    queryset = Attachment.objects.filter(xform__isnull=True).filter(instance__xform__deleted_at__isnull=True)
     count = queryset.count()
     print("Start populating attachment xform...")
     print(f"Found {count} records")
