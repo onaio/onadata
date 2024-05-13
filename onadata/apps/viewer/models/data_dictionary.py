@@ -63,8 +63,9 @@ def process_xlsform(xls, default_name):
             file_object = StringIO(xls.read().decode("utf-8"))
 
     else:
-        # Create a copy of file. Ensures the file we are working with is not closed by pyxform
-        # else we'll get a "ValueError: seek of closed file"
+        # Create a copy of file. Ensures the file we are working with is
+        # not closed by pyxform else we'll get a
+        # "ValueError: seek of closed file"
         file_object = BytesIO(xls.read())
 
     try:
