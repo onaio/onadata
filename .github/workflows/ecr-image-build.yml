@@ -21,7 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        paltform:
+        platform:
+          - linux/amd64
           - linux/arm64
     steps:
       - name: Prepare
@@ -82,8 +83,24 @@ jobs:
           build-args: |
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          labels: |
+            "${{ matrix.platform }}"
+          provenance: false
+          outputs: type=image,name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }},push-by-digest=false,name-canonical=true,push=true
+      -
+        name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.docker-build-ubuntu.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      -
+        name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
       - name: (Alpine) Build and push
         id: docker-build-alpine
