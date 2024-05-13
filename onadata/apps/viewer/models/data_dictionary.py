@@ -292,7 +292,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_related"):
+    if not instance_json.get("entity_features"):
         return
 
     children = instance_json.get("children", [])
@@ -322,7 +322,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
                     ):
                         form.is_active = False
                         form.save()
-                else:
+                elif not registration_form_created and not registration_form.is_active:
                     # If previously disabled, enable it
                     registration_form.is_active = True
                     registration_form.save()
@@ -406,7 +406,7 @@ def disable_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_related"):
+    if not instance_json.get("entity_features"):
         # If form creates entities, disable the registration forms
         for registration_form in instance.registration_forms.filter(is_active=True):
             registration_form.is_active = False
