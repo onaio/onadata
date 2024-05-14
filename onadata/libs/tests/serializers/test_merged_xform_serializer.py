@@ -5,10 +5,11 @@ Test MergedXFormSerializer
 import copy
 from rest_framework import serializers
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.libs.serializers.merged_xform_serializer import (
-    MergedXFormSerializer, get_merged_xform_survey)
+    MergedXFormSerializer,
+    get_merged_xform_survey,
+)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 MD = """
@@ -125,75 +126,67 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertFalse(serializer.is_valid(raise_exception=False))
 
         # project is required
-        self.assertEqual(serializer.errors['project'],
-                         [u'This field is required.'])
+        self.assertEqual(serializer.errors["project"], ["This field is required."])
 
         # name is required
-        self.assertEqual(serializer.errors['name'],
-                         [u'This field is required.'])
+        self.assertEqual(serializer.errors["name"], ["This field is required."])
 
         # At least 2 *different* xforms
         # 0 xforms
-        self.assertEqual(serializer.errors['xforms'],
-                         [u'This field is required.'])
+        self.assertEqual(serializer.errors["xforms"], ["This field is required."])
 
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(MD, self.user, id_string='a')
+        xform1 = self._publish_markdown(MD, self.user, id_string="a")
         data = {
-            'xforms': [],
-            'name':
-            'Merged Dataset',
-            'project':
-            "http://testserver.com/api/v1/projects/%s" % self.project.pk,
+            "xforms": [],
+            "name": "Merged Dataset",
+            "project": "http://testserver.com/api/v1/projects/%s" % self.project.pk,
         }
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertNotIn('name', serializer.errors)
-        self.assertNotIn('project', serializer.errors)
-        self.assertEqual(serializer.errors['xforms'],
-                         [u'This list may not be empty.'])
+        self.assertNotIn("name", serializer.errors)
+        self.assertNotIn("project", serializer.errors)
+        self.assertEqual(serializer.errors["xforms"], ["This list may not be empty."])
 
         # 1 xform
-        data['xforms'] = ["http://testserver.com/api/v1/forms/%s" % xform1.pk]
+        data["xforms"] = ["http://testserver.com/api/v1/forms/%s" % xform1.pk]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
         self.assertIn(
-            u'This field should have at least two unique xforms.',
-            serializer.errors['xforms']
+            "This field should have at least two unique xforms.",
+            serializer.errors["xforms"],
         )
 
         # same xform twice
-        data['xforms'] = [
+        data["xforms"] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
-            "http://testserver.com/api/v1/forms/%s" % xform1.pk
+            "http://testserver.com/api/v1/forms/%s" % xform1.pk,
         ]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
         self.assertIn(
-            u'This field should have unique xforms',
-            serializer.errors['xforms']
+            "This field should have unique xforms", serializer.errors["xforms"]
         )
 
         # xform with no matching fields
-        xform3 = self._publish_markdown(A_MD, self.user, id_string='c')
-        data['xforms'] = [
+        xform3 = self._publish_markdown(A_MD, self.user, id_string="c")
+        data["xforms"] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
-            "http://testserver.com/api/v1/forms/%s" % xform3.pk
+            "http://testserver.com/api/v1/forms/%s" % xform3.pk,
         ]
         serializer = MergedXFormSerializer(data=data)
         self.assertFalse(serializer.is_valid(raise_exception=False))
-        self.assertEqual(serializer.errors['xforms'],
-                         [u'No matching fields in xforms.'])
+        self.assertEqual(serializer.errors["xforms"], ["No matching fields in xforms."])
 
         # two different xforms
-        xform2 = self._publish_markdown(MD, self.user, id_string='b')
-        data['xforms'] = [
+        xform2 = self._publish_markdown(MD, self.user, id_string="b")
+        data["xforms"] = [
             "http://testserver.com/api/v1/forms/%s" % xform1.pk,
-            "http://testserver.com/api/v1/forms/%s" % xform2.pk
+            "http://testserver.com/api/v1/forms/%s" % xform2.pk,
         ]
         serializer = MergedXFormSerializer(data=data)
         self.assertTrue(serializer.is_valid(raise_exception=False))
-        self.assertNotIn('xforms', serializer.errors)
+        self.assertNotIn("xforms", serializer.errors)
 
     def test_get_merged_xform_survey(self):
         """
@@ -203,47 +196,48 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             get_merged_xform_survey([])
 
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(A_MD, self.user, id_string='a')
-        xform2 = self._publish_markdown(B_MD, self.user, id_string='b')
-        xform3 = self._publish_markdown(MD, self.user, id_string='c')
+        xform1 = self._publish_markdown(A_MD, self.user, id_string="a")
+        xform2 = self._publish_markdown(B_MD, self.user, id_string="b")
+        xform3 = self._publish_markdown(MD, self.user, id_string="c")
         expected = {
-            u'name': u'data',
-            u'title': u'pyxform_autotesttitle',
-            u'sms_keyword': u'a',
-            u'default_language': u'default',
-            u'id_string': u'a',
-            u'type': u'survey',
-            u'children': [{
-                u'name': u'name',
-                u'label': u'Name',
-                u'type': u'text'
-            }, {
-                u'children': [{
-                    u'name': u'male',
-                    u'label': u'Male'
-                }, {
-                    u'name': u'female',
-                    u'label': u'Female'
-                }],
-                u'name': u'gender',
-                u'label': u'Sex',
-                u'list_name': u'gender',
-                u'type': u'select one'
-            }, {
-                u'control': {
-                    u'bodyless': True
+            "name": "data",
+            "title": "pyxform_autotesttitle",
+            "sms_keyword": "a",
+            "default_language": "default",
+            "id_string": "a",
+            "type": "survey",
+            "choices": {
+                "gender": [
+                    {"name": "female", "label": "Female"},
+                    {"name": "male", "label": "Male"},
+                ]
+            },
+            "children": [
+                {"name": "name", "label": "Name", "type": "text"},
+                {
+                    "name": "gender",
+                    "label": "Sex",
+                    "type": "select one",
+                    "itemset": "gender",
+                    "list_name": "gender",
+                    "children": [
+                        {"name": "male", "label": "Male"},
+                        {"name": "female", "label": "Female"},
+                    ],
                 },
-                u'children': [{
-                    u'name': u'instanceID',
-                    u'bind': {
-                        u'readonly': u'true()',
-                        u'jr:preload': u"uid"
-                    },
-                    u'type': u'calculate'
-                }],
-                u'name': u'meta',
-                u'type': u'group'
-            }]
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "type": "calculate",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                        }
+                    ],
+                },
+            ],
         }  # yapf: disable
 
         with self.assertRaises(serializers.ValidationError):
@@ -254,9 +248,10 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
 
         # this field seems to change 50% of the time
         expected2 = copy.deepcopy(expected)
-        expected2['children'][1]['children'] = \
-            [{'name': 'female', 'label': 'Female'},
-             {'name': 'male', 'label': 'Male'}]
+        expected2["children"][1]["children"] = [
+            {"name": "female", "label": "Female"},
+            {"name": "male", "label": "Male"},
+        ]
         self.assertTrue(survey_dict == expected or survey_dict == expected2)
 
         # no matching fields
@@ -268,76 +263,81 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         Test get_merged_xform_survey() with groups in xforms.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string='a')
-        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
+        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string="a")
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string="b")
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
-            u'default_language': u'default',
-            u'id_string': u'a',
-            u'children': [{
-                u'name': u'name',
-                u'label': u'Name',
-                u'type': u'text'
-            }, {
-                u'children': [{
-                    u'children': [{
-                        u'name': u'female',
-                        u'label': u'Female'
-                    }, {
-                        u'name': u'male',
-                        u'label': u'Male'
-                    }],
-                    u'name': u'gender',
-                    u'label': u'Sex',
-                    u'list_name': u'gender',
-                    u'type': u'select one'
-                }],
-                u'name': u'info',
-                u'label': u'Info',
-                u'type': u'group'
-            }, {
-                u'children': [{
-                    u'children': [{
-                        u'children': [{
-                            u'name': u'female',
-                            u'label': u'Female'
-                        }, {
-                            u'name': u'male',
-                            u'label': u'Male'
-                        }],
-                        u'name': u'gender',
-                        u'label': u'Sex',
-                        u'list_name': u'gender',
-                        u'type': u'select one'
-                    }],
-                    u'name': u'person',
-                    u'label': u'Person',
-                    u'type': u'group'
-                }],
-                u'name': u'other',
-                u'label': u'Other',
-                u'type': u'group',
-            }, {
-                u'control': {
-                    u'bodyless': True
+            "name": "data",
+            "type": "survey",
+            "title": "pyxform_autotesttitle",
+            "id_string": "a",
+            "sms_keyword": "a",
+            "default_language": "default",
+            "choices": {
+                "gender": [
+                    {"name": "female", "label": "Female"},
+                    {"name": "male", "label": "Male"},
+                ]
+            },
+            "children": [
+                {"name": "name", "label": "Name", "type": "text"},
+                {
+                    "name": "info",
+                    "label": "Info",
+                    "type": "group",
+                    "children": [
+                        {
+                            "name": "gender",
+                            "label": "Sex",
+                            "type": "select one",
+                            "itemset": "gender",
+                            "list_name": "gender",
+                            "children": [
+                                {"name": "female", "label": "Female"},
+                                {"name": "male", "label": "Male"},
+                            ],
+                        }
+                    ],
                 },
-                u'children': [{
-                    u'name': u'instanceID',
-                    u'bind': {
-                        u'readonly': u'true()',
-                        u'jr:preload': u"uid"
-                    },
-                    u'type': u'calculate'
-                }],
-                u'name': u'meta',
-                u'type': u'group'
-            }],
-            u'type': u'survey',
-            u'name': u'data',
-            u'sms_keyword': u'a',
-            u'title': u'pyxform_autotesttitle'
+                {
+                    "name": "other",
+                    "label": "Other",
+                    "type": "group",
+                    "children": [
+                        {
+                            "name": "person",
+                            "label": "Person",
+                            "type": "group",
+                            "children": [
+                                {
+                                    "name": "gender",
+                                    "label": "Sex",
+                                    "type": "select one",
+                                    "itemset": "gender",
+                                    "list_name": "gender",
+                                    "children": [
+                                        {"name": "female", "label": "Female"},
+                                        {"name": "male", "label": "Male"},
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "type": "calculate",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                        }
+                    ],
+                },
+            ],
         }  # yapf: disable
-
         self.assertEqual(survey.to_json_dict(), expected)
 
     def test_repeat_merged_xform_survey(self):
@@ -345,78 +345,85 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         Test get_merged_xform_survey() with repeats in xforms.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(GROUP_A_MD.replace('group', 'repeat'),
-                                        self.user, id_string='a')
-        xform2 = self._publish_markdown(GROUP_B_MD.replace('group', 'repeat'),
-                                        self.user, id_string='b')
+        xform1 = self._publish_markdown(
+            GROUP_A_MD.replace("group", "repeat"), self.user, id_string="a"
+        )
+        xform2 = self._publish_markdown(
+            GROUP_B_MD.replace("group", "repeat"), self.user, id_string="b"
+        )
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
-            u'default_language': u'default',
-            u'id_string': u'a',
-            u'children': [{
-                u'name': u'name',
-                u'label': u'Name',
-                u'type': u'text'
-            }, {
-                u'children': [{
-                    u'children': [{
-                        u'name': u'female',
-                        u'label': u'Female'
-                    }, {
-                        u'name': u'male',
-                        u'label': u'Male'
-                    }],
-                    u'name': u'gender',
-                    u'label': u'Sex',
-                    u'list_name': u'gender',
-                    u'type': u'select one'
-                }],
-                u'name': u'info',
-                u'label': u'Info',
-                u'type': u'repeat'
-            }, {
-                u'children': [{
-                    u'children': [{
-                        u'children': [{
-                            u'name': u'female',
-                            u'label': u'Female'
-                        }, {
-                            u'name': u'male',
-                            u'label': u'Male'
-                        }],
-                        u'name': u'gender',
-                        u'label': u'Sex',
-                        u'list_name': u'gender',
-                        u'type': u'select one'
-                    }],
-                    u'name': u'person',
-                    u'label': u'Person',
-                    u'type': u'repeat'
-                }],
-                u'name': u'other',
-                u'label': u'Other',
-                u'type': u'repeat',
-            }, {
-                u'control': {
-                    u'bodyless': True
+            "name": "data",
+            "type": "survey",
+            "title": "pyxform_autotesttitle",
+            "id_string": "a",
+            "sms_keyword": "a",
+            "default_language": "default",
+            "choices": {
+                "gender": [
+                    {"name": "female", "label": "Female"},
+                    {"name": "male", "label": "Male"},
+                ]
+            },
+            "children": [
+                {"name": "name", "label": "Name", "type": "text"},
+                {
+                    "name": "info",
+                    "label": "Info",
+                    "type": "repeat",
+                    "children": [
+                        {
+                            "name": "gender",
+                            "label": "Sex",
+                            "type": "select one",
+                            "itemset": "gender",
+                            "list_name": "gender",
+                            "children": [
+                                {"name": "female", "label": "Female"},
+                                {"name": "male", "label": "Male"},
+                            ],
+                        }
+                    ],
                 },
-                u'children': [{
-                    u'name': u'instanceID',
-                    u'bind': {
-                        u'readonly': u'true()',
-                        u'jr:preload': u'uid'
-                    },
-                    u'type': u'calculate'
-                }],
-                u'name': u'meta',
-                u'type': u'group'
-            }],
-            u'type': u'survey',
-            u'name': u'data',
-            u'sms_keyword': u'a',
-            u'title': u'pyxform_autotesttitle'
+                {
+                    "name": "other",
+                    "label": "Other",
+                    "type": "repeat",
+                    "children": [
+                        {
+                            "name": "person",
+                            "label": "Person",
+                            "type": "repeat",
+                            "children": [
+                                {
+                                    "name": "gender",
+                                    "label": "Sex",
+                                    "type": "select one",
+                                    "itemset": "gender",
+                                    "list_name": "gender",
+                                    "children": [
+                                        {"name": "female", "label": "Female"},
+                                        {"name": "male", "label": "Male"},
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "type": "calculate",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                        }
+                    ],
+                },
+            ],
         }  # yapf: disable
-
         self.assertEqual(survey.to_json_dict(), expected)
 
     def test_matching_fields_by_type(self):
@@ -425,36 +432,39 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         matches.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(GROUP_A_MD.replace('group', 'repeat'),
-                                        self.user, id_string='a')
-        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
+        xform1 = self._publish_markdown(
+            GROUP_A_MD.replace("group", "repeat"), self.user, id_string="a"
+        )
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string="b")
         survey = get_merged_xform_survey([xform1, xform2])
         expected = {
-            u'default_language': u'default',
-            u'id_string': u'a',
-            u'children': [{
-                u'name': u'name',
-                u'label': u'Name',
-                u'type': u'text'
-            }, {
-                u'control': {
-                    u'bodyless': True
+            "default_language": "default",
+            "id_string": "a",
+            "choices": {
+                "gender": [
+                    {"label": "Female", "name": "female"},
+                    {"label": "Male", "name": "male"},
+                ]
+            },
+            "children": [
+                {"name": "name", "label": "Name", "type": "text"},
+                {
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                            "type": "calculate",
+                        }
+                    ],
+                    "name": "meta",
+                    "type": "group",
                 },
-                u'children': [{
-                    u'name': u'instanceID',
-                    u'bind': {
-                        u'readonly': u'true()',
-                        u'jr:preload': u'uid'
-                    },
-                    u'type': u'calculate'
-                }],
-                u'name': u'meta',
-                u'type': u'group'
-            }],
-            u'type': u'survey',
-            u'name': u'data',
-            u'sms_keyword': u'a',
-            u'title': u'pyxform_autotesttitle'
+            ],
+            "type": "survey",
+            "name": "data",
+            "sms_keyword": "a",
+            "title": "pyxform_autotesttitle",
         }  # yapf: disable
 
         self.assertEqual(survey.to_json_dict(), expected)
@@ -464,13 +474,13 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         Test get_merged_xform_survey(): should not contain bind elements.
         """
         self.project = get_user_default_project(self.user)
-        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string='a')
-        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string='b')
-        xform3 = self._publish_markdown(GROUP_C_MD, self.user, id_string='c')
+        xform1 = self._publish_markdown(GROUP_A_MD, self.user, id_string="a")
+        xform2 = self._publish_markdown(GROUP_B_MD, self.user, id_string="b")
+        xform3 = self._publish_markdown(GROUP_C_MD, self.user, id_string="c")
         survey = get_merged_xform_survey([xform1, xform2, xform3])
 
         result = survey.to_json_dict()
-        count = len([child for child in result["children"] if 'bind' in child])
+        count = len([child for child in result["children"] if "bind" in child])
 
         # check that no elements within the newly created
         # merged_dataset_dict contains bind attributes
