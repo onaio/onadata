@@ -593,10 +593,9 @@ class TestProcess(TestBase, SerializeMixin):
             i = 1
             actual_row = list(list(actual_sheet.values)[i])
             expected_row = list(list(expected_sheet.values)[i])
-
             # remove _id from result set, varies depending on the database
-            del actual_row[23]
-            del expected_row[23]
+            del actual_row[24]
+            del expected_row[24]
             self.assertEqual(actual_row, expected_row)
 
     def _check_delete(self):
