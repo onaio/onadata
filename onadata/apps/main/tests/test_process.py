@@ -521,6 +521,7 @@ class TestProcess(TestBase, SerializeMixin):
                 "available_transportation_types_to_referral_facility/taxi": "True",
                 "available_transportation_types_to_referral_facility/other": "True",
                 "available_transportation_types_to_referral_facility_other": "camel",
+                self.other_key: "other",
                 self.taxi_key: "daily",
                 "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
                 "_uuid": "9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
