@@ -579,8 +579,8 @@ class TestProcess(TestBase, SerializeMixin):
         )
         content = get_response_content(response, decode=False)
         actual_xls = openpyxl.load_workbook(filename=BytesIO(content))
-        actual_sheet = actual_xls.get_sheet_by_name("data")
-        expected_sheet = expected_xls.get_sheet_by_name("transportation")
+        actual_sheet = actual_xls["data"]
+        expected_sheet = expected_xls["transportation"]
         # check headers
         self.assertEqual(list(actual_sheet.values)[0], list(expected_sheet.values)[0])
 
