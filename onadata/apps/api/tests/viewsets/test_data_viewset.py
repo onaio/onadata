@@ -3881,6 +3881,7 @@ class ExportDataTestCase(SerializeMixin, TestBase):
             "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
             "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
             "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/other/frequency_to_referral_facility",
             "image1",
             "meta/instanceID",
             "_id",
@@ -3936,6 +3937,7 @@ class ExportDataTestCase(SerializeMixin, TestBase):
             "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
             "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
             "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/other/frequency_to_referral_facility",
             "image1",
             "meta/instanceID",
             "_id",
@@ -3955,4 +3957,4 @@ class ExportDataTestCase(SerializeMixin, TestBase):
         # csv records should be ordered by id in descending order
         for instance in instances:
             row = next(csv_reader)
-            self.assertEqual(str(instance.id), row[22])
+            self.assertEqual(str(instance.id), row[23])
