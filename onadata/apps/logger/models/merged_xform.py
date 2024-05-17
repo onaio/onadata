@@ -43,10 +43,11 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             set_project_perms_to_xform_async,
         )
 
-        def set_perms():
-            set_project_perms_to_xform_async.delay(instance.pk, instance.project.pk)
-
-        transaction.on_commit(lambda: set_perms())
+        transaction.on_commit(
+            lambda: set_project_perms_to_xform_async.delay(
+                instance.pk, instance.project.pk
+            )
+        )
 
 
 post_save.connect(
