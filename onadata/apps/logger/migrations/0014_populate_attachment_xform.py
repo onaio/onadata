@@ -3,40 +3,6 @@
 from django.db import migrations
 
 
-def populate_attachment_xform(apps, schema_editor):
-    """Populate xform field for Attachments"""
-    Attachment = apps.get_model("logger", "Attachment")
-    queryset = Attachment.objects.filter(xform__isnull=True).values(
-        "pk", "instance__xform", "instance__user"
-    )
-    count = queryset.count()
-    print("Start populating attachment xform...")
-    print(f"Found {count} records")
-
-    for attachment in queryset.iterator(chunk_size=100):
-        # We do not want to trigger Model.save or any signal
-        # Queryset.update is a workaround to achieve this.
-        # Model.save and the post/pre signals may contain
-        # some side-effects which we are not interested in
-        Attachment.objects.filter(pk=attachment["pk"]).update(
-            xform=attachment["instance__xform"],
-            user=attachment["instance__user"],
-        )
-        count -= 1
-        print(f"{count} remaining")
-
-    print("Done populating attachment xform!")
-
-
-def reverse_populate_attachment_xform(apps, schema_editor):
-    """Reverse populate xform field when migrations are unapplied"""
-    Attachment = apps.get_model("logger", "Attachment")
-    queryset = Attachment.objects.filter(xform__isnull=False).values("pk")
-
-    for attachment in queryset.iterator(chunk_size=100):
-        Attachment.objects.filter(pk=attachment["pk"]).update(xform=None, user=None)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -44,7 +10,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            populate_attachment_xform, reverse_populate_attachment_xform
-        )
+        migrations.RunSQL(
+            sql="WITH logger_attachment_instance AS (SELECT logger_attachment.id, logger_instance.xform_id, logger_instance.user_id FROM logger_attachment INNER JOIN logger_instance ON logger_attachment.instance_id = logger_instance.id INNER JOIN logger_xform T4 ON logger_instance.xform_id = T4.id WHERE logger_attachment.xform_id IS NULL AND T4.deleted_at IS NULL) UPDATE logger_attachment SET xform_id = logger_attachment_instance.xform_id, user_id = logger_attachment_instance.user_id FROM logger_attachment_instance WHERE logger_attachment.id = logger_attachment_instance.id;",
+            reverse_sql="WITH logger_attachment_instance AS (SELECT logger_attachment.id FROM logger_attachment INNER JOIN logger_xform T4 ON logger_instance.xform_id = T4.id WHERE logger_attachment.xform_id IS NOT NULL AND T4.deleted_at IS NULL) UPDATE logger_attachment SET xform_id = NULL, user_id = NULL FROM logger_attachment_instance WHERE logger_attachment.id = logger_attachment_instance.id;",
+        ),
     ]
