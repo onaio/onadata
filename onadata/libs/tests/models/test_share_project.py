@@ -73,7 +73,7 @@ class ShareProjectTestCase(TestBase):
     def test_share(self, mock_safe_delete, mock_propagate):
         """A project is shared with a user
 
-        Permissions assigned to project, xform and dataview
+        Permissions assigned to project, xform, mergedxform and dataview
         """
         instance = ShareProject(self.project, self.alice, "manager")
         instance.save()
@@ -94,7 +94,10 @@ class ShareProjectTestCase(TestBase):
 
     @patch("onadata.libs.models.share_project.safe_delete")
     def test_remove(self, mock_safe_delete, mock_propagate):
-        """A user is removed from a project"""
+        """A user is removed from a project
+
+        Permissions removed from project, xform, mergedxform and dataview
+        """
         # Simulate share project
         ManagerRole.add(self.alice, self.project)
         ManagerRole.add(self.alice, self.xform)
