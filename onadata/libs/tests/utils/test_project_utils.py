@@ -2,14 +2,14 @@
 """
 Test onadata.libs.utils.project_utils
 """
-from unittest.mock import MagicMock, patch
+from unittest.mock import call, MagicMock, patch
 
 from django.test.utils import override_settings
-
+from pyxform.builder import create_survey_element_from_dict
 from kombu.exceptions import OperationalError
 from requests import Response
 
-from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import MergedXForm, Project, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.utils.project_utils import (
@@ -72,6 +72,47 @@ class TestProjectUtils(TestBase):
         args, _kwargs = mock.call_args_list[0]
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], self.project)
+
+    @patch("onadata.libs.utils.project_utils.set_project_perms_to_xform")
+    def test_set_project_perms_to_xform_async_mergedxform(self, mock):
+        """Permissions for a MergedXForm are set"""
+        md = """
+        | survey  |
+        |         | type              | name  | label   |
+        |         | select one fruits | fruit | Fruit   |
+
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        |         | fruits            | mango  | Mango  |
+        """
+        self._publish_markdown(md, self.user, id_string="a")
+        self._publish_markdown(md, self.user, id_string="b")
+        xf1 = XForm.objects.get(id_string="a")
+        xf2 = XForm.objects.get(id_string="b")
+        survey = create_survey_element_from_dict(xf1.json_dict())
+        survey["id_string"] = "c"
+        survey["sms_keyword"] = survey["id_string"]
+        survey["title"] = "Merged XForm"
+        merged_xf = MergedXForm.objects.create(
+            id_string=survey["id_string"],
+            sms_id_string=survey["id_string"],
+            title=survey["title"],
+            user=self.user,
+            created_by=self.user,
+            is_merged_dataset=True,
+            project=self.project,
+            xml=survey.to_xml(),
+            json=survey.to_json(),
+        )
+        merged_xf.xforms.add(xf1)
+        merged_xf.xforms.add(xf2)
+        set_project_perms_to_xform_async.delay(merged_xf.pk, self.project.pk)
+        expected_calls = [
+            call(merged_xf.xform_ptr, self.project),
+            call(merged_xf, self.project),
+        ]
+        mock.assert_has_calls(expected_calls, any_order=True)
 
     def test_assign_change_asset_permission(self):
         """

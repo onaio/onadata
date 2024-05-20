@@ -21,12 +21,18 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.celeryapp import app
-from onadata.libs.permissions import (ROLES, OwnerRole,
-                                      get_object_users_with_permissions,
-                                      get_role, is_organization)
-from onadata.libs.utils.common_tags import (API_TOKEN,
-                                            ONADATA_KOBOCAT_AUTH_HEADER,
-                                            OWNER_TEAM_NAME)
+from onadata.libs.permissions import (
+    ROLES,
+    OwnerRole,
+    get_object_users_with_permissions,
+    get_role,
+    is_organization,
+)
+from onadata.libs.utils.common_tags import (
+    API_TOKEN,
+    ONADATA_KOBOCAT_AUTH_HEADER,
+    OWNER_TEAM_NAME,
+)
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -123,6 +129,10 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
             self.retry(countdown=60 * self.request.retries, exc=e)
         else:
             set_project_perms_to_xform(xform, project)
+
+            # Set MergedXForm permissions if XForm is also a MergedXForm
+            if hasattr(xform, "mergedxform"):
+                set_project_perms_to_xform(xform.mergedxform, project)
 
     try:
         if getattr(settings, "SLAVE_DATABASES", []):
