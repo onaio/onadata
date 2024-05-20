@@ -1,6 +1,5 @@
 FROM onaio/python-deps:3.10.14 as base
 
-ARG release_version=v4.0.1
 ARG optional_packages
 
 # Silence configuration prompts
