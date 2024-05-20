@@ -114,6 +114,9 @@ class ShareProjectTestCase(TestBase):
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.dataview_form))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.merged_xf))
+        self.assertFalse(
+            ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr)
+        )
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_safe_delete.assert_has_calls(
