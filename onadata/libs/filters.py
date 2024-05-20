@@ -335,8 +335,10 @@ class XFormPermissionFilterMixin:
     def _xform_filter(self, request, view, keyword, queryset=None):
         """Use XForm permissions"""
         xform = request.query_params.get("xform")
-        if xform is None and "xform" in request.data:
+
+        if xform is None and request.data is not None and "xform" in request.data:
             xform = request.data.get("xform")
+
         dataview = request.query_params.get("dataview")
         merged_xform = request.query_params.get("merged_xform")
         filename = request.query_params.get("filename")
