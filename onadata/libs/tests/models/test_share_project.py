@@ -95,13 +95,13 @@ class ShareProjectTestCase(TestBase):
     @patch("onadata.libs.models.share_project.safe_delete")
     def test_remove(self, mock_safe_delete, mock_propagate):
         """A user is removed from a project"""
-        # Add user
+        # Simulate share project
         ManagerRole.add(self.alice, self.project)
         ManagerRole.add(self.alice, self.xform)
         ManagerRole.add(self.alice, self.dataview_form)
         ManagerRole.add(self.alice, self.merged_xf)
         ManagerRole.add(self.alice, self.merged_xf.xform_ptr)
-
+        # Confirm project shared
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
