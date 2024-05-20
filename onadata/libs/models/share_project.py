@@ -30,6 +30,9 @@ def remove_xform_permissions(project, user, role):
     for xform in project.xform_set.all():
         # pylint: disable=protected-access
         role._remove_obj_permissions(user, xform)
+        # Removed MergedXForm permissions if XForm is also a MergedXForm
+        if hasattr(xform, "mergedxform"):
+            role._remove_obj_permissions(user, xform.mergedxform)
 
 
 def remove_dataview_permissions(project, user, role):
@@ -84,6 +87,10 @@ class ShareProject:
                             ]:
                                 role = ROLES.get(meta_perm[1])
                     role.add(self.user, xform)
+
+                    # Set MergedXForm permissions if XForm is also a MergedXForm
+                    if hasattr(xform, "mergedxform"):
+                        role.add(self.user, xform.mergedxform)
 
                 for dataview in self.project.dataview_set.all():
                     if dataview.matches_parent:
