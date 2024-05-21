@@ -12,7 +12,7 @@ class PreviousPasswordValidator:
         self.history_limit = history_limt
 
     def validate(self, password, user=None):
-        if user and user.is_active:
+        if user and user.pk and user.is_active:
             if user.check_password(password):
                 raise ValidationError(self.message)
 
