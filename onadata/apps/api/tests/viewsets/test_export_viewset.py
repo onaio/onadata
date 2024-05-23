@@ -2,7 +2,6 @@
 """
 test_export_viewset module
 """
-
 import os
 from tempfile import NamedTemporaryFile
 
@@ -289,6 +288,31 @@ class TestExportViewSet(TestBase):
 
         # bob has access hence can delete
         request = self.factory.delete("/export")
+        force_authenticate(request, user=bob)
+        response = view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+
+    def test_export_delete_null_body(self):
+        """Null request body is handled"""
+        markdown_xlsform = """
+        | survey |
+        |        | type              | name  | label |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(markdown_xlsform, self.user)
+        bob = self.user
+        export = Export.objects.create(xform=xform)
+        export.save()
+        view = ExportViewSet.as_view({"delete": "destroy"})
+        request = self.factory.delete(
+            "/export", data=None, content_type="application/json"
+        )
         force_authenticate(request, user=bob)
         response = view(request, pk=export.pk)
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
