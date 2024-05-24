@@ -13,7 +13,7 @@ RUN mkdir -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then pip install ${optional_packages} ; fi
 
-FROM ubuntu:focal-20240410
+FROM ubuntu:focal-20240427
 
 ARG release_version=v3.19.0
 
@@ -99,7 +99,7 @@ RUN python3.10 -m pip install --no-cache-dir -U pip && \
     python3.10 -m pip install --no-cache-dir -r requirements/s3.pip && \
     python3.10 -m pip install --no-cache-dir -r requirements/ses.pip && \
     python3.10 -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python3.10 -m pip install setuptools==65.5.1 && \
+    python3.10 -m pip install setuptools==70.0.0 && \
     python3.10 -m pip install --no-cache-dir pyyaml uwsgitop
 
 
