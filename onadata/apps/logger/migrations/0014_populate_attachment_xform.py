@@ -12,6 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="WITH logger_attachment_instance AS (SELECT logger_attachment.id, logger_instance.xform_id, logger_instance.user_id FROM logger_attachment INNER JOIN logger_instance ON logger_attachment.instance_id = logger_instance.id INNER JOIN logger_xform T4 ON logger_instance.xform_id = T4.id WHERE logger_attachment.xform_id IS NULL AND T4.deleted_at IS NULL) UPDATE logger_attachment SET xform_id = logger_attachment_instance.xform_id, user_id = logger_attachment_instance.user_id FROM logger_attachment_instance WHERE logger_attachment.id = logger_attachment_instance.id;",
-            reverse_sql="WITH logger_attachment_instance AS (SELECT logger_attachment.id FROM logger_attachment INNER JOIN logger_xform T4 ON logger_instance.xform_id = T4.id WHERE logger_attachment.xform_id IS NOT NULL AND T4.deleted_at IS NULL) UPDATE logger_attachment SET xform_id = NULL, user_id = NULL FROM logger_attachment_instance WHERE logger_attachment.id = logger_attachment_instance.id;",
+            reverse_sql="WITH logger_attachment_xform AS (SELECT logger_attachment.id FROM logger_attachment INNER JOIN logger_xform T4 ON logger_attachment.xform_id = T4.id WHERE logger_attachment.xform_id IS NOT NULL AND T4.deleted_at IS NULL) UPDATE logger_attachment SET xform_id = NULL, user_id = NULL FROM logger_attachment_xform WHERE logger_attachment.id = logger_attachment_xform.id;",
         ),
     ]
