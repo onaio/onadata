@@ -8,8 +8,8 @@ from django.dispatch import receiver
 from onadata.apps.logger.models import Entity, Instance, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.libs.utils.logger_tools import (
-    create_entity as create_new_entity,
-    update_entity,
+    create_entity_from_instance,
+    update_entity_from_instance,
 )
 
 
@@ -28,11 +28,11 @@ def create_entity(sender, instance=Instance | None, created=False, **kwargs):
 
             if entity_node.getAttribute("create"):
                 # Create entity
-                create_new_entity(instance, registration_form)
+                create_entity_from_instance(instance, registration_form)
 
             if entity_node.getAttribute("update"):
                 # Update entity
-                update_entity(
+                update_entity_from_instance(
                     entity_node.getAttribute("id"), instance, registration_form
                 )
 

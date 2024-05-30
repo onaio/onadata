@@ -20,7 +20,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
-    create_entity,
+    create_entity_from_instance,
     create_instance,
     generate_content_disposition_header,
     get_first_record,
@@ -687,7 +687,7 @@ class CreateEntityTestCase(TestBase):
 
     def test_entity_created(self):
         """Entity is created successfully"""
-        create_entity(self.instance, self.registration_form)
+        create_entity_from_instance(self.instance, self.registration_form)
         entity = Entity.objects.first()
         self.assertEqual(entity.registration_form, self.registration_form)
         self.assertEqual(entity.instance, self.instance)

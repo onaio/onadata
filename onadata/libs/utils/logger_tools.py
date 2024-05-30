@@ -1035,7 +1035,9 @@ def get_entity_json_from_instance(
     return instance_json
 
 
-def create_entity(instance: Instance, registration_form: RegistrationForm) -> Entity:
+def create_entity_from_instance(
+    instance: Instance, registration_form: RegistrationForm
+) -> Entity:
     """Create an Entity
 
     Args:
@@ -1068,7 +1070,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
     return entity
 
 
-def update_entity(
+def update_entity_from_instance(
     uuid: str, instance: Instance, registration_form: RegistrationForm
 ) -> Entity | None:
     """Updates Entity
