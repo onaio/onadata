@@ -512,7 +512,7 @@ class TestInstance(TestBase):
 
         with open(submission_path, "rb") as file:
             xml = file.read()
-            Instance.objects.create(
+            instance = Instance.objects.create(
                 xml=xml.decode("utf-8"),
                 user=self.user,
                 xform=xform,
@@ -525,18 +525,26 @@ class TestInstance(TestBase):
         self.assertEqual(Entity.objects.count(), 1)
 
         entity = Entity.objects.first()
+        expected_json = {
+            "id": entity.pk,
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "meta/entity/label": "300cm purpleheart",
+        }
 
-        self.assertEqual(
-            entity.json,
-            {
-                "id": entity.pk,
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "latest_visit": "2024-05-28",
-                "circumference_cm": 30,
-                "meta/entity/label": "300cm purpleheart",
-            },
-        )
+        self.assertEqual(entity.json, expected_json)
+
+        entity_history = entity.history.first()
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        self.assertEqual(entity_history.registration_form, registration_form)
+        self.assertEqual(entity_history.instance, instance)
+        self.assertEqual(entity_history.xml, instance.xml)
+        self.assertEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, xform.version)
+        self.assertEqual(entity_history.created_by, instance.user)
 
     def test_update_entity_label(self):
         """An Entity label is updated from a submission"""

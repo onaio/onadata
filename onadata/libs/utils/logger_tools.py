@@ -1090,5 +1090,13 @@ def update_entity(
     json = get_entity_json_from_instance(instance, registration_form)
     entity.json = {**entity.json, **json}
     entity.save()
+    entity.history.create(
+        registration_form=registration_form,
+        xml=instance.xml,
+        instance=instance,
+        form_version=registration_form.xform.version,
+        json=entity.json,
+        created_by=instance.user,
+    )
 
     return entity
