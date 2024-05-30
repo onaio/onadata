@@ -16,6 +16,7 @@ from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
     Entity,
+    EntityList,
     Instance,
     RegistrationForm,
     SubmissionReview,
@@ -35,6 +36,7 @@ from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestInstance(TestBase):
@@ -426,45 +428,22 @@ class TestInstance(TestBase):
 
     def test_update_entity(self):
         """An Entity is updated correctly"""
-        xform = self._publish_registration_form(self.user)
-        # Simulate existing Entity to be updated
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
+        # Simulate existing Entity
+        self.project = get_user_default_project(self.user)
+        entity_list = EntityList.objects.create(
+            name="trees", project=self.project, num_entities=1
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml,
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            )
-
-        self.assertEqual(RegistrationForm.objects.count(), 1)
-        self.assertEqual(Entity.objects.count(), 1)
-
-        entity = Entity.objects.first()
-
-        self.assertEqual(
-            entity.json,
-            {
-                "id": entity.pk,
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
                 "meta/entity/label": "300cm purpleheart",
             },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-
+        # Update Entity via submission
         xform = self._publish_entity_update_form(self.user)
         submission_path = os.path.join(
             settings.PROJECT_ROOT,
@@ -487,7 +466,8 @@ class TestInstance(TestBase):
                 uuid="45d27780-48fd-4035-8655-9332649385bd",
             )
 
-        self.assertEqual(RegistrationForm.objects.count(), 2)
+        self.assertEqual(RegistrationForm.objects.filter(xform=xform).count(), 1)
+        # No new Entity created
         self.assertEqual(Entity.objects.count(), 1)
 
         entity = Entity.objects.first()
@@ -501,5 +481,78 @@ class TestInstance(TestBase):
                 "latest_visit": "2024-05-28",
                 "circumference_cm": 30,
                 "meta/entity/label": "300cm purpleheart",
+            },
+        )
+
+    def test_update_entity_label(self):
+        """An Entity label is updated"""
+        # Simulate existing Entity
+        self.project = get_user_default_project(self.user)
+        entity_list = EntityList.objects.create(
+            name="trees", project=self.project, num_entities=1
+        )
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+        # Update Entity via submission
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | label                    |                                         |
+        |         | trees                          | ${tree}       | concat(${circumference}, "cm updated")|                            |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_update_label.xml",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml,
+                user=self.user,
+                xform=updating_xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="45d27780-48fd-4035-8655-9332649385bd",
+            )
+
+        entity.refresh_from_db()
+
+        self.assertEqual(
+            entity.json,
+            {
+                "id": entity.pk,
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "latest_visit": "2024-05-28",
+                "circumference_cm": 30,
+                "meta/entity/label": "30cm updated",
             },
         )
