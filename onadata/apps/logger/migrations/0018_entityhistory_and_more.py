@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ),
                 ("date_created", models.DateTimeField(auto_now_add=True)),
                 ("date_modified", models.DateTimeField(auto_now=True)),
-                ("xml", models.TextField(blank=True, default="", null=True)),
+                ("xml", models.TextField(blank=True, null=True)),
                 ("json", models.JSONField(default=dict)),
                 (
                     "form_version",

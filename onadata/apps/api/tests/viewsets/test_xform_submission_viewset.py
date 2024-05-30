@@ -1321,47 +1321,6 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 instance = Instance.objects.get(uuid=new_uuid)
                 mock_send.assert_called_once_with(rest_service.service_url, instance)
 
-    def test_create_entity(self):
-        """An Entity is created for if the form is a RegistrationForm"""
-        self.xform = self._publish_registration_form(self.user)
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
-        )
-
-        with open(submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post("/submission", data)
-            response = self.view(request)
-            self.assertEqual(response.status_code, 401)
-            auth = DigestAuth("bob", "bobbob")
-            request.META.update(auth(request.META, response))
-            response = self.view(request, username=self.user.username)
-            self.assertContains(response, "Successful submission", status_code=201)
-            self.assertEqual(Instance.objects.count(), 1)
-            self.assertEqual(Entity.objects.count(), 1)
-            instance = Instance.objects.first()
-            entity = Entity.objects.first()
-            self.assertEqual(entity.registration_form.xform, self.xform)
-            self.assertEqual(entity.xml, instance.xml)
-            expected_json = {
-                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-                "meta/instanceName": "300cm purpleheart",
-                "meta/entity/label": "300cm purpleheart",
-                "_xform_id_string": "trees_registration",
-                "_version": "2022110901",
-                "_id": entity.pk,
-            }
-            self.assertEqual(entity.json, expected_json)
-            self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
-
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""
         self.xform = self._publish_registration_form(self.user)

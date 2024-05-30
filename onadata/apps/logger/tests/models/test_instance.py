@@ -426,8 +426,62 @@ class TestInstance(TestBase):
             },
         )
 
+    def test_create_entity(self):
+        """An Entity is created from a submission"""
+        self.project = get_user_default_project(self.user)
+        xform = self._publish_registration_form(self.user)
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            instance = Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            )
+
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+        entity_list = EntityList.objects.get(name="trees")
+
+        self.assertEqual(entity.entity_list, entity_list)
+
+        expected_json = {
+            "id": entity.pk,
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+            "meta/entity/label": "300cm purpleheart",
+        }
+
+        self.assertEqual(entity.json, expected_json)
+        self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
+        self.assertEqual(entity.history.count(), 1)
+
+        entity_history = entity.history.first()
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        self.assertEqual(entity_history.registration_form, registration_form)
+        self.assertEqual(entity_history.instance, instance)
+        self.assertEqual(entity_history.xml, instance.xml)
+        self.assertEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, xform.version)
+        self.assertEqual(entity_history.created_by, instance.user)
+
     def test_update_entity(self):
-        """An Entity is updated correctly"""
+        """An Entity is updated from a submission"""
         # Simulate existing Entity
         self.project = get_user_default_project(self.user)
         entity_list = EntityList.objects.create(
@@ -459,13 +513,13 @@ class TestInstance(TestBase):
         with open(submission_path, "rb") as file:
             xml = file.read()
             Instance.objects.create(
-                xml=xml,
+                xml=xml.decode("utf-8"),
                 user=self.user,
                 xform=xform,
                 checksum=sha256(xml).hexdigest(),
                 uuid="45d27780-48fd-4035-8655-9332649385bd",
             )
-
+        # Update XForm is a RegistrationForm
         self.assertEqual(RegistrationForm.objects.filter(xform=xform).count(), 1)
         # No new Entity created
         self.assertEqual(Entity.objects.count(), 1)
@@ -485,7 +539,7 @@ class TestInstance(TestBase):
         )
 
     def test_update_entity_label(self):
-        """An Entity label is updated"""
+        """An Entity label is updated from a submission"""
         # Simulate existing Entity
         self.project = get_user_default_project(self.user)
         entity_list = EntityList.objects.create(
@@ -536,7 +590,7 @@ class TestInstance(TestBase):
         with open(submission_path, "rb") as file:
             xml = file.read()
             Instance.objects.create(
-                xml=xml,
+                xml=xml.decode("utf-8"),
                 user=self.user,
                 xform=updating_xform,
                 checksum=sha256(xml).hexdigest(),

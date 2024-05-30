@@ -1059,6 +1059,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         instance=instance,
         form_version=registration_form.xform.version,
         json=json,
+        created_by=instance.user,
     )
     entity_list.last_entity_update_time = entity.date_modified
     entity_list.num_entities = F("num_entities") + 1

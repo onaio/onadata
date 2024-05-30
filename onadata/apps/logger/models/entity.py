@@ -58,7 +58,7 @@ class EntityHistory(BaseModel):
         null=True,
         blank=True,
     )
-    xml = models.TextField(default="", blank=True, null=True)
+    xml = models.TextField(blank=True, null=True)
     json = models.JSONField(default=dict)
     form_version = models.CharField(max_length=255, null=True, blank=True)
     created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
