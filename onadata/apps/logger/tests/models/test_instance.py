@@ -4,15 +4,23 @@ Test Instance model.
 """
 import os
 from datetime import datetime, timedelta
+from hashlib import sha256
 from unittest.mock import Mock, patch
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.test import override_settings
 from django.utils.timezone import utc
 
 from django_digest.test import DigestAuth
 
-from onadata.apps.logger.models import Instance, SubmissionReview, XForm
+from onadata.apps.logger.models import (
+    Entity,
+    Instance,
+    RegistrationForm,
+    SubmissionReview,
+    XForm,
+)
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
@@ -413,5 +421,85 @@ class TestInstance(TestBase):
                 "_bamboo_dataset_id": "",
                 "_media_all_received": False,
                 "transport/available_transportation_types_to_referral_facility": "none",
+            },
+        )
+
+    def test_update_entity(self):
+        """An Entity is updated correctly"""
+        xform = self._publish_registration_form(self.user)
+        # Simulate existing Entity to be updated
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml,
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            )
+
+        self.assertEqual(RegistrationForm.objects.count(), 1)
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+
+        self.assertEqual(
+            entity.json,
+            {
+                "id": entity.pk,
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+        )
+
+        xform = self._publish_entity_update_form(self.user)
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_update.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml,
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="45d27780-48fd-4035-8655-9332649385bd",
+            )
+
+        self.assertEqual(RegistrationForm.objects.count(), 2)
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+
+        self.assertEqual(
+            entity.json,
+            {
+                "id": entity.pk,
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "latest_visit": "2024-05-28",
+                "circumference_cm": 30,
+                "meta/entity/label": "300cm purpleheart",
             },
         )

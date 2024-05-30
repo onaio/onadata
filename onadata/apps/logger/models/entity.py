@@ -5,9 +5,9 @@ Entity model
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
-from onadata.apps.logger.xform_instance_parser import get_entity_uuid_from_xml
 from onadata.libs.models import BaseModel
 
 User = get_user_model()
@@ -16,35 +16,49 @@ User = get_user_model()
 class Entity(BaseModel):
     """An entity created by a registration form"""
 
+    entity_list = models.ForeignKey(
+        EntityList,
+        related_name="entities",
+        on_delete=models.CASCADE,
+    )
+    json = models.JSONField(default=dict)
+    uuid = models.CharField(max_length=249, default="", db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    def __str__(self) -> str:
+        return f"{self.pk}|{self.entity_list}"
+
+    class Meta(BaseModel.Meta):
+        app_label = "logger"
+
+
+class EntityHistory(BaseModel):
+    """Maintains a history of Entity updates"""
+
+    class Meta(BaseModel.Meta):
+        app_label = "logger"
+
+    entity = models.ForeignKey(
+        Entity,
+        related_name="history",
+        on_delete=models.CASCADE,
+    )
     registration_form = models.ForeignKey(
         RegistrationForm,
         on_delete=models.CASCADE,
-        related_name="entities",
+        related_name="entity_history",
+        null=True,
+        blank=True,
     )
     instance = models.OneToOneField(
         Instance,
         on_delete=models.SET_NULL,
-        related_name="entity",
+        related_name="entity_history",
         null=True,
         blank=True,
     )
-    xml = models.TextField()
+    xml = models.TextField(default="", blank=True, null=True)
     json = models.JSONField(default=dict)
-    version = models.CharField(max_length=255, null=True)
-    uuid = models.CharField(max_length=249, default="", db_index=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    deleted_by = models.ForeignKey(
-        User, related_name="deleted_entities", null=True, on_delete=models.SET_NULL
-    )
-
-    def __str__(self) -> str:
-        return f"{self.pk}|{self.registration_form}"
-
-    def save(self, *args, **kwargs) -> None:
-        if self.xml:
-            self.uuid = get_entity_uuid_from_xml(self.xml)
-
-        super().save(*args, **kwargs)
-
-    class Meta(BaseModel.Meta):
-        app_label = "logger"
+    form_version = models.CharField(max_length=255, null=True, blank=True)
+    created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)

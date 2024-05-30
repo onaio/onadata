@@ -20,4 +20,4 @@ from onadata.apps.logger.models.project_invitation import ProjectInvitation  # n
 from onadata.apps.logger.models.entity_list import EntityList  # noqa
 from onadata.apps.logger.models.registration_form import RegistrationForm  # noqa
 from onadata.apps.logger.models.follow_up_form import FollowUpForm  # noqa
-from onadata.apps.logger.models.entity import Entity  # noqa
+from onadata.apps.logger.models.entity import Entity, EntityHistory  # noqa
