@@ -153,10 +153,7 @@ Example
 
     curl -X GET "https://api.ona.io/api/v1/merged-datasets/1/data"
 
-Endpoint `/api/v1/data/{pk} <https://github.com/onaio/onadata/blob/cc188e5c83caea78421a5a68093789b64265017b/docs/data.rst#get-json-list-of-data-end-points>`_ supports pagination 
-and advanced filtering options.
-
-Example Response
+Response
 ----------------
 ::
 
@@ -167,6 +164,9 @@ Example Response
                 {"date": "2015-05-19", "gender": "male", "age": 21, "name": "Tom", "_xform_id_string": "form_c"}
         ]
 
+
+For data pagination and advanced filteriing options, use endpoint `/api/v1/data/{pk} <https://github.com/onaio/onadata/blob/cc188e5c83caea78421a5a68093789b64265017b/docs/data.rst#get-json-list-of-data-end-points>`_
+
 How data in parent forms differs from and affects the merged xform
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -174,6 +174,6 @@ A merged dataset combines data from multiple forms into one form. It creates a n
 
 A merged dataset:
  - Does not allow submissions or data edits, this can only be done on the individual forms.
- - Data deleted from the individual forms will also not be present in the mereged dataset.
+ - Data deleted from the individual forms will also not be present in the merged dataset.
  - Form replacement is not supported.
  - It has it's own form structure, which is not replaceable the same way you could replace an individual form when changing certain aspects of a form.
