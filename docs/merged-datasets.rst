@@ -148,7 +148,7 @@ Returns the data from all linked forms.
 
 
 Example
-^^^^^^^
+-------
 
 ::
 
@@ -156,6 +156,7 @@ Example
 
 Response
 --------
+
 ::
 
 
