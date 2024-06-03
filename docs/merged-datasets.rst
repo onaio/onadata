@@ -159,7 +159,6 @@ Response
 
 ::
 
-
         [
                 {"date": "2015-05-19", "gender": "male", "age": 32, "name": "Kendy", "_xform_id_string": "form_a"},
                 {"date": "2015-05-19", "gender": "female", "age": 41, "name": "Maasai", "_xform_id_string": "form_b"},
