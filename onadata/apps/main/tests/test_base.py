@@ -13,6 +13,8 @@ import warnings
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
+from pyxform.builder import create_survey_element_from_dict
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -28,7 +30,7 @@ from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Instance, XForm, XFormVersion
+from onadata.apps.logger.models import Instance, MergedXForm, XForm, XFormVersion
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
@@ -570,3 +572,45 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         latest_form = XForm.objects.all().order_by("-pk").first()
 
         return latest_form
+
+    def _create_merged_dataset(self, make_submissions=False):
+        md = """
+        | survey  |
+        |         | type              | name  | label   |
+        |         | select one fruits | fruit | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        |         | fruits            | mango  | Mango  |
+        """
+        self._publish_markdown(md, self.user, id_string="a")
+        self._publish_markdown(md, self.user, id_string="b")
+        xf1 = XForm.objects.get(id_string="a")
+        xf2 = XForm.objects.get(id_string="b")
+        survey = create_survey_element_from_dict(xf1.json_dict())
+        survey["id_string"] = "c"
+        survey["sms_keyword"] = survey["id_string"]
+        survey["title"] = "Merged XForm"
+        merged_xf = MergedXForm.objects.create(
+            id_string=survey["id_string"],
+            sms_id_string=survey["id_string"],
+            title=survey["title"],
+            user=self.user,
+            created_by=self.user,
+            is_merged_dataset=True,
+            project=self.project,
+            xml=survey.to_xml(),
+            json=survey.to_json(),
+        )
+        merged_xf.xforms.add(xf1)
+        merged_xf.xforms.add(xf2)
+
+        if make_submissions:
+            # Make submission for form a
+            xml = '<data id="a"><fruit>orange</fruit></data>'
+            Instance(xform=xf1, xml=xml).save()
+            # Make submission for form b
+            xml = '<data id="b"><fruit>mango</fruit></data>'
+            Instance(xform=xf2, xml=xml).save()
+
+        return merged_xf

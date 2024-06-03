@@ -3707,6 +3707,40 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<http://testserver/?page=4&page_size=1>; rel="last"',
         )
 
+    def test_merged_dataset(self):
+        """Data for merged dataset is returned"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+    def test_merged_dataset_geojson(self):
+        """Merged dataset geojson works"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        del response.data["features"][0]["properties"]["xform"]
+        del response.data["features"][1]["properties"]["xform"]
+        del response.data["features"][0]["properties"]["id"]
+        del response.data["features"][1]["properties"]["id"]
+        self.assertEqual(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {"type": "Feature", "geometry": None, "properties": {}},
+                    {"type": "Feature", "geometry": None, "properties": {}},
+                ],
+            },
+            response.data,
+        )
+
 
 class TestOSM(TestAbstractViewSet):
     """
