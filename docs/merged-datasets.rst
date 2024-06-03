@@ -143,6 +143,7 @@ Retrieving Data from a Merged Dataset
 Returns the data from all linked forms. 
 
 .. raw:: html
+
 	<pre class="prettyprint"><b>GET</b> /api/v1/merged-datasets/{pk}/data</pre>
 
 
@@ -151,10 +152,10 @@ Example
 
 ::
 
-    curl -X GET "https://api.ona.io/api/v1/merged-datasets/1/data"
+        curl -X GET "https://api.ona.io/api/v1/merged-datasets/1/data"
 
 Response
-----------------
+--------
 ::
 
 
