@@ -140,8 +140,7 @@ Response
 Retrieving Data from a Merged Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Returns the data from both forms. The key `_xform_id_string` can be used to
-differentiate data from linked forms.
+Returns the data from all linked forms
 
 .. raw:: html
 
