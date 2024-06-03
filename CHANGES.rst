@@ -3,9 +3,26 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-Next release
--------------
+v4.1.0(2024-06-03)
+------------------
+- Add support for Entities
+  `PR #2504 <https://github.com/onaio/onadata/pull/2504>`
+  [@kelvin-muchiri]
+- Optimize attachment xform migration
+  `PR #2599 <https://github.com/onaio/onadata/pull/2599>`
+  [@kelvin-muchiri]
+- Fix exception thrown when deleting export
+  `PR #2600 <https://github.com/onaio/onadata/pull/2600>`
+  [@kelvin-muchiri]
+- Fix merged dataset permissions not applied on share
+  `PR #2598 <https://github.com/onaio/onadata/pull/2598>`
+  [@kelvin-muchiri]
 - Rebuild docker image with pyenv and on Ubuntu 22.04 runtime image.
+  `PR #2597 <https://github.com/onaio/onadata/pull/2597>`
+  [@ukanga]
+- Set permissions for merged dataset asynchronously
+  `PR #2600 <https://github.com/onaio/onadata/pull/2600>`
+  [@kelvin-muchiri]
 
 v4.1.0(2024-05-03)
 ------------------
