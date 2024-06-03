@@ -143,17 +143,15 @@ Retrieving Data from a Merged Dataset
 Returns the data from all linked forms. 
 
 .. raw:: html
+	<pre class="prettyprint"><b>GET</b> /api/v1/merged-datasets/{pk}/data</pre>
 
-    <pre class="prettyprint">
-    <b>GET</b> /api/v1/merged-datasets/<code>{pk}</code>/data
-    <b>GET</b> /api/v1/data/<code>{pk}</code>
-    </pre>
+
+Example
+^^^^^^^
 
 ::
 
     curl -X GET "https://api.ona.io/api/v1/merged-datasets/1/data"
-    curl -X GET "https://api.ona.io/api/v1/data/1"
-
 
 Endpoint `/api/v1/data/{pk} <https://github.com/onaio/onadata/blob/cc188e5c83caea78421a5a68093789b64265017b/docs/data.rst#get-json-list-of-data-end-points>`_ supports pagination 
 and advanced filtering options.
