@@ -3726,16 +3726,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # we get correct content type
         headers = dict(response.items())
         self.assertEqual(headers["Content-Type"], "application/geo+json")
-        del response.data["features"][0]["properties"]["xform"]
-        del response.data["features"][1]["properties"]["xform"]
-        del response.data["features"][0]["properties"]["id"]
-        del response.data["features"][1]["properties"]["id"]
+        instance_qs = Instance.objects.all().order_by("pk")
         self.assertEqual(
             {
                 "type": "FeatureCollection",
                 "features": [
-                    {"type": "Feature", "geometry": None, "properties": {}},
-                    {"type": "Feature", "geometry": None, "properties": {}},
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[0].pk,
+                            "xform": instance_qs[0].xform.pk,
+                        },
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[1].pk,
+                            "xform": instance_qs[1].xform.pk,
+                        },
+                    },
                 ],
             },
             response.data,
