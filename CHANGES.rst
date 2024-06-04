@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v4.1.0(2024-06-03)
+v4.2.1(2024-06-04)
+------------------
+- Update Metadata action to capture tags
+  `PR #2610 <https://github.com/onaio/onadata/pull/2610>`
+  [@KipSigei]
+
+v4.2.0(2024-06-03)
 ------------------
 - Add support for Entities
   `PR #2504 <https://github.com/onaio/onadata/pull/2504>`
