@@ -166,7 +166,7 @@ Response
         ]
 
 
-For data pagination and advanced filteriing options, use endpoint `/api/v1/data/{pk} <https://github.com/onaio/onadata/blob/cc188e5c83caea78421a5a68093789b64265017b/docs/data.rst#get-json-list-of-data-end-points>`_
+For data pagination and advanced filtering options, use endpoint `/api/v1/data/{pk} <https://github.com/onaio/onadata/blob/cc188e5c83caea78421a5a68093789b64265017b/docs/data.rst#get-json-list-of-data-end-points>`_
 
 How data in parent forms differs from and affects the merged xform
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
