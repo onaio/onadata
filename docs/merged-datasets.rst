@@ -2,6 +2,7 @@ Merged Datasets
 ***************
 
 .. warning::
+    
     **Disclaimer: Beta Feature**
 
     This feature is currently in beta and is still undergoing testing. As a result, users may encounter bugs, glitches, or unexpected behavior. While we have 
@@ -10,14 +11,6 @@ Merged Datasets
     Your feedback is invaluable in helping us improve this feature. Please report any issues or provide suggestions to help us enhance the final version. 
     
     Use this feature at your own discretion and be prepared for potential interruptions or performance inconsistencies.
-
-
-.. warning::
-    This is warning text. Use a warning for information the user must
-    understand to avoid negative consequences.
-
-    Warnings are formatted in the same way as notes. In the same way,
-    lines must be broken and indented under the warning tag.
 
 
 This endpoint provides access to data from multiple forms. Merged datasets should have the same functionality as the forms endpoint with the difference being:
