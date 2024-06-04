@@ -59,6 +59,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
           tags: |
             type=ref,event=branch
+            type=ref,event=tag
 
       - name: Setup SSH Agent and add Github to known hosts
         env:
@@ -168,6 +169,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
           tags: |
             type=ref,event=branch
+            type=ref,event=tag
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
