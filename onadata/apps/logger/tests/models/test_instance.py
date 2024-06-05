@@ -545,6 +545,8 @@ class TestInstance(TestBase):
         self.assertEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
+        # New property is part of EntityList properties
+        self.assertTrue("latest_visit" in entity.entity_list.properties)
 
     def test_update_entity_label(self):
         """An Entity label is updated from a submission"""
