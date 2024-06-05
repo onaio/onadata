@@ -480,6 +480,36 @@ class TestInstance(TestBase):
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
 
+    def test_registration_form_inactive(self):
+        """When the RegistrationForm is inactive, Entity should not be created"""
+        xform = self._publish_registration_form(self.user)
+        registration_form = xform.registration_forms.first()
+        # Deactivate registration form
+        registration_form.is_active = False
+        registration_form.save()
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            )
+
+        self.assertEqual(Entity.objects.count(), 0)
+
     def test_update_entity(self):
         """An Entity is updated from a submission"""
         # Simulate existing Entity

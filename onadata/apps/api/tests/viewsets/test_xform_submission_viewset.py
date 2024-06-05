@@ -20,7 +20,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     add_uuid_to_submission_xml,
 )
 from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm, Entity
+from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.services.textit import ServiceDefinition
 from onadata.libs.permissions import DataEntryRole
@@ -1320,30 +1320,3 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 new_uuid = "6b2cc313-fc09-437e-8139-fcd32f695d41"
                 instance = Instance.objects.get(uuid=new_uuid)
                 mock_send.assert_called_once_with(rest_service.service_url, instance)
-
-    def test_registration_form_inactive(self):
-        """When the RegistrationForm is inactive, Entity should not be created"""
-        self.xform = self._publish_registration_form(self.user)
-        registration_form = self.xform.registration_forms.first()
-        # deactivate registration form
-        registration_form.is_active = False
-        registration_form.save()
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
-        )
-
-        with open(submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post("/submission", data)
-            response = self.view(request)
-            self.assertEqual(response.status_code, 401)
-            auth = DigestAuth("bob", "bobbob")
-            request.META.update(auth(request.META, response))
-            response = self.view(request, username=self.user.username)
-            self.assertContains(response, "Successful submission", status_code=201)
-            self.assertEqual(Instance.objects.count(), 1)
-            self.assertEqual(Entity.objects.count(), 0)
