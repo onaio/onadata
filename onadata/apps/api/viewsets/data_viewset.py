@@ -648,17 +648,20 @@ class DataViewSet(
             return super().list(request, *args, **kwargs)
 
         if export_type == "geojson":
-            # raise 404 if all instances dont have geoms
-            if not xform.instances_with_geopoints and not (
-                xform.polygon_xpaths() or xform.geotrace_xpaths()
-            ):
-                raise Http404(_("Not Found"))
+            if not is_merged_dataset:
+                # raise 404 if all instances dont have geoms
+                if not xform.instances_with_geopoints and not (
+                    xform.polygon_xpaths() or xform.geotrace_xpaths()
+                ):
+                    raise Http404(_("Not Found"))
 
             # add pagination when fetching geojson features
             page = self.paginate_queryset(self.object_list)
             serializer = self.get_serializer(page, many=True)
 
-            return Response(serializer.data)
+            return Response(
+                serializer.data, headers={"Content-Type": "application/geo+json"}
+            )
 
         return custom_response_handler(request, xform, query, export_type)
 

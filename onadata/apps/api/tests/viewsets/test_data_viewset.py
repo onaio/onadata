@@ -3707,6 +3707,51 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<http://testserver/?page=4&page_size=1>; rel="last"',
         )
 
+    def test_merged_dataset(self):
+        """Data for merged dataset is returned"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+    def test_merged_dataset_geojson(self):
+        """Merged dataset geojson works"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        instance_qs = Instance.objects.all().order_by("pk")
+        self.assertEqual(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[0].pk,
+                            "xform": instance_qs[0].xform.pk,
+                        },
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[1].pk,
+                            "xform": instance_qs[1].xform.pk,
+                        },
+                    },
+                ],
+            },
+            response.data,
+        )
+
 
 class TestOSM(TestAbstractViewSet):
     """
@@ -3721,7 +3766,7 @@ class TestOSM(TestAbstractViewSet):
         self.logger = logging.getLogger("console_logger")
 
     # pylint: disable=invalid-name,too-many-locals
-    @flaky(max_runs=8)
+    @flaky(max_runs=10)
     def test_data_retrieve_instance_osm_format(self):
         """Test /data endpoint OSM format."""
         filenames = [

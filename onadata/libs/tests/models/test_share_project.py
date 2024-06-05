@@ -1,11 +1,9 @@
 """Tests for module onadata.libs.models.share_project"""
 
 from unittest.mock import patch, call
-from pyxform.builder import create_survey_element_from_dict
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.merged_xform import MergedXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_project import ShareProject
@@ -37,7 +35,7 @@ class ShareProjectTestCase(TestBase):
         project = Project.objects.create(
             name="Demo", organization=self.user, created_by=self.user
         )
-        self._publish_markdown(md_xform, self.user, project, id_string="a")
+        self._publish_markdown(md_xform, self.user, project)
         self.dataview_form = XForm.objects.all().order_by("-pk")[0]
         DataView.objects.create(
             name="Demo",
@@ -46,27 +44,7 @@ class ShareProjectTestCase(TestBase):
             matches_parent=True,
             columns=[],
         )
-        # MergedXForm
-        self._publish_markdown(md_xform, self.user, project, id_string="b")
-        xf1 = XForm.objects.get(id_string="a")
-        xf2 = XForm.objects.get(id_string="b")
-        survey = create_survey_element_from_dict(xf1.json_dict())
-        survey["id_string"] = "c"
-        survey["sms_keyword"] = survey["id_string"]
-        survey["title"] = "Merged XForm"
-        self.merged_xf = MergedXForm.objects.create(
-            id_string=survey["id_string"],
-            sms_id_string=survey["id_string"],
-            title=survey["title"],
-            user=self.user,
-            created_by=self.user,
-            is_merged_dataset=True,
-            project=self.project,
-            xml=survey.to_xml(),
-            json=survey.to_json(),
-        )
-        self.merged_xf.xforms.add(xf1)
-        self.merged_xf.xforms.add(xf2)
+        self.merged_xf = self._create_merged_dataset()
         self.alice = self._create_user("alice", "Yuao8(-)")
 
     @patch("onadata.libs.models.share_project.safe_delete")

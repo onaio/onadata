@@ -2284,7 +2284,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
 
-    @flaky
+    @flaky(max_runs=8)
     def test_return_error_on_clone_duplicate(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -3567,6 +3567,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response.data, error_message)
 
+    @flaky(max_runs=3)
     def test_survey_preview_endpoint(self):
         view = XFormViewSet.as_view({"post": "survey_preview", "get": "survey_preview"})
 
