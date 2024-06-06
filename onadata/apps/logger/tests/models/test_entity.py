@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Instance
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class EntityTestCase(TestBase):
@@ -14,7 +15,8 @@ class EntityTestCase(TestBase):
     def setUp(self):
         super().setUp()
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
-        self.entity_list = EntityList.objects.first()
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 
     @patch("django.utils.timezone.now")
     def test_creation(self, mock_now):
