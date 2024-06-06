@@ -22,15 +22,9 @@ class EntityTestCase(TestBase):
         """We can create an Entity"""
         reg_form = self.xform.registration_forms.first()
         entity_json = {
-            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
             "geometry": "-1.286905 36.772845 0 0",
-            "species": "purpleheart",
             "circumference_cm": 300,
-            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            "meta/instanceName": "300cm purpleheart",
             "meta/entity/label": "300cm purpleheart",
-            "_xform_id_string": "trees_registration",
-            "_version": "2022110901",
         }
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -60,25 +54,20 @@ class EntityTestCase(TestBase):
         instance.save()
         instance.refresh_from_db()
         entity = Entity.objects.create(
-            registration_form=reg_form,
-            json={**entity_json},
-            version=self.xform.version,
-            xml=xml,
-            instance=instance,
+            entity_list=reg_form.entity_list,
+            json=entity_json,
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        self.assertEqual(entity.registration_form, reg_form)
-        self.assertEqual(entity.json, {**entity_json, "_id": entity.pk})
-        self.assertEqual(entity.version, self.xform.version)
-        self.assertEqual(entity.xml, xml)
-        self.assertEqual(entity.instance, instance)
+        self.assertEqual(entity.entity_list, reg_form.entity_list)
+        self.assertEqual(entity.json, {"id": entity.pk, **entity_json})
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
-        self.assertEqual(f"{entity}", f"{entity.pk}|{reg_form}")
+        self.assertEqual(f"{entity}", f"{entity.pk}|{reg_form.entity_list}")
 
     def test_optional_fields(self):
         """Defaults for optional fields are correct"""
         reg_form = self.xform.registration_forms.first()
-        entity = Entity.objects.create(registration_form=reg_form)
-        self.assertIsNone(entity.version)
-        self.assertEqual(entity.json, {"_id": entity.pk})
-        self.assertIsNone(entity.instance)
-        self.assertEqual(entity.xml, "")
+        entity = Entity.objects.create(entity_list=reg_form.entity_list)
+        self.assertIsNone(entity.deleted_at)
+        self.assertIsNone(entity.deleted_by)
+        self.assertEqual(entity.json, {"id": entity.pk})
+        self.assertEqual(entity.uuid, "")
