@@ -480,6 +480,112 @@ class TestInstance(TestBase):
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
 
+    def test_create_entity_false(self):
+        """An Entity is not created if create_if evaluates to false"""
+        project = get_user_default_project(self.user)
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      | create_if                |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})| false()                  |                                            |"""
+        self._publish_markdown(
+            md,
+            self.user,
+            project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration_false.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            )
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_create_entity_true(self):
+        """An Entity is created if create_if evaluates to true"""
+        project = get_user_default_project(self.user)
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      | create_if                |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})| true()                  |                                            |"""
+        self._publish_markdown(
+            md,
+            self.user,
+            project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_registration_true.xml",
+        )
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+            )
+
+        self.assertEqual(Entity.objects.count(), 1)
+
     def test_registration_form_inactive(self):
         """When the RegistrationForm is inactive, Entity should not be created"""
         xform = self._publish_registration_form(self.user)
@@ -510,15 +616,15 @@ class TestInstance(TestBase):
 
         self.assertEqual(Entity.objects.count(), 0)
 
-    def test_update_entity(self):
-        """An Entity is updated from a submission"""
-        # Simulate existing Entity
-        self.project = get_user_default_project(self.user)
-        entity_list = EntityList.objects.create(
-            name="trees", project=self.project, num_entities=1
+    def _simulate_existing_entity(self):
+        if not hasattr(self, "project"):
+            self.project or get_user_default_project(self.user)
+
+        self.entity_list, _ = EntityList.objects.get_or_create(
+            name="trees", project=self.project
         )
-        entity = Entity.objects.create(
-            entity_list=entity_list,
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
             json={
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
@@ -527,6 +633,11 @@ class TestInstance(TestBase):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
+
+    def test_update_entity(self):
+        """An Entity is updated from a submission"""
+        # Simulate existing Entity
+        self._simulate_existing_entity()
         # Update Entity via submission
         xform = self._publish_entity_update_form(self.user)
         submission_path = os.path.join(
@@ -581,20 +692,7 @@ class TestInstance(TestBase):
     def test_update_entity_label(self):
         """An Entity label is updated from a submission"""
         # Simulate existing Entity
-        self.project = get_user_default_project(self.user)
-        entity_list = EntityList.objects.create(
-            name="trees", project=self.project, num_entities=1
-        )
-        entity = Entity.objects.create(
-            entity_list=entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        self._simulate_existing_entity()
         # Update Entity via submission
         md = """
         | survey  |
@@ -637,12 +735,12 @@ class TestInstance(TestBase):
                 uuid="45d27780-48fd-4035-8655-9332649385bd",
             )
 
-        entity.refresh_from_db()
+        self.entity.refresh_from_db()
 
         self.assertEqual(
-            entity.json,
+            self.entity.json,
             {
-                "id": entity.pk,
+                "id": self.entity.pk,
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "latest_visit": "2024-05-28",
@@ -650,3 +748,185 @@ class TestInstance(TestBase):
                 "meta/entity/label": "30cm updated",
             },
         )
+
+    def test_update_entity_false(self):
+        """Entity not updated if update_if evaluates to false"""
+        # Simulate existing Entity
+        self._simulate_existing_entity()
+        # If expression evaluates to false, Entity should not be updated
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | update_if                |                                         |
+        |         | trees                          | ${tree}       | false()                  |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_update_false.xml",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=updating_xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="45d27780-48fd-4035-8655-9332649385bd",
+            )
+        expected_json = self.entity.json
+        self.entity.refresh_from_db()
+
+        self.assertEqual(self.entity.json, expected_json)
+
+    def test_update_entity_true(self):
+        """Entity updated if update_if evaluates to true"""
+        self._simulate_existing_entity()
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | update_if                |                                         |
+        |         | trees                          | ${tree}       | true()                  |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_update_true.xml",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+
+        with open(submission_path, "rb") as file:
+            xml = file.read()
+            Instance.objects.create(
+                xml=xml.decode("utf-8"),
+                user=self.user,
+                xform=updating_xform,
+                checksum=sha256(xml).hexdigest(),
+                uuid="45d27780-48fd-4035-8655-9332649385bd",
+            )
+        expected_json = {
+            "id": self.entity.pk,
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "meta/entity/label": "300cm purpleheart",
+        }
+        self.entity.refresh_from_db()
+
+        self.assertEqual(self.entity.json, expected_json)
+
+    def test_entity_create_update_true(self):
+        """Both create_if and update_if evaluate to true"""
+        self.project = get_user_default_project(self.user)
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |                                         |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |                                         |
+        |         | date                           | today         | Today's date             | latest_visit                            |                                         |
+        | settings|                                |               |                          |                                         |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |                                         |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|                                         |
+        | entities| list_name                      | entity_id     | update_if                | create_if                               | label                                   |
+        |         | trees                          | ${tree}       | true()                   | true()                                  | concat(${circumference}, "cm ", ${tree})|
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+
+        # If Entity, does not exist, we create one
+        submission_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "entities",
+            "instances",
+            "trees_create_update_true.xml",
+        )
+
+        def _update_entity():
+            with open(submission_path, "rb") as file:
+                xml = file.read()
+                Instance.objects.create(
+                    xml=xml.decode("utf-8"),
+                    user=self.user,
+                    xform=xform,
+                    checksum=sha256(xml).hexdigest(),
+                    uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
+                )
+
+        _update_entity()
+        self.assertEqual(Entity.objects.count(), 1)
+        entity = Entity.objects.first()
+        expected_json = {
+            "id": entity.pk,
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+        }
+        self.assertEqual(entity.json, expected_json)
+
+        # If Entity exists, we update
+        Instance.objects.all().delete()
+        Entity.objects.all().delete()
+        # Simulate existsing Entity
+        self._simulate_existing_entity()
+        _update_entity()
+        expected_json = {
+            "id": self.entity.pk,
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+        }
+        self.entity.refresh_from_db()
+        # No new Entity should be created
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertEqual(self.entity.json, expected_json)

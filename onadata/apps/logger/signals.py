@@ -25,16 +25,20 @@ def create_entity(sender, instance=Instance | None, created=False, **kwargs):
             registration_form = RegistrationForm.objects.filter(
                 xform=instance.xform, is_active=True
             ).first()
+            valid_mutation_values = ["1", "true"]
+            entity_uuid = entity_node.getAttribute("id")
 
-            if entity_node.getAttribute("create"):
-                # Create entity
+            if (
+                entity_node.getAttribute("update") in valid_mutation_values
+                and entity_uuid is not None
+                and Entity.objects.filter(uuid=entity_uuid).exists()
+            ):
+                # Update Entity
+                update_entity_from_instance(entity_uuid, instance, registration_form)
+
+            elif entity_node.getAttribute("create") in valid_mutation_values:
+                # Create Entity
                 create_entity_from_instance(instance, registration_form)
-
-            if entity_node.getAttribute("update"):
-                # Update entity
-                update_entity_from_instance(
-                    entity_node.getAttribute("id"), instance, registration_form
-                )
 
 
 @receiver(post_save, sender=Entity, dispatch_uid="update_entity_json")

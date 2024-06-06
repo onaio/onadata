@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data
+	xmlns:jr="http://openrosa.org/javarosa"
+	xmlns:orx="http://openrosa.org/xforms" id="trees_update" version="2024050801">
+	<formhub>
+		<uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid>
+	</formhub>
+	<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>
+	<circumference>30</circumference>
+	<today>2024-05-28</today>
+	<meta>
+		<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>
+		<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>
+		<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="false" baseVersion=""/>
+	</meta>
+</data>
