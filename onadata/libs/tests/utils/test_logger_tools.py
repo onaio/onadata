@@ -689,20 +689,13 @@ class CreateEntityTestCase(TestBase):
         """Entity is created successfully"""
         create_entity_from_instance(self.instance, self.registration_form)
         entity = Entity.objects.first()
-        self.assertEqual(entity.registration_form, self.registration_form)
-        self.assertEqual(entity.instance, self.instance)
-        self.assertEqual(entity.xml, self.xml)
+        self.assertEqual(entity.entity_list, self.registration_form.entity_list)
         expected_json = {
-            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+            "id": entity.pk,
             "geometry": "-1.286905 36.772845 0 0",
             "species": "purpleheart",
             "circumference_cm": 300,
-            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            "meta/instanceName": "300cm purpleheart",
             "meta/entity/label": "300cm purpleheart",
-            "_xform_id_string": "trees_registration",
-            "_version": "2022110901",
-            "_id": entity.pk,
         }
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
@@ -710,3 +703,13 @@ class CreateEntityTestCase(TestBase):
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.num_entities, 1)
         self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)
+        self.assertEqual(entity.history.count(), 1)
+
+        entity_history = entity.history.first()
+
+        self.assertEqual(entity_history.registration_form, self.registration_form)
+        self.assertEqual(entity_history.instance, self.instance)
+        self.assertEqual(entity_history.xml, self.instance.xml)
+        self.assertEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, self.xform.version)
+        self.assertEqual(entity_history.created_by, self.instance.user)
