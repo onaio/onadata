@@ -1059,7 +1059,7 @@ def create_entity_from_instance(
         registration_form=registration_form,
         xml=instance.xml,
         instance=instance,
-        form_version=registration_form.xform.version,
+        form_version=instance.version,
         json=entity_json,
         created_by=instance.user,
     )
@@ -1096,7 +1096,7 @@ def update_entity_from_instance(
         registration_form=registration_form,
         xml=instance.xml,
         instance=instance,
-        form_version=registration_form.xform.version,
+        form_version=instance.version,
         json=entity.json,
         created_by=instance.user,
     )
