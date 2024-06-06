@@ -688,8 +688,15 @@ class CreateEntityTestCase(TestBase):
     def test_entity_created(self):
         """Entity is created successfully"""
         create_entity_from_instance(self.instance, self.registration_form)
+
+        self.assertEqual(Entity.objects.count(), 1)
+
         entity = Entity.objects.first()
-        self.assertEqual(entity.entity_list, self.registration_form.entity_list)
+        entity_list = self.registration_form.entity_list
+        entity_list.refresh_from_db()
+
+        self.assertEqual(entity.entity_list, entity_list)
+
         expected_json = {
             "id": entity.pk,
             "geometry": "-1.286905 36.772845 0 0",
@@ -697,10 +704,10 @@ class CreateEntityTestCase(TestBase):
             "circumference_cm": 300,
             "meta/entity/label": "300cm purpleheart",
         }
+
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
-        entity_list = self.registration_form.entity_list
-        entity_list.refresh_from_db()
+
         self.assertEqual(entity_list.num_entities, 1)
         self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)
         self.assertEqual(entity.history.count(), 1)
