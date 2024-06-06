@@ -1048,11 +1048,11 @@ def create_entity_from_instance(
     Returns:
         Entity: A newly created Entity
     """
-    json = get_entity_json_from_instance(instance, registration_form)
+    entity_json = get_entity_json_from_instance(instance, registration_form)
     entity_list = registration_form.entity_list
     entity = Entity.objects.create(
         entity_list=entity_list,
-        json=json,
+        json=entity_json,
         uuid=get_entity_uuid_from_xml(instance.xml),
     )
     entity.history.create(
@@ -1060,7 +1060,7 @@ def create_entity_from_instance(
         xml=instance.xml,
         instance=instance,
         form_version=registration_form.xform.version,
-        json=json,
+        json=entity_json,
         created_by=instance.user,
     )
     entity_list.last_entity_update_time = entity.date_modified
