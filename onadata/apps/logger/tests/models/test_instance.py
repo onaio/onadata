@@ -618,7 +618,7 @@ class TestInstance(TestBase):
 
     def _simulate_existing_entity(self):
         if not hasattr(self, "project"):
-            self.project or get_user_default_project(self.user)
+            self.project = get_user_default_project(self.user)
 
         self.entity_list, _ = EntityList.objects.get_or_create(
             name="trees", project=self.project
