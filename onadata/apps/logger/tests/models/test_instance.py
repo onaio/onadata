@@ -4,10 +4,8 @@ Test Instance model.
 """
 import os
 from datetime import datetime, timedelta
-from hashlib import sha256
 from unittest.mock import Mock, patch
 
-from django.conf import settings
 from django.http.request import HttpRequest
 from django.test import override_settings
 from django.utils.timezone import utc
@@ -430,26 +428,25 @@ class TestInstance(TestBase):
         """An Entity is created from a submission"""
         self.project = get_user_default_project(self.user)
         xform = self._publish_registration_form(self.user)
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            instance = Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         self.assertEqual(Entity.objects.count(), 1)
 
@@ -510,26 +507,25 @@ class TestInstance(TestBase):
             title="Trees registration",
         )
         xform = XForm.objects.all().order_by("-pk").first()
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration_false.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="false" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         self.assertEqual(Entity.objects.count(), 0)
 
@@ -563,26 +559,25 @@ class TestInstance(TestBase):
             title="Trees registration",
         )
         xform = XForm.objects.all().order_by("-pk").first()
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration_true.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="true" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         self.assertEqual(Entity.objects.count(), 1)
 
@@ -593,26 +588,25 @@ class TestInstance(TestBase):
         # Deactivate registration form
         registration_form.is_active = False
         registration_form.save()
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         self.assertEqual(Entity.objects.count(), 0)
 
@@ -640,26 +634,22 @@ class TestInstance(TestBase):
         self._simulate_existing_entity()
         # Update Entity via submission
         xform = self._publish_entity_update_form(self.user)
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_update.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
         )
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            instance = Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="45d27780-48fd-4035-8655-9332649385bd",
-            )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
         # Update XForm is a RegistrationForm
         self.assertEqual(RegistrationForm.objects.filter(xform=xform).count(), 1)
         # No new Entity created
@@ -682,7 +672,7 @@ class TestInstance(TestBase):
 
         self.assertEqual(entity_history.registration_form, registration_form)
         self.assertEqual(entity_history.instance, instance)
-        self.assertEqual(entity_history.xml, instance.xml)
+        self.assertEqual(entity_history.xml, xml)
         self.assertEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
@@ -713,27 +703,25 @@ class TestInstance(TestBase):
             id_string="trees_update",
             title="Trees update",
         )
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_update_label.xml",
-        )
         updating_xform = XForm.objects.all().order_by("-pk").first()
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=updating_xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="45d27780-48fd-4035-8655-9332649385bd",
-            )
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion="">'
+            "<label>30cm updated</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
 
         self.entity.refresh_from_db()
 
@@ -773,27 +761,23 @@ class TestInstance(TestBase):
             id_string="trees_update",
             title="Trees update",
         )
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_update_false.xml",
-        )
         updating_xform = XForm.objects.all().order_by("-pk").first()
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=updating_xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="45d27780-48fd-4035-8655-9332649385bd",
-            )
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="false" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
         expected_json = self.entity.json
         self.entity.refresh_from_db()
 
@@ -821,27 +805,24 @@ class TestInstance(TestBase):
             id_string="trees_update",
             title="Trees update",
         )
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_update_true.xml",
-        )
         updating_xform = XForm.objects.all().order_by("-pk").first()
-
-        with open(submission_path, "rb") as file:
-            xml = file.read()
-            Instance.objects.create(
-                xml=xml.decode("utf-8"),
-                user=self.user,
-                xform=updating_xform,
-                checksum=sha256(xml).hexdigest(),
-                uuid="45d27780-48fd-4035-8655-9332649385bd",
-            )
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" '
+            'update="true" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
         expected_json = {
             "id": self.entity.pk,
             "species": "purpleheart",
@@ -877,32 +858,30 @@ class TestInstance(TestBase):
             title="Trees update",
         )
         xform = XForm.objects.all().order_by("-pk").first()
-
-        # If Entity, does not exist, we create one
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_create_update_true.xml",
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" '
+            'update="true" create="true" baseVersion="">'
+            "<label>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
         )
 
-        def _update_entity():
-            with open(submission_path, "rb") as file:
-                xml = file.read()
-                Instance.objects.create(
-                    xml=xml.decode("utf-8"),
-                    user=self.user,
-                    xform=xform,
-                    checksum=sha256(xml).hexdigest(),
-                    uuid="9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-                )
+        # If Entity, does not exist, we create one
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
-        _update_entity()
         self.assertEqual(Entity.objects.count(), 1)
+
         entity = Entity.objects.first()
         expected_json = {
             "id": entity.pk,
@@ -917,7 +896,7 @@ class TestInstance(TestBase):
         Entity.objects.all().delete()
         # Simulate existsing Entity
         self._simulate_existing_entity()
-        _update_entity()
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
         expected_json = {
             "id": self.entity.pk,
             "species": "purpleheart",
