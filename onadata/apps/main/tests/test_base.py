@@ -18,7 +18,6 @@ from pyxform.builder import create_survey_element_from_dict
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import signals
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
@@ -514,13 +513,6 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                 if None in row:
                     row.pop(None)
                 self.assertDictContainsSubset(row, data[index])
-
-    def _mute_post_save_signals(self, target_signals: list[tuple]):
-        """Disable post_save signals"""
-
-        for signal in target_signals:
-            model, dispatch_uid = signal
-            signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)
 
     def _publish_registration_form(self, user, project=None):
         md = """
