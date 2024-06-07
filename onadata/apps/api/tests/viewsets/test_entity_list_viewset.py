@@ -1,10 +1,8 @@
 """Tests for module onadata.apps.api.viewsets.entity_list_viewset"""
 
 import json
-import os
 import sys
 
-from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 
@@ -29,18 +27,20 @@ class GetEntityListsTestCase(TestAbstractViewSet):
         self._publish_registration_form(self.user)
         # Publish follow up form for "trees" dataset
         self._publish_follow_up_form(self.user)
-        # Make submission on tree_registration form
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
+        # Create Entity for trees EntityList
+        trees_entity_list = EntityList.objects.get(name="trees")
+        Entity.objects.create(
+            entity_list=trees_entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        self._make_submission(submission_path)
+        trees_entity_list.num_entities = 1
+        trees_entity_list.save()
         # Create more EntityLists explicitly
         EntityList.objects.create(name="immunization", project=self.project)
         EntityList.objects.create(name="savings", project=self.project)
@@ -169,18 +169,20 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         # Publish follow up form for "trees" dataset
         self._publish_follow_up_form(self.user)
         self.entity_list = EntityList.objects.first()
-        # Make submission on tree_registration form
-        submission_path = os.path.join(
-            settings.PROJECT_ROOT,
-            "apps",
-            "main",
-            "tests",
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
+        # Create Entity for trees EntityList
+        trees_entity_list = EntityList.objects.get(name="trees")
+        Entity.objects.create(
+            entity_list=trees_entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        self._make_submission(submission_path)
+        trees_entity_list.num_entities = 1
+        trees_entity_list.save()
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -276,54 +278,47 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self._publish_registration_form(self.user)
         # Publish follow up form for "trees" dataset
         self._publish_follow_up_form(self.user)
-        # Make submissions which will then create Entities
-        paths = [
-            os.path.join(
-                self.main_directory,
-                "fixtures",
-                "entities",
-                "instances",
-                "trees_registration.xml",
-            ),
-            os.path.join(
-                self.main_directory,
-                "fixtures",
-                "entities",
-                "instances",
-                "trees_registration_2.xml",
-            ),
-        ]
-
-        for path in paths:
-            self._make_submission(path)
-
-        self.entity_list = EntityList.objects.first()
-        entity_qs = Entity.objects.all().order_by("pk")
-        self.expected_data = [
-            {
-                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+        # Create Entity for trees EntityList
+        self.entity_list = EntityList.objects.get(name="trees")
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
                 "geometry": "-1.286905 36.772845 0 0",
                 "species": "purpleheart",
                 "circumference_cm": 300,
-                "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-                "meta/instanceName": "300cm purpleheart",
                 "meta/entity/label": "300cm purpleheart",
-                "_xform_id_string": "trees_registration",
-                "_version": "2022110901",
-                "_id": entity_qs[0].pk,
             },
-            {
-                "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        ),
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
                 "geometry": "-1.305796 36.791849 0 0",
                 "species": "wallaba",
                 "circumference_cm": 100,
                 "intake_notes": "Looks malnourished",
-                "meta/instanceID": "uuid:648e4106-2224-4bd7-8bf9-859102fc6fae",
-                "meta/instanceName": "100cm wallaba",
                 "meta/entity/label": "100cm wallaba",
-                "_xform_id_string": "trees_registration",
-                "_version": "2022110901",
-                "_id": entity_qs[1].pk,
+            },
+            uuid="517185b4-bc06-450c-a6ce-44605dec5480",
+        )
+        self.entity_list.num_entities = 2
+        self.entity_list.save()
+        entity_qs = Entity.objects.all().order_by("pk")
+        self.expected_data = [
+            {
+                "id": entity_qs[0].pk,
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            {
+                "id": entity_qs[1].pk,
+                "geometry": "-1.305796 36.791849 0 0",
+                "species": "wallaba",
+                "circumference_cm": 100,
+                "intake_notes": "Looks malnourished",
+                "meta/entity/label": "100cm wallaba",
             },
         ]
 

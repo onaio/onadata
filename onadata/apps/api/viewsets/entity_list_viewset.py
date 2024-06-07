@@ -66,7 +66,7 @@ class EntityListViewSet(
         entity_list = self.get_object()
         entities_qs = (
             Entity.objects.filter(
-                registration_form__entity_list=entity_list,
+                entity_list=entity_list,
                 deleted_at__isnull=True,
             )
             # To improve performance, we specify only the column(s)
