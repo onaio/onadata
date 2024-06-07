@@ -24,7 +24,7 @@ from savReaderWriter import SavWriter
 from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm, EntityList
+from onadata.apps.logger.models import Attachment, Instance, XForm, Entity, EntityList
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
@@ -1011,16 +1011,17 @@ class GenerateExportTestCase(TestAbstractViewSet):
         """Generate export for EntityList dataset works"""
         # Publish registration form and create "trees" Entitylist dataset
         self._publish_registration_form(self.user)
-        # Make submission to trees_registration form
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
-        )
-        self._make_submission(submission_path)
         entity_list = EntityList.objects.get(name="trees")
+        Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
         export = generate_entity_list_export(entity_list)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
