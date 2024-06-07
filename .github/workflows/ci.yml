@@ -58,7 +58,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     services:
       postgres:
-        image: postgis/postgis:13-3.0
+        image: postgis/postgis:13-3.3-alpine
         env:
           POSTGRES_PASSWORD: onadata
           POSTGRES_DB: onadata
@@ -115,7 +115,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     services:
       postgres:
-        image: postgis/postgis:13-3.0
+        image: postgis/postgis:13-3.3-alpine
         env:
           POSTGRES_PASSWORD: onadata
           POSTGRES_DB: onadata
