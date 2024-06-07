@@ -4,7 +4,13 @@ import pytz
 from datetime import datetime
 from unittest.mock import patch
 
-from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Instance
+from onadata.apps.logger.models import (
+    Entity,
+    EntityHistory,
+    EntityList,
+    Instance,
+    SurveyType,
+)
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -52,7 +58,6 @@ class EntityHistoryTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        self._mute_post_save_signals([(Instance, "create_entity")])
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
         self.xform = self._publish_registration_form(self.user)
         self.entity_list = EntityList.objects.first()
@@ -87,7 +92,11 @@ class EntityHistoryTestCase(TestBase):
             "circumference_cm": 300,
             "meta/entity/label": "300cm purpleheart",
         }
-        instance = Instance.objects.create(xform=self.xform, xml=self.xml)
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance(xform=self.xform, xml=self.xml, survey_type=survey_type)
+        # We use bulk_create to avoid calling create_entity signal
+        Instance.objects.bulk_create([instance])
+        instance = Instance.objects.first()
         history = EntityHistory.objects.create(
             entity=self.entity,
             registration_form=registration_form,

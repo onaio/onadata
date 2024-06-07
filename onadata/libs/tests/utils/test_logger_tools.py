@@ -14,7 +14,7 @@ from django.http.request import HttpRequest
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance, Entity, RegistrationForm
+from onadata.apps.logger.models import Instance, Entity, RegistrationForm, SurveyType
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
@@ -656,8 +656,6 @@ class CreateEntityTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        # Mute signal that creates Entity when Instance is saved
-        self._mute_post_save_signals([(Instance, "create_entity")])
         self.xform = self._publish_registration_form(self.user)
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -677,12 +675,16 @@ class CreateEntityTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        self.instance = Instance.objects.create(
-            xml=self.xml,
-            user=self.user,
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance(
             xform=self.xform,
+            xml=self.xml,
             version=self.xform.version,
+            survey_type=survey_type,
         )
+        # We use bulk_create to avoid calling create_entity signal
+        Instance.objects.bulk_create([instance])
+        self.instance = Instance.objects.first()
         self.registration_form = RegistrationForm.objects.first()
 
     def test_entity_created(self):
