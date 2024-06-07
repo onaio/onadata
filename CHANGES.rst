@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.2.2(2024-06-06)
+------------------
+- Add support for merged dataset geojson format on endpoint /api/v1/data/<form_id>
+  `PR #2608 <https://github.com/onaio/onadata/pull/2608>`
+  [@kelvin-muchiri]
+
 v4.2.1(2024-06-04)
 ------------------
 - Update Metadata action to capture tags
