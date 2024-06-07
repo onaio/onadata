@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from django.test import TestCase
 from django.utils import timezone
 
-from onadata.apps.logger.models import XForm, EntityList
+from onadata.apps.logger.models import EntityList
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 
@@ -73,8 +73,7 @@ class TestXFormManifestSerializer(TestCase, TestBase):
         # Publish registration form
         self._publish_registration_form(self.user)
         # Publish follow up form
-        self._publish_follow_up_form(self.user)
-        follow_up_xform = XForm.objects.order_by("pk").reverse()[0]
+        follow_up_xform = self._publish_follow_up_form(self.user)
         entity_list = EntityList.objects.get(name="trees")
         metadata = follow_up_xform.metadata_set.get(
             data_type="media",
