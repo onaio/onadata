@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.logger.models import Entity, EntityList, Project
+from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
 
 
@@ -429,6 +429,15 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             "meta/entity/label": "30cm mora",
         }
         self.assertDictEqual(response.data, expected_data)
+        self.assertEqual(EntityHistory.objects.count(), 1)
+        history = EntityHistory.objects.first()
+        self.assertEqual(history.entity, self.entity)
+        self.assertIsNone(history.registration_form)
+        self.assertIsNone(history.instance)
+        self.assertIsNone(history.xml)
+        self.assertIsNone(history.form_version)
+        self.assertDictEqual(history.json, expected_data)
+        self.assertEqual(history.created_by, self.user)
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""

@@ -64,7 +64,7 @@ class EntityListViewSet(
 
     @action(methods=["GET", "PUT", "PATCH"], detail=True)
     def entities(self, request, *args, **kwargs):
-        """Returns a list of Entities for a single EntityList"""
+        """Provides `list`, `update` and `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
 

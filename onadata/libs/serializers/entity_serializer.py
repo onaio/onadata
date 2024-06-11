@@ -154,6 +154,9 @@ class EntitySerializer(serializers.ModelSerializer):
             instance.json = updated_data
 
         instance.save()
+        instance.history.create(
+            json=updated_data, created_by=self.context["request"].user
+        )
 
         return instance
 
