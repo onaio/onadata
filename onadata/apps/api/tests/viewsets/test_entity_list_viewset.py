@@ -2,6 +2,9 @@
 
 import json
 import sys
+from datetime import datetime
+
+from unittest.mock import patch
 
 from django.test import override_settings
 from django.utils import timezone
@@ -569,3 +572,118 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data={}, format="json", **self.extra)
         response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 404)
+
+
+class DeleteEntityTestCase(TestAbstractViewSet):
+    """Tests for delete Entity"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"delete": "entities"})
+        # Simulate existing Entity
+        self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees")
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+
+    @patch("django.utils.timezone.now")
+    def test_delete(self, mock_now):
+        """Delete Entity works"""
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        mock_now.return_value = date
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(self.entity.deleted_at, date)
+        self.assertEqual(self.entity.deleted_by, self.user)
+
+    def test_invalid_entity(self):
+        """Invalid Entity is handled"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_entity_already_deleted(self):
+        """Deleted Entity cannot be deleted"""
+        self.entity.deleted_at = timezone.now()
+        self.entity.save()
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot delete Entity"""
+        # Anonymous user cannot delete private EntityList
+        request = self.factory.delete("/")
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user cannot delete public EntityList
+        self.project.shared = True
+        self.project.save()
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_permission_required(self):
+        """User must have the right permissions to delete Entity
+
+        User must be a project owner or, project manager, or editor
+        to delete Entity"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        # No perm to update
+        ShareProject(self.project, "alice", "readonly-no-download").save()
+        request = self.factory.delete("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 403)
+
+        # Assign owner
+        self.entity.deleted_at = None
+        self.entity.delete_by = None
+        self.entity.save()
+        ShareProject(self.project, "alice", "owner").save()
+        request = self.factory.delete("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 204)
+
+        # Assign manager
+        self.entity.deleted_at = None
+        self.entity.delete_by = None
+        self.entity.save()
+        ShareProject(self.project, "alice", "manager").save()
+        request = self.factory.delete("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 204)
+
+        # Assign editor
+        self.entity.deleted_at = None
+        self.entity.delete_by = None
+        self.entity.save()
+        ShareProject(self.project, "alice", "editor").save()
+        request = self.factory.delete("/", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 204)

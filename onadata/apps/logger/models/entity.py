@@ -4,6 +4,7 @@ Entity model
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.instance import Instance
@@ -28,6 +29,12 @@ class Entity(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.pk}|{self.entity_list}"
+
+    def soft_delete(self, deleted_by=None):
+        """Soft delete Entity"""
+        self.deleted_at = timezone.now()
+        self.deleted_by = deleted_by
+        self.save(update_fields=["deleted_at", "deleted_by"])
 
     class Meta(BaseModel.Meta):
         app_label = "logger"

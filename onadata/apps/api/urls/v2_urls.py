@@ -16,7 +16,9 @@ router.register(r"open-data", TableauViewSet, basename="open-data")
 urlpatterns = [
     path(
         "entity-lists/<int:pk>/entities/<int:entity_pk",
-        EntityListViewSet.as_view({"put": "entities", "patch": "entities"}),
+        EntityListViewSet.as_view(
+            {"put": "entities", "patch": "entities", "delete": "entities"}
+        ),
     ),
     path("", include(router.urls)),
 ]

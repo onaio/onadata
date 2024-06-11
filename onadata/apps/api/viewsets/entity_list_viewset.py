@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404
 
+
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -62,14 +64,25 @@ class EntityListViewSet(
 
         return super().get_serializer_class()
 
-    @action(methods=["GET", "PUT", "PATCH"], detail=True)
+    @action(methods=["GET"], detail=True)
     def entities(self, request, *args, **kwargs):
         """Provides `list`, `update` and `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
 
-        if entity_pk and request.method.upper() in ["PUT", "PATCH"]:
+        if entity_pk:
+            method = request.method.upper()
+
+            if method not in ["PUT", "PATCH", "DELETE"]:
+                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
             entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
+
+            if method == "DELETE":
+                entity.soft_delete(request.user)
+
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
             serializer = self.get_serializer(
                 entity,
                 data=request.data,
