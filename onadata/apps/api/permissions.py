@@ -571,15 +571,10 @@ class EntityListPermission(DjangoObjectPermissionsAllowAnon):
         if request.method in SAFE_METHODS:
             return True
 
-        has_perm = super().has_object_permission(request, view, obj)
-
-        if has_perm:
-            return True
-
         if request.user and request.user.is_authenticated:
             project = obj.project
 
-            return (
+            return super().has_object_permission(request, view, obj) or (
                 ManagerRole.user_has_role(request.user, project)
                 or OwnerRole.user_has_role(request.user, project)
                 or EditorRole.user_has_role(request.user, project)
