@@ -69,7 +69,7 @@ class EntityListViewSet(
         entity_pk = kwargs.get("entity_pk")
 
         if entity_pk and request.method.upper() in ["PUT", "PATCH"]:
-            entity = get_object_or_404(Entity, pk=entity_pk)
+            entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
             serializer = self.get_serializer(
                 entity,
                 data=request.data,

@@ -430,8 +430,8 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         }
         self.assertDictEqual(response.data, expected_data)
 
-    def test_invalid_entity_id(self):
-        """Invalid entity_pk is handled"""
+    def test_invalid_entity(self):
+        """Invalid Entity is handled"""
         request = self.factory.put("/", data={}, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
@@ -507,7 +507,10 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
 
     def test_permission_required(self):
-        """A user must be a project owner, manager or editor to update Entity"""
+        """User must have the right permissions to update Entity
+
+        User must be a project owner or, project manager, or editor
+        to update Entity"""
         data = {"data": {"species": "mora"}}
         alice_data = {
             "username": "alice",
@@ -520,26 +523,40 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
 
-        # Share project with Alice without edit rights
+        # No perm to update
         ShareProject(self.project, "alice", "readonly-no-download").save()
         request = self.factory.patch("/", data=data, format="json", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 403)
 
-        # Share project with Alice and assign owner
+        # Assign owner
         ShareProject(self.project, "alice", "owner").save()
         request = self.factory.patch("/", data=data, format="json", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 200)
 
-        # Share project with Alice and assign manager
+        # Assign manager
         ShareProject(self.project, "alice", "manager").save()
         request = self.factory.patch("/", data=data, format="json", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 200)
 
-        # Share project with Alice and assign editor
+        # Assign editor
         ShareProject(self.project, "alice", "editor").save()
         request = self.factory.patch("/", data=data, format="json", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 200)
+
+    def test_deleted_entity(self):
+        """Deleted Entity cannot be updated"""
+        self.entity.deleted_at = timezone.now()
+        self.entity.save()
+        request = self.factory.patch("/", data={}, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.patch("/", data={}, format="json", **self.extra)
+        response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
