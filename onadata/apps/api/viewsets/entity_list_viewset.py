@@ -1,9 +1,11 @@
+from django.shortcuts import get_object_or_404
+
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 
+from onadata.apps.api.permissions import EntityListPermission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.filters import EntityListProjectFilter
@@ -30,7 +32,7 @@ class EntityListViewSet(
 ):
     queryset = EntityList.objects.all().order_by("pk")
     serializer_class = EntityListSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (EntityListPermission,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (EntityListProjectFilter,)
 
@@ -60,10 +62,27 @@ class EntityListViewSet(
 
         return super().get_serializer_class()
 
-    @action(methods=["GET"], detail=True)
+    @action(methods=["GET", "PUT", "PATCH"], detail=True)
     def entities(self, request, *args, **kwargs):
         """Returns a list of Entities for a single EntityList"""
         entity_list = self.get_object()
+        entity_pk = kwargs.get("entity_pk")
+
+        if entity_pk and request.method.upper() in ["PUT", "PATCH"]:
+            entity = get_object_or_404(Entity, pk=entity_pk)
+            serializer = self.get_serializer(
+                entity,
+                data=request.data,
+                context={
+                    **self.get_serializer_context(),
+                    "entity_list": entity_list,
+                },
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data)
+
         entities_qs = (
             Entity.objects.filter(
                 entity_list=entity_list,
@@ -81,4 +100,5 @@ class EntityListViewSet(
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
+
         return Response(serializer.data)

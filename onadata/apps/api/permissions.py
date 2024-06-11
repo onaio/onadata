@@ -26,6 +26,7 @@ from onadata.libs.permissions import (
     CAN_ADD_XFORM_TO_PROFILE,
     CAN_CHANGE_XFORM,
     CAN_DELETE_SUBMISSION,
+    EditorRole,
     ManagerRole,
     OwnerRole,
     ReadOnlyRoleNoDownload,
@@ -558,3 +559,30 @@ class IsAuthenticatedSubmission(BasePermission):
                 return False
 
         return True
+
+
+class EntityListPermission(DjangoObjectPermissionsAllowAnon):
+    """Permission for EntityList"""
+
+    def has_permission(self, request, view):
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+
+        has_perm = super().has_object_permission(request, view, obj)
+
+        if has_perm:
+            return True
+
+        if request.user and request.user.is_authenticated:
+            project = obj.project
+
+            return (
+                ManagerRole.user_has_role(request.user, project)
+                or OwnerRole.user_has_role(request.user, project)
+                or EditorRole.user_has_role(request.user, project)
+            )
+
+        return False

@@ -260,7 +260,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         }
         alice_profile = self._create_user_profile(alice_data)
         # Share project with Alice
-        ShareProject(self.project, "alice", "readonly-no-download")
+        ShareProject(self.project, "alice", "readonly-no-download").save()
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
         request = self.factory.get("/", **extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -356,7 +356,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         }
         alice_profile = self._create_user_profile(alice_data)
         # Share project with Alice
-        ShareProject(self.project, "alice", "readonly-no-download")
+        ShareProject(self.project, "alice", "readonly-no-download").save()
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
         request = self.factory.get("/", **extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -382,3 +382,164 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.expected_data[-1]])
         self.assertIsNotNone(response.get("Cache-Control"))
+
+
+class UpdateEntityTestCase(TestAbstractViewSet):
+    """Tests for updating a single Entity"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view(
+            {"put": "entities", "patch": "entities"},
+        )
+
+        # Simulate existing Entity
+        self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees")
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+
+    def test_updating_entity(self):
+        """Updating an Entity works"""
+        data = {
+            "label": "30cm mora",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": 30,
+            },
+        }
+        request = self.factory.put("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+        expected_data = {
+            "id": self.entity.pk,
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+            "circumference_cm": 30,
+            "meta/entity/label": "30cm mora",
+        }
+        self.assertDictEqual(response.data, expected_data)
+
+    def test_invalid_entity_id(self):
+        """Invalid entity_pk is handled"""
+        request = self.factory.put("/", data={}, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_patch_label(self):
+        """Patching label only works"""
+        data = {"label": "Patched label"}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+        expected_data = {
+            "id": self.entity.pk,
+            **self.entity.json,
+            "meta/entity/label": "Patched label",
+        }
+        self.assertDictEqual(response.data, expected_data)
+
+    def test_patch_data(self):
+        """Patch data only works"""
+        data = {"data": {"species": "mora"}}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+        expected_data = {
+            "id": self.entity.pk,
+            **self.entity.json,
+            "species": "mora",
+        }
+        self.assertDictEqual(response.data, expected_data)
+
+    def test_label_empty(self):
+        """Label must be a non-empty string"""
+        data = {"label": ""}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_unset_property(self):
+        """Unsetting a property value works"""
+        data = {"data": {"species": ""}}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+        expected_data = {
+            "id": self.entity.pk,
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+            "meta/entity/label": "300cm purpleheart",
+        }
+        self.assertDictEqual(response.data, expected_data)
+
+    def test_invalid_property(self):
+        """A property that does not exist in the EntityList fails"""
+        data = {"data": {"foo": "bar"}}
+
+        self.assertTrue("foo" not in self.entity_list.properties)
+
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot update Entity"""
+        # Anonymous user cannot update private EntityList
+        request = self.factory.patch("/", data={}, format="json")
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user cannot update public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.patch("/", data={}, format="json")
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_permission_required(self):
+        """A user must be a project owner, manager or editor to update Entity"""
+        data = {"data": {"species": "mora"}}
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        # Share project with Alice without edit rights
+        ShareProject(self.project, "alice", "readonly-no-download").save()
+        request = self.factory.patch("/", data=data, format="json", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 403)
+
+        # Share project with Alice and assign owner
+        ShareProject(self.project, "alice", "owner").save()
+        request = self.factory.patch("/", data=data, format="json", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Share project with Alice and assign manager
+        ShareProject(self.project, "alice", "manager").save()
+        request = self.factory.patch("/", data=data, format="json", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Share project with Alice and assign editor
+        ShareProject(self.project, "alice", "editor").save()
+        request = self.factory.patch("/", data=data, format="json", **extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)

@@ -1,3 +1,5 @@
+from django.utils.translation import gettext as _
+
 from rest_framework import serializers
 
 from onadata.apps.logger.models import (
@@ -121,9 +123,47 @@ class EntityListDetailSerializer(EntityListSerializer):
 class EntitySerializer(serializers.ModelSerializer):
     """Serializer for Entity"""
 
+    label = serializers.CharField(write_only=True, required=False)
+    data = serializers.JSONField(write_only=True, required=False)
+
+    def validate_data(self, value):
+        if value:
+            for key in value.keys():
+                if key not in self.context["entity_list"].properties:
+                    raise serializers.ValidationError(
+                        _(f"Invalid dataset property {key}")
+                    )
+
+        return value
+
+    def update(self, instance, validated_data):
+        data = validated_data.pop("data", {})
+        label = validated_data.pop("label", None)
+
+        if label:
+            instance.json["meta/entity/label"] = label
+
+        if data:
+            updated_data = {**instance.json, **data}
+
+            for key, value in data.items():
+                if not value:
+                    # Unset property
+                    del updated_data[key]
+
+            instance.json = updated_data
+
+        instance.save()
+
+        return instance
+
     def to_representation(self, instance):
         return instance.json
 
     class Meta:
         model = Entity
-        fields = ("json",)
+        fields = (
+            "json",
+            "label",
+            "data",
+        )
