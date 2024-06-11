@@ -655,6 +655,11 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
 
+        def restore_entity():
+            self.entity.deleted_at = None
+            self.entity.deleted_by = None
+            self.entity.save()
+
         # No perm to update
         ShareProject(self.project, "alice", "readonly-no-download").save()
         request = self.factory.delete("/", **extra)
@@ -662,27 +667,21 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
 
         # Assign owner
-        self.entity.deleted_at = None
-        self.entity.delete_by = None
-        self.entity.save()
+        restore_entity()
         ShareProject(self.project, "alice", "owner").save()
         request = self.factory.delete("/", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 204)
 
         # Assign manager
-        self.entity.deleted_at = None
-        self.entity.delete_by = None
-        self.entity.save()
+        restore_entity()
         ShareProject(self.project, "alice", "manager").save()
         request = self.factory.delete("/", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 204)
 
         # Assign editor
-        self.entity.deleted_at = None
-        self.entity.delete_by = None
-        self.entity.save()
+        restore_entity()
         ShareProject(self.project, "alice", "editor").save()
         request = self.factory.delete("/", **extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
