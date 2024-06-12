@@ -412,8 +412,11 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
 
-    def test_updating_entity(self):
+    @patch("django.utils.timezone.now")
+    def test_updating_entity(self, mock_now):
         """Updating an Entity works"""
+        mock_date = datetime(2024, 6, 12, 12, 34, 0, tzinfo=timezone.utc)
+        mock_now.return_value = mock_date
         data = {
             "label": "30cm mora",
             "data": {
@@ -433,6 +436,8 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             "meta/entity/label": "30cm mora",
         }
         self.assertDictEqual(response.data, expected_data)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.last_entity_update_time, mock_date)
         self.assertEqual(EntityHistory.objects.count(), 1)
         history = EntityHistory.objects.first()
         self.assertEqual(history.entity, self.entity)
@@ -590,11 +595,11 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        self.entity_list.refresh_from_db()
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete Entity works"""
+        self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
