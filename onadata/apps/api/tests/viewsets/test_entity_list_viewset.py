@@ -395,18 +395,7 @@ class GetEntityTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"get": "entities"})
-        self._publish_registration_form(self.user)
-        self.entity_list = EntityList.objects.get(name="trees")
-        self.entity = Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        self._create_entity()
 
     def test_get_entity(self):
         """Getting a single Entity works"""
@@ -467,20 +456,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.view = EntityListViewSet.as_view(
             {"put": "entities", "patch": "entities"},
         )
-
-        # Simulate existing Entity
-        self._publish_registration_form(self.user)
-        self.entity_list = EntityList.objects.get(name="trees")
-        self.entity = Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        self._create_entity()
 
     @patch("django.utils.timezone.now")
     def test_updating_entity(self, mock_now):
@@ -652,19 +628,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"delete": "entities"})
-        # Simulate existing Entity
-        self._publish_registration_form(self.user)
-        self.entity_list = EntityList.objects.get(name="trees")
-        self.entity = Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        self._create_entity()
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
