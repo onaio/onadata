@@ -1,6 +1,5 @@
 from django.shortcuts import get_object_or_404
 
-
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -64,7 +63,11 @@ class EntityListViewSet(
 
         return super().get_serializer_class()
 
-    @action(methods=["GET"], detail=True)
+    @action(
+        methods=["GET", "PUT", "PATCH", "DELETE"],
+        detail=True,
+        url_path="entities(?:/(?P<entity_pk>[^/.]+))?",
+    )
     def entities(self, request, *args, **kwargs):
         """Provides `list`, `update` and `destroy` actions for Entities"""
         entity_list = self.get_object()
@@ -72,10 +75,6 @@ class EntityListViewSet(
 
         if entity_pk:
             method = request.method.upper()
-
-            if method not in ["PUT", "PATCH", "DELETE"]:
-                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
             entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
 
             if method == "DELETE":
@@ -83,16 +82,21 @@ class EntityListViewSet(
 
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
-            serializer = self.get_serializer(
-                entity,
-                data=request.data,
-                context={
-                    **self.get_serializer_context(),
-                    "entity_list": entity_list,
-                },
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            if method in ["PUT", "PATCH"]:
+                serializer = self.get_serializer(
+                    entity,
+                    data=request.data,
+                    context={
+                        **self.get_serializer_context(),
+                        "entity_list": entity_list,
+                    },
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+                return Response(serializer.data)
+
+            serializer = self.get_serializer(entity)
 
             return Response(serializer.data)
 

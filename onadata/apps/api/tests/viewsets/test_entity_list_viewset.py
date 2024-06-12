@@ -335,7 +335,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
 
     def test_anonymous_user(self):
-        """Anonymous user cannot view Entities for a private EntityList"""
+        """Anonymous user cannot view Entities for a private project"""
         # Anonymous user cannot view private EntityList
         request = self.factory.get("/")
         response = self.view(request, pk=self.entity_list.pk)
@@ -386,6 +386,76 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.expected_data[-1]])
         self.assertIsNotNone(response.get("Cache-Control"))
+
+
+class GetEntityTestCase(TestAbstractViewSet):
+    """Tests for getting a single Entity"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"get": "entities"})
+        self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees")
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+
+    def test_get_entity(self):
+        """Getting a single Entity works"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            {
+                "id": self.entity.pk,
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "purpleheart",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
+        )
+
+    def test_invalid_entity(self):
+        """Invalid Entity is handled"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_entity_already_deleted(self):
+        """Deleted Entity cannot be retrieved"""
+        self.entity.deleted_at = timezone.now()
+        self.entity.save()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot get a private Entity"""
+        # Anonymous user cannot get private Entity
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user can get public Entity
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
 
 
 class UpdateEntityTestCase(TestAbstractViewSet):
@@ -519,11 +589,11 @@ class UpdateEntityTestCase(TestAbstractViewSet):
 
     def test_anonymous_user(self):
         """Anonymous user cannot update Entity"""
-        # Anonymous user cannot update private EntityList
+        # Anonymous user cannot update private Entity
         request = self.factory.patch("/", data={}, format="json")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 404)
-        # Anonymous user cannot update public EntityList
+        # Anonymous user cannot update public Entity
         self.project.shared = True
         self.project.save()
         request = self.factory.patch("/", data={}, format="json")
@@ -634,11 +704,11 @@ class DeleteEntityTestCase(TestAbstractViewSet):
 
     def test_anonymous_user(self):
         """Anonymous user cannot delete Entity"""
-        # Anonymous user cannot delete private EntityList
+        # Anonymous user cannot delete private Entity
         request = self.factory.delete("/")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 404)
-        # Anonymous user cannot delete public EntityList
+        # Anonymous user cannot delete public Entity
         self.project.shared = True
         self.project.save()
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)

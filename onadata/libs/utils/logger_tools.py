@@ -1063,8 +1063,6 @@ def create_entity_from_instance(
         json=entity_json,
         created_by=instance.user,
     )
-    entity_list.last_entity_update_time = entity.date_modified
-    entity_list.save()
 
     return entity
 
