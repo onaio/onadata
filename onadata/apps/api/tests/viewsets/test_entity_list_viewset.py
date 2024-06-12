@@ -13,6 +13,7 @@ from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.permissions import ROLES
 
 
 class GetEntityListsTestCase(TestAbstractViewSet):
@@ -535,29 +536,18 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
 
-        # No perm to update
-        ShareProject(self.project, "alice", "readonly-no-download").save()
-        request = self.factory.patch("/", data=data, format="json", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 403)
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.patch("/", data=data, format="json", **extra)
+            response = self.view(
+                request, pk=self.entity_list.pk, entity_pk=self.entity.pk
+            )
 
-        # Assign owner
-        ShareProject(self.project, "alice", "owner").save()
-        request = self.factory.patch("/", data=data, format="json", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 200)
+            if role not in ["owner", "manager", "editor"]:
+                self.assertEqual(response.status_code, 403)
 
-        # Assign manager
-        ShareProject(self.project, "alice", "manager").save()
-        request = self.factory.patch("/", data=data, format="json", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 200)
-
-        # Assign editor
-        ShareProject(self.project, "alice", "editor").save()
-        request = self.factory.patch("/", data=data, format="json", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 200)
+            else:
+                self.assertEqual(response.status_code, 200)
 
     def test_deleted_entity(self):
         """Deleted Entity cannot be updated"""
@@ -660,29 +650,16 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             self.entity.deleted_by = None
             self.entity.save()
 
-        # No perm to update
-        ShareProject(self.project, "alice", "readonly-no-download").save()
-        request = self.factory.delete("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 403)
+        for role in ROLES:
+            restore_entity()
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.delete("/", **extra)
+            response = self.view(
+                request, pk=self.entity_list.pk, entity_pk=self.entity.pk
+            )
 
-        # Assign owner
-        restore_entity()
-        ShareProject(self.project, "alice", "owner").save()
-        request = self.factory.delete("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 204)
+            if role not in ["owner", "manager", "editor"]:
+                self.assertEqual(response.status_code, 403)
 
-        # Assign manager
-        restore_entity()
-        ShareProject(self.project, "alice", "manager").save()
-        request = self.factory.delete("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 204)
-
-        # Assign editor
-        restore_entity()
-        ShareProject(self.project, "alice", "editor").save()
-        request = self.factory.delete("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 204)
+            else:
+                self.assertEqual(response.status_code, 204)
