@@ -6,18 +6,25 @@ The following endpoints provides access to Entities related data: Where:
 
 - _Entity_ - Each item that gets managed by an ODK workflow. Entities are automatically created from submissions receieved from a form that contains entity definitions.
 - _EntityList_ - a dataset that contains Entities of the same type.
+- `entity_list_id` - An EntityList's unique identifier
+- `entity_id` - An Entity's unique identifier
 
 ## Get EntityLists
 
 `GET /api/v2/entity-lists`
 
-**Example**
+**Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists`
 
 **Response**
 
+Status: `200 OK`
+
+Body:
+
 ```
+
 [
     {
         "url":"http://testserver/api/v2/entity-lists/9",
@@ -39,11 +46,15 @@ To get EntityLists for a specific project
 
 `GET /api/v2/entity-lists?project=<project_id>`
 
-**Example**
+**Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists?project=9`
 
 **Response**
+
+Status: `200 OK`
+
+Body:
 
 ```
 [
@@ -67,11 +78,15 @@ To get EntityLists for a specific project
 
 `GET /api/v2/entity-lists/<entity_list_id>`
 
-**Example**
+**Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists/1`
 
 **Response**
+
+Status: `200 OK`
+
+Body:
 
 ```
 {
@@ -110,38 +125,91 @@ To get EntityLists for a specific project
 
 `GET api/v2/entity-lists/<entity_list_id>/entities`
 
-**Example**
+**Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities`
 
 **Response**
 
+Status: `200 OK`
+
+Body:
+
 ```
 [
    {
-      "_id":3,
+      "id":3,
       "species":"purpleheart",
-      "_version":"2022110901",
       "geometry":"-1.286905 36.772845 0 0",
-      "formhub/uuid":"d156a2dce4c34751af57f21ef5c4e6cc",
-      "meta/instanceID":"uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-      "_xform_id_string":"trees_registration",
       "circumference_cm":300,
       "meta/entity/label":"300cm purpleheart",
-      "meta/instanceName":"300cm purpleheart"
    },
    {
-      "_id":4,
+      "id":4,
       "species":"wallaba",
-      "_version":"2022110901",
       "geometry":"-1.305796 36.791849 0 0",
-      "formhub/uuid":"d156a2dce4c34751af57f21ef5c4e6cc",
       "intake_notes":"Looks malnourished",
-      "meta/instanceID":"uuid:648e4106-2224-4bd7-8bf9-859102fc6fae",
-      "_xform_id_string":"trees_registration",
       "circumference_cm":100,
       "meta/entity/label":"100cm wallaba",
-      "meta/instanceName":"100cm wallaba"
    }
 ]
 ```
+
+## Update Entity
+
+`PATCH api/v2/entity-lists/<entity_list_id>/entities/<entity_id>`
+
+This endpoint is used to update the label or the properties (passed as JSON in the request body) of an Entity.
+
+You only need to include the properties you wish to update. To unset the value of any property, you can set it to empty string ("") or null.
+
+A property must exist in the EntityList dataset.
+
+The label must be a non-empty string.
+
+**Request**
+
+```sh
+curl -X PATCH https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+-H "Content-Type: application/json" \
+-d '{
+        "label": "30cm mora",
+        "data": {
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+            "circumference_cm": 30
+        }
+   }'
+```
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+{
+   "id": 1,
+   "geometry": "-1.286805 36.772845 0 0",
+   "species": "mora",
+   "circumference_cm": 30,
+   "meta/entity/label": "30cm mora",
+}
+```
+
+## Delete an Entity
+
+`DELETE api/v2/entity-lists/<entity_list_id>/entities/<entity_id>`
+
+The endpoint is used to delete an Entity
+
+**Request**
+
+```sh
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1
+```
+
+**Response**
+
+Status: `204 No Content`
