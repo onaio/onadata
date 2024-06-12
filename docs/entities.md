@@ -13,6 +13,8 @@ The following endpoints provides access to Entities related data: Where:
 
 `GET /api/v2/entity-lists`
 
+This endpoint is used to get all EntityList datasets the user permission to view.
+
 **Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists`
@@ -78,6 +80,8 @@ Body:
 
 `GET /api/v2/entity-lists/<entity_list_id>`
 
+This endpoint is used to get a single EntityList.
+
 **Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists/1`
@@ -125,6 +129,8 @@ Body:
 
 `GET api/v2/entity-lists/<entity_list_id>/entities`
 
+This endpoint is used to get Entities belonging to a single EntityList dataset.
+
 **Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities`
@@ -153,6 +159,32 @@ Body:
       "meta/entity/label":"100cm wallaba",
    }
 ]
+```
+
+## Get a single Entity
+
+`GET api/v2/entity-lists/<entity_list_id>/entities/<entity_id>`
+
+This endpoint is used to get a single Entity.
+
+**Request**
+
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities/3`
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+{
+   "id":3,
+   "species":"purpleheart",
+   "geometry":"-1.286905 36.772845 0 0",
+   "circumference_cm":300,
+   "meta/entity/label":"300cm purpleheart",
+}
 ```
 
 ## Update Entity
