@@ -15,9 +15,9 @@ from onadata.libs.utils.logger_tools import (
 
 
 # pylint: disable=unused-argument
-@receiver(post_save, sender=Instance, dispatch_uid="create_entity")
-def create_entity(sender, instance, created=False, **kwargs):
-    """Create an Entity if an Instance's form is also RegistrationForm"""
+@receiver(post_save, sender=Instance, dispatch_uid="create_or_update_entity")
+def create_or_update_entity(sender, instance, created=False, **kwargs):
+    """Create or update an Entity after Instance saved"""
     if created and instance:
         if RegistrationForm.objects.filter(
             xform=instance.xform, is_active=True
@@ -44,7 +44,7 @@ def create_entity(sender, instance, created=False, **kwargs):
 
 @receiver(post_save, sender=Entity, dispatch_uid="add_entity_json_id")
 def add_entity_json_id(sender, instance, created=False, **kwargs):
-    """Add id to Entity json"""
+    """Add id to Entity json after Entity created"""
     if not instance:
         return
 
