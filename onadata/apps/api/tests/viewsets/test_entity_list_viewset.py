@@ -590,10 +590,12 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
+        self.entity_list.refresh_from_db()
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete Entity works"""
+        self.assertEqual(self.entity_list.num_entities, 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
         request = self.factory.delete("/", **self.extra)
@@ -602,6 +604,8 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.num_entities, 0)
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""

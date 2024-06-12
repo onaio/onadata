@@ -27,7 +27,7 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q, F
+from django.db.models import Q
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -1064,7 +1064,6 @@ def create_entity_from_instance(
         created_by=instance.user,
     )
     entity_list.last_entity_update_time = entity.date_modified
-    entity_list.num_entities = F("num_entities") + 1
     entity_list.save()
 
     return entity

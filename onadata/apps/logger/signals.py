@@ -2,6 +2,7 @@
 """
 logger signals module
 """
+from django.db.models import F
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -44,9 +45,16 @@ def create_entity(sender, instance=Instance | None, created=False, **kwargs):
 @receiver(post_save, sender=Entity, dispatch_uid="update_entity_json")
 def update_entity_json(sender, instance=Entity | None, created=False, **kwargs):
     """Update and Entity json on creation"""
-    if created and instance:
+    if not instance:
+        return
+
+    if created:
         json = instance.json
         json["id"] = instance.pk
         # Queryset.update ensures the model's save is not called and
         # the pre_save and post_save signals aren't sent
         Entity.objects.filter(pk=instance.pk).update(json=json)
+
+        entity_list = instance.entity_list
+        entity_list.num_entities = F("num_entities") + 1
+        entity_list.save()

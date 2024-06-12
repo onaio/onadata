@@ -32,9 +32,12 @@ class Entity(BaseModel):
 
     def soft_delete(self, deleted_by=None):
         """Soft delete Entity"""
-        self.deleted_at = timezone.now()
-        self.deleted_by = deleted_by
-        self.save(update_fields=["deleted_at", "deleted_by"])
+        if self.deleted_at is None:
+            self.deleted_at = timezone.now()
+            self.deleted_by = deleted_by
+            self.save(update_fields=["deleted_at", "deleted_by"])
+            self.entity_list.num_entities = models.F("num_entities") - 1
+            self.entity_list.save()
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
