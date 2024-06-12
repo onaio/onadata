@@ -477,7 +477,13 @@ class UpdateEntityTestCase(TestAbstractViewSet):
 
     def test_label_empty(self):
         """Label must be a non-empty string"""
+        # Empty string
         data = {"label": ""}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+        # Null
+        data = {"label": None}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
