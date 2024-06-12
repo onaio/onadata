@@ -171,6 +171,7 @@ The label must be a non-empty string.
 
 ```sh
 curl -X PATCH https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+-H "Authorization: Token ACCESS_TOKEN" \
 -H "Content-Type: application/json" \
 -d '{
         "label": "30cm mora",
@@ -207,7 +208,8 @@ The endpoint is used to delete an Entity
 **Request**
 
 ```sh
-curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+-H "Authorization: Token ACCESS_TOKEN"
 ```
 
 **Response**
