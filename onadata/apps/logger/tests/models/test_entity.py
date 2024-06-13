@@ -4,6 +4,8 @@ import pytz
 from datetime import datetime
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from onadata.apps.logger.models import (
     Entity,
     EntityHistory,
@@ -51,6 +53,44 @@ class EntityTestCase(TestBase):
         self.assertIsNone(entity.deleted_by)
         self.assertEqual(entity.json, {"id": entity.pk})
         self.assertEqual(entity.uuid, "")
+
+    @patch("django.utils.timezone.now")
+    def test_soft_delete(self, mock_now):
+        """Soft delete works"""
+        mock_now.return_value = self.mocked_now
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertIsNone(entity.deleted_at)
+        self.assertIsNone(entity.deleted_by)
+
+        entity.soft_delete(self.user)
+        self.entity_list.refresh_from_db()
+        entity.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(self.entity_list.last_entity_update_time, self.mocked_now)
+        self.assertEqual(entity.deleted_at, self.mocked_now)
+        self.assertEqual(entity.deleted_at, self.mocked_now)
+
+        # Soft deleted item cannot be soft deleted again
+        deleted_at = timezone.now()
+        entity2 = Entity.objects.create(
+            entity_list=self.entity_list, deleted_at=deleted_at
+        )
+        entity2.soft_delete(self.user)
+        entity2.refresh_from_db()
+        # deleted_at should not remain unchanged
+        self.assertEqual(entity2.deleted_at, deleted_at)
+
+        # deleted_by is optional
+        entity3 = Entity.objects.create(entity_list=self.entity_list)
+        entity3.soft_delete()
+        entity2.refresh_from_db()
+
+        self.assertEqual(entity3.deleted_at, self.mocked_now)
+        self.assertIsNone(entity3.deleted_by)
 
 
 class EntityHistoryTestCase(TestBase):
