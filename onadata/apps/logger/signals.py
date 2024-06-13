@@ -51,6 +51,7 @@ def add_entity_json_id(sender, instance, created=False, **kwargs):
     if created:
         json = instance.json
         json["id"] = instance.pk
+        json["uuid"] = instance.uuid
         # Queryset.update ensures the model's save is not called and
         # the pre_save and post_save signals aren't sent
         Entity.objects.filter(pk=instance.pk).update(json=json)

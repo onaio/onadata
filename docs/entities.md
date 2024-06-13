@@ -145,6 +145,7 @@ Body:
 [
    {
       "id":3,
+      "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
       "species":"purpleheart",
       "geometry":"-1.286905 36.772845 0 0",
       "circumference_cm":300,
@@ -152,6 +153,7 @@ Body:
    },
    {
       "id":4,
+      "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
       "species":"wallaba",
       "geometry":"-1.305796 36.791849 0 0",
       "intake_notes":"Looks malnourished",
@@ -180,6 +182,7 @@ Body:
 ```
 {
    "id":3,
+   "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
    "species":"purpleheart",
    "geometry":"-1.286905 36.772845 0 0",
    "circumference_cm":300,
@@ -224,6 +227,7 @@ Body:
 ```
 {
    "id": 1,
+   "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
    "geometry": "-1.286805 36.772845 0 0",
    "species": "mora",
    "circumference_cm": 30,

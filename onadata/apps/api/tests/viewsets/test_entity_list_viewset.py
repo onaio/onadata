@@ -311,6 +311,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.expected_data = [
             {
                 "id": entity_qs[0].pk,
+                "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
                 "geometry": "-1.286905 36.772845 0 0",
                 "species": "purpleheart",
                 "circumference_cm": 300,
@@ -318,6 +319,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
             },
             {
                 "id": entity_qs[1].pk,
+                "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
                 "geometry": "-1.305796 36.791849 0 0",
                 "species": "wallaba",
                 "circumference_cm": 100,
@@ -406,6 +408,7 @@ class GetEntityTestCase(TestAbstractViewSet):
             response.data,
             {
                 "id": self.entity.pk,
+                "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
                 "geometry": "-1.286905 36.772845 0 0",
                 "species": "purpleheart",
                 "circumference_cm": 300,
@@ -476,6 +479,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
             "circumference_cm": 30,
@@ -547,6 +551,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "geometry": "-1.286905 36.772845 0 0",
             "circumference_cm": 300,
             "meta/entity/label": "300cm purpleheart",

@@ -701,6 +701,7 @@ class CreateEntityTestCase(TestBase):
 
         expected_json = {
             "id": entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "geometry": "-1.286905 36.772845 0 0",
             "species": "purpleheart",
             "circumference_cm": 300,
