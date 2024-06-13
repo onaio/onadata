@@ -308,8 +308,10 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.entity_list.num_entities = 2
         self.entity_list.save()
         entity_qs = Entity.objects.all().order_by("pk")
+        pk = self.entity_list.pk
         self.expected_data = [
             {
+                "url": f"http://testserver/api/v2/entity-lists/{pk}/entities/{entity_qs[0].pk}",
                 "id": entity_qs[0].pk,
                 "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
                 "geometry": "-1.286905 36.772845 0 0",
@@ -318,6 +320,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "meta/entity/label": "300cm purpleheart",
             },
             {
+                "url": f"http://testserver/api/v2/entity-lists/{pk}/entities/{entity_qs[1].pk}",
                 "id": entity_qs[1].pk,
                 "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
                 "geometry": "-1.305796 36.791849 0 0",
@@ -390,7 +393,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
 
 
-class GetEntityTestCase(TestAbstractViewSet):
+class GetSingleEntityTestCase(TestAbstractViewSet):
     """Tests for getting a single Entity"""
 
     def setUp(self):

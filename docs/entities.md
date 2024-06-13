@@ -144,6 +144,7 @@ Body:
 ```
 [
    {
+      "url":"http://testserver/api/v2/entity-lists/1/entities/3",
       "id":3,
       "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
       "species":"purpleheart",
@@ -152,6 +153,7 @@ Body:
       "meta/entity/label":"300cm purpleheart",
    },
    {
+      "url":"http://testserver/api/v2/entity-lists/1/entities/4",
       "id":4,
       "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
       "species":"wallaba",

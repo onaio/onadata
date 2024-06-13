@@ -14,6 +14,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.entity_serializer import (
+    EntityArraySerializer,
     EntitySerializer,
     EntityListSerializer,
     EntityListDetailSerializer,
@@ -59,9 +60,21 @@ class EntityListViewSet(
             return EntityListDetailSerializer
 
         if self.action == "entities":
+            if self.kwargs.get("entity_pk") is None:
+                return EntityArraySerializer
+
             return EntitySerializer
 
         return super().get_serializer_class()
+
+    def get_serializer_context(self):
+        """Override get_serializer_context"""
+        context = super().get_serializer_context()
+
+        if self.action == "entities":
+            context.update({"entity_list": self.get_object()})
+
+        return context
 
     @action(
         methods=["GET", "PUT", "PATCH", "DELETE"],
@@ -83,14 +96,7 @@ class EntityListViewSet(
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
             if method in ["PUT", "PATCH"]:
-                serializer = self.get_serializer(
-                    entity,
-                    data=request.data,
-                    context={
-                        **self.get_serializer_context(),
-                        "entity_list": entity_list,
-                    },
-                )
+                serializer = self.get_serializer(entity, data=request.data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

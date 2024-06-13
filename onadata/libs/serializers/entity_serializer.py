@@ -1,3 +1,4 @@
+from rest_framework.reverse import reverse
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
@@ -161,11 +162,43 @@ class EntitySerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        return {"id": instance.pk, "uuid": instance.uuid, **instance.json}
+        data = super().to_representation(instance)
+        instance_json = data.pop("json")
+
+        return {**data, **instance_json}
 
     class Meta:
         model = Entity
         fields = (
+            "id",
+            "uuid",
+            "json",
+            "label",
+            "data",
+        )
+
+
+class EntityArraySerializer(EntitySerializer):
+    """Serializer for a list of Entities"""
+
+    url = serializers.SerializerMethodField()
+
+    def get_url(self, obj):
+        entity_list = self.context["entity_list"]
+        request = self.context["request"]
+        format = self.context.get("format")
+        kwargs = {"pk": entity_list.pk, "entity_pk": obj.pk}
+
+        return reverse(
+            "entity_list-entities", kwargs=kwargs, request=request, format=format
+        )
+
+    class Meta:
+        model = Entity
+        fields = (
+            "url",
+            "id",
+            "uuid",
             "json",
             "label",
             "data",
