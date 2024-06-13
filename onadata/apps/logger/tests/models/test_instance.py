@@ -456,15 +456,13 @@ class TestInstance(TestBase):
         self.assertEqual(entity.entity_list, entity_list)
 
         expected_json = {
-            "id": entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "circumference_cm": 300,
             "meta/entity/label": "300cm purpleheart",
         }
 
-        self.assertEqual(entity.json, expected_json)
+        self.assertDictEqual(entity.json, expected_json)
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
         self.assertEqual(entity.history.count(), 1)
 
@@ -474,7 +472,7 @@ class TestInstance(TestBase):
         self.assertEqual(entity_history.registration_form, registration_form)
         self.assertEqual(entity_history.instance, instance)
         self.assertEqual(entity_history.xml, instance.xml)
-        self.assertEqual(entity_history.json, expected_json)
+        self.assertDictEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
 
@@ -658,8 +656,6 @@ class TestInstance(TestBase):
 
         entity = Entity.objects.first()
         expected_json = {
-            "id": entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
@@ -667,7 +663,7 @@ class TestInstance(TestBase):
             "meta/entity/label": "300cm purpleheart",
         }
 
-        self.assertEqual(entity.json, expected_json)
+        self.assertDictEqual(entity.json, expected_json)
 
         entity_history = entity.history.first()
         registration_form = RegistrationForm.objects.get(xform=xform)
@@ -675,7 +671,7 @@ class TestInstance(TestBase):
         self.assertEqual(entity_history.registration_form, registration_form)
         self.assertEqual(entity_history.instance, instance)
         self.assertEqual(entity_history.xml, xml)
-        self.assertEqual(entity_history.json, expected_json)
+        self.assertDictEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
         # New property is part of EntityList properties
@@ -730,8 +726,6 @@ class TestInstance(TestBase):
         self.assertEqual(
             self.entity.json,
             {
-                "id": self.entity.pk,
-                "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "latest_visit": "2024-05-28",
@@ -827,8 +821,6 @@ class TestInstance(TestBase):
         )
         Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
         expected_json = {
-            "id": self.entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
@@ -837,7 +829,7 @@ class TestInstance(TestBase):
         }
         self.entity.refresh_from_db()
 
-        self.assertEqual(self.entity.json, expected_json)
+        self.assertDictEqual(self.entity.json, expected_json)
 
     def test_entity_create_update_true(self):
         """Both create_if and update_if evaluate to true"""
@@ -888,13 +880,11 @@ class TestInstance(TestBase):
 
         entity = Entity.objects.first()
         expected_json = {
-            "id": entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
             "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
         }
-        self.assertEqual(entity.json, expected_json)
+        self.assertDictEqual(entity.json, expected_json)
 
         # If Entity exists, we update
         Instance.objects.all().delete()
@@ -903,8 +893,6 @@ class TestInstance(TestBase):
         self._simulate_existing_entity()
         Instance.objects.create(xml=xml, user=self.user, xform=xform)
         expected_json = {
-            "id": self.entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
@@ -914,4 +902,4 @@ class TestInstance(TestBase):
         self.entity.refresh_from_db()
         # No new Entity should be created
         self.assertEqual(Entity.objects.count(), 1)
-        self.assertEqual(self.entity.json, expected_json)
+        self.assertDictEqual(self.entity.json, expected_json)

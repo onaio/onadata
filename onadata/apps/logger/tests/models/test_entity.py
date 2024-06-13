@@ -42,7 +42,7 @@ class EntityTestCase(TestBase):
             uuid=uuid,
         )
         self.assertEqual(entity.entity_list, self.entity_list)
-        self.assertEqual(entity.json, {"id": entity.pk, "uuid": uuid, **entity_json})
+        self.assertEqual(entity.json, entity_json)
         self.assertEqual(entity.uuid, uuid)
         self.assertEqual(f"{entity}", f"{entity.pk}|{self.entity_list}")
         self.assertEqual(entity.date_created, self.mocked_now)
@@ -52,7 +52,7 @@ class EntityTestCase(TestBase):
         entity = Entity.objects.create(entity_list=self.entity_list)
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
-        self.assertEqual(entity.json, {"id": entity.pk, "uuid": ""})
+        self.assertEqual(entity.json, {})
         self.assertEqual(entity.uuid, "")
 
     @patch("django.utils.timezone.now")

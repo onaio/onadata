@@ -42,21 +42,6 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
                 create_entity_from_instance(instance, registration_form)
 
 
-@receiver(post_save, sender=Entity, dispatch_uid="add_entity_json_id")
-def add_entity_json_id(sender, instance, created=False, **kwargs):
-    """Add id to Entity json after Entity created"""
-    if not instance:
-        return
-
-    if created:
-        json = instance.json
-        json["id"] = instance.pk
-        json["uuid"] = instance.uuid
-        # Queryset.update ensures the model's save is not called and
-        # the pre_save and post_save signals aren't sent
-        Entity.objects.filter(pk=instance.pk).update(json=json)
-
-
 @receiver(post_save, sender=Entity, dispatch_uid="update_entity_dataset")
 def update_entity_dataset(sender, instance, created=False, **kwargs):
     """Update EntityList when Entity is created or updated"""

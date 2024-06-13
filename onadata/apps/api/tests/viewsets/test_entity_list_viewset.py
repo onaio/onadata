@@ -477,16 +477,23 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.put("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 200)
-        expected_data = {
-            "id": self.entity.pk,
-            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
+        expected_json = {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
             "circumference_cm": 30,
             "meta/entity/label": "30cm mora",
         }
-        self.assertDictEqual(response.data, expected_data)
+        self.assertDictEqual(
+            response.data,
+            {
+                "id": self.entity.pk,
+                "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                **expected_json,
+            },
+        )
         self.entity_list.refresh_from_db()
+        self.entity.refresh_from_db()
+        self.assertDictEqual(self.entity.json, expected_json)
         self.assertEqual(self.entity_list.last_entity_update_time, mock_date)
         self.assertEqual(EntityHistory.objects.count(), 1)
         history = EntityHistory.objects.first()
@@ -495,7 +502,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertIsNone(history.instance)
         self.assertIsNone(history.xml)
         self.assertIsNone(history.form_version)
-        self.assertDictEqual(history.json, expected_data)
+        self.assertDictEqual(history.json, expected_json)
         self.assertEqual(history.created_by, self.user)
 
     def test_invalid_entity(self):
@@ -512,6 +519,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
+            "uuid": self.entity.uuid,
             **self.entity.json,
             "meta/entity/label": "Patched label",
         }
@@ -525,6 +533,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
+            "uuid": self.entity.uuid,
             **self.entity.json,
             "species": "mora",
         }

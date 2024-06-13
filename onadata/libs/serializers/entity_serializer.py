@@ -161,7 +161,7 @@ class EntitySerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        return instance.json
+        return {"id": instance.pk, "uuid": instance.uuid, **instance.json}
 
     class Meta:
         model = Entity
