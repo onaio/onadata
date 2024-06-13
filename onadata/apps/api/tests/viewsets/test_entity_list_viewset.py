@@ -645,6 +645,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(self.entity.deleted_by, self.user)
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(self.entity_list.last_entity_update_time, date)
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""
