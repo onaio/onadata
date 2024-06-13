@@ -3,7 +3,7 @@ Entity model
 """
 
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from onadata.apps.logger.models.entity_list import EntityList
@@ -30,6 +30,7 @@ class Entity(BaseModel):
     def __str__(self) -> str:
         return f"{self.pk}|{self.entity_list}"
 
+    @transaction.atomic()
     def soft_delete(self, deleted_by=None):
         """Soft delete Entity"""
         if self.deleted_at is None:

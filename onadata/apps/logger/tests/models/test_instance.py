@@ -457,6 +457,7 @@ class TestInstance(TestBase):
 
         expected_json = {
             "id": entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "circumference_cm": 300,
@@ -658,6 +659,7 @@ class TestInstance(TestBase):
         entity = Entity.objects.first()
         expected_json = {
             "id": entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
@@ -729,6 +731,7 @@ class TestInstance(TestBase):
             self.entity.json,
             {
                 "id": self.entity.pk,
+                "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "latest_visit": "2024-05-28",
@@ -825,6 +828,7 @@ class TestInstance(TestBase):
         Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
         expected_json = {
             "id": self.entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
@@ -885,6 +889,7 @@ class TestInstance(TestBase):
         entity = Entity.objects.first()
         expected_json = {
             "id": entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
             "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
@@ -899,6 +904,7 @@ class TestInstance(TestBase):
         Instance.objects.create(xml=xml, user=self.user, xform=xform)
         expected_json = {
             "id": self.entity.pk,
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
