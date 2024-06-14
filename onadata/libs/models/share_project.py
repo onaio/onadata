@@ -96,6 +96,10 @@ class ShareProject:
                     if dataview.matches_parent:
                         role.add(self.user, dataview.xform)
 
+                # apply same role to EntityLists under project
+                for entity_list in self.project.entity_lists.all():
+                    role.add(self.user, entity_list)
+
         # clear cache
         safe_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
         safe_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")

@@ -9,7 +9,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from onadata.apps.api.permissions import EntityListPermission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
-from onadata.libs.filters import EntityListProjectFilter
+from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
@@ -36,13 +36,10 @@ class EntityListViewSet(
     serializer_class = EntityListSerializer
     permission_classes = (EntityListPermission,)
     pagination_class = StandardPageNumberPagination
-    filter_backends = (EntityListProjectFilter,)
+    filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
-        if self.request and self.request.user.is_anonymous:
-            queryset = queryset.filter(project__shared=True)
 
         if self.action == "retrieve":
             # Prefetch related objects to be rendered for performance
@@ -82,7 +79,7 @@ class EntityListViewSet(
         url_path="entities(?:/(?P<entity_pk>[^/.]+))?",
     )
     def entities(self, request, *args, **kwargs):
-        """Provides `list`, `update` and `destroy` actions for Entities"""
+        """Provides `list`, `retrieve` `update` and `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
 
@@ -106,7 +103,7 @@ class EntityListViewSet(
 
             return Response(serializer.data)
 
-        entities_qs = (
+        entity_qs = (
             Entity.objects.filter(
                 entity_list=entity_list,
                 deleted_at__isnull=True,
@@ -115,13 +112,12 @@ class EntityListViewSet(
             # we are interested in using .only
             .only("json").order_by("pk")
         )
-        queryset = self.filter_queryset(entities_qs)
-        page = self.paginate_queryset(queryset)
+        page = self.paginate_queryset(entity_qs)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(entity_qs, many=True)
 
         return Response(serializer.data)

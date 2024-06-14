@@ -13,28 +13,36 @@ from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ROLES, OwnerRole
 
 
-class GetEntityListsTestCase(TestAbstractViewSet):
+class GetEntityListArrayTestCase(TestAbstractViewSet):
     """Tests for GET all EntityLists"""
 
     def setUp(self):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"get": "list"})
+        self._publish_registration_form(self.user)
+        self._publish_follow_up_form(self.user)
+        self.trees_entity_list = EntityList.objects.get(name="trees")
+        OwnerRole.add(self.user, self.trees_entity_list)
+        # Create more EntityLists explicitly
+        self._create_entity_list("immunization")
+        self._create_entity_list("savings")
+
+    def _create_entity_list(self, name, project=None):
+        if project is None:
+            project = self.project
+
+        entity_list = EntityList.objects.create(name=name, project=project)
+        OwnerRole.add(self.user, entity_list)
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_all(self):
-        """GET all EntityLists works"""
-        # Publish registration form and create "trees" EntityList dataset
-        self._publish_registration_form(self.user)
-        # Publish follow up form for "trees" dataset
-        self._publish_follow_up_form(self.user)
-        # Create Entity for trees EntityList
-        trees_entity_list = EntityList.objects.get(name="trees")
+        """Getting all EntityLists works"""
         Entity.objects.create(
-            entity_list=trees_entity_list,
+            entity_list=self.trees_entity_list,
             json={
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
@@ -43,20 +51,10 @@ class GetEntityListsTestCase(TestAbstractViewSet):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        trees_entity_list.num_entities = 1
-        trees_entity_list.save()
-        # Create more EntityLists explicitly
-        EntityList.objects.create(name="immunization", project=self.project)
-        EntityList.objects.create(name="savings", project=self.project)
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
         second = qs[1]
         third = qs[2]
-        # Make request
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.get("Cache-Control"))
         expected_data = [
             {
                 "url": f"http://testserver/api/v2/entity-lists/{first.pk}",
@@ -97,67 +95,77 @@ class GetEntityListsTestCase(TestAbstractViewSet):
                 "num_entities": 0,
             },
         ]
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.get("Cache-Control"))
         self.assertEqual(response.data, expected_data)
 
     def test_anonymous_user(self):
         """Anonymous user can only view EntityLists under public projects"""
-        # Create public project
         public_project = Project.objects.create(
             name="public",
             shared=True,
             created_by=self.user,
             organization=self.user,
         )
-        # Create private project
-        private_project = Project.objects.create(
-            name="private",
-            shared=False,
-            created_by=self.user,
-            organization=self.user,
+        entity_list = EntityList.objects.create(
+            name="public_entity_list", project=public_project
         )
-        # Create EntityList explicitly
-        EntityList.objects.create(name="immunization", project=public_project)
-        EntityList.objects.create(name="savings", project=private_project)
-        # Make request as anonymous user
         request = self.factory.get("/")
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.get("Cache-Control"))
         self.assertEqual(len(response.data), 1)
-        first = EntityList.objects.all()[0]
-        self.assertEqual(response.data[0]["id"], first.pk)
-        # Logged in user is able to view all
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.get("Cache-Control"))
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["id"], entity_list.pk)
 
     def test_pagination(self):
         """Pagination works"""
-        self._project_create()
-        EntityList.objects.create(name="dataset_1", project=self.project)
-        EntityList.objects.create(name="dataset_2", project=self.project)
         request = self.factory.get("/", data={"page": 1, "page_size": 1}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-    def test_filtering_by_project(self):
-        """Filter by project id works"""
-        self._project_create()
+    def test_filter_by_project(self):
+        """Filtering by `project` query param works"""
         project_2 = Project.objects.create(
             name="Other project",
             created_by=self.user,
             organization=self.user,
         )
-        EntityList.objects.create(name="dataset_1", project=self.project)
-        EntityList.objects.create(name="dataset_2", project=project_2)
+        self._create_entity_list("census", project_2)
         request = self.factory.get("/", data={"project": project_2.pk}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["name"], "dataset_2")
+        self.assertEqual(response.data[0]["name"], "census")
+
+    def test_object_permissions(self):
+        """Results limited to objects user has view level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.get("/", **extra)
+            response = self.view(request)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.data), 3)
+
+            else:
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.data), 0)
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -175,6 +183,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         self.entity_list = EntityList.objects.first()
         # Create Entity for trees EntityList
         trees_entity_list = EntityList.objects.get(name="trees")
+        OwnerRole.add(self.user, trees_entity_list)
         Entity.objects.create(
             entity_list=trees_entity_list,
             json={
@@ -185,8 +194,6 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
-        trees_entity_list.num_entities = 1
-        trees_entity_list.save()
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -246,14 +253,14 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
 
-    def test_does_not_exist(self):
+    def test_invalid_entity_list(self):
         """Invalid EntityList is handled"""
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
 
-    def test_shared_project(self):
-        """A user can view a project shared with them"""
+    def test_object_permissions(self):
+        """User must have object view level permissions"""
         alice_data = {
             "username": "alice",
             "email": "aclie@example.com",
@@ -263,12 +270,18 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
             "last_name": "Hughes",
         }
         alice_profile = self._create_user_profile(alice_data)
-        # Share project with Alice
-        ShareProject(self.project, "alice", "readonly-no-download").save()
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
-        request = self.factory.get("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 200)
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.get("/", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 404)
 
 
 class GetEntitiesTestCase(TestAbstractViewSet):
@@ -284,6 +297,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self._publish_follow_up_form(self.user)
         # Create Entity for trees EntityList
         self.entity_list = EntityList.objects.get(name="trees")
+        OwnerRole.add(self.user, self.entity_list)
         Entity.objects.create(
             entity_list=self.entity_list,
             json={
@@ -305,8 +319,6 @@ class GetEntitiesTestCase(TestAbstractViewSet):
             },
             uuid="517185b4-bc06-450c-a6ce-44605dec5480",
         )
-        self.entity_list.num_entities = 2
-        self.entity_list.save()
         entity_qs = Entity.objects.all().order_by("pk")
         pk = self.entity_list.pk
         self.expected_data = [
@@ -340,12 +352,12 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertIsNotNone(response.get("Cache-Control"))
 
     def test_anonymous_user(self):
-        """Anonymous user cannot view Entities for a private project"""
-        # Anonymous user cannot view private EntityList
+        """Anonymous user cannot view Entities for a private EntityList"""
+        # Private EntityList
         request = self.factory.get("/")
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
-        # Anonymous user can view public EntityList
+        # Public EntityList
         self.project.shared = True
         self.project.save()
         request = self.factory.get("/")
@@ -353,8 +365,8 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.expected_data)
 
-    def test_shared_project(self):
-        """A user can view Entities for a project shared with them"""
+    def test_object_permissions(self):
+        """User must have EntityList view level permissions"""
         alice_data = {
             "username": "alice",
             "email": "aclie@example.com",
@@ -364,13 +376,19 @@ class GetEntitiesTestCase(TestAbstractViewSet):
             "last_name": "Hughes",
         }
         alice_profile = self._create_user_profile(alice_data)
-        # Share project with Alice
-        ShareProject(self.project, "alice", "readonly-no-download").save()
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
-        request = self.factory.get("/", **extra)
-        response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.expected_data)
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.get("/", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data, self.expected_data)
+
+            else:
+                self.assertEqual(response.status_code, 404)
 
     def test_pagination(self):
         """Pagination works"""
@@ -392,6 +410,12 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.data, [self.expected_data[-1]])
         self.assertIsNotNone(response.get("Cache-Control"))
 
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
 
 class GetSingleEntityTestCase(TestAbstractViewSet):
     """Tests for getting a single Entity"""
@@ -401,6 +425,7 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"get": "entities"})
         self._create_entity()
+        OwnerRole.add(self.user, self.entity_list)
 
     def test_get_entity(self):
         """Getting a single Entity works"""
@@ -452,6 +477,32 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 200)
 
+    def test_object_permissions(self):
+        """User must have EntityList view level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.get("/", **extra)
+            response = self.view(
+                request, pk=self.entity_list.pk, entity_pk=self.entity.pk
+            )
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 404)
+
 
 class UpdateEntityTestCase(TestAbstractViewSet):
     """Tests for updating a single Entity"""
@@ -463,6 +514,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             {"put": "entities", "patch": "entities"},
         )
         self._create_entity()
+        OwnerRole.add(self.user, self.entity_list)
 
     @patch("django.utils.timezone.now")
     def test_updating_entity(self, mock_now):
@@ -593,11 +645,8 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 401)
 
-    def test_permission_required(self):
-        """User must have the right permissions to update Entity
-
-        User must be a project owner or, project manager, or editor
-        to update Entity"""
+    def test_object_permissions(self):
+        """User must have update level permissions"""
         data = {"data": {"species": "mora"}}
         alice_data = {
             "username": "alice",
@@ -617,8 +666,8 @@ class UpdateEntityTestCase(TestAbstractViewSet):
                 request, pk=self.entity_list.pk, entity_pk=self.entity.pk
             )
 
-            if role not in ["owner", "manager", "editor"]:
-                self.assertEqual(response.status_code, 403)
+            if role not in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 404)
 
             else:
                 self.assertEqual(response.status_code, 200)

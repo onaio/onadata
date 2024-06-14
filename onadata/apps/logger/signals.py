@@ -2,16 +2,18 @@
 """
 logger signals module
 """
+from django.db import transaction
 from django.db.models import F
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from onadata.apps.logger.models import Entity, Instance, RegistrationForm
+from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.libs.utils.logger_tools import (
     create_entity_from_instance,
     update_entity_from_instance,
 )
+from onadata.libs.utils.project_utils import set_project_perms_to_entity_list
 
 
 # pylint: disable=unused-argument
@@ -55,3 +57,12 @@ def update_entity_dataset(sender, instance, created=False, **kwargs):
 
     entity_list.last_entity_update_time = instance.date_modified
     entity_list.save()
+
+
+@receiver(post_save, sender=EntityList, dispatch_uid="set_entity_list_perms")
+def set_entity_list_perms(sender, instance, created=False, **kwargs):
+    """Set project permissions to EntityList"""
+    if created:
+        transaction.on_commit(
+            lambda: set_project_perms_to_entity_list(instance, instance.project)
+        )

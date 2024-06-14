@@ -76,10 +76,17 @@ CAN_ADD_DATADICTIONARY = "add_datadictionary"
 CAN_CHANGE_DATADICTIONARY = "change_datadictionary"
 CAN_DELETE_DATADICTIONARY = "delete_datadictionary"
 
+# Entity permissions
+CAN_ADD_ENTITYLIST = "add_entitylist"
+CAN_VIEW_ENTITYLIST = "view_entitylist"
+CAN_CHANGE_ENTITYLIST = "change_entitylist"
+CAN_DELETE_ENTITYLIST = "delete_entitylist"
+
 DataDictionary = apps.get_model("viewer", "DataDictionary")
 MergedXForm = apps.get_model("logger", "MergedXForm")
 OrganizationProfile = apps.get_model("api", "OrganizationProfile")
 UserProfile = apps.get_model("main", "UserProfile")
+EntityList = apps.get_model("logger", "EntityList")
 
 
 class Role:
@@ -340,6 +347,12 @@ class ManagerRole(Role):
             CAN_VIEW_XFORM_ALL,
             CAN_VIEW_XFORM_DATA,
         ],
+        EntityList: [
+            CAN_ADD_ENTITYLIST,
+            CAN_VIEW_ENTITYLIST,
+            CAN_CHANGE_ENTITYLIST,
+            CAN_DELETE_ENTITYLIST,
+        ],
     }
 
 
@@ -407,6 +420,12 @@ class OwnerRole(Role):
             CAN_VIEW_XFORM_DATA,
             CAN_MOVE_TO_FOLDER,
             CAN_TRANSFER_OWNERSHIP,
+        ],
+        EntityList: [
+            CAN_ADD_ENTITYLIST,
+            CAN_VIEW_ENTITYLIST,
+            CAN_CHANGE_ENTITYLIST,
+            CAN_DELETE_ENTITYLIST,
         ],
     }
 

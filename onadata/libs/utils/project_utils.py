@@ -327,3 +327,26 @@ def propagate_project_permissions(
                     new_users,
                     session,
                 )
+
+
+def set_project_perms_to_entity_list(entity_list, project):
+    """
+    Apply project permissions to a EntityList
+
+    Usually happens during creation
+    """
+    owners = project.organization.team_set.filter(
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
+
+    if owners:
+        OwnerRole.add(owners[0], entity_list)
+
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
+        role = ROLES.get(role_name)
+
+        if role:
+            role.add(user, entity_list)
