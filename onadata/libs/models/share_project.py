@@ -42,6 +42,13 @@ def remove_dataview_permissions(project, user, role):
         role._remove_obj_permissions(user, dataview.xform)
 
 
+def remove_entity_list_permissions(project, user, role):
+    """Remove user permissions for all entitylists for the given project"""
+    for entity_list in project.entity_lists.all():
+        # pylint: disable=protected-access
+        role._remove_obj_permissions(user, entity_list)
+
+
 class ShareProject:
     """Share project with a user."""
 
@@ -96,7 +103,7 @@ class ShareProject:
                     if dataview.matches_parent:
                         role.add(self.user, dataview.xform)
 
-                # apply same role to EntityLists under project
+                # Apply same role to EntityLists under project
                 for entity_list in self.project.entity_lists.all():
                     role.add(self.user, entity_list)
 
@@ -113,5 +120,6 @@ class ShareProject:
         if role and self.user and self.project:
             remove_xform_permissions(self.project, self.user, role)
             remove_dataview_permissions(self.project, self.user, role)
+            remove_entity_list_permissions(self.project, self.user, role)
             # pylint: disable=protected-access
             role._remove_obj_permissions(self.user, self.project)
