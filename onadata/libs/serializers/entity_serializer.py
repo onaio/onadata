@@ -186,11 +186,14 @@ class EntityArraySerializer(EntitySerializer):
     def get_url(self, obj):
         entity_list = self.context["entity_list"]
         request = self.context["request"]
-        format = self.context.get("format")
+        response_format = self.context.get("format")
         kwargs = {"pk": entity_list.pk, "entity_pk": obj.pk}
 
         return reverse(
-            "entity_list-entities", kwargs=kwargs, request=request, format=format
+            "entity_list-entities",
+            kwargs=kwargs,
+            request=request,
+            format=response_format,
         )
 
     class Meta:
