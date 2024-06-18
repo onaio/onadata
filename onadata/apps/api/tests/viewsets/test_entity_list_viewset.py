@@ -695,6 +695,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"delete": "entities"})
         self._create_entity()
+        OwnerRole.add(self.user, self.entity_list)
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
@@ -745,11 +746,8 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 401)
 
-    def test_permission_required(self):
-        """User must have the right permissions to delete Entity
-
-        User must be a project owner or, project manager, or editor
-        to delete Entity"""
+    def test_object_permissions(self):
+        """User must have delete level permissions"""
         alice_data = {
             "username": "alice",
             "email": "aclie@example.com",
@@ -774,8 +772,8 @@ class DeleteEntityTestCase(TestAbstractViewSet):
                 request, pk=self.entity_list.pk, entity_pk=self.entity.pk
             )
 
-            if role not in ["owner", "manager", "editor"]:
-                self.assertEqual(response.status_code, 403)
+            if role not in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 404)
 
             else:
                 self.assertEqual(response.status_code, 204)
