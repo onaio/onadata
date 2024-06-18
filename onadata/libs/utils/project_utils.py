@@ -4,7 +4,7 @@ project_utils module - apply project permissions to a form.
 """
 import re
 import sys
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -20,7 +20,6 @@ from requests.sessions import HTTPAdapter
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models import EntityList
 from onadata.celeryapp import app
 from onadata.libs.permissions import (
     ROLES,
@@ -330,20 +329,20 @@ def propagate_project_permissions(
                 )
 
 
-def set_project_perms_to_entity_list(entity_list: EntityList) -> None:
-    """Apply project permissions to a EntityList
+def set_project_perms_to_object(obj: Any, project: Project) -> None:
+    """Apply project permissions to an object
 
     Args:
-        entity_list (EntityList): EntityList to set permissions for
+        obj: Object to set permissions for
+        project: Project under which the object belongs to
     """
-    project = entity_list.project
     owners = project.organization.team_set.filter(
         name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
         organization=project.organization,
     )
 
     if owners:
-        OwnerRole.add(owners[0], entity_list)
+        OwnerRole.add(owners[0], obj)
 
     for perm in get_object_users_with_permissions(project, with_group_users=True):
         user = perm["user"]
@@ -351,4 +350,4 @@ def set_project_perms_to_entity_list(entity_list: EntityList) -> None:
         role = ROLES.get(role_name)
 
         if role:
-            role.add(user, entity_list)
+            role.add(user, obj)

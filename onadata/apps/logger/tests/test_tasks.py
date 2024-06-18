@@ -14,7 +14,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-@patch("onadata.apps.logger.tasks.set_project_perms_to_entity_list")
+@patch("onadata.apps.logger.tasks.set_project_perms_to_object")
 class SetEntityListPermsAsyncTestCase(TestBase):
     """Tests for set_entity_list_perms_async"""
 
@@ -27,7 +27,7 @@ class SetEntityListPermsAsyncTestCase(TestBase):
     def test_set_perms(self, mock_set_perms):
         """Permissions are applied"""
         set_entity_list_perms_async.delay(self.entity_list.pk)
-        mock_set_perms.assert_called_once_with(self.entity_list)
+        mock_set_perms.assert_called_once_with(self.entity_list, self.project)
 
     @patch("onadata.apps.logger.tasks.set_entity_list_perms_async.retry")
     def test_retry_connection_error(self, mock_retry, mock_set_perms):

@@ -4,7 +4,7 @@ from django.db import DatabaseError
 
 from onadata.apps.logger.models import EntityList
 from onadata.celeryapp import app
-from onadata.libs.utils.project_utils import set_project_perms_to_entity_list
+from onadata.libs.utils.project_utils import set_project_perms_to_object
 
 
 logger = logging.getLogger(__name__)
@@ -24,4 +24,4 @@ def set_entity_list_perms_async(pk):
         logger.exception(err)
         return
 
-    set_project_perms_to_entity_list(entity_list)
+    set_project_perms_to_object(entity_list, entity_list.project)
