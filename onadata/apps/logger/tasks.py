@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def set_entity_list_perms_async(pk):
+def set_entity_list_perms_async(entity_list_id):
     """Set permissions for EntityList asynchronously
 
     Args:
         pk (int): Primary key for EntityList
     """
     try:
-        entity_list = EntityList.objects.get(pk=pk)
+        entity_list = EntityList.objects.get(pk=entity_list_id)
 
     except EntityList.DoesNotExist as err:
         logger.exception(err)
