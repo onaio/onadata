@@ -1,7 +1,7 @@
-from rest_framework.reverse import reverse
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import (
     Entity,
