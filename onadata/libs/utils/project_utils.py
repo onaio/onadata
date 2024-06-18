@@ -20,6 +20,7 @@ from requests.sessions import HTTPAdapter
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models import EntityList
 from onadata.celeryapp import app
 from onadata.libs.permissions import (
     ROLES,
@@ -329,12 +330,13 @@ def propagate_project_permissions(
                 )
 
 
-def set_project_perms_to_entity_list(entity_list, project):
-    """
-    Apply project permissions to a EntityList
+def set_project_perms_to_entity_list(entity_list: EntityList) -> None:
+    """Apply project permissions to a EntityList
 
-    Usually happens during creation
+    Args:
+        entity_list (EntityList): EntityList to set permissions for
     """
+    project = entity_list.project
     owners = project.organization.team_set.filter(
         name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
         organization=project.organization,
