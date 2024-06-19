@@ -64,7 +64,7 @@ class EntityHistory(BaseModel):
         null=True,
         blank=True,
     )
-    instance = models.OneToOneField(
+    instance = models.ForeignKey(
         Instance,
         on_delete=models.SET_NULL,
         related_name="entity_history",

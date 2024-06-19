@@ -1086,8 +1086,8 @@ def update_entity_from_instance(
         logger.exception(err)
         return None
 
-    entity_json = get_entity_json_from_instance(instance, registration_form)
-    entity.json = {**entity.json, **entity_json}
+    patch_data = get_entity_json_from_instance(instance, registration_form)
+    entity.json = {**entity.json, **patch_data}
     entity.save()
     entity.history.create(
         registration_form=registration_form,

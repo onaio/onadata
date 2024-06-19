@@ -20,7 +20,7 @@ from onadata.libs.utils.logger_tools import (
 @receiver(post_save, sender=Instance, dispatch_uid="create_or_update_entity")
 def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Create or update an Entity after Instance saved"""
-    if created and instance:
+    if instance:
         if RegistrationForm.objects.filter(
             xform=instance.xform, is_active=True
         ).exists():
@@ -30,16 +30,19 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
             ).first()
             mutation_success_checks = ["1", "true"]
             entity_uuid = entity_node.getAttribute("id")
+            exists = False
 
-            if (
-                entity_node.getAttribute("update") in mutation_success_checks
-                and entity_uuid is not None
-                and Entity.objects.filter(uuid=entity_uuid).exists()
-            ):
+            if entity_uuid is not None:
+                exists = Entity.objects.filter(uuid=entity_uuid).exists()
+
+            if exists and entity_node.getAttribute("update") in mutation_success_checks:
                 # Update Entity
                 update_entity_from_instance(entity_uuid, instance, registration_form)
 
-            elif entity_node.getAttribute("create") in mutation_success_checks:
+            elif (
+                not exists
+                and entity_node.getAttribute("create") in mutation_success_checks
+            ):
                 # Create Entity
                 create_entity_from_instance(instance, registration_form)
 
