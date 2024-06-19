@@ -47,7 +47,10 @@ class Entity(BaseModel):
 
 
 class EntityHistory(BaseModel):
-    """Maintains a history of Entity updates"""
+    """Maintains a history of Entity updates
+
+    An Entity can be created/updated from a form or via API
+    """
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
