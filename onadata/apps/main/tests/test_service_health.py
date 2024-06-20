@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
 import json
+
 from django.http import HttpRequest
 from django.test import override_settings
 
+import onadata
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import service_health
-import onadata
 
 
 class TestServiceHealthView(TestBase):
@@ -12,8 +14,9 @@ class TestServiceHealthView(TestBase):
         """
         Test that the `service_health` view function
         works as expected:
-            1. Returns a 200 when secondary services are healthy
-            2. Returns a 500 when a secondary service is not available
+
+        1. Returns a 200 when secondary services are healthy
+        2. Returns a 500 when a secondary service is not available
         """
         req = HttpRequest()
         resp = service_health(req)

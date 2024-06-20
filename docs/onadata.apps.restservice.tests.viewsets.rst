@@ -4,19 +4,18 @@ onadata.apps.restservice.tests.viewsets package
 Submodules
 ----------
 
-onadata.apps.restservice.tests.viewsets.test_restservicesviewset module
------------------------------------------------------------------------
+onadata.apps.restservice.tests.viewsets.test\_restservicesviewset module
+------------------------------------------------------------------------
 
 .. automodule:: onadata.apps.restservice.tests.viewsets.test_restservicesviewset
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: onadata.apps.restservice.tests.viewsets
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

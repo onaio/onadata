@@ -5,13 +5,14 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-    onadata.apps.logger.management.commands
+   onadata.apps.logger.management.commands
 
 Module contents
 ---------------
 
 .. automodule:: onadata.apps.logger.management
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
