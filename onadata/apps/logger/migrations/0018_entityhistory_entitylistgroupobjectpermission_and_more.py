@@ -7,8 +7,9 @@ import django.db.models.deletion
 
 def rename_entity_label_key(apps, schema_editor):
     Entity = apps.get_model("logger", "Entity")
+    entity_qs = Entity.objects.all().iterator(chunk_size=100)
 
-    for entity in Entity.objects.all():
+    for entity in entity_qs:
         old_key = "meta/entity/label"
 
         if entity.json.get(old_key):
