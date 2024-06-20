@@ -142,7 +142,7 @@ class EntitySerializer(serializers.ModelSerializer):
         label = validated_data.pop("label", None)
 
         if label:
-            instance.json["meta/entity/label"] = label
+            instance.json["label"] = label
 
         if data:
             updated_data = {**instance.json, **data}

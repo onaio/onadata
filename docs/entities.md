@@ -152,7 +152,7 @@ Body:
          "species":"purpleheart",
          "geometry":"-1.286905 36.772845 0 0",
          "circumference_cm":300,
-         "meta/entity/label":"300cm purpleheart",
+         "label":"300cm purpleheart",
       }
    },
    {
@@ -165,7 +165,7 @@ Body:
          "geometry":"-1.305796 36.791849 0 0",
          "intake_notes":"Looks malnourished",
          "circumference_cm":100,
-         "meta/entity/label":"100cm wallaba",
+         "label":"100cm wallaba",
       }
    }
 ]
@@ -197,7 +197,7 @@ Body:
       "species":"purpleheart",
       "geometry":"-1.286905 36.772845 0 0",
       "circumference_cm":300,
-      "meta/entity/label":"300cm purpleheart",
+      "label":"300cm purpleheart",
    }
 }
 ```
@@ -246,7 +246,7 @@ Body:
       "geometry": "-1.286805 36.772845 0 0",
       "species": "mora",
       "circumference_cm": 30,
-      "meta/entity/label": "30cm mora",
+      "label": "30cm mora",
    }
 }
 ```

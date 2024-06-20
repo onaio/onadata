@@ -5,6 +5,20 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def rename_entity_label_key(apps, schema_editor):
+    Entity = apps.get_model("logger", "Entity")
+
+    for entity in Entity.objects.all():
+        old_key = "meta/entity/label"
+
+        if entity.json.get(old_key):
+            updated_json = {**entity.json}
+            updated_json["label"] = entity.json[old_key]
+            del updated_json[old_key]
+            entity.json = updated_json
+            entity.save(update_fields=["json"])
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -196,5 +210,8 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="entitylistgroupobjectpermission",
             unique_together={("group", "permission", "content_object")},
+        ),
+        migrations.RunPython(
+            rename_entity_label_key, reverse_code=migrations.RunPython.noop
         ),
     ]

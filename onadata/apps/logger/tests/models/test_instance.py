@@ -459,7 +459,7 @@ class TestInstance(TestBase):
             "species": "purpleheart",
             "geometry": "-1.286905 36.772845 0 0",
             "circumference_cm": 300,
-            "meta/entity/label": "300cm purpleheart",
+            "label": "300cm purpleheart",
         }
 
         self.assertDictEqual(entity.json, expected_json)
@@ -622,7 +622,7 @@ class TestInstance(TestBase):
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
@@ -658,7 +658,7 @@ class TestInstance(TestBase):
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
-            "meta/entity/label": "300cm purpleheart",
+            "label": "300cm purpleheart",
         }
 
         self.assertDictEqual(entity.json, expected_json)
@@ -728,7 +728,7 @@ class TestInstance(TestBase):
                 "geometry": "-1.286905 36.772845 0 0",
                 "latest_visit": "2024-05-28",
                 "circumference_cm": 30,
-                "meta/entity/label": "30cm updated",
+                "label": "30cm updated",
             },
         )
 
@@ -823,7 +823,7 @@ class TestInstance(TestBase):
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
-            "meta/entity/label": "300cm purpleheart",
+            "label": "300cm purpleheart",
         }
         self.entity.refresh_from_db()
 
@@ -880,7 +880,7 @@ class TestInstance(TestBase):
         expected_json = {
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
-            "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+            "label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
         }
         self.assertDictEqual(entity.json, expected_json)
 
@@ -895,7 +895,7 @@ class TestInstance(TestBase):
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
-            "meta/entity/label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+            "label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
         }
         self.entity.refresh_from_db()
         # No new Entity should be created
@@ -929,7 +929,7 @@ class TestInstance(TestBase):
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-05-28",
             "circumference_cm": 30,
-            "meta/entity/label": "300cm purpleheart",
+            "label": "300cm purpleheart",
         }
 
         self.assertDictEqual(entity.json, expected_json)
@@ -964,7 +964,7 @@ class TestInstance(TestBase):
             "geometry": "-1.286905 36.772845 0 0",
             "latest_visit": "2024-06-19",
             "circumference_cm": 32,
-            "meta/entity/label": "32cm purpleheart",
+            "label": "32cm purpleheart",
         }
         self.assertDictEqual(entity.json, expected_json)
 
@@ -1002,6 +1002,6 @@ class TestInstance(TestBase):
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
         )

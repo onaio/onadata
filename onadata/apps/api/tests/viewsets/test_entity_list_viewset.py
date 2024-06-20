@@ -47,7 +47,7 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
@@ -190,7 +190,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
@@ -305,7 +305,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "geometry": "-1.286905 36.772845 0 0",
                 "species": "purpleheart",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         ),
@@ -316,7 +316,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "species": "wallaba",
                 "circumference_cm": 100,
                 "intake_notes": "Looks malnourished",
-                "meta/entity/label": "100cm wallaba",
+                "label": "100cm wallaba",
             },
             uuid="517185b4-bc06-450c-a6ce-44605dec5480",
         )
@@ -334,7 +334,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                     "geometry": "-1.286905 36.772845 0 0",
                     "species": "purpleheart",
                     "circumference_cm": 300,
-                    "meta/entity/label": "300cm purpleheart",
+                    "label": "300cm purpleheart",
                 },
             },
             {
@@ -349,7 +349,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                     "species": "wallaba",
                     "circumference_cm": 100,
                     "intake_notes": "Looks malnourished",
-                    "meta/entity/label": "100cm wallaba",
+                    "label": "100cm wallaba",
                 },
             },
         ]
@@ -461,7 +461,7 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
                     "geometry": "-1.286905 36.772845 0 0",
                     "species": "purpleheart",
                     "circumference_cm": 300,
-                    "meta/entity/label": "300cm purpleheart",
+                    "label": "300cm purpleheart",
                 },
             },
         )
@@ -561,7 +561,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
             "circumference_cm": 30,
-            "meta/entity/label": "30cm mora",
+            "label": "30cm mora",
         }
 
         self.assertDictEqual(
@@ -612,7 +612,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             ),
             "data": {
                 **self.entity.json,
-                "meta/entity/label": "Patched label",
+                "label": "Patched label",
             },
         }
         self.assertDictEqual(response.data, expected_data)
@@ -668,7 +668,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             "data": {
                 "geometry": "-1.286905 36.772845 0 0",
                 "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "label": "300cm purpleheart",
             },
         }
         self.assertDictEqual(response.data, expected_data)

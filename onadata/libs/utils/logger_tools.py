@@ -992,7 +992,6 @@ def get_entity_json_from_instance(
     mapped_properties = registration_form.get_save_to(instance.version)
     # Field names with an alias defined
     property_fields = list(mapped_properties.values())
-    extra_fields = ["meta/entity/label"]
 
     def convert_to_alias(field_name: str) -> str:
         """Convert field name to it's alias"""
@@ -1027,7 +1026,12 @@ def get_entity_json_from_instance(
                     if alias_field_name != field_name:
                         data[alias_field_name] = data[field_name]
                         del data[field_name]
-                elif field_name not in extra_fields:
+
+                elif field_name == "meta/entity/label":
+                    data["label"] = data["meta/entity/label"]
+                    del data["meta/entity/label"]
+
+                else:
                     del data[field_name]
 
     parse_instance_json(instance_json)

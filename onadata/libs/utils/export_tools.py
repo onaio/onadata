@@ -140,7 +140,7 @@ def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
     for entity in queryset_iterator(entities):
         data = {
             "name": entity.uuid,
-            "label": entity.json.get("meta/entity/label", ""),
+            "label": entity.json.get("label", ""),
         }
         for prop in dataset_properties:
             data[prop] = entity.json.get(prop, "")
