@@ -1,5 +1,5 @@
-onadata
-=======
+onadata-api
+===========
 
 .. toctree::
    :maxdepth: 4

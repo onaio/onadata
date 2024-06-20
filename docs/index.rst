@@ -77,26 +77,26 @@ Flow Results Packages
 ---------------------
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-  flow-results
+   flow-results
 
 Onadata-Tableau Intergration
 ------------------------------
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-  onadata-tableau
+   onadata-tableau
 
 Event tracking and messaging (Beta)
 -----------------------------------
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-  messaging
-  messaging_stats
+   messaging
+   messaging_stats
 
 Ona Tagging API
 ~~~~~~~~~~~~~~~
