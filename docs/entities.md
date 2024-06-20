@@ -147,20 +147,26 @@ Body:
       "url":"http://testserver/api/v2/entity-lists/1/entities/3",
       "id":3,
       "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-      "species":"purpleheart",
-      "geometry":"-1.286905 36.772845 0 0",
-      "circumference_cm":300,
-      "meta/entity/label":"300cm purpleheart",
+      "date_created": "2024-06-20T07:37:20.416054Z",
+      "data": {
+         "species":"purpleheart",
+         "geometry":"-1.286905 36.772845 0 0",
+         "circumference_cm":300,
+         "meta/entity/label":"300cm purpleheart",
+      }
    },
    {
       "url":"http://testserver/api/v2/entity-lists/1/entities/4",
       "id":4,
       "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
-      "species":"wallaba",
-      "geometry":"-1.305796 36.791849 0 0",
-      "intake_notes":"Looks malnourished",
-      "circumference_cm":100,
-      "meta/entity/label":"100cm wallaba",
+      "date_created": "2024-06-20T07:38:20.416054Z",
+      "data": {
+         "species":"wallaba",
+         "geometry":"-1.305796 36.791849 0 0",
+         "intake_notes":"Looks malnourished",
+         "circumference_cm":100,
+         "meta/entity/label":"100cm wallaba",
+      }
    }
 ]
 ```
@@ -185,10 +191,14 @@ Body:
 {
    "id":3,
    "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-   "species":"purpleheart",
-   "geometry":"-1.286905 36.772845 0 0",
-   "circumference_cm":300,
-   "meta/entity/label":"300cm purpleheart",
+   "date_created": "2024-06-20T07:37:20.416054Z",
+   "date_modified: "2024-06-20T07:37:20.416054Z",
+   "data": {
+      "species":"purpleheart",
+      "geometry":"-1.286905 36.772845 0 0",
+      "circumference_cm":300,
+      "meta/entity/label":"300cm purpleheart",
+   }
 }
 ```
 
@@ -230,10 +240,14 @@ Body:
 {
    "id": 1,
    "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-   "geometry": "-1.286805 36.772845 0 0",
-   "species": "mora",
-   "circumference_cm": 30,
-   "meta/entity/label": "30cm mora",
+   "date_created": "2024-06-20T07:37:20.416054Z",
+   "date_modified: "2024-06-20T08:37:20.416054Z",
+   "data": {
+      "geometry": "-1.286805 36.772845 0 0",
+      "species": "mora",
+      "circumference_cm": 30,
+      "meta/entity/label": "30cm mora",
+   }
 }
 ```
 

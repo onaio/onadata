@@ -284,6 +284,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 404)
 
 
+@override_settings(TIME_ZONE="UTC")
 class GetEntitiesTestCase(TestAbstractViewSet):
     """Tests for GET Entities"""
 
@@ -326,20 +327,30 @@ class GetEntitiesTestCase(TestAbstractViewSet):
                 "url": f"http://testserver/api/v2/entity-lists/{pk}/entities/{entity_qs[0].pk}",
                 "id": entity_qs[0].pk,
                 "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "date_created": entity_qs[0]
+                .date_created.isoformat()
+                .replace("+00:00", "Z"),
+                "data": {
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "species": "purpleheart",
+                    "circumference_cm": 300,
+                    "meta/entity/label": "300cm purpleheart",
+                },
             },
             {
                 "url": f"http://testserver/api/v2/entity-lists/{pk}/entities/{entity_qs[1].pk}",
                 "id": entity_qs[1].pk,
                 "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
-                "geometry": "-1.305796 36.791849 0 0",
-                "species": "wallaba",
-                "circumference_cm": 100,
-                "intake_notes": "Looks malnourished",
-                "meta/entity/label": "100cm wallaba",
+                "date_created": entity_qs[1]
+                .date_created.isoformat()
+                .replace("+00:00", "Z"),
+                "data": {
+                    "geometry": "-1.305796 36.791849 0 0",
+                    "species": "wallaba",
+                    "circumference_cm": 100,
+                    "intake_notes": "Looks malnourished",
+                    "meta/entity/label": "100cm wallaba",
+                },
             },
         ]
 
@@ -396,7 +407,9 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["meta/entity/label"], "300cm purpleheart")
+        self.assertEqual(
+            response.data[0]["uuid"], "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        )
 
     def test_deleted_ignored(self):
         """Deleted Entities are ignored"""
@@ -417,6 +430,7 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
 
+@override_settings(TIME_ZONE="UTC")
 class GetSingleEntityTestCase(TestAbstractViewSet):
     """Tests for getting a single Entity"""
 
@@ -437,10 +451,18 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
             {
                 "id": self.entity.pk,
                 "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "meta/entity/label": "300cm purpleheart",
+                "date_created": self.entity.date_created.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "date_modified": self.entity.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "data": {
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "species": "purpleheart",
+                    "circumference_cm": 300,
+                    "meta/entity/label": "300cm purpleheart",
+                },
             },
         )
 
@@ -504,6 +526,7 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 404)
 
 
+@override_settings(TIME_ZONE="UTC")
 class UpdateEntityTestCase(TestAbstractViewSet):
     """Tests for updating a single Entity"""
 
@@ -531,6 +554,8 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         }
         request = self.factory.put("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
+        self.entity_list.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         expected_json = {
             "geometry": "-1.286805 36.772845 0 0",
@@ -538,16 +563,21 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             "circumference_cm": 30,
             "meta/entity/label": "30cm mora",
         }
+
         self.assertDictEqual(
             response.data,
             {
                 "id": self.entity.pk,
                 "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-                **expected_json,
+                "date_created": self.entity.date_created.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "date_modified": self.entity.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "data": expected_json,
             },
         )
-        self.entity_list.refresh_from_db()
-        self.entity.refresh_from_db()
         self.assertDictEqual(self.entity.json, expected_json)
         self.assertEqual(self.entity_list.last_entity_update_time, mock_date)
         self.assertEqual(EntityHistory.objects.count(), 1)
@@ -571,12 +601,19 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         data = {"label": "Patched label"}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
             "uuid": self.entity.uuid,
-            **self.entity.json,
-            "meta/entity/label": "Patched label",
+            "date_created": self.entity.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": self.entity.date_modified.isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "data": {
+                **self.entity.json,
+                "meta/entity/label": "Patched label",
+            },
         }
         self.assertDictEqual(response.data, expected_data)
 
@@ -585,12 +622,19 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         data = {"data": {"species": "mora"}}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
             "uuid": self.entity.uuid,
-            **self.entity.json,
-            "species": "mora",
+            "date_created": self.entity.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": self.entity.date_modified.isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "data": {
+                **self.entity.json,
+                "species": "mora",
+            },
         }
         self.assertDictEqual(response.data, expected_data)
 
@@ -612,13 +656,20 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         data = {"data": {"species": ""}}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
             "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
-            "geometry": "-1.286905 36.772845 0 0",
-            "circumference_cm": 300,
-            "meta/entity/label": "300cm purpleheart",
+            "date_created": self.entity.date_created.isoformat().replace("+00:00", "Z"),
+            "date_modified": self.entity.date_modified.isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "data": {
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "meta/entity/label": "300cm purpleheart",
+            },
         }
         self.assertDictEqual(response.data, expected_data)
 

@@ -165,13 +165,15 @@ class EntitySerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         instance_json = data.pop("json")
 
-        return {**data, **instance_json}
+        return {**data, "data": instance_json}
 
     class Meta:
         model = Entity
         fields = (
             "id",
             "uuid",
+            "date_created",
+            "date_modified",
             "json",
             "label",
             "data",
@@ -202,6 +204,7 @@ class EntityArraySerializer(EntitySerializer):
             "url",
             "id",
             "uuid",
+            "date_created",
             "json",
             "label",
             "data",
