@@ -332,5 +332,8 @@ def set_project_perms_to_object(obj: Any, project: Project) -> None:
         role_name = perm["role"]
         role = ROLES.get(role_name)
 
-        if role:
+        if isinstance(obj, XForm) and user == obj.created_by:
+            OwnerRole.add(user, obj)
+
+        elif role:
             role.add(user, obj)
