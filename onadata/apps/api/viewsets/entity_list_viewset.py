@@ -32,24 +32,18 @@ class EntityListViewSet(
     BaseViewset,
     ReadOnlyModelViewSet,
 ):
-    queryset = EntityList.objects.all().order_by("pk")
+    queryset = (
+        EntityList.objects.all()
+        .order_by("pk")
+        .prefetch_related(
+            "registration_forms",
+            "follow_up_forms",
+        )
+    )
     serializer_class = EntityListSerializer
     permission_classes = (EntityListPermission,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        if self.action == "retrieve":
-            # Prefetch related objects to be rendered for performance
-            # optimization
-            return queryset.prefetch_related(
-                "registration_forms",
-                "follow_up_forms",
-            )
-
-        return queryset
 
     def get_serializer_class(self):
         """Override get_serializer_class"""
