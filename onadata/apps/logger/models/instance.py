@@ -421,17 +421,13 @@ class InstanceBaseClass:
             numeric_fields = get_numeric_fields(self.xform)
         for key, value in json_dict.items():
             if isinstance(value, str) and key in numeric_fields:
-                converted_value = numeric_checker(value)
-                if converted_value:
-                    json_dict[key] = converted_value
+                json_dict[key] = numeric_checker(value)
             elif isinstance(value, dict):
                 json_dict[key] = self.numeric_converter(value, numeric_fields)
             elif isinstance(value, list):
                 for k, v in enumerate(value):
                     if isinstance(v, str) and key in numeric_fields:
-                        converted_value = numeric_checker(v)
-                        if converted_value:
-                            json_dict[key] = converted_value
+                        json_dict[key] = numeric_checker(v)
                     elif isinstance(v, dict):
                         value[k] = self.numeric_converter(v, numeric_fields)
         return json_dict
