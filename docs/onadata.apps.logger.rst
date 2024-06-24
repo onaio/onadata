@@ -56,6 +56,14 @@ onadata.apps.logger.signals module
    :undoc-members:
    :show-inheritance:
 
+onadata.apps.logger.tasks module
+--------------------------------
+
+.. automodule:: onadata.apps.logger.tasks
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 onadata.apps.logger.views module
 --------------------------------
 

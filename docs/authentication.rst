@@ -116,7 +116,7 @@ What happens:
    account that provides access.
 2. redirection to the client application occurs, the url is of the form:
 
-    REDIRECT\_URI/?state=abc&code=YYYYYYYYY
+    REDIRECT_URI/?state=abc&code=YYYYYYYYY
 
 example redirect uri
 
@@ -128,7 +128,7 @@ example redirect uri
 -  ``state`` - same state string used during authorization request
 
 Your client application should use the ``code`` to request for an
-access\_token.
+access_token.
 
 3. Request for access token.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

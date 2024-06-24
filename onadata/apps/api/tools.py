@@ -285,8 +285,7 @@ def create_organization_project(organization, project_name, created_by):
     """Creates a project for a given organization
     :param organization: User organization
     :param project_name
-    :param created_by: User with permissions to create projects within the
-                       organization
+    :param created_by: User with permissions to create projects within the organization
 
     :returns: a Project instance
     """

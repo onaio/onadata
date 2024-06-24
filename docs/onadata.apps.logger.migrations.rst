@@ -244,6 +244,14 @@ onadata.apps.logger.migrations.0015\_entity\_entitylist\_followupform\_registrat
    :undoc-members:
    :show-inheritance:
 
+onadata.apps.logger.migrations.0016\_add\_entity\_entity\_list module
+---------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0016_add_entity_entity_list
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 onadata.apps.logger.migrations.0016\_widget\_aggregation module
 ---------------------------------------------------------------
 
@@ -260,10 +268,26 @@ onadata.apps.logger.migrations.0017\_auto\_20160224\_0130 module
    :undoc-members:
    :show-inheritance:
 
+onadata.apps.logger.migrations.0017\_populate\_entity\_entity\_list module
+--------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0017_populate_entity_entity_list
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 onadata.apps.logger.migrations.0018\_auto\_20160301\_0330 module
 ----------------------------------------------------------------
 
 .. automodule:: onadata.apps.logger.migrations.0018_auto_20160301_0330
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+onadata.apps.logger.migrations.0018\_entityhistory\_entitylistgroupobjectpermission\_and\_more module
+-----------------------------------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0018_entityhistory_entitylistgroupobjectpermission_and_more
    :members:
    :undoc-members:
    :show-inheritance:

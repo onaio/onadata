@@ -117,6 +117,14 @@ onadata.apps.logger.tests.test\_simple\_submission module
    :undoc-members:
    :show-inheritance:
 
+onadata.apps.logger.tests.test\_tasks module
+--------------------------------------------
+
+.. automodule:: onadata.apps.logger.tests.test_tasks
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 onadata.apps.logger.tests.test\_transfer\_project\_command module
 -----------------------------------------------------------------
 

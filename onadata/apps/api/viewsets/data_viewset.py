@@ -97,8 +97,8 @@ def get_data_and_form(kwargs):
 
 def delete_instance(instance, user):
     """
-    Function that calls Instance.set_deleted and catches any exception that may
-     occur.
+    Function that calls Instance.set_deleted and catches any exception that may occur.
+
     :param instance:
     :param user:
     :return:
