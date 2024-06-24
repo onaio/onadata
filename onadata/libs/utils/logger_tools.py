@@ -4,6 +4,7 @@
 logger_tools - Logger app utility functions.
 """
 import json
+import logging
 import os
 import re
 import sys
@@ -26,7 +27,7 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q, F
+from django.db.models import Q
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -75,6 +76,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml,
     get_uuid_from_xml,
+    get_entity_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
@@ -106,6 +108,8 @@ REQUIRED_ENCRYPTED_FILE_ELEMENTS = [
 uuid_regex = re.compile(
     r"<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>", re.DOTALL
 )
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=invalid-name
@@ -972,22 +976,22 @@ class PublishXForm:
         return publish_xml_form(self.xml_file, self.user, self.project)
 
 
-def create_entity(instance: Instance, registration_form: RegistrationForm) -> Entity:
-    """Create an Entity
+def get_entity_json_from_instance(
+    instance: Instance, registration_form: RegistrationForm
+) -> dict:
+    """Parses Instance json and returns Entity json
 
     Args:
-        instance (Instance): Submission from which the Entity is created from
-        registration_form (RegistrationForm): RegistrationForm creating the
-        Entity
+        instance (Instance): Submission to create Entity
 
     Returns:
-        Entity: A newly created Entity
+        dict: Entity properties
     """
     instance_json: dict[str, Any] = instance.get_dict()
     # Getting a mapping of save_to field to the field name
     mapped_properties = registration_form.get_save_to(instance.version)
     # Field names with an alias defined
-    target_fields = list(mapped_properties.values())
+    property_fields = list(mapped_properties.values())
 
     def convert_to_alias(field_name: str) -> str:
         """Convert field name to it's alias"""
@@ -996,7 +1000,7 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
         parts = field_name.split("/")
         # Replace field parts with alias
         for part in parts:
-            if part in target_fields:
+            if part in property_fields:
                 for alias, field in mapped_properties.items():
                     if field == part:
                         alias_field_name = alias_field_name.replace(field, alias)
@@ -1016,23 +1020,86 @@ def create_entity(instance: Instance, registration_form: RegistrationForm) -> En
                     parse_instance_json(child_data)
 
             else:
-                if field_name in target_fields:
+                if field_name in property_fields:
                     alias_field_name = convert_to_alias(field_name)
 
                     if alias_field_name != field_name:
                         data[alias_field_name] = data[field_name]
                         del data[field_name]
 
+                elif field_name == "meta/entity/label":
+                    data["label"] = data["meta/entity/label"]
+                    del data["meta/entity/label"]
+
+                else:
+                    del data[field_name]
+
     parse_instance_json(instance_json)
+
+    return instance_json
+
+
+def create_entity_from_instance(
+    instance: Instance, registration_form: RegistrationForm
+) -> Entity:
+    """Create an Entity
+
+    Args:
+        instance (Instance): Submission from which the Entity is created from
+        registration_form (RegistrationForm): RegistrationForm creating the
+        Entity
+
+    Returns:
+        Entity: A newly created Entity
+    """
+    entity_json = get_entity_json_from_instance(instance, registration_form)
+    entity_list = registration_form.entity_list
     entity = Entity.objects.create(
+        entity_list=entity_list,
+        json=entity_json,
+        uuid=get_entity_uuid_from_xml(instance.xml),
+    )
+    entity.history.create(
         registration_form=registration_form,
         xml=instance.xml,
-        json=instance_json,
         instance=instance,
+        form_version=instance.version,
+        json=entity_json,
+        created_by=instance.user,
     )
-    entity_list = registration_form.entity_list
-    entity_list.last_entity_update_time = entity.date_modified
-    entity_list.num_entities = F("num_entities") + 1
-    entity_list.save()
+
+    return entity
+
+
+def update_entity_from_instance(
+    uuid: str, instance: Instance, registration_form: RegistrationForm
+) -> Entity | None:
+    """Updates Entity
+
+    Args:
+        uuid (str): uuid of the Entity to be updated
+        instance (Instance): Submission that updates an Entity
+
+    Returns:
+        Entity | None: updated Entity if uuid valid, else None
+    """
+    try:
+        entity = Entity.objects.get(uuid=uuid)
+
+    except Entity.DoesNotExist as err:
+        logger.exception(err)
+        return None
+
+    patch_data = get_entity_json_from_instance(instance, registration_form)
+    entity.json = {**entity.json, **patch_data}
+    entity.save()
+    entity.history.create(
+        registration_form=registration_form,
+        xml=instance.xml,
+        instance=instance,
+        form_version=instance.version,
+        json=entity.json,
+        created_by=instance.user,
+    )
 
     return entity

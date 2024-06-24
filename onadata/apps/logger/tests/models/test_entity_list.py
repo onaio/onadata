@@ -40,6 +40,17 @@ class EntityListTestCase(TestBase):
         self.assertEqual(entity_list.date_modified, self.mocked_now)
         self.assertEqual(entity_list.num_entities, 2)
         self.assertEqual(entity_list.last_entity_update_time, self.mocked_now)
+        self.assertTrue(
+            self.user.has_perms(
+                [
+                    "add_entitylist",
+                    "view_entitylist",
+                    "change_entitylist",
+                    "delete_entitylist",
+                ],
+                entity_list,
+            )
+        )
 
     def test_name_project_unique_together(self):
         """No duplicate name and project allowed"""
@@ -109,3 +120,9 @@ class EntityListTestCase(TestBase):
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.assertEqual(entity_list.num_entities, 0)
         self.assertIsNone(entity_list.last_entity_update_time)
+
+    @patch("onadata.apps.logger.signals.set_entity_list_perms_async.delay")
+    def test_permissions_applied_async(self, mock_set_perms):
+        """Permissions are applied asynchronously"""
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        mock_set_perms.assert_called_once_with(entity_list.pk)

@@ -2,10 +2,19 @@
 
 import pytz
 from datetime import datetime
+from unittest.mock import patch
 
-from onadata.apps.logger.models import Entity
-from onadata.apps.logger.models.instance import Instance
+from django.utils import timezone
+
+from onadata.apps.logger.models import (
+    Entity,
+    EntityHistory,
+    EntityList,
+    Instance,
+    SurveyType,
+)
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class EntityTestCase(TestBase):
@@ -13,29 +22,91 @@ class EntityTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        # Mute signal that creates Entity when Instance is saved
-        self._mute_post_save_signals([(Instance, "create_entity")])
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+
+    @patch("django.utils.timezone.now")
+    def test_creation(self, mock_now):
+        """We can create an Entity"""
+        mock_now.return_value = self.mocked_now
+        entity_json = {
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+            "label": "300cm purpleheart",
+        }
+        uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json=entity_json,
+            uuid=uuid,
+        )
+        self.assertEqual(entity.entity_list, self.entity_list)
+        self.assertEqual(entity.json, entity_json)
+        self.assertEqual(entity.uuid, uuid)
+        self.assertEqual(f"{entity}", f"{entity.pk}|{self.entity_list}")
+        self.assertEqual(entity.date_created, self.mocked_now)
+
+    def test_optional_fields(self):
+        """Defaults for optional fields are correct"""
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        self.assertIsNone(entity.deleted_at)
+        self.assertIsNone(entity.deleted_by)
+        self.assertEqual(entity.json, {})
+        self.assertEqual(entity.uuid, "")
+
+    @patch("django.utils.timezone.now")
+    def test_soft_delete(self, mock_now):
+        """Soft delete works"""
+        mock_now.return_value = self.mocked_now
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertIsNone(entity.deleted_at)
+        self.assertIsNone(entity.deleted_by)
+
+        entity.soft_delete(self.user)
+        self.entity_list.refresh_from_db()
+        entity.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(self.entity_list.last_entity_update_time, self.mocked_now)
+        self.assertEqual(entity.deleted_at, self.mocked_now)
+        self.assertEqual(entity.deleted_at, self.mocked_now)
+
+        # Soft deleted item cannot be soft deleted again
+        deleted_at = timezone.now()
+        entity2 = Entity.objects.create(
+            entity_list=self.entity_list, deleted_at=deleted_at
+        )
+        entity2.soft_delete(self.user)
+        entity2.refresh_from_db()
+        # deleted_at should not remain unchanged
+        self.assertEqual(entity2.deleted_at, deleted_at)
+
+        # deleted_by is optional
+        entity3 = Entity.objects.create(entity_list=self.entity_list)
+        entity3.soft_delete()
+        entity2.refresh_from_db()
+
+        self.assertEqual(entity3.deleted_at, self.mocked_now)
+        self.assertIsNone(entity3.deleted_by)
+
+
+class EntityHistoryTestCase(TestBase):
+    """Tests for model EntityHistory"""
+
+    def setUp(self):
+        super().setUp()
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
         self.xform = self._publish_registration_form(self.user)
-
-    def test_creation(self):
-        """We can create an Entity"""
-        reg_form = self.xform.registration_forms.first()
-        entity_json = {
-            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
-            "geometry": "-1.286905 36.772845 0 0",
-            "species": "purpleheart",
-            "circumference_cm": 300,
-            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            "meta/instanceName": "300cm purpleheart",
-            "meta/entity/label": "300cm purpleheart",
-            "_xform_id_string": "trees_registration",
-            "_version": "2022110901",
-        }
-        xml = (
+        self.entity_list = EntityList.objects.first()
+        self.entity = Entity.objects.create(entity_list=self.entity_list)
+        self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
-            '"http://openrosa.org/xforms" id="trees_registration" version="202311070702">'
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
             "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
             "<location>-1.286905 36.772845 0 0</location>"
             "<species>purpleheart</species>"
@@ -50,35 +121,46 @@ class EntityTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        instance = Instance.objects.create(
-            xml=xml,
-            user=self.user,
-            xform=self.xform,
-            version=self.xform.version,
-        )
-        instance.json = instance.get_full_dict()
-        instance.save()
-        instance.refresh_from_db()
-        entity = Entity.objects.create(
-            registration_form=reg_form,
-            json={**entity_json},
-            version=self.xform.version,
-            xml=xml,
+
+    @patch("django.utils.timezone.now")
+    def test_creation(self, mock_now):
+        """We can create an EntityHistory"""
+        mock_now.return_value = self.mocked_now
+        registration_form = self.xform.registration_forms.first()
+        entity_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+            "label": "300cm purpleheart",
+        }
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance(xform=self.xform, xml=self.xml, survey_type=survey_type)
+        # We use bulk_create to avoid calling create_entity signal
+        Instance.objects.bulk_create([instance])
+        instance = Instance.objects.first()
+        history = EntityHistory.objects.create(
+            entity=self.entity,
+            registration_form=registration_form,
             instance=instance,
+            xml=self.xml,
+            json=entity_json,
+            form_version=self.xform.version,
+            created_by=self.user,
         )
-        self.assertEqual(entity.registration_form, reg_form)
-        self.assertEqual(entity.json, {**entity_json, "_id": entity.pk})
-        self.assertEqual(entity.version, self.xform.version)
-        self.assertEqual(entity.xml, xml)
-        self.assertEqual(entity.instance, instance)
-        self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
-        self.assertEqual(f"{entity}", f"{entity.pk}|{reg_form}")
+        self.assertEqual(history.entity, self.entity)
+        self.assertEqual(history.registration_form, registration_form)
+        self.assertEqual(history.instance, instance)
+        self.assertEqual(history.xml, self.xml)
+        self.assertEqual(history.form_version, self.xform.version)
+        self.assertEqual(history.created_by, self.user)
+        self.assertEqual(history.date_created, self.mocked_now)
 
     def test_optional_fields(self):
-        """Defaults for optional fields are correct"""
-        reg_form = self.xform.registration_forms.first()
-        entity = Entity.objects.create(registration_form=reg_form)
-        self.assertIsNone(entity.version)
-        self.assertEqual(entity.json, {"_id": entity.pk})
-        self.assertIsNone(entity.instance)
-        self.assertEqual(entity.xml, "")
+        """Default for optional fields are correct"""
+        history = EntityHistory.objects.create(entity=self.entity)
+        self.assertEqual(history.entity, self.entity)
+        self.assertIsNone(history.registration_form)
+        self.assertIsNone(history.instance)
+        self.assertIsNone(history.xml)
+        self.assertIsNone(history.form_version)
+        self.assertIsNone(history.created_by)

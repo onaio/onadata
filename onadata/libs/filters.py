@@ -775,14 +775,23 @@ class PublicDatasetsFilter:
 
 # pylint: disable=too-few-public-methods
 class EntityListProjectFilter(filters.BaseFilterBackend):
-    """EntityList `project` filter."""
+    """Limits results to EntityLists under `project` query param"""
 
     # pylint: disable=unused-argument
     def filter_queryset(self, request, queryset, view):
-        """Filter by project id"""
         project_id = request.query_params.get("project")
 
         if project_id:
             return queryset.filter(project__pk=project_id)
 
         return queryset
+
+
+class AnonUserEntityListFilter(ObjectPermissionsFilter):
+    """Limits results to public EntityLists for anonymous users"""
+
+    def filter_queryset(self, request, queryset, view):
+        if request.user.is_anonymous:
+            return queryset.filter(project__shared=True)
+
+        return super().filter_queryset(request, queryset, view)

@@ -1,4 +1,7 @@
+from django.utils.translation import gettext as _
+
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import (
     Entity,
@@ -121,9 +124,88 @@ class EntityListDetailSerializer(EntityListSerializer):
 class EntitySerializer(serializers.ModelSerializer):
     """Serializer for Entity"""
 
+    label = serializers.CharField(write_only=True, required=False)
+    data = serializers.JSONField(write_only=True, required=False)
+
+    def validate_data(self, value):
+        if value:
+            for key in value.keys():
+                if key not in self.context["entity_list"].properties:
+                    raise serializers.ValidationError(
+                        _(f"Invalid dataset property {key}")
+                    )
+
+        return value
+
+    def update(self, instance, validated_data):
+        data = validated_data.pop("data", {})
+        label = validated_data.pop("label", None)
+
+        if label:
+            instance.json["label"] = label
+
+        if data:
+            updated_data = {**instance.json, **data}
+
+            for key, value in data.items():
+                if not value:
+                    # Unset property
+                    del updated_data[key]
+
+            instance.json = updated_data
+
+        instance.save()
+        instance.history.create(
+            json=instance.json, created_by=self.context["request"].user
+        )
+
+        return instance
+
     def to_representation(self, instance):
-        return instance.json
+        data = super().to_representation(instance)
+        instance_json = data.pop("json")
+
+        return {**data, "data": instance_json}
 
     class Meta:
         model = Entity
-        fields = ("json",)
+        fields = (
+            "id",
+            "uuid",
+            "date_created",
+            "date_modified",
+            "json",
+            "label",
+            "data",
+        )
+
+
+class EntityArraySerializer(EntitySerializer):
+    """Serializer for a list of Entities"""
+
+    url = serializers.SerializerMethodField()
+
+    def get_url(self, obj):
+        entity_list = self.context["entity_list"]
+        request = self.context["request"]
+        response_format = self.context.get("format")
+        kwargs = {"pk": entity_list.pk, "entity_pk": obj.pk}
+
+        return reverse(
+            "entity_list-entities",
+            kwargs=kwargs,
+            request=request,
+            format=response_format,
+        )
+
+    class Meta:
+        model = Entity
+        fields = (
+            "url",
+            "id",
+            "uuid",
+            "date_created",
+            "json",
+            "label",
+            "data",
+        )

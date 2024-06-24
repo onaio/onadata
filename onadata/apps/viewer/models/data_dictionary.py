@@ -56,17 +56,25 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith("json"):
         return FloipSurvey(xls).survey.to_json_dict()
 
-    file_object = xls
+    file_object = None
+
     if xls.name.endswith("csv"):
-        file_object = None
         if not isinstance(xls.name, InMemoryUploadedFile):
             file_object = StringIO(xls.read().decode("utf-8"))
+
+    else:
+        # Create a copy of file. Ensures the file we are working with is
+        # not closed by pyxform else we'll get a
+        # "ValueError: seek of closed file"
+        file_object = BytesIO(xls.read())
+
     try:
         return parse_file_to_json(xls.name, file_object=file_object)
     except csv.Error as e:
         if is_newline_error(e):
             xls.seek(0)
             file_object = StringIO("\n".join(xls.read().splitlines()))
+
             return parse_file_to_json(
                 xls.name, default_name=default_name, file_object=file_object
             )
@@ -84,8 +92,7 @@ def sheet_to_csv(xls_content, sheet_name):
     :returns: a (StringIO) csv file object
     """
     workbook = openpyxl.load_workbook(xls_content)
-
-    sheet = workbook.get_sheet_by_name(sheet_name)
+    sheet = workbook[sheet_name]
 
     if not sheet or sheet.max_column < 2:
         raise Exception(_(f"Sheet <'{sheet_name}'> has no data."))
@@ -285,7 +292,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_related"):
+    if not instance_json.get("entity_features"):
         return
 
     children = instance_json.get("children", [])
@@ -315,7 +322,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
                     ):
                         form.is_active = False
                         form.save()
-                else:
+                elif not registration_form_created and not registration_form.is_active:
                     # If previously disabled, enable it
                     registration_form.is_active = True
                     registration_form.save()
@@ -399,7 +406,7 @@ def disable_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_related"):
+    if not instance_json.get("entity_features"):
         # If form creates entities, disable the registration forms
         for registration_form in instance.registration_forms.filter(is_active=True):
             registration_form.is_active = False

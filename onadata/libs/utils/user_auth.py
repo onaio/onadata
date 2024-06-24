@@ -17,6 +17,7 @@ from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
@@ -212,9 +213,9 @@ def add_cors_headers(response):
     """Add CORS headers to the HttpResponse ``response`` instance."""
     response["Access-Control-Allow-Origin"] = "*"
     response["Access-Control-Allow-Methods"] = "GET"
-    response[
-        "Access-Control-Allow-Headers"
-    ] = "Accept, Origin, X-Requested-With, Authorization"
+    response["Access-Control-Allow-Headers"] = (
+        "Accept, Origin, X-Requested-With, Authorization"
+    )
     response["Content-Type"] = "application/json"
 
     return response
@@ -222,7 +223,16 @@ def add_cors_headers(response):
 
 def set_api_permissions_for_user(user):
     """Sets the permissions to allow a ``user`` to access the APU."""
-    models = [UserProfile, XForm, MergedXForm, Project, Team, OrganizationProfile, Note]
+    models = [
+        UserProfile,
+        XForm,
+        MergedXForm,
+        Project,
+        Team,
+        OrganizationProfile,
+        Note,
+        EntityList,
+    ]
     for model in models:
         for perm in get_perms_for_model(model):
             assign_perm(f"{perm.content_type.app_label}.{perm.codename}", user)

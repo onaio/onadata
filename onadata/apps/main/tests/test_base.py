@@ -18,7 +18,6 @@ from pyxform.builder import create_survey_element_from_dict
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import signals
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
@@ -515,13 +514,6 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
                     row.pop(None)
                 self.assertDictContainsSubset(row, data[index])
 
-    def _mute_post_save_signals(self, target_signals: list[tuple]):
-        """Disable post_save signals"""
-
-        for signal in target_signals:
-            model, dispatch_uid = signal
-            signals.post_save.disconnect(sender=model, dispatch_uid=dispatch_uid)
-
     def _publish_registration_form(self, user, project=None):
         md = """
         | survey   |
@@ -614,3 +606,27 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             Instance(xform=xf2, xml=xml).save()
 
         return merged_xf
+
+    def _publish_entity_update_form(self, user, project=None):
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     |                          |                                         |
+        |         | trees                          | ${tree}       |                          |                                         |
+        """
+        self._publish_markdown(
+            md,
+            user,
+            project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        latest_form = XForm.objects.all().order_by("-pk").first()
+
+        return latest_form

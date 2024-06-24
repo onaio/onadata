@@ -4,7 +4,7 @@ project_utils module - apply project permissions to a form.
 """
 import re
 import sys
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -87,24 +87,7 @@ def set_project_perms_to_xform(xform, project):
         if role and (user not in (xform.user, project.user, project.created_by)):
             role.remove_obj_permissions(user, xform)
 
-    owners = project.organization.team_set.filter(
-        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
-        organization=project.organization,
-    )
-
-    if owners:
-        OwnerRole.add(owners[0], xform)
-
-    for perm in get_object_users_with_permissions(project, with_group_users=True):
-        user = perm["user"]
-        role_name = perm["role"]
-        role = ROLES.get(role_name)
-
-        if user == xform.created_by:
-            OwnerRole.add(user, xform)
-        else:
-            if role:
-                role.add(user, xform)
+    set_project_perms_to_object(xform, project)
 
 
 # pylint: disable=invalid-name
@@ -327,3 +310,30 @@ def propagate_project_permissions(
                     new_users,
                     session,
                 )
+
+
+def set_project_perms_to_object(obj: Any, project: Project) -> None:
+    """Apply project permissions to an object
+
+    Args:
+        obj: Object to set permissions for
+        project: Project under which the object belongs to
+    """
+    owners = project.organization.team_set.filter(
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
+
+    if owners:
+        OwnerRole.add(owners[0], obj)
+
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
+        role = ROLES.get(role_name)
+
+        if isinstance(obj, XForm) and user == obj.created_by:
+            OwnerRole.add(user, obj)
+
+        elif role:
+            role.add(user, obj)

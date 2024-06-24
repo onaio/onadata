@@ -969,15 +969,6 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         """EntityList dataset is returned"""
         # Publish registration form and create "trees" Entitylist dataset
         self._publish_registration_form(self.user)
-        # Make submission to trees_registration form
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "entities",
-            "instances",
-            "trees_registration.xml",
-        )
-        self._make_submission(submission_path)
         entity_list = EntityList.objects.get(name="trees")
         metadata = MetaData.objects.create(
             content_object=self.xform,

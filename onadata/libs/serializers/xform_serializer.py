@@ -718,8 +718,10 @@ class XFormManifestSerializer(serializers.Serializer):
                 entity_list = EntityList.objects.filter(pk=pk).first()
 
                 if entity_list.last_entity_update_time is not None:
+                    update_time_str = entity_list.last_entity_update_time.isoformat()
+                    num_entities = str(entity_list.num_entities)
                     hsh = self._generate_hash(
-                        entity_list.last_entity_update_time.isoformat().encode("utf-8")
+                        f"{update_time_str}-{num_entities}".encode("utf-8")
                     )
             else:
                 data_view = (

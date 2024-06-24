@@ -6,6 +6,8 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
+
 from onadata.apps.logger.models.project import Project
 from onadata.libs.models import BaseModel
 
@@ -58,3 +60,16 @@ class EntityList(BaseModel):
             dataset_properties.update(form_properties)
 
         return list(dataset_properties)
+
+
+class EntityListUserObjectPermission(UserObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+
+    content_object = models.ForeignKey(EntityList, on_delete=models.CASCADE)
+
+
+# pylint: disable=too-few-public-methods
+class EntityListGroupObjectPermission(GroupObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+
+    content_object = models.ForeignKey(EntityList, on_delete=models.CASCADE)

@@ -521,6 +521,7 @@ class TestProcess(TestBase, SerializeMixin):
                 "available_transportation_types_to_referral_facility/taxi": "True",
                 "available_transportation_types_to_referral_facility/other": "True",
                 "available_transportation_types_to_referral_facility_other": "camel",
+                self.other_key: "other",
                 self.taxi_key: "daily",
                 "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
                 "_uuid": "9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
@@ -578,8 +579,8 @@ class TestProcess(TestBase, SerializeMixin):
         )
         content = get_response_content(response, decode=False)
         actual_xls = openpyxl.load_workbook(filename=BytesIO(content))
-        actual_sheet = actual_xls.get_sheet_by_name("data")
-        expected_sheet = expected_xls.get_sheet_by_name("transportation")
+        actual_sheet = actual_xls["data"]
+        expected_sheet = expected_xls["transportation"]
         # check headers
         self.assertEqual(list(actual_sheet.values)[0], list(expected_sheet.values)[0])
 
@@ -592,10 +593,9 @@ class TestProcess(TestBase, SerializeMixin):
             i = 1
             actual_row = list(list(actual_sheet.values)[i])
             expected_row = list(list(expected_sheet.values)[i])
-
             # remove _id from result set, varies depending on the database
-            del actual_row[23]
-            del expected_row[23]
+            del actual_row[24]
+            del expected_row[24]
             self.assertEqual(actual_row, expected_row)
 
     def _check_delete(self):

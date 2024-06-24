@@ -12,7 +12,7 @@ services:
       - ./:/srv/onadata
     ports:
       - 8000:8000
-    command: /usr/local/bin/uwsgi --ini /srv/onadata/uwsgi.ini
+    command: python3.10 manage.py runserver --settings=onadata.settings.docker
 
   celery:
     build:

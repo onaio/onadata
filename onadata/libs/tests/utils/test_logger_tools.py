@@ -14,13 +14,13 @@ from django.http.request import HttpRequest
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance, Entity, RegistrationForm
+from onadata.apps.logger.models import Instance, Entity, RegistrationForm, SurveyType
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
-    create_entity,
+    create_entity_from_instance,
     create_instance,
     generate_content_disposition_header,
     get_first_record,
@@ -656,8 +656,6 @@ class CreateEntityTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        # Mute signal that creates Entity when Instance is saved
-        self._mute_post_save_signals([(Instance, "create_entity")])
         self.xform = self._publish_registration_form(self.user)
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -677,36 +675,49 @@ class CreateEntityTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        self.instance = Instance.objects.create(
-            xml=self.xml,
-            user=self.user,
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance(
             xform=self.xform,
+            xml=self.xml,
             version=self.xform.version,
+            survey_type=survey_type,
         )
+        # We use bulk_create to avoid calling create_entity signal
+        Instance.objects.bulk_create([instance])
+        self.instance = Instance.objects.first()
         self.registration_form = RegistrationForm.objects.first()
 
     def test_entity_created(self):
         """Entity is created successfully"""
-        create_entity(self.instance, self.registration_form)
+        create_entity_from_instance(self.instance, self.registration_form)
+
+        self.assertEqual(Entity.objects.count(), 1)
+
         entity = Entity.objects.first()
-        self.assertEqual(entity.registration_form, self.registration_form)
-        self.assertEqual(entity.instance, self.instance)
-        self.assertEqual(entity.xml, self.xml)
+        entity_list = self.registration_form.entity_list
+        entity_list.refresh_from_db()
+
+        self.assertEqual(entity.entity_list, entity_list)
+
         expected_json = {
-            "formhub/uuid": "d156a2dce4c34751af57f21ef5c4e6cc",
             "geometry": "-1.286905 36.772845 0 0",
             "species": "purpleheart",
             "circumference_cm": 300,
-            "meta/instanceID": "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b",
-            "meta/instanceName": "300cm purpleheart",
-            "meta/entity/label": "300cm purpleheart",
-            "_xform_id_string": "trees_registration",
-            "_version": "2022110901",
-            "_id": entity.pk,
+            "label": "300cm purpleheart",
         }
+
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
-        entity_list = self.registration_form.entity_list
-        entity_list.refresh_from_db()
+
         self.assertEqual(entity_list.num_entities, 1)
         self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)
+        self.assertEqual(entity.history.count(), 1)
+
+        entity_history = entity.history.first()
+
+        self.assertEqual(entity_history.registration_form, self.registration_form)
+        self.assertEqual(entity_history.instance, self.instance)
+        self.assertEqual(entity_history.xml, self.instance.xml)
+        self.assertEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, self.xform.version)
+        self.assertEqual(entity_history.created_by, self.instance.user)

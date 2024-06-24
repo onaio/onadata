@@ -18,6 +18,7 @@
     "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
     "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
     "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+    "transport/loop_over_transport_types_frequency/other/frequency_to_referral_facility",
     "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
     "image1",
     "meta/instanceID",

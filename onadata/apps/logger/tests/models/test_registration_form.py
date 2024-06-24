@@ -9,7 +9,6 @@ from django.db.utils import IntegrityError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import RegistrationForm, EntityList, XFormVersion
-from onadata.apps.viewer.models import DataDictionary
 
 
 class RegistrationFormTestCase(TestBase):
@@ -19,41 +18,35 @@ class RegistrationFormTestCase(TestBase):
         super().setUp()
 
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.xform = self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.first()
+        # Delete RegistrationForm created when form is published
+        RegistrationForm.objects.all().delete()
 
     @patch("django.utils.timezone.now")
     def test_creation(self, mock_now):
         """We can create a RegistrationForm"""
         mock_now.return_value = self.mocked_now
-        self._mute_post_save_signals(
-            [(DataDictionary, "create_registration_form_datadictionary")]
-        )
-        self.xform = self._publish_registration_form(self.user)
-        entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             xform=self.xform,
             is_active=True,
         )
         self.assertEqual(RegistrationForm.objects.count(), 1)
         self.assertEqual(f"{reg_form}", f"{reg_form.xform}|trees")
         self.assertEqual(reg_form.xform, self.xform)
-        self.assertEqual(reg_form.entity_list, entity_list)
+        self.assertEqual(reg_form.entity_list, self.entity_list)
         self.assertEqual(reg_form.date_created, self.mocked_now)
         self.assertEqual(reg_form.date_modified, self.mocked_now)
         self.assertTrue(reg_form.is_active)
         # Related names are correct
-        self.assertEqual(entity_list.registration_forms.count(), 1)
+        self.assertEqual(self.entity_list.registration_forms.count(), 1)
         self.assertEqual(self.xform.registration_forms.count(), 1)
 
     def test_get_save_to(self):
         """Method `get_save_to` works correctly"""
-        self._mute_post_save_signals(
-            [(DataDictionary, "create_registration_form_datadictionary")]
-        )
-        self.xform = self._publish_registration_form(self.user)
-        entity_list = EntityList.objects.create(name="trees", project=self.project)
         form = RegistrationForm.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             xform=self.xform,
         )
         self.assertEqual(
@@ -149,31 +142,21 @@ class RegistrationFormTestCase(TestBase):
 
     def test_entity_list_xform_unique(self):
         """No duplicates allowed for existing entity_list and xform"""
-        self._mute_post_save_signals(
-            [(DataDictionary, "create_registration_form_datadictionary")]
-        )
-        self.xform = self._publish_registration_form(self.user)
-        entity_list = EntityList.objects.create(name="trees", project=self.project)
         RegistrationForm.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             xform=self.xform,
         )
 
         with self.assertRaises(IntegrityError):
             RegistrationForm.objects.create(
-                entity_list=entity_list,
+                entity_list=self.entity_list,
                 xform=self.xform,
             )
 
     def test_optional_fields(self):
         """Defaults for optional fields correct"""
-        self._mute_post_save_signals(
-            [(DataDictionary, "create_registration_form_datadictionary")]
-        )
-        self.xform = self._publish_registration_form(self.user)
-        entity_list = EntityList.objects.create(name="trees", project=self.project)
         reg_form = RegistrationForm.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             xform=self.xform,
         )
         self.assertTrue(reg_form.is_active)

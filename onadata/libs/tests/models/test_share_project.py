@@ -3,7 +3,7 @@
 from unittest.mock import patch, call
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_project import ShareProject
@@ -20,22 +20,6 @@ class ShareProjectTestCase(TestBase):
         super().setUp()
 
         self._publish_transportation_form()
-        md_xform = """
-        | survey  |
-        |         | type              | name  | label  |
-        |         | text              | name  | Name   |
-        |         | integer           | age   | Age    |
-        |         | select one fruits | fruit | Fruit  |
-        |         |                   |       |        |
-        | choices | list name         | name  | label  |
-        |         | fruits            | 1     | Mango  |
-        |         | fruits            | 2     | Orange |
-        |         | fruits            | 3     | Apple  |
-        """
-        project = Project.objects.create(
-            name="Demo", organization=self.user, created_by=self.user
-        )
-        self._publish_markdown(md_xform, self.user, project)
         self.dataview_form = XForm.objects.all().order_by("-pk")[0]
         DataView.objects.create(
             name="Demo",
@@ -45,6 +29,7 @@ class ShareProjectTestCase(TestBase):
             columns=[],
         )
         self.merged_xf = self._create_merged_dataset()
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.alice = self._create_user("alice", "Yuao8(-)")
 
     @patch("onadata.libs.models.share_project.safe_delete")
@@ -61,6 +46,7 @@ class ShareProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_safe_delete.assert_has_calls(
@@ -82,12 +68,14 @@ class ShareProjectTestCase(TestBase):
         ManagerRole.add(self.alice, self.dataview_form)
         ManagerRole.add(self.alice, self.merged_xf)
         ManagerRole.add(self.alice, self.merged_xf.xform_ptr)
+        ManagerRole.add(self.alice, self.entity_list)
         # Confirm project shared
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
         # Remove user
         instance = ShareProject(self.project, self.alice, "manager", True)
         instance.save()
@@ -98,6 +86,7 @@ class ShareProjectTestCase(TestBase):
         self.assertFalse(
             ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr)
         )
+        self.assertFalse(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_safe_delete.assert_has_calls(
