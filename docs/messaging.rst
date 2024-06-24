@@ -156,3 +156,44 @@ Sample response with link header
               "timestamp": "2021-02-26T03:32:57.799647-05:00"
           }
       ]
+
+Query events of a target using timestamp
+----------------------------------------
+
+Filter messages using the timestamp field. To filter messages by their timestamp, the `timestamp` parameter is appended to the messaging endpoint URL.
+This allows for precise retrieval of events that occurred within specific time frames or ranges.
+
+Example
+^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&verb=submission_edited&timestamp__lte=2024-06-20T00:00
+
+Where:
+
+- ``target_type=xform`` - The target object type is xform
+- ``target_id=1`` - The target object unique id, in this case the xform ID
+- ``verb=submission_edited`` - The action occured on the xform, in this case a submission in the xform has been edited
+- ``timestamp__lte=2024-06-20T00:00`` - Filters the events/messages to include only those that occurred on or before June 20, 2024, at 00:00 (midnight).
+
+Timestamp field Filters Options
+
+=============================     ===================================
+Filter                            Description
+=============================     ===================================
+**timestamp__year**               Exact year e.g. 2024
+**timestamp__year__lt**           Year Less than
+**timestamp__year__lte**          Year Less than or Equal to
+**timestamp__year__gt**           Year Greater than
+**timestamp__year__gte**          Year Greater than or Equal to
+**timestamp__month**              Exact month e.g. 10
+**timestamp__month__lt**          Month Less than
+**timestamp__month__lte**         Month Less than or Equal to
+**timestamp__month__gt**          Month Greater than
+**timestamp__month__gte**         Month Greater than or Equal to
+**timestamp__day**                Exact day e.g. 12
+**timestamp__day__lt**            Day Less than
+**timestamp__day__lte**           Day Less than or Equal to
+**timestamp__day__gt**            Day Greater than
+**timestamp__day__gte**           Day Greater than or Equal to
+=============================     ===================================
