@@ -2,6 +2,7 @@
 """
 Test /user API endpoint
 """
+import json
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -474,11 +475,14 @@ class TestConnectViewSet(TestAbstractViewSet):
         # cache value increments with subsequent attempts
         response = view(request)
         self.assertEqual(response.status_code, 401)
+        response.render()
         self.assertEqual(
-            response.data["detail"],
-            "Invalid username/password. For security reasons, "
-            "after 8 more failed login attempts you'll have to "
-            "wait 30 minutes before trying again.",
+            json.loads(response.content.decode()),
+            {
+                "detail": "Invalid username/password. For security reasons, "
+                "after 8 more failed login attempts you'll have to "
+                "wait 30 minutes before trying again."
+            },
         )
         self.assertEqual(cache.get(safe_key(f"login_attempts-{request_ip}-bob")), 2)
 
