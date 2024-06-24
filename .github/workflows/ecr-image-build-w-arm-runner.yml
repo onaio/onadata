@@ -1,11 +1,12 @@
 ---
 name: AWS ECR Build Image with ARM Runner
 
-on:
+on:  # yamllint disable-line rule:truthy
   release:
-      types:
-          - "released"
+    types:
+      - "released"
   push:
+    branches:
       - "main"
       - "*-rc"
     tags:
@@ -68,8 +69,17 @@ jobs:
 
       - name: Get the branch name
         id: get-branch-name
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: >
+          github.event_name == 'push'
+          || github.event_name == 'workflow_dispatch'
         run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Get docker repository URL
+        id: get-repo-url
+        run: |
+          echo "docker_repo=${{ steps.login-ecr.outputs.registry }}\
+               /onaio/onadata:${{ env.version || github.ref_name }}"\
+               | sed 's/ //g' >> $GITHUB_ENV
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
@@ -78,24 +88,31 @@ jobs:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: ${{ matrix.platforms[0] }}
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          cache-from: type=registry,ref=${{ env.docker_repo }}
           cache-to: type=inline
           ssh: |
             default=/tmp/ssh-agent.sock
-          build-args: |
-            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
+          build-args: >
+            optional_packages=PyYAML
+            django-redis
+            ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          outputs: type=image,name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,push-by-digest=true,name-canonical=true,push=true
-      -
-        name: Export digest
+          outputs: >
+             type=image,
+             name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,
+             push-by-digest=true,
+             name-canonical=true,
+             push=true
+
+      - name: Export digest
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.docker-build-ubuntu.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
-      -
-        name: Upload digest
+
+      - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -138,20 +155,27 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
 
+      - name: Get docker repository URL
+        id: get-repo-url
+        run: |
+          echo "docker_repo=${{ steps.login-ecr.outputs.registry }}\
+               /onaio/onadata:${{ steps.meta.outputs.version }}"\
+               | sed 's/ //g' >> $GITHUB_ENV
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ steps.login-ecr.outputs.registry }}/onaio/onadata@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ steps.login-ecr.outputs.registry }}/onaio/onadata@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.docker_repo }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
+          image-ref: |
+            ${{ env.docker_repo }}
           format: 'sarif'
           output: 'trivy-results.sarif'
 
@@ -164,7 +188,8 @@ jobs:
       - name: Run Trivy vulnerability scanner for Slack
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
+          image-ref: |
+            ${{ env.docker_repo }}
           format: json
           output: 'trivy-results.json'
 
@@ -182,7 +207,8 @@ jobs:
         with:
           payload: |
             {
-              "text": "Trivy scan results for ${{ steps.meta.outputs.version }}",
+              "text":
+                "Trivy scan results for ${{ steps.meta.outputs.version }}",
               "blocks": [
                 {
                   "type": "section",
