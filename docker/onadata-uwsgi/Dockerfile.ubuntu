@@ -3,11 +3,11 @@ FROM onaio/python-deps:3.10.14-20240703 AS base
 ARG optional_packages
 
 # Silence configuration prompts
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 
-ENV DJANGO_SETTINGS_MODULE onadata.settings.docker
+ENV DJANGO_SETTINGS_MODULE=onadata.settings.docker
 
 USER root
 
@@ -35,10 +35,10 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
     python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
 
-FROM base as docs
+FROM base AS docs
 
 ENV PYENV_ROOT="$HOME/.pyenv"
-ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PATH=$PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 COPY --from=base /home/appuser/.pyenv/ /home/appuser/.pyenv/
 COPY --from=base /srv/onadata/ /srv/onadata/
 
@@ -53,9 +53,9 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20240701 as runtime
+FROM debian:bookworm-20240701 AS runtime
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
 RUN echo "deb http://deb.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list \
@@ -64,8 +64,8 @@ RUN echo "deb http://deb.debian.org/debian unstable main non-free contrib" >> /e
 
 # # Generate and set en_US.UTF-8 locale
 RUN locale-gen en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-ENV LC_CTYPE en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
 RUN dpkg-reconfigure locales
 
 
@@ -94,9 +94,9 @@ RUN chown -R appuser:appuser /srv/onadata /home/appuser/.pyenv
 USER appuser
 WORKDIR /srv/onadata
 
-ENV HOME /home/appuser
-ENV PYTHON_VERSION 3.10.14
+ENV HOME=/home/appuser
+ENV PYTHON_VERSION=3.10.14
 ENV PYENV_ROOT="$HOME/.pyenv"
-ENV PATH $PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PATH=$PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 CMD ["uwsgi", "--ini", "uwsgi.ini"]
