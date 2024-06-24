@@ -5,15 +5,15 @@ Provides a count of each unique messaging event grouped by either day, month or 
 
 The endpoint accepts the following *required* query parameters:
 
-* *group_by* - field specifying whether to group events by day, month or year.
+* *group_by* - field specifying whether to group events by `day`, `month` or `year`.
 
-* *target_type* - field to be used to determine the target object type i.e xform
+* *target_type* - field to be used to determine the target object type i.e `xform`.
 
-* *target_id* - field used to identify the target object.
+* *target_id* - field used to identify the target object - e.g. for `XForm` this is the `id` field.
 
-* *verb*: field used to filter returned responses by a specific verb
+* *verb*: field used to filter returned responses by a specific verb.
 
-* *timestamp*: used to filter by actions that occurred in a specific timeframe. This query parameter support date time lookups i.e `timestamp__day`, `timestamp__year
+* *timestamp*: used to filter by actions that occurred in a specific timeframe. This query parameter support date time lookups i.e `timestamp__day`, `timestamp__year`.
 
 Example
 ^^^^^^^^

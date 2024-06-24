@@ -11,9 +11,7 @@ This endpoint provides access to submitted data in JSON format. Where:
 GET JSON List of data end points
 --------------------------------
 
-Lists the data endpoints accessible to requesting user, for anonymous access
-
-a list of public data endpoints is returned.
+Lists the data endpoints accessible to requesting user, for anonymous access a list of public data endpoints is returned.
 
 .. raw:: html
 
@@ -68,7 +66,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	curl -X GET 'https://api.ona.io/api/v1/data/2?limit=2'
+    curl -X GET 'https://api.ona.io/api/v1/data/2?limit=2'
 
 .. raw:: html
 
@@ -78,7 +76,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	 curl -X GET 'https://api.ona.io/api/v1/data/2?start=3&limit=4'
+     curl -X GET 'https://api.ona.io/api/v1/data/2?start=3&limit=4'
 
 Fetch XForm ODK data for all forms per account in `csv` format
 --------------------------------------------------------------
@@ -133,7 +131,7 @@ Example
        curl -X GET https://api.ona.io/api/v1/data?owner=ona
 
 GET JSON list of submitted data for a specific form
-------------------------------------------
+---------------------------------------------------
 Provides a JSON list of submitted data for a specific form.
 
 Note: Responses are automatically paginated when requesting a list of data that surpasses 10,000 records.
@@ -201,6 +199,7 @@ GET XML list of submitted data for a specific form
 Provides an XML list of submitted data for a specific form.
 
 ..  raw:: html
+
     <pre class="prettyprint">
     <b>GET</b> /api/v1/data/<code>{pk}</code>.xml
     </pre>
@@ -259,7 +258,7 @@ Response
 
 Get FLOIP flow results for a specific form
 ------------------------------------------
-Provides a list of rows of submitted data for a specific form. Each row contains 6 values as specified |FLOIPSubmissionAPI|. The data is accessed from the data endpoint by specifiying the header ``Accept: "application/vnd.org.flowinterop.results+json"``.
+Provides a list of rows of submitted data for a specific form. Each row contains 6 values as specified |FLOIPSubmissionAPI|. The data is accessed from the data endpoint by specifying the header ``Accept: "application/vnd.org.flowinterop.results+json"``.
 
 .. |FLOIPSubmissionAPI| raw:: html
 
@@ -570,11 +569,11 @@ Response
 
 Query submitted data of a specific form
 ----------------------------------------
-Use the `query` or `data` parameter to pass in a JSON key/value query. 
+Use the `query` or `data` parameter to pass in a JSON key/value query.
 
 When quering a date time field whose value is in ISO format such as ``2020-12-18T09:36:19.767455+00:00``, it is important to ensure the ``+`` (plus) is encoded to ``%2b``.
 
-``+`` without encoding is parsed as whitespace. So ``2020-12-18T09:36:19.767455+00:00`` should be converted to ``2020-12-18T09:36:19.767455%2b00:00``. 
+``+`` without encoding is parsed as whitespace. So ``2020-12-18T09:36:19.767455+00:00`` should be converted to ``2020-12-18T09:36:19.767455%2b00:00``.
 
 
 Example I
@@ -667,7 +666,7 @@ Query submissions with pending submission review status or NULL
 
 Example XII
 ^^^^^^^^^^^
-Query submissions with `NULL` submission review status 
+Query submissions with `NULL` submission review status
 
 ::
 
@@ -968,7 +967,7 @@ Response
 ^^^^^^^^^
 ::
 
-	HTTP 200 OK
+    HTTP 200 OK
 
 Get list of public data endpoints
 ----------------------------------
@@ -1382,27 +1381,27 @@ Response
 ^^^^^^^^^
 ::
 
-{
-    "type": "Feature",
-    "geometry": {
-        "type": "GeometryCollection",
-        "geometries": [
-            {
-                "type": "Point",
-                "coordinates": [
-                    36.744421,
-                    -1.29943
-                ]
-            }
-        ]
-    },
-    "properties": {
-        "id": 60549136,
-        "xform": 513322,
-        "_id": 60549136,
-        "_last_edited": null
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "GeometryCollection",
+            "geometries": [
+                {
+                    "type": "Point",
+                    "coordinates": [
+                        36.744421,
+                        -1.29943
+                    ]
+                }
+            ]
+        },
+        "properties": {
+            "id": 60549136,
+            "xform": 513322,
+            "_id": 60549136,
+            "_last_edited": null
+        }
     }
-}
 
 **List all the geojson values for a given form with simplestyle-spec enabled and title prop set**
 
@@ -1534,7 +1533,7 @@ Example
 ^^^^^^^^^
 ::
 
-	curl -X GET https://api.ona.io/api/v1/data/28058.osm
+    curl -X GET https://api.ona.io/api/v1/data/28058.osm
 
 OSM endpoint with all osm files for a specific submission concatenated.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
