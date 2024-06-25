@@ -14,6 +14,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import ROLES, OwnerRole
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class GetEntityListArrayTestCase(TestAbstractViewSet):
@@ -167,6 +168,21 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(len(response.data), 0)
 
+    def test_soft_deleted_excluded(self):
+        """Soft deleted items are excluded"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        for entity_list in EntityList.objects.all():
+            entity_list.soft_delete()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):
@@ -282,6 +298,100 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 404)
+
+    def test_soft_deleted(self):
+        """Soft deleted dataset cannot be retrieved"""
+        self.entity_list.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+
+
+class DeleteEntityListTestCase(TestAbstractViewSet):
+    """Tests for deleting a single EntityList"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"delete": "destroy"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+
+    @patch("django.utils.timezone.now")
+    def test_delete(self, mock_now):
+        """Delete EntityList works"""
+        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=timezone.utc)
+        mock_now.return_value = mocked_date
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 204)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.deleted_at, mocked_date)
+        self.assertEqual(self.entity_list.deleted_by, self.user)
+        self.assertEqual(
+            self.entity_list.name, f'trees{mocked_date.strftime("-deleted-at-%s")}'
+        )
+
+    def test_authentication_required(self):
+        """Anonymous user cannot delete EntityList"""
+        # Private EntityList
+        request = self.factory.delete("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+        # Public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.delete("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_object_permissions(self):
+        """User must have delete level permission"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        def restore_dataset():
+            self.entity_list.deleted_at = None
+            self.entity_list.deleted_by = None
+            self.entity_list.save()
+
+        for role in ROLES:
+            restore_dataset()
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.delete("/", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role not in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 404)
+
+            else:
+                self.assertEqual(response.status_code, 204)
+
+    def test_already_soft_deleted(self):
+        """Soft deleted EntityList cannot be deleted"""
+        deleted_at = timezone.now()
+        self.entity_list.deleted_at = deleted_at
+        self.entity_list.save()
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.entity_list.deleted_at, deleted_at)
 
 
 @override_settings(TIME_ZONE="UTC")

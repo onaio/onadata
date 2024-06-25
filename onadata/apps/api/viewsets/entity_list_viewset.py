@@ -3,7 +3,13 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.mixins import (
+    CreateModelMixin,
+    RetrieveModelMixin,
+    DestroyModelMixin,
+    ListModelMixin,
+)
 
 
 from onadata.apps.api.permissions import EntityListPermission
@@ -30,10 +36,14 @@ class EntityListViewSet(
     CacheControlMixin,
     ETagsMixin,
     BaseViewset,
-    ReadOnlyModelViewSet,
+    GenericViewSet,
+    ListModelMixin,
+    CreateModelMixin,
+    RetrieveModelMixin,
+    DestroyModelMixin,
 ):
     queryset = (
-        EntityList.objects.all()
+        EntityList.objects.filter(deleted_at__isnull=True)
         .order_by("pk")
         .prefetch_related(
             "registration_forms",
@@ -115,3 +125,7 @@ class EntityListViewSet(
         serializer = self.get_serializer(entity_qs, many=True)
 
         return Response(serializer.data)
+
+    def perform_destroy(self, instance):
+        """Override perform_detroy"""
+        instance.soft_delete(self.request.user)
