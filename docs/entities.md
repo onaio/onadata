@@ -125,6 +125,23 @@ Body:
 }
 ```
 
+## Delete EntityList
+
+`DELETE api/v2/entity-lists/<entity_list_id>`
+
+This endpoint is used to delete a single EntityList dataset
+
+**Request**
+
+```sh
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1 \
+-H "Authorization: Token ACCESS_TOKEN"
+```
+
+**Response**
+
+Status: `204 No Content`
+
 ## Get Entities
 
 `GET api/v2/entity-lists/<entity_list_id>/entities`
