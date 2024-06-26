@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.3.0(2024-06-26)
+------------------
+- Separate ecr image build to use arm64 runner for arm64 builds
+  `PR #2620 <https://github.com/onaio/onadata/pull/2620>`
+  [@kelvin-muchiri]
+- Add Entity updates
+  `PR #2592 <https://github.com/onaio/onadata/pull/2592>`
+  [@kelvin-muchiri]
+- Update messaging endpoint docs
+  `PR #2616 <https://github.com/onaio/onadata/pull/2616>`
+  [@KipSigei]
+- Fix ValueError for User instance primary key in password validation 
+  `PR #2613 <https://github.com/onaio/onadata/pull/2613>`
+  [@KipSigei]
+
 v4.2.2(2024-06-06)
 ------------------
 - Add support for merged dataset geojson format on endpoint /api/v1/data/<form_id>
