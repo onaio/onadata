@@ -108,7 +108,7 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     perm_format = "%(app_label)s.report_%(model_name)s"
 
 
-class XFormListXFormPKFilter:
+class XFormListXFormPKFilter(filters.BaseFilterBackend):
     """Filter forms via 'xform_pk' param."""
 
     def filter_queryset(self, request, queryset, view):
@@ -761,7 +761,7 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
 
 # pylint: disable=too-few-public-methods
-class PublicDatasetsFilter:
+class PublicDatasetsFilter(filters.BaseFilterBackend):
     """Public data set filter where the share attribute is True"""
 
     # pylint: disable=unused-argument

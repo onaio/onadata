@@ -11,7 +11,7 @@ from django.conf.urls import i18n
 # enable the admin:
 from django.contrib import admin
 from django.contrib.staticfiles import views as staticfiles_views
-from django.urls import include, re_path
+from django.urls import include, re_path, path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
@@ -32,11 +32,19 @@ from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
 from onadata.libs.utils.analytics import init_analytics
 
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView, SpectacularJSONAPIView
+
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 admin.autodiscover()
 
 urlpatterns = [
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('schema/redoc/', SpectacularRedocView.as_view(), name='redoc'),
+    path('schema/json/', SpectacularJSONAPIView.as_view(), name='schema-json'),
+    path('schema/yaml/', SpectacularAPIView.as_view(), name='schema-yaml'),
+
     # change Language
     re_path(r"^i18n/", include(i18n)),
     re_path("^api/v1/", include(api_v1_router.urls)),

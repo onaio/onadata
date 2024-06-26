@@ -19,7 +19,8 @@ class AnonymousUserPublicFormsMixin:  # pylint: disable=too-few-public-methods
 
     def get_queryset(self):
         """Public forms only for anonymous Users."""
-        if self.request and self.request.user.is_anonymous:
-            return self._get_public_forms_queryset()
+        if hasattr(self, 'request'):
+            if self.request and self.request.user.is_anonymous:
+                return self._get_public_forms_queryset()
 
         return super().get_queryset()
