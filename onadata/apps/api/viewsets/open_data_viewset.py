@@ -312,7 +312,7 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=["GET"], detail=True)
-    def schema(self, request, **kwargs):
+    def open_data_schema(self, request, **kwargs):
         """Tableau schema - headers and table alias."""
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
