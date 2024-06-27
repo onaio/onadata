@@ -577,7 +577,7 @@ class EntityListPermission(DjangoObjectPermissions):
                     project = Project.objects.get(pk=int(project_id))
 
                 except (ValueError, Project.DoesNotExist):
-                    # Return as validation will take of this
+                    # Return as validation will take care of this
                     return True
 
                 return request.user.has_perm("add_project_entitylist", project)
