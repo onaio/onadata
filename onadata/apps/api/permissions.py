@@ -587,10 +587,10 @@ class EntityListPermission(DjangoObjectPermissions):
                 try:
                     project = Project.objects.get(pk=int(project_id))
 
-                except Project.DoesNotExist:
-                    raise does_not_exist
+                except Project.DoesNotExist as exc:
+                    raise does_not_exist from exc
 
-                except ValueError:
+                except ValueError as exc:
                     raise serializers.ValidationError(
                         {
                             "project": _(
@@ -598,7 +598,7 @@ class EntityListPermission(DjangoObjectPermissions):
                             )
                         },
                         code="incorrect_type",
-                    )
+                    ) from exc
 
                 if request.user.has_perm("add_project_entitylist", project):
                     return True
