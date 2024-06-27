@@ -24,11 +24,11 @@ class EntityListSerializer(serializers.ModelSerializer):
         Uses the same validation rules as PyXForm rules for dataset name
         """
         if value.startswith(ENTITIES_RESERVED_PREFIX):
-            raise serializers.ValidationError(
-                _(
-                    f"Invalid name: starts with reserved prefix {ENTITIES_RESERVED_PREFIX}."
-                )
+            err_msg = (
+                "Invalid name: starts with reserved "
+                f"prefix {ENTITIES_RESERVED_PREFIX}."
             )
+            raise serializers.ValidationError(_(err_msg))
 
         if "." in value:
             raise serializers.ValidationError(
