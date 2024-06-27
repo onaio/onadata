@@ -148,9 +148,14 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         for role in ROLES:
             EntityList.objects.all().delete()
             ShareProject(self.project, "alice", role).save()
-            request = self.factory.post("/", data={}, **extra)
+            request = self.factory.post("/", data=self.data, **extra)
             response = self.view(request)
-            self.assertEqual(response.status_code, 400)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 201)
+
+            else:
+                self.assertEqual(response.status_code, 403)
 
     def test_name_unique(self):
         """`name` should be unique per project"""

@@ -132,6 +132,7 @@ class Project(BaseModel):
             ("can_export_project_data", "Can export data in project"),
             ("view_project_all", "Can view all associated data"),
             ("view_project_data", "Can view submitted data"),
+            ("add_project_entitylist", "Can add entitylist to project"),
         )
 
     def __str__(self):

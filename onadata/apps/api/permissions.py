@@ -569,4 +569,17 @@ class EntityListPermission(DjangoObjectPermissions):
         if request.user.is_anonymous and view.action not in ["create"]:
             return True
 
+        if request.user.is_authenticated and view.action == "create":
+            project_id = request.data.get("project")
+
+            if project_id:
+                try:
+                    project = Project.objects.get(pk=int(project_id))
+
+                except (ValueError, Project.DoesNotExist):
+                    # Return as validation will take of this
+                    return True
+
+                return request.user.has_perm("add_project_entitylist", project)
+
         return super().has_permission(request, view)
