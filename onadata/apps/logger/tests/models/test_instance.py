@@ -1005,3 +1005,70 @@ class TestInstance(TestBase):
                 "label": "300cm purpleheart",
             },
         )
+
+    def test_parse_numbers(self):
+        """Integers and decimals are parsed correctly"""
+        md = """
+        | survey |
+        |        | type    | name        | label          |
+        |        | integer | num_integer | I am an integer|
+        |        | decimal | num_decimal | I am a decimal |
+        """
+        self._publish_markdown(md, self.user)
+        xform = XForm.objects.order_by("-pk").first()
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>4</num_integer>"
+            "<num_decimal>5.5</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:49d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.json["num_integer"], 4)
+        self.assertEqual(instance.json["num_decimal"], 5.5)
+
+        # Test 0
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>0</num_integer>"
+            "<num_decimal>0.0</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:59d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+        self.assertEqual(instance.json["num_integer"], 0)
+        self.assertEqual(instance.json["num_decimal"], 0.0)
+
+        #  Test negatives
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>-1</num_integer>"
+            "<num_decimal>-1.0</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:69d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+        self.assertEqual(instance.json["num_integer"], -1)
+        self.assertEqual(instance.json["num_decimal"], -1.0)
