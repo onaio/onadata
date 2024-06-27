@@ -9,6 +9,46 @@ The following endpoints provides access to Entities related data: Where:
 - `entity_list_id` - An EntityList's unique identifier
 - `entity_id` - An Entity's unique identifier
 
+## Create EntityList
+
+`POST /api/v2/entity-lists`
+
+This endpoint is used to create a single EntityList dataset within a project. Entities for the dataset can then be created from a form or via the API.
+
+EntityList name must not include `.` or start with `__`.
+
+EntityList name is unique per project.
+
+The EntityList by default has no properties.
+
+**Request**
+
+```sh
+curl -X POST "https://api.ona.io/api/v2/entity-lists" \
+     -H "Authorization: Token ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{
+            "name": "trees",
+            "project": "2",
+         }'
+```
+
+**Response**
+
+Staus: `201 Created`
+
+Body:
+
+```
+{
+   "id":1,
+   "name":"trees",
+   "project":2,
+   "date_created":"2024-06-27T07:35:53.451077Z",
+   "date_modified":"2024-06-27T07:35:53.451091Z"
+}
+```
+
 ## Get EntityLists
 
 `GET /api/v2/entity-lists`

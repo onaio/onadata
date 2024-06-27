@@ -1,5 +1,7 @@
 from django.utils.translation import gettext as _
 
+from pyxform.constants import ENTITIES_RESERVED_PREFIX
+
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -13,8 +15,45 @@ from onadata.apps.logger.models import (
 )
 
 
-class EntityListSerializer(serializers.HyperlinkedModelSerializer):
+class EntityListSerializer(serializers.ModelSerializer):
     """Default Serializer for EntityList"""
+
+    def validate_name(self, value: str):
+        """Validate `name` field
+
+        Uses the same validation rules as PyXForm rules for dataset name
+        """
+        if value.startswith(ENTITIES_RESERVED_PREFIX):
+            raise serializers.ValidationError(
+                _(
+                    f"Invalid name: starts with reserved prefix {ENTITIES_RESERVED_PREFIX}."
+                )
+            )
+
+        if "." in value:
+            raise serializers.ValidationError(
+                "Invalid name: name may not include periods."
+            )
+
+        return value
+
+    class Meta:
+        model = EntityList
+        fields = (
+            "id",
+            "name",
+            "project",
+            "date_created",
+            "date_modified",
+        )
+        read_only_fields = (
+            "date_created",
+            "date_modified",
+        )
+
+
+class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
+    """Serializer for an array of EntityList"""
 
     url = serializers.HyperlinkedIdentityField(
         view_name="entity_list-detail", lookup_field="pk"
@@ -98,7 +137,7 @@ class FollowUpFormInlineSerializer(serializers.HyperlinkedModelSerializer):
         )
 
 
-class EntityListDetailSerializer(EntityListSerializer):
+class EntityListDetailSerializer(EntityListArraySerializer):
     """Serializer for EntityList detail"""
 
     registration_forms = RegistrationFormInlineSerializer(many=True, read_only=True)

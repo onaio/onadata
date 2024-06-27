@@ -17,8 +17,163 @@ from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
+@override_settings(TIME_ZONE="UTC")
+class CreateEntityListTestCase(TestAbstractViewSet):
+    """Tests for creating an EntityList"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"post": "create"})
+        self.project = get_user_default_project(self.user)
+        self.data = {"name": "trees", "project": self.project.pk}
+
+    def test_create(self):
+        """EntityList is created"""
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        entity_list = EntityList.objects.first()
+        self.assertEqual(
+            response.data,
+            {
+                "id": entity_list.pk,
+                "name": "trees",
+                "project": self.project.pk,
+                "date_created": entity_list.date_created.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "date_modified": entity_list.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+            },
+        )
+
+    def test_auth_required(self):
+        """Authentication is required"""
+        request = self.factory.post("/", data={})
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_name_required(self):
+        """`name` field is required"""
+        post_data = {"project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_project_required(self):
+        """`project` field is required"""
+        post_data = {"name": "trees"}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_name_valid(self):
+        """`name` should be valid"""
+        # name should not start with __
+        post_data = {"name": "__trees", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        # name should not include periods(.)
+        # period start
+        post_data = {"name": ".trees", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+        # period middle
+        post_data = {"name": "tre.es", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+        # period end
+        post_data = {"name": "trees.", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        # name should not exceed 255 characters
+        post_data = {"name": "x" * 256, "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        post_data = {"name": "x" * 255, "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 1)
+
+    def test_project_valid(self):
+        """`project` should be a valid project"""
+        post_data = {"name": "trees", "project": sys.maxsize}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_object_permissions(self):
+        """User must have object create level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        for role in ROLES:
+            EntityList.objects.all().delete()
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.post("/", data={}, **extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 400)
+
+    def test_name_unique(self):
+        """`name` should be unique per project"""
+        EntityList.objects.create(name="trees", project=self.project)
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
+        project = Project.objects.create(
+            name="Other project",
+            created_by=self.user,
+            organization=self.user,
+        )
+        post_data = {"name": "trees", "project": project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 2)
+
+
 class GetEntityListArrayTestCase(TestAbstractViewSet):
-    """Tests for GET all EntityLists"""
+    """Tests for getting an array of EntityList"""
 
     def setUp(self):
         super().setUp()

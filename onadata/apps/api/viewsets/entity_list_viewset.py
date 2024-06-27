@@ -23,6 +23,7 @@ from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
     EntitySerializer,
     EntityListSerializer,
+    EntityListArraySerializer,
     EntityListDetailSerializer,
 )
 
@@ -57,6 +58,9 @@ class EntityListViewSet(
 
     def get_serializer_class(self):
         """Override get_serializer_class"""
+        if self.action == "list":
+            return EntityListArraySerializer
+
         if self.action == "retrieve":
             return EntityListDetailSerializer
 
