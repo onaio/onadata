@@ -145,6 +145,21 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
 
+        # Public project, project NOT shared with user
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 403)
+
+        # Private project, project NOT shared with user
+        self.project.shared = False
+        self.project.save()
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
+        # Project shared with user
         for role in ROLES:
             EntityList.objects.all().delete()
             ShareProject(self.project, "alice", role).save()

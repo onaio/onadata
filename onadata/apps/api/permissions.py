@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 from rest_framework import exceptions
 from rest_framework.permissions import (
@@ -14,6 +15,7 @@ from rest_framework.permissions import (
     DjangoObjectPermissions,
     IsAuthenticated,
 )
+from rest_framework import serializers
 
 from onadata.apps.api.tools import (
     check_inherit_permission_from_project,
@@ -573,13 +575,37 @@ class EntityListPermission(DjangoObjectPermissions):
             project_id = request.data.get("project")
 
             if project_id:
+                does_not_exist = serializers.ValidationError(
+                    {
+                        "project": _(
+                            f'Invalid pk "{project_id}" - object does not exist.'
+                        )
+                    },
+                    code="does_not_exist",
+                )
+
                 try:
                     project = Project.objects.get(pk=int(project_id))
 
-                except (ValueError, Project.DoesNotExist):
-                    # Return as validation will take care of this
+                except Project.DoesNotExist:
+                    raise does_not_exist
+
+                except ValueError:
+                    raise serializers.ValidationError(
+                        {
+                            "project": _(
+                                "Incorrect type. Expected pk value, received str."
+                            )
+                        },
+                        code="incorrect_type",
+                    )
+
+                if request.user.has_perm("add_project_entitylist", project):
                     return True
 
-                return request.user.has_perm("add_project_entitylist", project)
+                if project.shared or request.user.has_perm("view_project", project):
+                    return False
+
+                raise does_not_exist
 
         return super().has_permission(request, view)
