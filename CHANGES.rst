@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.3.1(2024-06-28)
+------------------
+- Fix 0 integer, decimal values parsed as string when saving json
+  `PR #2621 <https://github.com/onaio/onadata/pull/2621>`
+  [@kelvin-muchiri]
+
+
 v4.3.0(2024-06-26)
 ------------------
 - Separate ecr image build to use arm64 runner for arm64 builds
