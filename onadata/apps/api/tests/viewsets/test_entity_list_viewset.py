@@ -63,6 +63,7 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "This field is required.")
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -72,6 +73,7 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["project"][0]), "This field is required.")
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -82,6 +84,9 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["name"][0]), "May not start with reserved prefix __."
+        )
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -91,6 +96,7 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
         # period middle
@@ -98,6 +104,7 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
         # period end
@@ -105,6 +112,7 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -113,6 +121,10 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["name"][0]),
+            "Ensure this field has no more than 255 characters.",
+        )
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -129,6 +141,10 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["project"][0]),
+            f'Invalid pk "{sys.maxsize}" - object does not exist.',
+        )
         num_datasets = EntityList.objects.count()
         self.assertEqual(num_datasets, 0)
 
@@ -158,6 +174,10 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=self.data, **extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["project"][0]),
+            f'Invalid pk "{self.project.pk}" - object does not exist.',
+        )
 
         # Project shared with user
         for role in ROLES:
@@ -178,7 +198,10 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         request = self.factory.post("/", data=self.data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
-
+        self.assertEqual(
+            str(response.data["non_field_errors"][0]),
+            "The fields name, project must make a unique set.",
+        )
         project = Project.objects.create(
             name="Other project",
             created_by=self.user,
@@ -930,11 +953,13 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field may not be blank.")
         # Null
         data = {"label": None}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field may not be null.")
 
     def test_unset_property(self):
         """Unsetting a property value works"""
@@ -967,6 +992,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["data"][0]), "Invalid dataset property foo.")
 
     def test_anonymous_user(self):
         """Anonymous user cannot update Entity"""

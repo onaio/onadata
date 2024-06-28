@@ -25,16 +25,11 @@ class EntityListSerializer(serializers.ModelSerializer):
         Uses the same validation rules as PyXForm rules for dataset name
         """
         if value.startswith(ENTITIES_RESERVED_PREFIX):
-            err_msg = (
-                "Invalid name: starts with reserved "
-                f"prefix {ENTITIES_RESERVED_PREFIX}."
-            )
+            err_msg = f"May not start with reserved prefix {ENTITIES_RESERVED_PREFIX}."
             raise serializers.ValidationError(_(err_msg))
 
         if "." in value:
-            raise serializers.ValidationError(
-                "Invalid name: name may not include periods."
-            )
+            raise serializers.ValidationError("May not include periods.")
 
         return value
 
@@ -44,7 +39,7 @@ class EntityListSerializer(serializers.ModelSerializer):
 
         if not value.shared and not user.has_perm(CAN_VIEW_PROJECT, value):
             raise serializers.ValidationError(
-                f'Invalid pk "{value}" - object does not exist.',
+                f'Invalid pk "{value.pk}" - object does not exist.',
                 code="does_not_exist",
             )
 
@@ -184,7 +179,7 @@ class EntitySerializer(serializers.ModelSerializer):
             for key in value.keys():
                 if key not in self.context["entity_list"].properties:
                     raise serializers.ValidationError(
-                        _(f"Invalid dataset property {key}")
+                        _(f"Invalid dataset property {key}.")
                     )
 
         return value
