@@ -19,6 +19,7 @@ from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilt
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import CAN_ADD_PROJECT_ENTITYLIST
 from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
     EntitySerializer,
@@ -133,3 +134,17 @@ class EntityListViewSet(
     def perform_destroy(self, instance):
         """Override perform_detroy"""
         instance.soft_delete(self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data["project"]
+
+        if not self.request.user.has_perm(CAN_ADD_PROJECT_ENTITYLIST, project):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )

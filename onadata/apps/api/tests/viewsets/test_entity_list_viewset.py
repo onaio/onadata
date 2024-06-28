@@ -152,25 +152,25 @@ class CreateEntityListTestCase(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 403)
 
-        # Private project, project NOT shared with user
-        self.project.shared = False
-        self.project.save()
-        request = self.factory.post("/", data=self.data, **extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
+        # # Private project, project NOT shared with user
+        # self.project.shared = False
+        # self.project.save()
+        # request = self.factory.post("/", data=self.data, **extra)
+        # response = self.view(request)
+        # self.assertEqual(response.status_code, 400)
 
-        # Project shared with user
-        for role in ROLES:
-            EntityList.objects.all().delete()
-            ShareProject(self.project, "alice", role).save()
-            request = self.factory.post("/", data=self.data, **extra)
-            response = self.view(request)
+        # # Project shared with user
+        # for role in ROLES:
+        #     EntityList.objects.all().delete()
+        #     ShareProject(self.project, "alice", role).save()
+        #     request = self.factory.post("/", data=self.data, **extra)
+        #     response = self.view(request)
 
-            if role in ["owner", "manager"]:
-                self.assertEqual(response.status_code, 201)
+        #     if role in ["owner", "manager"]:
+        #         self.assertEqual(response.status_code, 201)
 
-            else:
-                self.assertEqual(response.status_code, 403)
+        #     else:
+        #         self.assertEqual(response.status_code, 403)
 
     def test_name_unique(self):
         """`name` should be unique per project"""

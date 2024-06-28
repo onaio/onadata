@@ -6,7 +6,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext as _
 
 from rest_framework import exceptions
 from rest_framework.permissions import (
@@ -15,7 +14,6 @@ from rest_framework.permissions import (
     DjangoObjectPermissions,
     IsAuthenticated,
 )
-from rest_framework import serializers
 
 from onadata.apps.api.tools import (
     check_inherit_permission_from_project,
@@ -568,48 +566,10 @@ class EntityListPermission(DjangoObjectPermissions):
     authenticated_users_only = False
 
     def has_permission(self, request, view):
-        if request.user.is_anonymous and view.action not in ["create"]:
+        if request.user.is_anonymous:
+            if view.action == "create":
+                return False
+
             return True
-
-        if request.user.is_authenticated and view.action == "create":
-            # Raise HTTP status 400 (Project does not exist) if the project literally
-            # does not exist, or if the user has no permission to view the project.
-            # If the user has permission to view the project but does not have
-            # permission to create a dataset for the project, they get HTTP status 403
-            project_id = request.data.get("project")
-
-            if project_id:
-                does_not_exist = serializers.ValidationError(
-                    {
-                        "project": _(
-                            f'Invalid pk "{project_id}" - object does not exist.'
-                        )
-                    },
-                    code="does_not_exist",
-                )
-
-                try:
-                    project = Project.objects.get(pk=int(project_id))
-
-                except Project.DoesNotExist as exc:
-                    raise does_not_exist from exc
-
-                except ValueError as exc:
-                    raise serializers.ValidationError(
-                        {
-                            "project": _(
-                                "Incorrect type. Expected pk value, received str."
-                            )
-                        },
-                        code="incorrect_type",
-                    ) from exc
-
-                if request.user.has_perm("add_project_entitylist", project):
-                    return True
-
-                if project.shared or request.user.has_perm("view_project", project):
-                    return False
-
-                raise does_not_exist
 
         return super().has_permission(request, view)

@@ -13,12 +13,13 @@ from onadata.apps.logger.models import (
     RegistrationForm,
     XForm,
 )
+from onadata.libs.permissions import CAN_VIEW_PROJECT
 
 
 class EntityListSerializer(serializers.ModelSerializer):
     """Default Serializer for EntityList"""
 
-    def validate_name(self, value: str):
+    def validate_name(self, value: str) -> str:
         """Validate `name` field
 
         Uses the same validation rules as PyXForm rules for dataset name
@@ -33,6 +34,18 @@ class EntityListSerializer(serializers.ModelSerializer):
         if "." in value:
             raise serializers.ValidationError(
                 "Invalid name: name may not include periods."
+            )
+
+        return value
+
+    def validate_project(self, value: Project) -> Project:
+        """Validate `project` field"""
+        user = self.context["request"].user
+
+        if not value.shared and not user.has_perm(CAN_VIEW_PROJECT, value):
+            raise serializers.ValidationError(
+                {"project": _("Incorrect type. Expected pk value, received str.")},
+                code="incorrect_type",
             )
 
         return value
