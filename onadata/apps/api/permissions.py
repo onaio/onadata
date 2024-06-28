@@ -572,6 +572,10 @@ class EntityListPermission(DjangoObjectPermissions):
             return True
 
         if request.user.is_authenticated and view.action == "create":
+            # Raise HTTP status 400 (Project does not exist) if the project literally
+            # does not exist, or if the user has no permission to view the project.
+            # If the user has permission to view the project but does not have
+            # permission to create a dataset for the project, they get HTTP status 403
             project_id = request.data.get("project")
 
             if project_id:
