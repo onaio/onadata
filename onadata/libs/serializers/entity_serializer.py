@@ -44,8 +44,8 @@ class EntityListSerializer(serializers.ModelSerializer):
 
         if not value.shared and not user.has_perm(CAN_VIEW_PROJECT, value):
             raise serializers.ValidationError(
-                {"project": _("Incorrect type. Expected pk value, received str.")},
-                code="incorrect_type",
+                f'Invalid pk "{value}" - object does not exist.',
+                code="does_not_exist",
             )
 
         return value
