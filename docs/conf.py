@@ -14,7 +14,7 @@
 
 import os
 import sys
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 
 import django
 
@@ -23,6 +23,7 @@ import django
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, abspath(dirname(dirname(__file__))))
 sys.path.append(abspath("_themes"))
+sys.path.append(abspath(join(dirname(__file__), "_ext")))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "onadata.settings.common")
 
@@ -35,6 +36,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "onadata.settings.common")
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "djangodocs",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
