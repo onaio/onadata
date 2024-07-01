@@ -558,18 +558,3 @@ class IsAuthenticatedSubmission(BasePermission):
                 return False
 
         return True
-
-
-class EntityListPermission(DjangoObjectPermissions):
-    """Permission for EntityList"""
-
-    authenticated_users_only = False
-
-    def has_permission(self, request, view):
-        if request.user.is_anonymous:
-            if view.action == "create":
-                return False
-
-            return True
-
-        return super().has_permission(request, view)

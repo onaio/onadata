@@ -536,7 +536,7 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
         # Private EntityList
         request = self.factory.delete("/")
         response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         # Public EntityList
         self.project.shared = True
         self.project.save()
@@ -999,7 +999,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         # Anonymous user cannot update private Entity
         request = self.factory.patch("/", data={}, format="json")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         # Anonymous user cannot update public Entity
         self.project.shared = True
         self.project.save()
@@ -1101,7 +1101,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         # Anonymous user cannot delete private Entity
         request = self.factory.delete("/")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         # Anonymous user cannot delete public Entity
         self.project.shared = True
         self.project.save()
