@@ -58,7 +58,7 @@ class EntityListViewSet(
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
 
     def get_serializer_class(self):
-        """Override get_serializer_class"""
+        """Override `get_serializer_class` method"""
         if self.action == "list":
             return EntityListArraySerializer
 
@@ -74,7 +74,7 @@ class EntityListViewSet(
         return super().get_serializer_class()
 
     def get_serializer_context(self):
-        """Override get_serializer_context"""
+        """Override `get_serializer_context` method"""
         context = super().get_serializer_context()
 
         if self.action == "entities":
@@ -132,10 +132,11 @@ class EntityListViewSet(
         return Response(serializer.data)
 
     def perform_destroy(self, instance):
-        """Override perform_detroy"""
+        """Override `perform_detroy` method"""
         instance.soft_delete(self.request.user)
 
     def create(self, request, *args, **kwargs):
+        """Override `create` method"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         project = serializer.validated_data["project"]
