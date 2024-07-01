@@ -292,6 +292,14 @@ onadata.apps.logger.migrations.0018\_entityhistory\_entitylistgroupobjectpermiss
    :undoc-members:
    :show-inheritance:
 
+onadata.apps.logger.migrations.0019\_alter\_project\_options\_and\_more module
+------------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.migrations.0019_alter_project_options_and_more
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 onadata.apps.logger.migrations.0019\_auto\_20160307\_0256 module
 ----------------------------------------------------------------
 
