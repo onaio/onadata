@@ -70,6 +70,7 @@ CAN_DELETE_PROJECT = "delete_project"
 CAN_ADD_PROJECT_XFORM = "add_project_xform"
 CAN_ADD_SUBMISSIONS_PROJECT = "report_project_xform"
 CAN_EXPORT_PROJECT = "can_export_project_data"
+CAN_ADD_PROJECT_ENTITYLIST = "add_project_entitylist"
 
 # Data dictionary permissions
 CAN_ADD_DATADICTIONARY = "add_datadictionary"
@@ -330,6 +331,7 @@ class ManagerRole(Role):
             CAN_VIEW_PROJECT,
             CAN_VIEW_PROJECT_ALL,
             CAN_VIEW_PROJECT_DATA,
+            CAN_ADD_PROJECT_ENTITYLIST,
         ],
         UserProfile: [
             CAN_ADD_PROJECT_TO_PROFILE,
@@ -399,6 +401,7 @@ class OwnerRole(Role):
             CAN_VIEW_PROJECT,
             CAN_VIEW_PROJECT_ALL,
             CAN_VIEW_PROJECT_DATA,
+            CAN_ADD_PROJECT_ENTITYLIST,
         ],
         UserProfile: [
             CAN_ADD_PROJECT_TO_PROFILE,

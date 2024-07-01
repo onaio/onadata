@@ -14,10 +14,209 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import ROLES, OwnerRole
+from onadata.libs.utils.user_auth import get_user_default_project
+
+
+@override_settings(TIME_ZONE="UTC")
+class CreateEntityListTestCase(TestAbstractViewSet):
+    """Tests for creating an EntityList"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"post": "create"})
+        self.project = get_user_default_project(self.user)
+        self.data = {"name": "trees", "project": self.project.pk}
+
+    def test_create(self):
+        """EntityList is created"""
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        entity_list = EntityList.objects.first()
+        self.assertEqual(
+            response.data,
+            {
+                "id": entity_list.pk,
+                "name": "trees",
+                "project": self.project.pk,
+                "date_created": entity_list.date_created.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "date_modified": entity_list.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+            },
+        )
+
+    def test_auth_required(self):
+        """Authentication is required"""
+        request = self.factory.post("/", data={})
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_name_required(self):
+        """`name` field is required"""
+        post_data = {"project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "This field is required.")
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_project_required(self):
+        """`project` field is required"""
+        post_data = {"name": "trees"}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["project"][0]), "This field is required.")
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_name_valid(self):
+        """`name` should be valid"""
+        # name should not start with __
+        post_data = {"name": "__trees", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["name"][0]), "May not start with reserved prefix __."
+        )
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        # name should not include periods(.)
+        # period start
+        post_data = {"name": ".trees", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+        # period middle
+        post_data = {"name": "tre.es", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+        # period end
+        post_data = {"name": "trees.", "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "May not include periods.")
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        # name should not exceed 255 characters
+        post_data = {"name": "x" * 256, "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["name"][0]),
+            "Ensure this field has no more than 255 characters.",
+        )
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+        post_data = {"name": "x" * 255, "project": self.project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 1)
+
+    def test_project_valid(self):
+        """`project` should be a valid project"""
+        post_data = {"name": "trees", "project": sys.maxsize}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["project"][0]),
+            f'Invalid pk "{sys.maxsize}" - object does not exist.',
+        )
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 0)
+
+    def test_object_permissions(self):
+        """User must have object create level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        # Public project, project NOT shared with user
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 403)
+
+        # Private project, project NOT shared with user
+        self.project.shared = False
+        self.project.save()
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["project"][0]),
+            f'Invalid pk "{self.project.pk}" - object does not exist.',
+        )
+
+        # Project shared with user
+        for role in ROLES:
+            EntityList.objects.all().delete()
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.post("/", data=self.data, **extra)
+            response = self.view(request)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 201)
+
+            else:
+                self.assertEqual(response.status_code, 403)
+
+    def test_name_unique(self):
+        """`name` should be unique per project"""
+        EntityList.objects.create(name="trees", project=self.project)
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["non_field_errors"][0]),
+            "The fields name, project must make a unique set.",
+        )
+        project = Project.objects.create(
+            name="Other project",
+            created_by=self.user,
+            organization=self.user,
+        )
+        post_data = {"name": "trees", "project": project.pk}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        num_datasets = EntityList.objects.count()
+        self.assertEqual(num_datasets, 2)
 
 
 class GetEntityListArrayTestCase(TestAbstractViewSet):
-    """Tests for GET all EntityLists"""
+    """Tests for getting an array of EntityList"""
 
     def setUp(self):
         super().setUp()
@@ -167,6 +366,21 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(len(response.data), 0)
 
+    def test_soft_deleted_excluded(self):
+        """Soft deleted items are excluded"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        for entity_list in EntityList.objects.all():
+            entity_list.soft_delete()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):
@@ -282,6 +496,100 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 404)
+
+    def test_soft_deleted(self):
+        """Soft deleted dataset cannot be retrieved"""
+        self.entity_list.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+
+
+class DeleteEntityListTestCase(TestAbstractViewSet):
+    """Tests for deleting a single EntityList"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"delete": "destroy"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+
+    @patch("django.utils.timezone.now")
+    def test_delete(self, mock_now):
+        """Delete EntityList works"""
+        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=timezone.utc)
+        mock_now.return_value = mocked_date
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 204)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.deleted_at, mocked_date)
+        self.assertEqual(self.entity_list.deleted_by, self.user)
+        self.assertEqual(
+            self.entity_list.name, f'trees{mocked_date.strftime("-deleted-at-%s")}'
+        )
+
+    def test_authentication_required(self):
+        """Anonymous user cannot delete EntityList"""
+        # Private EntityList
+        request = self.factory.delete("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+        # Public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.delete("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_object_permissions(self):
+        """User must have delete level permission"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        def restore_dataset():
+            self.entity_list.deleted_at = None
+            self.entity_list.deleted_by = None
+            self.entity_list.save()
+
+        for role in ROLES:
+            restore_dataset()
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.delete("/", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role not in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 404)
+
+            else:
+                self.assertEqual(response.status_code, 204)
+
+    def test_already_soft_deleted(self):
+        """Soft deleted EntityList cannot be deleted"""
+        deleted_at = timezone.now()
+        self.entity_list.deleted_at = deleted_at
+        self.entity_list.save()
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.entity_list.deleted_at, deleted_at)
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -645,11 +953,13 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field may not be blank.")
         # Null
         data = {"label": None}
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field may not be null.")
 
     def test_unset_property(self):
         """Unsetting a property value works"""
@@ -682,13 +992,14 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["data"][0]), "Invalid dataset property foo.")
 
     def test_anonymous_user(self):
         """Anonymous user cannot update Entity"""
         # Anonymous user cannot update private Entity
         request = self.factory.patch("/", data={}, format="json")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         # Anonymous user cannot update public Entity
         self.project.shared = True
         self.project.save()
@@ -790,7 +1101,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         # Anonymous user cannot delete private Entity
         request = self.factory.delete("/")
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 401)
         # Anonymous user cannot delete public Entity
         self.project.shared = True
         self.project.save()

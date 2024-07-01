@@ -3,20 +3,28 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import GenericViewSet
+from rest_framework.mixins import (
+    CreateModelMixin,
+    RetrieveModelMixin,
+    DestroyModelMixin,
+    ListModelMixin,
+)
 
 
-from onadata.apps.api.permissions import EntityListPermission
+from onadata.apps.api.permissions import DjangoObjectPermissionsAllowAnon
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import CAN_ADD_PROJECT_ENTITYLIST
 from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
     EntitySerializer,
     EntityListSerializer,
+    EntityListArraySerializer,
     EntityListDetailSerializer,
 )
 
@@ -30,10 +38,14 @@ class EntityListViewSet(
     CacheControlMixin,
     ETagsMixin,
     BaseViewset,
-    ReadOnlyModelViewSet,
+    GenericViewSet,
+    ListModelMixin,
+    CreateModelMixin,
+    RetrieveModelMixin,
+    DestroyModelMixin,
 ):
     queryset = (
-        EntityList.objects.all()
+        EntityList.objects.filter(deleted_at__isnull=True)
         .order_by("pk")
         .prefetch_related(
             "registration_forms",
@@ -41,12 +53,15 @@ class EntityListViewSet(
         )
     )
     serializer_class = EntityListSerializer
-    permission_classes = (EntityListPermission,)
+    permission_classes = (DjangoObjectPermissionsAllowAnon,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
 
     def get_serializer_class(self):
-        """Override get_serializer_class"""
+        """Override `get_serializer_class` method"""
+        if self.action == "list":
+            return EntityListArraySerializer
+
         if self.action == "retrieve":
             return EntityListDetailSerializer
 
@@ -59,7 +74,7 @@ class EntityListViewSet(
         return super().get_serializer_class()
 
     def get_serializer_context(self):
-        """Override get_serializer_context"""
+        """Override `get_serializer_context` method"""
         context = super().get_serializer_context()
 
         if self.action == "entities":
@@ -115,3 +130,22 @@ class EntityListViewSet(
         serializer = self.get_serializer(entity_qs, many=True)
 
         return Response(serializer.data)
+
+    def perform_destroy(self, instance):
+        """Override `perform_detroy` method"""
+        instance.soft_delete(self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Override `create` method"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data["project"]
+
+        if not self.request.user.has_perm(CAN_ADD_PROJECT_ENTITYLIST, project):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )

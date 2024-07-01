@@ -2,14 +2,18 @@
 EntityList model
 """
 
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 from onadata.apps.logger.models.project import Project
 from onadata.libs.models import BaseModel
+
+User = get_user_model()
 
 
 class EntityList(BaseModel):
@@ -30,6 +34,8 @@ class EntityList(BaseModel):
     num_entities = models.IntegerField(default=0)
     last_entity_update_time = models.DateTimeField(blank=True, null=True)
     exports = GenericRelation("viewer.GenericExport")
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
@@ -60,6 +66,17 @@ class EntityList(BaseModel):
             dataset_properties.update(form_properties)
 
         return list(dataset_properties)
+
+    def soft_delete(self, deleted_by=None):
+        """Soft delete EntityList"""
+        if self.deleted_at is None:
+            deletion_time = timezone.now()
+            deletion_suffix = deletion_time.strftime("-deleted-at-%s")
+            self.deleted_at = deletion_time
+            self.deleted_by = deleted_by
+            self.name += deletion_suffix
+            self.name = self.name[:255]  # Only first 255 characters
+            self.save()
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):

@@ -1,11 +1,11 @@
 """Tests for module onadata.apps.logger.models.entity_list"""
 
-import pytz
 import os
 from datetime import datetime
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError, DataError
+from django.utils import timezone
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import EntityList, Project
@@ -19,7 +19,7 @@ class EntityListTestCase(TestBase):
         super().setUp()
 
         self.project = get_user_default_project(self.user)
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=timezone.utc)
         self.fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
 
     @patch("django.utils.timezone.now")
@@ -126,3 +126,32 @@ class EntityListTestCase(TestBase):
         """Permissions are applied asynchronously"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         mock_set_perms.assert_called_once_with(entity_list.pk)
+
+    def test_soft_delete(self):
+        """EntityList is soft deleted"""
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(name="trees", project=self.project)
+            entity_list.soft_delete(self.user)
+            entity_list.refresh_from_db()
+            self.assertEqual(entity_list.deleted_at, self.mocked_now)
+            self.assertEqual(entity_list.deleted_by, self.user)
+            self.assertEqual(
+                entity_list.name, f'trees{self.mocked_now.strftime("-deleted-at-%s")}'
+            )
+
+        # Try soft deleting soft deleted dataset
+        entity_list.soft_delete(self.user)
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_list.deleted_at, self.mocked_now)
+        # deleted_by is optional
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        entity_list.soft_delete()
+        entity_list.refresh_from_db()
+        self.assertIsNone(entity_list.deleted_by)
+        # updated name is truncated if more than 255 characters
+        dataset_name = "x" * 255
+        entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
+        entity_list.soft_delete()
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_list.name, dataset_name)
