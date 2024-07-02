@@ -3,12 +3,20 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.3.2(2024-07-02)
+------------------
+- Security Updates
+  `PR #2624 <https://github.com/onaio/onadata/pull/2624>`
+  [@KipSigei]
+- Cleanup github action yaml file
+  `PR #2627 <https://github.com/onaio/onadata/pull/2627>`
+  [@ukanga]
+
 v4.3.1(2024-06-28)
 ------------------
 - Fix 0 integer, decimal values parsed as string when saving json
   `PR #2621 <https://github.com/onaio/onadata/pull/2621>`
   [@kelvin-muchiri]
-
 
 v4.3.0(2024-06-26)
 ------------------
