@@ -9,7 +9,6 @@ from django.test import RequestFactory
 from django.urls import reverse
 from six.moves.urllib.parse import urlparse
 from httmock import HTTMock, urlmatch
-from nose import SkipTest
 
 from onadata.apps.logger.views import enter_data
 from onadata.apps.main.models import MetaData
@@ -72,7 +71,7 @@ class TestFormEnterData(TestBase):
 
     def test_enketo_remote_server(self):
         if not self._running_enketo():
-            raise SkipTest
+            self.skipTest("Requires Enketo server to be running.")
         with HTTMock(enketo_mock):
             server_url = "https://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
@@ -82,7 +81,7 @@ class TestFormEnterData(TestBase):
 
     def test_enketo_url_with_http_protocol_on_formlist(self):
         if not self._running_enketo():
-            raise SkipTest
+            self.skipTest("Requires Enketo server to be running.")
         with HTTMock(enketo_mock_http):
             server_url = "http://testserver.com/bob"
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))  # noqa
@@ -111,7 +110,7 @@ class TestFormEnterData(TestBase):
 
     def test_enter_data_redir(self):
         if not self._running_enketo():
-            raise SkipTest
+            self.skipTest("Requires Enketo server to be running.")
         with HTTMock(enketo_mock):
             factory = RequestFactory()
             request = factory.get("/")
@@ -145,7 +144,7 @@ class TestFormEnterData(TestBase):
         response = self.anon.get(self.show_url)
         self.assertEqual(response.status_code, 302)
         if not self._running_enketo():
-            raise SkipTest
+            self.skipTest("Requires Enketo server to be running.")
         with HTTMock(enketo_mock):
             factory = RequestFactory()
             request = factory.get("/")

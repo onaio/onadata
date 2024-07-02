@@ -226,7 +226,7 @@ Link XForm or Dataview as a media example:
 
 
 Link XForm as a GeoJSON media attachment example:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
 

@@ -17,7 +17,7 @@ from django.utils.translation.trans_real import parse_accept_lang_header
 from multidb.pinning import use_master
 
 
-class BaseMiddleware:
+class BaseMiddleware:  # pylint: disable=too-few-public-methods
     """BaseMiddleware - The base middleware class."""
 
     def __init__(self, get_response):
@@ -27,7 +27,7 @@ class BaseMiddleware:
         return self.get_response(request)
 
 
-class ExceptionLoggingMiddleware:
+class ExceptionLoggingMiddleware:  # pylint: disable=too-few-public-methods
     """The exception logging middleware class - prints the exception traceback."""
 
     def __init__(self, get_response):
@@ -39,7 +39,7 @@ class ExceptionLoggingMiddleware:
         print(traceback.format_exc())
 
 
-class HTTPResponseNotAllowedMiddleware:
+class HTTPResponseNotAllowedMiddleware:  # pylint: disable=too-few-public-methods
     """The HTTP Not Allowed middleware class - renders the 405.html template."""
 
     def __init__(self, get_response):
@@ -65,19 +65,19 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
             codes = [code for code, r in parse_accept_lang_header(accept)]
             if "km" in codes and "km-kh" not in codes:
                 request.META["HTTP_ACCEPT_LANGUAGE"] = accept.replace("km", "km-kh")
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as error:  # pylint: disable=broad-except
             # this might fail if i18n is disabled.
             logging.exception(
                 _(
                     "Settings request META HTTP accept language "
-                    f"threw exceptions: {str(e)}"
+                    f"threw exceptions: {str(error)}"
                 )
             )
 
         super().process_request(request)
 
 
-class SqlLogging:
+class SqlLogging:  # pylint: disable=too-few-public-methods
     """
     SQL logging middleware.
     """
@@ -97,6 +97,7 @@ class SqlLogging:
         return response
 
 
+# pylint: disable=too-few-public-methods
 class OperationalErrorMiddleware(BaseMiddleware):
     """
     Captures requests returning 500 status code.

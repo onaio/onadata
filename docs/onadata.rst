@@ -5,35 +5,26 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-    onadata.apps
-    onadata.libs
-    onadata.settings
+   onadata.apps
+   onadata.libs
 
 Submodules
 ----------
 
-onadata.celery module
----------------------
+onadata.celeryapp module
+------------------------
 
-.. automodule:: onadata.celery
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-onadata.devwsgi module
-----------------------
-
-.. automodule:: onadata.devwsgi
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+.. automodule:: onadata.celeryapp
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: onadata
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

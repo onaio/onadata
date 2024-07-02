@@ -13,7 +13,6 @@ from django.test.utils import override_settings
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from guardian.shortcuts import assign_perm
-from nose import SkipTest
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
@@ -162,36 +161,6 @@ class TestFormSubmission(TestBase):
         )
 
         self.assertEqual(self.response.status_code, 403)
-
-    def test_submission_to_require_auth_with_perm(self):
-        """
-        Test submission to a private form by non-owner is forbidden.
-
-        TODO send authentication challenge when xform.require_auth is set.
-        This is non-trivial because we do not know the xform until we have
-        parsed the XML.
-        """
-        raise SkipTest
-
-        self.xform.require_auth = True
-        self.xform.save()
-        self.xform.refresh_from_db()
-        self.assertTrue(self.xform.require_auth)
-
-        # create a new user
-        username = "alice"
-        alice = self._create_user(username, username)
-
-        # assign report perms to user
-        assign_perm("report_xform", alice, self.xform)
-        auth = DigestAuth(username, username)
-
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml",
-        )
-        self._make_submission(xml_submission_file_path, auth=auth)
-        self.assertEqual(self.response.status_code, 201)
 
     def test_form_post_to_missing_form(self):
         xml_submission_file_path = os.path.join(

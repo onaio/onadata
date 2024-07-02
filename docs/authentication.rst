@@ -57,6 +57,7 @@ To activate authentication via temporary token you must add the TemporaryToken
 class to your local_settings.py file, for example:
 
 ::
+
     REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
         'onadata.libs.authentication.DigestAuthentication',
         'onadata.libs.authentication.TempTokenAuthentication',
@@ -65,7 +66,7 @@ class to your local_settings.py file, for example:
 Using Oauth2 with the Ona API
 -----------------------------
 
-You can learn more about oauth2 `here`_.
+You can learn more about oauth2 `here <http://tools.ietf.org/html/rfc6749>`_.
 
 1. Register your client application with Ona - `register`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +79,6 @@ You can learn more about oauth2 `here`_.
 Keep note of the ``client_id`` and the ``client_secret``, it is required
 when requesting for an ``access_token``.
 
-.. _here: http://tools.ietf.org/html/rfc6749
 .. _register: /o/applications/register/
 
 2. Authorize client application.
@@ -116,7 +116,7 @@ What happens:
    account that provides access.
 2. redirection to the client application occurs, the url is of the form:
 
-    REDIRECT\_URI/?state=abc&code=YYYYYYYYY
+    REDIRECT_URI/?state=abc&code=YYYYYYYYY
 
 example redirect uri
 
@@ -128,7 +128,7 @@ example redirect uri
 -  ``state`` - same state string used during authorization request
 
 Your client application should use the ``code`` to request for an
-access\_token.
+access_token.
 
 3. Request for access token.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -191,7 +191,7 @@ Example using curl:
 
 Making CORS - Cross-Origin Resource Sharing - requests to the Ona API
 ----------------------------------------------------------------------
-To find out more about CORS, you can read about it `here <http://www.html5rocks.com/en/tutorials/cors/>`_. The following is a javascript code snippet on how to make a CORS request.
+To find out more about CORS, you can read about it `here <http://www.html5rocks.com/en/tutorials/cors/>`__. The following is a javascript code snippet on how to make a CORS request.
 
 .. code-block:: javascript
 
@@ -221,8 +221,8 @@ The following is a jquery code snippet on how to make a CORS request.
 
 OpenID Connect Authentication
 ------------------------------
-   
-.. toctree::
-    :maxdepth: 2
 
-open-id-connect
+.. toctree::
+   :maxdepth: 2
+
+   open-id-connect

@@ -45,10 +45,8 @@ class MediaViewSet(
         Redirect to final attachment url
 
         param pk: the attachment id
-        query param filename: the filename of the associated attachment is
-            required and has to match
-        query param suffix: (optional) - specify small | medium | large to
-            return resized images.
+        query param filename: the filename of the associated attachment is required and has to match
+        query param suffix: (optional) - specify small | medium | large to return resized images.
 
         return HttpResponseRedirect: redirects to final image url
         """
@@ -57,39 +55,35 @@ class MediaViewSet(
             int(pk)
         except ValueError as exc:
             raise Http404() from exc
-        else:
-            filename = request.query_params.get("filename")
-            obj = self.get_object()
+        filename = request.query_params.get("filename")
+        obj = self.get_object()
 
-            if obj.media_file.name != filename:
-                raise Http404()
+        if obj.media_file.name != filename:
+            raise Http404()
 
-            url = None
+        url = None
 
-            if obj.mimetype.startswith("image"):
-                suffix = request.query_params.get("suffix")
+        if obj.mimetype.startswith("image"):
+            suffix = request.query_params.get("suffix")
 
-                if suffix:
-                    if suffix in list(settings.THUMB_CONF):
-                        try:
-                            url = image_url(obj, suffix)
-                        except Exception as e:
-                            raise ParseError(e) from e
-                    else:
-                        raise Http404()
+            if suffix:
+                if suffix in list(settings.THUMB_CONF):
+                    try:
+                        url = image_url(obj, suffix)
+                    except Exception as e:
+                        raise ParseError(e) from e
+                else:
+                    raise Http404()
 
-            if not url:
-                response = generate_media_download_url(obj)
+        if not url:
+            response = generate_media_download_url(obj)
 
-                return response
+            return response
 
-            return HttpResponseRedirect(url)
-
-        raise Http404()
+        return HttpResponseRedirect(url)
 
     def list(self, request, *args, **kwargs):
         """
-        Action NOT IMPLEMENTED, only needed because of the automatic url
-        routing in /api/v1/
+        Action NOT IMPLEMENTED, only needed because of the automatic url routing in /api/v1/
         """
         return Response(data=[])
