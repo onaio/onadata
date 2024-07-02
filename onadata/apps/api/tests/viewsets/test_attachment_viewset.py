@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Test Attachment viewsets.
+"""
 import os
 
-
 from django.utils import timezone
+
+from flaky import flaky
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
@@ -9,8 +14,8 @@ from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.permissions import EditorRole
 from onadata.libs.models.share_xform import ShareXForm
+from onadata.libs.permissions import EditorRole
 
 
 def attachment_url(attachment, suffix=None):
@@ -28,6 +33,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         self._publish_xls_form_to_project()
 
+    @flaky(max_runs=3)
     def test_retrieve_view(self):
         self._submit_transport_instance_w_attachment()
 

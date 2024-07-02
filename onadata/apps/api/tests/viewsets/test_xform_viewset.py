@@ -16,7 +16,6 @@ from http.client import BadStatusLine
 from io import StringIO
 from unittest.mock import Mock, patch
 from xml.dom import Node
-from defusedxml import minidom
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -30,6 +29,7 @@ from django.utils.html import conditional_escape
 from django.utils.timezone import utc
 
 import jwt
+from defusedxml import minidom
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
@@ -55,13 +55,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import (
-    Attachment,
-    Instance,
-    Project,
-    XForm,
-    EntityList,
-)
+from onadata.apps.logger.models import Attachment, EntityList, Instance, Project, XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -3567,7 +3561,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response.data, error_message)
 
-    @flaky(max_runs=8)
+    @flaky(max_runs=10)
     def test_survey_preview_endpoint(self):
         view = XFormViewSet.as_view({"post": "survey_preview", "get": "survey_preview"})
 

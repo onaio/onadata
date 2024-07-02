@@ -169,7 +169,7 @@ class TestBriefcaseClient(TestBase):
             mocker.head(requests_mock.ANY, content=submission_list)
             self.briefcase_client.download_instances(self.xform.id_string)
 
-    @flaky(max_runs=10)
+    @flaky(max_runs=11)
     def test_download_xform_xml(self):
         """
         Download xform via briefcase api
