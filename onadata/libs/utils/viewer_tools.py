@@ -178,6 +178,7 @@ def get_enketo_urls(
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ""),
         verify=getattr(settings, "VERIFY_SSL", True),
+        timeout=20,
     )
     resp_content = response.content
     resp_content = (
@@ -203,19 +204,18 @@ def handle_enketo_error(response):
     """Handle enketo error response."""
     try:
         data = json.loads(response.content)
-    except (ValueError, JSONDecodeError) as e:
+    except (ValueError, JSONDecodeError) as enketo_error:
         report_exception(
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
         if response.status_code == 502:
             raise EnketoError(
                 "Sorry, we cannot load your form right now.  Please try again later."
-            ) from e
-        raise EnketoError() from e
-    else:
-        if "message" in data:
-            raise EnketoError(data["message"])
-        raise EnketoError(response.text)
+            ) from enketo_error
+        raise EnketoError() from enketo_error
+    if "message" in data:
+        raise EnketoError(data["message"])
+    raise EnketoError(response.text)
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
@@ -223,7 +223,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
     defaults = {}
 
     if kwargs:
-        for (name, value) in kwargs.items():
+        for name, value in kwargs.items():
             field = xform.get_survey_element(name)
             if field:
                 defaults[f"defaults[{field.get_xpath()}]"] = value
@@ -237,15 +237,17 @@ def create_attachments_zipfile(attachments, zip_file):
     :param attachments: an Attachments queryset.
     :param zip_file: a file object, more likely a NamedTemporaryFile() object.
     """
-    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+    with zipfile.ZipFile(
+        zip_file, "w", zipfile.ZIP_DEFLATED, allowZip64=True
+    ) as z_file:
         for attachment in attachments:
             default_storage = get_storage_class()()
             filename = attachment.media_file.name
 
             if default_storage.exists(filename):
                 try:
-                    with default_storage.open(filename) as f:
-                        if f.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
+                    with default_storage.open(filename) as a_file:
+                        if a_file.size > settings.ZIP_REPORT_ATTACHMENT_LIMIT:
                             report_exception(
                                 "Create attachment zip exception",
                                 (
@@ -254,9 +256,9 @@ def create_attachments_zipfile(attachments, zip_file):
                                 ),
                             )
                             break
-                        z.writestr(attachment.media_file.name, f.read())
-                except IOError as e:
-                    report_exception("Create attachment zip exception", e)
+                        z_file.writestr(attachment.media_file.name, a_file.read())
+                except IOError as io_error:
+                    report_exception("Create attachment zip exception", io_error)
                     break
 
 

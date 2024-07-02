@@ -25,8 +25,10 @@ def _get_xml_obj(xml):
         xml = xml.strip().encode()
     try:
         return fromstring(xml)
-    except _etree.XMLSyntaxError as e:  # pylint: disable=c-extension-no-member
-        if "Attribute action redefined" in str(e):
+    except (
+        _etree.XMLSyntaxError
+    ) as _etree_error:  # pylint: disable=c-extension-no-member
+        if "Attribute action redefined" in str(_etree_error):
             xml = xml.replace(b'action="modify" ', b"")
 
             return _get_xml_obj(xml)
@@ -167,16 +169,16 @@ def save_osm_data(instance_id):
                 osm_xml = osm.media_file.read()
                 if isinstance(osm_xml, bytes):
                     osm_xml = osm_xml.decode("utf-8")
-            except IOError as e:
-                logging.exception("IOError saving osm data: %s", str(e))
+            except IOError as io_error:
+                logging.exception("IOError saving osm data: %s", str(io_error))
                 continue
             else:
                 filename = None
                 field_name = None
-                for k, v in osm_filenames.items():
-                    if osm.filename.startswith(v.replace(".osm", "")):
-                        filename = v
-                        field_name = k
+                for key, value in osm_filenames.items():
+                    if osm.filename.startswith(value.replace(".osm", "")):
+                        filename = value
+                        field_name = key
                         break
 
                 if field_name is None:
@@ -227,7 +229,7 @@ def osm_flat_dict(instance_id):
 
     for osm in osm_data:
         for tag in osm.tags:
-            for (k, v) in iteritems(tag):
-                tags.update({f"osm_{k}": v})
+            for key, value in iteritems(tag):
+                tags.update({f"osm_{key}": value})
 
     return tags
