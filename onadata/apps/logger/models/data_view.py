@@ -56,10 +56,12 @@ def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=Non
 
 
 def get_name_from_survey_element(element):
+    """Returns the abbreviated xpath of a given ``SurveyElement``."""
     return element.get_abbreviated_xpath()
 
 
 def append_where_list(comp, t_list, json_str):
+    """Concatenates an SQL query based on the ``comp`` comparison value."""
     if comp in ["=", ">", "<", ">=", "<="]:
         t_list.append(f"{json_str} {comp}" + " %s")
     elif comp in ["<>", "!="]:
@@ -266,6 +268,8 @@ class DataView(models.Model):
 
     @classmethod
     def query_iterator(cls, sql, fields=None, params=None, count=False):
+        """A database query iterator."""
+
         def parse_json(data):
             try:
                 return json.loads(data)
@@ -313,6 +317,7 @@ class DataView(models.Model):
         sort,
         filter_query=None,
     ):
+        """Returns an SQL string based on the passed in parameters."""
         additional_columns = [GEOLOCATION] if data_view.instances_with_geopoints else []
 
         if has_attachments_fields(data_view):
@@ -417,8 +422,8 @@ class DataView(models.Model):
 
         try:
             records = list(DataView.query_iterator(sql, columns, params, count))
-        except DataError as e:
-            return {"error": _(str(e))}
+        except DataError as error:
+            return {"error": _(str(error))}
 
         return records
 

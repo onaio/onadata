@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 User = get_user_model()
 
 
-class AnonymousUserMixin:
+class AnonymousUserMixin:  # pylint: disable=too-few-public-methods
     """
     Implements AnonymousUserMixin class
 

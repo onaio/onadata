@@ -79,7 +79,6 @@ SUPPORTED_INDEX_TAGS = ("[", "]", "(", ")", "{", "}", ".", "_")
 EXPORT_QUERY_KEY = "query"
 MAX_RETRIES = 3
 
-# pylint: disable=invalid-name
 User = get_user_model()
 
 
@@ -275,7 +274,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     export_builder.INCLUDE_REVIEWS = include_reviews  # noqa
     export_builder.set_survey(xform.survey, xform, include_reviews=include_reviews)
 
-    temp_file = NamedTemporaryFile(suffix=("." + extension))
+    temp_file = NamedTemporaryFile(suffix="." + extension)
 
     columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
         xform.survey_elements
@@ -301,12 +300,12 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
         )
     except NoRecordsFoundError:
         pass
-    except SPSSIOError as e:
+    except SPSSIOError as error:
         export = get_or_create_export(export_id, xform, export_type, options)
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.internal_status = Export.FAILED
         export.save()
-        report_exception("SAV Export Failure", e, sys.exc_info())
+        report_exception("SAV Export Failure", error, sys.exc_info())
         return export
 
     # generate filename
@@ -839,8 +838,8 @@ def clean_keys_of_slashes(record):
         # Check if the value is a list containing nested dict and apply same
         if value:
             if isinstance(value, list) and isinstance(value[0], dict):
-                for v in value:
-                    clean_keys_of_slashes(v)
+                for item in value:
+                    clean_keys_of_slashes(item)
 
     return record
 
@@ -856,8 +855,8 @@ def _get_server_from_metadata(xform, meta, token):
     if meta:
         try:
             int(meta)
-        except ValueError as e:
-            raise Exception(f"Invalid metadata pk {meta}") from e
+        except ValueError as error:
+            raise ValueError(f"Invalid metadata pk {meta}") from error
 
         # Get the external server from the metadata
         result = report_templates.get(pk=meta)
@@ -869,7 +868,7 @@ def _get_server_from_metadata(xform, meta, token):
     else:
         # Take the latest value in the metadata
         if not report_templates:
-            raise Exception(
+            raise ValueError(
                 "Could not find the template token: Please upload template."
             )
 
@@ -941,11 +940,11 @@ def generate_external_export(  # noqa C901
 
             if hasattr(client.xls.conn, "last_response"):
                 status_code = client.xls.conn.last_response.status_code
-        except Exception as e:
+        except Exception as error:
             raise J2XException(
                 f"J2X client could not generate report. Server -> {server},"
-                f" Error-> {e}"
-            ) from e
+                f" Error-> {error}"
+            ) from error
     else:
         if not server:
             raise J2XException("External server not set")
@@ -978,7 +977,6 @@ def generate_external_export(  # noqa C901
     return export
 
 
-# pylint: disable=invalid-name
 def upload_template_for_external_export(server, file_obj):
     """
     Uploads an Excel template to the XLSReport server.
@@ -1108,7 +1106,7 @@ def generate_entity_list_export(entity_list: EntityList) -> GenericExport:
     records = get_entity_list_dataset(entity_list)
     export_builder = ExportBuilder()
     extension = Export.CSV_EXPORT
-    temp_file = NamedTemporaryFile(suffix=("." + extension))
+    temp_file = NamedTemporaryFile(suffix="." + extension)
     export_builder.to_flat_csv_export(
         temp_file.name, records, username, None, None, entity_list=entity_list
     )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-email utility functions.
+Email utility functions.
 """
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -85,6 +85,7 @@ def get_account_lockout_email_data(username, ip_address, end=False):
 
 
 def send_generic_email(email, message_txt, subject):
+    """Sends an email."""
     if any(a in [None, ""] for a in [email, message_txt, subject]):
         raise ValueError("email, message_txt amd subject arguments are ALL required.")
 

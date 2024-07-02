@@ -926,6 +926,7 @@ class OpenRosaNotAuthenticated(Response):
 
 
 def inject_instanceid(xml_str, uuid):
+    """Adds the `uuid` as the <instanceID/> to an XML string `xml_str`."""
     if get_uuid_from_xml(xml_str) is None:
         xml = clean_and_parse_xml(xml_str)
         children = xml.childNodes
@@ -963,7 +964,7 @@ def inject_instanceid(xml_str, uuid):
     return xml_str
 
 
-class PublishXForm:
+class PublishXForm:  # pylint: disable=too-few-public-methods
     "A class to publish an XML XForm file."
 
     def __init__(self, xml_file, user):

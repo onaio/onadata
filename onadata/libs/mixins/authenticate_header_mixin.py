@@ -9,7 +9,7 @@ from rest_framework.authentication import TokenAuthentication, get_authorization
 from onadata.libs.authentication import TempTokenAuthentication
 
 
-class AuthenticateHeaderMixin:
+class AuthenticateHeaderMixin:  # pylint: disable=too-few-public-methods
     """
     Implements the AuthenticateHeaderMixin class
 

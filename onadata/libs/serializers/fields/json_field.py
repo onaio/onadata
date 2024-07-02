@@ -29,9 +29,9 @@ class JsonField(serializers.Field):
         if isinstance(data, str):
             try:
                 return json.loads(data)
-            except ValueError as e:
+            except ValueError as error:
                 # invalid JSON
-                raise serializers.ValidationError(str(e)) from e
+                raise serializers.ValidationError(str(error)) from error
         return data
 
     @classmethod

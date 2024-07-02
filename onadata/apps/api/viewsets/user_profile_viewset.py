@@ -269,9 +269,9 @@ class UserProfileViewSet(
 
         try:
             validate_password(new_password, user=user_profile.user)
-        except ValidationError as e:
+        except ValidationError as error:
             return Response(
-                data={"errors": e.messages}, status=status.HTTP_400_BAD_REQUEST
+                data={"errors": error.messages}, status=status.HTTP_400_BAD_REQUEST
             )
 
         data = {"username": user_profile.user.username}

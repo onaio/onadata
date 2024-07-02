@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Test service health view.
+"""
 import json
 
 from django.http import HttpRequest

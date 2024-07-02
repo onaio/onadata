@@ -3,14 +3,18 @@
 Post submission data to a textit/rapidpro server.
 """
 import json
+
+from django.conf import settings
+
 import requests
-from six import iteritems
-from six import string_types
+from six import iteritems, string_types
 
 from onadata.apps.main.models import MetaData
-from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
+from onadata.apps.restservice.interface import RestServiceInterface
 from onadata.libs.utils.common_tags import TEXTIT
 from onadata.settings.common import METADATA_SEPARATOR
+
+WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
 
 
 class ServiceDefinition(RestServiceInterface):
@@ -46,7 +50,12 @@ class ServiceDefinition(RestServiceInterface):
                 "Authorization": f"Token {token}",
             }
 
-            requests.post(url, headers=headers, data=json.dumps(post_data))
+            requests.post(
+                url,
+                headers=headers,
+                data=json.dumps(post_data),
+                timeout=WEBHOOK_TIMEOUT,
+            )
 
     def clean_keys_of_slashes(self, record):
         """

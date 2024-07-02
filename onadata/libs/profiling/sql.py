@@ -13,7 +13,7 @@ TOTALS_LOG = logging.getLogger("sql_totals_logger")
 # http://johnparsons.net/index.php/2013/08/15/easy-sql-query-counting-in-django
 
 
-class SqlTimingMiddleware:
+class SqlTimingMiddleware:  # pylint: disable=too-few-public-methods
     """
     Logs the time taken by each sql query over requests.
     Logs the total time taken to run sql queries and the number of sql queries

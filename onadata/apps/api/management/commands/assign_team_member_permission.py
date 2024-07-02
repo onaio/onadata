@@ -37,9 +37,9 @@ class Command(BaseCommand):
                 count += 1
                 total += 1
 
-            except ObjectDoesNotExist as e:
+            except ObjectDoesNotExist as error:
                 fail += 1
-                self.stdout.write(str(e), ending="\n")
+                self.stdout.write(str(error), ending="\n")
         else:
             # Get all the teams
             for team in queryset_iterator(

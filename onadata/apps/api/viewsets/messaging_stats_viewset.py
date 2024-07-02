@@ -28,7 +28,7 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     The endpoint accepts the following query parameters:
 
-        - `group_by`: field specifying whether to group events by `day`, `month` or `year`
+        - `group_by`: field to group events by `day`, `month` or `year`
         - `target_type`: field to be used to determine the target
            object type i.e xform, project
         - `target_id`: field used to identify the target object

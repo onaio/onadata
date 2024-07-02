@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Project invitations serializer
+"""
 import re
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -115,8 +119,8 @@ class ProjectInvitationUpdateBaseSerializer(serializers.Serializer):
         try:
             ProjectInvitation.objects.get(pk=invitation_id)
 
-        except ProjectInvitation.DoesNotExist as e:
-            raise serializers.ValidationError(_("Invalid invitation_id.")) from e
+        except ProjectInvitation.DoesNotExist as error:
+            raise serializers.ValidationError(_("Invalid invitation_id.")) from error
 
         return invitation_id
 

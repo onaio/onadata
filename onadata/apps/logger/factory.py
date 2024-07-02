@@ -147,8 +147,8 @@ class XFormManagerFactory:
         # pylint: disable=protected-access
         reg_instance._id = xform.id_string
 
-        for k, v in values.items():
-            reg_instance.answer(name=k, value=v)
+        for key, value in values.items():
+            reg_instance.answer(name=key, value=value)
 
         instance_xml = reg_instance.to_xml()
 
@@ -198,8 +198,8 @@ class XFormManagerFactory:
         water_simple_survey = _load_simple_survey_object()
         simple_survey = water_simple_survey.instantiate()
 
-        for k, v in values.items():
-            simple_survey.answer(name=k, value=v)
+        for key, value in values.items():
+            simple_survey.answer(name=key, value=value)
 
         # setting the id_string so that it doesn't end up
         # with the timestamp of the new survey object

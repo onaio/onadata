@@ -18,7 +18,7 @@ from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
 from pyxform.question import Question
 from pyxform.section import RepeatingSection, Section
-from savReaderWriter import SavWriter
+from savReaderWriter import SavWriter  # pylint: disable=no-name-in-module
 from six import iteritems
 
 from onadata.apps.logger.models.osmdata import OsmData
@@ -221,8 +221,7 @@ def string_to_date_with_xls_validation(date_str):
         to_excel(date_obj)
     except ValueError:
         return date_str
-    else:
-        return date_obj
+    return date_obj
 
 
 # pylint: disable=invalid-name
@@ -732,42 +731,40 @@ class ExportBuilder:
                 if show_choice_labels:
                     row.update(
                         {
-                            choice["label"]: choice["_label"]
-                            if selections and choice["xpath"] in selections
-                            else None
+                            choice["label"]: (
+                                choice["_label"]
+                                if selections and choice["xpath"] in selections
+                                else None
+                            )
                             for choice in choices
                         }
                     )
                 else:
                     row.update(
                         {
-                            choice["xpath"]: data.split()[
-                                selections.index(choice["xpath"])
-                            ]
-                            if selections and choice["xpath"] in selections
-                            else None
+                            choice["xpath"]: (
+                                data.split()[selections.index(choice["xpath"])]
+                                if selections and choice["xpath"] in selections
+                                else None
+                            )
                             for choice in choices
                         }
                     )
             elif binary_select_multiples:
                 row.update(
                     {
-                        choice["label"]
-                        if show_choice_labels
-                        else choice["xpath"]: YES
-                        if choice["xpath"] in selections
-                        else NO
+                        choice["label"] if show_choice_labels else choice["xpath"]: (
+                            YES if choice["xpath"] in selections else NO
+                        )
                         for choice in choices
                     }
                 )
             else:
                 row.update(
                     {
-                        choice["label"]
-                        if show_choice_labels
-                        else choice["xpath"]: choice["xpath"] in selections
-                        if selections
-                        else None
+                        choice["label"] if show_choice_labels else choice["xpath"]: (
+                            choice["xpath"] in selections if selections else None
+                        )
                         for choice in choices
                     }
                 )
@@ -1335,29 +1332,37 @@ class ExportBuilder:
             [
                 (
                     _var_types[element["xpath"]],
-                    SAV_NUMERIC_TYPE
-                    if _is_numeric(
-                        element["xpath"], element["type"], self.data_dicionary
-                    )
-                    else SAV_255_BYTES_TYPE,
+                    (
+                        SAV_NUMERIC_TYPE
+                        if _is_numeric(
+                            element["xpath"], element["type"], self.data_dicionary
+                        )
+                        else SAV_255_BYTES_TYPE
+                    ),
                 )
                 for element in elements
             ]
             + [  # noqa W503
                 (
                     _var_types[item],
-                    SAV_NUMERIC_TYPE
-                    if item in ["_id", "_index", "_parent_index", SUBMISSION_TIME]
-                    else SAV_255_BYTES_TYPE,
+                    (
+                        SAV_NUMERIC_TYPE
+                        if item in ["_id", "_index", "_parent_index", SUBMISSION_TIME]
+                        else SAV_255_BYTES_TYPE
+                    ),
                 )
                 for item in self.extra_columns
             ]
             + [  # noqa W503
                 (
                     x[1],
-                    SAV_NUMERIC_TYPE
-                    if _is_numeric(x[0], _get_element_type(x[0]), self.data_dicionary)
-                    else SAV_255_BYTES_TYPE,
+                    (
+                        SAV_NUMERIC_TYPE
+                        if _is_numeric(
+                            x[0], _get_element_type(x[0]), self.data_dicionary
+                        )
+                        else SAV_255_BYTES_TYPE
+                    ),
                 )
                 for x in duplicate_names
             ]
@@ -1476,16 +1481,20 @@ class ExportBuilder:
         """
         if dataview:
             return [
-                element.get("_label_xpath") or element[key]
-                if self.SHOW_CHOICE_LABELS
-                else element[key]
+                (
+                    element.get("_label_xpath") or element[key]
+                    if self.SHOW_CHOICE_LABELS
+                    else element[key]
+                )
                 for element in section["elements"]
                 if element["title"] in dataview.columns
             ] + self.extra_columns
 
         return [
-            element.get("_label_xpath") or element[key]
-            if self.SHOW_CHOICE_LABELS
-            else element[key]
+            (
+                element.get("_label_xpath") or element[key]
+                if self.SHOW_CHOICE_LABELS
+                else element[key]
+            )
             for element in section["elements"]
         ] + self.extra_columns

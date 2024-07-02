@@ -329,13 +329,13 @@ def _generate_new_export(  # noqa: C0901
             audit,
             request,
         )
-    except NoRecordsFoundError as e:
-        raise Http404(_("No records found to export")) from e
-    except J2XException as e:
+    except NoRecordsFoundError as error:
+        raise Http404(_("No records found to export")) from error
+    except J2XException as error:
         # j2x exception
-        return async_status(FAILED, str(e))
-    except SPSSIOError as e:
-        raise exceptions.ParseError(str(e)) from e
+        return async_status(FAILED, str(error))
+    except SPSSIOError as error:
+        raise exceptions.ParseError(str(error)) from error
     else:
         return export
 
@@ -399,12 +399,11 @@ def _set_start_end_params(request, query):
                 query[SUBMISSION_TIME]["$lte"] = _format_date_for_mongo(
                     request.GET["end"]
                 )
-        except ValueError as e:
+        except ValueError as error:
             raise exceptions.ParseError(
                 _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-            ) from e
-        else:
-            query = json.dumps(query)
+            ) from error
+        query = json.dumps(query)
 
     return query
 
@@ -463,9 +462,8 @@ def process_async_export(request, xform, export_type, options=None):
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json",
         )
-    else:
-        if query:
-            options["query"] = query
+    if query:
+        options["query"] = query
 
     if (
         export_type in EXTERNAL_EXPORT_TYPES

@@ -45,8 +45,9 @@ class MediaViewSet(
         Redirect to final attachment url
 
         param pk: the attachment id
-        query param filename: the filename of the associated attachment is required and has to match
-        query param suffix: (optional) - specify small | medium | large to return resized images.
+        query param filename: the filename of the attachment is required and must match
+        query param suffix: (optional) - specify small | medium | large to
+                            return resized images.
 
         return HttpResponseRedirect: redirects to final image url
         """
@@ -84,6 +85,7 @@ class MediaViewSet(
 
     def list(self, request, *args, **kwargs):
         """
-        Action NOT IMPLEMENTED, only needed because of the automatic url routing in /api/v1/
+        Action NOT IMPLEMENTED.
+        It is only needed because of the automatic URL routing in /api/v1/
         """
         return Response(data=[])

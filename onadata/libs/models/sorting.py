@@ -14,14 +14,14 @@ def sort_from_mongo_sort_str(sort_str):
     if isinstance(sort_str, six.string_types):
         if sort_str.startswith("{"):
             sort_dict = json.loads(sort_str)
-            for k, v in sort_dict.items():
+            for key, value in sort_dict.items():
                 try:
-                    v = int(v)
+                    value = int(value)
                 except ValueError:
                     pass
-                if v < 0:
-                    k = f"-{k}"
-                sort_values.append(k)
+                if value < 0:
+                    key = f"-{key}"
+                sort_values.append(key)
         else:
             sort_values.append(sort_str)
 

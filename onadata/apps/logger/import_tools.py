@@ -39,11 +39,11 @@ def django_file(path, field_name, content_type):
     # http://groups.google.com/group/django-users/browse_thread/thread/
     # 834f988876ff3c45/
     # pylint: disable=consider-using-with
-    f = open(path, "rb")
+    a_file = open(path, "rb")
     return InMemoryUploadedFile(
-        file=f,
+        file=a_file,
         field_name=field_name,
-        name=f.name,
+        name=a_file.name,
         content_type=content_type,
         size=os.path.getsize(path),
         charset=None,
@@ -142,8 +142,8 @@ def import_instances_from_zip(zipfile_path, user, status="zip"):
     try:
         with zipfile.ZipFile(zipfile_path) as zip_file:
             zip_file.extractall(temp_directory)
-    except zipfile.BadZipfile as e:
-        errors = [f"{e}"]
+    except zipfile.BadZipfile as error:
+        errors = [f"{error}"]
         return 0, 0, errors
     else:
         return import_instances_from_path(temp_directory, user, status)

@@ -21,12 +21,12 @@ class ProjectField(serializers.Field):
         if data is not None:
             try:
                 project = Project.objects.get(pk=data)
-            except Project.DoesNotExist as e:
+            except Project.DoesNotExist as error:
                 raise serializers.ValidationError(
                     _(f"Project with id '{data}' does not exist.")
-                ) from e
-            except ValueError as e:
-                raise serializers.ValidationError(str(e)) from e
+                ) from error
+            except ValueError as error:
+                raise serializers.ValidationError(str(error)) from error
 
             return project
         return data

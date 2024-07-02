@@ -5,7 +5,7 @@ BulkCreateMixin module
 from __future__ import unicode_literals
 
 
-class BulkCreateMixin:
+class BulkCreateMixin:  # pylint: disable=too-few-public-methods
     """
     Bulk Create Mixin
     Allows the bulk creation of resources

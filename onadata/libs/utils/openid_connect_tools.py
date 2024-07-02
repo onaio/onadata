@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    OpenID Connect Tools
+OpenID Connect Tools
 """
 import json
 
@@ -17,6 +17,7 @@ NAME = "name"
 FIRST_NAME = "given_name"
 LAST_NAME = "family_name"
 NONCE = "nonce"
+DEFAULT_REQUEST_TIMEOUT = 30
 
 
 class OpenIDHandler:
@@ -110,7 +111,10 @@ class OpenIDHandler:
         if "jwks_endpoint" not in self.provider_configuration:
             raise ValueError("jwks_endpoint not found in provider configuration")
 
-        response = requests.get(self.provider_configuration["jwks_endpoint"])
+        response = requests.get(
+            self.provider_configuration["jwks_endpoint"],
+            timeout=DEFAULT_REQUEST_TIMEOUT,
+        )
 
         if response.status_code == 200:
             jwks = response.json()
@@ -140,6 +144,7 @@ class OpenIDHandler:
             self.provider_configuration["token_endpoint"],
             params=payload,
             headers=headers,
+            timeout=DEFAULT_REQUEST_TIMEOUT,
         )
 
         if response.status_code == 200:
@@ -182,7 +187,7 @@ class OpenIDHandler:
                 provider_initiated_for = cache.get(decoded_token.get(NONCE))
 
                 if provider_initiated_for != openid_provider:
-                    raise Exception("Incorrect nonce value returned")
+                    raise ValueError("Incorrect nonce value returned")
             return decoded_token
 
         return None

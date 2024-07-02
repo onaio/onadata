@@ -34,8 +34,8 @@ def get_attachment_data(attachment, suffix):
     if suffix in list(settings.THUMB_CONF):
         image_url(attachment, suffix)
         suffix = settings.THUMB_CONF.get(suffix).get("suffix")
-        f = default_storage.open(get_path(attachment.media_file.name, suffix))
-        return f.read()
+        media_file = default_storage.open(get_path(attachment.media_file.name, suffix))
+        return media_file.read()
 
     return attachment.media_file.read()
 
@@ -77,13 +77,12 @@ class AttachmentViewSet(
             suffix = request.query_params.get("suffix")
             try:
                 data = get_attachment_data(self.object, suffix)
-            except IOError as e:
-                if str(e).startswith("File does not exist"):
-                    raise Http404() from e
+            except IOError as error:
+                if str(error).startswith("File does not exist"):
+                    raise Http404() from error
 
-                raise ParseError(e) from e
-            else:
-                return Response(data, content_type=self.object.mimetype)
+                raise ParseError(error) from error
+            return Response(data, content_type=self.object.mimetype)
 
         filename = request.query_params.get("filename")
         serializer = self.get_serializer(self.object)

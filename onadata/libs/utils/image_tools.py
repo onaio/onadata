@@ -55,11 +55,10 @@ def generate_media_download_url(obj, expiration: int = 3600):
     if isinstance(default_storage, type(s3_class)):
         try:
             url = generate_aws_media_url(file_path, content_disposition, expiration)
-        except ClientError as e:
-            logging.error(e)
+        except ClientError as error:
+            logging.error(error)
             return None
-        else:
-            return HttpResponseRedirect(url)
+        return HttpResponseRedirect(url)
 
     if isinstance(default_storage, type(azure)):
         media_url = generate_media_url_with_sas(file_path, expiration)
@@ -151,6 +150,7 @@ def _save_thumbnails(image, path, size, suffix, extension):
 
         try:
             # Ensure conversion to float in operations
+            # pylint: disable=no-member
             image.thumbnail(get_dimensions(image.size, float(size)), Image.LANCZOS)
         except ZeroDivisionError:
             pass
@@ -178,7 +178,7 @@ def resize(filename, extension):
                     settings.DEFAULT_IMG_FILE_TYPE if extension == "non" else extension,
                 )
     except IOError as exc:
-        raise Exception("The image file couldn't be identified") from exc
+        raise ValueError("The image file couldn't be identified") from exc
 
 
 def resize_local_env(filename, extension):

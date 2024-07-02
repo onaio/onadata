@@ -513,9 +513,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             json_val = JsonField.to_json(value)
         except ValueError as e:
             raise serializers.ValidationError(msg) from e
-        else:
-            if json_val is None:
-                raise serializers.ValidationError(msg)
+        if json_val is None:
+            raise serializers.ValidationError(msg)
         return value
 
     def update(self, instance, validated_data):
@@ -593,15 +592,14 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 "The fields name, organization must make a unique set."
             ) from e
-        else:
-            project.xform_set.exclude(shared=project.shared).update(
-                shared=project.shared, shared_data=project.shared
-            )
-            request = self.context.get("request")
-            serializer = ProjectSerializer(project, context={"request": request})
-            response = serializer.data
-            cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
-            return project
+        project.xform_set.exclude(shared=project.shared).update(
+            shared=project.shared, shared_data=project.shared
+        )
+        request = self.context.get("request")
+        serializer = ProjectSerializer(project, context={"request": request})
+        response = serializer.data
+        cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
+        return project
 
     def get_users(self, obj):
         """

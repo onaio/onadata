@@ -22,8 +22,8 @@ class InstanceRelatedField(serializers.RelatedField):
         """Validates if the instance exists."""
         try:
             return Instance.objects.get(pk=data)
-        except ValueError as e:
-            raise Exception("instance id should be an integer") from e
+        except ValueError as error:
+            raise ValueError("instance id should be an integer") from error
 
     def to_representation(self, value):
         """Serialize instance object"""

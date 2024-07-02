@@ -25,8 +25,8 @@ class Command(BaseCommand):
                 xform.instances_with_geopoints = has_geo
                 xform.save()
             # pylint: disable=broad-except
-            except Exception as e:
-                self.stderr.write(e)
+            except Exception as error:
+                self.stderr.write(error)
             else:
                 count += 1
         self.stdout.write(f"{count} of {total} forms processed.")

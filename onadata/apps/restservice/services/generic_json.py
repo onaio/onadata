@@ -9,12 +9,12 @@ from django.conf import settings
 import requests
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
+from onadata.apps.restservice.interface import RestServiceInterface
 
 WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
 
 
-class ServiceDefinition(RestServiceInterface):
+class ServiceDefinition(RestServiceInterface):  # pylint: disable=too-few-public-methods
     """Post submisison JSON data to an external service that accepts a JSON post."""
 
     # pylint: disable=invalid-name

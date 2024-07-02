@@ -27,7 +27,7 @@ def get_openrosa_headers(request, location=True):
     return data
 
 
-class OpenRosaHeadersMixin:
+class OpenRosaHeadersMixin:  # pylint: disable=too-few-public-methods
     """
     OpenRosaHeadersMixin class - sets OpenRosa headers in a response for a View
     or Viewset.

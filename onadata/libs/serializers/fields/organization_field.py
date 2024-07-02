@@ -21,12 +21,12 @@ class OrganizationField(serializers.Field):
         if data is not None:
             try:
                 organization = OrganizationProfile.objects.get(pk=data)
-            except OrganizationProfile.DoesNotExist as e:
+            except OrganizationProfile.DoesNotExist as error:
                 raise serializers.ValidationError(
                     _(f"Organization with id '{data}' does not exist.")
-                ) from e
-            except ValueError as e:
-                raise serializers.ValidationError(str(e)) from e
+                ) from error
+            except ValueError as error:
+                raise serializers.ValidationError(str(error)) from error
 
             return organization
         return data

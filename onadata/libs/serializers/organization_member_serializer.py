@@ -53,20 +53,19 @@ class OrganizationMemberSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _(f"User '{value}' does not exist.")
             ) from exc
-        else:
-            if not user.is_active:
-                raise serializers.ValidationError(_("User is not active"))
+        if not user.is_active:
+            raise serializers.ValidationError(_("User is not active"))
 
-            # create user profile if missing
-            try:
-                profile = user.profile
-            except UserProfile.DoesNotExist:
-                profile = UserProfile.objects.create(user=user)
+        # create user profile if missing
+        try:
+            profile = user.profile
+        except UserProfile.DoesNotExist:
+            profile = UserProfile.objects.create(user=user)
 
-            if is_organization(profile):
-                raise serializers.ValidationError(
-                    _(f"Cannot add org account `{user.username}` as member.")
-                )
+        if is_organization(profile):
+            raise serializers.ValidationError(
+                _(f"Cannot add org account `{user.username}` as member.")
+            )
 
         return value
 

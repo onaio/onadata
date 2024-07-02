@@ -190,7 +190,9 @@ def regenerate_form_instance_json(xform_id: int):
             safe_delete(cache_key)
 
 
-class ShareProjectBaseTask(app.Task):
+class ShareProjectBaseTask(app.Task):  # pylint: disable=too-few-public-methods
+    """A Task base class for sharing a project."""
+
     autoretry_for = (
         DatabaseError,
         ConnectionError,

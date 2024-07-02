@@ -4,7 +4,7 @@ Base class.
 """
 
 
-class RestServiceInterface:
+class RestServiceInterface:  # pylint: disable=too-few-public-methods
     """RestServiceInterface base class."""
 
     def send(self, url, data=None):

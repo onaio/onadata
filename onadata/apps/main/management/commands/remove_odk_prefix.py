@@ -17,10 +17,10 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         cursor = connection.cursor()
         cursor.execute(
-            "UPDATE south_migrationhistory SET app_name=%s WHERE " "app_name=%s",
+            "UPDATE south_migrationhistory SET app_name=%s WHERE app_name=%s",
             ["logger", "odk_logger"],
         )
         cursor.execute(
-            "UPDATE south_migrationhistory SET app_name=%s WHERE " "app_name=%s",
+            "UPDATE south_migrationhistory SET app_name=%s WHERE app_name=%s",
             ["viewer", "odk_viewer"],
         )

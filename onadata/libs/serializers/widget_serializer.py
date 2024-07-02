@@ -59,7 +59,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
             # pylint: disable=attribute-defined-outside-init
             self.view_name = "dataviews-detail"
         else:
-            raise Exception(_("Unknown type for content_object."))
+            raise ValueError(_("Unknown type for content_object."))
 
         self._setup_field(self.view_name)
 

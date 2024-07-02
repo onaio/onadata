@@ -50,8 +50,8 @@ class OsmData(models.Model):
         Returns tags prefixed by the field_name.
         """
         doc = {self.field_name + ":" + self.osm_type + ":id": self.osm_id}
-        for k, v in self.tags.items():
-            doc[self.field_name + ":" + k] = v
+        for key, value in self.tags.items():
+            doc[self.field_name + ":" + key] = value
 
         return doc
 

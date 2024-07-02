@@ -21,6 +21,7 @@ from onadata.libs.utils.common_tools import retry
 from onadata.libs.utils.logger_tools import PublishXForm, create_instance, publish_form
 
 NUM_RETRIES = 3
+DEFAULT_REQUEST_TIMEOUT = 45
 
 
 def django_file(file_obj, field_name, content_type):
@@ -151,7 +152,9 @@ class BriefcaseClient:
         Downloads the url and sets self._current_response with the contents.
         """
         setattr(self, "_current_response", None)
-        response = requests.get(url, auth=self.auth, params=params)
+        response = requests.get(
+            url, auth=self.auth, params=params, timeout=DEFAULT_REQUEST_TIMEOUT
+        )
         success = response.status_code == 200
         setattr(self, "_current_response", response)
 
@@ -163,13 +166,15 @@ class BriefcaseClient:
         Downloads the media file and sets self._current_response with the contents.
         """
         setattr(self, "_current_response", None)
-        head_response = requests.head(url, auth=self.auth)
+        head_response = requests.head(
+            url, auth=self.auth, timeout=DEFAULT_REQUEST_TIMEOUT
+        )
 
         # S3 redirects, avoid using formhub digest on S3
         if head_response.status_code == 302:
             url = head_response.headers.get("location")
 
-        response = requests.get(url)
+        response = requests.get(url, timeout=DEFAULT_REQUEST_TIMEOUT)
         success = response.status_code == 200
         setattr(self, "_current_response", response)
 
@@ -322,14 +327,14 @@ class BriefcaseClient:
                 except ExpatError:
                     continue
                 # pylint: disable=broad-except
-                except Exception as e:
+                except Exception as error:
                     # keep going despite some errors.
                     logging.exception(
                         (
                             "Ignoring exception, processing XML submission "
                             "raised exception: %s"
                         ),
-                        str(e),
+                        str(error),
                     )
                 else:
                     instances_count += 1

@@ -65,6 +65,10 @@ class ExportConnectionError(Exception):
 
 
 class ExportBaseModel(models.Model):
+    """
+    Export base model class
+    """
+
     XLSX_EXPORT = "xlsx"
     CSV_EXPORT = "csv"
     KML_EXPORT = "kml"
@@ -206,8 +210,8 @@ class ExportBaseModel(models.Model):
                 _name, ext = os.path.splitext(self.filepath)
                 # pylint: disable=consider-using-with
                 tmp = NamedTemporaryFile(suffix=ext, delete=False)
-                f = default_storage.open(self.filepath)
-                tmp.write(f.read())
+                export_file = default_storage.open(self.filepath)
+                tmp.write(export_file.read())
                 tmp.close()
                 return tmp.name
         return None
@@ -292,19 +296,18 @@ class Export(ExportBaseModel):
             ).latest("created_on")
         except cls.DoesNotExist:
             return True
-        else:
-            if (
-                latest_export.time_of_last_submission is not None
-                and xform.time_of_last_submission_update() is not None
-            ):
-                return (
-                    latest_export.time_of_last_submission
-                    < xform.time_of_last_submission_update()
-                )
+        if (
+            latest_export.time_of_last_submission is not None
+            and xform.time_of_last_submission_update() is not None
+        ):
+            return (
+                latest_export.time_of_last_submission
+                < xform.time_of_last_submission_update()
+            )
 
-            # return true if we can't determine the status, to force
-            # auto-generation
-            return True
+        # return true if we can't determine the status, to force
+        # auto-generation
+        return True
 
     @classmethod
     def is_filename_unique(cls, xform, filename):
@@ -318,6 +321,10 @@ post_delete.connect(export_delete_callback, sender=Export)
 
 
 class GenericExport(ExportBaseModel):
+    """
+    Generic Export model.
+    """
+
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey()
@@ -328,6 +335,7 @@ class GenericExport(ExportBaseModel):
 
     @classmethod
     def get_object_content_type(cls, instance):
+        """Returns the content_type of the instance."""
         return ContentType.objects.get_for_model(instance)
 
     @classmethod

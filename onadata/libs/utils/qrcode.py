@@ -26,7 +26,7 @@ def generate_qrcode(message):
     img = barcode(
         "qrcode",
         message,
-        options=dict(version=9, eclevel=eclevel),
+        options={"version": 9, "eclevel": eclevel},
         margin=margin,
         data_mode=data_mode,
         scale=scale,

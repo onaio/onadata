@@ -1,13 +1,14 @@
 """
 Cache control mixin
 """
+
 from typing import Optional
 
 from django.conf import settings
 from django.utils.cache import patch_cache_control
 
 
-class CacheControlBase:
+class CacheControlBase:  # pylint: disable=too-few-public-methods
     """
     Base class for Cache Control header handlers
     """

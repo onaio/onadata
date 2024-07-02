@@ -2,12 +2,16 @@
 """
 Formhub/Ona Data to DHIS2 service - push submissions to DHIS2 instance.
 """
+from django.conf import settings
+
 import requests
 
-from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
+from onadata.apps.restservice.interface import RestServiceInterface
+
+WEBHOOK_TIMEOUT = getattr(settings, "WEBHOOK_TIMEOUT", 30)
 
 
-class ServiceDefinition(RestServiceInterface):
+class ServiceDefinition(RestServiceInterface):  # pylint: disable=too-few-public-methods
     """Post submission to DHIS2 instance."""
 
     # pylint: disable=invalid-name
@@ -22,4 +26,4 @@ class ServiceDefinition(RestServiceInterface):
                 "uuid": data.uuid,
             }
             valid_url = url % info
-            requests.get(valid_url)
+            requests.get(valid_url, timeout=WEBHOOK_TIMEOUT)

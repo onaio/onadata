@@ -123,10 +123,10 @@ def unpack_repeat_data(repeat_data, flat_dict):
     cleaned_data = []
     for data_dict in repeat_data:
         remove_keys = []
-        for k, v in data_dict.items():
-            if isinstance(v, list):
-                remove_keys.append(k)
-                flat_dict[k].extend(v)
+        for key, value in data_dict.items():
+            if isinstance(value, list):
+                remove_keys.append(key)
+                flat_dict[key].extend(value)
         # pylint: disable=expression-not-assigned
         [data_dict.pop(k) for k in remove_keys]
         cleaned_data.append(data_dict)

@@ -111,7 +111,7 @@ class FloipListSerializer(serializers.HyperlinkedModelSerializer):
     created = serializers.ReadOnlyField(source="date_created")
     modified = serializers.ReadOnlyField(source="date_modified")
 
-    class JSONAPIMeta:
+    class JSONAPIMeta:  # pylint: disable=too-few-public-methods
         """
         JSON API metaclass.
         """
@@ -138,7 +138,7 @@ class FloipSerializer(serializers.HyperlinkedModelSerializer):
     flow_results_specification_version = serializers.SerializerMethodField()
     resources = serializers.SerializerMethodField()
 
-    class JSONAPIMeta:
+    class JSONAPIMeta:  # pylint: disable=too-few-public-methods
         """
         JSON API metaclass.
         """
@@ -264,7 +264,7 @@ class FlowResultsResponseSerializer(serializers.Serializer):
     responses = serializers.ListField()
     duplicates = serializers.IntegerField(read_only=True)
 
-    class JSONAPIMeta:
+    class JSONAPIMeta:  # pylint: disable=too-few-public-methods
         """
         JSON API metaclass.
         """

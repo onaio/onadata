@@ -49,7 +49,7 @@ class MatcherContext:
     content_str: str
 
 
-class PyxformMarkdown:
+class PyxformMarkdown:  # pylint: disable=too-few-public-methods
     """Transform markdown formatted XLSForm to a pyxform survey object"""
 
     def md_to_pyxform_survey(self, md_raw, kwargs=None, autoname=True, warnings=None):
@@ -399,7 +399,7 @@ class PyxformTestCase(PyxformMarkdown, TestCase):
         if "warnings_count" in kwargs:
             c = kwargs.get("warnings_count")
             if not isinstance(c, int):
-                PyxformTestError("warnings_count must be an integer.")
+                raise PyxformTestError("warnings_count must be an integer.")
             self.assertEqual(c, len(warnings))
 
     @staticmethod
@@ -586,9 +586,9 @@ def xpath_evaluate(
     """
     try:
         results = content.xpath(xpath, namespaces=matcher_context.nsmap_xpath)
-    except etree.XPathEvalError as e:
-        msg = f"Error processing XPath: {xpath}\n" + "\n".join(e.args)
-        raise PyxformTestError(msg) from e
+    except etree.XPathEvalError as error:
+        msg = f"Error processing XPath: {xpath}\n" + "\n".join(error.args)
+        raise PyxformTestError(msg) from error
     if matcher_context.debug:
         if 0 == len(results):
             logger.debug("Results for XPath: %s\n(No matches)\n", xpath)

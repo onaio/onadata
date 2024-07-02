@@ -81,7 +81,7 @@ def get_linked_object(parts):
             obj_pk = parts[1]
             try:
                 obj_pk = int(obj_pk)
-            except ValueError as e:
+            except ValueError as error:
                 raise serializers.ValidationError(
                     {
                         "data_value": _(
@@ -89,11 +89,10 @@ def get_linked_object(parts):
                             % {"type": obj_type, "id": obj_pk}
                         )
                     }
-                ) from e
-            else:
-                model = DataView if obj_type == DATAVIEW_TAG else XForm
+                ) from error
+            model = DataView if obj_type == DATAVIEW_TAG else XForm
 
-                return get_object_or_404(model, pk=obj_pk)
+            return get_object_or_404(model, pk=obj_pk)
     return None
 
 
@@ -203,7 +202,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         if data_type == "media" and data_file is None:
             try:
                 URLValidator()(value)
-            except ValidationError as e:
+            except ValidationError as error:
                 parts = value.split()
                 if len(parts) < 3:
                     raise serializers.ValidationError(
@@ -226,11 +225,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     if not has_perm:
                         raise serializers.ValidationError(
                             {"data_value": _("User has no permission to the dataview.")}
-                        ) from e
+                        ) from error
                 else:
                     raise serializers.ValidationError(
                         {"data_value": _(f"Invalid url '{value}'.")}
-                    ) from e
+                    ) from error
             else:
                 # check if we have a value for the filename.
                 if not os.path.basename(urlparse(value).path):
@@ -319,8 +318,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 )
 
             return metadata
-        except IntegrityError as e:
-            raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR)) from e
+        except IntegrityError as error:
+            raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR)) from error
         return None
 
     def update(self, instance, validated_data):

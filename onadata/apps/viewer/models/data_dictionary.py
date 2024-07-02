@@ -36,7 +36,7 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
-def is_newline_error(e):
+def is_newline_error(error):
     """
     Return True is e is a new line error based on the error text.
     Otherwise return False.
@@ -45,7 +45,7 @@ def is_newline_error(e):
         "new-line character seen in unquoted field - do you need"
         " to open the file in universal-newline mode?"
     )
-    return newline_error == str(e)
+    return newline_error == str(error)
 
 
 def process_xlsform(xls, default_name):
@@ -70,15 +70,15 @@ def process_xlsform(xls, default_name):
 
     try:
         return parse_file_to_json(xls.name, file_object=file_object)
-    except csv.Error as e:
-        if is_newline_error(e):
+    except csv.Error as error:
+        if is_newline_error(error):
             xls.seek(0)
             file_object = StringIO("\n".join(xls.read().splitlines()))
 
             return parse_file_to_json(
                 xls.name, default_name=default_name, file_object=file_object
             )
-        raise e
+        raise error
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -95,7 +95,7 @@ def sheet_to_csv(xls_content, sheet_name):
     sheet = workbook[sheet_name]
 
     if not sheet or sheet.max_column < 2:
-        raise Exception(_(f"Sheet <'{sheet_name}'> has no data."))
+        raise ValueError(_(f"Sheet <'{sheet_name}'> has no data."))
 
     csv_file = BytesIO()
 
@@ -243,13 +243,13 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
     if hasattr(instance, "has_external_choices") and instance.has_external_choices:
         instance.xls.seek(0)
-        f = sheet_to_csv(instance.xls, "external_choices")
-        f.seek(0, os.SEEK_END)
-        size = f.tell()
-        f.seek(0)
+        choices_file = sheet_to_csv(instance.xls, "external_choices")
+        choices_file.seek(0, os.SEEK_END)
+        size = choices_file.tell()
+        choices_file.seek(0)
 
         data_file = InMemoryUploadedFile(
-            file=f,
+            file=choices_file,
             field_name="data_file",
             name="itemsets.csv",
             content_type="text/csv",

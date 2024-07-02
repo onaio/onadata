@@ -51,9 +51,9 @@ class Command(BaseCommand):
                 instance.save()
                 count += 1
             # pylint: disable=broad-except
-            except Exception as e:
+            except Exception as error:
                 failed += 1
-                self.stdout.write(str(e), ending="\n")
+                self.stdout.write(str(error), ending="\n")
 
         self.stdout.write(
             f"Syncing for account {user.username}. Done. "

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Entities serializer module.
+"""
 from django.utils.translation import gettext as _
 
 from pyxform.constants import ENTITIES_RESERVED_PREFIX
@@ -175,6 +179,7 @@ class EntitySerializer(serializers.ModelSerializer):
     data = serializers.JSONField(write_only=True, required=False)
 
     def validate_data(self, value):
+        """Validates Entity dataset properties"""
         if value:
             for key in value.keys():
                 if key not in self.context["entity_list"].properties:
@@ -233,6 +238,7 @@ class EntityArraySerializer(EntitySerializer):
     url = serializers.SerializerMethodField()
 
     def get_url(self, obj):
+        """Returns the URL to an Entity list."""
         entity_list = self.context["entity_list"]
         request = self.context["request"]
         response_format = self.context.get("format")

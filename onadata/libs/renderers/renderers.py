@@ -484,9 +484,9 @@ class InstanceXMLRenderer(XMLRenderer, StreamRendererMixin):
                 if not key:
                     self._to_xml(xml, value)
                 elif isinstance(value, (list, tuple)):
-                    for v in value:
+                    for item in value:
                         xml.startElement(key, {})
-                        self._to_xml(xml, v)
+                        self._to_xml(xml, item)
                         xml.endElement(key)
 
                 elif isinstance(value, dict):
