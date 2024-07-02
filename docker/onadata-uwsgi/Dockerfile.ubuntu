@@ -53,7 +53,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM ubuntu:jammy-20240405 AS runtime
+FROM ubuntu:jammy-20240530 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
