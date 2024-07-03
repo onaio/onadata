@@ -1,4 +1,4 @@
-FROM onaio/python-deps:3.10.14 AS base
+FROM onaio/python-deps:3.10.14-20240703 AS base
 
 ARG optional_packages
 
@@ -53,19 +53,21 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM ubuntu:jammy-20240530 as runtime
+FROM debian:bookworm-20240701 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
-RUN apt-get update -q && \
-    apt-get install -y --no-install-recommends locales netcat
+RUN echo "deb http://deb.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list \
+    && apt-get update -q \
+    && apt-get install -y --no-install-recommends locales netcat-traditional \
+    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+    && dpkg-reconfigure locales
 
-# # Generate and set en_US.UTF-8 locale
-RUN locale-gen en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV LC_CTYPE=en_US.UTF-8
-RUN dpkg-reconfigure locales
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
 
 
 # Install OnaData runtime dependencies
@@ -77,12 +79,10 @@ RUN apt-get install -y --no-install-recommends \
     libxslt1-dev \
     && apt-get autoremove -y \
     && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create OnaData user and add to tty group
-RUN useradd -G tty -m appuser && \
-    mkdir -p /srv/onadata && \
-    chown -R appuser:appuser /srv/onadata
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -G tty -m appuser \
+    && mkdir -p /srv/onadata \
+    && chown -R appuser:appuser /srv/onadata
 
 COPY --from=base /home/appuser/.pyenv/ /home/appuser/.pyenv/
 COPY --from=docs /srv/onadata/ /srv/onadata/
