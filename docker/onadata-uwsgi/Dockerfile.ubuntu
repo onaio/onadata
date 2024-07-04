@@ -57,17 +57,18 @@ FROM debian:bookworm-20240701 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install prerequisite packages and set up locales
+# Install prerequisite packages
+USER root
 RUN echo "deb http://deb.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list \
     && apt-get update -q \
-    && apt-get install -y --no-install-recommends locales netcat-traditional \
-    && locale-gen en_US.UTF-8 \
-    && dpkg-reconfigure --frontend=noninteractive locales
+    && apt-get install -y --no-install-recommends locales netcat-traditional
 
-# Set environment variables for locale
-ENV LANG=en_US.UTF-8 \
-    LANGUAGE=en_US:en \
-    LC_ALL=en_US.UTF-8
+# # Generate and set en_US.UTF-8 locale
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+RUN locale-gen en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+RUN dpkg-reconfigure locales
 
 
 # Install OnaData runtime dependencies
