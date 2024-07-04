@@ -4,6 +4,29 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 
+from guardian.shortcuts import assign_perm
+
+
+def add_project_entitylist_perm(apps, schema_editor):
+    """Assign `add_project_entitylist` permission to existing Owners, Managers"""
+    Project = apps.get_model("logger", "Project")
+    project_qs = Project.objects.filter(deleted_at__isnull=True)
+    eta = project_qs.count()
+
+    for project in project_qs.iterator(chunk_size=200):
+        processed_users = set()
+        project_user_obj_perm_qs = project.projectuserobjectpermission_set.all()
+
+        for perm in project_user_obj_perm_qs.iterator(chunk_size=100):
+            user = perm.user
+
+            if user.pk not in processed_users and user.has_perm("add_project", project):
+                _ = assign_perm("add_project_entitylist", user, project)
+                processed_users.add(user.pk)
+
+        eta -= 1
+        print("eta", eta)
+
 
 class Migration(migrations.Migration):
 
@@ -40,5 +63,8 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.SET_NULL,
                 to=settings.AUTH_USER_MODEL,
             ),
+        ),
+        migrations.RunPython(
+            add_project_entitylist_perm, reverse_code=migrations.RunPython.noop
         ),
     ]
