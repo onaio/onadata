@@ -21,6 +21,7 @@ def rename_entity_label_key(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -126,42 +127,54 @@ class Migration(migrations.Migration):
             model_name="entitylistuserobjectpermission",
             name="content_object",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="logger.entitylist"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="logger.entitylist",
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="entitylistuserobjectpermission",
             name="permission",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="auth.permission"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="auth.permission",
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="entitylistuserobjectpermission",
             name="user",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="entitylistgroupobjectpermission",
             name="content_object",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="logger.entitylist"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="logger.entitylist",
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="entitylistgroupobjectpermission",
             name="group",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="auth.group"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="auth.group",
+                db_index=False,
             ),
         ),
         migrations.AddField(
             model_name="entitylistgroupobjectpermission",
             name="permission",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="auth.permission"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="auth.permission",
+                db_index=False,
             ),
         ),
         migrations.AddField(
@@ -171,6 +184,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 to=settings.AUTH_USER_MODEL,
+                db_index=False,
             ),
         ),
         migrations.AddField(
@@ -180,6 +194,7 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="history",
                 to="logger.entity",
+                db_index=False,
             ),
         ),
         migrations.AddField(
@@ -191,6 +206,7 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="entity_history",
                 to="logger.instance",
+                db_index=False,
             ),
         ),
         migrations.AddField(
@@ -202,6 +218,7 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="entity_history",
                 to="logger.registrationform",
+                db_index=False,
             ),
         ),
         migrations.AlterUniqueTogether(
@@ -214,5 +231,75 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             rename_entity_label_key, reverse_code=migrations.RunPython.noop
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistuserobjec_content_object_id_5b69ec8c_idx" '
+                'ON "logger_entitylistuserobjectpermission" ("content_object_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistuserobjec_content_object_id_5b69ec8c_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistuserobjectpermission_permission_id_690665e1_idx" '
+                'ON "logger_entitylistuserobjectpermission" ("permission_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistuserobjectpermission_permission_id_690665e1_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistuserobjectpermission_user_id_d0c4b31a_idx" '
+                'ON "logger_entitylistuserobjectpermission" ("user_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistuserobjectpermission_user_id_d0c4b31a_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistgroupobje_content_object_id_a7a535f3_idx" '
+                'ON "logger_entitylistgroupobjectpermission" ("content_object_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistgroupobje_content_object_id_a7a535f3_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistgroupobjectpermission_group_id_c7f010ff_idx" '
+                'ON "logger_entitylistgroupobjectpermission" ("group_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistgroupobjectpermission_group_id_c7f010ff_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entitylistgroupobjectpermission_permission_id_7cfe1bbe_idx" '
+                'ON "logger_entitylistgroupobjectpermission" ("permission_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entitylistgroupobjectpermission_permission_id_7cfe1bbe_idx";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entityhistory_created_by_id_17e666ff" '
+                'ON "logger_entityhistory" ("created_by_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entityhistory_created_by_id_17e666ff";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entityhistory_entity_id_f1ca62b3" '
+                'ON "logger_entityhistory" ("entity_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entityhistory_entity_id_f1ca62b3";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entityhistory_instance_id_274e1bc1" '
+                'ON "logger_entityhistory" ("instance_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entityhistory_instance_id_274e1bc1";',
+        ),
+        migrations.RunSQL(
+            sql=(
+                'CREATE INDEX CONCURRENTLY "logger_entityhistory_registration_form_id_9f0aaece" '
+                'ON "logger_entityhistory" ("registration_form_id");'
+            ),
+            reverse_sql='DROP INDEX CONCURRENTLY "logger_entityhistory_registration_form_id_9f0aaece";',
         ),
     ]
