@@ -34,6 +34,7 @@ from onadata.libs.utils.common_tags import (
     OWNER_TEAM_NAME,
 )
 from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class ExternalServiceRequestError(Exception):
@@ -45,8 +46,9 @@ class ExternalServiceRequestError(Exception):
 def get_project_users(project):
     """Return project users with the role assigned to them."""
     ret = {}
+    project_user_obj_perm_qs = project.projectuserobjectpermission_set.all()
 
-    for perm in project.projectuserobjectpermission_set.all():
+    for perm in queryset_iterator(project_user_obj_perm_qs):
         if perm.user.username not in ret:
             user = perm.user
 
