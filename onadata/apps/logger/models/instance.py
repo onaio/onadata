@@ -884,9 +884,6 @@ pre_delete.connect(
 class InstanceHistory(models.Model, InstanceBaseClass):
     """Stores deleted submission XML to maintain a history of edits."""
 
-    class Meta:
-        app_label = "logger"
-
     xform_instance = models.ForeignKey(
         Instance, related_name="submission_history", on_delete=models.CASCADE
     )
@@ -901,6 +898,13 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     submission_date = models.DateTimeField(null=True, default=None)
     geom = models.GeometryCollectionField(null=True)
     checksum = models.CharField(max_length=64, null=True, blank=True, db_index=True)
+
+    class Meta:
+        app_label = "logger"
+        indexes = [
+            models.Index(fields=["checksum"]),
+            models.Index(fields=["uuid"]),
+        ]
 
     @property
     def xform(self):
