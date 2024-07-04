@@ -16,18 +16,18 @@ Subpackages
 Submodules
 ----------
 
-onadata.apps.restservice.RestServiceInterface module
-----------------------------------------------------
-
-.. automodule:: onadata.apps.restservice.RestServiceInterface
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 onadata.apps.restservice.forms module
 -------------------------------------
 
 .. automodule:: onadata.apps.restservice.forms
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+onadata.apps.restservice.interface module
+-----------------------------------------
+
+.. automodule:: onadata.apps.restservice.interface
    :members:
    :undoc-members:
    :show-inheritance:
