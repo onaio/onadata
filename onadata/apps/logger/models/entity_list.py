@@ -3,12 +3,14 @@ EntityList model
 """
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
+from guardian.compat import user_model_label
 
 from onadata.apps.logger.models.project import Project
 from onadata.libs.models import BaseModel
@@ -82,11 +84,25 @@ class EntityList(BaseModel):
 class EntityListUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
-    content_object = models.ForeignKey(EntityList, on_delete=models.CASCADE)
+    content_object = models.ForeignKey(
+        EntityList, on_delete=models.CASCADE, db_index=False
+    )
+    # Override fields' (db_index=False) so that we can create indexes manually concurrently
+    # in the migration (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
+    # improved performance in huge databases
+    user = models.ForeignKey(user_model_label, on_delete=models.CASCADE, db_index=False)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, db_index=False)
 
 
 # pylint: disable=too-few-public-methods
 class EntityListGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
-    content_object = models.ForeignKey(EntityList, on_delete=models.CASCADE)
+    content_object = models.ForeignKey(
+        EntityList, on_delete=models.CASCADE, db_index=False
+    )
+    # Override fields' (db_index=False) so that we can create indexes manually concurrently
+    # in the migration (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
+    # improved performance in huge databases
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, db_index=False)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, db_index=False)

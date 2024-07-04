@@ -55,10 +55,14 @@ class EntityHistory(BaseModel):
     class Meta(BaseModel.Meta):
         app_label = "logger"
 
+    # Set db_index=False so that we can create indexes manually concurrently in the
+    # migration (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
+    # improved performance in huge databases
     entity = models.ForeignKey(
         Entity,
         related_name="history",
         on_delete=models.CASCADE,
+        db_index=False,
     )
     registration_form = models.ForeignKey(
         RegistrationForm,
@@ -66,6 +70,7 @@ class EntityHistory(BaseModel):
         related_name="entity_history",
         null=True,
         blank=True,
+        db_index=False,
     )
     instance = models.ForeignKey(
         Instance,
@@ -73,8 +78,11 @@ class EntityHistory(BaseModel):
         related_name="entity_history",
         null=True,
         blank=True,
+        db_index=False,
     )
     xml = models.TextField(blank=True, null=True)
     json = models.JSONField(default=dict)
     form_version = models.CharField(max_length=255, null=True, blank=True)
-    created_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    created_by = models.ForeignKey(
+        User, null=True, on_delete=models.SET_NULL, db_index=False
+    )
