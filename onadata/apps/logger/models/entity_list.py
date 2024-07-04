@@ -87,8 +87,9 @@ class EntityListUserObjectPermission(UserObjectPermissionBase):
     content_object = models.ForeignKey(
         EntityList, on_delete=models.CASCADE, db_index=False
     )
-    # Override fields' (db_index=False) so that we can create indexes manually concurrently
-    # in the migration (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
+    # Override fields' (db_index=False) so that we can create indexes manually
+    # concurrently in the migration
+    # (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
     # improved performance in huge databases
     user = models.ForeignKey(user_model_label, on_delete=models.CASCADE, db_index=False)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, db_index=False)
@@ -101,8 +102,9 @@ class EntityListGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(
         EntityList, on_delete=models.CASCADE, db_index=False
     )
-    # Override fields' (db_index=False) so that we can create indexes manually concurrently
-    # in the migration (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
+    # Override fields' (db_index=False) so that we can create indexes manually
+    # concurrently in the migration
+    # (0018_entityhistory_entitylistgroupobjectpermission_and_more) for
     # improved performance in huge databases
     group = models.ForeignKey(Group, on_delete=models.CASCADE, db_index=False)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, db_index=False)
