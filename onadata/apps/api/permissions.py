@@ -566,6 +566,7 @@ class DjangoObjectPermissionsIgnoreModelPerm(DjangoObjectPermissions):
     are ignored.
     """
 
+    # pylint: disable=unused-argument
     def has_permission(self, request, view):
         """Override `has_permission` method"""
         if request.user.is_anonymous and request.method not in SAFE_METHODS:
