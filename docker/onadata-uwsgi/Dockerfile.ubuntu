@@ -58,8 +58,13 @@ FROM ubuntu:jammy-20240530 as runtime
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
+USER root
 RUN apt-get update -q && \
     apt-get install -y --no-install-recommends locales netcat
+
+
+# uncomment en_US locale in /etc/locale.gen - requires root
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 
 # # Generate and set en_US.UTF-8 locale
 RUN locale-gen en_US.UTF-8
