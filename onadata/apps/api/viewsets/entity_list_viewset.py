@@ -12,7 +12,7 @@ from rest_framework.mixins import (
 )
 
 
-from onadata.apps.api.permissions import DjangoObjectPermissionsAllowAnon
+from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
@@ -53,7 +53,7 @@ class EntityListViewSet(
         )
     )
     serializer_class = EntityListSerializer
-    permission_classes = (DjangoObjectPermissionsAllowAnon,)
+    permission_classes = (DjangoObjectPermissionsIgnoreModelPerm,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
 

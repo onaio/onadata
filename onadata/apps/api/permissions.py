@@ -558,3 +558,17 @@ class IsAuthenticatedSubmission(BasePermission):
                 return False
 
         return True
+
+
+class DjangoObjectPermissionsIgnoreModelPerm(DjangoObjectPermissions):
+    """
+    Similar to DjangoModelPermissions, except that model permissions
+    are ignored.
+    """
+
+    def has_permission(self, request, view):
+        """Override `has_permission` method"""
+        if request.user.is_anonymous and request.method not in SAFE_METHODS:
+            return False
+
+        return True
