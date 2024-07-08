@@ -14,15 +14,19 @@ def add_project_entitylist_perm(apps, schema_editor):
     eta = project_qs.count()
 
     for project in project_qs.iterator(chunk_size=200):
-        processed_users = set()
-        project_user_obj_perm_qs = project.projectuserobjectpermission_set.all()
+        # Owners and Managers have the `add_project` permission
+        project_user_obj_perm_qs = project.projectuserobjectpermission_set.filter(
+            permission__codename="add_project"
+        )
+        project_group_obj_perm_qs = project.projectgroupobjectpermission_set.filter(
+            permission__codename="add_project"
+        )
 
         for perm in project_user_obj_perm_qs.iterator(chunk_size=100):
-            user = perm.user
+            _ = assign_perm("add_project_entitylist", perm.user, project)
 
-            if user.pk not in processed_users and user.has_perm("add_project", project):
-                _ = assign_perm("add_project_entitylist", user, project)
-                processed_users.add(user.pk)
+        for perm in project_group_obj_perm_qs.iterator(chunk_size=100):
+            _ = assign_perm("add_project_entitylist", perm.group, project)
 
         eta -= 1
         print("eta", eta)
