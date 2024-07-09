@@ -593,7 +593,7 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
 
 
 @override_settings(TIME_ZONE="UTC")
-class GetEntitiesTestCase(TestAbstractViewSet):
+class GetEntitiesListTestCase(TestAbstractViewSet):
     """Tests for GET Entities"""
 
     def setUp(self):
@@ -736,6 +736,39 @@ class GetEntitiesTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
+
+    def test_search(self):
+        """Search works"""
+        # Search by data
+        request = self.factory.get("/", data={"search": "wallaba"}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        # Search by uuid
+        request = self.factory.get(
+            "/", data={"search": "dbee4c32-a922-451c-9df7-42f40bf78f48"}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        # Search with pagination
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.305796 36.791849 0 0",
+                "species": "wallaba",
+                "circumference_cm": 100,
+                "intake_notes": "Looks malnourished",
+                "label": "100cm wallaba",
+            },
+            uuid="917185b4-bc06-450c-a6ce-44605dec5482",
+        )
+        request = self.factory.get(
+            "/", data={"search": "wallaba", "page": 1, "page_size": 1}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
 
 @override_settings(TIME_ZONE="UTC")
