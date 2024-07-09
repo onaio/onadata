@@ -136,13 +136,83 @@ Response
 ^^^^^^^^
 ::
 
-       {
-           "url": "https://api.ona.io/api/v1/projects/1",
-           "owner": "https://api.ona.io/api/v1/users/ona",
-           "name": "project 1",
-           "date_created": "2013-07-24T13:37:39Z",
-           "date_modified": "2013-07-24T13:37:39Z"
-       }
+        {
+            "url":"https://api.ona.io/api/v1/projects/1",
+            "projectid":1,
+            "owner":"https://api.ona.io/api/v1/users/ona",
+            "created_by":"https://api.ona.io/api/v1/users/ona",
+            "metadata":{
+                "name":"Entities",
+                "category":"agriculture"
+            },
+            "starred":false,
+            "users":[
+                {
+                    "is_org":false,
+                    "metadata":{
+                        "is_email_verified":false
+                    },
+                    "first_name":"Ona",
+                    "last_name":"",
+                    "user":"ona",
+                    "role":"owner"
+                }
+            ],
+            "forms":[
+                {
+                    "name":"Trees registration",
+                    "formid":1,
+                    "id_string":"trees_registration",
+                    "num_of_submissions":7,
+                    "downloadable":true,
+                    "encrypted":false,
+                    "published_by_formbuilder":null,
+                    "last_submission_time":"2024-06-18T14:34:57.987361Z",
+                    "date_created":"2024-05-28T12:08:07.993820Z",
+                    "url":"https://api.ona.io/api/v1/forms/1",
+                    "last_updated_at":"2024-06-21T08:13:06.436449Z",
+                    "is_merged_dataset":false,
+                    "contributes_entities_to":{
+                        "id":100,
+                        "name":"trees",
+                        "is_active":true
+                    },
+                    "consumes_entities_from":[]
+                },
+                {
+                    "name":"Trees follow-up",
+                    "formid":18421,
+                    "id_string":"trees_follow_up",
+                    "num_of_submissions":0,
+                    "downloadable":true,
+                    "encrypted":false,
+                    "published_by_formbuilder":null,
+                    "last_submission_time":null,
+                    "date_created":"2024-05-28T12:08:39.909235Z",
+                    "url":"https://api.ona.io/api/v1/forms/2",
+                    "last_updated_at":"2024-06-21T08:13:58.963836Z",
+                    "is_merged_dataset":false,
+                    "contributes_entities_to":null,
+                    "consumes_entities_from":[
+                        {
+                            "id":100,
+                            "name":"trees",
+                            "is_active":true
+                        }
+                    ]
+                }
+            ],
+            "public":false,
+            "tags":[],
+            "num_datasets":2,
+            "last_submission_date":"2024-06-18T14:50:32.755792Z",
+            "teams":[],
+            "data_views":[],
+            "name":"Entities",
+            "date_created":"2023-11-07T07:02:09.655836Z",
+            "date_modified":"2024-06-21T08:15:12.634454Z",
+            "deleted_at":null
+        }
 
 Update Project Information
 ------------------------------

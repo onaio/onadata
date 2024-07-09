@@ -34,7 +34,13 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Project, ProjectInvitation, XForm, XFormVersion
+from onadata.apps.logger.models import (
+    EntityList,
+    Project,
+    ProjectInvitation,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
@@ -54,6 +60,7 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 
 User = get_user_model()
@@ -406,6 +413,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         data_view_obj_keys = list(response.data.get("data_views")[0])
         self.assertEqual(
             [
+                "consumes_entities_from",
+                "contributes_entities_to",
                 "date_created",
                 "downloadable",
                 "encrypted",
@@ -2784,6 +2793,43 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.xform.num_of_submissions,
         )
         self.assertEqual(response.data["num_datasets"], 1)
+
+    def test_get_project_w_registration_form(self):
+        """Retrieve project with Entity registtraton form"""
+        self._publish_registration_form(self.user)
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+        entity_list = EntityList.objects.first()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["forms"][0]["contributes_entities_to"],
+            {
+                "id": entity_list.pk,
+                "name": "trees",
+                "is_active": True,
+            },
+        )
+
+    def test_get_project_w_follow_up_form(self):
+        """Retrieve project with Entity follow up form"""
+        self.project = get_user_default_project(self.user)
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        self._publish_follow_up_form(self.user)
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["forms"][0]["consumes_entities_from"],
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+        )
 
 
 class GetProjectInvitationListTestCase(TestAbstractViewSet):

@@ -49,7 +49,7 @@ Body:
 }
 ```
 
-## Get EntityLists
+## Get a list of EntityLists
 
 `GET /api/v2/entity-lists`
 
@@ -84,7 +84,7 @@ Body:
 
 ```
 
-To get EntityLists for a specific project
+### Get a list of Entities for a specific project
 
 `GET /api/v2/entity-lists?project=<project_id>`
 
@@ -114,6 +114,44 @@ Body:
     }
 ]
 
+```
+
+### Get a paginated list of EntityLists
+
+`GET /api/v2/entity-lists?page=<page>&page_size=<page_size>`
+
+Returns a list of projects using page number and the number of items per page. Use the `page` parameter to specify page number and `page_size` parameter is used to set the custom page size.
+
+- `page` - Integer representing the page.
+- `page_size` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the `page_size` query param is `10,000`
+
+**Request**
+
+`curl -X GET https://api.ona.io/api/v2/entity-lists?page=1&page_size=100`
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+[
+    {
+        "url":"http://testserver/api/v2/entity-lists/9",
+        "id":9,
+        "name":"trees",
+        "project":"http://testserver/api/v1/projects/9",
+        "public":false,
+        "date_created":"2024-04-17T11:26:24.630117Z",
+        "date_modified":"2024-04-17T11:26:25.050823Z",
+        "num_registration_forms":1,
+        "num_follow_up_forms":1,
+        "num_entities":1
+    }
+
+    ...
+]
 ```
 
 ## Get a single EntityList
@@ -182,7 +220,7 @@ curl -X DELETE https://api.ona.io/api/v2/entity-lists/1 \
 
 Status: `204 No Content`
 
-## Get Entities
+## Get a list of Entities
 
 `GET api/v2/entity-lists/<entity_list_id>/entities`
 
@@ -225,6 +263,43 @@ Body:
          "label":"100cm wallaba",
       }
    }
+]
+```
+
+### Get a paginated list of Entities
+
+`GET /api/v2/entity-lists/1/entities?page=<page>&page_size=<page_size>`
+
+Returns a list of projects using page number and the number of items per page. Use the `page` parameter to specify page number and `page_size` parameter is used to set the custom page size.
+
+- `page` - Integer representing the page.
+- `page_size` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the `page_size` query param is `10,000`
+
+**Request**
+
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities?page=1&page_size=100`
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+[
+   {
+      "url":"http://testserver/api/v2/entity-lists/1/entities/3",
+      "id":3,
+      "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
+      "date_created": "2024-06-20T07:37:20.416054Z",
+      "data": {
+         "species":"purpleheart",
+         "geometry":"-1.286905 36.772845 0 0",
+         "circumference_cm":300,
+         "label":"300cm purpleheart",
+      }
+   },
+   ...
 ]
 ```
 

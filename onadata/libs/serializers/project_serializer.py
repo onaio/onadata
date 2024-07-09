@@ -266,7 +266,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
 
 # pylint: disable=too-few-public-methods
-class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectXFormSerializer(BaseProjectXFormSerializer):
     """
     ProjectXFormSerializer class - to return project xform info.
     """
@@ -294,6 +294,8 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             "url",
             "last_updated_at",
             "is_merged_dataset",
+            "contributes_entities_to",
+            "consumes_entities_from",
         )
 
     def get_published_by_formbuilder(self, obj):
