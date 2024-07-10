@@ -392,14 +392,14 @@ def update_project_date_modified(instance_id, _):
             raise e
     else:
         # update project date_modified using raw SQL
-        cursor = connection.cursor()
-        sql = (
-            "UPDATE logger_project SET "
-            "date_modified = %s "
-            "WHERE id = %s"
-        )
-        params = [timezone.now(), instance.xform.project.pk]
-        cursor.execute(sql, params)
+        with connection.cursor() as c:
+            sql = (
+                "UPDATE logger_project SET "
+                "date_modified = %s "
+                "WHERE id = %s"
+            )
+            params = [timezone.now(), instance.xform.project.pk]
+            c.execute(sql, params)
 
 
 def convert_to_serializable_date(date):
