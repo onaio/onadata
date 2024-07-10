@@ -303,6 +303,42 @@ Body:
 ]
 ```
 
+### Search a list of Entities
+
+Limit list of Entities to those whose metadata or data partially match the provided search term.
+
+Matches are case insensitive.
+
+`GET /api/v2/entity-lists/1/entities?search=<search_term>`
+
+**Request**
+
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities?search=wallaba`
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+[
+   {
+      "url":"http://testserver/api/v2/entity-lists/1/entities/4",
+      "id":4,
+      "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
+      "date_created": "2024-06-20T07:38:20.416054Z",
+      "data": {
+         "species":"wallaba",
+         "geometry":"-1.305796 36.791849 0 0",
+         "intake_notes":"Looks malnourished",
+         "circumference_cm":100,
+         "label":"100cm wallaba",
+      }
+   }
+]
+```
+
 ## Get a single Entity
 
 `GET api/v2/entity-lists/<entity_list_id>/entities/<entity_id>`
