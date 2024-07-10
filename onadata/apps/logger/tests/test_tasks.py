@@ -76,6 +76,7 @@ class UpdateProjectDateModified(TestBase):
         self.project = get_user_default_project(self.user)
 
     def test_update_project_date_modified(self):
+        """Test project date_modified field is updated"""
         project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, set())
         project_ids.add(self.project.pk)
         initial_date_modified = self.project.date_modified

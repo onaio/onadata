@@ -32,6 +32,9 @@ def set_entity_list_perms_async(entity_list_id):
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def apply_project_date_modified_async():
+    """
+    Batch update projects date_modified field periodically
+    """
     project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, set())
     if not project_ids:
         return
