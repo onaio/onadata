@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.3.3(2024-07-10)
+------------------
+- Add Entity related data to forms on project retrieve endpoint 
+  `PR #2639 <https://github.com/onaio/onadata/pull/2639>`
+  [@kelvin-muchiri]
+- Ignore EntityList model permissions on API endpoints
+  `PR #2635 <https://github.com/onaio/onadata/pull/2635>`
+  [@kelvin-muchiri]
+- Docs update
+  `PR #2629 <https://github.com/onaio/onadata/pull/2629>`
+  [@ukanga]
+- Make pending migrations 
+  `PR #2632 <https://github.com/onaio/onadata/pull/2632>`
+  [@kelvin-muchiri]
+- Check attempts is truthy before int comparison 
+  `PR #2618 <https://github.com/onaio/onadata/pull/2618>`
+  [@ukanga]
+- Tune migration performance
+  `PR #2631 <https://github.com/onaio/onadata/pull/2631>`
+  [@kelvin-muchiri]
+
 v4.3.2(2024-07-02)
 ------------------
 - Security Updates
