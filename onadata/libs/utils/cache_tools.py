@@ -60,6 +60,9 @@ XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
 
+# Batch project IDs
+BATCH_PROJECT_IDS_CACHE = "batch_project_ids"
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
