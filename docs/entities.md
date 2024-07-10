@@ -305,11 +305,11 @@ Body:
 
 ### Search a list of Entities
 
+`GET /api/v2/entity-lists/1/entities?search=<search_term>`
+
 Limit list of Entities to those whose metadata or data partially match the provided search term.
 
 Matches are case insensitive.
-
-`GET /api/v2/entity-lists/1/entities?search=<search_term>`
 
 **Request**
 
