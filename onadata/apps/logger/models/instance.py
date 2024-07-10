@@ -391,7 +391,15 @@ def update_project_date_modified(instance_id, _):
         if current_task.request.id:
             raise e
     else:
-        instance.xform.project.save(update_fields=["date_modified"])
+        # update project date_modified using raw SQL
+        cursor = connection.cursor()
+        sql = (
+            "UPDATE logger_project SET "
+            "date_modified = %s "
+            "WHERE id = %s"
+        )
+        params = [timezone.now(), instance.xform.project.pk]
+        cursor.execute(sql, params)
 
 
 def convert_to_serializable_date(date):
