@@ -719,6 +719,21 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
         self.assertEqual(
             response.data[0]["uuid"], "dbee4c32-a922-451c-9df7-42f40bf78f48"
         )
+        # Unpaginated results do not exceed default page_size
+        with patch.object(StandardPageNumberPagination, "page_size", 1):
+            request = self.factory.get("/", **self.extra)
+            response = self.view(request, pk=self.entity_list.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.data), 1)
+
+        # Paginated page_size should not exceed max_page_size
+        with patch.object(StandardPageNumberPagination, "max_page_size", 1):
+            request = self.factory.get(
+                "/", data={"page": 1, "page_size": 2}, **self.extra
+            )
+            response = self.view(request, pk=self.entity_list.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.data), 1)
 
     def test_deleted_ignored(self):
         """Deleted Entities are ignored"""
@@ -771,14 +786,6 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-
-    def test_max_unpaginated(self):
-        """Unpaginated results do not exceed the maximum allowed"""
-        with patch.object(StandardPageNumberPagination, "page_size", 1):
-            request = self.factory.get("/", **self.extra)
-            response = self.view(request, pk=self.entity_list.pk)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(len(response.data), 1)
 
 
 @override_settings(TIME_ZONE="UTC")
