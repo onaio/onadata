@@ -739,8 +739,13 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
 
     def test_search(self):
         """Search works"""
-        # Search by data
+        # Search data json value
         request = self.factory.get("/", data={"search": "wallaba"}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        # Search data json key
+        request = self.factory.get("/", data={"search": "intake_notes"}, **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
@@ -751,20 +756,16 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        # Search not found
+        request = self.factory.get("/", data={"search": "alkalalalkalal"}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
         # Search with pagination
-        Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.305796 36.791849 0 0",
-                "species": "wallaba",
-                "circumference_cm": 100,
-                "intake_notes": "Looks malnourished",
-                "label": "100cm wallaba",
-            },
-            uuid="917185b4-bc06-450c-a6ce-44605dec5482",
-        )
         request = self.factory.get(
-            "/", data={"search": "wallaba", "page": 1, "page_size": 1}, **self.extra
+            "/",
+            data={"search": "circumference_cm", "page": 1, "page_size": 1},
+            **self.extra,
         )
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)

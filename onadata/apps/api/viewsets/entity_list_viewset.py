@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.db.models.query import RawQuerySet
 from django.shortcuts import get_object_or_404
 
@@ -151,15 +152,13 @@ class EntityListViewSet(
         """Returns queryset for Entities"""
         search_param = api_settings.SEARCH_PARAM
         search = request.query_params.get(search_param, "")
-        sql = (
-            "SELECT id, json FROM logger_entity WHERE entity_list_id = %s "
-            "AND deleted_at IS NULL"
+        queryset = Entity.objects.filter(
+            entity_list_id=entity_list.pk, deleted_at__isnull=True
         )
-        sql_params = [entity_list.pk]
 
         if search:
-            sql += " AND (json::text ~* cast(%s as text) OR uuid = %s)"
-            sql_params += [search] * 2
+            queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
 
-        sql += " ORDER BY id ASC"
-        return Entity.objects.raw(sql, sql_params)
+        queryset = queryset.order_by("id")
+
+        return queryset
