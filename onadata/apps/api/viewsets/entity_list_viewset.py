@@ -1,5 +1,4 @@
 from django.db.models import Q
-from django.db.models.query import QuerySet
 from django.shortcuts import get_object_or_404
 
 
@@ -148,7 +147,7 @@ class EntityListViewSet(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
-    def get_queryset_entities(self, request, entity_list) -> "QuerySet[Entity]":
+    def get_queryset_entities(self, request, entity_list):
         """Returns queryset for Entities"""
         search_param = api_settings.SEARCH_PARAM
         search = request.query_params.get(search_param, "")
