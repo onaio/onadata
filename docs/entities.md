@@ -53,7 +53,11 @@ Body:
 
 `GET /api/v2/entity-lists`
 
-This endpoint is used to get all EntityList datasets the user permission to view.
+This endpoint is used to get all EntityList datasets.
+
+The user must have view permission for each dataset.
+
+The maximum number of items returned is `1000`. To get more results than this, pagination is required. Refer to getting [paginated results section](#get-a-paginated-list-of-entitylists).
 
 **Request**
 
@@ -225,6 +229,8 @@ Status: `204 No Content`
 `GET api/v2/entity-lists/<entity_list_id>/entities`
 
 This endpoint is used to get Entities belonging to a single EntityList dataset.
+
+The maximum number of items returned is `1000`. To get more results than this, pagination is required. Refer to getting [paginated results section](#get-a-paginated-list-of-entities).
 
 **Request**
 
