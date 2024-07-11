@@ -53,7 +53,11 @@ Body:
 
 `GET /api/v2/entity-lists`
 
-This endpoint is used to get all EntityList datasets the user permission to view.
+This endpoint is used to get all EntityList datasets.
+
+The user must have view permission for each dataset.
+
+The maximum number of items returned is `1000`. To get more results than this, pagination is required. Refer to getting [paginated results section](#get-a-paginated-list-of-entitylists).
 
 **Request**
 
@@ -226,6 +230,8 @@ Status: `204 No Content`
 
 This endpoint is used to get Entities belonging to a single EntityList dataset.
 
+The maximum number of items returned is `1000`. To get more results than this, pagination is required. Refer to getting [paginated results section](#get-a-paginated-list-of-entities).
+
 **Request**
 
 `curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities`
@@ -300,6 +306,42 @@ Body:
       }
    },
    ...
+]
+```
+
+### Search a list of Entities
+
+`GET /api/v2/entity-lists/1/entities?search=<search_term>`
+
+Limit list of Entities to those whose data partially matches the provided search term.
+
+Matches are case insensitive.
+
+**Request**
+
+`curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities?search=wallaba`
+
+**Response**
+
+Status: `200 OK`
+
+Body:
+
+```
+[
+   {
+      "url":"http://testserver/api/v2/entity-lists/1/entities/4",
+      "id":4,
+      "uuid": "517185b4-bc06-450c-a6ce-44605dec5480",
+      "date_created": "2024-06-20T07:38:20.416054Z",
+      "data": {
+         "species":"wallaba",
+         "geometry":"-1.305796 36.791849 0 0",
+         "intake_notes":"Looks malnourished",
+         "circumference_cm":100,
+         "label":"100cm wallaba",
+      }
+   }
 ]
 ```
 

@@ -1,8 +1,11 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+
 
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import (
     CreateModelMixin,
@@ -11,14 +14,15 @@ from rest_framework.mixins import (
     ListModelMixin,
 )
 
-
 from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.pagination import (
+    StandardPageNumberPagination,
+)
 from onadata.libs.permissions import CAN_ADD_PROJECT_ENTITYLIST
 from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
@@ -56,6 +60,7 @@ class EntityListViewSet(
     permission_classes = (DjangoObjectPermissionsIgnoreModelPerm,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
+    entities_search_fields = ["uuid", "json"]
 
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
@@ -112,15 +117,7 @@ class EntityListViewSet(
 
             return Response(serializer.data)
 
-        entity_qs = (
-            Entity.objects.filter(
-                entity_list=entity_list,
-                deleted_at__isnull=True,
-            )
-            # To improve performance, we specify only the column(s)
-            # we are interested in using .only
-            .only("json").order_by("pk")
-        )
+        entity_qs = self.get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
 
         if page is not None:
@@ -149,3 +146,18 @@ class EntityListViewSet(
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+    def get_queryset_entities(self, request, entity_list):
+        """Returns queryset for Entities"""
+        search_param = api_settings.SEARCH_PARAM
+        search = request.query_params.get(search_param, "")
+        queryset = Entity.objects.filter(
+            entity_list_id=entity_list.pk, deleted_at__isnull=True
+        )
+
+        if search:
+            queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
+
+        queryset = queryset.order_by("id")
+
+        return queryset
