@@ -397,7 +397,7 @@ def update_project_date_modified(instance_id, _):
 
         # Log project id and date motified in cache with timeout
         project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
-        project_ids[project_id] = timezone.now()
+        project_ids[project_id] = instance.date_modified
         cache.set(BATCH_PROJECT_IDS_CACHE, project_ids, timeout=timeout)
 
 
