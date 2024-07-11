@@ -1,3 +1,5 @@
+# pylint: disable=import-error,ungrouped-imports
+"""Module for logger tasks"""
 import logging
 
 from django.core.cache import cache
@@ -5,7 +7,7 @@ from django.db import DatabaseError
 
 from onadata.apps.logger.models import EntityList, Project
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import BATCH_PROJECT_IDS_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.project_utils import set_project_perms_to_object
 
 
@@ -34,7 +36,7 @@ def apply_project_date_modified_async():
     """
     Batch update projects date_modified field periodically
     """
-    project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
+    project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
     if not project_ids:
         return
 
@@ -43,4 +45,4 @@ def apply_project_date_modified_async():
         Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
-    safe_delete(BATCH_PROJECT_IDS_CACHE)
+    safe_delete(PROJECT_DATE_MODIFIED_CACHE)

@@ -16,7 +16,7 @@ from onadata.apps.logger.tasks import (
     apply_project_date_modified_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.cache_tools import BATCH_PROJECT_IDS_CACHE
+from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -78,10 +78,10 @@ class UpdateProjectDateModified(TestBase):
 
     def test_update_project_date_modified(self):
         """Test project date_modified field is updated"""
-        project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
+        project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
         project_ids[self.project.pk] = timezone.now()
         initial_date_modified = self.project.date_modified
-        cache.set(BATCH_PROJECT_IDS_CACHE, project_ids, timeout=300)
+        cache.set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=300)
 
         apply_project_date_modified_async.delay()
         self.project.refresh_from_db()
@@ -92,4 +92,17 @@ class UpdateProjectDateModified(TestBase):
 
         # check if current date modified is greater than initial
         self.assertGreater(current_date_modified, initial_date_modified)
-        cache.delete(BATCH_PROJECT_IDS_CACHE)
+
+        # assert that cache is cleared once task completes
+        self.assertIsNone(cache.get(PROJECT_DATE_MODIFIED_CACHE))
+
+    def test_update_project_date_modified_empty_cache(self):
+        """Test project date modified empty cache"""
+        # Ensure the cache is empty, meaning no projects exist
+        cache.delete(PROJECT_DATE_MODIFIED_CACHE)
+
+        # Run cronjon
+        apply_project_date_modified_async.delay()
+
+        # Verify that no projects were updated
+        self.assertIsNone(cache.get(PROJECT_DATE_MODIFIED_CACHE))  # Cache should remain empty
