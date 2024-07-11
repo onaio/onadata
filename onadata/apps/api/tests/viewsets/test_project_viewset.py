@@ -42,6 +42,7 @@ from onadata.apps.logger.models import (
     XFormVersion,
 )
 from onadata.apps.main.models import MetaData
+from onadata.apps.logger.tasks import apply_project_date_modified_async
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
@@ -1945,6 +1946,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertNotEqual(last_date, current_last_date)
 
         self._make_submissions()
+
+        # run cronjob to update date_modified field
+        apply_project_date_modified_async.delay()
 
         self.project.refresh_from_db()
         self.assertNotEqual(current_last_date, self.project.date_modified)

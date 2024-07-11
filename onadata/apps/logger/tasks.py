@@ -2,7 +2,6 @@ import logging
 
 from django.core.cache import cache
 from django.db import DatabaseError
-from django.utils import timezone
 
 from onadata.apps.logger.models import EntityList, Project
 from onadata.celeryapp import app
@@ -35,12 +34,13 @@ def apply_project_date_modified_async():
     """
     Batch update projects date_modified field periodically
     """
-    project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, set())
+    project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
     if not project_ids:
         return
 
     # Update project date_modified field in batches
-    Project.objects.filter(pk__in=project_ids).update(date_modified=timezone.now())
+    for project_id, timestamp in project_ids.items():
+        Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
     safe_delete(BATCH_PROJECT_IDS_CACHE)

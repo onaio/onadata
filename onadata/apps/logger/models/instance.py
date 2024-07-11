@@ -395,9 +395,9 @@ def update_project_date_modified(instance_id, _):
         timeout = getattr(settings, "PROJECT_IDS_CACHE_TIMEOUT", 3600)
         project_id = instance.xform.project_id
 
-        # Log project id in cache with timeout
-        project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, set())
-        project_ids.add(project_id)
+        # Log project id and date motified in cache with timeout
+        project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
+        project_ids[project_id] = timezone.now()
         cache.set(BATCH_PROJECT_IDS_CACHE, project_ids, timeout=timeout)
 
 

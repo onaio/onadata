@@ -8,6 +8,7 @@ from celery.exceptions import Retry
 
 from django.core.cache import cache
 from django.db import DatabaseError
+from django.utils import timezone
 
 from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
@@ -77,8 +78,8 @@ class UpdateProjectDateModified(TestBase):
 
     def test_update_project_date_modified(self):
         """Test project date_modified field is updated"""
-        project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, set())
-        project_ids.add(self.project.pk)
+        project_ids = cache.get(BATCH_PROJECT_IDS_CACHE, {})
+        project_ids[self.project.pk] = timezone.now()
         initial_date_modified = self.project.date_modified
         cache.set(BATCH_PROJECT_IDS_CACHE, project_ids, timeout=300)
 
