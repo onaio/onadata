@@ -995,7 +995,7 @@ def get_entity_json_from_instance(
     property_fields = list(mapped_properties.values())
 
     def get_field_alias(field_name: str) -> str:
-        """Get the alias name of a form field"""
+        """Get the alias (save_to value) of a form field"""
         for alias, field in mapped_properties.items():
             if field == field_name:
                 return alias
