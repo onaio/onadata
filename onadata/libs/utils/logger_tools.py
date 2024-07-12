@@ -1014,9 +1014,9 @@ def get_entity_json_from_instance(
 
             if field_name.startswith("meta"):
                 if field_name == "meta/entity/label":
-                    data["label"] = data["meta/entity/label"]
-                    del data["meta/entity/label"]
+                    data["label"] = data[field_name]
 
+                del data[field_name]
                 continue
 
             # We extract field names within grouped sections
@@ -1024,8 +1024,10 @@ def get_entity_json_from_instance(
 
             if ungrouped_field_name in property_fields:
                 field_name_alias = convert_to_alias(ungrouped_field_name)
-                data[field_name_alias] = data[field_name]
-                del data[field_name]
+
+                if field_name_alias != ungrouped_field_name:
+                    data[field_name_alias] = data[field_name]
+                    del data[field_name]
 
             else:
                 del data[field_name]
