@@ -994,8 +994,8 @@ def get_entity_json_from_instance(
     # Field names with an alias defined
     property_fields = list(mapped_properties.values())
 
-    def convert_to_alias(field_name: str) -> str:
-        """Convert field name to it's alias"""
+    def get_field_alias(field_name: str) -> str:
+        """Get the alias name of a form field"""
         for alias, field in mapped_properties.items():
             if field == field_name:
                 return alias
@@ -1021,16 +1021,12 @@ def get_entity_json_from_instance(
 
             # We extract field names within grouped sections
             ungrouped_field_name = field_name.split("/")[-1]
+            temp = data[field_name]
+            del data[field_name]
 
             if ungrouped_field_name in property_fields:
-                field_name_alias = convert_to_alias(ungrouped_field_name)
-
-                if field_name_alias != ungrouped_field_name:
-                    data[field_name_alias] = data[field_name]
-                    del data[field_name]
-
-            else:
-                del data[field_name]
+                field_alias = get_field_alias(ungrouped_field_name)
+                data[field_alias] = temp
 
     parse_instance_json(instance_json)
 
