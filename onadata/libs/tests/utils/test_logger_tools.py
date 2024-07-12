@@ -14,7 +14,14 @@ from django.http.request import HttpRequest
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance, Entity, RegistrationForm, SurveyType
+from onadata.apps.logger.models import (
+    Instance,
+    Entity,
+    EntityList,
+    RegistrationForm,
+    SurveyType,
+    XForm,
+)
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
@@ -651,8 +658,8 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             self.assertContains(ret[0].content.decode(), "Improperly formatted XML.")
 
 
-class CreateEntityTestCase(TestBase):
-    """Tests for method `create_entity`"""
+class CreateEntityFromInstanceTestCase(TestBase):
+    """Tests for method `create_entity_from_instance`"""
 
     def setUp(self):
         super().setUp()
@@ -675,17 +682,18 @@ class CreateEntityTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+        self.survey_type = SurveyType.objects.create(slug="slug-foo")
         instance = Instance(
             xform=self.xform,
             xml=self.xml,
             version=self.xform.version,
-            survey_type=survey_type,
+            survey_type=self.survey_type,
         )
         # We use bulk_create to avoid calling create_entity signal
         Instance.objects.bulk_create([instance])
         self.instance = Instance.objects.first()
         self.registration_form = RegistrationForm.objects.first()
+        self.entity_list = EntityList.objects.get(name="trees")
 
     def test_entity_created(self):
         """Entity is created successfully"""
@@ -721,3 +729,61 @@ class CreateEntityTestCase(TestBase):
         self.assertEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, self.xform.version)
         self.assertEqual(entity_history.created_by, self.instance.user)
+
+    def test_grouped_section(self):
+        """Entity properties within grouped section"""
+        group_md = """
+        | survey |
+        |         | type        | name     | label        | save_to |
+        |         | begin group | tree     | Tree         |         |
+        |         | geopoint    | location | Location     | geometry|
+        |         | text        | species  | Species      | species |
+        |         | end group   |          |              |         |
+        | settings|             |          |              |         |
+        |         | form_title  | form_id  | instance_name| version |
+        |         | Group       | group    | ${species}   | 2022110901|
+        | entities| list_name   | label    |              |         |
+        |         | trees       | ${species}|             |         |
+        """
+        self._publish_markdown(group_md, self.user, self.project, id_string="group")
+        xform = XForm.objects.get(id_string="group")
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="group" version="2022110901">'
+            "<formhub><uuid>9833e23e6c6147298e0ae2d691dc1e6f</uuid></formhub>"
+            "<tree>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:b817c598-a215-4fa9-ba78-a7c738bd1f91</instanceID>"
+            "<instanceName>purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="47e335da-46ce-4151-9898-7ed1d54778c6">'
+            "<label>purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance(
+            xform=xform,
+            xml=xml,
+            version=xform.version,
+            survey_type=self.survey_type,
+        )
+        # We use bulk_create to avoid calling create_entity signal
+        Instance.objects.bulk_create([instance])
+        instance = Instance.objects.order_by("pk").last()
+        registration_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=self.entity_list
+        )
+        create_entity_from_instance(instance, registration_form)
+        entity = Entity.objects.first()
+        expected_json = {
+            "geometry": "-1.286905 36.772845 0 0",
+            "species": "purpleheart",
+            "label": "purpleheart",
+        }
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertCountEqual(entity.json, expected_json)

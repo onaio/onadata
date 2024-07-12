@@ -45,12 +45,12 @@ class RegistrationFormTestCase(TestBase):
 
     def test_get_save_to(self):
         """Method `get_save_to` works correctly"""
-        form = RegistrationForm.objects.create(
+        registration_form = RegistrationForm.objects.create(
             entity_list=self.entity_list,
             xform=self.xform,
         )
         self.assertEqual(
-            form.get_save_to(),
+            registration_form.get_save_to(),
             {
                 "geometry": "location",
                 "species": "species",
@@ -132,12 +132,80 @@ class RegistrationFormTestCase(TestBase):
             json=json.dumps(x_version_json),
         )
         self.assertEqual(
-            form.get_save_to("x"),
+            registration_form.get_save_to("x"),
             {
                 "location": "location",
                 "species": "species",
                 "circumference": "circumference",
             },
+        )
+        # Properties within grouped sections
+        grouped_json = {
+            "name": "data",
+            "type": "survey",
+            "title": "pyxform_autotesttitle",
+            "_xpath": {
+                "data": "/data",
+                "meta": "/data/meta",
+                "tree": "/data/tree",
+                "gardener": "/data/tree/gardener",
+                "location": "/data/tree/location",
+                "instanceID": "/data/meta/instanceID",
+            },
+            "children": [
+                {
+                    "name": "tree",
+                    "type": "group",
+                    "label": "Tree",
+                    "children": [
+                        {
+                            "bind": {"entities:saveto": "geometry"},
+                            "name": "location",
+                            "type": "geopoint",
+                            "label": "Location",
+                        },
+                        {
+                            "bind": {"entities:saveto": "gardener"},
+                            "name": "gardener",
+                            "type": "text",
+                            "label": "Gardener",
+                        },
+                    ],
+                },
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": "true"},
+                    "children": [
+                        {
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                            "name": "instanceID",
+                            "type": "calculate",
+                        },
+                        {
+                            "name": "entity",
+                            "type": "entity",
+                            "parameters": {
+                                "label": "concat(${location}, ${gardener})",
+                                "dataset": "trees",
+                                "create_if": "None",
+                                "entity_id": "None",
+                                "update_if": "None",
+                            },
+                        },
+                    ],
+                },
+            ],
+            "id_string": "trees_group",
+            "sms_keyword": "trees_group",
+            "entity_features": ["create"],
+            "default_language": "default",
+        }
+        registration_form.xform.json = grouped_json
+        registration_form.xform.save()
+        self.assertEqual(
+            registration_form.get_save_to(),
+            {"geometry": "location", "gardener": "gardener"},
         )
 
     def test_entity_list_xform_unique(self):

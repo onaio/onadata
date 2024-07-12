@@ -57,12 +57,20 @@ class RegistrationForm(BaseModel):
             xform_json = self.xform.json
 
         result = {}
-        fields = xform_json.get("children", [])
-        entity_properties = filter(
-            lambda field: "bind" in field and "entities:saveto" in field["bind"], fields
-        )
+        children = xform_json.get("children", [])
 
-        for field in entity_properties:
+        def get_entity_property_fields(form_fields):
+            property_fields = []
+
+            for field in form_fields:
+                if "bind" in field and "entities:saveto" in field["bind"]:
+                    property_fields.append(field)
+                elif field.get("children", []):
+                    property_fields += get_entity_property_fields(field["children"])
+
+            return property_fields
+
+        for field in get_entity_property_fields(children):
             alias = field["bind"]["entities:saveto"]
             result[alias] = field["name"]
 
