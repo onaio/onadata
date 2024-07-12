@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.db.utils import IntegrityError
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import RegistrationForm, EntityList, XFormVersion
+from onadata.apps.logger.models import RegistrationForm, EntityList, XForm, XFormVersion
 
 
 class RegistrationFormTestCase(TestBase):
@@ -140,72 +140,28 @@ class RegistrationFormTestCase(TestBase):
             },
         )
         # Properties within grouped sections
-        grouped_json = {
-            "name": "data",
-            "type": "survey",
-            "title": "pyxform_autotesttitle",
-            "_xpath": {
-                "data": "/data",
-                "meta": "/data/meta",
-                "tree": "/data/tree",
-                "gardener": "/data/tree/gardener",
-                "location": "/data/tree/location",
-                "instanceID": "/data/meta/instanceID",
-            },
-            "children": [
-                {
-                    "name": "tree",
-                    "type": "group",
-                    "label": "Tree",
-                    "children": [
-                        {
-                            "bind": {"entities:saveto": "geometry"},
-                            "name": "location",
-                            "type": "geopoint",
-                            "label": "Location",
-                        },
-                        {
-                            "bind": {"entities:saveto": "gardener"},
-                            "name": "gardener",
-                            "type": "text",
-                            "label": "Gardener",
-                        },
-                    ],
-                },
-                {
-                    "name": "meta",
-                    "type": "group",
-                    "control": {"bodyless": "true"},
-                    "children": [
-                        {
-                            "bind": {"readonly": "true()", "jr:preload": "uid"},
-                            "name": "instanceID",
-                            "type": "calculate",
-                        },
-                        {
-                            "name": "entity",
-                            "type": "entity",
-                            "parameters": {
-                                "label": "concat(${location}, ${gardener})",
-                                "dataset": "trees",
-                                "create_if": "None",
-                                "entity_id": "None",
-                                "update_if": "None",
-                            },
-                        },
-                    ],
-                },
-            ],
-            "id_string": "trees_group",
-            "sms_keyword": "trees_group",
-            "entity_features": ["create"],
-            "default_language": "default",
-        }
-        registration_form.xform.json = grouped_json
-        registration_form.xform.save()
+        group_md = """
+        | survey |
+        |         | type        | name     | label        | save_to |
+        |         | begin group | tree     | Tree         |         |
+        |         | geopoint    | location | Location     | geometry|
+        |         | text        | species  | Species      | species |
+        |         | end group   |          |              |         |
+        | settings|             |          |              |         |
+        |         | form_title  | form_id  | instance_name| version |
+        |         | Group       | group    | ${species}   | 2022110901|
+        | entities| list_name   | label    |              |         |
+        |         | trees       | ${species}|             |         |
+        """
+        self._publish_markdown(group_md, self.user, self.project, id_string="group")
+        xform = XForm.objects.get(id_string="group")
+        registration_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=self.entity_list
+        )
+
         self.assertEqual(
             registration_form.get_save_to(),
-            {"geometry": "location", "gardener": "gardener"},
+            {"geometry": "location", "species": "species"},
         )
 
     def test_entity_list_xform_unique(self):
