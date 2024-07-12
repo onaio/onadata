@@ -34,6 +34,7 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
+    PROJECT_DATE_MODIFIED_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
     PROJ_NUM_DATASET_CACHE,
@@ -391,7 +392,13 @@ def update_project_date_modified(instance_id, _):
         if current_task.request.id:
             raise e
     else:
-        instance.xform.project.save(update_fields=["date_modified"])
+        timeout = getattr(settings, "PROJECT_IDS_CACHE_TIMEOUT", 3600)
+        project_id = instance.xform.project_id
+
+        # Log project id and date motified in cache with timeout
+        project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
+        project_ids[project_id] = instance.date_modified
+        cache.set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=timeout)
 
 
 def convert_to_serializable_date(date):

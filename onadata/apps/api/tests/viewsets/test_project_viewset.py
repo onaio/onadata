@@ -1944,11 +1944,6 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertNotEqual(last_date, current_last_date)
 
-        self._make_submissions()
-
-        self.project.refresh_from_db()
-        self.assertNotEqual(current_last_date, self.project.date_modified)
-
     def test_anon_project_form_endpoint(self):
         self._project_create()
         self._publish_xls_form_to_project()
