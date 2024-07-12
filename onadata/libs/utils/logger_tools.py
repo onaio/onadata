@@ -1019,7 +1019,7 @@ def get_entity_json_from_instance(
 
                 continue
 
-            # We extract field names with groups
+            # We extract field names within grouped sections
             ungrouped_field_name = field_name.split("/")[-1]
 
             if ungrouped_field_name in property_fields:
