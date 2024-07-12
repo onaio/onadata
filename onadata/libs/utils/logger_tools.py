@@ -1008,21 +1008,20 @@ def get_entity_json_from_instance(
         The data keys are modified in place
         """
         for field_name in list(data):
+            temp = data[field_name]
+            del data[field_name]
+
             if field_name.startswith("formhub"):
-                del data[field_name]
                 continue
 
             if field_name.startswith("meta"):
                 if field_name == "meta/entity/label":
-                    data["label"] = data[field_name]
+                    data["label"] = temp
 
-                del data[field_name]
                 continue
 
             # We extract field names within grouped sections
             ungrouped_field_name = field_name.split("/")[-1]
-            temp = data[field_name]
-            del data[field_name]
 
             if ungrouped_field_name in property_fields:
                 field_alias = get_field_alias(ungrouped_field_name)
