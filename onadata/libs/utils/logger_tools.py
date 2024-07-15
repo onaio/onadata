@@ -1008,7 +1008,7 @@ def get_entity_json_from_instance(
         The data keys are modified in place
         """
         for field_name in list(data):
-            temp = data[field_name]
+            field_data = data[field_name]
             del data[field_name]
 
             if field_name.startswith("formhub"):
@@ -1016,7 +1016,7 @@ def get_entity_json_from_instance(
 
             if field_name.startswith("meta"):
                 if field_name == "meta/entity/label":
-                    data["label"] = temp
+                    data["label"] = field_data
 
                 continue
 
@@ -1025,7 +1025,7 @@ def get_entity_json_from_instance(
 
             if ungrouped_field_name in property_fields:
                 field_alias = get_field_alias(ungrouped_field_name)
-                data[field_alias] = temp
+                data[field_alias] = field_data
 
     parse_instance_json(instance_json)
 
