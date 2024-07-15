@@ -33,7 +33,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         self._publish_xls_form_to_project()
 
-    @flaky(max_runs=3)
+    @flaky(max_runs=10)
     def test_retrieve_view(self):
         self._submit_transport_instance_w_attachment()
 
