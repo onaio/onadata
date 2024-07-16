@@ -156,13 +156,13 @@ class TestMetaData(TestBase):
         cache.set(key_1, "foo")
         cache.set(key_2, "bar")
         enketo_url = "https://dmfrm.enketo.org/webform"
-        # Metadata cache is cleared if MetaData is created
+        # Metadata cache is cleared if any MetaData is created
         MetaData.enketo_url(self.xform, enketo_url)
 
         self.assertIsNone(cache.get(key_1))
         self.assertIsNotNone(cache.get(key_2))
 
-        # Metadata cache is cleared if MetaData is updated
+        # Metadata cache is cleared if any MetaData is updated
         metadata = MetaData.objects.first()
         cache.set(key_1, "foo")
         metadata.save()
