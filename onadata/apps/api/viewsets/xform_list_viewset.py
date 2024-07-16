@@ -60,13 +60,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     queryset = XForm.objects.filter(
         downloadable=True, deleted_at=None, is_merged_dataset=False
     ).only(
-        "id_string",
-        "title",
-        "version",
-        "uuid",
-        "description",
-        "user__username",
-        "hash",
+        "id_string", "title", "version", "uuid", "description", "user__username", "hash"
     )
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
