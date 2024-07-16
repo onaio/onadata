@@ -8,6 +8,7 @@ from hashlib import md5
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TransactionTestCase
 from django.urls import reverse
 
@@ -789,20 +790,44 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
 
-        manifest_xml = """<?xml version="1.0" encoding="utf-8"?><manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
-        data = {
-            "hash": self.metadata.hash,
-            "pk": self.metadata.pk,
-            "xform": self.xform.pk,
-        }
+        hash = self.metadata.hash
+        xform_pk = self.xform.pk
+        metadata_pk = self.metadata.pk
+        manifest_xml = (
+            '<?xml version="1.0" encoding="utf-8"?><manifest xmlns="'
+            'http://openrosa.org/xforms/xformsManifest">'
+            f"<mediaFile><filename>screenshot.png</filename><hash>{hash}</hash>"
+            f"<downloadUrl>http://testserver/bob/xformsMedia/{xform_pk}/{metadata_pk}.png"
+            "</downloadUrl></mediaFile></manifest>"
+        )
         content = "".join(
             [i.decode("utf-8").strip() for i in response.streaming_content]
         )
-        self.assertEqual(content, manifest_xml % data)
+        self.assertEqual(content, manifest_xml)
         self.assertTrue(response.has_header("X-OpenRosa-Version"))
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
         self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        # Cache is set
+        self.assertEqual(cache.get(f"xfm-manifest-{self.xform.pk}"), manifest_xml)
+
+    def test_retrieve_xform_manifest_cache(self):
+        """Manifest cache is used if not empty"""
+        cache.set(f"xfm-manifest-{self.xform.pk}", "<manifest>Test</manifest>")
+        self._load_metadata(self.xform)
+        self.view = XFormListViewSet.as_view({"get": "manifest", "head": "manifest"})
+        request = self.factory.head("/")
+        response = self.view(request, pk=self.xform.pk)
+        auth = DigestAuth("bob", "bobbob")
+        request = self.factory.get("/")
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, "<manifest>Test</manifest>")
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
 
     def test_retrieve_xform_manifest_w_token_auth(self):
         self._load_metadata(self.xform)

@@ -8,10 +8,12 @@ import math
 from io import BytesIO, StringIO
 from typing import Tuple
 
+from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
+
 
 import six
 from rest_framework import negotiation
@@ -25,7 +27,9 @@ from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
+from onadata.libs.utils.cache_tools import XFORM_MANIFEST_TTL
 from onadata.libs.utils.osm import get_combined_osm
+
 
 IGNORE_FIELDS = [
     "formhub/uuid",
@@ -377,6 +381,32 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     root_node = "manifest"
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
+
+    def _get_current_buffer_data(self):
+        data = super()._get_current_buffer_data()
+        cached_manifest: str | None = cache.get(self.cache_key)
+
+        if data and self.can_update_cache:
+            if cached_manifest is not None:
+                cached_manifest += data
+                cache.set(self.cache_key, cached_manifest.strip(), XFORM_MANIFEST_TTL)
+
+            else:
+                cache.set(self.cache_key, data.strip(), XFORM_MANIFEST_TTL)
+
+        return data
+
+    def stream_data(self, data, serializer, cache_key=None):
+        if cache_key:
+            self.cache_key = cache_key
+
+        self.can_update_cache = False
+        # In the case of concurrent requests, we ensure only the first
+        # request is updating the cache
+        if self.cache_key and cache.get(self.cache_key) is None:
+            self.can_update_cache = True
+
+        return super().stream_data(data, serializer)
 
 
 # pylint: disable=too-few-public-methods
