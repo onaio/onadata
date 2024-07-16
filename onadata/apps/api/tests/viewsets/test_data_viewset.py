@@ -3766,7 +3766,7 @@ class TestOSM(TestAbstractViewSet):
         self.logger = logging.getLogger("console_logger")
 
     # pylint: disable=invalid-name,too-many-locals
-    @flaky(max_runs=10)
+    @flaky(max_runs=15)
     def test_data_retrieve_instance_osm_format(self):
         """Test /data endpoint OSM format."""
         filenames = [

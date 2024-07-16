@@ -555,7 +555,7 @@ class XFormViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
-            page = self.paginate_queryset(self.object_list)
+            page = self.paginate_queryset(self.object_list.order_by("pk"))
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
             else:
@@ -725,9 +725,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     @action(methods=["POST", "GET"], detail=True)
@@ -795,9 +797,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     def partial_update(self, request, *args, **kwargs):
