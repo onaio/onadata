@@ -456,9 +456,9 @@ class XFormMixin:
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[
-                _encode_for_mongo(str(elem.get_abbreviated_xpath()))
-            ] = elem.get_abbreviated_xpath()
+            names[_encode_for_mongo(str(elem.get_abbreviated_xpath()))] = (
+                elem.get_abbreviated_xpath()
+            )
         return names
 
     survey_elements = property(get_survey_elements)
@@ -903,7 +903,6 @@ class XForm(XFormMixin, BaseModel):
         )
         verbose_name = gettext_lazy("XForm")
         verbose_name_plural = gettext_lazy("XForms")
-        ordering = ("pk",)
         permissions = (
             ("view_xform_all", _("Can view all associated data")),
             ("view_xform_data", _("Can view submitted data")),
