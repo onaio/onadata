@@ -27,7 +27,7 @@ from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
-from onadata.libs.utils.cache_tools import XFORM_MANIFEST_TTL
+from onadata.libs.utils.cache_tools import XFORM_MANIFEST_CACHE_TTL
 from onadata.libs.utils.osm import get_combined_osm
 
 
@@ -389,10 +389,12 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
         if data and self.can_update_cache:
             if cached_manifest is not None:
                 cached_manifest += data
-                cache.set(self.cache_key, cached_manifest.strip(), XFORM_MANIFEST_TTL)
+                cache.set(
+                    self.cache_key, cached_manifest.strip(), XFORM_MANIFEST_CACHE_TTL
+                )
 
             else:
-                cache.set(self.cache_key, data.strip(), XFORM_MANIFEST_TTL)
+                cache.set(self.cache_key, data.strip(), XFORM_MANIFEST_CACHE_TTL)
 
         return data
 

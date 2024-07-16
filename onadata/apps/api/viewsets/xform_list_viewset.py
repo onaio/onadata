@@ -30,7 +30,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormListSerializer,
     XFormManifestSerializer,
 )
-from onadata.libs.utils.cache_tools import XFORM_MANIFEST
+from onadata.libs.utils.cache_tools import XFORM_MANIFEST_CACHE
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
 
@@ -176,7 +176,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         """A manifest defining additional supporting objects."""
         # pylint: disable=attribute-defined-outside-init
         xform = self.get_object()
-        cache_key = f"{XFORM_MANIFEST}{xform.pk}"
+        cache_key = f"{XFORM_MANIFEST_CACHE}{xform.pk}"
         cached_manifest: str | None = cache.get(cache_key)
         # Ensure a previous stream has completed updating the cache by
         # confirm the last tag </manifest>

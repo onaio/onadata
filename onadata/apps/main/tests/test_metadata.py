@@ -2,6 +2,8 @@
 """
 Test MetaData model.
 """
+from django.core.cache import cache
+
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.apps.main.models.meta_data import MetaData, unique_type_for_form, upload_to
 from onadata.apps.main.tests.test_base import TestBase
@@ -146,3 +148,35 @@ class TestMetaData(TestBase):
             upload_to(metadata, filename),
             "{}/{}/{}".format(self.user.username, "formid-media", filename),
         )
+
+    def test_caches_cleared(self):
+        """Related caches are cleared on creating or updating"""
+        key_1 = f"xfs-get_xform_metadata{self.xform.pk}"
+        key_2 = f"xfm-manifest-{self.xform.pk}"
+        cache.set(key_1, "foo")
+        cache.set(key_2, "bar")
+        enketo_url = "https://dmfrm.enketo.org/webform"
+        # Metadata cache is cleared if MetaData is created
+        MetaData.enketo_url(self.xform, enketo_url)
+
+        self.assertIsNone(cache.get(key_1))
+        self.assertIsNotNone(cache.get(key_2))
+
+        # Metadata cache is cleared if MetaData is updated
+        metadata = MetaData.objects.first()
+        cache.set(key_1, "foo")
+        metadata.save()
+
+        self.assertIsNone(cache.get(key_1))
+        self.assertIsNotNone(cache.get(key_2))
+
+        # Manifest cache is cleared if `media` MetaData is created
+        metadata = MetaData.objects.create(data_type="media", object_id=self.xform.id)
+
+        self.assertIsNone(cache.get(key_2))
+
+        # Manifest cache is cleared if `media` MetaData is updated
+        cache.set(key_2, "bar")
+        metadata.save()
+
+        self.assertIsNone(cache.get(key_2))
