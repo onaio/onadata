@@ -85,7 +85,6 @@ class Attachment(models.Model):
 
     class Meta:
         app_label = "logger"
-        ordering = ("pk",)
 
     def save(self, *args, **kwargs):
         if self.media_file and self.mimetype == "":

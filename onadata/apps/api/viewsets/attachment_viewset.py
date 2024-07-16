@@ -112,7 +112,7 @@ class AttachmentViewSet(
 
         # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(self.object_list)
+        page = self.paginate_queryset(self.object_list.order_by("pk"))
         if page is not None:
             serializer = self.get_serializer(page, many=True)
 
