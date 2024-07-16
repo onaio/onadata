@@ -179,7 +179,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         cache_key = f"{XFORM_MANIFEST_CACHE}{xform.pk}"
         cached_manifest: str | None = cache.get(cache_key)
         # Ensure a previous stream has completed updating the cache by
-        # confirm the last tag </manifest>
+        # confirm the last tag </manifest> exists
         if cached_manifest is not None and cached_manifest.endswith("</manifest>"):
             return Response(
                 cached_manifest,
