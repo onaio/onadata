@@ -994,20 +994,13 @@ def get_entity_json_from_instance(
     # Field names with an alias defined
     property_fields = list(mapped_properties.values())
 
-    def convert_to_alias(field_name: str) -> str:
-        """Convert field name to it's alias"""
-        alias_field_name = field_name
-        # We split along / to take care of group questions
-        parts = field_name.split("/")
-        # Replace field parts with alias
-        for part in parts:
-            if part in property_fields:
-                for alias, field in mapped_properties.items():
-                    if field == part:
-                        alias_field_name = alias_field_name.replace(field, alias)
-                        break
+    def get_field_alias(field_name: str) -> str:
+        """Get the alias (save_to value) of a form field"""
+        for alias, field in mapped_properties.items():
+            if field == field_name:
+                return alias
 
-        return alias_field_name
+        return field_name
 
     def parse_instance_json(data: dict[str, Any]) -> None:
         """Parse the original json, replacing field names with their alias
@@ -1015,25 +1008,24 @@ def get_entity_json_from_instance(
         The data keys are modified in place
         """
         for field_name in list(data):
-            if isinstance(data[field_name], list):
-                # Handle repeat question
-                for child_data in data[field_name]:
-                    parse_instance_json(child_data)
+            field_data = data[field_name]
+            del data[field_name]
 
-            else:
-                if field_name in property_fields:
-                    alias_field_name = convert_to_alias(field_name)
+            if field_name.startswith("formhub"):
+                continue
 
-                    if alias_field_name != field_name:
-                        data[alias_field_name] = data[field_name]
-                        del data[field_name]
+            if field_name.startswith("meta"):
+                if field_name == "meta/entity/label":
+                    data["label"] = field_data
 
-                elif field_name == "meta/entity/label":
-                    data["label"] = data["meta/entity/label"]
-                    del data["meta/entity/label"]
+                continue
 
-                else:
-                    del data[field_name]
+            # We extract field names within grouped sections
+            ungrouped_field_name = field_name.split("/")[-1]
+
+            if ungrouped_field_name in property_fields:
+                field_alias = get_field_alias(ungrouped_field_name)
+                data[field_alias] = field_data
 
     parse_instance_json(instance_json)
 

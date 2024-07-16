@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.db.utils import IntegrityError
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import RegistrationForm, EntityList, XFormVersion
+from onadata.apps.logger.models import RegistrationForm, EntityList, XForm, XFormVersion
 
 
 class RegistrationFormTestCase(TestBase):
@@ -45,12 +45,12 @@ class RegistrationFormTestCase(TestBase):
 
     def test_get_save_to(self):
         """Method `get_save_to` works correctly"""
-        form = RegistrationForm.objects.create(
+        registration_form = RegistrationForm.objects.create(
             entity_list=self.entity_list,
             xform=self.xform,
         )
         self.assertEqual(
-            form.get_save_to(),
+            registration_form.get_save_to(),
             {
                 "geometry": "location",
                 "species": "species",
@@ -132,12 +132,36 @@ class RegistrationFormTestCase(TestBase):
             json=json.dumps(x_version_json),
         )
         self.assertEqual(
-            form.get_save_to("x"),
+            registration_form.get_save_to("x"),
             {
                 "location": "location",
                 "species": "species",
                 "circumference": "circumference",
             },
+        )
+        # Properties within grouped sections
+        group_md = """
+        | survey |
+        |         | type        | name     | label        | save_to |
+        |         | begin group | tree     | Tree         |         |
+        |         | geopoint    | location | Location     | geometry|
+        |         | text        | species  | Species      | species |
+        |         | end group   |          |              |         |
+        | settings|             |          |              |         |
+        |         | form_title  | form_id  | instance_name| version |
+        |         | Group       | group    | ${species}   | 2022110901|
+        | entities| list_name   | label    |              |         |
+        |         | trees       | ${species}|             |         |
+        """
+        self._publish_markdown(group_md, self.user, self.project, id_string="group")
+        xform = XForm.objects.get(id_string="group")
+        registration_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=self.entity_list
+        )
+
+        self.assertEqual(
+            registration_form.get_save_to(),
+            {"geometry": "location", "species": "species"},
         )
 
     def test_entity_list_xform_unique(self):
