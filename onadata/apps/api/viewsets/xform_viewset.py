@@ -295,7 +295,6 @@ class XFormViewSet(
             "description",
             "is_merged_dataset",
         )
-        .order_by("pk")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination
@@ -556,7 +555,7 @@ class XFormViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
-            page = self.paginate_queryset(self.object_list)
+            page = self.paginate_queryset(self.object_list.order_by("pk"))
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
             else:
