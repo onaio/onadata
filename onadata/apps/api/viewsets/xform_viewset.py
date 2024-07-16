@@ -295,6 +295,7 @@ class XFormViewSet(
             "description",
             "is_merged_dataset",
         )
+        .order_by("pk")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination
@@ -725,9 +726,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     @action(methods=["POST", "GET"], detail=True)
@@ -795,9 +798,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     def partial_update(self, request, *args, **kwargs):
