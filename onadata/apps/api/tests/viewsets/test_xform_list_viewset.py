@@ -813,9 +813,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_manifest_cache(self):
         """Manifest cache is used if not empty"""
-        cache.set(f"xfm-manifest-{self.xform.pk}", "<manifest>Test</manifest>")
         self._load_metadata(self.xform)
         self.view = XFormListViewSet.as_view({"get": "manifest", "head": "manifest"})
+        cache.set(f"xfm-manifest-{self.xform.pk}", "<manifest>Test</manifest>")
         request = self.factory.head("/")
         response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth("bob", "bobbob")

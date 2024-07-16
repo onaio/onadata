@@ -382,6 +382,10 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
 
+    def __init__(self, cache_key=None) -> None:
+        self.cache_key = cache_key
+        self.can_update_cache = False
+
     def _get_current_buffer_data(self):
         data = super()._get_current_buffer_data()
         cached_manifest: str | None = cache.get(self.cache_key)
@@ -398,11 +402,7 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
 
         return data
 
-    def stream_data(self, data, serializer, cache_key=None):
-        if cache_key:
-            self.cache_key = cache_key
-
-        self.can_update_cache = False
+    def stream_data(self, data, serializer):
         # In the case of concurrent requests, we ensure only the first
         # request is updating the cache
         if self.cache_key and cache.get(self.cache_key) is None:

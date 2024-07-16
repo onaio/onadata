@@ -188,11 +188,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             )
 
         metadata_qs = MetaData.objects.filter(data_type="media", object_id=xform.pk)
+        renderer = XFormManifestRenderer(cache_key)
 
         return StreamingHttpResponse(
-            XFormManifestRenderer().stream_data(
-                metadata_qs, self.get_serializer, cache_key
-            ),
+            renderer.stream_data(metadata_qs, self.get_serializer),
             content_type="text/xml; charset=utf-8",
             headers=get_openrosa_headers(request, location=False),
         )
