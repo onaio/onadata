@@ -824,10 +824,11 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, "<manifest>Test</manifest>")
+        self.assertEqual(response.content.decode("utf-8"), "<manifest>Test</manifest>")
         self.assertTrue(response.has_header("X-OpenRosa-Version"))
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
     def test_retrieve_xform_manifest_w_token_auth(self):
         self._load_metadata(self.xform)
