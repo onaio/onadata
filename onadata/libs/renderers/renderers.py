@@ -388,9 +388,10 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
 
     def _get_current_buffer_data(self):
         data = super()._get_current_buffer_data()
-        cached_manifest: str | None = cache.get(self.cache_key)
 
         if data and self.can_update_cache:
+            cached_manifest: str | None = cache.get(self.cache_key)
+
             if cached_manifest is not None:
                 cached_manifest += data
                 cache.set(
