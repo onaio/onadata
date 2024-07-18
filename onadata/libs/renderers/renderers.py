@@ -27,7 +27,10 @@ from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
-from onadata.libs.utils.cache_tools import XFORM_MANIFEST_CACHE_TTL
+from onadata.libs.utils.cache_tools import (
+    XFORM_MANIFEST_CACHE_TTL,
+    XFORM_MANIFEST_CACHE_LOCK_TTL,
+)
 from onadata.libs.utils.osm import get_combined_osm
 
 
@@ -408,7 +411,9 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
             # In the case of concurrent requests, we ensure only the first
             # request is updating the cache
             lock_key = f"{self.cache_key}_lock"
-            self.can_update_cache = cache.add(lock_key, "true", timeout=60)
+            self.can_update_cache = cache.add(
+                lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
+            )
 
         return super().stream_data(data, serializer)
 
