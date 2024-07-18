@@ -394,20 +394,19 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
         data = super()._get_current_buffer_data()
 
         if data and self.can_update_cache:
+            data = data.strip()
             cached_manifest: str | None = cache.get(self.cache_key)
 
             if cached_manifest is not None:
                 cached_manifest += data
-                cache.set(
-                    self.cache_key, cached_manifest.strip(), XFORM_MANIFEST_CACHE_TTL
-                )
+                cache.set(self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL)
 
-                if data.strip().endswith("</manifest>"):
+                if data.endswith("</manifest>"):
                     # We are done, release the lock
                     cache.delete(self.cache_lock_key)
 
             else:
-                cache.set(self.cache_key, data.strip(), XFORM_MANIFEST_CACHE_TTL)
+                cache.set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
 
         return data
 
