@@ -824,7 +824,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "<manifest>Test</manifest>")
+        self.assertEqual(
+            response.render().content.decode("utf-8"), "<manifest>Test</manifest>"
+        )
         self.assertTrue(response.has_header("X-OpenRosa-Version"))
         self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
         self.assertTrue(response.has_header("Date"))

@@ -4,7 +4,7 @@ OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 from django.conf import settings
 from django.core.cache import cache
-from django.http import Http404, StreamingHttpResponse, HttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 
 from django_filters import rest_framework as django_filter_filters
@@ -171,7 +171,9 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             self.object.xml, headers=get_openrosa_headers(request, location=False)
         )
 
-    @action(methods=["GET", "HEAD"], detail=True)
+    @action(
+        methods=["GET", "HEAD"], detail=True, renderer_classes=[XFormManifestRenderer]
+    )
     def manifest(self, request, *args, **kwargs):
         """A manifest defining additional supporting objects."""
         # pylint: disable=attribute-defined-outside-init
@@ -181,7 +183,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         # Ensure a previous stream has completed updating the cache by
         # confirm the last tag </manifest> exists
         if cached_manifest is not None and cached_manifest.endswith("</manifest>"):
-            return HttpResponse(
+            return Response(
                 cached_manifest,
                 content_type="text/xml; charset=utf-8",
                 headers=get_openrosa_headers(request, location=False),
