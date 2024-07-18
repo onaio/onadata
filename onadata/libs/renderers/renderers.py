@@ -388,6 +388,7 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     def __init__(self, cache_key=None) -> None:
         self.cache_key = cache_key
         self.can_update_cache = False
+        self.cache_lock_key = None
 
     def _get_current_buffer_data(self):
         data = super()._get_current_buffer_data()
@@ -401,6 +402,10 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
                     self.cache_key, cached_manifest.strip(), XFORM_MANIFEST_CACHE_TTL
                 )
 
+                if data.strip().endswith("</manifest>"):
+                    # We are done, release the lock
+                    cache.delete(self.cache_lock_key)
+
             else:
                 cache.set(self.cache_key, data.strip(), XFORM_MANIFEST_CACHE_TTL)
 
@@ -410,9 +415,9 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
         if self.cache_key:
             # In the case of concurrent requests, we ensure only the first
             # request is updating the cache
-            lock_key = f"{self.cache_key}_lock"
+            self.cache_lock_key = f"{self.cache_key}_lock"
             self.can_update_cache = cache.add(
-                lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
+                self.cache_lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
             )
 
         return super().stream_data(data, serializer)
