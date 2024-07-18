@@ -404,9 +404,9 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
         return data
 
     def stream_data(self, data, serializer):
-        # In the case of concurrent requests, we ensure only the first
-        # request is updating the cache
         if self.cache_key:
+            # In the case of concurrent requests, we ensure only the first
+            # request is updating the cache
             lock_key = f"{self.cache_key}_lock"
             self.can_update_cache = cache.add(lock_key, "true", timeout=60)
 
