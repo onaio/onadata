@@ -8,10 +8,12 @@ import math
 from io import BytesIO, StringIO
 from typing import Tuple
 
+from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
+
 
 import six
 from rest_framework import negotiation
@@ -25,7 +27,12 @@ from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
+from onadata.libs.utils.cache_tools import (
+    XFORM_MANIFEST_CACHE_TTL,
+    XFORM_MANIFEST_CACHE_LOCK_TTL,
+)
 from onadata.libs.utils.osm import get_combined_osm
+
 
 IGNORE_FIELDS = [
     "formhub/uuid",
@@ -377,6 +384,42 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     root_node = "manifest"
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
+
+    def __init__(self, cache_key=None) -> None:
+        self.cache_key = cache_key
+        self.can_update_cache = False
+        self.cache_lock_key = None
+
+    def _get_current_buffer_data(self):
+        data = super()._get_current_buffer_data()
+
+        if data and self.can_update_cache:
+            data = data.strip()
+            cached_manifest: str | None = cache.get(self.cache_key)
+
+            if cached_manifest is not None:
+                cached_manifest += data
+                cache.set(self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL)
+
+                if data.endswith("</manifest>"):
+                    # We are done, release the lock
+                    cache.delete(self.cache_lock_key)
+
+            else:
+                cache.set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
+
+        return data
+
+    def stream_data(self, data, serializer):
+        if self.cache_key:
+            # In the case of concurrent requests, we ensure only the first
+            # request is updating the cache
+            self.cache_lock_key = f"{self.cache_key}_lock"
+            self.can_update_cache = cache.add(
+                self.cache_lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
+            )
+
+        return super().stream_data(data, serializer)
 
 
 # pylint: disable=too-few-public-methods
