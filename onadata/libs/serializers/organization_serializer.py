@@ -37,6 +37,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
+    email = serializers.EmailField(allow_blank=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )

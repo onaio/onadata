@@ -214,8 +214,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             self.assertTrue(isinstance(user["user"], text))
 
     def test_orgs_create(self):
-        self._org_create()
+        org_email = "mail@mail-server.org"
+        self._org_create(org_data = {"email": org_email})
         self.assertTrue(self.organization.user.is_active)
+        self.assertEqual(self.organization.user.email, org_email)
 
     def test_orgs_create_without_name(self):
         data = {
