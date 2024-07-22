@@ -13,6 +13,7 @@ from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 from guardian.compat import user_model_label
 
 from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.libs.models import BaseModel
 
 User = get_user_model()
@@ -79,6 +80,7 @@ class EntityList(BaseModel):
             self.name += deletion_suffix
             self.name = self.name[:255]  # Only first 255 characters
             self.save()
+            clear_project_cache(self.project.pk)
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):

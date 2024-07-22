@@ -2796,6 +2796,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
         entity_list = EntityList.objects.first()
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.data["forms"][0]["contributes_entities_to"],
@@ -2805,6 +2806,13 @@ class TestProjectViewSet(TestAbstractViewSet):
                 "is_active": True,
             },
         )
+        # Soft delete dataset
+        entity_list.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["forms"][0]["contributes_entities_to"])
 
     def test_get_project_w_follow_up_form(self):
         """Retrieve project with Entity follow up form"""
@@ -2825,6 +2833,13 @@ class TestProjectViewSet(TestAbstractViewSet):
                 }
             ],
         )
+        # Soft delete dataset
+        entity_list.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["forms"][0]["consumes_entities_from"], [])
 
 
 class GetProjectInvitationListTestCase(TestAbstractViewSet):
