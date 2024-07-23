@@ -2,6 +2,7 @@
 """
 Test export_tools module
 """
+import csv
 import json
 import os
 import shutil
@@ -1022,7 +1023,43 @@ class GenerateExportTestCase(TestAbstractViewSet):
             },
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
+        Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="614bda97-0a46-4d31-9661-736287edf7da",
+            deleted_at=timezone.now(),  # deleted Entity should be ignored
+        )
+
         export = generate_entity_list_export(entity_list)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         self.assertEqual(GenericExport.objects.count(), 1)
+        export = GenericExport.objects.first()
+
+        with open(export.full_filepath, "r") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader)
+            expected_header = [
+                "name",
+                "label",
+                "geometry",
+                "species",
+                "circumference_cm",
+            ]
+            self.assertCountEqual(header, expected_header)
+            # Read all rows into a list
+            rows = list(csv_reader)
+            self.assertEqual(len(rows), 1)
+            expected_row = [
+                "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                "300cm purpleheart",
+                "-1.286905 36.772845 0 0",
+                "purpleheart",
+                "300",
+            ]
+            self.assertCountEqual(rows[0], expected_row)

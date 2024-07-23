@@ -133,7 +133,7 @@ def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
         An iterator of dicts which represent the json data for
         Entities belonging to the dataset
     """
-    entities = Entity.objects.filter(entity_list=entity_list)
+    entities = Entity.objects.filter(entity_list=entity_list, deleted_at__isnull=True)
     dataset_properties = entity_list.properties
 
     for entity in queryset_iterator(entities):
