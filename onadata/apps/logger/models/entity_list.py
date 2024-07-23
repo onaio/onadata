@@ -41,13 +41,6 @@ class EntityList(BaseModel):
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
-    class Meta(BaseModel.Meta):
-        app_label = "logger"
-        unique_together = (
-            "name",
-            "project",
-        )
-
     def __str__(self):
         return f"{self.name}|{self.project}"
 
@@ -92,6 +85,14 @@ class EntityList(BaseModel):
                     data_value=f"entity_list {self.pk} {original_name}",
                 ):
                     datum.soft_delete()
+
+    class Meta(BaseModel.Meta):
+        app_label = "logger"
+        unique_together = (
+            "name",
+            "project",
+        )
+        indexes = [models.Index(fields=["deleted_at"])]
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):

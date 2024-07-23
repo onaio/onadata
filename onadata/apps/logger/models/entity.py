@@ -44,6 +44,7 @@ class Entity(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
+        indexes = [models.Index(fields=["deleted_at"])]
 
 
 class EntityHistory(BaseModel):
