@@ -12,7 +12,7 @@ from onadata.apps.logger.models import Entity, EntityList, Instance, Registratio
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.apps.logger.tasks import set_entity_list_perms_async
-from onadata.apps.main.models import MetaData
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.logger_tools import (
     create_entity_from_instance,
     update_entity_from_instance,
