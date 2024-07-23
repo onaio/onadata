@@ -5,7 +5,7 @@ EntityList model
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
@@ -66,6 +66,7 @@ class EntityList(BaseModel):
 
         return list(dataset_properties)
 
+    @transaction.atomic()
     def soft_delete(self, deleted_by=None):
         """Soft delete EntityList"""
         if self.deleted_at is None:
