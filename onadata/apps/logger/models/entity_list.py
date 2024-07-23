@@ -15,7 +15,9 @@ from guardian.compat import user_model_label
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import clear_project_cache
+from onadata.apps.main.models import MetaData
 from onadata.libs.models import BaseModel
+from onadata.libs.utils.model_tools import queryset_iterator
 
 User = get_user_model()
 
@@ -77,14 +79,13 @@ class EntityList(BaseModel):
             self.save()
             clear_project_cache(self.project.pk)
             # Soft deleted follow up forms MetaData
-            for follow_up in self.follow_up_forms.all():
-                xform = follow_up.xform
+            metadata_qs = MetaData.objects.filter(
+                data_type="media",
+                data_value=f"entity_list {self.pk} {original_name}",
+            )
 
-                for datum in xform.metadata_set.filter(
-                    data_type="media",
-                    data_value=f"entity_list {self.pk} {original_name}",
-                ):
-                    datum.soft_delete()
+            for datum in queryset_iterator(metadata_qs):
+                datum.soft_delete()
 
     class Meta(BaseModel.Meta):
         app_label = "logger"

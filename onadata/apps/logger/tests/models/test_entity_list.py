@@ -161,3 +161,18 @@ class EntityListTestCase(TestBase):
         entity_list.soft_delete()
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.name, dataset_name)
+
+    def test_hard_delete(self):
+        """Hard delete removes consumers' metadata"""
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        follow_up_form = self._publish_follow_up_form(self.user)
+        data_value = f"entity_list {entity_list.pk} trees"
+        self.assertTrue(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )
+
+        entity_list.delete()
+
+        self.assertFalse(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )

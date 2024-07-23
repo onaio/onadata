@@ -9,8 +9,10 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
+from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.apps.logger.tasks import set_entity_list_perms_async
+from onadata.apps.main.models import MetaData
 from onadata.libs.utils.logger_tools import (
     create_entity_from_instance,
     update_entity_from_instance,
@@ -99,3 +101,16 @@ def set_entity_list_perms(sender, instance, created=False, **kwargs):
     """Set project permissions to EntityList"""
     if created:
         transaction.on_commit(lambda: set_entity_list_perms_async.delay(instance.pk))
+
+
+@receiver(post_delete, sender=EntityList, dispatch_uid="delete_entity_list_metadata")
+def delete_entity_list_metadata(sender, instance, **kwargs):
+    """Delete EntityList related data on delete"""
+    clear_project_cache(instance.project.pk)
+    # We get original name incase name has been modified in the case where
+    # EntityList was first soft deleted
+    entity_list_name = instance.name.split("-")[0]
+    MetaData.objects.filter(
+        data_type="media",
+        data_value=f"entity_list {instance.pk} {entity_list_name}",
+    ).delete()
