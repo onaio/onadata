@@ -9,6 +9,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
+
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 from guardian.compat import user_model_label
 
@@ -77,10 +78,20 @@ class EntityList(BaseModel):
             deletion_suffix = deletion_time.strftime("-deleted-at-%s")
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
+            original_name = self.name
             self.name += deletion_suffix
             self.name = self.name[:255]  # Only first 255 characters
             self.save()
             clear_project_cache(self.project.pk)
+            # Soft deleted follow up forms MetaData
+            for follow_up in self.follow_up_forms.all():
+                xform = follow_up.xform
+
+                for datum in xform.metadata_set.filter(
+                    data_type="media",
+                    data_value=f"entity_list {self.pk} {original_name}",
+                ):
+                    datum.soft_delete()
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):
