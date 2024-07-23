@@ -96,14 +96,6 @@ class EntityList(BaseModel):
         )
         indexes = [models.Index(fields=["deleted_at"])]
 
-    class Meta(BaseModel.Meta):
-        app_label = "logger"
-        unique_together = (
-            "name",
-            "project",
-        )
-        indexes = [models.Index(fields=["deleted_at"])]
-
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
