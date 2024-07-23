@@ -15,7 +15,7 @@ from guardian.compat import user_model_label
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import clear_project_cache
-from onadata.apps.main.models import MetaData
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.models import BaseModel
 from onadata.libs.utils.model_tools import queryset_iterator
 
