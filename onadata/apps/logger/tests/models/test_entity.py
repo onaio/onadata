@@ -93,6 +93,21 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity3.deleted_at, self.mocked_now)
         self.assertIsNone(entity3.deleted_by)
 
+    def test_hard_delete(self):
+        """Hard deleting updates dataset info"""
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        self.entity_list.refresh_from_db()
+        old_last_entity_update_time = self.entity_list.last_entity_update_time
+
+        self.assertEqual(self.entity_list.num_entities, 1)
+
+        entity.delete()
+        self.entity_list.refresh_from_db()
+        new_last_entity_update_time = self.entity_list.last_entity_update_time
+
+        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+
 
 class EntityHistoryTestCase(TestBase):
     """Tests for model EntityHistory"""

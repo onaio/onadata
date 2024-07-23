@@ -4,8 +4,9 @@ logger signals module
 """
 from django.db import transaction
 from django.db.models import F
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.utils import timezone
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
@@ -47,19 +48,50 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
                 create_entity_from_instance(instance, registration_form)
 
 
-@receiver(post_save, sender=Entity, dispatch_uid="update_entity_dataset")
-def update_entity_dataset(sender, instance, created=False, **kwargs):
-    """Update EntityList when Entity is created or updated"""
-    if not instance:
-        return
-
+@receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")
+def increment_entity_list_num_entities(sender, instance, created=False, **kwargs):
+    """Increment EntityList `num_entities`"""
     entity_list = instance.entity_list
 
     if created:
-        entity_list.num_entities = F("num_entities") + 1
+        # Using Queryset.update ensures we do not call the model's save method and
+        # signals
+        EntityList.objects.filter(pk=entity_list.pk).update(
+            num_entities=F("num_entities") + 1
+        )
 
-    entity_list.last_entity_update_time = instance.date_modified
-    entity_list.save()
+
+@receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
+def decrement_entity_list_num_entities(sender, instance, **kwargs):
+    """Decrement EntityList `num_entities`"""
+    entity_list = instance.entity_list
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=entity_list.pk).update(
+        num_entities=F("num_entities") - 1
+    )
+
+
+@receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")
+def update_last_entity_update_time_now(sender, instance, **kwargs):
+    """Update EntityList `last_entity_update_time`"""
+    entity_list = instance.entity_list
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=entity_list.pk).update(
+        last_entity_update_time=timezone.now()
+    )
+
+
+@receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_last_update_time")
+def update_last_entity_update_time(sender, instance, **kwargs):
+    """Update EntityList `last_entity_update_time`"""
+    entity_list = instance.entity_list
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=entity_list.pk).update(
+        last_entity_update_time=instance.date_modified
+    )
 
 
 @receiver(post_save, sender=EntityList, dispatch_uid="set_entity_list_perms")
