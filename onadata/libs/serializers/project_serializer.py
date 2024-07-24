@@ -238,9 +238,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_consumes_entities_from(self, obj: XForm):
         """Return the EntityLIst that the form consumes Entities"""
-        queryset = obj.follow_up_forms.filter(
-            entity_list__deleted_at__isnull=True
-        ).all()
+        queryset = obj.follow_up_forms.filter(entity_list__deleted_at__isnull=True)
 
         if not queryset:
             return []
