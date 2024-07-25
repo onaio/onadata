@@ -10,7 +10,6 @@ from typing import Union
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.db.models.query import QuerySet
 from django.db.utils import DataError, OperationalError
 from django.http import Http404, StreamingHttpResponse
 from django.utils import timezone
@@ -26,7 +25,9 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.pagination import CountOverridablePageNumberPagination
+from onadata.libs.pagination import (
+    CountOverridablePageNumberPagination,
+)
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
@@ -41,6 +42,10 @@ from onadata.apps.viewer.models.parsed_instance import (
     get_sql_with_params,
     get_where_clause,
     query_data,
+    query_fields_data,
+    query_count,
+    _get_sort_fields,
+    ParsedInstance,
 )
 from onadata.libs import filters
 from onadata.libs.data import parse_int, strtobool
@@ -66,13 +71,14 @@ from onadata.libs.serializers.data_serializer import (
     OSMSerializer,
 )
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
 )
+
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -91,8 +97,8 @@ def get_data_and_form(kwargs):
 
 def delete_instance(instance, user):
     """
-    Function that calls Instance.set_deleted and catches any exception that may
-     occur.
+    Function that calls Instance.set_deleted and catches any exception that may occur.
+
     :param instance:
     :param user:
     :return:
@@ -162,9 +168,9 @@ class DataViewSet(
         elif fmt == "xml":
             serializer_class = DataInstanceXMLSerializer
         elif (
-            form_pk is not None and
-            dataid is None and
-            form_pk != self.public_data_endpoint
+            form_pk is not None
+            and dataid is None
+            and form_pk != self.public_data_endpoint
         ):
             if sort or fields:
                 serializer_class = JsonDataSerializer
@@ -337,10 +343,19 @@ class DataViewSet(
 
         return Response(data=data)
 
+    # pylint: disable=too-many-branches,too-many-locals
     def destroy(self, request, *args, **kwargs):
-        """Soft deletes submissions data."""
+        """Deletes submissions data."""
         instance_ids = request.data.get("instance_ids")
         delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
+        # get param to trigger permanent submission deletion
+        permanent_delete = str_to_bool(request.data.get("permanent_delete"))
+        enable_submission_permanent_delete = getattr(
+            settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+        )
+        permanent_delete_disabled_msg = _(
+            "Permanent submission deletion is not enabled for this server."
+        )
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
@@ -364,8 +379,21 @@ class DataViewSet(
                     deleted_at__isnull=True,
                 )
 
+            error_msg = None
             for instance in queryset.iterator():
-                delete_instance(instance, request.user)
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        instance.delete()
+                    else:
+                        error_msg = {"error": permanent_delete_disabled_msg}
+                        break
+                else:
+                    # enable soft deletion
+                    delete_instance(instance, request.user)
+
+            if error_msg:
+                # return error msg if permanent deletion not enabled
+                return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
 
             # updates the num_of_submissions for the form.
             after_count = self.object.submission_count(force_update=True)
@@ -390,10 +418,24 @@ class DataViewSet(
             )
 
         if isinstance(self.object, Instance):
-
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
-                delete_instance(self.object, request.user)
+                if permanent_delete:
+                    if enable_submission_permanent_delete:
+                        self.object.delete()
+                    else:
+                        error_msg = {"error": permanent_delete_disabled_msg}
+                        return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # enable soft deletion
+                    delete_instance(self.object, request.user)
+
+                # updates the num_of_submissions for the form.
+                self.object.xform.submission_count(force_update=True)
+
+                # update the date modified field of the project
+                self.object.xform.project.date_modified = timezone.now()
+                self.object.xform.project.save(update_fields=["date_modified"])
 
                 # send message
                 send_message(
@@ -456,7 +498,8 @@ class DataViewSet(
         query = self.request.query_params.get("query")
         base_url = url.split("?")[0]
         if query:
-            num_of_records = self.object_list.count()
+            query = self._parse_query(query)
+            num_of_records = query_count(xform, query=query)
         else:
             num_of_records = xform.num_of_submissions
         next_page_url = None
@@ -605,32 +648,46 @@ class DataViewSet(
             return super().list(request, *args, **kwargs)
 
         if export_type == "geojson":
-            # raise 404 if all instances dont have geoms
-            if not xform.instances_with_geopoints and not (
-                    xform.polygon_xpaths() or xform.geotrace_xpaths()):
-                raise Http404(_("Not Found"))
+            if not is_merged_dataset:
+                # raise 404 if all instances dont have geoms
+                if not xform.instances_with_geopoints and not (
+                    xform.polygon_xpaths() or xform.geotrace_xpaths()
+                ):
+                    raise Http404(_("Not Found"))
 
             # add pagination when fetching geojson features
             page = self.paginate_queryset(self.object_list)
             serializer = self.get_serializer(page, many=True)
 
-            return Response(serializer.data)
+            return Response(
+                serializer.data, headers={"Content-Type": "application/geo+json"}
+            )
 
         return custom_response_handler(request, xform, query, export_type)
+
+    def _parse_query(self, query):
+        """Parse `query` query parameter"""
+        return filter_queryset_xform_meta_perms_sql(
+            self.get_object(), self.request.user, query
+        )
 
     # pylint: disable=too-many-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):
         """
         Set the submission instances queryset.
         """
+        xform = None
+
         try:
             enable_etag = True
+
             if not is_public_request:
                 xform = self.get_object()
                 self.data_count = xform.num_of_submissions
                 enable_etag = self.data_count < SUBMISSION_RETRIEVAL_THRESHOLD
 
             where, where_params = get_where_clause(query)
+
             if where:
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.object_list.extra(
@@ -638,29 +695,62 @@ class DataViewSet(
                 )
 
             if (start and limit or limit) and (not sort and not fields):
-                start = start if start is not None else 0
-                limit = limit if start is None or start == 0 else start + limit
+                start_index = start if start is not None else 0
+                end_index = limit if start is None or start == 0 else start + limit
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = filter_queryset_xform_meta_perms(
                     self.get_object(), self.request.user, self.object_list
                 )
                 # pylint: disable=attribute-defined-outside-init
-                self.object_list = self.object_list[start:limit]
+                self.object_list = self.object_list[start_index:end_index]
             elif (sort or limit or start or fields) and not is_public_request:
                 try:
-                    query = filter_queryset_xform_meta_perms_sql(
-                        self.get_object(), self.request.user, query
+                    query = self._parse_query(query)
+                    # pylint: disable=protected-access
+                    has_json_fields = sort and ParsedInstance._has_json_fields(
+                        _get_sort_fields(sort)
                     )
-                    # pylint: disable=attribute-defined-outside-init
-                    self.object_list = query_data(
-                        xform,
-                        query=query,
-                        sort=sort,
-                        start_index=start,
-                        limit=limit,
-                        fields=fields,
-                        json_only=not self.kwargs.get("format") == "xml",
-                    )
+                    should_query_json_fields = fields or has_json_fields
+
+                    if self._should_paginate():
+                        retrieval_threshold = getattr(
+                            settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
+                        )
+                        query_param_keys = self.request.query_params
+                        page = int(
+                            query_param_keys.get(self.paginator.page_query_param, 1)
+                        )
+                        page_size = int(
+                            query_param_keys.get(
+                                self.paginator.page_size_query_param,
+                                retrieval_threshold,
+                            )
+                        )
+                        start = (page - 1) * page_size
+                        limit = page_size
+
+                    if should_query_json_fields:
+                        data = query_fields_data(
+                            xform,
+                            fields=fields,
+                            query=query,
+                            sort=sort,
+                            start_index=start,
+                            limit=limit,
+                        )
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = data
+                    else:
+                        data = query_data(
+                            xform,
+                            query=query,
+                            sort=sort,
+                            start_index=start,
+                            limit=limit,
+                            json_only=not self.kwargs.get("format") == "xml",
+                        )
+                        # pylint: disable=attribute-defined-outside-init
+                        self.object_list = data
                 except NoRecordsPermission:
                     # pylint: disable=attribute-defined-outside-init
                     self.object_list = []
@@ -668,12 +758,10 @@ class DataViewSet(
             # ETags are Disabled for XForms with Submissions that surpass
             # the configured SUBMISSION_RETRIEVAL_THRESHOLD setting
             if enable_etag:
-                if isinstance(self.object_list, QuerySet):
-                    setattr(
-                        self, "etag_hash", (get_etag_hash_from_query(self.object_list))
-                    )
-                else:
-                    sql, params, records = get_sql_with_params(
+                sql = params = None
+
+                if xform:
+                    sql, params = get_sql_with_params(
                         xform,
                         query=query,
                         sort=sort,
@@ -681,11 +769,12 @@ class DataViewSet(
                         limit=limit,
                         fields=fields,
                     )
-                    setattr(
-                        self,
-                        "etag_hash",
-                        (get_etag_hash_from_query(records, sql, params)),
-                    )
+
+                setattr(
+                    self,
+                    "etag_hash",
+                    (get_etag_hash_from_query(sql, params)),
+                )
         except ValueError as e:
             raise ParseError(str(e)) from e
         except DataError as e:
@@ -699,17 +788,20 @@ class DataViewSet(
             queryset, self.request, view=self, count=self.data_count
         )
 
-    # pylint: disable=too-many-arguments,too-many-locals
-    def _get_data(self, query, fields, sort, start, limit, is_public_request):
-        self.set_object_list(query, fields, sort, start, limit, is_public_request)
-
-        retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
+    def _should_paginate(self) -> bool:
+        """Check whether the request is a pagination request"""
         pagination_keys = [
             self.paginator.page_query_param,
             self.paginator.page_size_query_param,
         ]
         query_param_keys = self.request.query_params
-        should_paginate = any(k in query_param_keys for k in pagination_keys)
+        return any(k in query_param_keys for k in pagination_keys)
+
+    # pylint: disable=too-many-arguments,too-many-locals
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        self.set_object_list(query, fields, sort, start, limit, is_public_request)
+        should_paginate = self._should_paginate()
+        retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
 
         if not should_paginate and not is_public_request:
             # Paginate requests that try to retrieve data that surpasses
@@ -717,21 +809,23 @@ class DataViewSet(
             xform = self.get_object()
             num_of_submissions = xform.num_of_submissions
             should_paginate = num_of_submissions > retrieval_threshold
+
             if should_paginate:
                 self.paginator.page_size = retrieval_threshold
 
-        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
+        if should_paginate:
+            query_param_keys = self.request.query_params
             current_page = query_param_keys.get(self.paginator.page_query_param, 1)
             current_page_size = query_param_keys.get(
                 self.paginator.page_size_query_param, retrieval_threshold
             )
-
             self._set_pagination_headers(
                 self.get_object(),
                 current_page=current_page,
                 current_page_size=current_page_size,
             )
 
+        if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
             try:
                 # pylint: disable=attribute-defined-outside-init
                 self.object_list = self.paginate_queryset(self.object_list)
@@ -740,6 +834,7 @@ class DataViewSet(
                 self.object_list = self.paginate_queryset(self.object_list)
 
         stream_data = getattr(settings, "STREAM_DATA", False)
+
         if stream_data:
             response = self._get_streaming_response()
         else:

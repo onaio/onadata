@@ -56,7 +56,9 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.export_tools import (
     check_pending_export,
+    get_latest_generic_export,
     generate_attachments_zip_export,
+    generate_entity_list_export,
     generate_export,
     generate_external_export,
     generate_geojson_export,
@@ -114,14 +116,15 @@ def include_hxl_row(dv_columns, hxl_columns):
 
 
 def _get_export_type(export_type):
-    if export_type in list(EXPORT_EXT):
-        export_type = EXPORT_EXT[export_type]
-    else:
+    if export_type not in EXPORT_EXT or (
+        export_type == Export.GOOGLE_SHEETS_EXPORT
+        and not getattr(settings, "GOOGLE_EXPORT", False)
+    ):
         raise exceptions.ParseError(
             _(f"'{export_type}' format not known or not implemented!")
         )
 
-    return export_type
+    return EXPORT_EXT[export_type]
 
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
@@ -152,6 +155,8 @@ def custom_response_handler(  # noqa: C0901
     dataview_pk = hasattr(dataview, "pk") and dataview.pk
     options["dataview_pk"] = dataview_pk
 
+    options["host"] = request.get_host()
+
     if dataview:
         columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
 
@@ -179,7 +184,6 @@ def custom_response_handler(  # noqa: C0901
         export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
         if export_type == Export.GOOGLE_SHEETS_EXPORT:
-
             return Response(
                 data=json.dumps(
                     {"details": _("Sheets export only supported in async mode")}
@@ -249,6 +253,8 @@ def _generate_new_export(  # noqa: C0901
         "extension": extension,
         "username": xform.user.username,
         "id_string": xform.id_string,
+        "host": request.get_host(),
+        "sort": request.query_params.get("sort"),
     }
     if query:
         options["query"] = query
@@ -323,13 +329,13 @@ def _generate_new_export(  # noqa: C0901
             audit,
             request,
         )
-    except NoRecordsFoundError as e:
-        raise Http404(_("No records found to export")) from e
-    except J2XException as e:
+    except NoRecordsFoundError as error:
+        raise Http404(_("No records found to export")) from error
+    except J2XException as error:
         # j2x exception
-        return async_status(FAILED, str(e))
-    except SPSSIOError as e:
-        raise exceptions.ParseError(str(e)) from e
+        return async_status(FAILED, str(error))
+    except SPSSIOError as error:
+        raise exceptions.ParseError(str(error)) from error
     else:
         return export
 
@@ -393,12 +399,11 @@ def _set_start_end_params(request, query):
                 query[SUBMISSION_TIME]["$lte"] = _format_date_for_mongo(
                     request.GET["end"]
                 )
-        except ValueError as e:
+        except ValueError as error:
             raise exceptions.ParseError(
                 _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-            ) from e
-        else:
-            query = json.dumps(query)
+            ) from error
+        query = json.dumps(query)
 
     return query
 
@@ -457,9 +462,8 @@ def process_async_export(request, xform, export_type, options=None):
             status=status.HTTP_403_FORBIDDEN,
             content_type="application/json",
         )
-    else:
-        if query:
-            options["query"] = query
+    if query:
+        options["query"] = query
 
     if (
         export_type in EXTERNAL_EXPORT_TYPES
@@ -666,3 +670,48 @@ def _get_google_credential(request):
         )
         return HttpResponseRedirect(authorization_url)
     return credential
+
+
+def get_entity_list_export_response(request, entity_list, filename):
+    """Returns an EntityList dataset export"""
+
+    # Check if we need to re-generate,
+    def _new_export():
+        return generate_entity_list_export(entity_list)
+
+    if should_create_new_export(
+        entity_list, Export.CSV_EXPORT, {}, request=request, is_generic=True
+    ):
+        export = _new_export()
+    else:
+        export = get_latest_generic_export(entity_list, Export.CSV_EXPORT, {})
+
+        if not export.filename and not export.error_message:
+            export = _new_export()
+
+    # Log export
+    audit = {"entity_list": entity_list.name, "export_type": Export.CSV_EXPORT}
+    log.audit_log(
+        log.Actions.EXPORT_DOWNLOADED,
+        request.user,
+        entity_list.project.user,
+        _(f"Downloaded {Export.CSV_EXPORT.upper()} export on '{entity_list.name}'."),
+        audit,
+        request,
+    )
+
+    if export.filename is None and export.error_message:
+        raise exceptions.ParseError(export.error_message)
+
+    # get extension from file_path, exporter could modify to
+    # xlsx if it exceeds limits
+    __, ext = os.path.splitext(export.filename)
+    ext = ext[1:]
+
+    return response_with_mimetype_and_name(
+        Export.EXPORT_MIMES[ext],
+        filename,
+        extension=ext,
+        show_date=False,
+        file_path=export.filepath,
+    )

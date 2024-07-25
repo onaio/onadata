@@ -2,6 +2,7 @@
 """
 Test export_tools module
 """
+import csv
 import json
 import os
 import shutil
@@ -24,10 +25,9 @@ from savReaderWriter import SavWriter
 from onadata.apps.api import tests as api_tests
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.logger.models import Attachment, Instance, XForm
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.logger.models import Attachment, Instance, XForm, Entity, EntityList
+from onadata.apps.viewer.models.export import Export, GenericExport
+from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.export_builder import (
@@ -38,6 +38,7 @@ from onadata.libs.utils.export_builder import (
 from onadata.libs.utils.export_tools import (
     check_pending_export,
     generate_attachments_zip_export,
+    generate_entity_list_export,
     generate_export,
     generate_geojson_export,
     generate_kml_export,
@@ -54,7 +55,7 @@ def _logger_fixture_path(*args):
     return os.path.join(settings.PROJECT_ROOT, "libs", "tests", "fixtures", *args)
 
 
-class TestExportTools(TestBase, TestAbstractViewSet):
+class TestExportTools(TestAbstractViewSet):
     """
     Test export_tools functions.
     """
@@ -321,7 +322,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         key = "photo"
         value = "123.jpg"
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
 
@@ -332,7 +339,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         # when include_images is False, you get the value
         media_xpaths = []
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
@@ -344,7 +357,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
 
         media_xpaths = ["photo"]
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
@@ -381,7 +400,13 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         key = "photo"
         value = "1 2 3.jpg"
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, media_xpaths, attachment_list
+            key,
+            value,
+            row,
+            self.xform,
+            media_xpaths,
+            attachment_list,
+            host="example.com",
         )
 
         self.assertTrue(val_or_url)
@@ -713,7 +738,7 @@ class TestExportTools(TestBase, TestAbstractViewSet):
                     }
                 ],
             }
-            self.assertEqual(len(geojson['features']), 1)
+            self.assertEqual(len(geojson["features"]), 1)
             content = json.loads(content)
             self.assertEqual(content, geojson)
 
@@ -937,7 +962,9 @@ class TestExportTools(TestBase, TestAbstractViewSet):
             "query": '{"_submission_time": {"$lte": "2019-01-13T00:00:00"}}',
         }
         filter_query = options.get("query")
-        instance_ids = query_data(self.xform, fields='["_id"]', query=filter_query)
+        instance_ids = query_fields_data(
+            self.xform, fields='["_id"]', query=filter_query
+        )
 
         export = generate_attachments_zip_export(
             Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
@@ -976,3 +1003,63 @@ class TestExportTools(TestBase, TestAbstractViewSet):
         for a in Attachment.objects.all():
             self.assertTrue(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
+
+
+class GenerateExportTestCase(TestAbstractViewSet):
+    """Tests for method `generate_export`"""
+
+    def test_generate_export_entity_list(self):
+        """Generate export for EntityList dataset works"""
+        # Publish registration form and create "trees" Entitylist dataset
+        self._publish_registration_form(self.user)
+        entity_list = EntityList.objects.get(name="trees")
+        Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+        Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="614bda97-0a46-4d31-9661-736287edf7da",
+            deleted_at=timezone.now(),  # deleted Entity should be ignored
+        )
+
+        export = generate_entity_list_export(entity_list)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        self.assertEqual(GenericExport.objects.count(), 1)
+        export = GenericExport.objects.first()
+
+        with open(export.full_filepath, "r") as csv_file:
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader)
+            expected_header = [
+                "name",
+                "label",
+                "geometry",
+                "species",
+                "circumference_cm",
+            ]
+            self.assertCountEqual(header, expected_header)
+            # Read all rows into a list
+            rows = list(csv_reader)
+            self.assertEqual(len(rows), 1)
+            expected_row = [
+                "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                "300cm purpleheart",
+                "-1.286905 36.772845 0 0",
+                "purpleheart",
+                "300",
+            ]
+            self.assertCountEqual(rows[0], expected_row)

@@ -22,9 +22,9 @@ def site_name(request):
     """Returns the SITE_NAME/"""
     site_id = getattr(settings, "SITE_ID", None)
     try:
-        site = Site.objects.get(pk=site_id)
+        request_host = request.get_host() if request else None
+        name = request_host or Site.objects.get(pk=site_id).name
     except Site.DoesNotExist:
         name = "example.org"
-    else:
-        name = site.name
+
     return {"SITE_NAME": name}

@@ -1,30 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Tests the onadata.libs.utils.csv_import module
+"""
 from __future__ import unicode_literals
 
 import os
 import re
 from builtins import open
 from io import BytesIO
+from unittest.mock import patch
 from xml.etree.ElementTree import fromstring
 
-import mock
+from django.conf import settings
+
 import unicodecsv as ucsv
 from celery.backends.rpc import BacklogLimitExceeded
-from django.conf import settings
-from mock import patch
 
 from onadata.apps.logger.models import Instance, XForm
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import (
-    XFORM,
-    SUBMISSION_EDITED,
     SUBMISSION_CREATED,
+    SUBMISSION_EDITED,
+    XFORM,
 )
 from onadata.libs.utils import csv_import
 from onadata.libs.utils.common_tags import IMPORTED_VIA_CSV_BY
-from onadata.libs.utils.csv_import import get_submission_meta_dict
+from onadata.libs.utils.csv_import import get_columns_by_type, get_submission_meta_dict
 from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.utils.csv_import import get_columns_by_type
 
 
 def strip_xml_uuid(s):
@@ -32,6 +35,10 @@ def strip_xml_uuid(s):
 
 
 class CSVImportTestCase(TestBase):
+    """
+    Tests the onadata.libs.utils.csv_import module
+    """
+
     def setUp(self):
         super(CSVImportTestCase, self).setUp()
         self.fixtures_dir = os.path.join(
@@ -60,7 +67,7 @@ class CSVImportTestCase(TestBase):
         resp = csv_import.submit_csv("userX", XForm(), 123456)
         self.assertIsNotNone(resp.get("error"))
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
     def test_submit_csv_xml_params(self, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -87,8 +94,8 @@ class CSVImportTestCase(TestBase):
         )
         self.assertEqual(safe_create_args[4], None)
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
-    @mock.patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
     def test_submit_csv_xml_location_property_test(self, d2x, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -150,9 +157,9 @@ class CSVImportTestCase(TestBase):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures", "tutorial.xlsx"
         )
         self._publish_xls_file(xls_file_path)
-        self.xform = XForm.objects.get()
+        xform = XForm.objects.get()
 
-        csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
+        csv_import.submit_csv(self.user.username, xform, self.good_csv)
         self.assertEqual(
             Instance.objects.count(), 9, "submit_csv edits #1 test Failed!"
         )
@@ -167,13 +174,20 @@ class CSVImportTestCase(TestBase):
         )
 
         count = Instance.objects.count()
-        csv_import.submit_csv(self.user.username, self.xform, edit_csv)
+        csv_import.submit_csv(self.user.username, xform, edit_csv)
         self.assertEqual(
             Instance.objects.count(), count, "submit_csv edits #2 test Failed!"
         )
         # message sent upon submission edit
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_EDITED)
+        instance_id = xform.instances.filter().order_by("date_modified").last().pk
+        send_message_mock.assert_called_with(
+            instance_id=instance_id,
+            target_id=xform.id,
+            target_type=XFORM,
+            message_verb=SUBMISSION_EDITED,
+            user=self.user,
+        )
 
     def test_import_non_utf8_csv(self):
         xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xlsx")
@@ -309,7 +323,7 @@ class CSVImportTestCase(TestBase):
         # repeats should be 6
         self.assertEqual(6, len(instance.json.get("children")))
 
-    @mock.patch("onadata.libs.utils.csv_import.AsyncResult")
+    @patch("onadata.libs.utils.csv_import.AsyncResult")
     def test_get_async_csv_submission_status(self, AsyncResult):
         result = csv_import.get_async_csv_submission_status(None)
         self.assertEqual(result, {"error": "Empty job uuid", "job_status": "FAILURE"})
@@ -383,7 +397,7 @@ class CSVImportTestCase(TestBase):
 
         self.assertEqual(g_csv_reader.fieldnames[10], c_csv_reader.fieldnames[10])
 
-    @mock.patch("onadata.libs.utils.csv_import.safe_create_instance")
+    @patch("onadata.libs.utils.csv_import.safe_create_instance")
     def test_submit_csv_instance_id_consistency(self, safe_create_instance):
         self._publish_xls_file(self.xls_file_path)
         self.xform = XForm.objects.get()
@@ -416,17 +430,24 @@ class CSVImportTestCase(TestBase):
     def test_data_upload(self, send_message_mock):
         """Data upload for submissions with no uuids"""
         self._publish_xls_file(self.xls_file_path)
-        self.xform = XForm.objects.get()
+        xform = XForm.objects.get()
         count = Instance.objects.count()
         single_csv = open(
             os.path.join(self.fixtures_dir, "single_data_upload.csv"), "rb"
         )
-        csv_import.submit_csv(self.user.username, self.xform, single_csv)
-        self.xform.refresh_from_db()
-        self.assertEqual(self.xform.num_of_submissions, count + 1)
+        csv_import.submit_csv(self.user.username, xform, single_csv)
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, count + 1)
+        instance_id = xform.instances.last().pk
         # message sent upon submission creation
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(self.xform.id, XFORM, SUBMISSION_CREATED)
+        send_message_mock.assert_called_with(
+            instance_id=instance_id,
+            target_id=xform.id,
+            target_type=XFORM,
+            message_verb=SUBMISSION_CREATED,
+            user=self.user,
+        )
 
     def test_excel_date_conversion(self):
         """Convert date from 01/01/1900 to 01-01-1900"""
@@ -578,3 +599,107 @@ class CSVImportTestCase(TestBase):
         self.assertTrue(
             submission.json["section_B/year_established"].startswith("1890")
         )
+
+    def test_select_multiples_grouped_repeating_w_split(self):
+        """Select multiple choices within group within repeat with split"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+        with open(
+            os.path.join(
+                self.fixtures_dir, "csv_import_multiple_split_group_repeat.csv"
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+            self.assertEqual(Instance.objects.count(), 1)
+            submission = Instance.objects.first()
+            self.assertEqual(
+                submission.json["grp1/grp2/browser_use"],
+                [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2010,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2011,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            )
+
+    def test_select_multiples_grouped_repeating_wo_split(self):
+        """Select multiple choices within group within repeat without split"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | grp1         | Group 1           |
+        |         | begin group              | grp2         | Group 2           |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | begin group              | grp3         | Group 3           |
+        |         | begin group              | grp4         | Group 4           |
+        |         | begin group              | grp5         | Group 5           |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+        with open(
+            os.path.join(
+                self.fixtures_dir, "csv_import_multiple_wo_split_group_repeat.csv"
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+            self.assertEqual(Instance.objects.count(), 1)
+            submission = Instance.objects.first()
+            self.assertEqual(
+                submission.json["grp1/grp2/browser_use"],
+                [
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2010,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox safari",
+                    },
+                    {
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/year": 2011,
+                        "grp1/grp2/browser_use/grp3/grp4/grp5/browsers": "firefox chrome",
+                    },
+                ],
+            )

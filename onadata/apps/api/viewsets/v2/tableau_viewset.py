@@ -24,6 +24,8 @@ from onadata.libs.utils.common_tags import (
     PARENT_TABLE,
     REPEAT_SELECT_TYPE,
 )
+from onadata.libs.pagination import RawSQLQueryPageNumberPagination
+
 
 DEFAULT_TABLE_NAME = "data"
 GPS_PARTS = ["latitude", "longitude", "altitude", "precision"]
@@ -53,7 +55,7 @@ def process_tableau_data(
             else:
                 flat_dict[ID] = row_id
 
-            for (key, value) in row.items():
+            for key, value in row.items():
                 qstn = xform.get_element(key)
                 if qstn:
                     qstn_type = qstn.get("type")
@@ -121,10 +123,10 @@ def unpack_repeat_data(repeat_data, flat_dict):
     cleaned_data = []
     for data_dict in repeat_data:
         remove_keys = []
-        for k, v in data_dict.items():
-            if isinstance(v, list):
-                remove_keys.append(k)
-                flat_dict[k].extend(v)
+        for key, value in data_dict.items():
+            if isinstance(value, list):
+                remove_keys.append(key)
+                flat_dict[key].extend(value)
         # pylint: disable=expression-not-assigned
         [data_dict.pop(k) for k in remove_keys]
         cleaned_data.append(data_dict)
@@ -181,37 +183,69 @@ class TableauViewSet(OpenDataViewSet):
         ]
         query_param_keys = request.query_params
         should_paginate = any(k in query_param_keys for k in pagination_keys)
-
         data = []
+        data_count = 0
+
         if isinstance(self.object.content_object, XForm):
             if not self.object.active:
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             xform = self.object.content_object
-            if xform.is_merged_dataset:
-                qs_kwargs = {
-                    "xform_id__in": list(
+
+            if should_paginate or count:
+                qs_kwargs = {}
+
+                if xform.is_merged_dataset:
+                    xform_pks = list(
                         xform.mergedxform.xforms.values_list("pk", flat=True)
                     )
-                }
-            else:
-                qs_kwargs = {"xform_id": xform.pk}
+                    qs_kwargs = {"xform__pk__in": xform_pks}
+
+                else:
+                    qs_kwargs = {"xform__pk": xform.pk}
+
+                if gt_id:
+                    qs_kwargs.update({"id__gt": gt_id})
+
+                data_count = (
+                    Instance.objects.filter(**qs_kwargs, deleted_at__isnull=True)
+                    .only("pk")
+                    .count()
+                )
+
+                if count:
+                    return Response({"count": data_count})
+
+            sql_where = ""
+            sql_where_params = []
+
+            # Raw SQL queries are used to improve the performance for large querysets
             if gt_id:
-                qs_kwargs.update({"id__gt": gt_id})
+                sql_where += " AND id > %s"
+                sql_where_params.append(gt_id)
 
-            # Filter out deleted submissions
-            instances = Instance.objects.filter(
-                **qs_kwargs, deleted_at__isnull=True
-            ).order_by("pk")
+            sql = (
+                "SELECT id, json from logger_instance"  # nosec
+                " WHERE xform_id IN %s AND deleted_at IS NULL" + sql_where  # noqa W503
+            )
+            xform_pks = [xform.id]
 
-            if count:
-                return Response({"count": instances.count()})
+            if xform.is_merged_dataset:
+                xform_pks = list(xform.mergedxform.xforms.values_list("pk", flat=True))
+
+            sql_params = [tuple(xform_pks)] + sql_where_params
 
             if should_paginate:
-                instances = self.paginate_queryset(instances)
-            # Switch out media file names for url links in queryset
-            data = replace_attachment_name_with_url(instances)
+                raw_paginator = RawSQLQueryPageNumberPagination()
+                offset, limit = raw_paginator.get_offset_limit(self.request, data_count)
+                sql += " ORDER BY id LIMIT %s OFFSET %s"
+                instances = Instance.objects.raw(sql, sql_params + [limit, offset])
 
+            else:
+                instances = Instance.objects.raw(sql, sql_params)
+
+            # Switch out media file names for url links in queryset
+            data = replace_attachment_name_with_url(instances, request)
             data = process_tableau_data(
                 TableauDataSerializer(data, many=True).data, xform
             )

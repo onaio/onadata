@@ -66,8 +66,8 @@ def create_zip_backup(zip_output_file, user, xform=None):
         if not os.path.exists(full_path):
             try:
                 os.makedirs(full_path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
+            except OSError as error:
+                if error.errno != errno.EEXIST:
                     raise
 
         full_xml_path = os.path.join(full_path, date_time_str + ".xml")
@@ -77,8 +77,8 @@ def create_zip_backup(zip_output_file, user, xform=None):
             full_xml_path = os.path.join(full_path, f"{date_time_str}-{file_index}.xml")
             file_index += 1
         # create the instance xml
-        with codecs.open(full_xml_path, "wb", "utf-8") as f:
-            f.write(instance.xml)
+        with codecs.open(full_xml_path, "wb", "utf-8") as xml_file:
+            xml_file.write(instance.xml)
         done += 1
         # pylint: disable=consider-using-f-string
         sys.stdout.write("\r%.2f %% done" % (float(done) / float(num_instances) * 100))
@@ -147,8 +147,10 @@ def restore_backup_from_xml_file(xml_instance_path, username):
             username, xml_file, media_files, date_created_override=date_created
         )
         return 1
-    except Exception as e:  # pylint: disable=broad-except
-        sys.stderr.write(f"Could not restore {file_name}, create instance said: {e}\n")
+    except Exception as error:  # pylint: disable=broad-except
+        sys.stderr.write(
+            f"Could not restore {file_name}, create instance said: {error}\n"
+        )
         return 0
 
 

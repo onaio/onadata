@@ -6,6 +6,6 @@
     <mediaFile>
         <filename>1335783522563.jpg</filename>
         <hash>md5:2ca0d22073a9b6b4ebe51368b08da60c</hash>
-        <downloadUrl>http://testserver/attachment/original?media_file=bob/attachments/{{form_id}}_transportation_2011_07_25/1335783522563.jpg</downloadUrl>
+        <downloadUrl>http://testserver/attachment/original?media_file=bob/attachments/{{form_id}}_transportation_2011_07_25/1335783522563.jpg&amp;attachment_id={{media_id}}</downloadUrl>
     </mediaFile>
 </submission>

@@ -3,12 +3,13 @@
 OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
 """
 from django.conf import settings
-from django.http import Http404
+from django.core.cache import cache
+from django.http import Http404, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.cache import never_cache
 
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import permissions, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -29,6 +30,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormListSerializer,
     XFormManifestSerializer,
 )
+from onadata.libs.utils.cache_tools import XFORM_MANIFEST_CACHE
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
 
@@ -48,9 +50,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     authentication_classes = (
         DigestAuthentication,
         EnketoTokenAuthentication,
+        TokenAuthentication,
     )
     content_negotiation_class = MediaFileContentNegotiation
-    filter_class = filters.FormIDFilter
+    filterset_class = filters.FormIDFilter
     filter_backends = (
         filters.XFormListObjectPermissionFilter,
         filters.XFormListXFormPKFilter,
@@ -77,11 +80,24 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return obj
 
-    def get_renderers(self):
-        if self.action and self.action == "manifest":
-            return [XFormManifestRenderer()]
+    def get_serializer_class(self):
+        """Return the class to use for the serializer"""
+        if self.action == "manifest":
+            return XFormManifestSerializer
 
-        return super().get_renderers()
+        return super().get_serializer_class()
+
+    def get_serializer(self, *args, **kwargs):
+        """
+        Return the serializer instance that should be used for validating and
+        deserializing input, and for serializing output.
+        """
+        if self.action == "manifest":
+            kwargs.setdefault("context", self.get_serializer_context())
+            kwargs["context"][GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
+            kwargs["context"][REPEAT_INDEX_TAGS] = "_,_"
+
+        return super().get_serializer(*args, **kwargs)
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get("username")
@@ -136,7 +152,6 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return queryset
 
-    @never_cache
     def list(self, request, *args, **kwargs):
         # pylint: disable=attribute-defined-outside-init
         self.object_list = self.filter_queryset(self.get_queryset())
@@ -156,21 +171,31 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             self.object.xml, headers=get_openrosa_headers(request, location=False)
         )
 
-    @action(methods=["GET", "HEAD"], detail=True)
+    @action(
+        methods=["GET", "HEAD"], detail=True, renderer_classes=[XFormManifestRenderer]
+    )
     def manifest(self, request, *args, **kwargs):
         """A manifest defining additional supporting objects."""
         # pylint: disable=attribute-defined-outside-init
-        self.object = self.get_object()
-        object_list = MetaData.objects.filter(
-            data_type="media", object_id=self.object.pk
-        )
-        context = self.get_serializer_context()
-        context[GROUP_DELIMETER_TAG] = ExportBuilder.GROUP_DELIMITER_DOT
-        context[REPEAT_INDEX_TAGS] = "_,_"
-        serializer = XFormManifestSerializer(object_list, many=True, context=context)
+        xform = self.get_object()
+        cache_key = f"{XFORM_MANIFEST_CACHE}{xform.pk}"
+        cached_manifest: str | None = cache.get(cache_key)
+        # Ensure a previous stream has completed updating the cache by
+        # confirm the last tag </manifest> exists
+        if cached_manifest is not None and cached_manifest.endswith("</manifest>"):
+            return Response(
+                cached_manifest,
+                content_type="text/xml; charset=utf-8",
+                headers=get_openrosa_headers(request, location=False),
+            )
 
-        return Response(
-            serializer.data, headers=get_openrosa_headers(request, location=False)
+        metadata_qs = MetaData.objects.filter(data_type="media", object_id=xform.pk)
+        renderer = XFormManifestRenderer(cache_key)
+
+        return StreamingHttpResponse(
+            renderer.stream_data(metadata_qs, self.get_serializer),
+            content_type="text/xml; charset=utf-8",
+            headers=get_openrosa_headers(request, location=False),
         )
 
     @action(methods=["GET", "HEAD"], detail=True)

@@ -32,8 +32,8 @@ class Command(BaseCommand):
         all_files = s3_storage.bucket.list()
 
         num = 0
-        for i, f in enumerate(all_files):
-            f.set_acl(permission)
+        for i, a_file in enumerate(all_files):
+            a_file.set_acl(permission)
             if i % 1000 == 0:
                 self.stdout.write(_(f"{i} file objects processed"))
             num = i

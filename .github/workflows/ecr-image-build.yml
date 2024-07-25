@@ -8,6 +8,8 @@ on:
     branches:
       - "main"
       - "*-rc"
+    tags:
+      - "v*"
   workflow_dispatch:
     buildAlpine:
       description: Whether to build an Alpine based image
@@ -18,18 +20,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
     steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -37,7 +50,16 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
 
       - name: Setup SSH Agent and add Github to known hosts
         env:
@@ -60,29 +82,44 @@ jobs:
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
-          platforms: linux/amd64
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}
+          platforms: ${{ matrix.platform }}
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
           cache-to: type=inline
           ssh: |
             default=/tmp/ssh-agent.sock
           build-args: |
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          outputs: type=image,name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,push-by-digest=true,name-canonical=true,push=true
+      -
+        name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.docker-build-ubuntu.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      -
+        name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
       - name: (Alpine) Build and push
         id: docker-build-alpine
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         if: github.event.inputs.buildAlpine
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.alpine
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}
           cache-to: type=inline
           ssh: |
@@ -99,23 +136,67 @@ jobs:
       - name: (Alpine) Image digest
         if: github.event.inputs.buildAlpine
         run: echo ${{ steps.docker-build-alpine.outputs.digest }}
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ steps.login-ecr.outputs.registry }}/onaio/onadata@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
           format: 'sarif'
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan result to Github security lab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
       - name: Run Trivy vulnerability scanner for Slack
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
           format: json
           output: 'trivy-results.json'
 
@@ -129,11 +210,11 @@ jobs:
           echo "SUMMARY=$summary" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
             {
-              "text": "Trivy scan results for ${{ env.version || github.ref_name }}",
+              "text": "Trivy scan results for ${{ steps.meta.outputs.version }}",
               "blocks": [
                 {
                   "type": "section",

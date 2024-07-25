@@ -4,24 +4,24 @@ Test data submissions.
 """
 import os
 import re
-
 from contextlib import contextmanager
-from django.http import Http404
-from django.http import UnreadablePostError
-from django_digest.test import DigestAuth
-from django_digest.test import Client as DigestClient
-from guardian.shortcuts import assign_perm
-from mock import patch, Mock, ANY
-from nose import SkipTest
+from unittest.mock import ANY, Mock, patch
 
-from onadata.apps.main.models.user_profile import UserProfile
-from onadata.apps.main.tests.test_base import TestBase
+from django.http import Http404, UnreadablePostError
+from django.test.utils import override_settings
+
+from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
+from guardian.shortcuts import assign_perm
+
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
 
@@ -162,36 +162,6 @@ class TestFormSubmission(TestBase):
 
         self.assertEqual(self.response.status_code, 403)
 
-    def test_submission_to_require_auth_with_perm(self):
-        """
-        Test submission to a private form by non-owner is forbidden.
-
-        TODO send authentication challenge when xform.require_auth is set.
-        This is non-trivial because we do not know the xform until we have
-        parsed the XML.
-        """
-        raise SkipTest
-
-        self.xform.require_auth = True
-        self.xform.save()
-        self.xform.refresh_from_db()
-        self.assertTrue(self.xform.require_auth)
-
-        # create a new user
-        username = "alice"
-        alice = self._create_user(username, username)
-
-        # assign report perms to user
-        assign_perm("report_xform", alice, self.xform)
-        auth = DigestAuth(username, username)
-
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml",
-        )
-        self._make_submission(xml_submission_file_path, auth=auth)
-        self.assertEqual(self.response.status_code, 201)
-
     def test_form_post_to_missing_form(self):
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -312,10 +282,8 @@ class TestFormSubmission(TestBase):
         )
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
-
-        cursor = [r for r in query_data(**query_args)]
-        num_data_instances = cursor[0]["count"]
+        query_args = {"xform": self.xform}
+        num_data_instances = query_count(**query_args)
         # make first submission
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
@@ -330,8 +298,8 @@ class TestFormSubmission(TestBase):
         # no new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # edited submission
         xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -369,12 +337,10 @@ class TestFormSubmission(TestBase):
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
 
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
-        query_args["count"] = False
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         with open(xml_edit_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
@@ -390,8 +356,7 @@ class TestFormSubmission(TestBase):
             "tutorial_2012-06-27_11-27-53_w_uuid_edited_again.xml",
         )
         self._make_submission(xml_edit_submission_file_path)
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         edited_instance = self.xform.instances.first()
         instance_history_2 = InstanceHistory.objects.last()
         self.assertEqual(
@@ -457,7 +422,7 @@ class TestFormSubmission(TestBase):
             self._make_submission(path=xml_submission_file_path)
 
     def test_edit_updated_geopoint_cache(self):
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
+        query_args = {"xform": self.xform}
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..",
@@ -470,8 +435,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         # query mongo for the _geopoint field
-        query_args["count"] = False
-        records = query_data(**query_args)
+        records = [item for item in query_data(**query_args)]
         self.assertEqual(len(records), 1)
         # submit the edited instance
         xml_submission_file_path = os.path.join(
@@ -484,7 +448,7 @@ class TestFormSubmission(TestBase):
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
-        records = query_data(**query_args)
+        records = [item for item in query_data(**query_args)]
         self.assertEqual(len(records), 1)
         cached_geopoint = records[0][GEOLOCATION]
         # the cached geopoint should equal the gps field
@@ -549,9 +513,8 @@ class TestFormSubmission(TestBase):
 
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
-        query_args = {"xform": self.xform, "query": "{}", "fields": "[]", "count": True}
-        cursor = query_data(**query_args)
-        num_data_instances = cursor[0]["count"]
+        query_args = {"xform": self.xform}
+        num_data_instances = query_count(**query_args)
         # make first submission
         self._make_submission(xml_submission_file_path)
 
@@ -560,8 +523,8 @@ class TestFormSubmission(TestBase):
         # no new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
 
         # create a new user
         alice = self._create_user("alice", "alice")
@@ -590,12 +553,10 @@ class TestFormSubmission(TestBase):
         self.assertEqual(Instance.objects.count(), num_instances + 1)
         # should be a new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history + 1)
-        cursor = query_data(**query_args)
-        self.assertEqual(cursor[0]["count"], num_data_instances + 1)
+        count = query_count(**query_args)
+        self.assertEqual(count, num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
-        query_args["count"] = False
-        cursor = query_data(**query_args)
-        record = cursor[0]
+        record = [item for item in query_data(**query_args)][0]
         with open(xml_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
@@ -642,3 +603,30 @@ class TestFormSubmission(TestBase):
         self._make_submission(path=xml_submission_file_path)
         self.assertEqual(400, self.response.status_code)
         self.assertIn("invalid input syntax for type json", str(self.response.message))
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    @patch("onadata.apps.viewer.signals._post_process_submissions")
+    def test_post_save_submission_count_update(self, mock):
+        """Test that submission count is updated asyncronously"""
+        # initial count should be 0
+        self.assertEqual(0, self.xform.instances.count())
+        # publish submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml",
+        )
+
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 201)
+
+        # test that post_save signal is executed
+        instance = self.xform.instances.first()
+        self.assertTrue(mock.called)
+        mock.assert_called_once_with(instance)
+        self.assertEqual(mock.call_count, 1)
+        self.xform.refresh_from_db()
+
+        # test submission count
+        self.assertEqual(1, self.xform.instances.count())
+        self.assertEqual(1, self.xform.num_of_submissions)

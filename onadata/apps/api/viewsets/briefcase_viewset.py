@@ -8,11 +8,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files import File
 from django.core.validators import ValidationError
+from django.db import OperationalError
 from django.http import Http404
 from django.utils.translation import gettext as _
 
 import six
 from rest_framework import exceptions, mixins, permissions, status, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.renderers import BrowsableAPIRenderer
@@ -71,6 +73,47 @@ def _parse_int(num):
         return None
 
 
+def _query_optimization_fence(instances, num_entries):
+    """
+    Enhances query performance by using an optimization fence.
+
+    This utility function creates an optimization fence around the provided
+    queryset instances. It encapsulates the original query within a
+    SELECT statement with an ORDER BY and LIMIT clause,
+    optimizing the database query for improved performance.
+
+    Parameters:
+    - instances: QuerySet
+        The input QuerySet of instances to be optimized.
+    - num_entries: int
+        The number of instances to be included in the optimized result set.
+
+    Returns:
+    QuerySet
+        An optimized QuerySet containing selected fields ('pk' and 'uuid')
+        based on the provided instances.
+    """
+    inner_raw_sql = str(instances.query)
+
+    # Create the outer query with the LIMIT clause
+    outer_query = (
+        f"SELECT id, uuid FROM ({inner_raw_sql}) AS items "  # nosec
+        "ORDER BY id ASC LIMIT %s"  # nosec
+    )
+    raw_queryset = Instance.objects.raw(outer_query, [num_entries])
+    # convert raw queryset to queryset
+    instances_data = [
+        {"pk": item.id, "uuid": item.uuid}
+        for item in raw_queryset.iterator()
+    ]
+    # Create QuerySet from the instances dict
+    instances = Instance.objects.filter(
+        pk__in=[item["pk"] for item in instances_data]
+    ).values("pk", "uuid")
+
+    return instances
+
+
 # pylint: disable=too-many-ancestors
 class BriefcaseViewset(
     mixins.CreateModelMixin,
@@ -83,7 +126,7 @@ class BriefcaseViewset(
     https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).
     """
 
-    authentication_classes = (DigestAuthentication,)
+    authentication_classes = (DigestAuthentication, TokenAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     queryset = XForm.objects.all()
     permission_classes = (permissions.IsAuthenticated, ViewDjangoObjectPermissions)
@@ -98,6 +141,18 @@ class BriefcaseViewset(
         id_string = _extract_id_string(form_id)
         uuid = _extract_uuid(form_id)
         username = self.kwargs.get("username")
+        form_pk = self.kwargs.get("xform_pk")
+        project_pk = self.kwargs.get("project_pk")
+
+        if not username:
+            if form_pk:
+                queryset = self.queryset.filter(pk=form_pk)
+                if queryset.first():
+                    username = queryset.first().user.username
+            elif project_pk:
+                queryset = self.queryset.filter(project__pk=project_pk)
+                if queryset.first():
+                    username = queryset.first().user.username
 
         obj = get_object_or_404(
             Instance,
@@ -109,24 +164,45 @@ class BriefcaseViewset(
 
         return obj
 
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     def filter_queryset(self, queryset):
         """
         Filters an XForm submission instances using ODK Aggregate query parameters.
         """
         username = self.kwargs.get("username")
-        if username is None and self.request.user.is_anonymous:
+        form_pk = self.kwargs.get("xform_pk")
+        project_pk = self.kwargs.get("project_pk")
+
+        if (
+            not username or not form_pk or not project_pk
+        ) and self.request.user.is_anonymous:
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
         if username is not None and self.request.user.is_anonymous:
-            profile = get_object_or_404(UserProfile, user__username__iexact=username)
+            profile = None
+            if username:
+                profile = get_object_or_404(
+                    UserProfile, user__username__iexact=username
+                )
+            elif form_pk:
+                queryset = queryset.filter(pk=form_pk)
+                if queryset.first():
+                    profile = queryset.first().user.profile
+            elif project_pk:
+                queryset = queryset.filter(project__pk=project_pk)
+                if queryset.first():
+                    profile = queryset.first().user.profile
 
             if profile.require_auth:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
                 queryset = queryset.filter(user=profile.user)
+        elif form_pk:
+            queryset = queryset.filter(pk=form_pk)
+        elif project_pk:
+            queryset = queryset.filter(project__pk=project_pk)
         else:
             queryset = super().filter_queryset(queryset)
 
@@ -155,7 +231,13 @@ class BriefcaseViewset(
 
         num_entries = _parse_int(num_entries)
         if num_entries:
-            instances = instances[:num_entries]
+            try:
+                paginated_instances = instances[:num_entries]
+                # trigger a database call
+                _ = len(paginated_instances)
+                instances = paginated_instances
+            except OperationalError:
+                instances = _query_optimization_fence(instances, num_entries)
 
         # Using len() instead of .count() to prevent an extra
         # database call; len() will load the instances in memory allowing

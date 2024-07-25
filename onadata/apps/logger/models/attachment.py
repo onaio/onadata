@@ -50,6 +50,13 @@ class Attachment(models.Model):
 
     OSM = "osm"
 
+    xform = models.ForeignKey(
+        "logger.XForm",
+        related_name="xform_attachments",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
     instance = models.ForeignKey(
         "logger.Instance", related_name="attachments", on_delete=models.CASCADE
     )
@@ -69,10 +76,15 @@ class Attachment(models.Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+    # submitted_by user
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
     class Meta:
         app_label = "logger"
-        ordering = ("pk",)
 
     def save(self, *args, **kwargs):
         if self.media_file and self.mimetype == "":

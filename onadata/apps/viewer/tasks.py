@@ -37,7 +37,6 @@ def _get_export_object(export_id):
         return Export.objects.get(id=export_id)
     except Export.DoesNotExist:
         if getattr(settings, "SLAVE_DATABASES", []):
-
             with use_master:
                 return Export.objects.get(id=export_id)
 
@@ -103,12 +102,12 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     if export_type in export_types:
         try:
             result = export_types[export_type].apply_async((), kwargs=options)
-        except OperationalError as e:
+        except OperationalError as error:
             export.internal_status = Export.FAILED
             export.error_message = "Error connecting to broker."
             export.save()
-            report_exception(export.error_message, e, sys.exc_info())
-            raise ExportConnectionError() from e
+            report_exception(export.error_message, error, sys.exc_info())
+            raise ExportConnectionError() from error
     else:
         raise ExportTypeError
 
@@ -145,7 +144,7 @@ def create_xlsx_export(username, id_string, export_id, **options):
         gen_export = generate_export(
             Export.XLSX_EXPORT, export.xform, export_id, options
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError) as error:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
@@ -154,14 +153,13 @@ def create_xlsx_export(username, id_string, export_id, **options):
         report_exception(
             "XLS Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         # Raise for now to let celery know we failed
         # - doesnt seem to break celery`
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -184,9 +182,9 @@ def create_csv_export(username, id_string, export_id, **options):
         # should not even be on this page if the survey has no records
         export.internal_status = Export.FAILED
         export.save()
-    except Exception as e:
+    except Exception as error:
         export.internal_status = Export.FAILED
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
@@ -194,7 +192,7 @@ def create_csv_export(username, id_string, export_id, **options):
         report_exception(
             "CSV Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
@@ -221,7 +219,7 @@ def create_kml_export(username, id_string, export_id, **options):
             options,
             xform=export.xform,
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError) as error:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
@@ -229,12 +227,11 @@ def create_kml_export(username, id_string, export_id, **options):
         report_exception(
             "KML Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -257,21 +254,20 @@ def create_osm_export(username, id_string, export_id, **options):
             options,
             xform=export.xform,
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError) as error:
         export.internal_status = Export.FAILED
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
         report_exception(
             "OSM Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -289,26 +285,25 @@ def create_zip_export(username, id_string, export_id, **options):
             options,
             xform=export.xform,
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError) as error:
         export.internal_status = Export.FAILED
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
         report_exception(
             "Zip Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
         )
         raise
-    else:
-        if not settings.TESTING_MODE:
-            delete_export.apply_async(
-                (),
-                {"export_id": gen_export.id},
-                countdown=settings.ZIP_EXPORT_COUNTDOWN,
-            )
-        return gen_export.id
+    if not settings.TESTING_MODE:
+        delete_export.apply_async(
+            (),
+            {"export_id": gen_export.id},
+            countdown=settings.ZIP_EXPORT_COUNTDOWN,
+        )
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -324,21 +319,20 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         gen_export = generate_export(
             Export.CSV_ZIP_EXPORT, export.xform, export_id, options
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError) as error:
         export.internal_status = Export.FAILED
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.save()
         # mail admins
         details = _get_export_details(username, id_string, export_id)
         report_exception(
             "CSV ZIP Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -354,7 +348,7 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         gen_export = generate_export(
             Export.SAV_ZIP_EXPORT, export.xform, export_id, options
         )
-    except (Exception, NoRecordsFoundError, TypeError) as e:
+    except (Exception, NoRecordsFoundError, TypeError) as error:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
@@ -362,12 +356,11 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         report_exception(
             "SAV ZIP Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -387,7 +380,7 @@ def create_external_export(username, id_string, export_id, **options):
             options,
             xform=export.xform,
         )
-    except (Exception, NoRecordsFoundError, ConnectionError) as e:
+    except (Exception, NoRecordsFoundError, ConnectionError) as error:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
@@ -395,12 +388,11 @@ def create_external_export(username, id_string, export_id, **options):
         report_exception(
             "External Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)
@@ -417,7 +409,7 @@ def create_google_sheet_export(username, id_string, export_id, **options):
         gen_export = generate_export(
             Export.GOOGLE_SHEETS_EXPORT, export.xform, export_id, options
         )
-    except (Exception, NoRecordsFoundError, ConnectionError) as e:
+    except (Exception, NoRecordsFoundError, ConnectionError) as error:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
@@ -425,12 +417,11 @@ def create_google_sheet_export(username, id_string, export_id, **options):
         report_exception(
             "Google Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
-            e,
+            error,
             sys.exc_info(),
         )
         raise
-    else:
-        return gen_export.id
+    return gen_export.id
 
 
 @app.task(track_started=True)

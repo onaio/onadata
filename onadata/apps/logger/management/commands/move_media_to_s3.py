@@ -46,22 +46,29 @@ class Command(BaseCommand):
         for cls, file_field, upload_to in classes_to_move:
             self.stdout.write(_("Moving %(class)ss to s3...") % {"class": cls.__name__})
             for i in cls.objects.all():
-                f = getattr(i, file_field)
-                old_filename = f.name
+                media_file = getattr(i, file_field)
+                old_filename = media_file.name
                 if (
-                    f.name
-                    and local_fs.exists(f.name)
-                    and not s3_fs.exists(upload_to(i, f.name))
+                    old_filename
+                    and local_fs.exists(old_filename)
+                    and not s3_fs.exists(upload_to(i, old_filename))
                 ):
-                    f.save(local_fs.path(f.name), local_fs.open(local_fs.path(f.name)))
+                    media_file.name.save(
+                        local_fs.path(old_filename),
+                        local_fs.open(local_fs.path(old_filename)),
+                    )
                     self.stdout.write(
                         _("\t+ '%(fname)s'\n\t---> '%(url)s'")
-                        % {"fname": local_fs.path(old_filename), "url": f.url}
+                        % {
+                            "fname": local_fs.path(old_filename),
+                            "url": media_file.url,
+                        }
                     )
                 else:
-                    exists_locally = local_fs.exists(f.name)
-                    exists_s3 = not s3_fs.exists(upload_to(i, f.name))
+                    exists_locally = local_fs.exists(old_filename)
+                    exists_s3 = not s3_fs.exists(upload_to(i, old_filename))
                     self.stderr.write(
-                        f"\t- (f.name={f.name}, fs.exists(f.name)={exists_locally},"
-                        f" not s3.exist s3upload_to(i, f.name))={exists_s3})"
+                        f"\t- (old_filename={old_filename}, "
+                        f"fs.exists(old_filename)={exists_locally},"
+                        f" not s3.exist s3upload_to(i, old_filename))={exists_s3})"
                     )

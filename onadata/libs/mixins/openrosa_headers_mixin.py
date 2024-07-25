@@ -2,11 +2,8 @@
 """
 OpenRosaHeadersMixin module
 """
-from datetime import datetime
-
 from django.conf import settings
-
-import pytz
+from django.utils import timezone
 
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, "DEFAULT_CONTENT_LENGTH", 10000000)
@@ -17,7 +14,7 @@ def get_openrosa_headers(request, location=True):
     Returns a dict with OpenRosa headers 'Date', 'X-OpenRosa-Version',
     'X-OpenRosa-Accept-Content-Length' and 'Location'.
     """
-    now = datetime.now(pytz.timezone(settings.TIME_ZONE))
+    now = timezone.localtime()
     data = {
         "Date": now.strftime("%a, %d %b %Y %H:%M:%S %Z"),
         "X-OpenRosa-Version": "1.0",
@@ -30,7 +27,7 @@ def get_openrosa_headers(request, location=True):
     return data
 
 
-class OpenRosaHeadersMixin:
+class OpenRosaHeadersMixin:  # pylint: disable=too-few-public-methods
     """
     OpenRosaHeadersMixin class - sets OpenRosa headers in a response for a View
     or Viewset.

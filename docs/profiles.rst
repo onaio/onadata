@@ -5,7 +5,7 @@ Register a new User
 -------------------
 
 ``username, email, first_name`` Are required fields. \ ``username`` may
-contain alphanumeric, \_, @, +, . and - characters
+contain alphanumeric, _, @, +, . and - characters
 
 .. raw:: html
 

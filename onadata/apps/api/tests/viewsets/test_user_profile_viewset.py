@@ -6,31 +6,32 @@ Tests the UserProfileViewSet.
 import datetime
 import json
 import os
-from six.moves.urllib.parse import urlparse, parse_qs
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import signals
 from django.test.utils import override_settings
-from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 import requests
 from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
-from mock import patch, call
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.permissions import EditorRole
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
-
 
 User = get_user_model()
 
@@ -91,7 +92,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(_profile_data()),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -137,7 +138,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(_profile_data()),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -267,7 +268,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -294,7 +295,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -422,7 +423,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -439,7 +440,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -452,7 +453,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
@@ -481,7 +482,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -514,7 +515,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
@@ -554,7 +555,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         response.render()
@@ -678,14 +679,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, {"b": "caah"})
 
     def test_put_update(self):
-
         data = _profile_data()
         # create profile
         request = self.factory.post(
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -696,7 +696,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request, user="deno")
         self.assertEqual(response.status_code, 400)
@@ -708,7 +708,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request, user="deno")
 
@@ -724,7 +724,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -746,13 +746,17 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertIn("%s already exists" % data["username"], response.data["username"])
 
-    @override_settings(AUTH_PASSWORD_VALIDATORS=[{"NAME": "onadata.libs.utils.validators.PreviousPasswordValidator"}])
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "onadata.libs.utils.validators.PreviousPasswordValidator"}
+        ]
+    )
     def test_change_password(self):
         view = UserProfileViewSet.as_view({"post": "change_password"})
         current_password = "bobbob"
@@ -764,26 +768,39 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": "Invalid password. You have 9 attempts left."})
+        self.assertEqual(
+            response.data, {"error": "Invalid password. You have 9 attempts left."}
+        )
 
         post_data = {"current_password": current_password, "new_password": ""}
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": "current_password and new_password fields cannot be blank"})
+        self.assertEqual(
+            response.data,
+            {"error": "current_password and new_password fields cannot be blank"},
+        )
 
         post_data = {"current_password": "", "new_password": new_password}
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"error": "current_password and new_password fields cannot be blank"})
+        self.assertEqual(
+            response.data,
+            {"error": "current_password and new_password fields cannot be blank"},
+        )
 
         # Assert new password can not be the same as the current password
-        post_data = {"current_password": current_password, "new_password": current_password}
+        post_data = {
+            "current_password": current_password,
+            "new_password": current_password,
+        }
         request = self.factory.post("/", data=post_data, **self.extra)
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
+        self.assertEqual(
+            response.data, {"errors": ["You cannot use a previously used password."]}
+        )
 
         # Assert password is changed when current_password and new_password meet criteria
         post_data = {"current_password": current_password, "new_password": new_password}
@@ -813,10 +830,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         # Assert user can not set old password as their password
         post_data = {"current_password": new_password, "new_password": current_password}
-        request = self.factory.post("/", data=post_data, **{"HTTP_AUTHORIZATION": f"Token {new_token}"})
+        request = self.factory.post(
+            "/", data=post_data, **{"HTTP_AUTHORIZATION": f"Token {new_token}"}
+        )
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data, {"errors": ["You cannot use a previously used password."]})
+        self.assertEqual(
+            response.data, {"errors": ["You cannot use a previously used password."]}
+        )
 
     def test_change_password_wrong_current_password(self):
         view = UserProfileViewSet.as_view({"post": "change_password"})
@@ -851,7 +872,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
 
@@ -891,7 +912,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
 
@@ -914,7 +935,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
 
@@ -934,7 +955,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -946,7 +967,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
 
         response = self.view(request, user="deno")
@@ -975,7 +996,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -1040,7 +1061,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request, user=self.user.username)
 
@@ -1090,7 +1111,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **deno_extra
+            **deno_extra,
         )
         response = self.view(request, user=rp.user.username)
 
@@ -1109,7 +1130,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(_profile_data()),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -1119,7 +1140,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request, user=user.username)
 
@@ -1138,7 +1159,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(
@@ -1155,7 +1176,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     def grant_perms_form_builder(
         self, url, request
     ):  # pylint: disable=no-self-use,unused-argument
-
         assert "X-ONADATA-KOBOCAT-AUTH" in request.headers
 
         response = requests.Response()
@@ -1402,7 +1422,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "/api/v1/profiles",
             data=json.dumps(data),
             content_type="application/json",
-            **self.extra
+            **self.extra,
         )
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
@@ -1433,3 +1453,107 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                 ),
             ]
         )
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch(
+        (
+            "onadata.libs.serializers.user_profile_serializer."
+            "send_verification_email.delay"
+        )
+    )
+    def test_accept_invitaton(self, mock_send_email):
+        """An invitation is accepted successfuly"""
+        self._project_create()
+        invitation = ProjectInvitation.objects.create(
+            email="janedoe@example.com",
+            project=self.project,
+            role="editor",
+        )
+        # user registers using same email as invitation email
+        data = _profile_data()
+        del data["name"]
+        data["email"] = invitation.email
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username="deno")
+        mock_send_email.assert_called_once()
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
+        self.assertTrue(EditorRole.user_has_role(user, self.project))
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",  # noqa
+            },
+        ]
+    )
+    @patch(
+        (
+            "onadata.libs.serializers.user_profile_serializer."
+            "send_verification_email.delay"
+        )
+    )
+    def test_password_optional(self, mock_send_verification_email):
+        """Field `password` is optional"""
+        # password not provided
+        data = _profile_data()
+        del data["name"]
+        del data["password"]
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        profile = UserProfile.objects.get(user__username=data["username"])
+        data["id"] = profile.user.pk
+        data["gravatar"] = profile.gravatar
+        data["url"] = "http://testserver/api/v1/profiles/deno"
+        data["user"] = "http://testserver/api/v1/users/deno"
+        data["metadata"] = {}
+        data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
+        data["joined_on"] = profile.user.date_joined
+        data["name"] = "%s %s" % ("Dennis", "erama")
+        self.assertEqual(response.data, data)
+        self.assertTrue(mock_send_verification_email.called)
+        user = User.objects.get(username="deno")
+        self.assertTrue(user.is_active)
+        # password blank
+        data = _profile_data()
+        user.delete()
+        del data["name"]
+        data["password"] = ""
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        profile = UserProfile.objects.get(user__username=data["username"])
+        data["id"] = profile.user.pk
+        data["gravatar"] = profile.gravatar
+        data["url"] = "http://testserver/api/v1/profiles/deno"
+        data["user"] = "http://testserver/api/v1/users/deno"
+        data["metadata"] = {}
+        data["metadata"]["last_password_edit"] = profile.metadata["last_password_edit"]
+        data["joined_on"] = profile.user.date_joined
+        data["name"] = "%s %s" % ("Dennis", "erama")
+        del data["password"]
+        self.assertEqual(response.data, data)
+        self.assertTrue(mock_send_verification_email.called)
+        user = User.objects.get(username="deno")
+        self.assertTrue(user.is_active)

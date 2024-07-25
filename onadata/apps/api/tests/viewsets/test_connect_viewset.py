@@ -2,8 +2,8 @@
 """
 Test /user API endpoint
 """
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -12,19 +12,19 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
+
 from django_digest.backend.db import update_partial_digests
-from django_digest.test import DigestAuth, BasicAuth
-from mock import patch
+from django_digest.test import BasicAuth, DigestAuth
 from rest_framework import authentication
 from rest_framework.authtoken.models import Token
 
-from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.models.odk_token import ODKToken
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
-from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
 
@@ -104,6 +104,32 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
         self.assertEqual(dict(response.data), self.data)
+
+    def test_get_profile_user_no_auth_token(self):
+        """
+        Test new user auth token is generated when user doesn't have an
+        existing one
+        """
+        # delete auth token
+        token = Token.objects.get(user=self.user)
+        old_token_key = token.key
+        token.delete()
+
+        view = ConnectViewSet.as_view(
+            {"get": "list"},
+            authentication_classes=(
+                DigestAuthentication,
+                authentication.BasicAuthentication,
+            ),
+        )
+        request = self.factory.get("/")
+        auth = BasicAuth("bob", "bobbob")
+        request.META.update(auth(request.META))
+        request.session = self.client.session
+
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data.get("api_token"), old_token_key)
 
     def test_using_valid_temp_token(self):
         request = self.factory.get("/", **self.extra)
@@ -576,6 +602,24 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["odk_token"], odk_token)
         self.assertEqual(response.data["expires"], expires)
+
+    def test_deactivate_token_when_expires_is_None(self):
+        """
+        Test that when a token's .expires field is nil, it will be deactivated
+        and a new one created in it's place
+        """
+        view = ConnectViewSet.as_view({"post": "odk_token", "get": "odk_token"})
+
+        # Create an active tokens
+        token = ODKToken.objects.create(user=self.user)
+        ODKToken.objects.filter(pk=token.pk).update(expires=None)
+
+        request = self.factory.get("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 1)
+        self.assertNotEqual(response.data["odk_token"], token.raw_key)
 
     def test_deactivates_multiple_active_odk_token(self):
         """

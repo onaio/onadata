@@ -2,30 +2,28 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
       - cache
     stdin_open: true
     tty: true
-    user: "onadata"
     volumes:
       - ./:/srv/onadata
     ports:
       - 8000:8000
-    command: /usr/local/bin/uwsgi --ini /srv/onadata/uwsgi.ini
+    command: python3.10 manage.py runserver --settings=onadata.settings.docker
 
   celery:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
       - cache
       - api
     volumes:
       - ./:/srv/onadata
-    user: "onadata"
     command: celery -A onadata.celeryapp worker -B -l INFO -E
 
   database:

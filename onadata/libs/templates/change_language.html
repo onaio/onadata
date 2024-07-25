@@ -5,7 +5,7 @@
    <input name="next" type="hidden" value="{{ redirect_to }}" />
    <select name="language" onchange="this.form.submit();">
       {% for k,v in LANGUAGES %}
-      <option value="{{ k }}" {% ifequal LANGUAGE_CODE k %}selected="true" {% endifequal %}>{{ v }} ({{ k }})</option>
+      <option value="{{ k }}" {% if LANGUAGE_CODE == k %}selected="true" {% endif %}>{{ v }} ({{ k }})</option>
       {% endfor %}
    </select>
 </form>

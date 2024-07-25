@@ -36,7 +36,13 @@ from onadata.apps.api.models.organization_profile import (
     get_organization_members_team,
 )
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models import DataView, Instance, Project, XForm
+from onadata.apps.logger.models import (
+    DataView,
+    Instance,
+    Project,
+    XForm,
+    EntityList,
+)
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
@@ -55,11 +61,13 @@ from onadata.libs.permissions import (
     get_role,
     get_role_in_org,
     is_organization,
+    get_team_project_default_permissions,
 )
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     get_metadata_format,
+    get_entity_list_export_response,
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
@@ -75,6 +83,7 @@ from onadata.libs.utils.logger_tools import (
     publish_form,
     response_with_mimetype_and_name,
 )
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import (
     set_project_perms_to_xform,
     set_project_perms_to_xform_async,
@@ -168,7 +177,11 @@ def create_organization_object(org_name, creator, attrs=None):
     except IntegrityError as e:
         raise ValidationError(_(f"{org_name} already exists")) from e
     if email:
-        site = Site.objects.get(pk=settings.SITE_ID)
+        site = (
+            attrs["host"]
+            if "host" in attrs
+            else Site.objects.get(pk=settings.SITE_ID).domain
+        )
         registration_profile.send_activation_email(site)
     profile = OrganizationProfile(
         user=new_user,
@@ -223,11 +236,26 @@ def remove_user_from_team(team, user):
             remove_perm(perm.codename, user, members_team)
 
 
-def add_user_to_organization(organization, user):
+def add_user_to_organization(organization, user, role=None):
     """Add a user to an organization"""
 
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
+
+    if role is not None:
+        role_cls = ROLES.get(role)
+        role_cls.add(user, organization)
+
+        owners_team = get_or_create_organization_owners_team(organization)
+
+        if role == OwnerRole.name:
+            role_cls.add(user, organization.userprofile_ptr)
+            # Add user to their respective team
+            add_user_to_team(owners_team, user)
+
+        else:
+            remove_user_from_team(owners_team, user)
+            OwnerRole.remove_obj_permissions(user, organization.userprofile_ptr)
 
 
 def get_organization_members(organization):
@@ -257,8 +285,7 @@ def create_organization_project(organization, project_name, created_by):
     """Creates a project for a given organization
     :param organization: User organization
     :param project_name
-    :param created_by: User with permissions to create projects within the
-                       organization
+    :param created_by: User with permissions to create projects within the organization
 
     :returns: a Project instance
     """
@@ -519,6 +546,8 @@ def get_media_file_response(metadata, request=None):
             model = DataView
         elif value.startswith("xform"):
             model = XForm
+        elif value.startswith("entity_list"):
+            model = EntityList
 
         if model:
             parts = value.split()
@@ -552,9 +581,12 @@ def get_media_file_response(metadata, request=None):
     except ValidationError:
         obj, filename = get_data_value_objects(metadata.data_value)
         if obj:
+            if isinstance(obj, EntityList):
+                return get_entity_list_export_response(request, obj, filename)
+
+            export_type = get_metadata_format(metadata.data_value)
             dataview = obj if isinstance(obj, DataView) else False
             xform = obj.xform if isinstance(obj, DataView) else obj
-            export_type = get_metadata_format(metadata.data_value)
 
             return custom_response_handler(
                 request,
@@ -739,7 +771,6 @@ def update_role_by_meta_xform_perms(xform):
         users = get_xform_users(xform)
 
         for user in users:
-
             role = users.get(user).get("role")
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
@@ -750,9 +781,15 @@ def update_role_by_meta_xform_perms(xform):
                 role.add(user, xform)
 
 
-def replace_attachment_name_with_url(data):
+def get_host_domain(request):
+    """Get host from reques or check the Site model"""
+    request_host = request and request.get_host()
+    return request_host or Site.objects.get_current().domain
+
+
+def replace_attachment_name_with_url(data, request):
     """Replaces the attachment filename with a URL in ``data`` object."""
-    site_url = Site.objects.get_current().domain
+    site_url = get_host_domain(request)
 
     for record in data:
         attachments: dict = record.json.get("_attachments")
@@ -773,3 +810,66 @@ def replace_attachment_name_with_url(data):
                 except ValueError:
                     pass
     return data
+
+
+ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
+ENKETO_META_UID_COOKIE = getattr(
+    settings, "ENKETO_META_UID_COOKIE", "__enketo_meta_uid"
+)
+ENKETO_META_USERNAME_COOKIE = getattr(
+    settings, "ENKETO_META_USERNAME_COOKIE", "__enketo_meta_username"
+)
+
+
+def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
+    """Set signed cookies for JWT token in the HTTPResponse resp object."""
+    if not username and not json_web_token:
+        return None
+
+    max_age = 30 * 24 * 60 * 60 * 1000
+    enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
+    enketo = {"secure": False, "salt": settings.ENKETO_API_SALT}
+
+    # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
+    # i.e. don't add in development environment because cookie automatically
+    # assigns 'localhost' as domain
+    if getattr(settings, "ENKETO_AUTH_COOKIE_DOMAIN", None):
+        enketo_meta_uid["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        enketo["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+
+    resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
+
+    return resp
+
+
+def add_org_user_and_share_projects(
+    organization: OrganizationProfile, user, org_role: str = None
+):
+    """Add user to organization and share all projects"""
+    add_user_to_organization(organization, user, org_role)
+
+    def share(project, role):
+        share = ShareProject(project, user.username, role)
+        share.save()
+
+    project_qs = organization.user.project_org.all()
+
+    if org_role == OwnerRole.name:
+        # New owners have owner role on all projects
+        for project in queryset_iterator(project_qs):
+            share(project, org_role)
+
+    else:
+        # New members & managers gain default team permissions on projects
+        team = get_organization_members_team(organization)
+
+        for project in queryset_iterator(project_qs):
+            if org_role == ManagerRole.name and project.created_by == user:
+                # New managers are only granted the manager role on the
+                # projects they created
+                share(project, org_role)
+            else:
+                project_role = get_team_project_default_permissions(team, project)
+                share(project, project_role)

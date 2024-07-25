@@ -230,7 +230,7 @@ class TableauDataSerializer(serializers.ModelSerializer):
         return ret
 
 
-class SubmissionSuccessMixin:
+class SubmissionSuccessMixin:  # pylint: disable=too-few-public-methods
     """
     SubmissionSuccessMixin - prepares submission success data/message.
     """

@@ -32,8 +32,8 @@ class Command(BaseCommand):
         username = args[1]
         try:
             user = get_user_model().objects.get(username=username)
-        except get_user_model().DoesNotExist as e:
-            raise CommandError(_(f"Invalid username {username}")) from e
+        except get_user_model().DoesNotExist as error:
+            raise CommandError(_(f"Invalid username {username}")) from error
         debug = False
         if debug:
             self.stdout.write(_(f"[Importing XForm Instances from {path}]\n"))

@@ -1,6 +1,7 @@
 """
 API Endpoint implementation for Messaging statistics
 """
+
 import json
 
 from django.db.models import Count
@@ -22,20 +23,19 @@ from onadata.apps.messaging.permissions import TargetObjectPermissions
 
 
 class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    """
-    Provides a count of each unique messaging event grouped by either day, month
-    or year.
+    """Provides a count of each unique messaging event grouped by either day, month or
+    year.
 
     The endpoint accepts the following query parameters:
 
-    - `group_by`: field specifying whether to group events by `day`, `month` or `year`
-    - `target_type`: field to be used to determine the target
-       object type i.e xform, project
-    - `target_id`: field used to identify the target object
-    - `verb`: field used to filter returned responses by a specific verb
-    - `timestamp`: used to filter by actions that occurred in a specific timeframe.
-       This query parameter support date time lookups
-       i.e `timestamp__day`, `timestamp__year
+        - `group_by`: field to group events by `day`, `month` or `year`
+        - `target_type`: field to be used to determine the target
+           object type i.e xform, project
+        - `target_id`: field used to identify the target object
+        - `verb`: field used to filter returned responses by a specific verb
+        - `timestamp`: used to filter by actions that occurred in a specific time. This
+           query parameter support date time lookups i.e `timestamp__day`,
+           `timestamp__year`.
 
     Example:
 

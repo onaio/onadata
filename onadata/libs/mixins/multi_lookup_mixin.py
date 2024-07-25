@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 
-class MultiLookupMixin:
+class MultiLookupMixin:  # pylint: disable=too-few-public-methods
     """
     Implements MultiLookupMixin class
 

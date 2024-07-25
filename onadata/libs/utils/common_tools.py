@@ -4,7 +4,6 @@ Common helper functions
 """
 from __future__ import unicode_literals
 
-import logging
 import math
 import sys
 import time
@@ -25,6 +24,10 @@ from onadata.libs.utils.common_tags import ATTACHMENTS
 
 DEFAULT_UPDATE_BATCH = 100
 TRUE_VALUES = ["TRUE", "T", "1", 1]
+
+
+class FilenameMissing(Exception):
+    """Custom Exception for a missing filename."""
 
 
 def str_to_bool(str_var):
@@ -71,10 +74,7 @@ def report_exception(subject, info, exc_info=None):
         message += "".join(traceback.format_exception(*exc_info))
 
         # send to sentry
-        try:
-            sentry_sdk.capture_exception(exc_info)
-        except Exception:  # pylint: disable=broad-except
-            logging.exception(_("Sending to Sentry failed."))
+        sentry_sdk.capture_exception(exc_info)
     else:
         message = f"{info}"
 
@@ -92,7 +92,7 @@ def filename_from_disposition(content_disposition):
     filename_pos = content_disposition.index("filename=")
 
     if filename_pos == -1:
-        raise Exception('"filename=" not found in content disposition file')
+        raise FilenameMissing('"filename=" not found in content disposition file')
 
     return content_disposition[filename_pos + len("filename=") :]
 
@@ -237,19 +237,15 @@ def cmp_to_key(mycmp):
     return ComparatorClass
 
 
-def current_site_url(path):
+def current_site_url(path, host):
     """
     Returns fully qualified URL (no trailing slash) for the current site.
     :param path
     :return: complete url
     """
-    # pylint: disable=import-outside-toplevel
-    from django.contrib.sites.models import Site
-
-    current_site = Site.objects.get_current()
     protocol = getattr(settings, "ONA_SITE_PROTOCOL", "http")
     port = getattr(settings, "ONA_SITE_PORT", "")
-    url = f"{protocol}://{current_site.domain}"
+    url = f"{protocol}://{host}"
     if port:
         url += f":{port}"
     if path:
@@ -315,6 +311,7 @@ def get_value_or_attachment_uri(
     attachment_list=None,
     show_choice_labels=False,
     language=None,
+    host=None,
 ):
     """
     Gets either the attachment value or the attachment url
@@ -339,7 +336,7 @@ def get_value_or_attachment_uri(
             if a.get("name") == value
         ]
         if attachments:
-            value = current_site_url(attachments[0].get("download_url", ""))
+            value = current_site_url(attachments[0].get("download_url", ""), host)
 
     return value
 

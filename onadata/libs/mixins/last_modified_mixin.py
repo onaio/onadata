@@ -9,7 +9,7 @@ import types
 from onadata.libs.utils.timing import get_date, last_modified_header
 
 
-class LastModifiedMixin:
+class LastModifiedMixin:  # pylint: disable=too-few-public-methods
     """
     Implements the LastModifiedMixin class
 

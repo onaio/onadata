@@ -34,8 +34,8 @@ class Command(BaseCommand):
             raise CommandError("You must provide a path to the csv file")
         # try open the file
         try:
-            with open(kwargs.get("file"), "r", encoding="utf-8") as f:
-                lines = csv.reader(f)
+            with open(kwargs.get("file"), "r", encoding="utf-8") as csv_file:
+                lines = csv.reader(csv_file)
                 i = 0
                 for line in lines:
                     try:
@@ -55,5 +55,7 @@ class Command(BaseCommand):
                     else:
                         i += 1
                         self.stdout.write(f"Updated {i} rows")
-        except IOError as e:
-            raise CommandError(f"file {kwargs.get('file')} could not be open") from e
+        except IOError as error:
+            raise CommandError(
+                f"file {kwargs.get('file')} could not be open"
+            ) from error

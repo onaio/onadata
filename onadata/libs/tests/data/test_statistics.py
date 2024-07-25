@@ -1,9 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Test onadata.libs.data module
+"""
 import unittest
 
 from onadata.libs.data import statistics as stats
 
 
 class TestStatistics(unittest.TestCase):
+    """
+    Test onadata.libs.data module
+    """
+
     def test_get_mean(self):
         values = [1, 2, 3, 2, 5, 5]
         result = stats.get_mean(values)

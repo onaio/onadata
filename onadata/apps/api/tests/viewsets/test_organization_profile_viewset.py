@@ -4,17 +4,19 @@ Test /orgs API endpoint implementation.
 """
 import json
 from builtins import str as text
+from unittest.mock import patch
 
 from django.contrib.auth.models import User, timezone
 from django.core.cache import cache
+from django.test.utils import override_settings
 
 from guardian.shortcuts import get_perms
-from mock import patch
 from rest_framework import status
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
     get_organization_members_team,
+    Team,
 )
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
@@ -28,8 +30,12 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import DataEntryRole, OwnerRole, EditorRole
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, PROJ_PERM_CACHE, PROJ_TEAM_USERS_CACHE
+from onadata.libs.permissions import DataEntryRole, OwnerRole
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    PROJ_PERM_CACHE,
+    PROJ_TEAM_USERS_CACHE,
+)
 
 
 # pylint: disable=too-many-public-methods
@@ -292,6 +298,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
+        team = Team.objects.get(name=f"{self.organization.user.username}#members")
+        self.assertTrue(team.user_set.filter(username="aboy").exists())
 
     def test_inactive_members_not_listed(self):
         self._org_create()
@@ -676,7 +684,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 400)
 
-    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
+    @patch("onadata.apps.api.tasks.send_mail")
     def test_add_members_to_org_email(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -700,7 +709,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
 
-    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
+    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
+    @patch("onadata.apps.api.tasks.send_mail")
     def test_add_members_to_org_email_custom_subj(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -796,12 +806,19 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertNotIn(aboy, owner_team.user_set.all())
 
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_org_members_added_to_projects(self):
         # create org
         self._org_create()
         view = OrganizationProfileViewSet.as_view(
             {"post": "members", "get": "retrieve", "put": "members"}
         )
+        # create a proj
+        project_data = {"owner": self.company_data["user"]}
+        self._project_create(project_data)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project()
 
         # create aboy
         self.profile_data["username"] = "aboy"
@@ -809,15 +826,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         data = {"username": "aboy", "role": "owner"}
         request = self.factory.post(
-            "/", data=json.dumps(data), content_type="application/json", **self.extra
+            "/",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-
-        # create a proj
-        project_data = {"owner": self.company_data["user"]}
-        self._project_create(project_data)
-        self._publish_xls_form_to_project()
 
         # create alice
         self.profile_data["username"] = "alice"
@@ -833,6 +848,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
         # Assert that user added in org is added to teams in proj
+        aboy.refresh_from_db()
+        alice.refresh_from_db()
         self.assertTrue(OwnerRole.user_has_role(aboy, self.project))
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
         self.assertTrue(OwnerRole.user_has_role(aboy, self.xform))
@@ -1128,7 +1145,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         expected_results = ["denoinc", "alice"]
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
-        self.assertEqual(expected_results, response.data)
+        self.assertCountEqual(expected_results, response.data)
 
         self._login_user_and_profile(extra_post_data=alice_data)
 

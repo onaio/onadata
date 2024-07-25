@@ -12,7 +12,6 @@ from django.db.models.base import ModelBase
 import six
 from guardian.shortcuts import assign_perm, get_perms, get_users_with_perms, remove_perm
 
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.project import (
     Project,
     ProjectGroupObjectPermission,
@@ -71,16 +70,24 @@ CAN_DELETE_PROJECT = "delete_project"
 CAN_ADD_PROJECT_XFORM = "add_project_xform"
 CAN_ADD_SUBMISSIONS_PROJECT = "report_project_xform"
 CAN_EXPORT_PROJECT = "can_export_project_data"
+CAN_ADD_PROJECT_ENTITYLIST = "add_project_entitylist"
 
 # Data dictionary permissions
 CAN_ADD_DATADICTIONARY = "add_datadictionary"
 CAN_CHANGE_DATADICTIONARY = "change_datadictionary"
 CAN_DELETE_DATADICTIONARY = "delete_datadictionary"
 
+# Entity permissions
+CAN_ADD_ENTITYLIST = "add_entitylist"
+CAN_VIEW_ENTITYLIST = "view_entitylist"
+CAN_CHANGE_ENTITYLIST = "change_entitylist"
+CAN_DELETE_ENTITYLIST = "delete_entitylist"
+
 DataDictionary = apps.get_model("viewer", "DataDictionary")
 MergedXForm = apps.get_model("logger", "MergedXForm")
 OrganizationProfile = apps.get_model("api", "OrganizationProfile")
 UserProfile = apps.get_model("main", "UserProfile")
+EntityList = apps.get_model("logger", "EntityList")
 
 
 class Role:
@@ -324,6 +331,7 @@ class ManagerRole(Role):
             CAN_VIEW_PROJECT,
             CAN_VIEW_PROJECT_ALL,
             CAN_VIEW_PROJECT_DATA,
+            CAN_ADD_PROJECT_ENTITYLIST,
         ],
         UserProfile: [
             CAN_ADD_PROJECT_TO_PROFILE,
@@ -340,6 +348,12 @@ class ManagerRole(Role):
             CAN_VIEW_XFORM,
             CAN_VIEW_XFORM_ALL,
             CAN_VIEW_XFORM_DATA,
+        ],
+        EntityList: [
+            CAN_ADD_ENTITYLIST,
+            CAN_VIEW_ENTITYLIST,
+            CAN_CHANGE_ENTITYLIST,
+            CAN_DELETE_ENTITYLIST,
         ],
     }
 
@@ -387,6 +401,7 @@ class OwnerRole(Role):
             CAN_VIEW_PROJECT,
             CAN_VIEW_PROJECT_ALL,
             CAN_VIEW_PROJECT_DATA,
+            CAN_ADD_PROJECT_ENTITYLIST,
         ],
         UserProfile: [
             CAN_ADD_PROJECT_TO_PROFILE,
@@ -408,6 +423,12 @@ class OwnerRole(Role):
             CAN_VIEW_XFORM_DATA,
             CAN_MOVE_TO_FOLDER,
             CAN_TRANSFER_OWNERSHIP,
+        ],
+        EntityList: [
+            CAN_ADD_ENTITYLIST,
+            CAN_VIEW_ENTITYLIST,
+            CAN_CHANGE_ENTITYLIST,
+            CAN_DELETE_ENTITYLIST,
         ],
     }
 
@@ -571,15 +592,17 @@ def get_object_users_with_permissions(
             except UserProfile.DoesNotExist:
                 profile = UserProfile.objects.create(user=user)
 
-            result.append({
-                "user": user.username if username else user,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "role": get_role(permissions, obj),
-                "is_org": is_organization(profile),
-                "gravatar": profile.gravatar,
-                "metadata": profile.metadata,
-            })
+            result.append(
+                {
+                    "user": user.username if username else user,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": get_role(permissions, obj),
+                    "is_org": is_organization(profile),
+                    "gravatar": profile.gravatar,
+                    "metadata": profile.metadata,
+                }
+            )
 
     return result
 
@@ -615,8 +638,6 @@ def exclude_items_from_queryset_using_xform_meta_perms(xform, user, queryset):
     ):
         return queryset
     if user.has_perm(CAN_VIEW_XFORM_DATA, xform):
-        if queryset.model is Attachment:
-            return queryset.exclude(~Q(instance__user=user), instance__xform=xform)
         return queryset.exclude(~Q(user=user), xform=xform)
     return queryset.none()
 

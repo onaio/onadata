@@ -11,19 +11,26 @@ def get_values_matching_key(doc, key):
     """
 
     def _get_values(doc, key):
+        # pylint: disable=too-many-nested-blocks
         if doc is not None:
             if key in doc:
                 yield doc[key]
 
-            for z in doc.items():
-                v = z[1]
-                if isinstance(v, dict):
-                    for item in _get_values(v, key):
+            for doc_item in doc.items():
+                value = doc_item[1]
+                if isinstance(value, dict):
+                    for item in _get_values(value, key):
                         yield item
-                elif isinstance(v, list):
-                    for i in v:
-                        for j in _get_values(i, key):
-                            yield j
+                elif isinstance(value, list):
+                    for item_i in value:
+                        if isinstance(item_i, (dict, list)):
+                            try:
+                                for item_j in _get_values(item_i, key):
+                                    yield item_j
+                            except StopIteration:
+                                continue
+                        elif item_i == key:
+                            yield item_i
 
     return _get_values(doc, key)
 
@@ -55,20 +62,21 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
 
     # pylint: disable=too-many-nested-blocks
     for row in list_of_dicts:
-        for k, v in row.items():
-            if isinstance(v, list):
-                z = merge_list_of_dicts(
-                    result[k] + v if k in result else v, override_keys=override_keys
+        for key, value in row.items():
+            if isinstance(value, list):
+                item_z = merge_list_of_dicts(
+                    result[key] + value if key in result else value,
+                    override_keys=override_keys,
                 )
-                result[k] = z if isinstance(z, list) else [z]
+                result[key] = item_z if isinstance(item_z, list) else [item_z]
             else:
-                if k in result:
-                    if isinstance(v, dict):
+                if key in result:
+                    if isinstance(value, dict):
                         try:
-                            result[k] = merge_list_of_dicts(
-                                [result[k], v], override_keys=override_keys
+                            result[key] = merge_list_of_dicts(
+                                [result[key], value], override_keys=override_keys
                             )
-                        except AttributeError as e:
+                        except AttributeError as error:
                             # If the key is within the override_keys
                             # (Is a select_multiple question) We make
                             # the assumption that the dict values are
@@ -77,19 +85,19 @@ def merge_list_of_dicts(list_of_dicts, override_keys: list = None):
                             # separate columns for each choice
                             if (
                                 override_keys
-                                and isinstance(result[k], str)
-                                and k in override_keys
+                                and isinstance(result[key], str)
+                                and key in override_keys
                             ):
-                                result[k] = {}
-                                result[k] = merge_list_of_dicts(
-                                    [result[k], v], override_keys=override_keys
+                                result[key] = {}
+                                result[key] = merge_list_of_dicts(
+                                    [result[key], value], override_keys=override_keys
                                 )
                             else:
-                                raise e
+                                raise error
                     else:
                         result = [result, row]
                 else:
-                    result[k] = v
+                    result[key] = value
 
     return result
 
@@ -150,11 +158,11 @@ def dict_lists2strings(adict):
 
     :param d: The dict to convert.
     :returns: The converted dict."""
-    for k, v in adict.items():
-        if isinstance(v, list) and all(isinstance(e, str) for e in v):
-            adict[k] = " ".join(v)
-        elif isinstance(v, dict):
-            adict[k] = dict_lists2strings(v)
+    for key, value in adict.items():
+        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+            adict[key] = " ".join(value)
+        elif isinstance(value, dict):
+            adict[key] = dict_lists2strings(value)
 
     return adict
 
@@ -165,15 +173,15 @@ def dict_paths2dict(adict):
     """
     result = {}
 
-    for k, v in adict.items():
-        if k.find("/") > 0:
-            parts = k.split("/")
+    for key, value in adict.items():
+        if key.find("/") > 0:
+            parts = key.split("/")
             if len(parts) > 1:
-                k = parts[0]
+                key = parts[0]
                 for part in parts[1:]:
-                    v = {part: v}
+                    value = {part: value}
 
-        result[k] = v
+        result[key] = value
 
     return result
 

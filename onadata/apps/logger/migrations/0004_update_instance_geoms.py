@@ -2,18 +2,21 @@
 
 from django.db import migrations
 from onadata.apps.logger.models.instance import Instance
+from onadata.libs.utils.model_tools import queryset_iterator
 
 
 def update_instance_geoms(apps, schema_editor):
     """
     Update instance geom field with valid geom values
     """
-    for inst in Instance.objects.filter(
-        deleted_at__isnull=True,
-        xform__downloadable=True,
-        xform__deleted_at__isnull=True,
+    for inst in queryset_iterator(
+        Instance.objects.filter(
+            deleted_at__isnull=True,
+            xform__downloadable=True,
+            xform__deleted_at__isnull=True,
+        )
     ):
-        if inst.geom.empty:
+        if inst.geom and inst.geom.empty:
             inst.geom = None
             inst.save()
 
@@ -21,7 +24,7 @@ def update_instance_geoms(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0003_alter_instance_media_all_received'),
+        ("logger", "0003_alter_instance_media_all_received"),
     ]
 
     operations = [migrations.RunPython(update_instance_geoms)]

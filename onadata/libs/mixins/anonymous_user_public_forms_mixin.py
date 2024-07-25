@@ -7,7 +7,7 @@ Filters only public forms.
 from onadata.apps.logger.models.xform import XForm
 
 
-class AnonymousUserPublicFormsMixin:
+class AnonymousUserPublicFormsMixin:  # pylint: disable=too-few-public-methods
     """
     Implements the AnonymousUserPublicFormsMixin class
 

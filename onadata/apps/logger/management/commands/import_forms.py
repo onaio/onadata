@@ -25,5 +25,7 @@ class Command(BaseCommand):
         """Import a folder of XForms for ODK."""
         path = args[0]
         for form in glob.glob(os.path.join(path, "*")):
-            with open(form, encoding="utf-8") as f:
-                XForm.objects.get_or_create(xml=f.read(), downloadable=False)
+            with open(form, encoding="utf-8") as xform_xml_file:
+                XForm.objects.get_or_create(
+                    xml=xform_xml_file.read(), downloadable=False
+                )

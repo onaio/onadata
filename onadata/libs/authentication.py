@@ -308,7 +308,7 @@ def login_attempts(request):
 
     if attempts:
         cache.incr(attempts_key)
-        attempts = cache.get(attempts_key)
+        attempts = cache.get(attempts_key, 0)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
             lockout_key = safe_key(f"{LOCKOUT_IP}{ip_address}-{username}")
             lockout = cache.get(lockout_key)

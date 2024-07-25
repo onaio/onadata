@@ -8,12 +8,13 @@ import math
 from io import BytesIO, StringIO
 from typing import Tuple
 
+from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
 
-import pytz
+
 import six
 from rest_framework import negotiation
 from rest_framework.renderers import (
@@ -26,7 +27,12 @@ from rest_framework.utils.encoders import JSONEncoder
 from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
+from onadata.libs.utils.cache_tools import (
+    XFORM_MANIFEST_CACHE_TTL,
+    XFORM_MANIFEST_CACHE_LOCK_TTL,
+)
 from onadata.libs.utils.osm import get_combined_osm
+
 
 IGNORE_FIELDS = [
     "formhub/uuid",
@@ -52,11 +58,14 @@ def floip_rows_list(data):
     """
     Yields a row of FLOIP results data from dict data.
     """
-    _submission_time = (
-        pytz.timezone("UTC")
-        .localize(parse_datetime(data["_submission_time"]))
-        .isoformat()
-    )
+    try:
+        _submission_time = (
+            parse_datetime(data["_submission_time"]).replace(tzinfo=timezone.utc)
+        ).isoformat()
+
+    except ValueError:
+        _submission_time = data["_submission_time"]
+
     for i, key in enumerate(data, 1):
         if not (key.startswith("_") or key in IGNORE_FIELDS):
             instance_id = data["_id"]
@@ -296,7 +305,7 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
                 xml.endElement(self.element_node)
 
         elif isinstance(data, dict):
-            for (key, value) in iteritems(data):
+            for key, value in iteritems(data):
                 if key not in FORMLIST_MANDATORY_FIELDS and value is None:
                     continue
                 xml.startElement(key, {})
@@ -311,8 +320,63 @@ class XFormListRenderer(BaseRenderer):  # pylint: disable=too-few-public-methods
             xml.characters(smart_str(data))
 
 
+class StreamRendererMixin:
+    """Mixin class for renderers that support stream responses"""
+
+    def _get_current_buffer_data(self):
+        if hasattr(self, "stream"):
+            ret = self.stream.getvalue()
+            self.stream.truncate(0)
+            self.stream.seek(0)
+            return ret
+        return None
+
+    def stream_data(self, data, serializer):
+        """Returns a streaming response."""
+        if data is None:
+            yield ""
+
+        # pylint: disable=attribute-defined-outside-init
+        self.stream = StringIO()
+        xml = SimplerXMLGenerator(self.stream, self.charset)
+        xml.startDocument()
+        yield self._get_current_buffer_data()
+        xml.startElement(self.root_node, {"xmlns": self.xmlns})
+        yield self._get_current_buffer_data()
+        data = iter(data)
+
+        try:
+            out = next(data)
+        except StopIteration:
+            out = None
+
+        while out:
+            try:
+                next_item = next(data)
+                out = serializer(out).data
+                out, attributes = _pop_xml_attributes(out)
+                xml.startElement(self.element_node, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.element_node)
+                yield self._get_current_buffer_data()
+                out = next_item
+            except StopIteration:
+                out = serializer(out).data
+                out, attributes = _pop_xml_attributes(out)
+                xml.startElement(self.element_node, attributes)
+                self._to_xml(xml, out)
+                xml.endElement(self.element_node)
+                yield self._get_current_buffer_data()
+                break
+
+        xml.endElement(self.root_node)
+        yield self._get_current_buffer_data()
+        xml.endDocument()
+        yield self._get_current_buffer_data()
+
+
 # pylint: disable=too-few-public-methods
-class XFormManifestRenderer(XFormListRenderer):
+class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
     """
     XFormManifestRenderer - render XFormManifest XML.
     """
@@ -320,6 +384,42 @@ class XFormManifestRenderer(XFormListRenderer):
     root_node = "manifest"
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
+
+    def __init__(self, cache_key=None) -> None:
+        self.cache_key = cache_key
+        self.can_update_cache = False
+        self.cache_lock_key = None
+
+    def _get_current_buffer_data(self):
+        data = super()._get_current_buffer_data()
+
+        if data and self.can_update_cache:
+            data = data.strip()
+            cached_manifest: str | None = cache.get(self.cache_key)
+
+            if cached_manifest is not None:
+                cached_manifest += data
+                cache.set(self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL)
+
+                if data.endswith("</manifest>"):
+                    # We are done, release the lock
+                    cache.delete(self.cache_lock_key)
+
+            else:
+                cache.set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
+
+        return data
+
+    def stream_data(self, data, serializer):
+        if self.cache_key:
+            # In the case of concurrent requests, we ensure only the first
+            # request is updating the cache
+            self.cache_lock_key = f"{self.cache_key}_lock"
+            self.can_update_cache = cache.add(
+                self.cache_lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
+            )
+
+        return super().stream_data(data, serializer)
 
 
 # pylint: disable=too-few-public-methods
@@ -341,21 +441,13 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
         return super().render(data, accepted_media_type, renderer_context)
 
 
-class InstanceXMLRenderer(XMLRenderer):
+class InstanceXMLRenderer(XMLRenderer, StreamRendererMixin):
     """
     InstanceXMLRenderer - Renders Instance XML
     """
 
     root_tag_name = "submission-batch"
     item_tag_name = "submission-item"
-
-    def _get_current_buffer_data(self):
-        if hasattr(self, "stream"):
-            ret = self.stream.getvalue()
-            self.stream.truncate(0)
-            self.stream.seek(0)
-            return ret
-        return None
 
     def stream_data(self, data, serializer):
         """Returns a streaming response."""
@@ -435,9 +527,9 @@ class InstanceXMLRenderer(XMLRenderer):
                 if not key:
                     self._to_xml(xml, value)
                 elif isinstance(value, (list, tuple)):
-                    for v in value:
+                    for item in value:
                         xml.startElement(key, {})
-                        self._to_xml(xml, v)
+                        self._to_xml(xml, item)
                         xml.endElement(key)
 
                 elif isinstance(value, dict):

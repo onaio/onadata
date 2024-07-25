@@ -2,12 +2,17 @@
 Test delete user management command.
 """
 import sys
-from unittest import mock
-from six import StringIO
-from django.contrib.auth.models import User
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from onadata.apps.main.tests.test_base import TestBase
+
+from six import StringIO
+
 from onadata.apps.api.management.commands.delete_users import get_user_object_stats
+from onadata.apps.main.tests.test_base import TestBase
+
+User = get_user_model()
 
 
 class DeleteUserTest(TestBase):
@@ -35,7 +40,7 @@ class DeleteUserTest(TestBase):
         with self.assertRaises(User.DoesNotExist):
             User.objects.get(email="bruce@gmail.com")
 
-    @mock.patch("onadata.apps.api.management.commands.delete_users.input")
+    @patch("onadata.apps.api.management.commands.delete_users.input")
     def test_delete_users_no_input(self, mock_input):  # pylint: disable=R0201
         """
         Test that when user_input is not provided,

@@ -221,6 +221,7 @@ class DataViewViewSet(
         dataview = self.get_object()
         xform = dataview.xform
         options = parse_request_export_options(params)
+        options["host"] = request.get_host()
 
         options.update(
             {

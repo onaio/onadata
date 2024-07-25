@@ -4,15 +4,11 @@ logger views.
 """
 import os
 import tempfile
-from datetime import datetime
 
-import pytz
-import six
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.contrib.sites.models import Site
+from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.core.files.storage import get_storage_class
 from django.http import (
@@ -25,20 +21,24 @@ from django.http import (
 from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext, loader
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+import six
 from django_digest import HttpDigestAuthenticator
 
+from onadata.apps.api.tools import get_host_domain
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.libs.exceptions import EnketoError
+from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, cache
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.log import Actions, audit_log
-from onadata.libs.utils.cache_tools import cache, USER_PROFILE_PREFIX
 from onadata.libs.utils.logger_tools import (
     BaseOpenRosaResponse,
     OpenRosaResponse,
@@ -46,7 +46,6 @@ from onadata.libs.utils.logger_tools import (
     PublishXForm,
     inject_instanceid,
     publish_form,
-    remove_xform,
     response_with_mimetype_and_name,
     safe_create_instance,
 )
@@ -91,7 +90,7 @@ def _html_submission_response(request, instance):
     data = {}
     data["username"] = instance.xform.user.username
     data["id_string"] = instance.xform.id_string
-    data["domain"] = Site.objects.get(id=settings.SITE_ID).domain
+    data["domain"] = get_host_domain(request)
 
     return render(request, "submission.html", data)
 
@@ -251,9 +250,7 @@ def formList(request, username):  # noqa N802
         request, "xformsList.xml", data, content_type="text/xml; charset=utf-8"
     )
     response["X-OpenRosa-Version"] = "1.0"
-    response["Date"] = datetime.now(pytz.timezone(settings.TIME_ZONE)).strftime(
-        "%a, %d %b %Y %H:%M:%S %Z"
-    )
+    response["Date"] = timezone.localtime().strftime("%a, %d %b %Y %H:%M:%S %Z")
 
     return response
 
@@ -289,9 +286,7 @@ def xformsManifest(request, username, id_string):  # noqa N802
         content_type="text/xml; charset=utf-8",
     )
     response["X-OpenRosa-Version"] = "1.0"
-    response["Date"] = datetime.now(pytz.timezone(settings.TIME_ZONE)).strftime(
-        "%a, %d %b %Y %H:%M:%S %Z"
-    )
+    response["Date"] = timezone.localtime().strftime("%a, %d %b %Y %H:%M:%S %Z")
 
     return response
 
@@ -504,8 +499,8 @@ def delete_xform(request, username, id_string):
         {"user__username__iexact": username, "id_string__iexact": id_string}
     )
 
-    # delete xform and submissions
-    remove_xform(xform)
+    # Delete xform
+    xform.soft_delete(user=request.user)
 
     audit = {}
     audit_log(

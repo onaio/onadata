@@ -55,11 +55,10 @@ def generate_media_download_url(obj, expiration: int = 3600):
     if isinstance(default_storage, type(s3_class)):
         try:
             url = generate_aws_media_url(file_path, content_disposition, expiration)
-        except ClientError as e:
-            logging.error(e)
+        except ClientError as error:
+            logging.error(error)
             return None
-        else:
-            return HttpResponseRedirect(url)
+        return HttpResponseRedirect(url)
 
     if isinstance(default_storage, type(azure)):
         media_url = generate_media_url_with_sas(file_path, expiration)
@@ -79,11 +78,18 @@ def generate_aws_media_url(
     """Generate S3 URL."""
     s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
     bucket_name = s3_class.bucket.name
+    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
     s3_config = Config(
         signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
-        region_name=getattr(settings, "AWS_S3_REGION_NAME", ""),
+        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
     )
-    s3_client = boto3.client("s3", config=s3_config)
+    s3_client = boto3.client(
+        "s3",
+        config=s3_config,
+        endpoint_url=aws_endpoint_url,
+        aws_access_key_id=s3_class.access_key,
+        aws_secret_access_key=s3_class.secret_key,
+    )
 
     # Generate a presigned URL for the S3 object
     return s3_client.generate_presigned_url(
@@ -144,7 +150,8 @@ def _save_thumbnails(image, path, size, suffix, extension):
 
         try:
             # Ensure conversion to float in operations
-            image.thumbnail(get_dimensions(image.size, float(size)), Image.ANTIALIAS)
+            # pylint: disable=no-member
+            image.thumbnail(get_dimensions(image.size, float(size)), Image.LANCZOS)
         except ZeroDivisionError:
             pass
 
@@ -171,7 +178,7 @@ def resize(filename, extension):
                     settings.DEFAULT_IMG_FILE_TYPE if extension == "non" else extension,
                 )
     except IOError as exc:
-        raise Exception("The image file couldn't be identified") from exc
+        raise ValueError("The image file couldn't be identified") from exc
 
 
 def resize_local_env(filename, extension):

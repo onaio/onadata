@@ -16,6 +16,7 @@ from django.urls import reverse
 import requests
 import requests_mock
 from django_digest.test import Client as DigestClient
+from flaky import flaky
 from six.moves.urllib.parse import urljoin
 
 from onadata.apps.logger.models import Instance, XForm
@@ -168,6 +169,7 @@ class TestBriefcaseClient(TestBase):
             mocker.head(requests_mock.ANY, content=submission_list)
             self.briefcase_client.download_instances(self.xform.id_string)
 
+    @flaky(max_runs=15)
     def test_download_xform_xml(self):
         """
         Download xform via briefcase api

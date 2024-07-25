@@ -5,7 +5,9 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
-    get_where_clause, get_sql_with_params, _parse_sort_fields
+    get_where_clause,
+    get_sql_with_params,
+    _parse_sort_fields,
 )
 from onadata.apps.viewer.parsed_instance_tools import _parse_where
 
@@ -33,10 +35,7 @@ class TestParsedInstance(TestBase):
 
     def test_parse_where_with_date_value(self):
         query = {
-            "created_at": {
-                "$gte": datetime(2022, 1, 1),
-                "$lte": datetime(2022, 12, 31)
-            }
+            "created_at": {"$gte": datetime(2022, 1, 1), "$lte": datetime(2022, 12, 31)}
         }
         known_integers = []
         known_decimals = []
@@ -76,23 +75,22 @@ class TestParsedInstance(TestBase):
     def test_get_where_clause_with_json_query(self):
         query = '{"name": "bla"}'
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, [u"json->>%s = %s"])
+        self.assertEqual(where, ["json->>%s = %s"])
         self.assertEqual(where_params, ["name", "bla"])
 
     def test_get_where_clause_with_string_query(self):
-        query = 'bla'
+        query = "bla"
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, [u"json::text ~* cast(%s as text)"])
+        self.assertEqual(where, ["json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, ["bla"])
 
     def test_get_where_clause_with_integer(self):
-        query = '11'
+        query = "11"
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, [u"json::text ~* cast(%s as text)"])
+        self.assertEqual(where, ["json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, [11])
 
     def test_retrieve_records_based_on_form_verion(self):
-
         self._create_user_and_login()
         self._publish_transportation_form()
         initial_version = self.xform.version
@@ -104,33 +102,39 @@ class TestParsedInstance(TestBase):
 
         # the instances below have a different form vresion
         transport_instances_with_different_version = [
-            'transport_2011-07-25_19-05-51',
-            'transport_2011-07-25_19-05-52'
+            "transport_2011-07-25_19-05-51",
+            "transport_2011-07-25_19-05-52",
         ]
 
         for a in transport_instances_with_different_version:
-            self._make_submission(os.path.join(
-                self.this_directory, 'fixtures',
-                'transportation', 'instances', a, a + '.xml'))
+            self._make_submission(
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    a,
+                    a + ".xml",
+                )
+            )
 
-        instances = Instance.objects.filter(
-            xform__id_string=self.xform.id_string
-        )
+        instances = Instance.objects.filter(xform__id_string=self.xform.id_string)
         instances_count = instances.count()
         self.assertEqual(instances_count, 4)
 
         # retrieve based on updated form version
-        sql, params, records = get_sql_with_params(
+        sql, params = get_sql_with_params(
             xform=self.xform, query='{"_version": "20170517"}'
         )
-
-        self.assertEqual(2, records.count())
+        instances = Instance.objects.raw(sql, params)
+        self.assertEqual(2, len([instance for instance in instances]))
 
         # retrived record based on initial form version
-        sql, params, records = get_sql_with_params(
+        sql, params = get_sql_with_params(
             xform=self.xform, query='{"_version": "%s"}' % initial_version
         )
-        self.assertEqual(2, records.count())
+        instances = Instance.objects.raw(sql, params)
+        self.assertEqual(2, len([instance for instance in instances]))
 
     def test_retrieve_records_using_list_of_queries(self):
         self._create_user_and_login()
@@ -142,38 +146,48 @@ class TestParsedInstance(TestBase):
             self._submit_transport_instance(survey_at=a)
 
         transport_instances_with_different_version = [
-            'transport_2011-07-25_19-05-51',
-            'transport_2011-07-25_19-05-52'
+            "transport_2011-07-25_19-05-51",
+            "transport_2011-07-25_19-05-52",
         ]
 
         # make submissions
         for a in transport_instances_with_different_version:
-            self._make_submission(os.path.join(
-                self.this_directory, 'fixtures',
-                'transportation', 'instances', a, a + '.xml'))
+            self._make_submission(
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    a,
+                    a + ".xml",
+                )
+            )
 
         instances = Instance.objects.filter(
             xform__id_string=self.xform.id_string
-        ).order_by('id')
+        ).order_by("id")
         instances_count = instances.count()
         self.assertEqual(instances_count, 4)
 
         # bob accesses all records
-        sql, params, records = get_sql_with_params(
-            xform=self.xform, query={'_submitted_by': 'bob'}
+
+        sql, params = get_sql_with_params(
+            xform=self.xform, query={"_submitted_by": "bob"}
         )
-        self.assertEqual(4, records.count())
+        instances = Instance.objects.raw(sql, params)
+        self.assertEqual(4, len([instance for instance in instances]))
 
         # only three records with name ambulance
-        sql, params, records = get_sql_with_params(
-            xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
+        sql, params = get_sql_with_params(
+            xform=self.xform, query=[{"_submitted_by": "bob"}, "ambulance"]
         )
-        self.assertEqual(3, records.count())
+        ambulance_instances = Instance.objects.raw(sql, params)
+        self.assertEqual(3, len([instance for instance in ambulance_instances]))
 
         # create user alice
-        user_alice = self._create_user('alice', 'alice')
+        user_alice = self._create_user("alice", "alice")
         # create user profile and set require_auth to false for tests
-        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        profile, _ = UserProfile.objects.get_or_create(user=user_alice)
         profile.require_auth = False
         profile.save()
 
@@ -184,32 +198,35 @@ class TestParsedInstance(TestBase):
         self.xform.save()
 
         # bob accesses only two record
-        sql, params, records = get_sql_with_params(
-            xform=self.xform, query={'_submitted_by': 'bob'}
+        sql, params = get_sql_with_params(
+            xform=self.xform, query={"_submitted_by": "bob"}
         )
-        self.assertEqual(2, records.count())
+        instances = Instance.objects.raw(sql, params)
+        self.assertEqual(2, len([instance for instance in instances]))
 
         # both remaining records have ambulance
-        sql, params, records = get_sql_with_params(
-            xform=self.xform, query=[{'_submitted_by': 'bob'}, 'ambulance']
+        sql, params = get_sql_with_params(
+            xform=self.xform, query=[{"_submitted_by": "bob"}, "ambulance"]
         )
         instances_debug = list(
-            self.xform.instances.filter(user__username='bob').values_list(
-                'json', flat=True))
-        all_instances_debug = list(
-            instances.values_list('json', flat=True)
+            self.xform.instances.filter(user__username="bob").values_list(
+                "json", flat=True
+            )
         )
+        instances = Instance.objects.raw(sql, params)
+        all_instances_debug = [instance.json for instance in instances]
         self.assertEqual(
-            2, records.count(),
-            'Fields do not have ambulance. '
-            f'Fields submitted by bob are {instances_debug}.'
-            f'All instances {all_instances_debug}')
+            2,
+            len(all_instances_debug),
+            "Fields do not have ambulance. "
+            f"Fields submitted by bob are {instances_debug}."
+            f"All instances {all_instances_debug}",
+        )
 
     def test_parse_sort_fields_function(self):
         """
         Test that the _parse_sort_fields function works as intended
         """
-        fields = ['name', '_submission_time', '-_date_modified']
-        expected_return = ['name', 'date_created', '-date_modified']
-        self.assertEqual(
-            [i for i in _parse_sort_fields(fields)], expected_return)
+        fields = ["name", "_submission_time", "-_date_modified"]
+        expected_return = ["name", "date_created", "-date_modified"]
+        self.assertEqual([i for i in _parse_sort_fields(fields)], expected_return)

@@ -9,7 +9,7 @@ from reversion.admin import VersionAdmin
 from onadata.apps.logger.models import Project, XForm
 
 
-class FilterByUserMixin:
+class FilterByUserMixin:  # pylint: disable=too-few-public-methods
     """Filter queryset by ``request.user``."""
 
     # A user should only see forms/projects that belong to him.

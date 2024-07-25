@@ -56,8 +56,8 @@ class XFormInstanceFS:
     def xml(self):
         """Returns the submission XML"""
         if not getattr(self, "_xml"):
-            with open(self.path, "r", encoding="utf-8") as f:
-                self._xml = f.read()
+            with open(self.path, "r", encoding="utf-8") as xml_submission_file:
+                self._xml = xml_submission_file.read()
         return self._xml
 
     @classmethod

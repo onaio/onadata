@@ -9,13 +9,14 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 
 
-def check_obj(f):
+def check_obj(func):
     """Checks if the first argument is truthy and then calls the underlying function."""
+
     # pylint: disable=inconsistent-return-statements
-    @wraps(f)
+    @wraps(func)
     def with_check_obj(*args, **kwargs):
         if args[0]:
-            return f(*args, **kwargs)
+            return func(*args, **kwargs)
 
     return with_check_obj
 

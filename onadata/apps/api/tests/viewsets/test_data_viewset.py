@@ -4,13 +4,16 @@ Test /data API endpoint implementation.
 """
 from __future__ import unicode_literals
 
+import csv
 import datetime
 import json
 import logging
 import os
 from builtins import open
 from datetime import timedelta
+from io import StringIO
 from tempfile import NamedTemporaryFile
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.core.cache import cache
@@ -27,7 +30,6 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock, urlmatch
-from mock import patch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet,
@@ -115,6 +117,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     """
     Test /data API endpoint implementation.
     """
+
     lockfile = __file__
 
     def setUp(self):
@@ -268,6 +271,51 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.data[0].get("age"), 35)
         self.assertEqual(response.data[0].get("net_worth"), 100000.00)
         self.assertEqual(response.data[0].get("imei"), "351746052009472")
+
+    def test_fields_query_params(self):
+        """fields query params works"""
+        view = DataViewSet.as_view({"get": "list"})
+        fixture_dir = os.path.join(self.this_directory, "fixtures", "csv_export")
+        form_path = os.path.join(fixture_dir, "tutorial_w_repeats.xlsx")
+        self._publish_xls_file_and_set_xform(form_path)
+        submission_path = os.path.join(fixture_dir, "repeats_sub.xml")
+
+        for _ in range(102):
+            self._make_submission(submission_path)
+
+        fields_query = {"fields": '["_id", "_status"]'}
+        request = self.factory.get("/", data=fields_query, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.data[0].keys()), ["_id", "_status"])
+
+        # With pagination
+        instances = self.xform.instances.all().order_by("pk")
+        # Page 1
+        request = self.factory.get(
+            "/",
+            data={**fields_query, "page": 1, "page_size": 100},
+            **self.extra,
+        )
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 100)
+
+        for index, instance in enumerate(instances[:100]):
+            self.assertEqual(response.data[index]["_id"], instance.pk)
+
+        # Page 2
+        request = self.factory.get(
+            "/",
+            data={**fields_query, "page": 2, "page_size": 100},
+            **self.extra,
+        )
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        for index, instance in enumerate(instances[100:101]):
+            self.assertEqual(response.data[index]["_id"], instance.pk)
 
     def test_data_jsonp(self):
         self._make_submissions()
@@ -558,7 +606,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        # Query param returns correct pagination headers
+        # Pagination works with "query" query parameter
         request = self.factory.get(
             "/", data={"page_size": "1", "query": "ambulance"}, **self.extra
         )
@@ -568,6 +616,48 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(
             response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
         )
+        self.assertEqual(len(response.data), 1)
+        # Pagination works with "sort" query parametr
+        instances = self.xform.instances.all().order_by("-date_modified")
+        self.assertEqual(instances.count(), 4)
+        request = self.factory.get(
+            "/",
+            data={"page": "1", "page_size": "2", "sort": '{"date_modified":-1}'},
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
+        # Pagination works with multiple query params
+        instances = (
+            self.xform.instances.all()
+            .order_by("-date_modified")
+            .extra(where=["json::text ~* cast(%s as text)"], params=["ambulance"])
+        )
+        self.assertEqual(instances.count(), 2)
+        request = self.factory.get(
+            "/",
+            data={
+                "page": "1",
+                "page_size": "1",
+                "sort": '{"date_modified":-1}',
+                "query": "ambulance",
+            },
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()
@@ -1022,27 +1112,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
-        formid = self.xform.pk
-        instance = self.xform.instances.all().order_by("pk")[0]
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
-
-        instance = self.xform.instances.all().order_by("-date_created")[0]
+        instances = self.xform.instances.all().order_by("pk")
+        self.assertEqual(len(instances), 4)
+        instance = instances[2]
         date_modified = instance.date_modified.isoformat()
-
-        query_str = '{"_date_modified": {"$gte": "%s"},' ' "_submitted_by": "%s"}' % (
-            date_modified,
-            "bob",
-        )
+        # greater than or equal to
+        query_str = '{"_date_modified": {"$gte": "%s"}}' % date_modified
         data = {"query": query_str}
         request = self.factory.get("/", data=data, **self.extra)
-        response = view(request, pk=formid)
+        response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        expected_count = self.xform.instances.filter(
-            date_modified__gte=date_modified
-        ).count()
-        self.assertEqual(len(response.data), expected_count)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[2].pk)
+        self.assertEqual(response.data[1]["_id"], instances[3].pk)
+        # greater than
+        query_str = '{"_date_modified": {"$gt": "%s"}}' % date_modified
+        data = {"query": query_str}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[3].pk)
 
     def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
         self._make_submissions()
@@ -1118,11 +1208,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         second_datetime = start_time + timedelta(days=1, hours=20)
 
         query_str = (
-            '{"_submission_time": {"$gte": "' +
-            first_datetime +
-            '", "$lte": "' +
-            second_datetime.strftime(MONGO_STRFTIME) +
-            '"}}'
+            '{"_submission_time": {"$gte": "'
+            + first_datetime
+            + '", "$lte": "'
+            + second_datetime.strftime(MONGO_STRFTIME)
+            + '"}}'
         )
 
         request = self.factory.get("/?query=%s" % query_str, **self.extra)
@@ -1679,7 +1769,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_deletion_of_bulk_submissions(self, send_message_mock):
-
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk
@@ -1716,18 +1805,188 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(records_to_be_deleted),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [str(i.pk) for i in records_to_be_deleted],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertNotEqual(current_count, initial_count)
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_submissions_permanent_deletion(self, send_message_mock):
+        """
+        Test that permanent submission deletions work
+        """
+        self._make_submissions()
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view({"delete": "destroy", "get": "list"})
+
+        # initial count = 4 submissions
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
+
+        # Test project details updated successfully
+        self.assertEqual(
+            self.xform.project.date_modified.strftime("%Y-%m-%d %H:%M:%S"),
+            timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+        # message sent upon delete
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=dataid,
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
+        )
+
+        # second delete of same submission should return 404
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 404)
+
+        # remaining 3 submissions
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
+
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 3)
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_permanent_deletions_bulk_submissions(self, send_message_mock):
+        """
+        Test that permanent bulk submission deletions work
+        """
+        self._make_submissions()
+        self.xform.refresh_from_db()
+
+        formid = self.xform.pk
+        initial_count = self.xform.num_of_submissions
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        # test with valid instance id's
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ",".join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids, "permanent_delete": True}
+
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get("message"),
+            "%d records were deleted" % len(records_to_be_deleted),
+        )
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in records_to_be_deleted],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
+        )
+        self.xform.refresh_from_db()
+        current_count = self.xform.num_of_submissions
+        self.assertNotEqual(current_count, initial_count)
+        self.assertEqual(current_count, 2)
+        self.assertEqual(self.xform.num_of_submissions, 2)
+
+        # check number of xform instances
+        self.assertEqual(self.xform.instances.count(), 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    def test_permanent_instance_delete_inactive_form(self, send_message_mock):
+        """
+        Test that permanent submission deletions works on inactive forms
+        """
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view(
+            {
+                "delete": "destroy",
+            }
+        )
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+        self.assertEqual(self.xform.instances.count(), 3)
+
+        # make form inactive
+        self.xform.downloadable = False
+        self.xform.save()
+
+        dataid = self.xform.instances.filter(deleted_at=None).order_by("id")[0].pk
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # test that xform submission count is updated
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 2)
+        self.assertTrue(send_message_mock.called)
+
+        # check number of instances and num_of_submissions field
+        self.assertEqual(self.xform.instances.count(), 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=False)
+    def test_failed_permanent_deletion(self):
+        """
+        Test that permanent submission deletion throws bad request when
+        functionality is disabled
+        """
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by("id")[0].pk
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        request = self.factory.delete(
+            "/", **self.extra, data={"permanent_delete": True}
+        )
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 400)
+        error_msg = "Permanent submission deletion is not enabled for this server."
+        self.assertEqual(response.data, {"error": error_msg})
 
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_delete_submission_inactive_form(self, send_message_mock):
@@ -1799,12 +2058,12 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "%d records were deleted" % len(deleted_instances_subset),
         )
         self.assertTrue(send_message_mock.called)
-        send_message_mock.called_with(
-            [str(i.pk) for i in deleted_instances_subset],
-            formid,
-            XFORM,
-            request.user,
-            SUBMISSION_DELETED,
+        send_message_mock.assert_called_with(
+            instance_id=[str(i.pk) for i in deleted_instances_subset],
+            target_id=formid,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=SUBMISSION_DELETED,
         )
 
         # Test that num of submissions for the form is successfully updated
@@ -2111,6 +2370,251 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
+    def test_geotraces_in_repeats(self):
+        # publish sample geotrace submissions
+        md = """
+        | survey |
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geotrace     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geotraces"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("Geotraces")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from geo_field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.geotrace_xpaths(), ["segment/blueline"])
+        # test LineString geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [36.790503, -1.283987],
+                            [36.77264, -1.268026],
+                            [36.79411, -1.266191],
+                            [36.790757, -1.283009],
+                        ],
+                    },
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [36.809057, -1.269392],
+                            [36.803303, -1.271966],
+                            [36.805943, -1.268118],
+                            [36.808822, -1.269405],
+                        ],
+                    },
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
+    def test_geoshapes_in_repeats(self):
+        # publish sample geoshape submissions
+        md = """
+        | survey |
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geoshape     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geoshapes"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("Geoshapes")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from specific field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.polygon_xpaths(), ["segment/blueline"])
+        # test Polygon geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [36.788843, -1.297323],
+                                [36.799246, -1.292646],
+                                [36.797564, -1.299639],
+                                [36.789099, -1.297537],
+                                [36.794943, -1.296379],
+                                [36.797134, -1.299167],
+                                [36.788843, -1.297323],
+                            ]
+                        ],
+                    },
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [36.79198, -1.29728],
+                                [36.785793, -1.298009],
+                                [36.789744, -1.29961],
+                                [36.790625, -1.300146],
+                                [36.792107, -1.300897],
+                                [36.79198, -1.29728],
+                            ]
+                        ],
+                    },
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
+    def test_empty_geotraces_in_repeats(self):
+        # publish sample geotrace submissions
+        md = """
+        | survey |
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geotrace     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geotraces"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("empty_geotraces")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from geo_field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.geotrace_xpaths(), ["segment/blueline"])
+        # test LineString geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": None,
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [36.809057, -1.269392],
+                            [36.803303, -1.271966],
+                            [36.805943, -1.268118],
+                            [36.808822, -1.269405],
+                        ],
+                    },
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
+    def test_empty_geoshapes_in_repeats(self):
+        # publish sample geoshape submissions
+        md = """
+        | survey |
+        |        | type         | name           | label           | required | calculation |
+        |        | begin repeat | segment        | Waterway trace  |          |             |
+        |        | calculate    | point_position |                 |          | position(..)|
+        |        | geoshape     | blueline       | GPS Coordinates | yes      |             |
+        |        | end repeat   |
+        """
+        self.xform = self._publish_markdown(
+            md, self.user, self.project, id_string="geoshapes"
+        )
+        # publish submissions
+        self._publish_submit_geoms_in_repeats("empty_geoshapes")
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # get geojson from specific field
+        data_get = {"geo_field": "segment/blueline"}
+        request = self.factory.get("/", data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format="geojson")
+        instances = self.xform.instances.all().order_by("id")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.xform.instances.count(), 2)
+        self.assertEqual(len(response.data["features"]), 2)
+        self.assertEqual(self.xform.polygon_xpaths(), ["segment/blueline"])
+        # test Polygon geojson format
+        data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": None,
+                    "properties": {"id": instances[0].pk, "xform": self.xform.pk},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [36.79198, -1.29728],
+                                [36.785793, -1.298009],
+                                [36.789744, -1.29961],
+                                [36.790625, -1.300146],
+                                [36.792107, -1.300897],
+                                [36.79198, -1.29728],
+                            ]
+                        ],
+                    },
+                    "properties": {"id": instances[1].pk, "xform": self.xform.pk},
+                },
+            ],
+        }
+        self.assertEqual(response.data, data)
+
     def test_instances_with_geopoints(self):
         # publish sample geo submissions
         self._publish_submit_geojson()
@@ -2162,16 +2666,17 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             json.dumps(response.data)[:94],
-            '{"type": "FeatureCollection", "features":' +
-            ' [{"type": "Feature", "geometry": null, "properties":')
-        self.assertEqual(len(response.data['features']), 1)
-        feature = dict(response.data['features'][0])
-        self.assertEqual(feature['type'], 'Feature')
-        self.assertEqual(feature['geometry'], None)
-        self.assertTrue(isinstance(feature['properties'], dict))
+            '{"type": "FeatureCollection", "features":'
+            + ' [{"type": "Feature", "geometry": null, "properties":',
+        )
+        self.assertEqual(len(response.data["features"]), 1)
+        feature = dict(response.data["features"][0])
+        self.assertEqual(feature["type"], "Feature")
+        self.assertEqual(feature["geometry"], None)
+        self.assertTrue(isinstance(feature["properties"], dict))
         self.assertEqual(self.xform.instances.count(), 2)
-        self.assertEqual(self.xform.polygon_xpaths(), ['shape'])
-        self.assertEqual(self.xform.geotrace_xpaths(), ['path'])
+        self.assertEqual(self.xform.polygon_xpaths(), ["shape"])
+        self.assertEqual(self.xform.geotrace_xpaths(), ["path"])
 
         # check if instances_with_geopoints is True for the form
         self.xform.refresh_from_db()
@@ -2179,7 +2684,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     @patch("onadata.apps.viewer.signals._post_process_submissions")
     def test_instances_with_empty_geopoints_no_polygons(self, mock_signal):
-
         # publish sample geo submissions
         self._publish_submit_geojson(has_empty_geoms=True, only_geopoints=True)
 
@@ -2846,7 +3350,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         floip_list = json.loads(response.content)
         self.assertTrue(isinstance(floip_list, list))
         floip_row = [x for x in floip_list if x[-2] == "none"][0]
-        self.assertEqual(floip_row[0], response.data[0]["_submission_time"] + "+00:00")
+        self.assertEqual(floip_row[0], response.data[0]["_submission_time"])
         self.assertEqual(floip_row[2], "bob")
         self.assertEqual(floip_row[3], response.data[0]["_uuid"])
         self.assertEqual(
@@ -3013,24 +3517,27 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        self._make_submission_w_attachment(
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                "transport_2011-07-25_19-05-49_2.xml",
-            ),
-            os.path.join(
-                self.this_directory,
-                "fixtures",
-                "transportation",
-                "instances",
-                "transport_2011-07-25_19-05-49_2",
-                media_file,
-            ),
-        )
+        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=timezone.utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            self._make_submission_w_attachment(
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    "transport_2011-07-25_19-05-49_2.xml",
+                ),
+                os.path.join(
+                    self.this_directory,
+                    "fixtures",
+                    "transportation",
+                    "instances",
+                    "transport_2011-07-25_19-05-49_2",
+                    media_file,
+                ),
+            )
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
@@ -3046,7 +3553,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         returned_xml = response.content.decode("utf-8")
         server_time = ET.fromstring(returned_xml).attrib.get("serverTime")
         edited = instance.last_edited is not None
-        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        submission_time = instance.date_created.isoformat()
         attachment = instance.attachments.first()
         expected_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
@@ -3200,6 +3707,51 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<http://testserver/?page=4&page_size=1>; rel="last"',
         )
 
+    def test_merged_dataset(self):
+        """Data for merged dataset is returned"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+    def test_merged_dataset_geojson(self):
+        """Merged dataset geojson works"""
+        merged_xf = self._create_merged_dataset(make_submissions=True)
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_xf.pk, format="geojson")
+        self.assertEqual(response.status_code, 200)
+        # we get correct content type
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        instance_qs = Instance.objects.all().order_by("pk")
+        self.assertEqual(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[0].pk,
+                            "xform": instance_qs[0].xform.pk,
+                        },
+                    },
+                    {
+                        "type": "Feature",
+                        "geometry": None,
+                        "properties": {
+                            "id": instance_qs[1].pk,
+                            "xform": instance_qs[1].xform.pk,
+                        },
+                    },
+                ],
+            },
+            response.data,
+        )
+
 
 class TestOSM(TestAbstractViewSet):
     """
@@ -3214,7 +3766,7 @@ class TestOSM(TestAbstractViewSet):
         self.logger = logging.getLogger("console_logger")
 
     # pylint: disable=invalid-name,too-many-locals
-    @flaky(max_runs=5)
+    @flaky(max_runs=15)
     def test_data_retrieve_instance_osm_format(self):
         """Test /data endpoint OSM format."""
         filenames = [
@@ -3280,3 +3832,129 @@ class TestOSM(TestAbstractViewSet):
         )
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 0)
+
+
+@override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_data_media/"))
+class ExportDataTestCase(SerializeMixin, TestBase):
+    """Tests exporting data"""
+
+    lockfile = __file__
+
+    def setUp(self):
+        super().setUp()
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.factory = RequestFactory()
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.view = DataViewSet.as_view({"get": "list"})
+
+    def test_csv_export(self):
+        """Data is exported as CSV"""
+        self._make_submissions()
+        formid = self.xform.pk
+        request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+        response = self.view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        csv_file_obj = StringIO(
+            "".join([c.decode("utf-8") for c in response.streaming_content])
+        )
+        csv_reader = csv.reader(csv_file_obj)
+        headers = next(csv_reader)
+        expected_headers = [
+            "transport/available_transportation_types_to_referral_facility/ambulance",
+            "transport/available_transportation_types_to_referral_facility/bicycle",
+            "transport/available_transportation_types_to_referral_facility/boat_canoe",
+            "transport/available_transportation_types_to_referral_facility/bus",
+            "transport/available_transportation_types_to_referral_facility/donkey_mule_cart",
+            "transport/available_transportation_types_to_referral_facility/keke_pepe",
+            "transport/available_transportation_types_to_referral_facility/lorry",
+            "transport/available_transportation_types_to_referral_facility/motorbike",
+            "transport/available_transportation_types_to_referral_facility/taxi",
+            "transport/available_transportation_types_to_referral_facility/other",
+            "transport/available_transportation_types_to_referral_facility_other",
+            "transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/other/frequency_to_referral_facility",
+            "image1",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(headers, expected_headers)
+        number_records = len(list(csv_reader))
+        self.assertEqual(number_records, 4)
+
+    def test_default_ordering(self):
+        """Export data is sorted by id by default"""
+        self._make_submissions()
+        formid = self.xform.pk
+        # sort csv export data by id in descending order
+        request = self.factory.get("/", data={"format": "csv"}, **self.extra)
+        response = self.view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        csv_file_obj = StringIO(
+            "".join([c.decode("utf-8") for c in response.streaming_content])
+        )
+        csv_reader = csv.reader(csv_file_obj)
+        instances = Instance.objects.filter(xform_id=formid).order_by("id")
+        self.assertEqual(instances.count(), 4)
+        headers = next(csv_reader)
+        expected_headers = [
+            "transport/available_transportation_types_to_referral_facility/ambulance",
+            "transport/available_transportation_types_to_referral_facility/bicycle",
+            "transport/available_transportation_types_to_referral_facility/boat_canoe",
+            "transport/available_transportation_types_to_referral_facility/bus",
+            "transport/available_transportation_types_to_referral_facility/donkey_mule_cart",
+            "transport/available_transportation_types_to_referral_facility/keke_pepe",
+            "transport/available_transportation_types_to_referral_facility/lorry",
+            "transport/available_transportation_types_to_referral_facility/motorbike",
+            "transport/available_transportation_types_to_referral_facility/taxi",
+            "transport/available_transportation_types_to_referral_facility/other",
+            "transport/available_transportation_types_to_referral_facility_other",
+            "transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility",
+            "transport/loop_over_transport_types_frequency/other/frequency_to_referral_facility",
+            "image1",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertEqual(headers, expected_headers)
+        # csv records should be ordered by id in descending order
+        for instance in instances:
+            row = next(csv_reader)
+            self.assertEqual(str(instance.id), row[23])

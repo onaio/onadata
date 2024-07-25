@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 logger_tools - Logger app utility functions.
 """
 import json
+import logging
 import os
 import re
 import sys
@@ -11,7 +13,7 @@ from builtins import str as text
 from datetime import datetime
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import NoReturn
+from typing import NoReturn, Any
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -37,7 +39,6 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
 
-import pytz
 from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
@@ -47,7 +48,14 @@ from pyxform.validators.odk_validate import ODKValidateError
 from pyxform.xform2json import create_survey_element_from_xml
 from rest_framework.response import Response
 
-from onadata.apps.logger.models import Attachment, Instance, XForm, XFormVersion
+from onadata.apps.logger.models import (
+    Attachment,
+    Entity,
+    Instance,
+    RegistrationForm,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.logger.models.instance import (
     FormInactiveError,
     FormIsMergedDatasetError,
@@ -68,6 +76,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml,
     get_uuid_from_xml,
+    get_entity_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
@@ -100,6 +109,8 @@ uuid_regex = re.compile(
     r"<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>", re.DOTALL
 )
 
+logger = logging.getLogger(__name__)
+
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -115,9 +126,11 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
             versioned_xform = XFormVersion.objects.create(
                 xform=xform,
                 xls=xform.xls,
-                json=xform.json
-                if isinstance(xform.json, str)
-                else json.dumps(xform.json),
+                json=(
+                    xform.json
+                    if isinstance(xform.json, str)
+                    else json.dumps(xform.json)
+                ),
                 version=xform.version,
                 created_by=user,
                 xml=xform.xml,
@@ -422,17 +435,21 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
         if len(filename) > 100:
             raise AttachmentNameError(filename)
         media_in_submission = filename in instance.get_expected_media() or [
-            instance.xml.decode("utf-8").find(filename) != -1
-            if isinstance(instance.xml, bytes)
-            else instance.xml.find(filename) != -1
+            (
+                instance.xml.decode("utf-8").find(filename) != -1
+                if isinstance(instance.xml, bytes)
+                else instance.xml.find(filename) != -1
+            )
         ]
         if media_in_submission:
             Attachment.objects.get_or_create(
+                xform=xform,
                 instance=instance,
                 media_file=f,
                 mimetype=content_type,
                 name=filename,
                 extension=extension,
+                user=instance.user,
             )
     if remove_deleted_media:
         instance.soft_delete_attachments()
@@ -842,8 +859,7 @@ def set_default_openrosa_headers(response):
     """Sets the default OpenRosa headers into a ``response`` object."""
     response["Content-Type"] = "text/html; charset=utf-8"
     response["X-OpenRosa-Accept-Content-Length"] = DEFAULT_CONTENT_LENGTH
-    tz = pytz.timezone(settings.TIME_ZONE)
-    dt = datetime.now(tz).strftime("%a, %d %b %Y %H:%M:%S %Z")
+    dt = timezone.localtime().strftime("%a, %d %b %Y %H:%M:%S %Z")
     response["Date"] = dt
     response[OPEN_ROSA_VERSION_HEADER] = OPEN_ROSA_VERSION
     response["Content-Type"] = DEFAULT_CONTENT_TYPE
@@ -910,6 +926,7 @@ class OpenRosaNotAuthenticated(Response):
 
 
 def inject_instanceid(xml_str, uuid):
+    """Adds the `uuid` as the <instanceID/> to an XML string `xml_str`."""
     if get_uuid_from_xml(xml_str) is None:
         xml = clean_and_parse_xml(xml_str)
         children = xml.childNodes
@@ -947,13 +964,7 @@ def inject_instanceid(xml_str, uuid):
     return xml_str
 
 
-def remove_xform(xform):
-    """Deletes an XForm ``xform``."""
-    # delete xform, and all related models
-    xform.delete()
-
-
-class PublishXForm:
+class PublishXForm:  # pylint: disable=too-few-public-methods
     "A class to publish an XML XForm file."
 
     def __init__(self, xml_file, user):
@@ -964,3 +975,124 @@ class PublishXForm:
     def publish_xform(self):
         """Publish an XForm XML file."""
         return publish_xml_form(self.xml_file, self.user, self.project)
+
+
+def get_entity_json_from_instance(
+    instance: Instance, registration_form: RegistrationForm
+) -> dict:
+    """Parses Instance json and returns Entity json
+
+    Args:
+        instance (Instance): Submission to create Entity
+
+    Returns:
+        dict: Entity properties
+    """
+    instance_json: dict[str, Any] = instance.get_dict()
+    # Getting a mapping of save_to field to the field name
+    mapped_properties = registration_form.get_save_to(instance.version)
+    # Field names with an alias defined
+    property_fields = list(mapped_properties.values())
+
+    def get_field_alias(field_name: str) -> str:
+        """Get the alias (save_to value) of a form field"""
+        for alias, field in mapped_properties.items():
+            if field == field_name:
+                return alias
+
+        return field_name
+
+    def parse_instance_json(data: dict[str, Any]) -> None:
+        """Parse the original json, replacing field names with their alias
+
+        The data keys are modified in place
+        """
+        for field_name in list(data):
+            field_data = data[field_name]
+            del data[field_name]
+
+            if field_name.startswith("formhub"):
+                continue
+
+            if field_name.startswith("meta"):
+                if field_name == "meta/entity/label":
+                    data["label"] = field_data
+
+                continue
+
+            # We extract field names within grouped sections
+            ungrouped_field_name = field_name.split("/")[-1]
+
+            if ungrouped_field_name in property_fields:
+                field_alias = get_field_alias(ungrouped_field_name)
+                data[field_alias] = field_data
+
+    parse_instance_json(instance_json)
+
+    return instance_json
+
+
+def create_entity_from_instance(
+    instance: Instance, registration_form: RegistrationForm
+) -> Entity:
+    """Create an Entity
+
+    Args:
+        instance (Instance): Submission from which the Entity is created from
+        registration_form (RegistrationForm): RegistrationForm creating the
+        Entity
+
+    Returns:
+        Entity: A newly created Entity
+    """
+    entity_json = get_entity_json_from_instance(instance, registration_form)
+    entity_list = registration_form.entity_list
+    entity = Entity.objects.create(
+        entity_list=entity_list,
+        json=entity_json,
+        uuid=get_entity_uuid_from_xml(instance.xml),
+    )
+    entity.history.create(
+        registration_form=registration_form,
+        xml=instance.xml,
+        instance=instance,
+        form_version=instance.version,
+        json=entity_json,
+        created_by=instance.user,
+    )
+
+    return entity
+
+
+def update_entity_from_instance(
+    uuid: str, instance: Instance, registration_form: RegistrationForm
+) -> Entity | None:
+    """Updates Entity
+
+    Args:
+        uuid (str): uuid of the Entity to be updated
+        instance (Instance): Submission that updates an Entity
+
+    Returns:
+        Entity | None: updated Entity if uuid valid, else None
+    """
+    try:
+        entity = Entity.objects.get(uuid=uuid)
+
+    except Entity.DoesNotExist as err:
+        logger.exception(err)
+        return None
+
+    patch_data = get_entity_json_from_instance(instance, registration_form)
+    entity.json = {**entity.json, **patch_data}
+    entity.save()
+    entity.history.create(
+        registration_form=registration_form,
+        xml=instance.xml,
+        instance=instance,
+        form_version=instance.version,
+        json=entity.json,
+        created_by=instance.user,
+    )
+
+    return entity

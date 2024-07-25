@@ -4,7 +4,7 @@ The DefaultBaseViewset class
 """
 
 
-class DefaultBaseViewset:
+class DefaultBaseViewset:  # pylint: disable=too-few-public-methods
     """
     The DefaultBaseViewset class
     """

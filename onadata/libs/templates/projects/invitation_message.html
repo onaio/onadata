@@ -1,0 +1,8 @@
+{% load i18n %}{% blocktranslate %}
+<p>Hello,</p>
+<p>You have been added to {{project_name}} by a project admin allowing you to begin data collection.</p>
+<p>To begin using {{deployment_name}}, please create an account first by clicking the link below:</p>
+<p><a href='{{invitation_url}}'>{{invitation_url}}</a></p>
+<p>Thanks,</p>
+<p>The Team at {{ deployment_name }}</p>
+{% endblocktranslate %}

@@ -2,20 +2,23 @@
 """
 Test onadata.libs.utils.project_utils
 """
+from unittest.mock import call, MagicMock, patch
+
 from django.test.utils import override_settings
-
 from kombu.exceptions import OperationalError
-from mock import MagicMock, patch
 from requests import Response
+from guardian.shortcuts import get_perms
 
+from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import DataEntryRole
+from onadata.libs.permissions import DataEntryRole, ManagerRole, OwnerRole
 from onadata.libs.utils.project_utils import (
     assign_change_asset_permission,
     retrieve_asset_permissions,
     set_project_perms_to_xform,
     set_project_perms_to_xform_async,
+    set_project_perms_to_object,
 )
 
 
@@ -71,6 +74,17 @@ class TestProjectUtils(TestBase):
         args, _kwargs = mock.call_args_list[0]
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], self.project)
+
+    @patch("onadata.libs.utils.project_utils.set_project_perms_to_xform")
+    def test_set_project_perms_to_xform_async_mergedxform(self, mock):
+        """set_project_perms_to_xform_async sets permissions for a MergedXForm"""
+        merged_xf = self._create_merged_dataset()
+        set_project_perms_to_xform_async.delay(merged_xf.pk, self.project.pk)
+        expected_calls = [
+            call(merged_xf.xform_ptr, self.project),
+            call(merged_xf, self.project),
+        ]
+        mock.assert_has_calls(expected_calls, any_order=True)
 
     def test_assign_change_asset_permission(self):
         """
@@ -145,3 +159,46 @@ class TestProjectUtils(TestBase):
         self._publish_transportation_form()
         self.assertFalse(mock_set_perms_async.called)
         self.assertTrue(mock_set_perms.called)
+
+
+class SetProjectPermsToObjectTestCase(TestBase):
+    """Tests for set_project_perms_to_object"""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_transportation_form()
+        self.alice = self._create_user(username="alice", password="abc123!!")
+        ManagerRole.add(self.alice, self.project)
+
+    def test_set_perms(self):
+        """Project permissions are applied to object"""
+        set_project_perms_to_object(self.xform, self.project)
+
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.xform))
+        self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
+
+    def test_owners_team_permissions(self):
+        """Object permissions for owners group are set"""
+        team = Team.objects.create(
+            name=f"{self.user.username}#Owners", organization=self.user
+        )
+        self.assertEqual(get_perms(team, self.xform), [])
+
+        set_project_perms_to_object(self.xform, self.project)
+        perms = get_perms(team, self.xform)
+
+        self.assertTrue("add_xform" in perms)
+        self.assertTrue("view_xform" in perms)
+        self.assertTrue("change_xform" in perms)
+        self.assertTrue("delete_xform" in perms)
+
+    def test_xform_creator(self):
+        """XForm creator is made owner"""
+        self.xform.created_by = self.alice
+        self.xform.save()
+
+        self.assertFalse(OwnerRole.user_has_role(self.alice, self.xform))
+
+        set_project_perms_to_object(self.xform, self.project)
+
+        self.assertTrue(OwnerRole.user_has_role(self.alice, self.xform))

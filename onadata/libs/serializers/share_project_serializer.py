@@ -7,10 +7,10 @@ from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 
+from onadata.apps.api.tasks import share_project_async
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import ROLES, OwnerRole, get_object_users_with_permissions
 from onadata.libs.serializers.fields.project_field import ProjectField
-from onadata.libs.utils.project_utils import propagate_project_permissions_async
 
 User = get_user_model()
 
@@ -40,19 +40,18 @@ class ShareProjectSerializer(serializers.Serializer):
         for username in validated_data.pop("username").split(","):
             validated_data["username"] = username
             instance = ShareProject(**validated_data)
-            instance.save()
             created_instances.append(instance)
+            share_project_async.apply_async(
+                args=[instance.project.pk, instance.username, instance.role]
+            )
 
-        propagate_project_permissions_async.apply_async(
-            args=[validated_data.get("project").id], countdown=30
-        )
         return created_instances
 
     def update(self, instance, validated_data):
         instance = attrs_to_instance(validated_data, instance)
-        instance.save()
-        propagate_project_permissions_async.apply_async(
-            args=[validated_data.get("project").id], countdown=30
+
+        share_project_async.apply_async(
+            args=[instance.project.pk, instance.username, instance.role]
         )
 
         return instance
@@ -119,22 +118,10 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
     remove = serializers.BooleanField()
 
     def update(self, instance, validated_data):
-        instance = attrs_to_instance(validated_data, instance)
-        instance.save()
-        propagate_project_permissions_async.apply_async(
-            args=[validated_data.get("project").id], countdown=30
-        )
-
-        return instance
+        return attrs_to_instance(validated_data, instance)
 
     def create(self, validated_data):
-        instance = ShareProject(**validated_data)
-        instance.save()
-        propagate_project_permissions_async.apply_async(
-            args=[validated_data.get("project").id], countdown=30
-        )
-
-        return instance
+        return ShareProject(**validated_data)
 
     def validate(self, attrs):
         """Check and confirm that the project will be left with at least one
@@ -152,3 +139,16 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
                 )
 
         return attrs
+
+    def save(self, **kwargs):
+        instance = super().save(**kwargs)
+        share_project_async.apply_async(
+            args=[
+                instance.project.pk,
+                instance.username,
+                instance.role,
+                instance.remove,
+            ]
+        )
+
+        return instance

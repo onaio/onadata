@@ -4,7 +4,7 @@ project_utils module - apply project permissions to a form.
 """
 import re
 import sys
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -21,13 +21,20 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.celeryapp import app
-from onadata.libs.permissions import (ROLES, OwnerRole,
-                                      get_object_users_with_permissions,
-                                      get_role, is_organization)
-from onadata.libs.utils.common_tags import (API_TOKEN,
-                                            ONADATA_KOBOCAT_AUTH_HEADER,
-                                            OWNER_TEAM_NAME)
+from onadata.libs.permissions import (
+    ROLES,
+    OwnerRole,
+    get_object_users_with_permissions,
+    get_role,
+    is_organization,
+)
+from onadata.libs.utils.common_tags import (
+    API_TOKEN,
+    ONADATA_KOBOCAT_AUTH_HEADER,
+    OWNER_TEAM_NAME,
+)
 from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class ExternalServiceRequestError(Exception):
@@ -39,8 +46,9 @@ class ExternalServiceRequestError(Exception):
 def get_project_users(project):
     """Return project users with the role assigned to them."""
     ret = {}
+    project_user_obj_perm_qs = project.projectuserobjectpermission_set.all()
 
-    for perm in project.projectuserobjectpermission_set.all():
+    for perm in queryset_iterator(project_user_obj_perm_qs):
         if perm.user.username not in ret:
             user = perm.user
 
@@ -81,24 +89,7 @@ def set_project_perms_to_xform(xform, project):
         if role and (user not in (xform.user, project.user, project.created_by)):
             role.remove_obj_permissions(user, xform)
 
-    owners = project.organization.team_set.filter(
-        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
-        organization=project.organization,
-    )
-
-    if owners:
-        OwnerRole.add(owners[0], xform)
-
-    for perm in get_object_users_with_permissions(project, with_group_users=True):
-        user = perm["user"]
-        role_name = perm["role"]
-        role = ROLES.get(role_name)
-
-        if user == xform.created_by:
-            OwnerRole.add(user, xform)
-        else:
-            if role:
-                role.add(user, xform)
+    set_project_perms_to_object(xform, project)
 
 
 # pylint: disable=invalid-name
@@ -123,6 +114,10 @@ def set_project_perms_to_xform_async(self, xform_id, project_id):
             self.retry(countdown=60 * self.request.retries, exc=e)
         else:
             set_project_perms_to_xform(xform, project)
+
+            # Set MergedXForm permissions if XForm is also a MergedXForm
+            if hasattr(xform, "mergedxform"):
+                set_project_perms_to_xform(xform.mergedxform, project)
 
     try:
         if getattr(settings, "SLAVE_DATABASES", []):
@@ -238,7 +233,7 @@ def propagate_project_permissions(
                 max_retries=Retry(
                     total=5,
                     backoff_factor=2,
-                    method_whitelist=["GET", "POST", "DELETE"],
+                    allowed_methods=["GET", "POST", "DELETE"],
                     status_forcelist=[502, 503, 504],
                 )
             ),
@@ -317,3 +312,30 @@ def propagate_project_permissions(
                     new_users,
                     session,
                 )
+
+
+def set_project_perms_to_object(obj: Any, project: Project) -> None:
+    """Apply project permissions to an object
+
+    Args:
+        obj: Object to set permissions for
+        project: Project under which the object belongs to
+    """
+    owners = project.organization.team_set.filter(
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
+
+    if owners:
+        OwnerRole.add(owners[0], obj)
+
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
+        role = ROLES.get(role_name)
+
+        if isinstance(obj, XForm) and user == obj.created_by:
+            OwnerRole.add(user, obj)
+
+        elif role:
+            role.add(user, obj)

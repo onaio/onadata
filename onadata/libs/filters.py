@@ -17,7 +17,14 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.apps.logger.models import Instance, Project, XForm, DataView, MergedXForm
+from onadata.apps.logger.models import (
+    Instance,
+    Project,
+    XForm,
+    DataView,
+    MergedXForm,
+    Attachment,
+)
 from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
@@ -147,8 +154,8 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
         org_users = set(
-            [group.team.organization for group in request.user.groups.all()] +
-            [o.user for o in filtered_queryset]
+            [group.team.organization for group in request.user.groups.all()]
+            + [o.user for o in filtered_queryset]
         )
 
         return queryset.model.objects.filter(user__in=org_users, user__is_active=True)
@@ -325,27 +332,35 @@ class XFormPermissionFilterMixin:
 
         return prefixed_filter_kwargs
 
-    def _xform_filter(self, request, view, keyword):
+    def _xform_filter(self, request, view, keyword, queryset=None):
         """Use XForm permissions"""
         xform = request.query_params.get("xform")
+
+        if xform is None and request.data is not None and "xform" in request.data:
+            xform = request.data.get("xform")
+
         dataview = request.query_params.get("dataview")
         merged_xform = request.query_params.get("merged_xform")
+        filename = request.query_params.get("filename")
+
         public_forms = XForm.objects.none()
         dataview_kwargs = {}
         if dataview:
             int_or_parse_error(
                 dataview,
-                "Invalid value for dataview ID. It must be a positive integer."
+                "Invalid value for dataview ID. It must be a positive integer.",
             )
             self.dataview = get_object_or_404(DataView, pk=dataview)
             # filter with fitlered dataset query
             dataview_kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
-                get_filter_kwargs(self.dataview.query))
+                get_filter_kwargs(self.dataview.query)
+            )
             xform_qs = XForm.objects.filter(pk=self.dataview.xform.pk)
         elif merged_xform:
             int_or_parse_error(
                 merged_xform,
-                "Invalid value for Merged Dataset ID. It must be a positive integer.")
+                "Invalid value for Merged Dataset ID. It must be a positive integer.",
+            )
             self.merged_xform = get_object_or_404(MergedXForm, pk=merged_xform)
             xform_qs = self.merged_xform.xforms.all()
         elif xform:
@@ -355,21 +370,42 @@ class XFormPermissionFilterMixin:
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
+        elif filename:
+            attachment = get_object_or_404(Attachment, pk=view.kwargs.get("pk"))
+            self.xform = (
+                attachment.instance.xform
+                if attachment.xform is None
+                else attachment.xform
+            )
+            xform_qs = XForm.objects.filter(pk=self.xform.pk)
+            public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
         else:
-            xform_qs = XForm.objects.all()
+            if queryset is not None and "pk" in view.kwargs:
+                xform_ids = list(
+                    set(
+                        queryset.filter(pk=view.kwargs.get("pk")).values_list(
+                            f"{keyword}", flat=True
+                        )
+                    )
+                )
+                xform_qs = XForm.objects.filter(pk__in=xform_ids)
+            elif queryset is not None and "formid" in view.kwargs:
+                xform_qs = XForm.objects.filter(
+                    pk=view.kwargs.get("formid"), deleted_at__isnull=True
+                )
+            else:
+                # No form filter supplied - return empty list.
+                xform_qs = XForm.objects.none()
         xform_qs = xform_qs.filter(deleted_at=None)
 
         if request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
-        return {
-            **{f"{keyword}__in": xforms},
-            **dataview_kwargs
-        }
+        return {**{f"{keyword}__in": xforms}, **dataview_kwargs}
 
     def _xform_filter_queryset(self, request, queryset, view, keyword):
-        kwarg = self._xform_filter(request, view, keyword)
+        kwarg = self._xform_filter(request, view, keyword, queryset)
         return queryset.filter(**kwarg)
 
 
@@ -480,7 +516,7 @@ class MetaDataFilter(
 
         # generate queries
         xform_content_type = ContentType.objects.get_for_model(XForm)
-        xform_kwarg = self._xform_filter(request, view, keyword)
+        xform_kwarg = self._xform_filter(request, view, keyword, queryset)
         xform_kwarg["content_type"] = xform_content_type
 
         project_content_type = ContentType.objects.get_for_model(Project)
@@ -515,17 +551,18 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
     """Attachment filter."""
 
     def filter_queryset(self, request, queryset, view):
-
-        queryset = self._xform_filter_queryset(
-            request, queryset, view, "instance__xform"
-        )
+        queryset = self._xform_filter_queryset(request, queryset, view, "xform")
+        xform = getattr(self, "xform", None)
         # Ensure queryset is filtered by XForm meta permissions
-        xform_ids = set(queryset.values_list("instance__xform", flat=True))
-        for xform_id in xform_ids:
-            xform = XForm.objects.get(id=xform_id)
-            user = request.user
+        if xform is None:
+            xform_ids = list(set(queryset.values_list("xform", flat=True)))
+            if xform_ids:
+                # only the first form xform_ids[0]
+                xform = XForm.objects.get(pk=xform_ids[0])
+
+        if xform is not None:
             queryset = exclude_items_from_queryset_using_xform_meta_perms(
-                xform, user, queryset
+                xform, request.user, queryset
             )
 
         instance_id = request.query_params.get("instance")
@@ -697,10 +734,9 @@ class ExportFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         public_xform_id = _public_xform_id_or_none(view.kwargs.get("pk"))
         if public_xform_id:
             form_exports = queryset.filter(xform_id=public_xform_id)
-            current_user_form_exports = (
-                form_exports.filter(*has_submitted_by_key)
-                .filter(options__query___submitted_by=request.user.username)
-            )
+            current_user_form_exports = form_exports.filter(
+                *has_submitted_by_key
+            ).filter(options__query___submitted_by=request.user.username)
             other_form_exports = form_exports.exclude(*has_submitted_by_key)
             return current_user_form_exports | other_form_exports
 
@@ -735,3 +771,27 @@ class PublicDatasetsFilter:
             return queryset.filter(shared=True)
 
         return queryset
+
+
+# pylint: disable=too-few-public-methods
+class EntityListProjectFilter(filters.BaseFilterBackend):
+    """Limits results to EntityLists under `project` query param"""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        project_id = request.query_params.get("project")
+
+        if project_id:
+            return queryset.filter(project__pk=project_id)
+
+        return queryset
+
+
+class AnonUserEntityListFilter(ObjectPermissionsFilter):
+    """Limits results to public EntityLists for anonymous users"""
+
+    def filter_queryset(self, request, queryset, view):
+        if request.user.is_anonymous:
+            return queryset.filter(project__shared=True)
+
+        return super().filter_queryset(request, queryset, view)

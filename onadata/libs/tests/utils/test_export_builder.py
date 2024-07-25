@@ -13,10 +13,10 @@ import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
+from unittest.mock import patch
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
-from mock import patch
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
@@ -51,6 +51,11 @@ def _logger_fixture_path(*args):
     )
 
 
+def _str_if_bytes(val):
+    """Returns val as string if it is of type bytes otherwise returns bytes"""
+    return str(val, "utf-8") if isinstance(val, bytes) else val
+
+
 class TestExportBuilder(TestBase):
     """Test onadata.libs.utils.export_builder functions."""
 
@@ -75,7 +80,7 @@ class TestExportBuilder(TestBase):
                         },
                         {
                             "children/cartoons/name": "Flinstones",
-                            "children/cartoons/why": "I like bam bam\u0107"
+                            "children/cartoons/why": "I like bam bam\u0107",
                             # throw in a unicode character
                         },
                     ],
@@ -130,7 +135,7 @@ class TestExportBuilder(TestBase):
                         },
                         {
                             "childrens_survey_with_a_very_lo/cartoons/name": "Flinstones",
-                            "childrens_survey_with_a_very_lo/cartoons/why": "I like bam bam\u0107"
+                            "childrens_survey_with_a_very_lo/cartoons/why": "I like bam bam\u0107",
                             # throw in a unicode character
                         },
                     ],
@@ -385,7 +390,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name, survey, d)
+                dict_to_joined_export(d, index, indices, survey_name, survey, d, None)
             )
             index += 1
 
@@ -613,12 +618,12 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
             rows = list(reader)
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[0][0], b"expense_date")
-            self.assertEqual(rows[1][0], b"2013-01-03")
-            self.assertEqual(rows[0][1], b"A.gdate")
-            self.assertEqual(rows[1][1], b"2017-06-13")
-            self.assertEqual(rows[0][5], b"@_submission_time")
-            self.assertEqual(rows[1][5], b"2016-11-21 03:43:43")
+            self.assertEqual(_str_if_bytes(rows[0][0]), "expense_date")
+            self.assertEqual(_str_if_bytes(rows[1][0]), "2013-01-03")
+            self.assertEqual(_str_if_bytes(rows[0][1]), "A.gdate")
+            self.assertEqual(_str_if_bytes(rows[1][1]), "2017-06-13")
+            self.assertEqual(_str_if_bytes(rows[0][5]), "@_submission_time")
+            self.assertEqual(_str_if_bytes(rows[1][5]), "2016-11-21 03:43:43")
 
         shutil.rmtree(temp_dir)
 
@@ -665,24 +670,26 @@ class TestExportBuilder(TestBase):
 
         with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
             rows = list(reader)
+            rows[0] = list(map(_str_if_bytes, rows[0]))
+            rows[1] = list(map(_str_if_bytes, rows[1]))
             self.assertTrue(len(rows) > 1)
-            self.assertEqual(rows[0][0], b"sex")
-            self.assertEqual(rows[1][0], b"male")
-            self.assertEqual(rows[0][1], b"text")
-            self.assertEqual(rows[1][1], b"his")
-            self.assertEqual(rows[0][2], b"favorite_brand")
-            self.assertEqual(rows[1][2], b"Generic")
-            self.assertEqual(rows[0][3], b"name")
-            self.assertEqual(rows[1][3], b"Davis")
-            self.assertEqual(rows[0][4], b"brand_known")
-            self.assertEqual(rows[1][4], b"his Generic a")
-            self.assertEqual(rows[0][5], b"brand_known.$text")
+            self.assertEqual(rows[0][0], "sex")
+            self.assertEqual(rows[1][0], "male")
+            self.assertEqual(rows[0][1], "text")
+            self.assertEqual(rows[1][1], "his")
+            self.assertEqual(rows[0][2], "favorite_brand")
+            self.assertEqual(rows[1][2], "Generic")
+            self.assertEqual(rows[0][3], "name")
+            self.assertEqual(rows[1][3], "Davis")
+            self.assertEqual(rows[0][4], "brand_known")
+            self.assertEqual(rows[1][4], "his Generic a")
+            self.assertEqual(rows[0][5], "brand_known.$text")
             self.assertEqual(rows[1][5], 1.0)
-            self.assertEqual(rows[0][6], b"brand_known.$favorite_brand")
+            self.assertEqual(rows[0][6], "brand_known.$favorite_brand")
             self.assertEqual(rows[1][6], 1.0)
-            self.assertEqual(rows[0][7], b"brand_known.a")
+            self.assertEqual(rows[0][7], "brand_known.a")
             self.assertEqual(rows[1][7], 1.0)
-            self.assertEqual(rows[0][8], b"brand_known.b")
+            self.assertEqual(rows[0][8], "brand_known.b")
             self.assertEqual(rows[1][8], 0.0)
 
         shutil.rmtree(temp_dir)
@@ -759,16 +766,16 @@ class TestExportBuilder(TestBase):
             self.assertTrue(len(rows) > 1)
 
             # expensed 1
-            self.assertEqual(rows[0][0], b"expensed")
-            self.assertEqual(rows[1][0], 1)
+            self.assertEqual(_str_if_bytes(rows[0][0]), "expensed")
+            self.assertEqual(_str_if_bytes(rows[1][0]), 1)
 
             # A/q1 1
-            self.assertEqual(rows[0][1], b"A.q1")
+            self.assertEqual(_str_if_bytes(rows[0][1]), "A.q1")
             self.assertEqual(rows[1][1], 1)
 
             # _submission_time is a date string
-            self.assertEqual(rows[0][5], b"@_submission_time")
-            self.assertEqual(rows[1][5], b"2016-11-21 03:43:43")
+            self.assertEqual(_str_if_bytes(rows[0][5]), "@_submission_time")
+            self.assertEqual(_str_if_bytes(rows[1][5]), "2016-11-21 03:43:43")
 
     # pylint: disable=invalid-name
     def test_zipped_sav_export_with_duplicate_field_different_groups(self):
@@ -951,35 +958,35 @@ class TestExportBuilder(TestBase):
             rows = list(reader)
             self.assertTrue(len(rows) > 1)
 
-            self.assertEqual(rows[0][0], b"expensed")
-            self.assertEqual(rows[1][0], b"1")
+            self.assertEqual(_str_if_bytes(rows[0][0]), "expensed")
+            self.assertEqual(_str_if_bytes(rows[1][0]), "1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][1], b"expensed.1")
+            self.assertEqual(_str_if_bytes(rows[0][1]), "expensed.1")
             self.assertEqual(rows[1][1], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][2], b"expensed.0")
+            self.assertEqual(_str_if_bytes(rows[0][2]), "expensed.0")
             self.assertEqual(rows[1][2], 0)
 
-            self.assertEqual(rows[0][3], b"A.q1")
-            self.assertEqual(rows[1][3], b"1")
+            self.assertEqual(_str_if_bytes(rows[0][3]), "A.q1")
+            self.assertEqual(_str_if_bytes(rows[1][3]), "1")
 
             # ensure you get a numeric value for multiple select with choice
             # filters
-            self.assertEqual(rows[0][6], b"A.q2")
-            self.assertEqual(rows[1][6], b"1")
+            self.assertEqual(_str_if_bytes(rows[0][6]), "A.q2")
+            self.assertEqual(_str_if_bytes(rows[1][6]), "1")
 
             # expensed.1 is selected hence True, 1.00 or 1 in SPSS
-            self.assertEqual(rows[0][4], b"A.q1.1")
+            self.assertEqual(_str_if_bytes(rows[0][4]), "A.q1.1")
             self.assertEqual(rows[1][4], 1)
 
             # expensed.0 is not selected hence False, .00 or 0 in SPSS
-            self.assertEqual(rows[0][5], b"A.q1.0")
+            self.assertEqual(_str_if_bytes(rows[0][5]), "A.q1.0")
             self.assertEqual(rows[1][5], 0)
 
-            self.assertEqual(rows[0][12], b"@_submission_time")
-            self.assertEqual(rows[1][12], b"2016-11-21 03:43:43")
+            self.assertEqual(_str_if_bytes(rows[0][12]), "@_submission_time")
+            self.assertEqual(_str_if_bytes(rows[1][12]), "2016-11-21 03:43:43")
 
         shutil.rmtree(temp_dir)
 
@@ -1165,10 +1172,10 @@ class TestExportBuilder(TestBase):
             rows = list(reader)
 
             # Check that columns are present
-            self.assertIn(b"Sport", rows[0])
+            self.assertIn("Sport", [_str_if_bytes(item) for item in rows[0]])
             # Check for sport in first 5 characters
             # because rows contains 'sport@d4b6'
-            self.assertIn(b"sport", [x[0:5] for x in rows[0]])
+            self.assertIn("sport", list(map(_str_if_bytes, [x[0:5] for x in rows[0]])))
 
     # pylint: disable=invalid-name
     def test_xlsx_export_works_with_unicode(self):
@@ -1267,12 +1274,14 @@ class TestExportBuilder(TestBase):
             media_files=[media_file],
         )
 
-        xdata = query_data(self.xform)
+        xdata = [datum for datum in query_data(self.xform)]
         survey = self.md_to_pyxform_survey(md, {"name": "exp"})
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xlsx_export(temp_xls_file, xdata)
+            export_builder.to_xlsx_export(
+                temp_xls_file, xdata, options={"host": "example.com"}
+            )
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file)
             children_sheet = workbook["exp"]
@@ -1884,7 +1893,7 @@ class TestExportBuilder(TestBase):
         survey_name = survey.name
         indices = {survey_name: 0}
         data = dict_to_joined_export(
-            submission_1, 1, indices, survey_name, survey, submission_1
+            submission_1, 1, indices, survey_name, survey, submission_1, None
         )
         new_row = export_builder.pre_process_row(
             data[survey_name], export_builder.sections[0]
@@ -1896,7 +1905,7 @@ class TestExportBuilder(TestBase):
         # check missing values dont break and empty values return blank strings
         indices = {survey_name: 0}
         data = dict_to_joined_export(
-            submission_2, 1, indices, survey_name, survey, submission_2
+            submission_2, 1, indices, survey_name, survey, submission_2, None
         )
         new_row = export_builder.pre_process_row(
             data[survey_name], export_builder.sections[0]
@@ -1962,7 +1971,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name, survey, d)
+                dict_to_joined_export(d, index, indices, survey_name, survey, d, None)
             )
             index += 1
 
@@ -2015,7 +2024,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name, survey, d)
+                dict_to_joined_export(d, index, indices, survey_name, survey, d, None)
             )
             index += 1
 
@@ -2049,6 +2058,56 @@ class TestExportBuilder(TestBase):
         for section in export_builder.sections:
             section_name = section["name"].replace("/", "_")
             _test_sav_file(section_name)
+
+    def test_export_zipped_zap_missing_en_label(self):
+        """Blank language label defaults to label for default language"""
+        survey = create_survey_from_xls(
+            _logger_fixture_path("childrens_survey_sw_missing_en_label.xlsx"),
+            default_name="childrens_survey_sw",
+        )
+        # default_language is set to swahili
+        self.assertEqual(survey.to_json_dict().get("default_language"), "swahili")
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        # export to be in english
+        export_builder.language = "english"
+        export_builder.set_survey(survey)
+
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            filename = temp_zip_file.name
+            export_builder.to_zipped_sav(filename, self.data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        # check that each file exists
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, f"{survey.name}.sav")))
+        checks = 0
+
+        for section in export_builder.sections:
+            section_name = section["name"]
+
+            if section_name == "childrens_survey_sw":
+                # Default swahili label is used incase english label is missing for question
+                result = filter(
+                    lambda question: question["label"] == "1. Jina lako ni?",
+                    section["elements"],
+                )
+                self.assertEqual(len(list(result)), 1)
+                checks += 1
+
+            if section_name == "children":
+                # Default swahili label is used incase english label is missing for choice
+                result = filter(
+                    lambda choice: choice["label"] == "fav_colors/Nyekundu",
+                    section["elements"],
+                )
+                self.assertEqual(len(list(result)), 1)
+                checks += 1
+
+        self.assertEqual(checks, 2)
 
     # pylint: disable=invalid-name
     def test_generate_field_title_truncated_titles(self):
@@ -2103,7 +2162,7 @@ class TestExportBuilder(TestBase):
         self.assertEqual(self.xform.instances.count(), 0)
         self._make_submission(_logger_fixture_path("gps_data.xml"))
         self.assertEqual(self.xform.instances.count(), 1)
-        records = self.xform.instances.all()
+        records = self.xform.instances.all().order_by("id")
         inst_json = records.first().json
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
             export_builder.to_xlsx_export(temp_xls_file.name, [inst_json])
@@ -2459,7 +2518,9 @@ class TestExportBuilder(TestBase):
         outputs = []
         for item in self.data:
             outputs.append(
-                dict_to_joined_export(item, index, indices, survey_name, survey, item)
+                dict_to_joined_export(
+                    item, index, indices, survey_name, survey, item, None
+                )
             )
             index += 1
 
@@ -2850,46 +2911,44 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "osm.sav"), returnHeader=True) as reader:
             rows = list(reader)
             expected_column_headers = [
-                x.encode("utf-8")
-                for x in [
-                    "photo",
-                    "osm_road",
-                    "osm_building",
-                    "fav_color",
-                    "form_completed",
-                    "meta.instanceID",
-                    "@_id",
-                    "@_uuid",
-                    "@_submission_time",
-                    "@_index",
-                    "@_parent_table_name",
-                    "@_review_comment",
-                    f"@{REVIEW_DATE}",
-                    "@_review_status",
-                    "@_parent_index",
-                    "@_tags",
-                    "@_notes",
-                    "@_version",
-                    "@_duration",
-                    "@_submitted_by",
-                    "osm_road_ctr_lat",
-                    "osm_road_ctr_lon",
-                    "osm_road_highway",
-                    "osm_road_lanes",
-                    "osm_road_name",
-                    "osm_road_way_id",
-                    "osm_building_building",
-                    "osm_building_building_levels",
-                    "osm_building_ctr_lat",
-                    "osm_building_ctr_lon",
-                    "osm_building_name",
-                    "osm_building_way_id",
-                ]
+                "photo",
+                "osm_road",
+                "osm_building",
+                "fav_color",
+                "form_completed",
+                "meta.instanceID",
+                "@_id",
+                "@_uuid",
+                "@_submission_time",
+                "@_index",
+                "@_parent_table_name",
+                "@_review_comment",
+                f"@{REVIEW_DATE}",
+                "@_review_status",
+                "@_parent_index",
+                "@_tags",
+                "@_notes",
+                "@_version",
+                "@_duration",
+                "@_submitted_by",
+                "osm_road_ctr_lat",
+                "osm_road_ctr_lon",
+                "osm_road_highway",
+                "osm_road_lanes",
+                "osm_road_name",
+                "osm_road_way_id",
+                "osm_building_building",
+                "osm_building_building_levels",
+                "osm_building_ctr_lat",
+                "osm_building_ctr_lon",
+                "osm_building_name",
+                "osm_building_way_id",
             ]
-            self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][29], b"Rejected")
-            self.assertEqual(rows[1][30], b"Wrong Location")
-            self.assertEqual(rows[1][31], b"2021-05-25T02:27:19")
+            actual_headers = list(map(_str_if_bytes, rows[0]))
+            self.assertEqual(sorted(actual_headers), sorted(expected_column_headers))
+            self.assertEqual(_str_if_bytes(rows[1][29]), "Rejected")
+            self.assertEqual(_str_if_bytes(rows[1][30]), "Wrong Location")
+            self.assertEqual(_str_if_bytes(rows[1][31]), "2021-05-25T02:27:19")
 
     # pylint: disable=invalid-name
     def test_zipped_csv_export_with_osm_data(self):
@@ -2987,46 +3046,45 @@ class TestExportBuilder(TestBase):
         with SavReader(os.path.join(temp_dir, "osm.sav"), returnHeader=True) as reader:
             rows = list(reader)
             expected_column_headers = [
-                x.encode("utf-8")
-                for x in [
-                    "photo",
-                    "osm_road",
-                    "osm_building",
-                    "fav_color",
-                    "form_completed",
-                    "meta.instanceID",
-                    "@_id",
-                    "@_uuid",
-                    "@_submission_time",
-                    "@_index",
-                    "@_parent_table_name",
-                    "@_parent_index",
-                    "@_tags",
-                    "@_notes",
-                    "@_version",
-                    "@_duration",
-                    "@_submitted_by",
-                    "osm_road_ctr_lat",
-                    "osm_road_ctr_lon",
-                    "osm_road_highway",
-                    "osm_road_lanes",
-                    "osm_road_name",
-                    "osm_road_way_id",
-                    "osm_building_building",
-                    "osm_building_building_levels",
-                    "osm_building_ctr_lat",
-                    "osm_building_ctr_lon",
-                    "osm_building_name",
-                    "osm_building_way_id",
-                ]
+                "photo",
+                "osm_road",
+                "osm_building",
+                "fav_color",
+                "form_completed",
+                "meta.instanceID",
+                "@_id",
+                "@_uuid",
+                "@_submission_time",
+                "@_index",
+                "@_parent_table_name",
+                "@_parent_index",
+                "@_tags",
+                "@_notes",
+                "@_version",
+                "@_duration",
+                "@_submitted_by",
+                "osm_road_ctr_lat",
+                "osm_road_ctr_lon",
+                "osm_road_highway",
+                "osm_road_lanes",
+                "osm_road_name",
+                "osm_road_way_id",
+                "osm_building_building",
+                "osm_building_building_levels",
+                "osm_building_ctr_lat",
+                "osm_building_ctr_lon",
+                "osm_building_name",
+                "osm_building_way_id",
             ]
+            rows[0] = list(map(_str_if_bytes, rows[0]))
+            rows[1] = list(map(_str_if_bytes, rows[1]))
             self.assertEqual(sorted(rows[0]), sorted(expected_column_headers))
-            self.assertEqual(rows[1][0], b"1424308569120.jpg")
-            self.assertEqual(rows[1][1], b"OSMWay234134797.osm")
-            self.assertEqual(rows[1][2], b"23.708174238006087")
-            self.assertEqual(rows[1][4], b"tertiary")
-            self.assertEqual(rows[1][6], b"Patuatuli Road")
-            self.assertEqual(rows[1][13], b"kol")
+            self.assertEqual(rows[1][0], "1424308569120.jpg")
+            self.assertEqual(rows[1][1], "OSMWay234134797.osm")
+            self.assertEqual(rows[1][2], "23.708174238006087")
+            self.assertEqual(rows[1][4], "tertiary")
+            self.assertEqual(rows[1][6], "Patuatuli Road")
+            self.assertEqual(rows[1][13], "kol")
 
     def test_show_choice_labels(self):
         """
@@ -3425,11 +3483,12 @@ class TestExportBuilder(TestBase):
         self._make_submission(_logger_fixture_path("gps_data.xml"))
         self.assertEqual(self.xform.instances.count(), 1)
         csv_export = NamedTemporaryFile(suffix=".csv")
-        records = self.xform.instances.all()
+        records = self.xform.instances.all().order_by("id")
         inst_json = records.first().json
+        csv_data = records.values_list("json", flat=True).iterator()
         export_builder.to_flat_csv_export(
             csv_export.name,
-            records,
+            csv_data,
             self.xform.user.username,
             self.xform.id_string,
             "",
@@ -3552,52 +3611,52 @@ class TestExportBuilder(TestBase):
 
         expected_data = [
             [
-                b"gps",
-                b"@_gps_latitude",
-                b"@_gps_longitude",
-                b"@_gps_altitude",
-                b"@_gps_precision",
-                b"gps@52a9",
-                b"@_gps_latitude_52a9",
-                b"@_gps_longitude_52a9",
-                b"@_gps_altitude_52a9",
-                b"@_gps_precision_52a9",
-                b"instanceID",
-                b"@_id",
-                b"@_uuid",
-                b"@_submission_time",
-                b"@_index",
-                b"@_parent_table_name",
-                b"@_parent_index",
-                b"@_tags",
-                b"@_notes",
-                b"@_version",
-                b"@_duration",
-                b"@_submitted_by",
+                "gps",
+                "@_gps_latitude",
+                "@_gps_longitude",
+                "@_gps_altitude",
+                "@_gps_precision",
+                "gps@52a9",
+                "@_gps_latitude_52a9",
+                "@_gps_longitude_52a9",
+                "@_gps_altitude_52a9",
+                "@_gps_precision_52a9",
+                "instanceID",
+                "@_id",
+                "@_uuid",
+                "@_submission_time",
+                "@_index",
+                "@_parent_table_name",
+                "@_parent_index",
+                "@_tags",
+                "@_notes",
+                "@_version",
+                "@_duration",
+                "@_submitted_by",
             ],
             [
-                b"4.0 36.1 5000 20",
+                "4.0 36.1 5000 20",
                 4.0,
                 36.1,
                 5000.0,
                 20.0,
-                b"1.0 36.1 2000 20",
+                "1.0 36.1 2000 20",
                 1.0,
                 36.1,
                 2000.0,
                 20.0,
-                b"",
+                "",
                 None,
-                b"",
-                b"2016-11-21 03:42:43",
+                "",
+                "2016-11-21 03:42:43",
                 1.0,
-                b"",
+                "",
                 -1.0,
-                b"",
-                b"",
-                b"",
-                b"",
-                b"",
+                "",
+                "",
+                "",
+                "",
+                "",
             ],
         ]
         with SavReader(
@@ -3605,5 +3664,7 @@ class TestExportBuilder(TestBase):
         ) as reader:
             rows = list(reader)
             self.assertEqual(len(rows), 2)
+            rows[0] = list(map(_str_if_bytes, rows[0]))
+            rows[1] = list(map(_str_if_bytes, rows[1]))
             self.assertEqual(expected_data, rows)
         shutil.rmtree(temp_dir)

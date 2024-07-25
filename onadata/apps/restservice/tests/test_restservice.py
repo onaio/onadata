@@ -4,18 +4,17 @@ Test RestService model
 """
 import os
 import time
+from unittest.mock import patch
 
 from django.test.utils import override_settings
 from django.urls import reverse
-
-from mock import patch
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import show
 from onadata.apps.restservice.models import RestService
-from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
+from onadata.apps.restservice.interface import RestServiceInterface
 from onadata.apps.restservice.services.textit import ServiceDefinition
 from onadata.apps.restservice.views import add_service, delete_service
 
@@ -35,7 +34,6 @@ class RestServiceTest(TestBase):
         self._publish_xls_file(path)
         self.xform = XForm.objects.all().reverse()[0]
 
-    # pylint: disable=no-self-use
     def wait(self, duration=1):
         """Sleep for 1 second or as defined by ``duration``."""
         time.sleep(duration)

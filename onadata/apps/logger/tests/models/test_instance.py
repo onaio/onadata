@@ -1,28 +1,40 @@
+# -*- coding: utf-8 -*-
+"""
+Test Instance model.
+"""
 import os
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 
 from django.http.request import HttpRequest
+from django.test import override_settings
 from django.utils.timezone import utc
-from django_digest.test import DigestAuth
-from mock import patch
 
-from onadata.apps.logger.models import XForm, Instance, SubmissionReview
+from django_digest.test import DigestAuth
+
+from onadata.apps.logger.models import (
+    Entity,
+    EntityList,
+    Instance,
+    RegistrationForm,
+    SubmissionReview,
+    XForm,
+)
 from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
 )
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance, query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance,
+    query_data,
+    query_fields_data,
+)
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
-from onadata.libs.utils.common_tags import (
-    MONGO_STRFTIME,
-    SUBMISSION_TIME,
-    XFORM_ID_STRING,
-    SUBMITTED_BY,
-)
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestInstance(TestBase):
@@ -31,25 +43,63 @@ class TestInstance(TestBase):
 
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
-        instances = Instance.objects.all()
+        instance = Instance.objects.first()
 
-        for instance in instances:
-            self.assertNotEqual(instance.json, {})
+        self.assertEqual(
+            instance.json,
+            {
+                "_id": instance.pk,
+                "_tags": [],
+                "_uuid": "5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_notes": [],
+                "image1": "1335783522563.jpg",
+                "_edited": False,
+                "_status": "submitted_via_web",
+                "_version": "2014111",
+                "_duration": "",
+                "_xform_id": instance.xform.pk,
+                "_attachments": [],
+                "_geolocation": [None, None],
+                "_media_count": 0,
+                "_total_media": 1,
+                "_submitted_by": "bob",
+                "_date_modified": instance.date_modified.isoformat(),
+                "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_submission_time": instance.date_created.isoformat(),
+                "_xform_id_string": "transportation_2011_07_25",
+                "_bamboo_dataset_id": "",
+                "_media_all_received": False,
+                "transport/available_transportation_types_to_referral_facility": "none",
+            },
+        )
 
-    @patch("django.utils.timezone.now")
-    def test_json_assigns_attributes(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
-        self._publish_transportation_form_and_submit_instance()
+    def test_updates_json_date_modified_on_save(self):
+        """_date_modified in `json` field is updated on save"""
+        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=utc)
 
-        xform_id_string = XForm.objects.all()[0].id_string
-        instances = Instance.objects.all()
+        with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
+            self._publish_transportation_form_and_submit_instance()
 
-        for instance in instances:
-            self.assertEqual(
-                instance.json[SUBMISSION_TIME],
-                mock_time.return_value.strftime(MONGO_STRFTIME),
-            )
-            self.assertEqual(instance.json[XFORM_ID_STRING], xform_id_string)
+        instance = Instance.objects.first()
+        self.assertEqual(instance.date_modified, old_mocked_now)
+        self.assertEqual(
+            instance.json.get("_date_modified"), old_mocked_now.isoformat()
+        )
+
+        # After saving the date_modified in json should update
+        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=utc)
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.date_modified, mocked_now)
+        self.assertEqual(instance.json.get("_date_modified"), mocked_now.isoformat())
+        # date_created, _submission_time is not altered
+        self.assertEqual(instance.date_created, old_mocked_now)
+        self.assertEqual(
+            instance.json.get("_submission_time"), old_mocked_now.isoformat()
+        )
 
     @patch("django.utils.timezone.now")
     def test_json_stores_user_attribute(self, mock_time):
@@ -82,16 +132,6 @@ class TestInstance(TestBase):
             # the _user key, which is what's used by the JSON REST service
             pi = ParsedInstance.objects.get(instance=instance)
             self.assertEqual(pi.to_dict_for_mongo()[SUBMITTED_BY], "bob")
-
-    def test_json_time_match_submission_time(self):
-        self._publish_transportation_form_and_submit_instance()
-        instances = Instance.objects.all()
-
-        for instance in instances:
-            self.assertEqual(
-                instance.json[SUBMISSION_TIME],
-                instance.date_created.strftime(MONGO_STRFTIME),
-            )
 
     def test_set_instances_with_geopoints_on_submission_false(self):
         self._publish_transportation_form()
@@ -190,7 +230,7 @@ class TestInstance(TestBase):
         # with fields
         data = [
             i.get("_id")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]'
             )
         ]
@@ -200,15 +240,14 @@ class TestInstance(TestBase):
         # mongo $gt
         data = [
             i.get("_id")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform, query='{"_id": {"$gt": %s}}' % (oldest), fields='["_id"]'
             )
         ]
         self.assertEqual(self.xform.instances.count(), 4)
         self.assertEqual(len(data), 3)
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_query_filter_by_datetime_field(self, mock_time):
+    def test_query_filter_by_datetime_field(self):
         self._publish_transportation_form()
         now = datetime(2014, 1, 1, tzinfo=utc)
         times = [
@@ -217,7 +256,6 @@ class TestInstance(TestBase):
             now + timedelta(seconds=2),
             now + timedelta(seconds=3),
         ]
-        mock_time.side_effect = times
         self._make_submissions()
 
         atime = None
@@ -231,7 +269,7 @@ class TestInstance(TestBase):
         # mongo $gt
         data = [
             i.get("_submission_time")
-            for i in query_data(
+            for i in query_fields_data(
                 self.xform,
                 query='{"_submission_time": {"$lt": "%s"}}' % (atime),
                 fields='["_submission_time"]',
@@ -350,3 +388,687 @@ class TestInstance(TestBase):
         string_value = "Hello World"
         result = numeric_checker(string_value)
         self.assertEqual(result, "Hello World")
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    @patch("onadata.apps.logger.models.instance.save_full_json_async.apply_async")
+    def test_light_tasks_synchronous(self, mock_json_async):
+        """Metadata from light tasks is always processed synchronously"""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.first()
+        mock_json_async.assert_called()
+        # _notes, _tags, _attachments should be missing since getting related
+        # objects is performance intensive and should be handled async. Here
+        # we mock the async task to simulate a failed async job
+        self.assertEqual(
+            instance.json,
+            {
+                "_id": instance.pk,
+                "_uuid": "5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "image1": "1335783522563.jpg",
+                "_edited": False,
+                "_status": "submitted_via_web",
+                "_version": "2014111",
+                "_duration": "",
+                "_xform_id": instance.xform.pk,
+                "_geolocation": [None, None],
+                "_media_count": 0,
+                "_total_media": 1,
+                "_submitted_by": "bob",
+                "_date_modified": instance.date_modified.isoformat(),
+                "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
+                "_submission_time": instance.date_created.isoformat(),
+                "_xform_id_string": "transportation_2011_07_25",
+                "_bamboo_dataset_id": "",
+                "_media_all_received": False,
+                "transport/available_transportation_types_to_referral_facility": "none",
+            },
+        )
+
+    def test_create_entity(self):
+        """An Entity is created from a submission"""
+        self.project = get_user_default_project(self.user)
+        xform = self._publish_registration_form(self.user)
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+        entity_list = EntityList.objects.get(name="trees")
+
+        self.assertEqual(entity.entity_list, entity_list)
+
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+            "label": "300cm purpleheart",
+        }
+
+        self.assertDictEqual(entity.json, expected_json)
+        self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
+        self.assertEqual(entity.history.count(), 1)
+
+        entity_history = entity.history.first()
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        self.assertEqual(entity_history.registration_form, registration_form)
+        self.assertEqual(entity_history.instance, instance)
+        self.assertEqual(entity_history.xml, instance.xml)
+        self.assertDictEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, xform.version)
+        self.assertEqual(entity_history.created_by, instance.user)
+
+    def test_create_entity_false(self):
+        """An Entity is not created if create_if evaluates to false"""
+        project = get_user_default_project(self.user)
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      | create_if                |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})| false()                  |                                            |"""
+        self._publish_markdown(
+            md,
+            self.user,
+            project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="false" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_create_entity_true(self):
+        """An Entity is created if create_if evaluates to true"""
+        project = get_user_default_project(self.user)
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      | create_if                |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})| true()                  |                                            |"""
+        self._publish_markdown(
+            md,
+            self.user,
+            project,
+            id_string="trees_registration",
+            title="Trees registration",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="true" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 1)
+
+    def test_registration_form_inactive(self):
+        """When the RegistrationForm is inactive, Entity should not be created"""
+        xform = self._publish_registration_form(self.user)
+        registration_form = xform.registration_forms.first()
+        # Deactivate registration form
+        registration_form.is_active = False
+        registration_form.save()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def _simulate_existing_entity(self):
+        if not hasattr(self, "project"):
+            self.project = get_user_default_project(self.user)
+
+        self.entity_list, _ = EntityList.objects.get_or_create(
+            name="trees", project=self.project
+        )
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+
+    def test_update_entity(self):
+        """An Entity is updated from a submission"""
+        self._simulate_existing_entity()
+        xform = self._publish_entity_update_form(self.user)
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        # Update XForm is a RegistrationForm
+        self.assertEqual(RegistrationForm.objects.filter(xform=xform).count(), 1)
+        # No new Entity created
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "300cm purpleheart",
+        }
+
+        self.assertDictEqual(entity.json, expected_json)
+
+        entity_history = entity.history.first()
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        self.assertEqual(entity_history.registration_form, registration_form)
+        self.assertEqual(entity_history.instance, instance)
+        self.assertEqual(entity_history.xml, xml)
+        self.assertDictEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, xform.version)
+        self.assertEqual(entity_history.created_by, instance.user)
+        # New property is part of EntityList properties
+        self.assertTrue("latest_visit" in entity.entity_list.properties)
+
+    def test_update_entity_label(self):
+        """An Entity label is updated from a submission"""
+        # Simulate existing Entity
+        self._simulate_existing_entity()
+        # Update Entity via submission
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | label                    |                                         |
+        |         | trees                          | ${tree}       | concat(${circumference}, "cm updated")|                            |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion="">'
+            "<label>30cm updated</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
+
+        self.entity.refresh_from_db()
+
+        self.assertEqual(
+            self.entity.json,
+            {
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "latest_visit": "2024-05-28",
+                "circumference_cm": 30,
+                "label": "30cm updated",
+            },
+        )
+
+    def test_update_entity_false(self):
+        """Entity not updated if update_if evaluates to false"""
+        # Simulate existing Entity
+        self._simulate_existing_entity()
+        # If expression evaluates to false, Entity should not be updated
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | update_if                |                                         |
+        |         | trees                          | ${tree}       | false()                  |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="false" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
+        expected_json = self.entity.json
+        self.entity.refresh_from_db()
+
+        self.assertEqual(self.entity.json, expected_json)
+
+    def test_update_entity_true(self):
+        """Entity updated if update_if evaluates to true"""
+        self._simulate_existing_entity()
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |
+        |         | date                           | today         | Today's date             | latest_visit                            |
+        | settings|                                |               |                          |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|
+        | entities| list_name                      | entity_id     | update_if                |                                         |
+        |         | trees                          | ${tree}       | true()                  |                                         |
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        updating_xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" '
+            'update="true" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=updating_xform)
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "300cm purpleheart",
+        }
+        self.entity.refresh_from_db()
+
+        self.assertDictEqual(self.entity.json, expected_json)
+
+    def test_entity_create_update_true(self):
+        """Both create_if and update_if evaluate to true"""
+        self.project = get_user_default_project(self.user)
+        md = """
+        | survey  |
+        |         | type                           | name          | label                    | save_to                                 |                                         |
+        |         | select_one_from_file trees.csv | tree          | Select the tree          |                                         |                                         |
+        |         | integer                        | circumference | Tree circumference in cm | circumference_cm                        |                                         |
+        |         | date                           | today         | Today's date             | latest_visit                            |                                         |
+        | settings|                                |               |                          |                                         |                                         |
+        |         | form_title                     | form _id      | version                  | instance_name                           |                                         |
+        |         | Trees update                   | trees_update  | 2024050801               | concat(${circumference}, "cm ", ${tree})|                                         |
+        | entities| list_name                      | entity_id     | update_if                | create_if                               | label                                   |
+        |         | trees                          | ${tree}       | true()                   | true()                                  | concat(${circumference}, "cm ", ${tree})|
+        """
+        self._publish_markdown(
+            md,
+            self.user,
+            self.project,
+            id_string="trees_update",
+            title="Trees update",
+        )
+        xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" '
+            'update="true" create="true" baseVersion="">'
+            "<label>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+
+        # If Entity, does not exist, we create one
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+        expected_json = {
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+        }
+        self.assertDictEqual(entity.json, expected_json)
+
+        # If Entity exists, we update
+        Instance.objects.all().delete()
+        Entity.objects.all().delete()
+        # Simulate existsing Entity
+        self._simulate_existing_entity()
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "30cm dbee4c32-a922-451c-9df7-42f40bf78f48",
+        }
+        self.entity.refresh_from_db()
+        # No new Entity should be created
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertDictEqual(self.entity.json, expected_json)
+
+    def test_update_entity_via_instance_update(self):
+        """Entity is updated if Instance from updating form is updated"""
+        self._simulate_existing_entity()
+        xform = self._publish_entity_update_form(self.user)
+        # Update Entity via Instance creation
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        entity = Entity.objects.first()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "300cm purpleheart",
+        }
+
+        self.assertDictEqual(entity.json, expected_json)
+        # Update Entity via Instance update
+        instance = Instance.objects.get(
+            pk=instance.pk
+        )  # Get anew from DB to update Instance._parser
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>32</circumference>"  # Update to 32
+            "<today>2024-06-19</today>"
+            "<meta>"
+            "<instanceID>uuid:fa6bcdce-e344-4dbd-9227-0f1cbdddb09c</instanceID>"
+            "<instanceName>32cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion="">'
+            "<label>32cm purpleheart</label>"
+            "</entity>"
+            "<deprecatedID>uuid:45d27780-48fd-4035-8655-9332649385bd</deprecatedID>"
+            "</meta>"
+            "</data>"
+        )
+        instance.xml = xml
+        instance.uuid = "fa6bcdce-e344-4dbd-9227-0f1cbdddb09c"
+        instance.save()
+        entity.refresh_from_db()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-06-19",
+            "circumference_cm": 32,
+            "label": "32cm purpleheart",
+        }
+        self.assertDictEqual(entity.json, expected_json)
+
+    def test_create_entity_exists(self):
+        """Attempting to create an Entity that already exists fails"""
+        self._simulate_existing_entity()
+        xform = self._publish_registration_form(self.user)
+        # Attempt to create an Entity whose uuid exists, with different data
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>wallaba</species>"
+            "<circumference>54</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>54cm wallaba</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>54cm wallaba</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        # No new Entity should be created
+        self.assertEqual(Entity.objects.count(), 1)
+        # Existing Entity unchanged
+        self.entity.refresh_from_db()
+        self.assertEqual(
+            self.entity.json,
+            {
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+        )
+
+    def test_parse_numbers(self):
+        """Integers and decimals are parsed correctly"""
+        md = """
+        | survey |
+        |        | type    | name        | label          |
+        |        | integer | num_integer | I am an integer|
+        |        | decimal | num_decimal | I am a decimal |
+        """
+        self._publish_markdown(md, self.user)
+        xform = XForm.objects.order_by("-pk").first()
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>4</num_integer>"
+            "<num_decimal>5.5</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:49d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.json["num_integer"], 4)
+        self.assertEqual(instance.json["num_decimal"], 5.5)
+
+        # Test 0
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>0</num_integer>"
+            "<num_decimal>0.0</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:59d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+        self.assertEqual(instance.json["num_integer"], 0)
+        self.assertEqual(instance.json["num_decimal"], 0.0)
+
+        #  Test negatives
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="just_numbers" version="202401291157">'
+            "<formhub>"
+            "<uuid>bd4278ad2fd8418fba5e6a822e2623e7</uuid>"
+            "</formhub>"
+            "<num_integer>-1</num_integer>"
+            "<num_decimal>-1.0</num_decimal>"
+            "<meta>"
+            "<instanceID>uuid:69d75027-405a-4e08-be71-db9a75c70fc2</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, xform=xform)
+        instance.refresh_from_db()
+        self.assertEqual(instance.json["num_integer"], -1)
+        self.assertEqual(instance.json["num_decimal"], -1.0)

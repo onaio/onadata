@@ -1,19 +1,27 @@
-from datetime import datetime, timedelta
-from django.utils.timezone import utc
+# -*- coding: utf-8 -*-
+"""
+Test onadata.libs.data.query module
+"""
 import os
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
-from mock import patch
+from django.utils.timezone import utc
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.data.query import (
-    get_form_submissions_grouped_by_field,
     get_date_fields,
     get_field_records,
+    get_form_submissions_grouped_by_field,
 )
 
 
 class TestTools(TestBase):
+    """
+    Test onadata.libs.data.query module
+    """
+
     def setUp(self):
         super().setUp()
         self._create_user_and_login()
@@ -35,8 +43,10 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(list(result)))
             self.assertEqual(result[count_key], count)
 
-    @patch("onadata.apps.logger.models.instance.submission_time")
-    def test_get_form_submissions_grouped_by_field_datetime_to_date(self, mock_time):
+    def test_get_form_submissions_grouped_by_field_datetime(
+        self,
+    ):  # pylint: disable=invalid-name
+        """Test get_form_submissions_grouped_by_field datetime"""
         now = datetime(2014, 1, 1, tzinfo=utc)
         times = [
             now,
@@ -44,12 +54,12 @@ class TestTools(TestBase):
             now + timedelta(seconds=2),
             now + timedelta(seconds=3),
         ]
-        mock_time.side_effect = times
         self._make_submissions()
 
         for i in self.xform.instances.all().order_by("-pk"):
             i.date_created = times.pop()
             i.save()
+
         count_key = "count"
         fields = ["_submission_time"]
 

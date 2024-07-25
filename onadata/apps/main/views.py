@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
+from django.db import connections
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -62,7 +63,14 @@ from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
-from onadata.apps.viewer.models.parsed_instance import DATETIME_FORMAT, query_data
+from onadata.apps.viewer.models.parsed_instance import (
+    DATETIME_FORMAT,
+    query_data,
+    query_fields_data,
+    query_count,
+    ParsedInstance,
+    _get_sort_fields,
+)
 from onadata.apps.viewer.views import attachment_url
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
@@ -85,6 +93,7 @@ from onadata.libs.utils.user_auth import (
     set_profile_data,
 )
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form
+import onadata
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -186,7 +195,7 @@ def clone_xlsform(request, username):
 
     context = {"message": message, "message_list": message_list}
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         res = (
             loader.render_to_string("message.html", context=context, request=request)
             .replace("'", r"\'")
@@ -571,7 +580,6 @@ def api(request, username=None, id_string=None):  # noqa C901
         return HttpResponseForbidden(_("Not shared."))
 
     query = request.GET.get("query")
-    total_records = xform.num_of_submissions
 
     try:
         args = {
@@ -592,15 +600,7 @@ def api(request, username=None, id_string=None):  # noqa C901
 
             start_index = (page - 1) * page_size
             args["start_index"] = start_index
-
             args["limit"] = page_size
-
-        if query:
-            count_args = args.copy()
-            count_args["count"] = True
-            count_results = list(query_data(**count_args))
-            if count_results:
-                total_records = count_results[0].get("count", total_records)
 
         if "start" in request.GET:
             args["start_index"] = int(request.GET.get("start"))
@@ -608,20 +608,38 @@ def api(request, username=None, id_string=None):  # noqa C901
         if "limit" in request.GET:
             args["limit"] = int(request.GET.get("limit"))
 
-        if "count" in request.GET:
-            args["count"] = int(request.GET.get("count")) > 0
+        if "count" in request.GET and int(request.GET.get("count")) > 0:
+            count = query_count(xform, query)
+            cursor = [{"count": count}]
 
-        cursor = query_data(**args)
+        else:
+            has_json_fields = False
+
+            if args.get("sort"):
+                sort_fields = _get_sort_fields(args.get("sort"))
+                # pylint: disable=protected-access
+                has_json_fields = ParsedInstance._has_json_fields(sort_fields)
+
+            should_query_json_fields = bool(args.get("fields")) or has_json_fields
+
+            if should_query_json_fields:
+                cursor = list(query_fields_data(**args))
+
+            else:
+                args.pop("fields")
+                # pylint: disable=unexpected-keyword-arg
+                cursor = list(query_data(**args))
+
     except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(conditional_escape(str(e)))
 
     if "callback" in request.GET and request.GET.get("callback") != "":
         callback = request.GET.get("callback")
-        response_text = json_util.dumps(list(cursor))
+        response_text = json_util.dumps(cursor)
         response_text = f"{callback}({response_text})"
         response = HttpResponse(response_text)
     else:
-        response = JsonResponse(list(cursor), safe=False)
+        response = JsonResponse(cursor, safe=False)
 
     add_cors_headers(response)
 
@@ -1015,7 +1033,7 @@ def edit(request, username, id_string):  # noqa C901
 
         xform.update()
 
-        if request.is_ajax():
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return HttpResponse(_("Updated succeeded."))
         return HttpResponseRedirect(
             reverse(show, kwargs={"username": username, "id_string": id_string})
@@ -1427,7 +1445,7 @@ def set_perm(request, username, id_string):  # noqa C901
             request,
         )
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"status": "success"})
 
     return HttpResponseRedirect(
@@ -1570,8 +1588,6 @@ def activity_api(request, username):
             query_args["start"] = int(request.GET.get("start"))
         if "limit" in request.GET:
             query_args["limit"] = int(request.GET.get("limit"))
-        if "count" in request.GET:
-            query_args["count"] = int(request.GET.get("count")) > 0
         cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(str(e))
@@ -1656,7 +1672,13 @@ def service_health(request):
     for database in getattr(settings, "DATABASES").keys():
         # pylint: disable=broad-except
         try:
-            XForm.objects.using(database).first()
+            with connections[database].cursor() as cursor:
+                fetch_first_xform_sql = (
+                    getattr(settings, "CHECK_DB_SQL_STATEMENT", None)
+                    or "SELECT id FROM logger_xform limit 1;"
+                )
+                cursor.execute(fetch_first_xform_sql)
+                cursor.fetchall()
         except Exception as e:
             service_statuses[f"{database}-Database"] = f"Degraded state; {e}"
             service_degraded = True
@@ -1672,6 +1694,11 @@ def service_health(request):
         service_statuses["Cache-Service"] = f"Degraded state; {e}"
     else:
         service_statuses["Cache-Service"] = "OK"
+
+    if onadata.__version__:
+        service_statuses["onadata-version"] = onadata.__version__
+    else:
+        service_statuses["onadata-version"] = "Unable to find onadata version"
 
     return JsonResponse(
         service_statuses,
@@ -1696,7 +1723,6 @@ def username_list(request):
 
 # pylint: disable=too-few-public-methods
 class OnaAuthorizationView(AuthorizationView):
-
     """
     Overrides the AuthorizationView provided by oauth2_provider
     and adds the user to the context

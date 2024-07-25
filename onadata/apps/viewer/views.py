@@ -24,10 +24,10 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-import pytz
 import requests
 from dict2xml import dict2xml
 from dpath import util as dpath_util
@@ -56,7 +56,7 @@ from onadata.libs.utils.export_tools import (
     str_to_bool,
 )
 from onadata.libs.utils.google import create_flow
-from onadata.libs.utils.image_tools import image_url
+from onadata.libs.utils.image_tools import generate_media_download_url, image_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
@@ -82,12 +82,12 @@ def _get_start_end_submission_time(request):
     end = None
     try:
         if request.GET.get("start"):
-            start = pytz.timezone("UTC").localize(
-                datetime.strptime(request.GET["start"], "%y_%m_%d_%H_%M_%S")
-            )
+            start = datetime.strptime(
+                request.GET["start"], "%y_%m_%d_%H_%M_%S"
+            ).replace(tzinfo=timezone.utc)
         if request.GET.get("end"):
-            end = pytz.timezone("UTC").localize(
-                datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S")
+            end = datetime.strptime(request.GET["end"], "%y_%m_%d_%H_%M_%S").replace(
+                tzinfo=timezone.utc
             )
     except ValueError:
         return HttpResponseBadRequest(
@@ -313,7 +313,12 @@ def data_export(request, username, id_string, export_type):  # noqa C901
 
     audit = {"xform": xform.id_string, "export_type": export_type}
 
-    options = {"extension": extension, "username": username, "id_string": id_string}
+    options = {
+        "extension": extension,
+        "username": username,
+        "id_string": id_string,
+        "host": request.get_host(),
+    }
     if query:
         options["query"] = query
 
@@ -400,7 +405,6 @@ def create_export(request, username, id_string, export_type):
 
     credential = None
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
-
         credential = _get_google_credential(request)
         if isinstance(credential, HttpResponseRedirect):
             return credential
@@ -435,6 +439,7 @@ def create_export(request, username, id_string, export_type):
         "remove_group_name": str_to_bool(remove_group_name),
         "meta": meta.replace(",", "") if meta else None,
         "google_credentials": credential,
+        "host": request.get_host(),
     }
 
     try:
@@ -510,6 +515,7 @@ def export_list(request, username, id_string, export_type):  # noqa C901
         "meta": export_meta,
         "token": export_token,
         "google_credentials": credential,
+        "host": request.get_host(),
     }
 
     if should_create_new_export(xform, export_type, options):
@@ -866,13 +872,17 @@ def attachment_url(request, size="medium"):
     """
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
-    if not media_file:
-        return HttpResponseNotFound(_("Attachment not found"))
+    attachment_id = request.GET.get("attachment_id")
 
-    result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
-    if not result:
+    if not media_file and not attachment_id:
         return HttpResponseNotFound(_("Attachment not found"))
-    attachment = result[0]
+    if attachment_id:
+        attachment = get_object_or_404(Attachment, pk=attachment_id)
+    else:
+        result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
+        if not result:
+            return HttpResponseNotFound(_("Attachment not found"))
+        attachment = result[0]
 
     if size == "original" and no_redirect == "true":
         response = response_with_mimetype_and_name(
@@ -884,7 +894,7 @@ def attachment_url(request, size="medium"):
 
         return response
     if not attachment.mimetype.startswith("image"):
-        return redirect(attachment.media_file.url)
+        return generate_media_download_url(attachment)
     media_url = image_url(attachment, size)
     if media_url:
         return redirect(media_url)
@@ -961,7 +971,7 @@ def charts(request, username, id_string):
 
     summaries = build_chart_data(xform, lang_index, page)
 
-    if request.is_ajax():
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         template = "charts_snippet.html"
     else:
         template = "charts.html"

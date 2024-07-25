@@ -24,24 +24,23 @@ class Command(BaseCommand):
         """Create a zip backup of a form and all its submissions."""
         try:
             output_file = args[0]
-        except IndexError as e:
+        except IndexError as error:
             raise CommandError(
                 _("Provide the path to the zip file to backup to")
-            ) from e
-        else:
-            output_file = os.path.realpath(output_file)
+            ) from error
+        output_file = os.path.realpath(output_file)
 
         try:
             username = args[1]
-        except IndexError as e:
+        except IndexError as error:
             raise CommandError(
                 _("You must provide the username to publish the form to.")
-            ) from e
+            ) from error
         # make sure user exists
         try:
             user = get_user_model().objects.get(username=username)
-        except get_user_model().DoesNotExist as e:
-            raise CommandError(_(f"The user '{username}' does not exist.")) from e
+        except get_user_model().DoesNotExist as error:
+            raise CommandError(_(f"The user '{username}' does not exist.")) from error
 
         try:
             id_string = args[2]
@@ -51,8 +50,8 @@ class Command(BaseCommand):
             # make sure xform exists
             try:
                 xform = XForm.objects.get(user=user, id_string=id_string)
-            except XForm.DoesNotExist as e:
+            except XForm.DoesNotExist as error:
                 raise CommandError(
                     _(f"The id_string '{id_string}' does not exist.")
-                ) from e
+                ) from error
         create_zip_backup(output_file, user, xform)

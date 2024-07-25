@@ -10,7 +10,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 
 
-class ObjectLookupMixin:
+class ObjectLookupMixin:  # pylint: disable=too-few-public-methods
     """
     Implements ObjectLookupMixin class
 

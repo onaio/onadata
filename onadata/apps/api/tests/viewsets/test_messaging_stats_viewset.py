@@ -1,8 +1,9 @@
 """
 Module containing test for the MessagingStatsViewset (api/v1/stats/messaging)
 """
+
 import json
-from datetime import date
+from datetime import datetime, timezone
 
 from django.test import RequestFactory
 from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
@@ -34,7 +35,7 @@ class TestMessagingStatsViewSet(TestBase):
                 "target_type": "xform",
                 "target_id": self.xform.id,
                 "group_by": "day",
-                "timestamp__day": date.today().day,
+                "timestamp__day": datetime.now().day,  # .astimezone(timezone.utc).day,
             },
             **self.extra,
         )
@@ -49,7 +50,7 @@ class TestMessagingStatsViewSet(TestBase):
             returned_data,
             [
                 {
-                    "group": str(date.today()),
+                    "group": str(datetime.now().astimezone(timezone.utc).date()),
                     "submission_created": self.xform.instances.count(),
                 }
             ],
@@ -61,7 +62,7 @@ class TestMessagingStatsViewSet(TestBase):
                 "target_type": "xform",
                 "target_id": self.xform.id,
                 "group_by": "day",
-                "timestamp__day": date.today().day + 1,
+                "timestamp__day": datetime.now().astimezone(timezone.utc).day + 1,
             },
             **self.extra,
         )
@@ -98,7 +99,7 @@ class TestMessagingStatsViewSet(TestBase):
             returned_data,
             [
                 {
-                    "group": str(date.today()),
+                    "group": str(datetime.now().astimezone(timezone.utc).date()),
                     "submission_created": self.xform.instances.count(),
                 }
             ],
@@ -153,7 +154,7 @@ class TestMessagingStatsViewSet(TestBase):
             returned_data,
             [
                 {
-                    "group": str(date.today()),
+                    "group": str(datetime.now().astimezone(timezone.utc).date()),
                     "submission_created": self.xform.instances.count(),
                 }
             ],

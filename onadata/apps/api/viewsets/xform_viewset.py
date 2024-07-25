@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 The /forms API endpoint.
 """
@@ -25,7 +26,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext as _
-from django.views.decorators.cache import never_cache
 
 import six
 from django_filters.rest_framework import DjangoFilterBackend
@@ -85,6 +85,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormVersionListSerializer,
 )
 from onadata.libs.utils.api_export_tools import (
+    _get_export_type,
     custom_response_handler,
     get_async_response,
     get_existing_file_format,
@@ -108,14 +109,6 @@ from onadata.libs.utils.viewer_tools import (
     get_form_url,
 )
 from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
-
-ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
-ENKETO_META_UID_COOKIE = getattr(
-    settings, "ENKETO_META_UID_COOKIE", "__enketo_meta_uid"
-)
-ENKETO_META_USERNAME_COOKIE = getattr(
-    settings, "ENKETO_META_USERNAME_COOKIE", "__enketo_meta_username"
-)
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -196,29 +189,6 @@ def get_survey_xml(csv_name):
     return survey.to_xml()
 
 
-def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
-    """Set signed cookies for JWT token in the HTTPResponse resp object."""
-    if not username and not json_web_token:
-        return None
-
-    max_age = 30 * 24 * 60 * 60 * 1000
-    enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
-    enketo = {"secure": False, "salt": settings.ENKETO_API_SALT}
-
-    # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
-    # i.e. don't add in development environment because cookie automatically
-    # assigns 'localhost' as domain
-    if getattr(settings, "ENKETO_AUTH_COOKIE_DOMAIN", None):
-        enketo_meta_uid["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
-        enketo["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
-
-    resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
-    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_uid)
-    resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
-
-    return resp
-
-
 def parse_webform_return_url(return_url, request):
     """
     Given a webform url and request containing authentication information
@@ -261,7 +231,7 @@ def parse_webform_return_url(return_url, request):
         else:
             username = request.user.username
 
-        response_redirect = set_enketo_signed_cookies(
+        response_redirect = utils.set_enketo_signed_cookies(
             response_redirect, username=username, json_web_token=jwt_param
         )
 
@@ -359,7 +329,7 @@ class XFormViewSet(
         filters.XFormOwnerFilter,
         DjangoFilterBackend,
     )
-    filter_fields = ("instances_with_osm",)
+    filterset_fields = ("instances_with_osm",)
 
     public_forms_endpoint = "public"
 
@@ -459,7 +429,6 @@ class XFormViewSet(
         return Response(data=resp, status=resp_code, headers=headers)
 
     @action(methods=["GET", "HEAD"], detail=True)
-    @never_cache
     def form(self, request, **kwargs):
         """Returns the XLSForm in any of JSON, XML, XLS(X), CSV formats."""
         form = self.get_object()
@@ -491,8 +460,18 @@ class XFormViewSet(
             if redirect:
                 return redirect
 
+            # get value of login URL based on host
+            host = request.get_host()
+            enketo_client_login_url_setting = settings.ENKETO_CLIENT_LOGIN_URL or {}
+            enketo_client_login_url = (
+                host in enketo_client_login_url_setting
+                and enketo_client_login_url_setting[host]
+            ) or (
+                "*" in enketo_client_login_url_setting
+                and enketo_client_login_url_setting["*"]
+            )
             login_vars = {
-                "login_url": settings.ENKETO_CLIENT_LOGIN_URL,
+                "login_url": enketo_client_login_url,
                 "return_url": urlencode({"return_url": return_url}),
             }
             client_login = "{login_url}?{return_url}".format(**login_vars)
@@ -600,7 +579,7 @@ class XFormViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
 
-            page = self.paginate_queryset(self.object_list)
+            page = self.paginate_queryset(self.object_list.order_by("pk"))
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
             else:
@@ -618,7 +597,14 @@ class XFormViewSet(
             # perform default viewset retrieve, no data export
             return super().retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request, xform, query, export_type, token, meta)
+        return custom_response_handler(
+            request,
+            xform,
+            query,
+            export_type,
+            token,
+            meta,
+        )
 
     @action(methods=["POST"], detail=True)
     def share(self, request, *args, **kwargs):
@@ -749,8 +735,9 @@ class XFormViewSet(
                     )
                 else:
                     csv_file.seek(0)
+                    file_name = getattr(csv_file, "name", xls_file and xls_file.name)
                     upload_to = os.path.join(
-                        request.user.username, "csv_imports", csv_file.name
+                        request.user.username, "csv_imports", file_name
                     )
                     file_name = default_storage.save(upload_to, csv_file)
                     task = submit_csv_async.delay(
@@ -762,9 +749,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     @action(methods=["POST", "GET"], detail=True)
@@ -832,9 +821,11 @@ class XFormViewSet(
 
         return Response(
             data=resp,
-            status=status.HTTP_200_OK
-            if resp.get("error") is None
-            else status.HTTP_400_BAD_REQUEST,
+            status=(
+                status.HTTP_200_OK
+                if resp.get("error") is None
+                else status.HTTP_400_BAD_REQUEST
+            ),
         )
 
     def partial_update(self, request, *args, **kwargs):
@@ -953,27 +944,24 @@ class XFormViewSet(
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):
         """Returns the status of an async export."""
-        job_uuid = request.query_params.get("job_uuid")
-        export_type = request.query_params.get("format")
-        query = request.query_params.get("query")
         xform = self.get_object()
+        export_type = request.query_params.get("format")
 
-        token = request.query_params.get("token")
-        meta = request.query_params.get("meta")
-        data_id = request.query_params.get("data_id")
-        options = parse_request_export_options(request.query_params)
+        if export_type:
+            try:
+                _get_export_type(export_type)
 
-        options.update(
-            {
-                "meta": meta,
-                "token": token,
-                "data_id": data_id,
-            }
-        )
-        if query:
-            options.update({"query": query})
+            except exceptions.ParseError:
+                payload = {"details": _("Export format not supported")}
+                return Response(
+                    data=payload,
+                    status=status.HTTP_403_FORBIDDEN,
+                    content_type="application/json",
+                )
 
-        if request.query_params.get("format") in ["csvzip", "savzip"]:
+        job_uuid = request.query_params.get("job_uuid")
+
+        if export_type in ["csvzip", "savzip"]:
             # Overide renderer and mediatype because all response are
             # suppose to be in json
             # TODO: Avoid overiding the format query param for export type
@@ -992,6 +980,23 @@ class XFormViewSet(
                 except NameError:
                     resp = get_async_response(job_uuid, request, xform)
         else:
+            query = request.query_params.get("query")
+            token = request.query_params.get("token")
+            meta = request.query_params.get("meta")
+            data_id = request.query_params.get("data_id")
+            options = parse_request_export_options(request.query_params)
+            options["host"] = request.get_host()
+            options.update(
+                {
+                    "meta": meta,
+                    "token": token,
+                    "data_id": data_id,
+                }
+            )
+
+            if query:
+                options.update({"query": query})
+
             resp = process_async_export(request, xform, export_type, options)
 
             if isinstance(resp, HttpResponseRedirect):
@@ -1014,7 +1019,9 @@ class XFormViewSet(
         )
 
         return Response(
-            data=resp, status=status.HTTP_202_ACCEPTED, content_type="application/json"
+            data=resp,
+            status=status.HTTP_202_ACCEPTED,
+            content_type="application/json",
         )
 
     def _get_streaming_response(self):

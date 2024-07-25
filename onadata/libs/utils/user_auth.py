@@ -34,7 +34,7 @@ class HttpResponseNotAuthorized(HttpResponse):
 
     status_code = 401
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         HttpResponse.__init__(self)
         self["WWW-Authenticate"] = f'Basic realm="{Site.objects.get_current().name}"'
 
@@ -87,14 +87,14 @@ def has_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         shared
-        or xform.shared_data
-        or (
+        or xform.shared_data  # noqa W503
+        or (  # noqa W503
             hasattr(request, "session")
-            and request.session.get("public_link") == xform.uuid
+            and request.session.get("public_link") == xform.uuid  # noqa W503
         )
-        or owner == user
-        or user.has_perm("logger.view_xform", xform)
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.view_xform", xform)  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 
@@ -103,8 +103,8 @@ def has_edit_permission(xform, owner, request, shared=False):
     user = request.user
     return (
         (shared and xform.shared_data)
-        or owner == user
-        or user.has_perm("logger.change_xform", xform)
+        or owner == user  # noqa W503
+        or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
 
 
@@ -212,9 +212,9 @@ def add_cors_headers(response):
     """Add CORS headers to the HttpResponse ``response`` instance."""
     response["Access-Control-Allow-Origin"] = "*"
     response["Access-Control-Allow-Methods"] = "GET"
-    response[
-        "Access-Control-Allow-Headers"
-    ] = "Accept, Origin, X-Requested-With, Authorization"
+    response["Access-Control-Allow-Headers"] = (
+        "Accept, Origin, X-Requested-With, Authorization"
+    )
     response["Content-Type"] = "application/json"
 
     return response

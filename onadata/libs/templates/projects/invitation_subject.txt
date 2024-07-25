@@ -1,0 +1,1 @@
+{% load i18n %}{% blocktranslate %}Invitation to Join a Project on {{deployment_name}}{% endblocktranslate %}

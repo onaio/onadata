@@ -32,4 +32,4 @@ def get_gravatar_img_link(user):
 def gravatar_exists(user):
     """Checks if the Gravatar URL exists"""
     url = GRAVATAR_ENDPOINT + email_md5(user) + "?" + "d=404"
-    return requests.get(url).status_code != 404
+    return requests.get(url, timeout=20).status_code != 404

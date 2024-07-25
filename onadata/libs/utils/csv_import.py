@@ -129,7 +129,7 @@ def dict_merge(part_a, part_b):
     if not isinstance(part_b, dict):
         return part_b
     result = deepcopy(part_a)
-    for (k, v) in iteritems(part_b):
+    for k, v in iteritems(part_b):
         if k in result and isinstance(result[k], dict):
             result[k] = dict_merge(result[k], v)
         else:
@@ -287,7 +287,7 @@ def flatten_split_select_multiples(
     for key, value in row.items():
         if key in select_multiples and isinstance(value, dict):
             picked_choices = [
-                k for k, v in value.items() if v in ["1", "TRUE"] or v == k
+                k for k, v in value.items() if v.upper() in ["1", "TRUE"] or v == k
             ]
             new_value = " ".join(picked_choices)
             row.update({key: new_value})
@@ -295,6 +295,18 @@ def flatten_split_select_multiples(
             # Handle cases where select_multiples are within a group
             new_value = flatten_split_select_multiples(value, select_multiples)
             row.update({key: new_value})
+        elif isinstance(value, list):
+            # Handle case where we have repeat questions
+            new_value = []
+
+            for repeat_question in value:
+                flattened_question = flatten_split_select_multiples(
+                    repeat_question, select_multiples
+                )
+                new_value.append(flattened_question)
+
+            row.update({key: new_value})
+
     return row
 
 
@@ -628,16 +640,16 @@ def submission_xls_to_csv(xls_file):  # noqa
         # convert excel dates(floats) to datetime
         for date_column_index in date_columns:
             try:
-                row_values[date_column_index] = (
-                    row_values[date_column_index].strftime("%Y-%m-%d").isoformat()
-                )
+                row_values[date_column_index - 1] = row_values[
+                    date_column_index - 1
+                ].isoformat()
             except (ValueError, TypeError):
                 pass
 
         # convert excel boolean to true/false
         for boolean_column_index in boolean_columns:
-            row_values[boolean_column_index] = bool(
-                row_values[boolean_column_index] == EXCEL_TRUE
+            row_values[boolean_column_index - 1] = bool(
+                row_values[boolean_column_index - 1] == EXCEL_TRUE
             )
 
         csv_writer.writerow(row_values)

@@ -8,9 +8,8 @@ import re
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.sites.models import Site
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -20,9 +19,13 @@ import six
 from django_digest.backend.db import update_partial_digests
 from registration.models import RegistrationProfile
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
-from onadata.apps.api.tasks import send_verification_email
+from onadata.apps.api.tools import get_host_domain
+from onadata.apps.api.tasks import (
+    send_verification_email,
+)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
@@ -30,7 +33,10 @@ from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+)
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -175,8 +181,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             request = self.context.get("request")
             if (
                 isinstance(self.instance, QuerySet)
-                or (request and request.user != self.instance.user)
-                or not request
+                or (request and request.user != self.instance.user)  # noqa W503
+                or not request  # noqa W503
             ):
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
@@ -206,9 +212,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if (
             "email" in ret
-            and request is None
-            or request.user
-            and not request.user.has_perm(CAN_VIEW_PROFILE, instance)
+            and request is None  # noqa W503
+            or request.user  # noqa W503
+            and not request.user.has_perm(CAN_VIEW_PROFILE, instance)  # noqa W503
         ):
             del ret["email"]
 
@@ -266,36 +272,37 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
         metadata = {}
         username = params.get("username")
-        site = Site.objects.get(pk=settings.SITE_ID)
+        password = params.get("password1", "")
+        site = get_host_domain(request)
         new_user = None
+
         try:
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
-                password=params.get("password1"),
+                password=password,
                 email=params.get("email"),
                 site=site,
                 send_email=settings.SEND_EMAIL_ACTIVATION_API,
             )
-            validate_password(params.get("password1"), user=new_user)
         except IntegrityError as e:
             raise serializers.ValidationError(
                 _(f"User account {username} already exists")
             ) from e
+
+        try:
+            validate_password(password, user=new_user)
+
         except ValidationError as e:
             # Delete created user object if created
             # to allow re-registration
             if new_user:
                 new_user.delete()
             raise serializers.ValidationError({"password": e.messages})
+
         new_user.is_active = True
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
         new_user.save()
-
-        if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
-            redirect_url = params.get("redirect_url")
-            _send_verification_email(redirect_url, new_user, request)
-
         created_by = request.user
         created_by = None if created_by.is_anonymous else created_by
         metadata["last_password_edit"] = timezone.now().isoformat()
@@ -311,6 +318,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata,
         )
         profile.save()
+
+        if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
+            redirect_url = params.get("redirect_url")
+            _send_verification_email(redirect_url, new_user, request)
 
         return profile
 
@@ -377,8 +388,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         params = _get_registration_params(attrs)
         if (
             not self.instance
-            and params.get("name") is None
-            and params.get("first_name") is None
+            and params.get("name") is None  # noqa W503
+            and params.get("first_name") is None  # noqa W503
         ):
             raise serializers.ValidationError(
                 {"name": _("Either name or first_name should be provided")}
@@ -428,7 +439,11 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         """
         Returns user's API Token.
         """
-        return obj.user.auth_token.key
+        try:
+            token = obj.user.auth_token
+        except ObjectDoesNotExist:
+            token = Token.objects.create(user=obj.user)
+        return token.key
 
     def get_temp_token(self, obj):
         """

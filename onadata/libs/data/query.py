@@ -80,7 +80,7 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_vi
         "count(*) as count "
         "FROM %(table)s WHERE "
         + restricted_string
-        + "AND deleted_at IS NULL "
+        + " AND deleted_at IS NULL "
         + additional_filters
         + " GROUP BY %(json)s, %(group_by)s"
         + " ORDER BY %(json)s, %(group_by)s"
@@ -210,9 +210,9 @@ def _query_args(field, name, xform, group_by=None):
         qargs["restrict_value"] = xforms
 
     if isinstance(group_by, list):
-        for i, v in enumerate(group_by):
-            qargs[f"group_name{i}"] = v
-            qargs[f"group_by{i}"] = _json_query(v)
+        for index, value in enumerate(group_by):
+            qargs[f"group_name{index}"] = value
+            qargs[f"group_by{index}"] = _json_query(value)
     else:
         qargs["group_name"] = group_by
         qargs["group_by"] = _json_query(group_by)
@@ -222,11 +222,9 @@ def _query_args(field, name, xform, group_by=None):
 
 def _select_key(field, name, xform):
     if using_postgres():
-        result = _postgres_select_key(field, name, xform)
-    else:
-        raise Exception("Unsupported Database")
+        return _postgres_select_key(field, name, xform)
 
-    return result
+    raise ValueError("Unsupported Database")
 
 
 def flatten(lst):

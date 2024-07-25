@@ -233,9 +233,6 @@ def build_chart_data_for_field(  # noqa C901
     if isinstance(field, str):
         field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
     else:
-        # TODO: merge choices with results and set 0's on any missing fields,
-        # i.e. they didn't have responses
-
         field_label = get_field_label(field, language_index)
         field_xpath = field.get_abbreviated_xpath()
         field_type = field.type
@@ -400,8 +397,8 @@ def build_chart_data_from_widget(widget, language_index=0):
         choices = choices.get(field_name)
     try:
         data = build_chart_data_for_field(xform, field, language_index, choices=choices)
-    except DataError as e:
-        raise ParseError(str(e)) from e
+    except DataError as error:
+        raise ParseError(str(error)) from error
 
     return data
 
@@ -477,16 +474,15 @@ def get_chart_data_for_field(  # noqa C901
         data = build_chart_data_for_field(
             xform, field, choices=choices, group_by=group_by, data_view=data_view
         )
-    except DataError as e:
-        raise ParseError(str(e)) from e
-    else:
-        if accepted_format == "json" or not accepted_format:
-            xform = xform.pk
-        elif accepted_format == "html" and "data" in data:
-            for item in data["data"]:
-                if isinstance(item[field_name], list):
-                    item[field_name] = ", ".join(item[field_name])
+    except DataError as error:
+        raise ParseError(str(error)) from error
+    if accepted_format == "json" or not accepted_format:
+        xform = xform.pk
+    elif accepted_format == "html" and "data" in data:
+        for item in data["data"]:
+            if isinstance(item[field_name], list):
+                item[field_name] = ", ".join(item[field_name])
 
-        data.update({"xform": xform})
+    data.update({"xform": xform})
 
     return data

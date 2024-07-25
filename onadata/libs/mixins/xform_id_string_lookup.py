@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import get_object_or_404
 
 
-class XFormIdStringLookupMixin:
+class XFormIdStringLookupMixin:  # pylint: disable=too-few-public-methods
     """
     XForm id_strng lookup mixin class
 

@@ -24,7 +24,6 @@ from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-import pytz
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
@@ -132,14 +131,14 @@ class DictOrganizer:
                 "_parent_index": parent_index,
             }
         )
-        for (k, v) in iteritems(dict_item):
+        for k, v in iteritems(dict_item):
             if isinstance(v, dict) and isinstance(v, list):
                 if k in obs[table_name][-1]:
                     raise AssertionError()
                 obs[table_name][-1][k] = v
         obs[table_name][-1]["_index"] = this_index
 
-        for (k, v) in iteritems(dict_item):
+        for k, v in iteritems(dict_item):
             if isinstance(v, dict):
                 kwargs = {
                     "dict_item": v,
@@ -315,11 +314,11 @@ class XFormMixin:
         # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
         # and-silly-whitespace/
         text_re = re.compile(r"(>)\n\s*(\s[^<>\s].*?)\n\s*(\s</)", re.DOTALL)
-        output_re = re.compile("\n.*(<output.*>)\n(  )*")
+        output_re = re.compile(r"\n.*(<output.*>)\n(  )*")
         pretty_xml = text_re.sub(
             lambda m: "".join(m.group(1, 2, 3)), self.xml.decode("utf-8")
         )
-        inline_output = output_re.sub("\g<1>", pretty_xml)  # noqa
+        inline_output = output_re.sub(r"\g<1>", pretty_xml)  # noqa
         inline_output = re.compile(r"<label>\s*\n*\s*\n*\s*</label>").sub(
             "<label></label>", inline_output
         )
@@ -457,9 +456,9 @@ class XFormMixin:
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[
-                _encode_for_mongo(str(elem.get_abbreviated_xpath()))
-            ] = elem.get_abbreviated_xpath()
+            names[_encode_for_mongo(str(elem.get_abbreviated_xpath()))] = (
+                elem.get_abbreviated_xpath()
+            )
         return names
 
     survey_elements = property(get_survey_elements)
@@ -893,7 +892,7 @@ class XForm(XFormMixin, BaseModel):
     )
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
-
+    is_instance_json_regenerated = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:
@@ -904,7 +903,6 @@ class XForm(XFormMixin, BaseModel):
         )
         verbose_name = gettext_lazy("XForm")
         verbose_name_plural = gettext_lazy("XForms")
-        ordering = ("pk",)
         permissions = (
             ("view_xform_all", _("Can view all associated data")),
             ("view_xform_data", _("Can view submitted data")),
@@ -1159,12 +1157,7 @@ class XForm(XFormMixin, BaseModel):
     @property
     def submission_count_for_today(self):
         """Returns the submissions count for the current day."""
-        current_timzone_name = timezone.get_current_timezone_name()
-        current_timezone = pytz.timezone(current_timzone_name)
-        today = datetime.today()
-        current_date = current_timezone.localize(
-            datetime(today.year, today.month, today.day)
-        ).isoformat()
+        current_date = timezone.localdate().isoformat()
         count = (
             cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}")
             if cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}")

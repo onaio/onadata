@@ -116,15 +116,15 @@ class XlsWriter:
 
     def _add_sheets(self):
         if self._data_dictionary:
-            for e in self._data_dictionary.get_survey_elements():
-                if isinstance(e, Section):
-                    sheet_name = e.name
+            for survey_element in self._data_dictionary.get_survey_elements():
+                if isinstance(survey_element, Section):
+                    sheet_name = survey_element.name
                     self.add_sheet(sheet_name)
-                    for f in e.children:
-                        if isinstance(f, Question) and not question_types_to_exclude(
-                            f.type
-                        ):
-                            self.add_column(sheet_name, f.name)
+                    for field in survey_element.children:
+                        if isinstance(
+                            field, Question
+                        ) and not question_types_to_exclude(field.type):
+                            self.add_column(sheet_name, field.name)
 
     def _unique_name_for_xls(self, sheet_name):
         # excel worksheet name limit seems to be 31 characters (30 to be safe)

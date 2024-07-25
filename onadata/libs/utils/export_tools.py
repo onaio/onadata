@@ -11,8 +11,11 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta
-from django.http import HttpRequest
+from typing import Iterator
 
+import six
+
+from django.http import HttpRequest
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import File
@@ -23,7 +26,6 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-import six
 from json2xlsclient.client import Client
 from multidb.pinning import use_master
 
@@ -36,11 +38,26 @@ try:
 except ImportError:
     SPSSIOError = Exception
 
-from onadata.apps.logger.models import Attachment, Instance, OsmData, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    OsmData,
+    XForm,
+    EntityList,
+    Entity,
+)
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
-from onadata.apps.viewer.models.parsed_instance import query_data
+from onadata.apps.viewer.models.export import (
+    Export,
+    GenericExport,
+    get_export_options_query_kwargs,
+)
+from onadata.apps.viewer.models.parsed_instance import (
+    query_data,
+    query_count,
+    query_fields_data,
+)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
@@ -50,9 +67,11 @@ from onadata.libs.utils.common_tools import (
     retry,
     str_to_bool,
 )
+from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import get_columns_with_hxl, queryset_iterator
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile, image_urls
+
 
 DEFAULT_GROUP_DELIMITER = "/"
 DEFAULT_INDEX_TAGS = ("[", "]")
@@ -60,7 +79,6 @@ SUPPORTED_INDEX_TAGS = ("[", "]", "(", ")", "{", "}", ".", "_")
 EXPORT_QUERY_KEY = "query"
 MAX_RETRIES = 3
 
-# pylint: disable=invalid-name
 User = get_user_model()
 
 
@@ -104,6 +122,31 @@ def get_or_create_export(export_id, xform, export_type, options):
     return create_export_object(xform, export_type, options)
 
 
+def get_entity_list_dataset(entity_list: EntityList) -> Iterator[dict]:
+    """Get entity data for a an EntityList dataset
+
+    Args:
+        entity_list (EntityList): The EntityList whose data
+        will be returned
+
+    Returns:
+        An iterator of dicts which represent the json data for
+        Entities belonging to the dataset
+    """
+    entities = Entity.objects.filter(entity_list=entity_list, deleted_at__isnull=True)
+    dataset_properties = entity_list.properties
+
+    for entity in queryset_iterator(entities):
+        data = {
+            "name": entity.uuid,
+            "label": entity.json.get("label", ""),
+        }
+        for prop in dataset_properties:
+            data[prop] = entity.json.get(prop, "")
+
+        yield data
+
+
 # pylint: disable=too-many-locals, too-many-branches, too-many-statements
 @retry(MAX_RETRIES)
 def generate_export(export_type, xform, export_id=None, options=None):  # noqa C901
@@ -128,12 +171,16 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     """
     username = xform.user.username
     id_string = xform.id_string
+
+    if options is None:
+        options = {}
+
     end = options.get("end")
     extension = options.get("extension", export_type)
     filter_query = options.get("query")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
-
+    sort = options.get("sort")
     export_type_func_map = {
         Export.XLSX_EXPORT: "to_xlsx_export",
         Export.CSV_EXPORT: "to_flat_csv_export",
@@ -151,24 +198,39 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = dataview.query_data(
-            dataview, all_data=True, filter_query=filter_query
+            dataview,
+            all_data=True,
+            filter_query=filter_query,
+            sort=sort,
         )
-        total_records = dataview.query_data(dataview, count=True)[0].get("count")
+        total_records = dataview.query_data(
+            dataview,
+            count=True,
+            sort=sort,
+        )[
+            0
+        ].get("count")
     else:
-        records = query_data(xform, query=filter_query, start=start, end=end)
+        records = query_data(
+            xform,
+            query=filter_query,
+            start=start,
+            end=end,
+            sort=sort,
+        )
 
         if filter_query:
-            total_records = query_data(
-                xform, query=filter_query, start=start, end=end, count=True
-            )[0].get("count")
+            total_records = query_count(
+                xform,
+                query=filter_query,
+                date_created_gte=start,
+                date_created_lte=end,
+            )
         else:
             total_records = xform.num_of_submissions
 
     if isinstance(records, QuerySet):
         records = records.iterator()
-
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.utils.export_builder import ExportBuilder
 
     export_builder = ExportBuilder()
     export_builder.TRUNCATE_GROUP_TITLE = (  # noqa
@@ -212,7 +274,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     export_builder.INCLUDE_REVIEWS = include_reviews  # noqa
     export_builder.set_survey(xform.survey, xform, include_reviews=include_reviews)
 
-    temp_file = NamedTemporaryFile(suffix=("." + extension))
+    temp_file = NamedTemporaryFile(suffix="." + extension)
 
     columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
         xform.survey_elements
@@ -238,12 +300,12 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
         )
     except NoRecordsFoundError:
         pass
-    except SPSSIOError as e:
+    except SPSSIOError as error:
         export = get_or_create_export(export_id, xform, export_type, options)
-        export.error_message = str(e)
+        export.error_message = str(error)
         export.internal_status = Export.FAILED
         export.save()
-        report_exception("SAV Export Failure", e, sys.exc_info())
+        report_exception("SAV Export Failure", error, sys.exc_info())
         return export
 
     # generate filename
@@ -325,7 +387,9 @@ def check_pending_export(
     return export
 
 
-def should_create_new_export(xform, export_type, options, request=None):
+def should_create_new_export(
+    instance, export_type, options, request=None, is_generic=False
+):
     """
     Function that determines whether to create a new export.
     param: xform
@@ -350,18 +414,31 @@ def should_create_new_export(xform, export_type, options, request=None):
         return True
 
     export_options_kwargs = get_export_options_query_kwargs(options)
-    export_query = Export.objects.filter(
-        xform=xform, export_type=export_type, **export_options_kwargs
-    )
+
+    if is_generic:
+        object_ct = GenericExport.get_object_content_type(instance)
+        export_query = GenericExport.objects.filter(
+            content_type=object_ct,
+            object_id=instance.id,
+            export_type=export_type,
+            **export_options_kwargs,
+        )
+    else:
+        export_query = Export.objects.filter(
+            xform=instance, export_type=export_type, **export_options_kwargs
+        )
+
     if options.get(EXPORT_QUERY_KEY) is None:
         export_query = export_query.exclude(options__has_key=EXPORT_QUERY_KEY)
 
-    if export_query.count() == 0 or Export.exports_outdated(
-        xform, export_type, options=options
-    ):
-        return True
+    if is_generic:
+        return export_query.count() == 0 or bool(
+            GenericExport.exports_outdated(instance, export_type, options=options)
+        )
 
-    return False
+    return export_query.count() == 0 or bool(
+        Export.exports_outdated(instance, export_type, options=options)
+    )
 
 
 def newest_export_for(xform, export_type, options):
@@ -423,6 +500,7 @@ def generate_attachments_zip_export(
     """
     export_type = options.get("extension", export_type)
     filter_query = options.get("query")
+    sort = options.get("sort")
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
@@ -433,13 +511,18 @@ def generate_attachments_zip_export(
             instance_id__in=[
                 rec.get("_id")
                 for rec in dataview.query_data(
-                    dataview, all_data=True, filter_query=filter_query
+                    dataview,
+                    all_data=True,
+                    filter_query=filter_query,
+                    sort=sort,
                 )
             ],
             instance__deleted_at__isnull=True,
         )
     else:
-        instance_ids = query_data(xform, fields='["_id"]', query=filter_query)
+        instance_ids = query_fields_data(
+            xform, fields=["_id"], query=filter_query, sort=sort
+        )
         attachments = Attachment.objects.filter(instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:
             attachments = attachments.filter(
@@ -755,8 +838,8 @@ def clean_keys_of_slashes(record):
         # Check if the value is a list containing nested dict and apply same
         if value:
             if isinstance(value, list) and isinstance(value[0], dict):
-                for v in value:
-                    clean_keys_of_slashes(v)
+                for item in value:
+                    clean_keys_of_slashes(item)
 
     return record
 
@@ -772,8 +855,8 @@ def _get_server_from_metadata(xform, meta, token):
     if meta:
         try:
             int(meta)
-        except ValueError as e:
-            raise Exception(f"Invalid metadata pk {meta}") from e
+        except ValueError as error:
+            raise ValueError(f"Invalid metadata pk {meta}") from error
 
         # Get the external server from the metadata
         result = report_templates.get(pk=meta)
@@ -785,7 +868,7 @@ def _get_server_from_metadata(xform, meta, token):
     else:
         # Take the latest value in the metadata
         if not report_templates:
-            raise Exception(
+            raise ValueError(
                 "Could not find the template token: Please upload template."
             )
 
@@ -815,6 +898,7 @@ def generate_external_export(  # noqa C901
     filter_query = options.get("query")
     meta = options.get("meta")
     token = options.get("token")
+    sort = options.get("sort")
 
     if xform is None:
         xform = XForm.objects.get(
@@ -839,7 +923,11 @@ def generate_external_export(  # noqa C901
 
         instances = [inst[0].json if inst else {}]
     else:
-        instances = query_data(xform, query=filter_query)
+        instances = query_data(
+            xform,
+            query=filter_query,
+            sort=sort,
+        )
 
     records = _get_records(instances)
 
@@ -852,11 +940,11 @@ def generate_external_export(  # noqa C901
 
             if hasattr(client.xls.conn, "last_response"):
                 status_code = client.xls.conn.last_response.status_code
-        except Exception as e:
+        except Exception as error:
             raise J2XException(
                 f"J2X client could not generate report. Server -> {server},"
-                f" Error-> {e}"
-            ) from e
+                f" Error-> {error}"
+            ) from error
     else:
         if not server:
             raise J2XException("External server not set")
@@ -889,7 +977,6 @@ def generate_external_export(  # noqa C901
     return export
 
 
-# pylint: disable=invalid-name
 def upload_template_for_external_export(server, file_obj):
     """
     Uploads an Excel template to the XLSReport server.
@@ -1011,3 +1098,62 @@ def get_repeat_index_tags(index_tags):
                 )
 
     return index_tags
+
+
+def generate_entity_list_export(entity_list: EntityList) -> GenericExport:
+    """Generates a CSV for an EntityList dataset"""
+    username = entity_list.project.organization.username
+    records = get_entity_list_dataset(entity_list)
+    export_builder = ExportBuilder()
+    extension = Export.CSV_EXPORT
+    temp_file = NamedTemporaryFile(suffix="." + extension)
+    export_builder.to_flat_csv_export(
+        temp_file.name, records, username, None, None, entity_list=entity_list
+    )
+    # Generate filename
+    basename = f'{entity_list.name}_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")}'
+    filename = basename + "." + extension
+
+    # Check filename is unique
+    while not GenericExport.is_filename_unique(entity_list, filename):
+        filename = increment_index_in_filename(filename)
+
+    file_path = os.path.join(
+        username, "exports", entity_list.name, Export.CSV_EXPORT, filename
+    )
+    # seek to the beginning as required by storage classes
+    temp_file.seek(0)
+    export_filename = default_storage.save(file_path, File(temp_file, file_path))
+    temp_file.close()
+    dir_name, basename = os.path.split(export_filename)
+    # Create export object
+    export = GenericExport.objects.create(
+        content_object=entity_list,
+        export_type=Export.CSV_EXPORT,
+        filedir=dir_name,
+        filename=basename,
+        internal_status=Export.SUCCESSFUL,
+    )
+    return export
+
+
+def get_latest_generic_export(
+    instance, export_type, options=None
+) -> GenericExport | None:
+    """Retrieve the latest GenericExport"""
+    export_options_kwargs = get_export_options_query_kwargs(options)
+    object_content_type = GenericExport.get_object_content_type(instance)
+    export_query = GenericExport.objects.filter(
+        content_type=object_content_type,
+        object_id=instance.id,
+        export_type=export_type,
+        **export_options_kwargs,
+    )
+
+    try:
+        latest_export = export_query.latest("created_on")
+
+    except GenericExport.DoesNotExist:
+        return None
+
+    return latest_export

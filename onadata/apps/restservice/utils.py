@@ -22,6 +22,6 @@ def call_service(submission_instance):
         try:
             service = service_def.get_service_definition()()
             service.send(service_def.service_url, submission_instance)
-        except Exception as e:
-            report_exception(f"Service call failed: {e}", e, sys.exc_info())
-            logging.exception("Service threw exception: %s", e)
+        except Exception as error:
+            report_exception(f"Service call failed: {error}", error, sys.exc_info())
+            logging.exception("Service threw exception: %s", error)

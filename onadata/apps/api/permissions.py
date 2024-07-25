@@ -191,7 +191,6 @@ class SubmissionReviewPermissions(XFormPermissions):
         is_authenticated = request and request.user.is_authenticated
 
         if is_authenticated and view.action == "create":
-
             # Handle bulk create
             # if doing a bulk create we will fail the entire process if the
             # user lacks permissions for even one instance
@@ -278,6 +277,12 @@ class ProjectPermissions(DjangoObjectPermissions):
             if remove and request.user.username.lower() == username.lower():
                 return True
 
+        if view.action == "invitations" and not (
+            ManagerRole.user_has_role(request.user, obj)
+            or OwnerRole.user_has_role(request.user, obj)
+        ):
+            return False
+
         return super().has_object_permission(request, view, obj)
 
 
@@ -306,7 +311,6 @@ class AbstractHasPermissionMixin:  # pylint: disable=too-few-public-methods
             and (request.user.is_authenticated or not self.authenticated_users_only)
             and request.user.has_perms(perms)
         ):
-
             return True
 
         return False
@@ -366,7 +370,7 @@ class AttachmentObjectPermissions(
         model_cls = XForm
         user = request.user
 
-        return self._has_object_permission(request, model_cls, user, obj.instance.xform)
+        return self._has_object_permission(request, model_cls, user, obj.xform)
 
 
 class ConnectViewsetPermissions(IsAuthenticated):
@@ -387,7 +391,6 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
     """
 
     def has_permission(self, request, view):
-
         if request.user.is_anonymous and view.action == "list":
             if request.GET.get("search"):
                 raise exceptions.NotAuthenticated()
@@ -553,5 +556,20 @@ class IsAuthenticatedSubmission(BasePermission):
                 # raises a permission denied exception,
                 # forces authentication
                 return False
+
+        return True
+
+
+class DjangoObjectPermissionsIgnoreModelPerm(DjangoObjectPermissions):
+    """
+    Similar to DjangoModelPermissions, except that model permissions
+    are ignored.
+    """
+
+    # pylint: disable=unused-argument
+    def has_permission(self, request, view):
+        """Override `has_permission` method"""
+        if request.user.is_anonymous and request.method not in SAFE_METHODS:
+            return False
 
         return True

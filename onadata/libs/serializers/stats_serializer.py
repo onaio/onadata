@@ -69,16 +69,15 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
 
         try:
             data = get_form_submissions_grouped_by_field(instance, field, name)
-        except ValueError as e:
-            raise exceptions.ParseError(detail=e)
-        else:
-            if data:
-                element = instance.get_survey_element(field)
+        except ValueError as error:
+            raise exceptions.ParseError(detail=error)
+        if data:
+            element = instance.get_survey_element(field)
 
-                if element and element.type in SELECT_FIELDS:
-                    for record in data:
-                        label = instance.get_choice_label(element, record[name])
-                        record[name] = label
+            if element and element.type in SELECT_FIELDS:
+                for record in data:
+                    label = instance.get_choice_label(element, record[name])
+                    record[name] = label
 
         cache.set(cache_key, data, settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
@@ -126,7 +125,7 @@ class StatsInstanceSerializer(serializers.Serializer):
 
         try:
             data = stats_function(instance, field)
-        except ValueError as e:
-            raise exceptions.ParseError(detail=e)
+        except ValueError as error:
+            raise exceptions.ParseError(detail=error)
 
         return data

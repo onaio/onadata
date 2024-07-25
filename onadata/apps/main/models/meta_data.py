@@ -23,7 +23,11 @@ from django.utils import timezone
 
 import requests
 
-from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    XFORM_METADATA_CACHE,
+    XFORM_MANIFEST_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.common_tags import (
     GOOGLE_SHEET_DATA_TYPE,
     TEXTIT,
@@ -563,7 +567,11 @@ def clear_cached_metadata_instance_object(
     """
     Clear the cache for the metadata object.
     """
-    safe_delete(f"{XFORM_METADATA_CACHE}{instance.object_id}")
+    xform_id = instance.object_id
+    safe_delete(f"{XFORM_METADATA_CACHE}{xform_id}")
+
+    if instance.data_type == "media":
+        safe_delete(f"{XFORM_MANIFEST_CACHE}{xform_id}")
 
 
 # pylint: disable=unused-argument

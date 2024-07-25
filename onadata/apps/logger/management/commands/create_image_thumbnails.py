@@ -48,17 +48,19 @@ class Command(BaseCommand):
             username = options.get("username")
             try:
                 user = User.objects.get(username=username)
-            except User.DoesNotExist as e:
-                raise CommandError(f"Error: username {username} does not exist") from e
+            except User.DoesNotExist as error:
+                raise CommandError(
+                    f"Error: username {username} does not exist"
+                ) from error
             attachments_qs = attachments_qs.filter(instance__user=user)
         if options.get("id_string"):
             id_string = options.get("id_string")
             try:
                 xform = XForm.objects.get(id_string=id_string)
-            except XForm.DoesNotExist as e:
+            except XForm.DoesNotExist as error:
                 raise CommandError(
                     f"Error: Form with id_string {id_string} does not exist"
-                ) from e
+                ) from error
             attachments_qs = attachments_qs.filter(instance__xform=xform)
         file_storage = get_storage_class(
             "django.core.files.storage.FileSystemStorage"
