@@ -1268,14 +1268,14 @@ def commit_entity_list_num_entities() -> None:
     """Commit cached EntityList entities count to the database"""
     # Lock cache from further updates
     cache.set(ENTITY_LIST_NUM_ENTITIES_LOCK, "true", 7200)
-    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
+    entity_list_pks: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
 
-    for id in entity_list_ids:
-        counter_key = f"{ENTITY_LIST_NUM_ENTITIES}{id}"
+    for pk in entity_list_pks:
+        counter_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
         counter: int = cache.get(counter_key, 0)
 
         if counter:
-            _inc_entity_list_num_entities_db(id, counter)
+            _inc_entity_list_num_entities_db(pk, counter)
 
         safe_delete(counter_key)
 
