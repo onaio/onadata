@@ -13,7 +13,6 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.libs.models import BaseModel
 
-
 User = get_user_model()
 
 
