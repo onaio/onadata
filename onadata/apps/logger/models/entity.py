@@ -40,9 +40,10 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            from onadata.libs.utils import logger_tools
+            # pylint: disable=import-outside-toplevel
+            from onadata.libs.utils.logger_tools import dec_entity_list_num_entities
 
-            logger_tools.dec_entity_list_num_entities(self.entity_list.pk)
+            dec_entity_list_num_entities(self.entity_list.pk)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
