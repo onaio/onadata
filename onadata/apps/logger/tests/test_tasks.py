@@ -14,7 +14,7 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
     apply_project_date_modified_async,
-    commit_entity_list_num_entities,
+    commit_entity_list_num_entities_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
@@ -111,8 +111,9 @@ class UpdateProjectDateModified(TestBase):
         )  # Cache should remain empty
 
 
-class CommitEntityListNumEntitiesTestCase(TestBase):
-    """Tests for method `commit_entity_list_num_entities`"""
+@patch("onadata.apps.logger.tasks.commit_entity_list_num_entities")
+class CommitEntityListNumEntitiesAsyncTestCase(TestBase):
+    """Tests for method `commit_entity_list_num_entities_async`"""
 
     def setUp(self):
         super().setUp()
@@ -122,19 +123,33 @@ class CommitEntityListNumEntitiesTestCase(TestBase):
             name="trees", project=self.project, num_entities=10
         )
 
-    def test_counter_commited(self):
+    def test_counter_commited(self, mock_commit):
         """Cached counter is commited in the database"""
-        cache.set("el-num-entities-ids", {self.entity_list.pk})
-        cache.set(f"el-num-entities-{self.entity_list.pk}", 3)
-        commit_entity_list_num_entities.delay()
-        self.entity_list.refresh_from_db()
+        commit_entity_list_num_entities_async.delay()
+        mock_commit.assert_called_once()
 
-        self.assertEqual(self.entity_list.num_entities, 13)
-        self.assertIsNone(cache.get("el-num-entities-ids"))
-        self.assertIsNone(cache.get(f"el-num-entities-{self.entity_list.pk}"))
+    @patch("onadata.apps.logger.tasks.commit_entity_list_num_entities_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_set_perms):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_set_perms.side_effect = ConnectionError
 
-    def test_cache_empty(self):
-        """Empty cache is handled appropriately"""
-        commit_entity_list_num_entities.delay()
-        self.entity_list.refresh_from_db()
-        self.assertEqual(self.entity_list.num_entities, 10)
+        commit_entity_list_num_entities_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.commit_entity_list_num_entities_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_set_perms):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_set_perms.side_effect = DatabaseError
+
+        commit_entity_list_num_entities_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
