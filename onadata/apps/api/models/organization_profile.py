@@ -183,6 +183,10 @@ class OrganizationProfile(UserProfile):
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         super().save(*args, **kwargs)
 
+    @property
+    def email(self):
+        return self.user.email
+
     def remove_user_from_organization(self, user):
         """Removes a user from all teams/groups in the organization.
 

@@ -201,6 +201,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         data = {
+            "email": "mail@mail-server.org",
             "org": "denoinc",
             "name": "Dennis",
             "city": "Denoville",

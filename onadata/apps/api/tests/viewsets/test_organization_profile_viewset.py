@@ -214,16 +214,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             self.assertTrue(isinstance(user["user"], text))
 
     def test_orgs_create(self):
-        org_email = "mail@mail-server.org"
-        self._org_create(org_data = {"email": org_email})
+        self._org_create()
         self.assertTrue(self.organization.user.is_active)
-        self.assertEqual(self.organization.user.email, org_email)
+        self.assertEqual(self.organization.user.email, "mail@mail-server.org")
 
     def test_orgs_create_without_name(self):
         data = {
             "org": "denoinc",
             "city": "Denoville",
             "country": "US",
+            "email": "user@mail.org",
             "home_page": "deno.com",
             "twitter": "denoinc",
             "description": "",
@@ -563,6 +563,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "home_page": "deno.com",
             "twitter": "denoinc",
             "description": "",
+            "email": "user@mail.com",
             "address": "",
             "phonenumber": "",
             "require_auth": False,
