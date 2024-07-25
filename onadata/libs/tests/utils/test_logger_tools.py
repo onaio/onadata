@@ -30,6 +30,7 @@ from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTA
 from onadata.libs.utils.logger_tools import (
     create_entity_from_instance,
     create_instance,
+    dec_entity_list_num_entities,
     generate_content_disposition_header,
     get_first_record,
     inc_entity_list_num_entities,
@@ -792,9 +793,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
         self.assertCountEqual(entity.json, expected_json)
 
 
-class IncEntityListNumEntitiesTestCase(TestBase):
-    """Tests for method `inc_entity_list_num_entities`"""
-
+class EntityListNumEntitiesBase(TestBase):
     def setUp(self):
         super().setUp()
 
@@ -816,6 +815,10 @@ class IncEntityListNumEntitiesTestCase(TestBase):
 
         cache.delete(self.ids_key)
         cache.delete(self.lock)
+
+
+class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
+    """Tests for method `inc_entity_list_num_entities`"""
 
     def test_entity_list_counter_inc_cache_locked(self):
         """Database counter is incremented if cache is locked"""
@@ -851,3 +854,32 @@ class IncEntityListNumEntitiesTestCase(TestBase):
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk, vaccine.pk})
         vaccine.refresh_from_db()
         self.assertEqual(vaccine.num_entities, 0)
+
+
+class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
+    """Tests for method `dec_entity_list_num_entities`"""
+
+    def test_entity_list_counter_dec_cache_locked(self):
+        """Database counter is decremented if cache is locked"""
+        counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
+        cache.set(self.lock, "true")
+        cache.set(counter_key, 3)
+        dec_entity_list_num_entities(self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 9)
+        # Cached counter should not be updated
+        self.assertEqual(cache.get(counter_key), 3)
+
+    def test_entity_list_counter_dec_cache_unlocked(self):
+        """Cache counter is decremented if cache is unlocked"""
+        counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
+
+        cache.set(counter_key, 3)
+
+        dec_entity_list_num_entities(self.entity_list.pk)
+
+        self.assertEqual(cache.get(counter_key), 2)
+        self.entity_list.refresh_from_db()
+        # Database counter should not be updated
+        self.assertEqual(self.entity_list.num_entities, 10)
