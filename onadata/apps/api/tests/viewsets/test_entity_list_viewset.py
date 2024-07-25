@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime, timezone as dtz
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
@@ -383,6 +384,19 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+
+    def test_num_entities_cached(self):
+        """`num_entities` includes cached counter"""
+        entity_list = EntityList.objects.get(name="trees")
+        entity_list.num_entities = 5
+        entity_list.save()
+        cache.set(f"el-num-entities-{entity_list.pk}", 7)
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["num_entities"], 12)
 
 
 @override_settings(TIME_ZONE="UTC")
