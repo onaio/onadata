@@ -12,7 +12,12 @@ from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.apps.logger.tasks import set_entity_list_perms_async
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils import logger_tools
+from onadata.libs.utils.logger_tools import (
+    update_entity_from_instance,
+    create_entity_from_instance,
+    inc_entity_list_num_entities,
+    dec_entity_list_num_entities,
+)
 
 
 # pylint: disable=unused-argument
@@ -36,16 +41,14 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
 
             if exists and entity_node.getAttribute("update") in mutation_success_checks:
                 # Update Entity
-                logger_tools.update_entity_from_instance(
-                    entity_uuid, instance, registration_form
-                )
+                update_entity_from_instance(entity_uuid, instance, registration_form)
 
             elif (
                 not exists
                 and entity_node.getAttribute("create") in mutation_success_checks
             ):
                 # Create Entity
-                logger_tools.create_entity_from_instance(instance, registration_form)
+                create_entity_from_instance(instance, registration_form)
 
 
 @receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")
@@ -54,13 +57,13 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
     entity_list = instance.entity_list
 
     if created:
-        logger_tools.inc_entity_list_num_entities(entity_list.pk)
+        inc_entity_list_num_entities(entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
 def decrement_entity_list_num_entities(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
-    logger_tools.dec_entity_list_num_entities(instance.entity_list.pk)
+    dec_entity_list_num_entities(instance.entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")
