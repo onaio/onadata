@@ -19,7 +19,7 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.libs.permissions import CAN_VIEW_PROJECT
-from onadata.libs.utils.cache_tools import ENTITY_LIST_NUM_ENTITIES_CACHE
+from onadata.libs.utils.cache_tools import ENTITY_LIST_NUM_ENTITIES
 
 
 class EntityListSerializer(serializers.ModelSerializer):
@@ -95,7 +95,7 @@ class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
 
         Adds cached counter to database counter
         """
-        cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{obj.pk}"
+        cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{obj.pk}"
 
         if cache.get(cache_key) is not None:
             return obj.num_entities + cache.get(cache_key)
