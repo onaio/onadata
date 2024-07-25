@@ -1152,7 +1152,7 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         create_entity_from_instance(instance, registration_form)
 
 
-def inc_entity_list_num_entities_db(pk: int, count=1) -> None:
+def _inc_entity_list_num_entities_db(pk: int, count=1) -> None:
     """Increment EntityList `num_entities` counter in the database
 
     Args:
@@ -1164,7 +1164,7 @@ def inc_entity_list_num_entities_db(pk: int, count=1) -> None:
     EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") + count)
 
 
-def dec_entity_list_num_entities_db(pk: int, count=1) -> None:
+def _dec_entity_list_num_entities_db(pk: int, count=1) -> None:
     """Decrement EntityList `num_entities` counter in the database
 
     Args:
@@ -1218,7 +1218,7 @@ def inc_entity_list_num_entities(pk: int) -> None:
     """
 
     if _is_entity_list_num_entities_cache_locked():
-        inc_entity_list_num_entities_db(pk)
+        _inc_entity_list_num_entities_db(pk)
 
     else:
         _inc_entity_list_num_entities_cache(pk)
@@ -1239,10 +1239,13 @@ def dec_entity_list_num_entities(pk: int) -> None:
         _is_entity_list_num_entities_cache_locked()
         or cache.get(counter_cache_key) is None
     ):
-        dec_entity_list_num_entities_db(pk)
+        _dec_entity_list_num_entities_db(pk)
 
     else:
-        _dec_entity_list_num_entities_cache(pk)
+        try:
+            _dec_entity_list_num_entities_cache(pk)
+        except ConnectionError:
+            _dec_entity_list_num_entities_db(pk)
 
 
 def _is_entity_list_num_entities_cache_locked():
@@ -1267,7 +1270,7 @@ def commit_entity_list_num_entities():
         counter: int = cache.get(counter_key, 0)
 
         if counter:
-            inc_entity_list_num_entities_db(id, counter)
+            _inc_entity_list_num_entities_db(id, counter)
 
         safe_delete(counter_key)
 
