@@ -53,13 +53,13 @@ from rest_framework.response import Response
 
 from onadata.apps.logger.models import (
     Attachment,
-    Entity,
     EntityList,
     Instance,
     RegistrationForm,
     XForm,
     XFormVersion,
 )
+from onadata.apps.logger.models.entity import Entity
 from onadata.apps.logger.models.instance import (
     FormInactiveError,
     FormIsMergedDatasetError,
