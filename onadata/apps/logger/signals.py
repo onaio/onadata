@@ -3,7 +3,6 @@
 logger signals module
 """
 from django.db import transaction
-from django.db.models import F
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -13,10 +12,7 @@ from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.apps.logger.tasks import set_entity_list_perms_async
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.logger_tools import (
-    create_entity_from_instance,
-    update_entity_from_instance,
-)
+from onadata.libs.utils import logger_tools
 
 
 # pylint: disable=unused-argument
@@ -40,14 +36,16 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
 
             if exists and entity_node.getAttribute("update") in mutation_success_checks:
                 # Update Entity
-                update_entity_from_instance(entity_uuid, instance, registration_form)
+                logger_tools.update_entity_from_instance(
+                    entity_uuid, instance, registration_form
+                )
 
             elif (
                 not exists
                 and entity_node.getAttribute("create") in mutation_success_checks
             ):
                 # Create Entity
-                create_entity_from_instance(instance, registration_form)
+                logger_tools.create_entity_from_instance(instance, registration_form)
 
 
 @receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")
@@ -56,22 +54,13 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
     entity_list = instance.entity_list
 
     if created:
-        # Using Queryset.update ensures we do not call the model's save method and
-        # signals
-        EntityList.objects.filter(pk=entity_list.pk).update(
-            num_entities=F("num_entities") + 1
-        )
+        logger_tools.inc_entity_list_num_entities(entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
 def decrement_entity_list_num_entities(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
-    entity_list = instance.entity_list
-    # Using Queryset.update ensures we do not call the model's save method and
-    # signals
-    EntityList.objects.filter(pk=entity_list.pk).update(
-        num_entities=F("num_entities") - 1
-    )
+    logger_tools.dec_entity_list_num_entities(instance.entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")

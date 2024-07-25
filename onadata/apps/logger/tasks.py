@@ -7,8 +7,15 @@ from django.db import DatabaseError
 
 from onadata.apps.logger.models import EntityList, Project
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    ENTITY_LIST_NUM_ENTITIES_CACHE,
+    ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
+    LOCK_SUFFIX,
+    PROJECT_DATE_MODIFIED_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.project_utils import set_project_perms_to_object
+from onadata.libs.utils.logger_tools import inc_entity_list_num_entities_db
 
 
 logger = logging.getLogger(__name__)
@@ -46,3 +53,24 @@ def apply_project_date_modified_async():
 
     # Clear cache after updating
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def commit_cached_entity_list_num_entities():
+    """Commit cached EntityList entities count to the database"""
+    # Lock cache from further updates
+    lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
+    cache.set(lock_key, "true", 7200)
+    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+
+    for id in entity_list_ids:
+        counter_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{id}"
+        counter: int = cache.get(counter_key, 0)
+
+        if counter:
+            inc_entity_list_num_entities_db(id, counter)
+
+        safe_delete(counter_key)
+
+    safe_delete(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS)
+    safe_delete(lock_key)
