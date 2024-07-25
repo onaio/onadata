@@ -1119,12 +1119,15 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.entity.refresh_from_db()
+        self.entity_list.refresh_from_db()
+
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 0)
-        self.assertEqual(self.entity_list.last_entity_update_time, date)
+        self.assertEqual(
+            self.entity_list.last_entity_update_time, self.entity.date_modified
+        )
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""

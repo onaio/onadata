@@ -132,13 +132,19 @@ class EntityListTestCase(TestBase):
         with patch("django.utils.timezone.now") as mock_now:
             mock_now.return_value = self.mocked_now
             entity_list = EntityList.objects.create(name="trees", project=self.project)
+            follow_up_form = self._publish_follow_up_form(self.user)
             entity_list.soft_delete(self.user)
             entity_list.refresh_from_db()
+            follow_up_form_meta_datum = follow_up_form.metadata_set.get(
+                data_value=f"entity_list {entity_list.pk} trees"
+            )
+
             self.assertEqual(entity_list.deleted_at, self.mocked_now)
             self.assertEqual(entity_list.deleted_by, self.user)
             self.assertEqual(
                 entity_list.name, f'trees{self.mocked_now.strftime("-deleted-at-%s")}'
             )
+            self.assertIsNotNone(follow_up_form_meta_datum.deleted_at)
 
         # Try soft deleting soft deleted dataset
         entity_list.soft_delete(self.user)
@@ -155,3 +161,33 @@ class EntityListTestCase(TestBase):
         entity_list.soft_delete()
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.name, dataset_name)
+
+    def test_hard_delete(self):
+        """Hard delete removes consumers' metadata"""
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        follow_up_form = self._publish_follow_up_form(self.user)
+        data_value = f"entity_list {entity_list.pk} trees"
+        self.assertTrue(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )
+
+        entity_list.delete()
+
+        self.assertFalse(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )
+        # Hard deleted previously soft deleted dataset works
+        follow_up_form.delete()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        follow_up_form = self._publish_follow_up_form(self.user)
+        data_value = f"entity_list {entity_list.pk} trees"
+
+        self.assertTrue(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )
+        entity_list.soft_delete()
+        entity_list.delete()
+
+        self.assertFalse(
+            follow_up_form.metadata_set.filter(data_value=data_value).exists()
+        )

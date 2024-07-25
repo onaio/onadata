@@ -5,15 +5,19 @@ EntityList model
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+
 
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 from guardian.compat import user_model_label
 
 from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import clear_project_cache
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.models import BaseModel
+from onadata.libs.utils.model_tools import queryset_iterator
 
 User = get_user_model()
 
@@ -39,13 +43,6 @@ class EntityList(BaseModel):
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
-    class Meta(BaseModel.Meta):
-        app_label = "logger"
-        unique_together = (
-            "name",
-            "project",
-        )
-
     def __str__(self):
         return f"{self.name}|{self.project}"
 
@@ -69,6 +66,7 @@ class EntityList(BaseModel):
 
         return list(dataset_properties)
 
+    @transaction.atomic()
     def soft_delete(self, deleted_by=None):
         """Soft delete EntityList"""
         if self.deleted_at is None:
@@ -76,9 +74,27 @@ class EntityList(BaseModel):
             deletion_suffix = deletion_time.strftime("-deleted-at-%s")
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
+            original_name = self.name
             self.name += deletion_suffix
             self.name = self.name[:255]  # Only first 255 characters
             self.save()
+            clear_project_cache(self.project.pk)
+            # Soft deleted follow up forms MetaData
+            metadata_qs = MetaData.objects.filter(
+                data_type="media",
+                data_value=f"entity_list {self.pk} {original_name}",
+            )
+
+            for datum in queryset_iterator(metadata_qs):
+                datum.soft_delete()
+
+    class Meta(BaseModel.Meta):
+        app_label = "logger"
+        unique_together = (
+            "name",
+            "project",
+        )
+        indexes = [models.Index(fields=["deleted_at"])]
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):
