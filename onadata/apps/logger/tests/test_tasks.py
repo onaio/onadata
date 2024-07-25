@@ -14,6 +14,7 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
     apply_project_date_modified_async,
+    commit_entity_list_num_entities,
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
@@ -105,4 +106,35 @@ class UpdateProjectDateModified(TestBase):
         apply_project_date_modified_async.delay()
 
         # Verify that no projects were updated
-        self.assertIsNone(cache.get(PROJECT_DATE_MODIFIED_CACHE))  # Cache should remain empty
+        self.assertIsNone(
+            cache.get(PROJECT_DATE_MODIFIED_CACHE)
+        )  # Cache should remain empty
+
+
+class CommitEntityListNumEntitiesTestCase(TestBase):
+    """Tests for method `commit_entity_list_num_entities`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(
+            name="trees", project=self.project, num_entities=10
+        )
+
+    def test_counter_commited(self):
+        """Cached counter is commited in the database"""
+        cache.set("el-num-entities-ids", {self.entity_list.pk})
+        cache.set(f"el-num-entities-{self.entity_list.pk}", 3)
+        commit_entity_list_num_entities.delay()
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 13)
+        self.assertIsNone(cache.get("el-num-entities-ids"))
+        self.assertIsNone(cache.get(f"el-num-entities-{self.entity_list.pk}"))
+
+    def test_cache_empty(self):
+        """Empty cache is handled appropriately"""
+        commit_entity_list_num_entities.delay()
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.num_entities, 10)
