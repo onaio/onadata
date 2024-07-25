@@ -5,7 +5,6 @@ import pytz
 from datetime import datetime
 from unittest.mock import patch
 
-from django.core.cache import cache
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
@@ -29,7 +28,6 @@ class EntityTestCase(TestBase):
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
         self.project = get_user_default_project(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
-        cache.set("el-num-entities-ids-lock", "true")
 
     @patch("django.utils.timezone.now")
     def test_creation(self, mock_now):
