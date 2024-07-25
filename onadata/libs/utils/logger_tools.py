@@ -1265,7 +1265,7 @@ def _is_entity_list_num_entities_cache_locked() -> bool:
 
 
 def commit_entity_list_num_entities() -> None:
-    """Commit cached EntityList entities count to the database"""
+    """Commit cached EntityList `num_entities` count to the database"""
     # Lock cache from further updates
     cache.set(ENTITY_LIST_NUM_ENTITIES_LOCK, "true", 7200)
     entity_list_pks: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
