@@ -1175,7 +1175,12 @@ def inc_entity_list_num_entities(pk: int) -> None:
         _inc_entity_list_num_entities_db(pk)
 
     else:
-        _inc_entity_list_num_entities_cache(pk)
+        try:
+            _inc_entity_list_num_entities_cache(pk)
+
+        except ConnectionError:
+            # Fallback to db if cache inacessible
+            _inc_entity_list_num_entities_db(pk)
 
 
 def dec_entity_list_num_entities(pk: int) -> None:
@@ -1198,7 +1203,9 @@ def dec_entity_list_num_entities(pk: int) -> None:
     else:
         try:
             _dec_entity_list_num_entities_cache(pk)
+
         except ConnectionError:
+            # Fallback to db if cache inacessible
             _dec_entity_list_num_entities_db(pk)
 
 
