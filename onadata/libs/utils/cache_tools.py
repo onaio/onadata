@@ -75,8 +75,9 @@ PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 LOCK_SUFFIX = "-lock"
 
 # Entities
-ENTITY_LIST_NUM_ENTITIES_CACHE = "el-num-entities-"
-ENTITY_LIST_NUM_ENTITIES_CACHE_IDS = "el-num-entities-ids"
+ENTITY_LIST_NUM_ENTITIES = "el-num-entities-"
+ENTITY_LIST_NUM_ENTITIES_IDS = "el-num-entities-ids"
+ENTITY_LIST_NUM_ENTITIES_LOCK = f"{ENTITY_LIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
 
 
 def safe_delete(key):

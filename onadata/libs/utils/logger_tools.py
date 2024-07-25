@@ -94,9 +94,9 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
-    ENTITY_LIST_NUM_ENTITIES_CACHE,
-    ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
-    LOCK_SUFFIX,
+    ENTITY_LIST_NUM_ENTITIES,
+    ENTITY_LIST_NUM_ENTITIES_IDS,
+    ENTITY_LIST_NUM_ENTITIES_LOCK,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import METADATA_FIELDS
@@ -1182,14 +1182,14 @@ def _inc_entity_list_num_entities_cache(pk: int) -> None:
     Args:
         pk (int): Primary key for EntityList
     """
-    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
     counter_cache_ttl = getattr(settings, "ENTITY_LIST_NUM_ENTITIES_CACHE_TTL", 7200)
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
-    ids_cache: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+    ids_cache: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
 
     if pk not in ids_cache:
         ids_cache.add(pk)
-        cache.set(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, ids_cache, counter_cache_ttl)
+        cache.set(ENTITY_LIST_NUM_ENTITIES_IDS, ids_cache, counter_cache_ttl)
 
     if not counter_cache_created:
         cache.incr(counter_cache_key)
@@ -1201,7 +1201,7 @@ def _dec_entity_list_num_entities_cache(pk: int) -> None:
     Args:
         pk (int): Primary key for EntityList
     """
-    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
 
     if cache.get(counter_cache_key) is not None:
         cache.decr(counter_cache_key)
@@ -1238,7 +1238,7 @@ def dec_entity_list_num_entities(pk: int) -> None:
     Args:
         pk (int): Primary key for EntityList
     """
-    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
 
     if (
         _is_entity_list_num_entities_cache_locked()
@@ -1255,25 +1255,23 @@ def dec_entity_list_num_entities(pk: int) -> None:
             _dec_entity_list_num_entities_db(pk)
 
 
-def _is_entity_list_num_entities_cache_locked():
+def _is_entity_list_num_entities_cache_locked() -> bool:
     """Checks if EntityList `num_entities` cached counter is locked
 
     Returns True, if cache is locked, False otherwise
     """
-    cache_key_lock = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
 
-    return cache.get(cache_key_lock) is not None
+    return cache.get(ENTITY_LIST_NUM_ENTITIES_LOCK) is not None
 
 
-def commit_entity_list_num_entities():
+def commit_entity_list_num_entities() -> None:
     """Commit cached EntityList entities count to the database"""
     # Lock cache from further updates
-    lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
-    cache.set(lock_key, "true", 7200)
-    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+    cache.set(ENTITY_LIST_NUM_ENTITIES_LOCK, "true", 7200)
+    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
 
     for id in entity_list_ids:
-        counter_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{id}"
+        counter_key = f"{ENTITY_LIST_NUM_ENTITIES}{id}"
         counter: int = cache.get(counter_key, 0)
 
         if counter:
@@ -1281,5 +1279,5 @@ def commit_entity_list_num_entities():
 
         safe_delete(counter_key)
 
-    safe_delete(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS)
-    safe_delete(lock_key)
+    safe_delete(ENTITY_LIST_NUM_ENTITIES_IDS)
+    safe_delete(ENTITY_LIST_NUM_ENTITIES_LOCK)
