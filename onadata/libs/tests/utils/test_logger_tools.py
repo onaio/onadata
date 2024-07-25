@@ -889,6 +889,18 @@ class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 9)
 
+        # Database counter is decremented if connection error to cache
+        with patch(
+            "onadata.libs.utils.logger_tools._dec_entity_list_num_entities_cache"
+        ) as mock_dec:
+            mock_dec.side_effect = ConnectionError
+            cache.set(counter_key, 3)
+            dec_entity_list_num_entities(self.entity_list.pk)
+            self.entity_list.refresh_from_db()
+
+            self.assertEqual(cache.get(counter_key), 3)
+            self.assertEqual(self.entity_list.num_entities, 8)
+
 
 class CommitEntityListNumEntitiesTestCase(TestBase):
     """Tests for method `commit_entity_list_num_entities`"""
