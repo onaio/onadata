@@ -56,7 +56,7 @@ def apply_project_date_modified_async():
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def commit_cached_entity_list_num_entities():
+def commit_entity_list_num_entities():
     """Commit cached EntityList entities count to the database"""
     # Lock cache from further updates
     lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
