@@ -11,15 +11,12 @@ from django.db import DatabaseError
 from onadata.apps.logger.models import Entity, EntityList, Project
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import (
-    ENTITY_LIST_NUM_ENTITIES_CACHE,
-    ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
-    LOCK_SUFFIX,
     PROJECT_DATE_MODIFIED_CACHE,
     safe_delete,
 )
 from onadata.libs.utils.project_utils import set_project_perms_to_object
 from onadata.libs.utils.logger_tools import (
-    inc_entity_list_num_entities_db,
+    commit_entity_list_num_entities,
     soft_delete_entities_bulk,
 )
 
@@ -86,19 +83,4 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
 
 def commit_cached_entity_list_num_entities():
     """Commit cached EntityList entities count to the database"""
-    # Lock cache from further updates
-    lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
-    cache.set(lock_key, "true", 7200)
-    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
-
-    for id in entity_list_ids:
-        counter_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{id}"
-        counter: int = cache.get(counter_key, 0)
-
-        if counter:
-            inc_entity_list_num_entities_db(id, counter)
-
-        safe_delete(counter_key)
-
-    safe_delete(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS)
-    safe_delete(lock_key)
+    commit_entity_list_num_entities()

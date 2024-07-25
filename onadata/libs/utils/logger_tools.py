@@ -97,6 +97,7 @@ from onadata.libs.utils.cache_tools import (
     ENTITY_LIST_NUM_ENTITIES_CACHE,
     ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
     LOCK_SUFFIX,
+    safe_delete,
 )
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
@@ -1252,3 +1253,23 @@ def _is_entity_list_num_entities_cache_locked():
     cache_key_lock = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
 
     return cache.get(cache_key_lock) is not None
+
+
+def commit_entity_list_num_entities():
+    """Commit cached EntityList entities count to the database"""
+    # Lock cache from further updates
+    lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
+    cache.set(lock_key, "true", 7200)
+    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+
+    for id in entity_list_ids:
+        counter_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{id}"
+        counter: int = cache.get(counter_key, 0)
+
+        if counter:
+            inc_entity_list_num_entities_db(id, counter)
+
+        safe_delete(counter_key)
+
+    safe_delete(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS)
+    safe_delete(lock_key)

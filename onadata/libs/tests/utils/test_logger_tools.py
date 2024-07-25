@@ -28,6 +28,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
+    commit_entity_list_num_entities,
     create_entity_from_instance,
     create_instance,
     dec_entity_list_num_entities,
@@ -887,3 +888,32 @@ class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         dec_entity_list_num_entities(self.entity_list.pk)
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 9)
+
+
+class CommitEntityListNumEntitiesTestCase(TestBase):
+    """Tests for method `commit_entity_list_num_entities`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(
+            name="trees", project=self.project, num_entities=10
+        )
+
+    def test_counter_commited(self):
+        """Cached counter is commited in the database"""
+        cache.set("el-num-entities-ids", {self.entity_list.pk})
+        cache.set(f"el-num-entities-{self.entity_list.pk}", 3)
+        commit_entity_list_num_entities()
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 13)
+        self.assertIsNone(cache.get("el-num-entities-ids"))
+        self.assertIsNone(cache.get(f"el-num-entities-{self.entity_list.pk}"))
+
+    def test_cache_empty(self):
+        """Empty cache is handled appropriately"""
+        commit_entity_list_num_entities()
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.num_entities, 10)
