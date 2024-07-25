@@ -72,6 +72,12 @@ XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 
+LOCK_SUFFIX = "-lock"
+
+# Entities
+ENTITY_LIST_NUM_ENTITIES_CACHE = "el-num-entities-"
+ENTITY_LIST_NUM_ENTITIES_CACHE_IDS = "el-num-entities-ids"
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""

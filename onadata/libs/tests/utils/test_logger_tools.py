@@ -8,6 +8,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 
@@ -31,8 +32,10 @@ from onadata.libs.utils.logger_tools import (
     create_instance,
     generate_content_disposition_header,
     get_first_record,
+    inc_entity_list_num_entities,
     safe_create_instance,
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestLoggerTools(PyxformTestCase, TestBase):
@@ -787,3 +790,64 @@ class CreateEntityFromInstanceTestCase(TestBase):
 
         self.assertEqual(Entity.objects.count(), 1)
         self.assertCountEqual(entity.json, expected_json)
+
+
+class IncEntityListNumEntitiesTestCase(TestBase):
+    """Tests for method `inc_entity_list_num_entities`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(
+            name="trees", project=self.project, num_entities=10
+        )
+        self.ids_key = "el-num-entities-ids"
+        self.lock = f"{self.ids_key}-lock"
+        self.counter_key_prefix = "el-num-entities-"
+
+    def tearDown(self) -> None:
+        super().tearDown()
+
+        ids = cache.get(self.ids_key, set())
+
+        for id in ids:
+            cache.delete(f"{self.counter_key_prefix}{id}")
+
+        cache.delete(self.ids_key)
+        cache.delete(self.lock)
+
+    def test_entity_list_counter_inc_cache_locked(self):
+        """Database counter is incremented if cache is locked"""
+        counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
+        cache.set(self.lock, "true")
+        cache.set(counter_key, 3)
+        inc_entity_list_num_entities(self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 11)
+        # Cached counter should not be updated
+        self.assertEqual(cache.get(counter_key), 3)
+
+    def test_entity_list_counter_inc_cache_unlocked(self):
+        """Cache counter is incremented if cache is unlocked"""
+        counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
+
+        self.assertIsNone(cache.get(counter_key))
+        self.assertIsNone(cache.get(self.ids_key))
+
+        inc_entity_list_num_entities(self.entity_list.pk)
+
+        self.assertEqual(cache.get(counter_key), 1)
+        self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk})
+        self.entity_list.refresh_from_db()
+        # Database counter should not be updated
+        self.assertEqual(self.entity_list.num_entities, 10)
+        # New EntityList
+        vaccine = EntityList.objects.create(name="vaccine", project=self.project)
+        inc_entity_list_num_entities(vaccine.pk)
+
+        self.assertEqual(cache.get(f"{self.counter_key_prefix}{vaccine.pk}"), 1)
+        self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk, vaccine.pk})
+        vaccine.refresh_from_db()
+        self.assertEqual(vaccine.num_entities, 0)

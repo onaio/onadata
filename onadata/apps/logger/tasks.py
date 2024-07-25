@@ -1,5 +1,7 @@
 # pylint: disable=import-error,ungrouped-imports
-"""Module for logger tasks"""
+"""
+Asynchronous tasks for the logger app
+"""
 import logging
 
 from django.core.cache import cache
@@ -8,9 +10,18 @@ from django.db import DatabaseError
 
 from onadata.apps.logger.models import Entity, EntityList, Project
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    ENTITY_LIST_NUM_ENTITIES_CACHE,
+    ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
+    LOCK_SUFFIX,
+    PROJECT_DATE_MODIFIED_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.project_utils import set_project_perms_to_object
-from onadata.libs.utils.logger_tools import soft_delete_entities_bulk
+from onadata.libs.utils.logger_tools import (
+    inc_entity_list_num_entities_db,
+    soft_delete_entities_bulk,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -71,3 +82,23 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
 
     else:
         soft_delete_entities_bulk(entity_qs, deleted_by)
+
+
+def commit_cached_entity_list_num_entities():
+    """Commit cached EntityList entities count to the database"""
+    # Lock cache from further updates
+    lock_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
+    cache.set(lock_key, "true", 7200)
+    entity_list_ids: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+
+    for id in entity_list_ids:
+        counter_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{id}"
+        counter: int = cache.get(counter_key, 0)
+
+        if counter:
+            inc_entity_list_num_entities_db(id, counter)
+
+        safe_delete(counter_key)
+
+    safe_delete(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS)
+    safe_delete(lock_key)

@@ -21,6 +21,7 @@ from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import (
     MultipleObjectsReturned,
     PermissionDenied,
@@ -28,7 +29,7 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
@@ -53,6 +54,7 @@ from rest_framework.response import Response
 from onadata.apps.logger.models import (
     Attachment,
     Entity,
+    EntityList,
     Instance,
     RegistrationForm,
     XForm,
@@ -91,6 +93,11 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
+from onadata.libs.utils.cache_tools import (
+    ENTITY_LIST_NUM_ENTITIES_CACHE,
+    ENTITY_LIST_NUM_ENTITIES_CACHE_IDS,
+    LOCK_SUFFIX,
+)
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid, queryset_iterator
@@ -1142,3 +1149,102 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     elif not exists and entity_node.getAttribute("create") in mutation_success_checks:
         # Create Entity
         create_entity_from_instance(instance, registration_form)
+
+
+def inc_entity_list_num_entities_db(pk: int, count=1) -> None:
+    """Increment EntityList `num_entities` counter in the database
+
+    Args:
+        pk (int): Primary key for EntityList
+        count (int): Value to increase by
+    """
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") + count)
+
+
+def dec_entity_list_num_entities_db(pk: int, count=1) -> None:
+    """Decrement EntityList `num_entities` counter in the database
+
+    Args:
+        pk (int): Primary key for EntityList
+        count (int): Value to decrease by
+    """
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") - count)
+
+
+def _inc_entity_list_num_entities_cache(pk: int) -> None:
+    """Increment EntityList `num_entities` counter in cache
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
+    counter_cache_ttl = getattr(settings, "ENTITY_LIST_NUM_ENTITIES_CACHE_TTL", 7200)
+    counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
+    ids_cache: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, set())
+
+    if pk not in ids_cache:
+        ids_cache.add(pk)
+        cache.set(ENTITY_LIST_NUM_ENTITIES_CACHE_IDS, ids_cache, counter_cache_ttl)
+
+    if not counter_cache_created:
+        cache.incr(counter_cache_key)
+
+
+def _dec_entity_list_num_entities_cache(pk: int) -> None:
+    """Decrement EntityList `num_entities` counter in cache
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
+
+    if cache.get(counter_cache_key) is not None:
+        cache.decr(counter_cache_key)
+
+
+def inc_entity_list_num_entities(pk: int) -> None:
+    """Increment EntityList `num_entities` counter
+
+    Updates cached counter if cache is not locked. Else, the database
+    counter is updated
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+
+    if _is_entity_list_num_entities_cache_locked():
+        inc_entity_list_num_entities_db(pk)
+
+    else:
+        _inc_entity_list_num_entities_cache(pk)
+
+
+def dec_entity_list_num_entities(pk: int) -> None:
+    """Decrement EntityList `num_entities` counter
+
+    Updates cached counter if cache is not locked. Else, the database
+    counter is updated
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+
+    if _is_entity_list_num_entities_cache_locked():
+        dec_entity_list_num_entities_db(pk)
+
+    else:
+        _dec_entity_list_num_entities_cache(pk)
+
+
+def _is_entity_list_num_entities_cache_locked():
+    """Checks if EntityList `num_entities` cached counter is locked
+
+    Returns True, if cache is locked, False otherwise
+    """
+    cache_key_lock = f"{ENTITY_LIST_NUM_ENTITIES_CACHE_IDS}{LOCK_SUFFIX}"
+
+    return cache.get(cache_key_lock) is not None

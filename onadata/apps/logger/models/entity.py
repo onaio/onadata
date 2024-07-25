@@ -13,6 +13,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.libs.models import BaseModel
 
+
 User = get_user_model()
 
 
@@ -40,8 +41,9 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            self.entity_list.num_entities = models.F("num_entities") - 1
-            self.entity_list.save()
+            from onadata.libs.utils import logger_tools
+
+            logger_tools.dec_entity_list_num_entities(self.entity_list.pk)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
