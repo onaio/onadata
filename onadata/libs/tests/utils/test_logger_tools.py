@@ -874,12 +874,16 @@ class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
     def test_entity_list_counter_dec_cache_unlocked(self):
         """Cache counter is decremented if cache is unlocked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
-
         cache.set(counter_key, 3)
-
         dec_entity_list_num_entities(self.entity_list.pk)
 
         self.assertEqual(cache.get(counter_key), 2)
         self.entity_list.refresh_from_db()
         # Database counter should not be updated
         self.assertEqual(self.entity_list.num_entities, 10)
+
+        # Database counter is decremented if cache missing
+        cache.delete(counter_key)
+        dec_entity_list_num_entities(self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(self.entity_list.num_entities, 9)

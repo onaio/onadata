@@ -1232,8 +1232,12 @@ def dec_entity_list_num_entities(pk: int) -> None:
     Args:
         pk (int): Primary key for EntityList
     """
+    counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES_CACHE}{pk}"
 
-    if _is_entity_list_num_entities_cache_locked():
+    if (
+        _is_entity_list_num_entities_cache_locked()
+        or cache.get(counter_cache_key) is None
+    ):
         dec_entity_list_num_entities_db(pk)
 
     else:
