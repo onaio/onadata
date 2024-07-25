@@ -185,6 +185,7 @@ class OrganizationProfile(UserProfile):
 
     @property
     def email(self):
+        "organization email"
         return self.user.email
 
     def remove_user_from_organization(self, user):
