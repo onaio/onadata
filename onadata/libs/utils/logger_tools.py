@@ -1192,11 +1192,9 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
     counter_cache_ttl = None
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
     add_to_cached_set(ELIST_NUM_ENTITIES_IDS, pk, counter_cache_ttl)
-
-    if cache.get(ELIST_NUM_ENTITIES_CREATED_AT) is None:
-        cache.set(
-            ELIST_NUM_ENTITIES_CREATED_AT, timezone.now().isoformat(), counter_cache_ttl
-        )
+    cache.add(
+        ELIST_NUM_ENTITIES_CREATED_AT, timezone.now().isoformat(), counter_cache_ttl
+    )
 
     if not counter_cache_created:
         cache.incr(counter_cache_key)
