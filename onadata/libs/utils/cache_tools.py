@@ -219,3 +219,27 @@ def safe_cache_get(key, default=None):
         # older Python versions
         logger.exception(exc)
         return default
+
+
+def safe_cache_set(key, value, timeout=None):
+    """
+    Safely set a value in the cache.
+
+    Args:
+        key (str): The cache key to set.
+        value (Any): The value to store in the cache.
+        timeout (int, optional): The cache timeout in seconds. If None,
+            the default cache timeout will be used.
+
+    Returns:
+        None
+    """
+    try:
+        cache.set(key, value, timeout)
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
