@@ -14,8 +14,8 @@ from onadata.apps.logger.tasks import set_entity_list_perms_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.logger_tools import (
     create_or_update_entity_from_instance,
-    dec_entity_list_num_entities,
-    inc_entity_list_num_entities,
+    dec_elist_num_entities,
+    inc_elist_num_entities,
 )
 
 
@@ -52,13 +52,13 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
     entity_list = instance.entity_list
 
     if created:
-        inc_entity_list_num_entities(entity_list.pk)
+        inc_elist_num_entities(entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
 def decrement_entity_list_num_entities(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
-    dec_entity_list_num_entities(instance.entity_list.pk)
+    dec_elist_num_entities(instance.entity_list.pk)
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")

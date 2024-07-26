@@ -22,7 +22,7 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.logger.tasks import delete_entities_bulk_async
 from onadata.libs.permissions import CAN_VIEW_PROJECT
-from onadata.libs.utils.cache_tools import ENTITY_LIST_NUM_ENTITIES
+from onadata.libs.utils.cache_tools import ELIST_NUM_ENTITIES
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
 
         Adds cached counter to database counter
         """
-        cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{obj.pk}"
+        cache_key = f"{ELIST_NUM_ENTITIES}{obj.pk}"
 
         try:
 

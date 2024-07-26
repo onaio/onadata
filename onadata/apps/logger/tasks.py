@@ -16,7 +16,7 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.project_utils import set_project_perms_to_object
 from onadata.libs.utils.logger_tools import (
-    commit_entity_list_num_entities,
+    commit_cached_elist_num_entities,
     soft_delete_entities_bulk,
 )
 
@@ -91,4 +91,4 @@ def commit_entity_list_num_entities_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    commit_entity_list_num_entities()
+    commit_cached_elist_num_entities()
