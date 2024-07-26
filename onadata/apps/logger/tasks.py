@@ -53,7 +53,7 @@ def apply_project_date_modified_async():
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def commit_entity_list_num_entities_async():
+def commit_cached_elist_num_entities_async():
     """Commit cached EntityList `num_entities` counter to the database
 
     Call this task periodically, such as in a background task to ensure

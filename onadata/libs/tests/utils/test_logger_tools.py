@@ -919,7 +919,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertIsNone(cache.get(self.ids_key))
         self.assertIsNone(cache.get(self.created_at_key))
         subject = "Periodic task not running"
-        task_name = "onadata.apps.logger.tasks.commit_entity_list_num_entities_async"
+        task_name = "onadata.apps.logger.tasks.commit_cached_elist_num_entities_async"
         msg = (
             f"The failover has been executed because task {task_name} "
             "is not configured or has malfunctioned"
