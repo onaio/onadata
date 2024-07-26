@@ -3,6 +3,8 @@
 Cache utilities.
 """
 import hashlib
+import logging
+import socket
 
 from collections import defaultdict
 from threading import Lock
@@ -10,8 +12,10 @@ from threading import Lock
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
+
 # Define a global dictionary to store locks for each key
 locks = defaultdict(Lock)
+logger = logging.getLogger(__name__)
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -138,3 +142,28 @@ def add_to_cached_set(set_name, item, timeout=3600):
         if item not in cached_set:
             cached_set.add(item)
             cache.set(set_name, cached_set, timeout)
+
+
+def safe_cache_get(key, default=None):
+    """
+    Safely get a value from the cache.
+
+    Args:
+        key (str): The cache key to retrieve.
+        default (Any): The default value to return if the cache is inaccessible
+            or the key does not exist.
+
+    Returns:
+        Any: The value from the cache if accessible, otherwise the default value.
+    """
+    try:
+        return cache.get(key, default)
+    except ConnectionError as e:
+        # Handle cache connection error
+        logger.exception(e)
+        return default
+    except socket.error as e:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(e)
+        return default
