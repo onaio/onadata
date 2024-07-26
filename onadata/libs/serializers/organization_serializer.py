@@ -48,7 +48,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = OrganizationProfile
         exclude = ("created_by", "is_organization", "organization")
-        owner_only_fields = ("metadata",)
+        owner_only_fields = ("metadata", "email")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
