@@ -845,7 +845,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         self.assertEqual(cache.get(self.counter_key), 1)
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk})
-        self.assertEqual(cache.get(self.created_at_key), mocked_now.isoformat())
+        self.assertEqual(cache.get(self.created_at_key), mocked_now)
         self.entity_list.refresh_from_db()
         # Database counter should not be updated
         self.assertEqual(self.entity_list.num_entities, 10)
@@ -888,7 +888,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         mock_cache_add.assert_has_calls(
             [
                 call(self.counter_key, 1, None),
-                call(self.created_at_key, mocked_now.isoformat(), None),
+                call(self.created_at_key, mocked_now, None),
             ]
         )
         mock_cache_set.assert_called_once_with(
@@ -898,11 +898,11 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
     def test_time_cache_set_once(self):
         """The cached time of creation is set once"""
         now = timezone.now()
-        cache.set(self.created_at_key, now.isoformat())
+        cache.set(self.created_at_key, now)
 
         inc_elist_num_entities(self.entity_list.pk)
         # Cache value is not overridden
-        self.assertEqual(cache.get(self.created_at_key), now.isoformat())
+        self.assertEqual(cache.get(self.created_at_key), now)
 
     @override_settings(ELIST_CACHED_COUNTER_FAILOVER_TTL=3)
     @patch("onadata.libs.utils.logger_tools.report_exception")
@@ -910,7 +910,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Failover is executed if commit timeout threshold exceeded"""
         cache_created_at = timezone.now() - timedelta(seconds=10)
         cache.set(self.counter_key, 3)
-        cache.set(self.created_at_key, cache_created_at.isoformat())
+        cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
 
         inc_elist_num_entities(self.entity_list.pk)
@@ -983,7 +983,7 @@ class CommitCachedEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Cached counter is commited in the database"""
         cache.set(self.ids_key, {self.entity_list.pk})
         cache.set(self.counter_key, 3)
-        cache.set(self.created_at_key, timezone.now().isoformat())
+        cache.set(self.created_at_key, timezone.now())
         commit_cached_elist_num_entities()
         self.entity_list.refresh_from_db()
 
@@ -1003,7 +1003,7 @@ class CommitCachedEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         cache.set(self.lock_key, "true")
         cache.set(self.ids_key, {self.entity_list.pk})
         cache.set(self.counter_key, 3)
-        cache.set(self.created_at_key, timezone.now().isoformat())
+        cache.set(self.created_at_key, timezone.now())
         commit_cached_elist_num_entities()
         self.entity_list.refresh_from_db()
 

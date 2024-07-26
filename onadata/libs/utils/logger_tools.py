@@ -1192,9 +1192,7 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
     counter_cache_ttl = None
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
     add_to_cached_set(ELIST_NUM_ENTITIES_IDS, pk, counter_cache_ttl)
-    cache.add(
-        ELIST_NUM_ENTITIES_CREATED_AT, timezone.now().isoformat(), counter_cache_ttl
-    )
+    cache.add(ELIST_NUM_ENTITIES_CREATED_AT, timezone.now(), counter_cache_ttl)
 
     if not counter_cache_created:
         cache.incr(counter_cache_key)
@@ -1307,12 +1305,10 @@ def _exec_cached_elist_counter_commit_failover() -> None:
     Acts as a failover incase the cron job responsible for committing
     the cached data fails or is not configured
     """
-    time_str: str | None = cache.get(ELIST_NUM_ENTITIES_CREATED_AT)
+    cache_created_at: datetime | None = cache.get(ELIST_NUM_ENTITIES_CREATED_AT)
 
-    if time_str is None:
+    if cache_created_at is None:
         return
-
-    cache_created_at = datetime.fromisoformat(time_str)
 
     # If the time lapse is > ELIST_CACHED_COUNTER_FAILOVER_TTL, run the failover
     failover_ttl: int = getattr(settings, "ELIST_CACHED_COUNTER_FAILOVER_TTL", 7200)
