@@ -860,13 +860,15 @@ class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         with patch(
             "onadata.libs.utils.logger_tools._inc_entity_list_num_entities_cache"
         ) as mock_inc:
-            mock_inc.side_effect = ConnectionError
-            cache.set(counter_key, 3)
-            inc_entity_list_num_entities(self.entity_list.pk)
-            self.entity_list.refresh_from_db()
+            with patch("onadata.libs.utils.logger_tools.logger.exception") as mock_exc:
+                mock_inc.side_effect = ConnectionError
+                cache.set(counter_key, 3)
+                inc_entity_list_num_entities(self.entity_list.pk)
+                self.entity_list.refresh_from_db()
 
-            self.assertEqual(cache.get(counter_key), 3)
-            self.assertEqual(self.entity_list.num_entities, 11)
+                self.assertEqual(cache.get(counter_key), 3)
+                self.assertEqual(self.entity_list.num_entities, 11)
+                mock_exc.assert_called_once()
 
 
 class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
@@ -905,13 +907,15 @@ class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         with patch(
             "onadata.libs.utils.logger_tools._dec_entity_list_num_entities_cache"
         ) as mock_dec:
-            mock_dec.side_effect = ConnectionError
-            cache.set(counter_key, 3)
-            dec_entity_list_num_entities(self.entity_list.pk)
-            self.entity_list.refresh_from_db()
+            with patch("onadata.libs.utils.logger_tools.logger.exception") as mock_exc:
+                mock_dec.side_effect = ConnectionError
+                cache.set(counter_key, 3)
+                dec_entity_list_num_entities(self.entity_list.pk)
+                self.entity_list.refresh_from_db()
 
-            self.assertEqual(cache.get(counter_key), 3)
-            self.assertEqual(self.entity_list.num_entities, 8)
+                self.assertEqual(cache.get(counter_key), 3)
+                self.assertEqual(self.entity_list.num_entities, 8)
+                mock_exc.assert_called_once()
 
 
 class CommitEntityListNumEntitiesTestCase(TestBase):
@@ -941,3 +945,16 @@ class CommitEntityListNumEntitiesTestCase(TestBase):
         commit_entity_list_num_entities()
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 10)
+
+    def test_lock_already_acquired(self):
+        """Commit unsuccessful if lock is already acquired"""
+        cache.set("el-num-entities-ids-lock", "true")
+        cache.set("el-num-entities-ids", {self.entity_list.pk})
+        cache.set(f"el-num-entities-{self.entity_list.pk}", 3)
+        commit_entity_list_num_entities()
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 10)
+        self.assertIsNotNone(cache.get("el-num-entities-ids"))
+        self.assertIsNotNone(cache.get(f"el-num-entities-{self.entity_list.pk}"))
+        self.assertIsNotNone(cache.get("el-num-entities-ids-lock"))
