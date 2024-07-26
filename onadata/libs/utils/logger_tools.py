@@ -1267,7 +1267,7 @@ def _is_entity_list_num_entities_cache_locked() -> bool:
 
 
 def commit_entity_list_num_entities() -> None:
-    """Commit cached EntityList `num_entities` count to the database
+    """Commit cached EntityList `num_entities` counter to the database
 
     Commit is successful if no other process holds the lock
     """
