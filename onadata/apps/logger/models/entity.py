@@ -43,7 +43,7 @@ class Entity(BaseModel):
             self.save(update_fields=["deleted_at", "deleted_by"])
             # Avoid cyclic dependency errors
             logger_tools = importlib.import_module("onadata.libs.utils.logger_tools")
-            logger_tools.dec_entity_list_num_entities(self.entity_list.pk)
+            logger_tools.dec_elist_num_entities(self.entity_list.pk)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
