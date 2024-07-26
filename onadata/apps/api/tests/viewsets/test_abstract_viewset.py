@@ -225,6 +225,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         data["url"] = f"http://testserver/api/v1/orgs/{data['org']}"
         data["user"] = f"http://testserver/api/v1/users/{data['org']}"
         data["creator"] = "http://testserver/api/v1/users/bob"
+        data.pop("email")
         self.assertDictContainsSubset(data, response.data)
         # pylint: disable=attribute-defined-outside-init
         self.company_data = response.data

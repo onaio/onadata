@@ -66,11 +66,12 @@ class OrganizationProfileViewSet(
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
         username = kwargs.get("user")
-        cached_org = cache.get(f"{ORG_PROFILE_CACHE}{username}{request.user.username}")
+        cache_key = f"{ORG_PROFILE_CACHE}{username}{request.user.username}"
+        cached_org = cache.get(cache_key)
         if cached_org:
             return Response(cached_org)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(f"{ORG_PROFILE_CACHE}{username}{request.user.username}", response.data)
+        cache.set(cache_key, response.data)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -91,7 +92,8 @@ class OrganizationProfileViewSet(
         """Update org in cache and db"""
         username = kwargs.get("user")
         response = super().update(request, *args, **kwargs)
-        cache.set(f"{ORG_PROFILE_CACHE}{username}{request.user.username}", response.data)
+        cache_key = f"{ORG_PROFILE_CACHE}{username}{request.user.username}"
+        cache.set(cache_key, response.data)
         return response
 
     @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
