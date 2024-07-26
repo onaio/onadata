@@ -805,6 +805,7 @@ class EntityListNumEntitiesBase(TestBase):
         self.ids_key = "el-num-entities-ids"
         self.lock = f"{self.ids_key}-lock"
         self.counter_key_prefix = "el-num-entities-"
+        self.counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -815,7 +816,7 @@ class EntityListNumEntitiesBase(TestBase):
 class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
     """Tests for method `inc_entity_list_num_entities`"""
 
-    def test_entity_list_counter_inc_cache_locked(self):
+    def test_cache_locked(self):
         """Database counter is incremented if cache is locked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(self.lock, "true")
@@ -827,7 +828,7 @@ class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         # Cached counter should not be updated
         self.assertEqual(cache.get(counter_key), 3)
 
-    def test_entity_list_counter_inc_cache_unlocked(self):
+    def test_cache_unlocked(self):
         """Cache counter is incremented if cache is unlocked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
 
@@ -864,11 +865,26 @@ class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
                 self.assertEqual(self.entity_list.num_entities, 11)
                 mock_exc.assert_called_once()
 
+    @patch.object(cache, "set")
+    @patch.object(cache, "add")
+    def test_cache_no_expire(self, mock_cache_add, mock_cache_set):
+        """Cached counter does not expire
+
+        Clean up should be done periodically such as in a background task
+        """
+        inc_entity_list_num_entities(self.entity_list.pk)
+
+        # Timeout should be `None`
+        mock_cache_add.assert_called_once_with(self.counter_key, 1, None)
+        mock_cache_set.assert_called_once_with(
+            self.ids_key, {self.entity_list.pk}, None
+        )
+
 
 class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
     """Tests for method `dec_entity_list_num_entities`"""
 
-    def test_entity_list_counter_dec_cache_locked(self):
+    def test_cache_locked(self):
         """Database counter is decremented if cache is locked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(self.lock, "true")
@@ -880,7 +896,7 @@ class DecEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
         # Cached counter should not be updated
         self.assertEqual(cache.get(counter_key), 3)
 
-    def test_entity_list_counter_dec_cache_unlocked(self):
+    def test_cache_unlocked(self):
         """Cache counter is decremented if cache is unlocked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(counter_key, 3)
