@@ -86,6 +86,9 @@ def commit_entity_list_num_entities_async():
 
     Call this task periodically, such as in a background task to ensure
     cached counters for EntityList `num_entities` are commited to the
-    database
+    database.
+
+    Cached counters have no expiry, so it is essential to ensure that
+    this task is called periodically.
     """
     commit_entity_list_num_entities()

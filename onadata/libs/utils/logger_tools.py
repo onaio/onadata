@@ -1184,9 +1184,12 @@ def _inc_entity_list_num_entities_cache(pk: int) -> None:
         pk (int): Primary key for EntityList
     """
     counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
-    counter_cache_ttl = getattr(settings, "ENTITY_LIST_NUM_ENTITIES_CACHE_TTL", 7200)
+    # Cache timeout is None (no expiry). A background task should be run
+    # periodically to persist the cached counters to the db
+    # and delete the cache
+    counter_cache_ttl = None
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
-    add_to_cached_set(ENTITY_LIST_NUM_ENTITIES_IDS, pk)
+    add_to_cached_set(ENTITY_LIST_NUM_ENTITIES_IDS, pk, counter_cache_ttl)
 
     if not counter_cache_created:
         cache.incr(counter_cache_key)
