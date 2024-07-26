@@ -120,7 +120,7 @@ def get_lock_for_key(key):
     return locks[key]
 
 
-def add_to_cached_set(set_name, item):
+def add_to_cached_set(set_name, item, timeout=3600):
     """
     Add an item to a cached set using locking to avoid race conditions.
 
@@ -136,4 +136,4 @@ def add_to_cached_set(set_name, item):
 
         if item not in cached_set:
             cached_set.add(item)
-            cache.set(set_name, cached_set)
+            cache.set(set_name, cached_set, timeout)

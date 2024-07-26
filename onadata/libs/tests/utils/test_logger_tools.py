@@ -809,13 +809,7 @@ class EntityListNumEntitiesBase(TestBase):
     def tearDown(self) -> None:
         super().tearDown()
 
-        ids = cache.get(self.ids_key, set())
-
-        for id in ids:
-            cache.delete(f"{self.counter_key_prefix}{id}")
-
-        cache.delete(self.ids_key)
-        cache.delete(self.lock)
+        cache.clear()
 
 
 class IncEntityListNumEntitiesTestCase(EntityListNumEntitiesBase):
