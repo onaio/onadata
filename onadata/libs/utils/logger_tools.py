@@ -98,6 +98,7 @@ from onadata.libs.utils.cache_tools import (
     ENTITY_LIST_NUM_ENTITIES_IDS,
     ENTITY_LIST_NUM_ENTITIES_LOCK,
     safe_delete,
+    add_to_cached_set,
 )
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
@@ -1185,11 +1186,7 @@ def _inc_entity_list_num_entities_cache(pk: int) -> None:
     counter_cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
     counter_cache_ttl = getattr(settings, "ENTITY_LIST_NUM_ENTITIES_CACHE_TTL", 7200)
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
-    ids_cache: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
-
-    if pk not in ids_cache:
-        ids_cache.add(pk)
-        cache.set(ENTITY_LIST_NUM_ENTITIES_IDS, ids_cache, counter_cache_ttl)
+    add_to_cached_set(ENTITY_LIST_NUM_ENTITIES_IDS, pk)
 
     if not counter_cache_created:
         cache.incr(counter_cache_key)
