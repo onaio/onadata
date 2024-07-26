@@ -37,6 +37,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
+    email = serializers.EmailField(allow_blank=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
@@ -47,7 +48,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = OrganizationProfile
         exclude = ("created_by", "is_organization", "organization")
-        owner_only_fields = ("metadata",)
+        owner_only_fields = ("metadata", "email")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

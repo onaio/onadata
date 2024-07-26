@@ -66,11 +66,12 @@ class OrganizationProfileViewSet(
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
         username = kwargs.get("user")
-        cached_org = cache.get(f"{ORG_PROFILE_CACHE}{username}")
+        cache_key = f"{ORG_PROFILE_CACHE}{username}{request.user.username}"
+        cached_org = cache.get(cache_key)
         if cached_org:
             return Response(cached_org)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(f"{ORG_PROFILE_CACHE}{username}", response.data)
+        cache.set(cache_key, response.data)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -78,20 +79,21 @@ class OrganizationProfileViewSet(
         response = super().create(request, *args, **kwargs)
         organization = response.data
         username = organization.get("org")
-        cache.set(f"{ORG_PROFILE_CACHE}{username}", organization)
+        cache.set(f"{ORG_PROFILE_CACHE}{username}{request.user.username}", organization)
         return response
 
     def destroy(self, request, *args, **kwargs):
         """Clear cache and destroy organization"""
         username = kwargs.get("user")
-        safe_delete(f"{ORG_PROFILE_CACHE}{username}")
+        safe_delete(f"{ORG_PROFILE_CACHE}{username}{request.user.username}")
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
         username = kwargs.get("user")
         response = super().update(request, *args, **kwargs)
-        cache.set(f"{ORG_PROFILE_CACHE}{username}", response.data)
+        cache_key = f"{ORG_PROFILE_CACHE}{username}{request.user.username}"
+        cache.set(cache_key, response.data)
         return response
 
     @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
@@ -120,7 +122,7 @@ class OrganizationProfileViewSet(
             data = OrganizationSerializer(
                 organization, context={"request": request}
             ).data
-            cache.set(f"{ORG_PROFILE_CACHE}{username}", data)
+            cache.set(f"{ORG_PROFILE_CACHE}{username}{request.user.username}", data)
         else:
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
