@@ -3,6 +3,7 @@ Entity model
 """
 
 import uuid
+import importlib
 
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
@@ -40,10 +41,9 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.logger_tools import dec_entity_list_num_entities
-
-            dec_entity_list_num_entities(self.entity_list.pk)
+            # Avoid cyclic dependency errors
+            logger_tools = importlib.import_module("onadata.libs.utils.logger_tools")
+            logger_tools.dec_entity_list_num_entities(self.entity_list.pk)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
