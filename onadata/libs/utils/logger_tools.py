@@ -1322,7 +1322,7 @@ def _exec_cached_elist_counter_commit_failover() -> None:
     if time_lapse.total_seconds() > failover_ttl:
         commit_cached_elist_num_entities()
         subject = "Periodic task not running"
-        task_name = "onadata.apps.logger.tasks.commit_entity_list_num_entities_async"
+        task_name = "onadata.apps.logger.tasks.commit_cached_elist_num_entities_async"
         msg = (
             f"The failover has been executed because task {task_name} "
             "is not configured or has malfunctioned"
