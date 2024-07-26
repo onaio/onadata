@@ -3,9 +3,12 @@
 Cache utilities.
 """
 import hashlib
+from threading import Lock
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
+
+lock = Lock()
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -99,3 +102,19 @@ def reset_project_cache(project, request, project_serializer_class):
         project, context={"request": request}
     ).data
     cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+
+
+def add_to_cached_set(set_name, item):
+    """
+    Add an item to a cached set using locking to avoid race conditions.
+
+    Args:
+        set_name (str): The name of the set.
+        item (str): The item to add to the set.
+    """
+    with lock:
+        cached_set = cache.get(set_name, set())
+
+        if item not in cached_set:
+            cached_set.add(item)
+            cache.set(set_name, cached_set)
