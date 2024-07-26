@@ -1303,7 +1303,8 @@ def commit_cached_elist_num_entities() -> None:
 
 def _exec_cached_elist_counter_commit_failover() -> None:
     """Check the time lapse since the cached EntityList `num_entities`
-    was created and commit if the time lapse exceeds the threshold allowed
+    counters were created and commit if the time lapse exceeds
+    the threshold allowed.
 
     Acts as a failover incase the cron job responsible for committing
     the cached data fails or is not configured
