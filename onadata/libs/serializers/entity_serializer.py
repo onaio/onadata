@@ -2,6 +2,8 @@
 """
 Entities serializer module.
 """
+import logging
+
 from django.core.cache import cache
 from django.utils.translation import gettext as _
 
@@ -21,6 +23,8 @@ from onadata.apps.logger.models import (
 from onadata.apps.logger.tasks import delete_entities_bulk_async
 from onadata.libs.permissions import CAN_VIEW_PROJECT
 from onadata.libs.utils.cache_tools import ENTITY_LIST_NUM_ENTITIES
+
+logger = logging.getLogger(__name__)
 
 
 class EntityListSerializer(serializers.ModelSerializer):
@@ -98,8 +102,14 @@ class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
         """
         cache_key = f"{ENTITY_LIST_NUM_ENTITIES}{obj.pk}"
 
-        if cache.get(cache_key) is not None:
-            return obj.num_entities + cache.get(cache_key)
+        try:
+
+            if cache.get(cache_key) is not None:
+                return obj.num_entities + cache.get(cache_key)
+
+        except ConnectionError as exc:
+            # Cache inaccessible
+            logger.exception(exc)
 
         return obj.num_entities
 

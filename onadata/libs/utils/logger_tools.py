@@ -1224,7 +1224,8 @@ def inc_entity_list_num_entities(pk: int) -> None:
         try:
             _inc_entity_list_num_entities_cache(pk)
 
-        except ConnectionError:
+        except ConnectionError as exc:
+            logger.exception(exc)
             # Fallback to db if cache inacessible
             _inc_entity_list_num_entities_db(pk)
 
@@ -1250,7 +1251,8 @@ def dec_entity_list_num_entities(pk: int) -> None:
         try:
             _dec_entity_list_num_entities_cache(pk)
 
-        except ConnectionError:
+        except ConnectionError as exc:
+            logger.exception(exc)
             # Fallback to db if cache inacessible
             _dec_entity_list_num_entities_db(pk)
 
@@ -1265,19 +1267,23 @@ def _is_entity_list_num_entities_cache_locked() -> bool:
 
 
 def commit_entity_list_num_entities() -> None:
-    """Commit cached EntityList `num_entities` count to the database"""
-    # Lock cache from further updates
-    cache.set(ENTITY_LIST_NUM_ENTITIES_LOCK, "true", 7200)
-    entity_list_pks: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
+    """Commit cached EntityList `num_entities` count to the database
 
-    for pk in entity_list_pks:
-        counter_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
-        counter: int = cache.get(counter_key, 0)
+    Commit is successful if no other process holds the lock
+    """
+    lock_acquired = cache.add(ENTITY_LIST_NUM_ENTITIES_LOCK, "true", 7200)
 
-        if counter:
-            _inc_entity_list_num_entities_db(pk, counter)
+    if lock_acquired:
+        entity_list_pks: set[int] = cache.get(ENTITY_LIST_NUM_ENTITIES_IDS, set())
 
-        safe_delete(counter_key)
+        for pk in entity_list_pks:
+            counter_key = f"{ENTITY_LIST_NUM_ENTITIES}{pk}"
+            counter: int = cache.get(counter_key, 0)
 
-    safe_delete(ENTITY_LIST_NUM_ENTITIES_IDS)
-    safe_delete(ENTITY_LIST_NUM_ENTITIES_LOCK)
+            if counter:
+                _inc_entity_list_num_entities_db(pk, counter)
+
+            safe_delete(counter_key)
+
+        safe_delete(ENTITY_LIST_NUM_ENTITIES_IDS)
+        safe_delete(ENTITY_LIST_NUM_ENTITIES_LOCK)

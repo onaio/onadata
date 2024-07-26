@@ -398,6 +398,19 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]["num_entities"], 12)
 
+        # Defaults to database counter if cache inaccessible
+        with patch.object(cache, "get") as mock_cache_get:
+            with patch(
+                "onadata.libs.serializers.entity_serializer.logger.exception"
+            ) as mock_exc:
+                mock_cache_get.side_effect = ConnectionError
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data[0]["num_entities"], 5)
+                mock_exc.assert_called()
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):
