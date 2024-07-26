@@ -400,9 +400,7 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
 
         # Defaults to database counter if cache inaccessible
         with patch.object(cache, "get") as mock_cache_get:
-            with patch(
-                "onadata.libs.serializers.entity_serializer.logger.exception"
-            ) as mock_exc:
+            with patch("onadata.libs.utils.cache_tools.logger.exception") as mock_exc:
                 mock_cache_get.side_effect = ConnectionError
                 request = self.factory.get("/", **self.extra)
                 response = self.view(request)
