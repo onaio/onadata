@@ -1235,7 +1235,7 @@ def dec_entity_list_num_entities(pk: int) -> None:
     """Decrement EntityList `num_entities` counter
 
     Updates cached counter if cache is not locked. Else, the database
-    counter is updated
+    counter is updated.
 
     Args:
         pk (int): Primary key for EntityList
@@ -1260,6 +1260,12 @@ def dec_entity_list_num_entities(pk: int) -> None:
 
 def _is_entity_list_num_entities_cache_locked() -> bool:
     """Checks if EntityList `num_entities` cached counter is locked
+
+    Typically, the cache is locked if the cached data is in the process
+    of being persisted in the database.
+
+    The cache is locked to ensure no further updates are made when the
+    data is being committed to the database.
 
     Returns True, if cache is locked, False otherwise
     """
