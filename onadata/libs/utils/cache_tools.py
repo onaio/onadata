@@ -210,12 +210,12 @@ def safe_cache_get(key, default=None):
     """
     try:
         return cache.get(key, default)
-    except ConnectionError as e:
+    except ConnectionError as exc:
         # Handle cache connection error
-        logger.exception(e)
+        logger.exception(exc)
         return default
-    except socket.error as e:
+    except socket.error as exc:
         # Handle other potential connection errors, especially for
         # older Python versions
-        logger.exception(e)
+        logger.exception(exc)
         return default
