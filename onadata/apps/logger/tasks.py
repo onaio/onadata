@@ -82,7 +82,7 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
 
 
 def commit_entity_list_num_entities_async():
-    """Commit cached EntityList entities count to the database
+    """Commit cached EntityList `num_entities` counter to the database
 
     Call this task periodically, such as in a background task to ensure
     cached counters for EntityList `num_entities` are commited to the
