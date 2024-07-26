@@ -5,13 +5,16 @@ Cache utilities.
 import hashlib
 import logging
 import socket
+
+from collections import defaultdict
 from threading import Lock
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
-lock = Lock()
+# Define a global dictionary to store locks for each key
+locks = defaultdict(Lock)
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -160,6 +163,19 @@ def safe_cache_get(key, default=None):
         return default
 
 
+def get_lock_for_key(key):
+    """
+    Get a lock for a specific cache key.
+
+    Args:
+        key (str): The name of the cache key.
+
+    Returns:
+        Lock: The lock associated with the key.
+    """
+    return locks[key]
+
+
 def add_to_cached_set(set_name, item):
     """
     Add an item to a cached set using locking to avoid race conditions.
@@ -168,6 +184,9 @@ def add_to_cached_set(set_name, item):
         set_name (str): The name of the set.
         item (str): The item to add to the set.
     """
+
+    lock = get_lock_for_key(set_name)
+
     with lock:
         cached_set = cache.get(set_name, set())
 
