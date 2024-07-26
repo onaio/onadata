@@ -1486,7 +1486,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
     def test_delete(self, mock_now):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
-        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
         request = self.factory.delete(
@@ -1499,7 +1499,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 0)
         self.assertEqual(
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )

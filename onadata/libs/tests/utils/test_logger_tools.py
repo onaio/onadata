@@ -722,7 +722,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(str(entity.uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
 
-        self.assertEqual(entity_list.num_entities, 1)
+        self.assertEqual(cache.get(f"el-num-entities-{entity_list.pk}"), 1)
         self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)
         self.assertEqual(entity.history.count(), 1)
 
