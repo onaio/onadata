@@ -2,7 +2,7 @@
 Tests messaging app utils
 """
 import json
-from mock import patch
+from unittest.mock import patch
 
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
