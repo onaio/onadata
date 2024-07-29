@@ -3,6 +3,33 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.3.4(2024-07-29)
+------------------
+- Entities search
+  `PR #2643 <https://github.com/onaio/onadata/pull/2643>`
+  [@kelvin-muchiri]
+- Optimize updates to project `date_modified` field when submitting data
+  `PR #2642 <https://github.com/onaio/onadata/pull/2642>`
+  [@KipSigei]
+- Add support for defining Entity properties within grouped sections
+  `PR #2644 <https://github.com/onaio/onadata/pull/2644>`
+  [@kelvin-muchiri]
+- Remove default ordering on XForm, Attachment model
+  `PR #2645 <https://github.com/onaio/onadata/pull/2645>`
+  [@kelvin-muchiri]
+- Cache XForm manifest data
+  `PR #2646 <https://github.com/onaio/onadata/pull/2646>`
+  [@kelvin-muchiri]
+- Exclude deleted Entities from form's manifest data by
+  `PR #2648 <https://github.com/onaio/onadata/pull/2648>`
+  [@kelvin-muchiri]
+- Add email field to the organization serializer
+  `PR #2647 <https://github.com/onaio/onadata/pull/2647>`
+  [@FrankApiyo]
+- Use actual User, Group instances in migration file
+  `PR #2655 <https://github.com/onaio/onadata/pull/2655>`
+  [@kelvin-muchiri]
+
 v4.3.3(2024-07-10)
 ------------------
 - Add Entity related data to forms on project retrieve endpoint 
