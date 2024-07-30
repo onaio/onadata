@@ -5,15 +5,12 @@ Cache utilities.
 import hashlib
 import logging
 import socket
-
-from collections import defaultdict
-from threading import Lock
+import time
+from contextlib import contextmanager
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
-# Define a global dictionary to store locks for each key
-locks = defaultdict(Lock)
 logger = logging.getLogger(__name__)
 
 # Cache names used in project serializer
@@ -164,82 +161,76 @@ def safe_cache_get(key, default=None):
         return default
 
 
-def get_lock_for_key(key):
+class CacheLockError(Exception):
+    """Custom exception raised when a cache lock cannot be acquired."""
+
+    pass
+
+
+@contextmanager
+def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
     """
-    Get a lock for a specific cache key.
+    Context manager for safely setting a cache value with a lock.
 
     Args:
-        key (str): The name of the cache key.
+        cache_key (str): The key under which the value is stored in the cache.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
 
-    Returns:
-        Lock: The lock associated with the key.
+    Raises:
+        CacheLockError: If the lock cannot be acquired within the specified lock_timeout.
+
+    Yields:
+        None
     """
-    return locks[key]
+    lock_key = f"lock:{cache_key}"
+    start_time = time.time()
 
+    # Try to acquire the lock
+    lock_acquired = cache.add(lock_key, "locked", lock_expire)
 
-def add_to_cached_set(set_name, item, timeout=3600):
-    """
-    Add an item to a cached set using locking to avoid race conditions.
+    while not lock_acquired and time.time() - start_time < lock_timeout:
+        time.sleep(0.1)
+        lock_acquired = cache.add(lock_key, "locked", lock_expire)
 
-    Args:
-        set_name (str): The name of the set.
-        item (str): The item to add to the set.
-    """
+    if not lock_acquired:
+        raise CacheLockError(f"Could not acquire lock for {cache_key}")
 
-    lock = get_lock_for_key(set_name)
-
-    with lock:
-        cached_set = cache.get(set_name, set())
-
-        if item not in cached_set:
-            cached_set.add(item)
-            cache.set(set_name, cached_set, timeout)
-
-
-def safe_cache_get(key, default=None):
-    """
-    Safely get a value from the cache.
-
-    Args:
-        key (str): The cache key to retrieve.
-        default (Any): The default value to return if the cache is inaccessible
-            or the key does not exist.
-
-    Returns:
-        Any: The value from the cache if accessible, otherwise the default value.
-    """
     try:
-        return cache.get(key, default)
-    except ConnectionError as exc:
-        # Handle cache connection error
-        logger.exception(exc)
-        return default
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
-        return default
+        yield
+
+    finally:
+        cache.delete(lock_key)
 
 
-def safe_cache_set(key, value, timeout=None):
+def set_cache_with_lock(
+    cache_key, modify_callback, cache_timeout=None, lock_expire=30, lock_timeout=10
+):
     """
-    Safely set a value in the cache.
+    Set a cache value with a lock, using a callback function to modify the value.
+
+    Use of lock ensures that race conditions are avoided, even when multiple processes
+    or threads attempt to modifiy the cache concurrently.
 
     Args:
-        key (str): The cache key to set.
-        value (Any): The value to store in the cache.
-        timeout (int, optional): The cache timeout in seconds. If None,
-            the default cache timeout will be used.
+        cache_key (str): The key under which the value is stored in the cache.
+        modify_callback (callable): A callback function that takes the current cache value
+                                    and returns the modified value.
+        cache_timeout (int, optional): The expiration time for the cached value in seconds.
+                                       If None, the default cache timeout is used.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
+
+    Raises:
+        CacheLockError: If the lock cannot be acquired within the specified lock_timeout.
 
     Returns:
         None
     """
-    try:
-        cache.set(key, value, timeout)
-    except ConnectionError as exc:
-        # Handle cache connection error
-        logger.exception(exc)
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
+    with with_cache_lock(cache_key, lock_expire, lock_timeout):
+        # Get the current value from cache
+        current_value = cache.get(cache_key)
+        # Use the callback to get the modified value
+        new_value = modify_callback(current_value)
+        # Set the new value in the cache with the specified timeout
+        cache.set(cache_key, new_value, cache_timeout)

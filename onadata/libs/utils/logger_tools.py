@@ -99,7 +99,7 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_LOCK,
     ELIST_NUM_ENTITIES_CREATED_AT,
     safe_delete,
-    add_to_cached_set,
+    set_cache_with_lock,
 )
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
@@ -1191,7 +1191,17 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
     # expire before the next periodic run and data will be lost.
     counter_cache_ttl = None
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
-    add_to_cached_set(ELIST_NUM_ENTITIES_IDS, pk, counter_cache_ttl)
+
+    def add_to_cache_ids(current_ids: set | None):
+        if current_ids is None:
+            current_ids = set()
+
+        if pk not in current_ids:
+            current_ids.add(pk)
+
+        return current_ids
+
+    set_cache_with_lock(ELIST_NUM_ENTITIES_IDS, add_to_cache_ids, counter_cache_ttl)
     cache.add(ELIST_NUM_ENTITIES_CREATED_AT, timezone.now(), counter_cache_ttl)
 
     if not counter_cache_created:
