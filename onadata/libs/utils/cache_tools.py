@@ -164,8 +164,6 @@ def safe_cache_get(key, default=None):
 class CacheLockError(Exception):
     """Custom exception raised when a cache lock cannot be acquired."""
 
-    pass
-
 
 @contextmanager
 def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
@@ -178,7 +176,8 @@ def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
         lock_timeout (int): The maximum time to wait for the lock in seconds.
 
     Raises:
-        CacheLockError: If the lock cannot be acquired within the specified lock_timeout.
+        CacheLockError: If the lock cannot be acquired within
+                        the specified lock_timeout.
 
     Yields:
         None
@@ -214,15 +213,17 @@ def set_cache_with_lock(
 
     Args:
         cache_key (str): The key under which the value is stored in the cache.
-        modify_callback (callable): A callback function that takes the current cache value
-                                    and returns the modified value.
-        cache_timeout (int, optional): The expiration time for the cached value in seconds.
-                                       If None, the default cache timeout is used.
+        modify_callback (callable): A callback function that takes the current cache
+                                    value and returns the modified value.
+        cache_timeout (int, optional): The expiration time for the cached value
+                                        in seconds. If None, the default cache
+                                        timeout is used.
         lock_expire (int): The expiration time for the lock in seconds.
         lock_timeout (int): The maximum time to wait for the lock in seconds.
 
     Raises:
-        CacheLockError: If the lock cannot be acquired within the specified lock_timeout.
+        CacheLockError: If the lock cannot be acquired within the specified
+                        lock_timeout.
 
     Returns:
         None
