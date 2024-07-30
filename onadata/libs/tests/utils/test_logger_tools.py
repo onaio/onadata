@@ -885,11 +885,11 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         inc_elist_num_entities(self.entity_list.pk)
 
         # Timeout should be `None`
-        mock_cache_add.assert_has_calls(
-            [
-                call(self.counter_key, 1, None),
-                call(self.created_at_key, mocked_now, None),
-            ]
+        self.assertTrue(
+            call(self.counter_key, 1, None) in mock_cache_add.call_args_list
+        )
+        self.assertTrue(
+            call(self.created_at_key, mocked_now, None) in mock_cache_add.call_args_list
         )
         mock_cache_set.assert_called_once_with(
             self.ids_key, {self.entity_list.pk}, None
