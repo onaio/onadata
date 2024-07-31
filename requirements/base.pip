@@ -344,7 +344,7 @@ six==1.16.0
     #   tableschema
 sqlalchemy==2.0.31
     # via dataflows-tabulator
-sqlparse==0.5.0
+sqlparse==0.5.1
     # via
     #   django
     #   django-debug-toolbar
