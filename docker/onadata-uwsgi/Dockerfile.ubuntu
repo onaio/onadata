@@ -53,7 +53,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20240701 as runtime
+FROM debian:bookworm-20240722 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
