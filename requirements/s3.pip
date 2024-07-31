@@ -28,7 +28,7 @@ s3transfer==0.10.2
     # via boto3
 six==1.16.0
     # via python-dateutil
-sqlparse==0.5.0
+sqlparse==0.5.1
     # via django
 typing-extensions==4.12.2
     # via asgiref
