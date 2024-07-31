@@ -39,7 +39,7 @@ cachetools==5.3.3
     # via google-auth
 celery==5.4.0
     # via onadata
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   requests
     #   sentry-sdk
@@ -86,7 +86,7 @@ deprecated==1.2.14
     # via onadata
 dict2xml==1.7.5
     # via onadata
-django==4.2.13
+django==4.2.14
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -111,7 +111,7 @@ django-cors-headers==4.4.0
     # via onadata
 django-csp==3.8
     # via onadata
-django-debug-toolbar==4.4.2
+django-debug-toolbar==4.4.6
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
@@ -135,11 +135,11 @@ django-redis==5.4.0
     # via onadata
 django-registration-redux==2.13
     # via onadata
-django-render-block==0.9.2
+django-render-block==0.10
     # via django-templated-email
 django-reversion==5.0.12
     # via onadata
-django-taggit==5.0.1
+django-taggit==6.0.0
     # via onadata
 django-templated-email==3.0.1
     # via onadata
@@ -157,7 +157,7 @@ djangorestframework-gis==1.0
     # via onadata
 djangorestframework-guardian==0.3.0
     # via onadata
-djangorestframework-jsonapi==7.0.1
+djangorestframework-jsonapi==7.0.2
     # via onadata
 djangorestframework-jsonp==1.0.2
     # via onadata
@@ -344,7 +344,7 @@ six==1.16.0
     #   tableschema
 sqlalchemy==2.0.31
     # via dataflows-tabulator
-sqlparse==0.5.0
+sqlparse==0.5.1
     # via
     #   django
     #   django-debug-toolbar
