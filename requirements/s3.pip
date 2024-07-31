@@ -12,11 +12,11 @@ botocore==1.34.134
     # via
     #   boto3
     #   s3transfer
-django==4.2.13
+django==4.2.14
     # via
     #   -r requirements/s3.in
     #   django-storages
-django-storages==1.14.3
+django-storages==1.14.4
     # via -r requirements/s3.in
 jmespath==1.0.1
     # via
