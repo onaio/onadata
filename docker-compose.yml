@@ -1,5 +1,7 @@
 services:
   api:
+    environment:
+      DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu.dev
@@ -12,8 +14,8 @@ services:
       - ./:/srv/onadata
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     ports:
-      - 8000:8000
-    command: python3.10 manage.py runserver --settings=onadata.settings.docker
+      - "8000:8000"
+    command: python3.10 manage.py runserver 0.0.0.0:8000
 
   celery:
     environment:
