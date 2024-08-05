@@ -29,6 +29,14 @@ Data Endpoints
    widgets
    stats
 
+Entities
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   entities
+
 Forms
 -----
 
