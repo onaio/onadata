@@ -929,6 +929,25 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         mock_report_exc.assert_called_once_with(subject, msg)
         self.assertEqual(cache.get("el-failover-report"), "sent")
 
+    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
+    @patch("onadata.libs.utils.logger_tools.report_exception")
+    def test_failover_report_cache_hit(self, mock_report_exc):
+        """Report exception not sent if cache `el-failover-report` set"""
+        cache.set("el-failover-report", "sent")
+        cache_created_at = timezone.now() - timedelta(minutes=10)
+        cache.set(self.counter_key, 3)
+        cache.set(self.created_at_key, cache_created_at)
+        cache.set(self.ids_key, {self.entity_list.pk})
+
+        inc_elist_num_entities(self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+
+        self.assertEqual(self.entity_list.num_entities, 14)
+        self.assertIsNone(cache.get(self.counter_key))
+        self.assertIsNone(cache.get(self.ids_key))
+        self.assertIsNone(cache.get(self.created_at_key))
+        mock_report_exc.assert_not_called()
+
 
 class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
     """Tests for method `dec_elist_num_entities`"""
