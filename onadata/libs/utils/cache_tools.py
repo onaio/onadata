@@ -82,6 +82,9 @@ ELIST_NUM_ENTITIES_IDS = "el-num-entities-ids"
 ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
 ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 
+# Report exception
+ELIST_FAILOVER_REPORT = "el-failover-report"
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
