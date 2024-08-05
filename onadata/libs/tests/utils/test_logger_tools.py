@@ -904,7 +904,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         # Cache value is not overridden
         self.assertEqual(cache.get(self.created_at_key), now)
 
-    @override_settings(ELIST_CACHED_COUNTER_FAILOVER_TTL=3)
+    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
     @patch("onadata.libs.utils.logger_tools.report_exception")
     def test_failover(self, mock_report_exc):
         """Failover is executed if commit timeout threshold exceeded"""
