@@ -1321,13 +1321,15 @@ def _exec_cached_elist_counter_commit_failover() -> None:
     if cache_created_at is None:
         return
 
-    # If the time lapse is > ELIST_CACHED_COUNTER_FAILOVER_TTL, run the failover
-    failover_ttl: int = getattr(settings, "ELIST_CACHED_COUNTER_FAILOVER_TTL", 7200)
+    # If the time lapse is > ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT, run the failover
+    failover_timeout: int = getattr(
+        settings, "ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT", 7200
+    )
     time_lapse = timezone.now() - cache_created_at
 
-    if time_lapse.total_seconds() > failover_ttl:
+    if time_lapse.total_seconds() > failover_timeout:
         commit_cached_elist_num_entities()
-
+        # Do not send report exception if already sent within the past 24 hrs
         if cache.get(ELIST_FAILOVER_REPORT) is None:
             subject = "Periodic task not running"
             task_name = (
