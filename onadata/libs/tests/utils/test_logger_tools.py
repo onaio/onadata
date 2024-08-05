@@ -908,7 +908,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
     @patch("onadata.libs.utils.logger_tools.report_exception")
     def test_failover(self, mock_report_exc):
         """Failover is executed if commit timeout threshold exceeded"""
-        cache_created_at = timezone.now() - timedelta(seconds=10)
+        cache_created_at = timezone.now() - timedelta(minutes=10)
         cache.set(self.counter_key, 3)
         cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
@@ -927,6 +927,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
             "is not configured or has malfunctioned"
         )
         mock_report_exc.assert_called_once_with(subject, msg)
+        self.assertEqual(cache.get("el-failover-report"), "sent")
 
 
 class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
