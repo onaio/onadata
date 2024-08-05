@@ -1193,7 +1193,7 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
     counter_cache_ttl = None
     counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
 
-    def add_to_cache_ids(current_ids: set | None):
+    def add_to_cached_ids(current_ids: set | None):
         if current_ids is None:
             current_ids = set()
 
@@ -1202,7 +1202,7 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
 
         return current_ids
 
-    set_cache_with_lock(ELIST_NUM_ENTITIES_IDS, add_to_cache_ids, counter_cache_ttl)
+    set_cache_with_lock(ELIST_NUM_ENTITIES_IDS, add_to_cached_ids, counter_cache_ttl)
     cache.add(ELIST_NUM_ENTITIES_CREATED_AT, timezone.now(), counter_cache_ttl)
 
     if not counter_cache_created:
