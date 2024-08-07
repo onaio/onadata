@@ -425,7 +425,7 @@ Body:
 }
 ```
 
-## Delete an Entity
+## Delete Entity
 
 `DELETE api/v2/entity-lists/<entity_list_id>/entities`
 
