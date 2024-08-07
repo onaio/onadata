@@ -1,7 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -99,15 +98,17 @@ class EntityListViewSet(
     def entities(self, request, *args, **kwargs):
         """Provides `list`, `retrieve`, `update`, and `destroy` actions for Entities"""
         entity_list = self.get_object()
+        entity_pk = kwargs.get("entity_pk")
 
         if request.method == "DELETE":
+            if entity_pk is not None:
+                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-        entity_pk = kwargs.get("entity_pk")
 
         if entity_pk:
             method = request.method.upper()

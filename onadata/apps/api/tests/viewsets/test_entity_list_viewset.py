@@ -1305,3 +1305,9 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(
             str(response.data["entity_ids"][0]), "One or more entities does not exist."
         )
+
+    def test_delete_via_kwarg_invalid(self):
+        """ID to be deleted is specified only via payload"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 405)
