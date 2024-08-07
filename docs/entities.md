@@ -441,3 +441,20 @@ curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
 **Response**
 
 Status: `204 No Content`
+
+## Delete Entities in bulk
+
+`DELETE api/v2/entity-lists/<entity_list_id>/entities/<entity_id_1>,<entity_id_2>...<entity_id_n>`
+
+The endpoint is used to delete multiple Entities at once
+
+**Request**
+
+```sh
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/67,89,145 \
+-H "Authorization: Token ACCESS_TOKEN"
+```
+
+**Response**
+
+Status: `204 No Content`

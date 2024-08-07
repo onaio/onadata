@@ -1192,3 +1192,78 @@ class DeleteEntityTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 204)
+
+    @patch("django.utils.timezone.now")
+    def test_delete_bulk(self, mock_now):
+        """Deleting Entities in bulk works"""
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        mock_now.return_value = date
+        entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "greenheart",
+                "circumference_cm": 200,
+                "label": "200cm greenheart",
+            },
+            uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
+        )
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(
+            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{entity.pk}"
+        )
+        self.entity_list.refresh_from_db()
+        self.entity.refresh_from_db()
+        entity.refresh_from_db()
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(self.entity.deleted_at, date)
+        self.assertEqual(self.entity.deleted_by, self.user)
+        self.assertEqual(entity.deleted_at, date)
+        self.assertEqual(entity.deleted_by, self.user)
+        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(self.entity_list.last_entity_update_time, entity.date_modified)
+
+    def test_delete_bulk_invalid_id(self):
+        """Invalid Entities when deleting in bulk handled"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(
+            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{sys.maxsize}"
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data, {"detail": "One or more entities not found."})
+
+    def test_multiple_ids_only_delete(self):
+        """Multiple IDs only apply for DELETE method"""
+        view = EntityListViewSet.as_view({"get": "entities"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.entity_list.pk, entity_pk="1,2")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {"detail": "Multiple IDs are only supported for DELETE requests."},
+        )
+
+    @patch(
+        "onadata.apps.api.viewsets.entity_list_viewset.delete_entities_bulk_async.delay"
+    )
+    def test_bulk_delete_async(self, mock_delete):
+        """Deleting Entities in bulk should be asynchronous"""
+        entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "greenheart",
+                "circumference_cm": 200,
+                "label": "200cm greenheart",
+            },
+            uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
+        )
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(
+            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{entity.pk}"
+        )
+        self.assertEqual(response.status_code, 204)
+        mock_delete.assert_called_once_with(
+            [str(self.entity.pk), str(entity.pk)], self.user.username
+        )
