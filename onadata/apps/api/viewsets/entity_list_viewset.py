@@ -100,19 +100,13 @@ class EntityListViewSet(
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
 
-        if request.method == "DELETE":
-            if entity_pk is not None:
+        if entity_pk is not None:
+            entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
+
+            if request.method == "DELETE":
                 return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        if entity_pk:
             method = request.method.upper()
-            entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
 
             if method in ["PUT", "PATCH"]:
                 serializer = self.get_serializer(entity, data=request.data)
@@ -124,6 +118,13 @@ class EntityListViewSet(
             serializer = self.get_serializer(entity)
 
             return Response(serializer.data)
+
+        if request.method == "DELETE":
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         entity_qs = self.get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
