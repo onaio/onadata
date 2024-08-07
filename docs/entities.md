@@ -440,7 +440,7 @@ The endpoint is used to delete a single Entity or multiple Entities. The IDs of 
 **Request**
 
 ```sh
-curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities \
 -H "Authorization: Token ACCESS_TOKEN"
 -d '{
         "entity_ids": [1, 2, 3]
