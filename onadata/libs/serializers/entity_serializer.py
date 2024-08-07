@@ -265,6 +265,7 @@ class EntityArraySerializer(EntitySerializer):
         )
 
 
+# pylint: disable=abstract-method
 class EntityDeleteSerializer(serializers.Serializer):
     """Serializer for deleting Entities"""
 
