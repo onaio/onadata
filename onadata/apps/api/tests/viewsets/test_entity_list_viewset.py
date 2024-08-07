@@ -883,6 +883,26 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 404)
 
+    def test_belongs_to_dataset(self):
+        """Entity belongs to the EntityList requested"""
+        entity_list = EntityList.objects.create(
+            name="immunization", project=self.project
+        )
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "greenheart",
+                "circumference_cm": 200,
+                "label": "200cm greenheart",
+            },
+            uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
+        )
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=entity.pk)
+
+        self.assertEqual(response.status_code, 404)
+
 
 @override_settings(TIME_ZONE="UTC")
 class UpdateEntityTestCase(TestAbstractViewSet):

@@ -99,14 +99,15 @@ class EntityListViewSet(
         """Provides `list`, `retrieve`, `update`, and `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
+        method = request.method.upper()
 
         if entity_pk is not None:
-            entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
+            entity = get_object_or_404(
+                Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
+            )
 
-            if request.method == "DELETE":
+            if method == "DELETE":
                 return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-            method = request.method.upper()
 
             if method in ["PUT", "PATCH"]:
                 serializer = self.get_serializer(entity, data=request.data)
@@ -119,7 +120,7 @@ class EntityListViewSet(
 
             return Response(serializer.data)
 
-        if request.method == "DELETE":
+        if method == "DELETE":
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
