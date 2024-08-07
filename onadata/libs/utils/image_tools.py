@@ -144,7 +144,7 @@ def get_dimensions(size, longest_side):
     return flat(width, height)
 
 
-def _save_thumbnails(image, path, size, suffix, extension):
+def _save_thumbnails(image, filename, size, suffix, extension):
     with NamedTemporaryFile(suffix=f".{extension}") as temp_file:
         default_storage = get_storage_class()()
 
@@ -156,7 +156,7 @@ def _save_thumbnails(image, path, size, suffix, extension):
             pass
 
         image.save(temp_file.name)
-        default_storage.save(get_path(path, suffix), ContentFile(temp_file.read()))
+        default_storage.save(get_path(filename, suffix), ContentFile(temp_file.read()))
         temp_file.close()
 
 
@@ -191,7 +191,7 @@ def resize_local_env(filename, extension):
     for key in settings.THUMB_ORDER:
         _save_thumbnails(
             image,
-            path,
+            filename,
             conf[key]["size"],
             conf[key]["suffix"],
             settings.DEFAULT_IMG_FILE_TYPE if extension == "non" else extension,
