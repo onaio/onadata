@@ -271,7 +271,9 @@ class EntityDeleteSerializer(serializers.Serializer):
     entity_ids = serializers.ListField(child=serializers.IntegerField())
 
     def validate_entity_ids(self, ids):
-        entities = Entity.objects.filter(pk__in=ids, deleted_at__isnull=True)
+        entities = Entity.objects.filter(
+            pk__in=ids, deleted_at__isnull=True, entity_list=self.context["entity_list"]
+        )
 
         if entities.count() != len(ids):
             raise serializers.ValidationError(

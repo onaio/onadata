@@ -1280,3 +1280,28 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         mock_delete.assert_called_once_with(
             [self.entity.pk, entity.pk], self.user.username
         )
+
+    def test_belongs_to_dataset(self):
+        """The Entities being deleted belong to the EntityList"""
+        entity_list = EntityList.objects.create(
+            name="immunization", project=self.project
+        )
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "geometry": "-1.286905 36.772845 0 0",
+                "species": "greenheart",
+                "circumference_cm": 200,
+                "label": "200cm greenheart",
+            },
+            uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
+        )
+        request = self.factory.delete(
+            "/", data={"entity_ids": [entity.pk]}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["entity_ids"][0]), "One or more entities does not exist."
+        )
