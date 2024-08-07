@@ -1116,8 +1116,10 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(self.entity_list.num_entities, 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        request = self.factory.delete(
+            "/", data={"entity_ids": [self.entity.pk]}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
         self.entity.refresh_from_db()
         self.entity_list.refresh_from_db()
 
@@ -1131,9 +1133,15 @@ class DeleteEntityTestCase(TestAbstractViewSet):
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=sys.maxsize)
-        self.assertEqual(response.status_code, 404)
+        request = self.factory.delete(
+            "/", data={"entity_ids": [sys.maxsize]}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["entity_ids"][0]), "One or more entities does not exist."
+        )
 
     def test_invalid_entity_list(self):
         """Invalid EntityList is handled"""
@@ -1145,20 +1153,26 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         """Deleted Entity cannot be deleted"""
         self.entity.deleted_at = timezone.now()
         self.entity.save()
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
-        self.assertEqual(response.status_code, 404)
+        request = self.factory.delete(
+            "/", data={"entity_ids": [self.entity.pk]}, **self.extra
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["entity_ids"][0]), "One or more entities does not exist."
+        )
 
     def test_anonymous_user(self):
         """Anonymous user cannot delete Entity"""
         # Anonymous user cannot delete private Entity
         request = self.factory.delete("/")
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 401)
         # Anonymous user cannot delete public Entity
         self.project.shared = True
         self.project.save()
-        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 401)
 
     def test_object_permissions(self):
@@ -1182,10 +1196,10 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         for role in ROLES:
             restore_entity()
             ShareProject(self.project, "alice", role).save()
-            request = self.factory.delete("/", **extra)
-            response = self.view(
-                request, pk=self.entity_list.pk, entity_pk=self.entity.pk
+            request = self.factory.delete(
+                "/", data={"entity_ids": [self.entity.pk]}, **extra
             )
+            response = self.view(request, pk=self.entity_list.pk)
 
             if role not in ["owner", "manager"]:
                 self.assertEqual(response.status_code, 404)
@@ -1208,14 +1222,13 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             },
             uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
         )
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(
-            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{entity.pk}"
+        request = self.factory.delete(
+            "/", data={"entity_ids": [self.entity.pk, entity.pk]}, **self.extra
         )
+        response = self.view(request, pk=self.entity_list.pk)
         self.entity_list.refresh_from_db()
         self.entity.refresh_from_db()
         entity.refresh_from_db()
-
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
@@ -1226,26 +1239,18 @@ class DeleteEntityTestCase(TestAbstractViewSet):
 
     def test_delete_bulk_invalid_id(self):
         """Invalid Entities when deleting in bulk handled"""
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(
-            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{sys.maxsize}"
+        request = self.factory.delete(
+            "/", data={"entity_ids": [self.entity.pk, sys.maxsize]}, **self.extra
         )
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data, {"detail": "One or more entities not found."})
+        response = self.view(request, pk=self.entity_list.pk)
 
-    def test_multiple_ids_only_delete(self):
-        """Multiple IDs only apply for DELETE method"""
-        view = EntityListViewSet.as_view({"get": "entities"})
-        request = self.factory.get("/", **self.extra)
-        response = view(request, pk=self.entity_list.pk, entity_pk="1,2")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data,
-            {"detail": "Multiple IDs are only supported for DELETE requests."},
+            str(response.data["entity_ids"][0]), "One or more entities does not exist."
         )
 
     @patch(
-        "onadata.apps.api.viewsets.entity_list_viewset.delete_entities_bulk_async.delay"
+        "onadata.libs.serializers.entity_serializer.delete_entities_bulk_async.delay"
     )
     def test_bulk_delete_async(self, mock_delete):
         """Deleting Entities in bulk should be asynchronous"""
@@ -1259,11 +1264,11 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             },
             uuid="ff9e7dc8-7093-4269-9b6c-476a9704399b",
         )
-        request = self.factory.delete("/", **self.extra)
-        response = self.view(
-            request, pk=self.entity_list.pk, entity_pk=f"{self.entity.pk},{entity.pk}"
+        request = self.factory.delete(
+            "/", data={"entity_ids": [self.entity.pk, entity.pk]}, **self.extra
         )
+        response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 204)
         mock_delete.assert_called_once_with(
-            [str(self.entity.pk), str(entity.pk)], self.user.username
+            [self.entity.pk, entity.pk], self.user.username
         )
