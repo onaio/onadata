@@ -1131,6 +1131,14 @@ class DeleteEntityTestCase(TestAbstractViewSet):
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )
 
+    def test_entity_ids_required(self):
+        """Field `entity_ids` is required"""
+        request = self.factory.delete("/", data={}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["entity_ids"][0]), "This field is required.")
+
     def test_invalid_entity(self):
         """Invalid Entity is handled"""
         request = self.factory.delete(
