@@ -437,7 +437,7 @@ The endpoint is used to delete a single Entity or multiple Entities. The IDs of 
 }
 ```
 
-`entity_ids` must be provided and cannot be an empty list. The items in the list must be valid IDs of Entities.
+`entity_ids` must be provided and cannot be an empty list. The items in the list must be valid IDs of Entities that are in the EntityList.
 
 **Request**
 
