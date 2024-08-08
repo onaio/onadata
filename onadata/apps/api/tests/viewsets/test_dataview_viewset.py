@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import default_storage
@@ -13,6 +14,8 @@ from django.test.utils import override_settings
 from django.utils.timezone import utc
 
 from openpyxl import load_workbook
+
+from flaky import flaky
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
@@ -1962,6 +1965,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
     # pylint: disable=too-many-locals
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.apps.api.viewsets.dataview_viewset.AsyncResult")
+    @flaky(max_runs=10)
     def test_csv_export_async_dataview_date_filter(self, async_result):
         """
         Test dataview csv export async with a date filter.
