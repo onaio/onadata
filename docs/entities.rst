@@ -26,7 +26,7 @@ EntityList name is unique per project.
 
 The EntityList by default has no properties.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -67,7 +67,7 @@ The user must have view permission for each dataset.
 The maximum number of items returned is ``1000``. To get more results than this, pagination is required. Refer to getting `paginated results <#paginated-entity-lists>`_ section.
 
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -104,7 +104,7 @@ Get a list of Entities for a specific project
 
 	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?project=&lt;project_id&gt;</pre>
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -148,7 +148,7 @@ Returns a list of projects using page number and the number of items per page. U
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is ``10,000``.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -189,7 +189,7 @@ Get a single EntityList
 
 This endpoint is used to get a single EntityList.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -243,7 +243,7 @@ Delete EntityList
 	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/&lt;entity_list_id&gt;</pre>
 
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -265,7 +265,7 @@ This endpoint is used to get Entities belonging to a single EntityList dataset.
 
 The maximum number of items returned is ``1000``. To get more results than this, pagination is required. Refer to getting `paginated results <#paginated-entities>`_ section.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -321,7 +321,7 @@ Returns a list of projects using page number and the number of items per page. U
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is ``10,000``.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -364,7 +364,7 @@ Limit list of Entities to those whose data partially matches the provided search
 Matches are case insensitive.
 
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -404,7 +404,7 @@ Get a single Entity
 
 This endpoint is used to get a single Entity.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -447,7 +447,7 @@ A property must exist in the EntityList dataset.
 
 The label must be a non-empty string.
 
-**Request**
+**Example**
 
 .. code-block:: bash
 
@@ -494,7 +494,7 @@ Delete an Entity
 
 The endpoint is used to delete an Entity.
 
-**Request**
+**Example**
 
 .. code-block:: bash
    curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
