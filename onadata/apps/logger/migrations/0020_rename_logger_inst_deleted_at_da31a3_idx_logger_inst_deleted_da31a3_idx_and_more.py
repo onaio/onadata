@@ -16,6 +16,7 @@ def rename_index_if_exists(apps, schema_editor, old_name, new_name, table_name):
             [old_name, table_name],
         )
         exists = cursor.fetchone()[0]
+
         if exists:
             cursor.execute(f"ALTER INDEX {old_name} RENAME TO {new_name}")
 
@@ -58,7 +59,35 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(rename_indexes, reverse_code=migrations.RunPython.noop),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(
+                    rename_indexes, reverse_code=migrations.RunPython.noop
+                ),
+            ],
+            state_operations=[
+                migrations.RenameIndex(
+                    model_name="instance",
+                    new_name="logger_inst_deleted_da31a3_idx",
+                    old_name="logger_inst_deleted_at_da31a3_idx",
+                ),
+                migrations.RenameIndex(
+                    model_name="instance",
+                    new_name="logger_inst_xform_i_504638_idx",
+                    old_name="logger_instance_id_xform_id_index",
+                ),
+                migrations.RenameIndex(
+                    model_name="instancehistory",
+                    new_name="logger_inst_checksu_05f7bf_idx",
+                    old_name="logger_inst_hist_checksum_05f7bf_idx",
+                ),
+                migrations.RenameIndex(
+                    model_name="instancehistory",
+                    new_name="logger_inst_uuid_f5ae42_idx",
+                    old_name="logger_inst_hist_uuid_f5ae42_idx",
+                ),
+            ],
+        ),
         migrations.AlterField(
             model_name="instance",
             name="date_created",
