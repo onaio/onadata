@@ -16,15 +16,19 @@ def add_project_entitylist_perm(apps, schema_editor):
     Project = apps.get_model("logger", "Project")
     content_type = ContentType.objects.get_for_model(Project)
     perm = "add_project_entitylist"
-    Permission.objects.get_or_create(
-        codename=perm,
-        content_type=content_type,
-        defaults={
-            "name": "Can add entitylist to project",
-        },
-    )
 
     with use_master:
+        _, created = Permission.objects.get_or_create(
+            codename=perm,
+            content_type=content_type,
+            defaults={
+                "name": "Can add entitylist to project",
+            },
+        )
+
+        if created:
+            print(f"Permission {perm} created")
+
         project_qs = Project.objects.filter(deleted_at__isnull=True)
         eta = project_qs.count()
         User = get_user_model()
