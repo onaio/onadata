@@ -1,7 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -30,6 +29,7 @@ from onadata.libs.serializers.entity_serializer import (
     EntityListSerializer,
     EntityListArraySerializer,
     EntityListDetailSerializer,
+    EntityDeleteSerializer,
 )
 
 
@@ -71,6 +71,9 @@ class EntityListViewSet(
             return EntityListDetailSerializer
 
         if self.action == "entities":
+            if self.request.method == "DELETE":
+                return EntityDeleteSerializer
+
             if self.kwargs.get("entity_pk") is None:
                 return EntityArraySerializer
 
@@ -93,18 +96,18 @@ class EntityListViewSet(
         url_path="entities(?:/(?P<entity_pk>[^/.]+))?",
     )
     def entities(self, request, *args, **kwargs):
-        """Provides `list`, `retrieve` `update` and `destroy` actions for Entities"""
+        """Provides `list`, `retrieve`, `update`, and `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
+        method = request.method.upper()
 
-        if entity_pk:
-            method = request.method.upper()
-            entity = get_object_or_404(Entity, pk=entity_pk, deleted_at__isnull=True)
+        if entity_pk is not None:
+            entity = get_object_or_404(
+                Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
+            )
 
             if method == "DELETE":
-                entity.soft_delete(request.user)
-
-                return Response(status=status.HTTP_204_NO_CONTENT)
+                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
             if method in ["PUT", "PATCH"]:
                 serializer = self.get_serializer(entity, data=request.data)
@@ -117,11 +120,19 @@ class EntityListViewSet(
 
             return Response(serializer.data)
 
+        if method == "DELETE":
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         entity_qs = self.get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
+
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(entity_qs, many=True)

@@ -17,6 +17,7 @@ from onadata.apps.logger.models import (
     RegistrationForm,
     XForm,
 )
+from onadata.apps.logger.tasks import delete_entities_bulk_async
 from onadata.libs.permissions import CAN_VIEW_PROJECT
 
 
@@ -261,4 +262,30 @@ class EntityArraySerializer(EntitySerializer):
             "json",
             "label",
             "data",
+        )
+
+
+# pylint: disable=abstract-method
+class EntityDeleteSerializer(serializers.Serializer):
+    """Serializer for deleting Entities"""
+
+    entity_ids = serializers.ListField(child=serializers.IntegerField())
+
+    def validate_entity_ids(self, ids):
+        entities = Entity.objects.filter(
+            pk__in=ids, deleted_at__isnull=True, entity_list=self.context["entity_list"]
+        )
+
+        if entities.count() != len(ids):
+            raise serializers.ValidationError(
+                "One or more entities does not exist.", code="does_not_exist"
+            )
+
+        return ids
+
+    def save(self, **kwargs):
+        entity_ids = self.validated_data["entity_ids"]
+
+        delete_entities_bulk_async.delay(
+            entity_ids, self.context["request"].user.username
         )
