@@ -141,7 +141,7 @@ Get a paginated list of EntityLists
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?page=<page>&page_size=<page_size></pre>
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?page=&lt;page&gt;&page_size=&lt;page_size&gt;</pre>
 
 Returns a list of projects using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
@@ -314,7 +314,7 @@ Get a paginated list of Entities
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/1/entities?page=<page>&page_size=<page_size></pre>
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/1/entities?page=&lt;page&gt;&page_size=&lt;page_size&gt;</pre>
 
 Returns a list of projects using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
