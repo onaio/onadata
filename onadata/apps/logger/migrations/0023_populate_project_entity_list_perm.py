@@ -3,36 +3,51 @@
 from django.db import migrations
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+
 from guardian.shortcuts import assign_perm
+
+from multidb.pinning import use_master
 
 
 def add_project_entitylist_perm(apps, schema_editor):
     """Assign `add_project_entitylist` permission to existing Owners, Managers"""
     Project = apps.get_model("logger", "Project")
-    project_qs = Project.objects.filter(deleted_at__isnull=True)
-    eta = project_qs.count()
+    content_type = ContentType.objects.get_for_model(Project)
+    perm = "add_project_entitylist"
+    Permission.objects.get_or_create(
+        codename=perm,
+        content_type=content_type,
+        defaults={
+            "name": "Can add entitylist to project",
+        },
+    )
 
-    User = get_user_model()
+    with use_master:
+        project_qs = Project.objects.filter(deleted_at__isnull=True)
+        eta = project_qs.count()
+        User = get_user_model()
 
-    for project in project_qs.iterator(chunk_size=200):
-        # Owners and Managers have the `add_project` permission
-        project_user_obj_perm_qs = project.projectuserobjectpermission_set.filter(
-            permission__codename="add_project"
-        )
-        project_group_obj_perm_qs = project.projectgroupobjectpermission_set.filter(
-            permission__codename="add_project"
-        )
+        for project in project_qs.iterator(chunk_size=200):
+            # Owners and Managers have the `add_project` permission
+            project_user_obj_perm_qs = project.projectuserobjectpermission_set.filter(
+                permission__codename="add_project"
+            )
+            project_group_obj_perm_qs = project.projectgroupobjectpermission_set.filter(
+                permission__codename="add_project"
+            )
 
-        for perm in project_user_obj_perm_qs.iterator(chunk_size=100):
-            user = User.objects.get(id=perm.user_id)
-            _ = assign_perm("add_project_entitylist", user, project)
+            for perm in project_user_obj_perm_qs.iterator(chunk_size=100):
+                user = User.objects.get(id=perm.user_id)
+                assign_perm(perm, user, project)
 
-        for perm in project_group_obj_perm_qs.iterator(chunk_size=100):
-            group = Group.objects.get(id=perm.group_id)
-            _ = assign_perm("add_project_entitylist", group, project)
+            for perm in project_group_obj_perm_qs.iterator(chunk_size=100):
+                group = Group.objects.get(id=perm.group_id)
+                assign_perm(perm, group, project)
 
-        eta -= 1
-        print("eta", eta)
+            eta -= 1
+            print("eta", eta)
 
 
 class Migration(migrations.Migration):
