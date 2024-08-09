@@ -27,7 +27,7 @@ def add_project_entitylist_perm(apps, schema_editor):
         )
 
         if created:
-            print(f"Permission {perm} created")
+            print(f"Permission {perm} created because it does not exist")
 
         project_qs = Project.objects.filter(deleted_at__isnull=True)
         eta = project_qs.count()
