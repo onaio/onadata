@@ -440,7 +440,7 @@ Body:
          "id":3,
          "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
          "date_created": "2024-06-20T07:37:20.416054Z",
-         "date_modified: "2024-06-20T07:37:20.416054Z",
+         "date_modified": "2024-06-20T07:37:20.416054Z",
          "data": {
             "species":"purpleheart",
             "geometry":"-1.286905 36.772845 0 0",
@@ -496,7 +496,7 @@ Body:
          "id": 1,
          "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
          "date_created": "2024-06-20T07:37:20.416054Z",
-         "date_modified: "2024-06-20T08:37:20.416054Z",
+         "date_modified": "2024-06-20T08:37:20.416054Z",
          "data": {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
