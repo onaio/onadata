@@ -6,6 +6,7 @@ from datetime import datetime
 
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
@@ -381,6 +382,30 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+
+    def test_num_entities_cached(self):
+        """`num_entities` includes cached counter"""
+        entity_list = EntityList.objects.get(name="trees")
+        entity_list.num_entities = 5
+        entity_list.save()
+        cache.set(f"el-num-entities-{entity_list.pk}", 7)
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["num_entities"], 12)
+
+        # Defaults to database counter if cache inaccessible
+        with patch.object(cache, "get") as mock_cache_get:
+            with patch("onadata.libs.utils.cache_tools.logger.exception") as mock_exc:
+                mock_cache_get.side_effect = ConnectionError
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data[0]["num_entities"], 5)
+                mock_exc.assert_called()
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -1113,7 +1138,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
     def test_delete(self, mock_now):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
-        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
         request = self.factory.delete("/", **self.extra)
@@ -1124,7 +1149,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 0)
         self.assertEqual(
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )

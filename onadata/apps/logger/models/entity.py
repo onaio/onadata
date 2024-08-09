@@ -2,6 +2,8 @@
 Entity model
 """
 
+import importlib
+
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
 from django.utils import timezone
@@ -38,8 +40,9 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            self.entity_list.num_entities = models.F("num_entities") - 1
-            self.entity_list.save()
+            # Avoid cyclic dependency errors
+            logger_tools = importlib.import_module("onadata.libs.utils.logger_tools")
+            logger_tools.dec_elist_num_entities(self.entity_list.pk)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"

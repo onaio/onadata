@@ -7,8 +7,12 @@ from django.db import DatabaseError
 
 from onadata.apps.logger.models import EntityList, Project
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJECT_DATE_MODIFIED_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.project_utils import set_project_perms_to_object
+from onadata.libs.utils.logger_tools import commit_cached_elist_num_entities
 
 
 logger = logging.getLogger(__name__)
@@ -46,3 +50,17 @@ def apply_project_date_modified_async():
 
     # Clear cache after updating
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def commit_cached_elist_num_entities_async():
+    """Commit cached EntityList `num_entities` counter to the database
+
+    Call this task periodically, such as in a background task to ensure
+    cached counters for EntityList `num_entities` are commited to the
+    database.
+
+    Cached counters have no expiry, so it is essential to ensure that
+    this task is called periodically.
+    """
+    commit_cached_elist_num_entities()
