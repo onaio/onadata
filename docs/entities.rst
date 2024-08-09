@@ -372,7 +372,7 @@ Search a list of Entities
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/1/entities?search=<search_term></pre>
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/1/entities?search=&lt;search_term&gt;</pre>
 
 Limit list of Entities to those whose data partially matches the provided search term.
 
