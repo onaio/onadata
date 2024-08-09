@@ -363,8 +363,7 @@ Body:
                "circumference_cm":300,
                "label":"300cm purpleheart",
             }
-         },
-         ...
+         }
       ]
 
 
@@ -519,8 +518,9 @@ Example
 ^^^^^^^
 
 .. code-block:: bash
-   curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
-   -H "Authorization: Token ACCESS_TOKEN"
+
+      curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+      -H "Authorization: Token ACCESS_TOKEN"
 
 
 Response
