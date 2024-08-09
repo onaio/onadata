@@ -26,7 +26,8 @@ EntityList name is unique per project.
 
 The EntityList by default has no properties.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
@@ -38,7 +39,8 @@ The EntityList by default has no properties.
                "project": "2",
          }'
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``201 Created``
 
@@ -67,13 +69,15 @@ The user must have view permission for each dataset.
 The maximum number of items returned is ``1000``. To get more results than this, pagination is required. Refer to getting `paginated results <#paginated-entity-lists>`_ section.
 
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -104,13 +108,15 @@ Get a list of Entities for a specific project
 
 	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?project=&lt;project_id&gt;</pre>
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists?project=9
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -148,14 +154,16 @@ Returns a list of projects using page number and the number of items per page. U
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is ``10,000``.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists?page=1&page_size=100
 
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -189,14 +197,16 @@ Get a single EntityList
 
 This endpoint is used to get a single EntityList.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists/1
 
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -243,14 +253,16 @@ Delete EntityList
 	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/&lt;entity_list_id&gt;</pre>
 
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X DELETE https://api.ona.io/api/v2/entity-lists/1 \
       -H "Authorization: Token ACCESS_TOKEN"
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``204 No Content``
 
@@ -265,13 +277,15 @@ This endpoint is used to get Entities belonging to a single EntityList dataset.
 
 The maximum number of items returned is ``1000``. To get more results than this, pagination is required. Refer to getting `paginated results <#paginated-entities>`_ section.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -321,13 +335,15 @@ Returns a list of projects using page number and the number of items per page. U
 - ``page`` - Integer representing the page.
 - ``page_size`` - Integer representing the number of records that should be returned in a single page. The maximum number of items that can be requested in a page via the ``page_size`` query param is ``10,000``.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities?page=1&page_size=100
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -363,14 +379,15 @@ Limit list of Entities to those whose data partially matches the provided search
 
 Matches are case insensitive.
 
-
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities?search=wallaba
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -404,13 +421,15 @@ Get a single Entity
 
 This endpoint is used to get a single Entity.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
       curl -X GET https://api.ona.io/api/v2/entity-lists/1/entities/3
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -447,7 +466,8 @@ A property must exist in the EntityList dataset.
 
 The label must be a non-empty string.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
 
@@ -464,7 +484,8 @@ The label must be a non-empty string.
             }
          }'
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``200 OK``
 
@@ -494,13 +515,15 @@ Delete an Entity
 
 The endpoint is used to delete an Entity.
 
-**Example**
+Example
+^^^^^^^
 
 .. code-block:: bash
    curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
    -H "Authorization: Token ACCESS_TOKEN"
 
 
-**Response**
+Response
+^^^^^^^^
 
 Status: ``204 No Content``
