@@ -253,6 +253,8 @@ Delete EntityList
 	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/&lt;entity_list_id&gt;</pre>
 
 
+This endpoint is used to delete a single EntityList dataset.
+
 Example
 ^^^^^^^
 
