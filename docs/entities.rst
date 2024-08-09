@@ -102,7 +102,7 @@ Get a list of Entities for a specific project
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?project=<project_id></pre>
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists?project=&lt;project_id&gt;</pre>
 
 **Request**
 
@@ -185,7 +185,7 @@ Get a single EntityList
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/<entity_list_id></pre>
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/&lt;entity_list_id&gt;</pre>
 
 This endpoint is used to get a single EntityList.
 
@@ -240,7 +240,7 @@ Delete EntityList
 -----------------
 .. raw:: html
 
-	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/<entity_list_id></pre>
+	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/&lt;entity_list_id&gt;</pre>
 
 
 **Request**
@@ -259,7 +259,7 @@ Get a list of Entities
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/<entity_list_id>/entities</pre>
+	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;/entities</pre>
 
 This endpoint is used to get Entities belonging to a single EntityList dataset.
 
@@ -400,7 +400,7 @@ Get a single Entity
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/<entity_list_id>/entities/<entity_id></pre>
+	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;/entities/&lt;entity_id&gt;</pre>
 
 This endpoint is used to get a single Entity.
 
@@ -437,7 +437,7 @@ Update Entity
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>PATCH</b> api/v2/entity-lists/<entity_list_id>/entities/<entity_id></pre>
+	   <pre class="prettyprint"><b>PATCH</b> api/v2/entity-lists/&lt;entity_list_id&gt;/entities/&lt;entity_id&gt;</pre>
 
 This endpoint is used to update the label or the properties (passed as JSON in the request body) of an Entity.
 
@@ -490,7 +490,7 @@ Delete an Entity
 
 .. raw:: html
 
-	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/<entity_list_id>/entities/<entity_id></pre>
+	   <pre class="prettyprint"><b>DELETE</b> api/v2/entity-lists/&lt;entity_list_id&gt;/entities/&lt;entity_id&gt;</pre>
 
 The endpoint is used to delete an Entity.
 
