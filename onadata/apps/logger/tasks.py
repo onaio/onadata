@@ -3,15 +3,18 @@
 import logging
 
 from django.core.cache import cache
+from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 
-from onadata.apps.logger.models import EntityList, Project
+from onadata.apps.logger.models import Entity, EntityList, Project
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.project_utils import set_project_perms_to_object
+from onadata.libs.utils.logger_tools import soft_delete_entities_bulk
 
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -46,3 +49,25 @@ def apply_project_date_modified_async():
 
     # Clear cache after updating
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def delete_entities_bulk_async(entity_pks: list[int], username: str | None = None):
+    """Delete Entities asynchronously
+
+    Args:
+        entity_pks (list(int)): Primary keys of Entities to be deleted
+        username (str): Username of the user initiating the delete
+    """
+    entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
+    deleted_by = None
+
+    try:
+        if username is not None:
+            deleted_by = User.objects.get(username=username)
+
+    except User.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        soft_delete_entities_bulk(entity_qs, deleted_by)

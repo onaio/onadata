@@ -18,6 +18,7 @@ from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
 
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import (
@@ -28,6 +29,7 @@ from django.core.exceptions import (
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -90,8 +92,9 @@ from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
-from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.utils.model_tools import set_uuid, queryset_iterator
 from onadata.libs.utils.user_auth import get_user_default_project
+
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
 HTTP_OPEN_ROSA_VERSION_HEADER = "HTTP_X_OPENROSA_VERSION"
@@ -1096,3 +1099,14 @@ def update_entity_from_instance(
     )
 
     return entity
+
+
+def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> None:
+    """Soft delete Entities in bulk
+
+    Args:
+        entity_qs QuerySet(Entity): Entity queryset
+        deleted_by (User): User initiating the delete
+    """
+    for entity in queryset_iterator(entity_qs):
+        entity.soft_delete(deleted_by)

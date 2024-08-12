@@ -1,6 +1,7 @@
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet as TestBase,
 )
+from onadata.libs.permissions import OwnerRole
 
 from rest_framework.test import APIClient
 
@@ -23,6 +24,7 @@ class EntityListTestCase(TestAbstractViewSet):
 
         self._create_entity()
         self.url = f"/api/v2/entity-lists/{self.entity_list.pk}/entities"
+        OwnerRole.add(self.user, self.entity_list)
 
     def test_get(self):
         """GET list of Entities"""
@@ -46,6 +48,7 @@ class EntityDetailTestCase(TestAbstractViewSet):
         self.url = (
             f"/api/v2/entity-lists/{self.entity_list.pk}/entities/{self.entity.pk}"
         )
+        OwnerRole.add(self.user, self.entity_list)
 
     def test_get(self):
         """GET Entity"""
@@ -64,5 +67,6 @@ class EntityDetailTestCase(TestAbstractViewSet):
 
     def test_delete(self):
         """DELETE Entity"""
-        response = self.client.delete(self.url)
+        url = f"/api/v2/entity-lists/{self.entity_list.pk}/entities"
+        response = self.client.delete(url, data={"entity_ids": [self.entity.pk]})
         self.assertEqual(response.status_code, 204)

@@ -425,17 +425,28 @@ Body:
 }
 ```
 
-## Delete an Entity
+## Delete Entity
 
-`DELETE api/v2/entity-lists/<entity_list_id>/entities/<entity_id>`
+`DELETE api/v2/entity-lists/<entity_list_id>/entities`
 
-The endpoint is used to delete an Entity
+The endpoint is used to delete a single Entity or multiple Entities. The IDs of Entities to be deleted are specified with a JSON payload like this:
+
+```json
+{
+  "entity_ids": [1, 2, 3]
+}
+```
+
+`entity_ids` must be provided and cannot be an empty list. The items in the list must be valid IDs of Entities that are in the EntityList.
 
 **Request**
 
 ```sh
-curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities/1 \
+curl -X DELETE https://api.ona.io/api/v2/entity-lists/1/entities \
 -H "Authorization: Token ACCESS_TOKEN"
+-d '{
+        "entity_ids": [1, 2, 3]
+   }'
 ```
 
 **Response**
