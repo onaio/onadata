@@ -188,7 +188,7 @@ Body:
       ]
 
 
-Get a single EntityList
+Get EntityList Details
 -----------------------
 
 .. raw:: html
@@ -413,7 +413,7 @@ Body:
       ]
 
 
-Get a single Entity
+Get Entity Details
 -------------------
 
 .. raw:: html
