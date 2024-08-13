@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.4.0(2024-08-13)
+------------------
+- Fix untracked Django's view of migration state
+  `PR #2663 <https://github.com/onaio/onadata/pull/2663>`
+  [@kelvin-muchiri]
+- Convert Entities docs from markdown into restructured text format
+  `PR #2662 <https://github.com/onaio/onadata/pull/2662>`
+  [@kelvin-muchiri]
+- Handle exceptions from running migrations
+  `PR #2661 <https://github.com/onaio/onadata/pull/2661>`
+  [@kelvin-muchiri]
+- Add ability to delete Entities in bulk
+  `PR #2660 <https://github.com/onaio/onadata/pull/2660>`
+  [@kelvin-muchiri]
+- Add Entities documentation to Sphinx table of contents tree
+  `PR #2659 <https://github.com/onaio/onadata/pull/2659>`
+  [@kelvin-muchiri]
+- Patch update django, sqlparse and certifi packages
+  `PR #2657 <https://github.com/onaio/onadata/pull/2657>`
+  [@KipSigei]
+
 v4.3.4(2024-07-29)
 ------------------
 - Entities search
