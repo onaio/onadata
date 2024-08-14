@@ -45,7 +45,7 @@ def invalidate_organization_cache(organization_username):
     org_roles = [f"{ORG_PROFILE_CACHE}{organization_username}-{user_role}"
                  for user_role in role_names + ['anon']]
     for cache_key in org_roles:
-        cache.set(cache_key, None)
+        safe_delete(cache_key)
 
 
 def recreate_tmp_file(name, path, mime_type):
