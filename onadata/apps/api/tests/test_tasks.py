@@ -123,6 +123,7 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         self.assertFalse(instance.json)
 
 def set_cache_for_org(org, request):
+    """Utility to set org cache"""
     org_profile_json = OrganizationSerializer(
             org, context={"request": request}
     ).data
@@ -140,7 +141,7 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
         self.org = OrganizationProfile.objects.create(
             user=self.org_user, name="Ona Org", creator=alice
         )
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
     def test_user_added_to_org(self, mock_add):
         """User is added to organization"""
@@ -241,7 +242,7 @@ class RemoveOrgUserAsyncTestCase(TestBase):
         self.org = OrganizationProfile.objects.create(
             user=self.org_user, name="Ona Org", creator=alice
         )
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
 
     def test_user_removed_from_org(self, mock_remove):
         """User is removed from organization"""
