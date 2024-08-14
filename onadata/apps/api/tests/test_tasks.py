@@ -21,8 +21,10 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import ProjectInvitation, Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import ManagerRole
+from onadata.libs.serializers.organization_serializer import OrganizationSerializer
 from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 
 User = get_user_model()
 
@@ -120,6 +122,11 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         instance.refresh_from_db()
         self.assertFalse(instance.json)
 
+def set_cache_for_org(org, request):
+    org_profile_json = OrganizationSerializer(
+            org, context={"request": request}
+    ).data
+    cache.set(f"{ORG_PROFILE_CACHE}{org.user.username}-owner", org_profile_json)
 
 @patch("onadata.apps.api.tasks.tools.add_org_user_and_share_projects")
 class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
@@ -136,10 +143,17 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
 
     def test_user_added_to_org(self, mock_add):
         """User is added to organization"""
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        request = self.factory.get("/", **self.extra)
+        request.user = self.user
+        set_cache_for_org(self.org, request)
+        cache_key = f"{ORG_PROFILE_CACHE}{self.org.user.username}-owner"
+        self.assertIsNotNone(cache.get(cache_key))
         add_org_user_and_share_projects_async.delay(
             self.org.pk, self.user.pk, "manager"
         )
         mock_add.assert_called_once_with(self.org, self.user, "manager")
+        self.assertEqual(cache.get(cache_key), None)
 
     def test_role_optional(self, mock_add):
         """role param is optional"""
@@ -230,8 +244,15 @@ class RemoveOrgUserAsyncTestCase(TestBase):
 
     def test_user_removed_from_org(self, mock_remove):
         """User is removed from organization"""
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        request = self.factory.get("/", **self.extra)
+        request.user = self.user
+        set_cache_for_org(self.org, request)
+        cache_key = f"{ORG_PROFILE_CACHE}{self.org.user.username}-owner"
+        self.assertIsNotNone(cache.get(cache_key))
         remove_org_user_async.delay(self.org.pk, self.user.pk)
         mock_remove.assert_called_once_with(self.org, self.user)
+        self.assertEqual(cache.get(cache_key), None)
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_invalid_org_id(self, mock_log, mock_remove):

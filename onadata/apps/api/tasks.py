@@ -12,7 +12,6 @@ from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.core.mail import send_mail
-from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.utils import timezone
@@ -261,7 +260,7 @@ def remove_org_user_async(org_id, user_id):
     else:
         tools.remove_user_from_organization(organization, user)
 
-        invalidate_organization_cache(organization.username)
+        invalidate_organization_cache(organization.user.username)
 
 
 @app.task(base=ShareProjectBaseTask)
