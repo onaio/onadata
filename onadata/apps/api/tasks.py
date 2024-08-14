@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.core.files.storage import default_storage
 from django.core.mail import send_mail
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.utils import timezone
@@ -21,6 +22,8 @@ from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
 from onadata.celeryapp import app
+from onadata.libs.permissions import ROLES_ORDERED
+from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
@@ -34,6 +37,13 @@ logger = logging.getLogger(__name__)
 
 
 User = get_user_model()
+
+
+def invalidate_organization_cache(organization_username):
+    org_roles = [f"{ORG_PROFILE_CACHE}{organization_username}-{user_role}"
+                 for user_role in [ROLES_ORDERED]]
+    for cache_key in org_roles:
+        cache.set(cache_key, None)
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -222,6 +232,8 @@ def add_org_user_and_share_projects_async(
     else:
         tools.add_org_user_and_share_projects(organization, user, role)
 
+        invalidate_organization_cache(organization.username)
+
         if email_msg and email_subject and user.email:
             send_mail(
                 email_subject,
@@ -246,6 +258,8 @@ def remove_org_user_async(org_id, user_id):
 
     else:
         tools.remove_user_from_organization(organization, user)
+
+        invalidate_organization_cache(organization.username)
 
 
 @app.task(base=ShareProjectBaseTask)
