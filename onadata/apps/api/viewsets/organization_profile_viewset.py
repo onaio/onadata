@@ -38,6 +38,7 @@ BaseViewset = get_baseviewset_class()
 
 
 def get_cache_key(user, organization):
+    """Return cache key given user and organization profile"""
     if user.is_anonymous:
         return f"{ORG_PROFILE_CACHE}{organization.user.username}-anon"
     user_role = get_role_in_org(user, organization)
@@ -129,6 +130,9 @@ class OrganizationProfileViewSet(
 
         serializer.save()
 
+        data = OrganizationSerializer(
+            organization, context={"request": request}
+        ).data
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = json.dumps(data)
         resp_status = (
