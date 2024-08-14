@@ -140,10 +140,10 @@ class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
         self.org = OrganizationProfile.objects.create(
             user=self.org_user, name="Ona Org", creator=alice
         )
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
     def test_user_added_to_org(self, mock_add):
         """User is added to organization"""
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
         request = self.factory.get("/", **self.extra)
         request.user = self.user
         set_cache_for_org(self.org, request)
@@ -241,10 +241,10 @@ class RemoveOrgUserAsyncTestCase(TestBase):
         self.org = OrganizationProfile.objects.create(
             user=self.org_user, name="Ona Org", creator=alice
         )
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
 
     def test_user_removed_from_org(self, mock_remove):
         """User is removed from organization"""
-        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
         request = self.factory.get("/", **self.extra)
         request.user = self.user
         set_cache_for_org(self.org, request)
