@@ -41,8 +41,9 @@ User = get_user_model()
 
 def invalidate_organization_cache(organization_username):
     """Set organization cache to None for all roles"""
+    role_names = [role.name for role in ROLES_ORDERED]
     org_roles = [f"{ORG_PROFILE_CACHE}{organization_username}-{user_role}"
-                 for user_role in ROLES_ORDERED + ['anon']]
+                 for user_role in role_names + ['anon']]
     for cache_key in org_roles:
         cache.set(cache_key, None)
 
@@ -233,7 +234,7 @@ def add_org_user_and_share_projects_async(
     else:
         tools.add_org_user_and_share_projects(organization, user, role)
 
-        invalidate_organization_cache(organization.username)
+        invalidate_organization_cache(organization.user.username)
 
         if email_msg and email_subject and user.email:
             send_mail(
