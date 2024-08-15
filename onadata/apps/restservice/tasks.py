@@ -2,6 +2,8 @@
 """
 restservice async functions.
 """
+from multidb.pinning import use_master
+
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.utils import call_service
 from onadata.celeryapp import app
@@ -12,17 +14,18 @@ def call_service_async(instance_pk, latest_json=None):
     """Async function that calls call_service()."""
     # load the parsed instance
 
-    try:
-        instance = Instance.objects.get(pk=instance_pk)
-    except Instance.DoesNotExist:
-        # if the instance has already been removed we do not send it to the
-        # service
-        pass
+    with use_master:
+        try:
+            instance = Instance.objects.get(pk=instance_pk)
+        except Instance.DoesNotExist:
+            # if the instance has already been removed we do not send it to the
+            # service
+            return
+
+    if latest_json is None:
+        instance.json = instance.get_full_dict()
+
     else:
-        if latest_json is None:
-            instance.json = instance.get_full_dict()
+        instance.json = latest_json
 
-        else:
-            instance.json = latest_json
-
-        call_service(instance)
+    call_service(instance)
