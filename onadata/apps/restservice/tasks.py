@@ -8,7 +8,7 @@ from onadata.celeryapp import app
 
 
 @app.task()
-def call_service_async(instance_pk):
+def call_service_async(instance_pk, latest_json=None):
     """Async function that calls call_service()."""
     # load the parsed instance
 
@@ -19,4 +19,10 @@ def call_service_async(instance_pk):
         # service
         pass
     else:
+        if latest_json is None:
+            instance.json = instance.get_full_dict()
+
+        else:
+            instance.json = latest_json
+
         call_service(instance)

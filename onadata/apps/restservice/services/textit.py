@@ -33,9 +33,7 @@ class ServiceDefinition(RestServiceInterface):
         :param data:
         :return:
         """
-        # We use Instance.get_full_dict() instead of Instance.json because
-        # when asynchronous processing is enabled, the json may not be upto date
-        extra_data = self.clean_keys_of_slashes(data.get_full_dict())
+        extra_data = self.clean_keys_of_slashes(data.json)
         data_value = MetaData.textit(data.xform)
 
         if data_value:
