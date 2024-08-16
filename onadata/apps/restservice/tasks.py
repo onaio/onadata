@@ -12,8 +12,8 @@ from onadata.celeryapp import app
 @app.task()
 def call_service_async(instance_pk, latest_json=None):
     """Async function that calls call_service()."""
-    # load the parsed instance
-
+    # Pin to master just incase the Instance was created and is not available
+    # the replicas
     with use_master:
         try:
             instance = Instance.objects.get(pk=instance_pk)
