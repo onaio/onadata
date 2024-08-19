@@ -130,7 +130,7 @@ class OrganizationProfileViewSet(
 
         serializer.save()
 
-        data = OrganizationSerializer(
+        data = self.serializer_class(
             organization, context={"request": request}
         ).data
         # pylint: disable=attribute-defined-outside-init
