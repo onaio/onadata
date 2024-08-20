@@ -21,14 +21,13 @@ from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
 from onadata.celeryapp import app
-from onadata.libs.permissions import ROLES_ORDERED
-from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.cache_tools import (
     safe_delete,
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
 )
+from onadata.libs.utils.logger_tools import invalidate_organization_cache
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
 
@@ -36,14 +35,6 @@ logger = logging.getLogger(__name__)
 
 
 User = get_user_model()
-
-
-def invalidate_organization_cache(org_username):
-    """Set organization cache to none for all roles"""
-    for role in ROLES_ORDERED:
-        key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
-        safe_delete(key)
-    safe_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
 
 
 def recreate_tmp_file(name, path, mime_type):

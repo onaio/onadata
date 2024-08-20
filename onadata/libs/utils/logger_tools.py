@@ -89,11 +89,30 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
+from onadata.libs.permissions import ROLES_ORDERED, get_role_in_org
+from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE, safe_delete
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid, queryset_iterator
 from onadata.libs.utils.user_auth import get_user_default_project
+
+
+def get_org_profile_cache_key(user, organization):
+    """Return cache key given user and organization profile"""
+    if user.is_anonymous:
+        return f"{ORG_PROFILE_CACHE}{organization.user.username}-anon"
+    user_role = get_role_in_org(user, organization)
+    org_username = organization.user.username
+    return f"{ORG_PROFILE_CACHE}{org_username}-{user_role}"
+
+
+def invalidate_organization_cache(org_username):
+    """Set organization cache to none for all roles"""
+    for role in ROLES_ORDERED:
+        key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
+        safe_delete(key)
+    safe_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
 
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
