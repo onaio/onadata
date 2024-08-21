@@ -79,6 +79,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_submission_date_from_xml,
     get_uuid_from_xml,
     get_entity_uuid_from_xml,
+    get_meta_from_xml,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
@@ -1129,3 +1130,34 @@ def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> N
     """
     for entity in queryset_iterator(entity_qs):
         entity.soft_delete(deleted_by)
+
+
+def create_or_update_entity_from_instance(instance: Instance) -> None:
+    """Create or Update Entity from Instance
+
+    Args:
+        instance (Instance): Instance to create/update Entity from
+    """
+    registration_form_qs = RegistrationForm.objects.filter(
+        xform=instance.xform, is_active=True
+    )
+
+    if not registration_form_qs.exists():
+        return
+
+    entity_node = get_meta_from_xml(instance.xml, "entity")
+    registration_form = registration_form_qs.first()
+    mutation_success_checks = ["1", "true"]
+    entity_uuid = entity_node.getAttribute("id")
+    exists = False
+
+    if entity_uuid is not None:
+        exists = Entity.objects.filter(uuid=entity_uuid).exists()
+
+    if exists and entity_node.getAttribute("update") in mutation_success_checks:
+        # Update Entity
+        update_entity_from_instance(entity_uuid, instance, registration_form)
+
+    elif not exists and entity_node.getAttribute("create") in mutation_success_checks:
+        # Create Entity
+        create_entity_from_instance(instance, registration_form)

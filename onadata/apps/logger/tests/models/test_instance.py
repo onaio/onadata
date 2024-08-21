@@ -24,6 +24,7 @@ from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
 )
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance,
@@ -1005,6 +1006,33 @@ class TestInstance(TestBase):
                 "label": "300cm purpleheart",
             },
         )
+
+    def test_submission_review_enabled(self):
+        """Entity is not created if submission review is enabled for form"""
+        self.project = get_user_default_project(self.user)
+        xform = self._publish_registration_form(self.user)
+        MetaData.submission_review(xform, "true")
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 0)
 
     def test_parse_numbers(self):
         """Integers and decimals are parsed correctly"""

@@ -22,6 +22,17 @@ def update_instance_json_on_save(sender, instance, **kwargs):
     submission_instance.save()
 
 
+def create_or_update_entity(sender, instance, created=False, **kwargs):
+    """Signal handler to created Entity if status is approved"""
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
+
+    submission_instance = instance.instance
+
+    if instance.status == SubmissionReview.APPROVED:
+        create_or_update_entity_from_instance(submission_instance)
+
+
 class SubmissionReview(models.Model):
     """
     SubmissionReview Model Class
@@ -99,4 +110,9 @@ post_save.connect(
     update_instance_json_on_save,
     sender=SubmissionReview,
     dispatch_uid="update_instance_json_on_save",
+)
+post_save.connect(
+    create_or_update_entity,
+    sender=SubmissionReview,
+    dispatch_uid="create_or_update_entity_from_review",
 )
