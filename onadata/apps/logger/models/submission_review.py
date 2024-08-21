@@ -4,6 +4,8 @@ Submission Review Model Module
 """
 from __future__ import unicode_literals
 
+import importlib
+
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save
@@ -24,13 +26,12 @@ def update_instance_json_on_save(sender, instance, **kwargs):
 
 def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Signal handler to created Entity if status is approved"""
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
+    module = importlib.import_module("onadata.libs.utils.logger_tools")
 
     submission_instance = instance.instance
 
     if instance.status == SubmissionReview.APPROVED:
-        create_or_update_entity_from_instance(submission_instance)
+        module.create_or_update_entity_from_instance(submission_instance)
 
 
 class SubmissionReview(models.Model):
