@@ -9,7 +9,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from onadata.apps.logger.models import Entity, EntityList, Instance
+from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.tasks import set_entity_list_perms_async
 from onadata.apps.main.models.meta_data import MetaData
@@ -18,7 +18,7 @@ from onadata.libs.utils.logger_tools import create_or_update_entity_from_instanc
 
 # pylint: disable=unused-argument
 @receiver(post_save, sender=Instance, dispatch_uid="create_or_update_entity")
-def create_or_update_entity(sender, instance, **kwargs):
+def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Create or update an Entity after Instance saved"""
     content_type = ContentType.objects.get_for_model(instance.xform)
     submission_review_enabled = MetaData.objects.filter(
@@ -28,9 +28,13 @@ def create_or_update_entity(sender, instance, **kwargs):
         data_value="true",
     ).exists()
 
-    # If submissision review for form is enabled, Entity will be created/updated
-    # upon approval. If not enabled, proceed to create/update Entity
-    if submission_review_enabled:
+    if (created and submission_review_enabled) or (
+        not created
+        and submission_review_enabled
+        and not SubmissionReview.objects.filter(
+            instance_id=instance.id, status=SubmissionReview.APPROVED
+        ).exists()
+    ):
         return
 
     create_or_update_entity_from_instance(instance)
