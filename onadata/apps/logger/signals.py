@@ -28,8 +28,8 @@ def create_or_update_entity(sender, instance, **kwargs):
         data_value="true",
     ).exists()
 
-    # If submissision review for form is enabled, Entity will be created upon
-    # approval. If not enabled, proceed to create/update Entity
+    # If submissision review for form is enabled, Entity will be created/updated
+    # upon approval. If not enabled, proceed to create/update Entity
     if submission_review_enabled:
         return
 
