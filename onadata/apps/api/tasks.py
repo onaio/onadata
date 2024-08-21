@@ -27,6 +27,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
 )
+from onadata.libs.utils.logger_tools import invalidate_organization_cache
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
 
@@ -222,6 +223,8 @@ def add_org_user_and_share_projects_async(
     else:
         tools.add_org_user_and_share_projects(organization, user, role)
 
+        invalidate_organization_cache(organization.user.username)
+
         if email_msg and email_subject and user.email:
             send_mail(
                 email_subject,
@@ -246,6 +249,8 @@ def remove_org_user_async(org_id, user_id):
 
     else:
         tools.remove_user_from_organization(organization, user)
+
+        invalidate_organization_cache(organization.user.username)
 
 
 @app.task(base=ShareProjectBaseTask)
