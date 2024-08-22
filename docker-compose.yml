@@ -4,7 +4,9 @@ services:
       DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
-      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu.dev
+      args:
+        INSTALL_DEV_DEPENDENCIES: "true"
+      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
       - cache
@@ -22,7 +24,9 @@ services:
       DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
-      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu.dev
+      args:
+        INSTALL_DEV_DEPENDENCIES: "true"
+      dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
       - cache

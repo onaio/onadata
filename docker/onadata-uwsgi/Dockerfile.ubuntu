@@ -27,6 +27,12 @@ RUN chown -R appuser:appuser /home/appuser/.pyenv
 
 USER appuser
 
+ARG INSTALL_DEV_DEPENDENCIES=false
+RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
+    git config --global http.version HTTP/1.1 && \
+    git config --global http.postBuffer 524288000; \
+    fi
+
 # hadolint ignore=DL3013
 RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/base.pip && \
@@ -34,6 +40,10 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/ses.pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
     python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
+
+RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
+    python -m pip install --no-cache-dir -r requirements/dev.pip; \
+    fi
 
 FROM base AS docs
 
@@ -53,7 +63,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20240722 as runtime
+FROM debian:bookworm-20240701 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
