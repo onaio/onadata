@@ -7,6 +7,31 @@ from django.conf import settings
 from rest_framework.throttling import SimpleRateThrottle
 
 
+class SubmissionURLThrottle(SimpleRateThrottle):
+
+    @property
+    def rate(self):
+        return getattr(
+            settings,
+            "THROTTLE_USERS_RATE",
+            "300/min"
+        )
+
+    def get_form_owner_or_project_from_url(self, url):
+        path_segments = url.split("/")
+        if len(path_segments) > 1:
+            return path_segments[-2]
+        return None
+
+    def get_cache_key(self, request, _):
+        form_owner_or_project = self.get_form_owner_or_project_from_url(request.path)
+        if (form_owner_or_project and
+                request.method == 'POST'
+                and '/submission' in request.path):
+            return f"throttle_method_{request.method}_path_{request.path}"
+        return None
+
+
 class RequestHeaderThrottle(SimpleRateThrottle):
     """
     Custom Throttling class that throttles requests that match a specific

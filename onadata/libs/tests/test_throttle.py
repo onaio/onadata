@@ -3,10 +3,43 @@ from django.test import TestCase, override_settings
 
 from rest_framework.test import APIRequestFactory
 
-from onadata.libs.throttle import RequestHeaderThrottle
+from onadata.libs.throttle import RequestHeaderThrottle, SubmissionURLThrottle
 
 
-class ThrottlingTests(TestCase):
+class SubmissionURLThrottleTests(TestCase):
+    """
+    Test Renderer class.
+    """
+
+    def setUp(self):
+        """
+        Reset the cache so that no throttles will be active
+        """
+        cache.clear()
+        self.factory = APIRequestFactory()
+        self.throttle = SubmissionURLThrottle()
+
+    def test_requests_are_not_throttled_for_get(self):
+        request = self.factory.get("/bob/submission")
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, None)
+
+    def test_requests_are_not_throttled_for_non_submission_urls(self):
+        request = self.factory.post("/projects/")
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, None)
+
+    def test_requests_are_throttled(self):
+        request = self.factory.post("/bob/submission")
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, 'throttle_method_POST_path_/bob/submission')
+
+        request = self.factory.post("/project/124/submission")
+        key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(key, 'throttle_method_POST_path_/project/124/submission')
+
+
+class RequestHeaderThrottlingTests(TestCase):
     """
     Test Renderer class.
     """
