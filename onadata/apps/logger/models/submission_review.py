@@ -25,7 +25,7 @@ def update_instance_json_on_save(sender, instance, **kwargs):
 
 
 def create_or_update_entity(sender, instance, created=False, **kwargs):
-    """Signal handler to created Entity if status is approved"""
+    """Signal handler to create/update Entity if submission is approved"""
     module = importlib.import_module("onadata.libs.utils.logger_tools")
 
     submission_instance = instance.instance
