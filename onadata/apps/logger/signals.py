@@ -29,13 +29,15 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
     ).exists()
     should_create_or_update = False
 
-    if created and not is_review_enabled:
+    if not is_review_enabled:
         should_create_or_update = True
+
     else:
-        is_review_approved = SubmissionReview.objects.filter(
-            instance_id=instance.id, status=SubmissionReview.APPROVED
-        ).exists()
-        should_create_or_update = not is_review_enabled or is_review_approved
+        if not created:
+            is_review_approved = SubmissionReview.objects.filter(
+                instance_id=instance.id, status=SubmissionReview.APPROVED
+            ).exists()
+            should_create_or_update = is_review_approved
 
     if should_create_or_update:
         create_or_update_entity_from_instance(instance)
