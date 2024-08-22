@@ -21,23 +21,24 @@ from onadata.libs.utils.logger_tools import create_or_update_entity_from_instanc
 def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Create or update an Entity after Instance saved"""
     content_type = ContentType.objects.get_for_model(instance.xform)
-    submission_review_enabled = MetaData.objects.filter(
+    is_review_enabled = MetaData.objects.filter(
         content_type=content_type,
         object_id=instance.xform.id,
         data_type="submission_review",
         data_value="true",
     ).exists()
+    should_create_or_update = False
 
-    if (created and submission_review_enabled) or (
-        not created
-        and submission_review_enabled
-        and not SubmissionReview.objects.filter(
+    if created and not is_review_enabled:
+        should_create_or_update = True
+    else:
+        is_review_approved = SubmissionReview.objects.filter(
             instance_id=instance.id, status=SubmissionReview.APPROVED
         ).exists()
-    ):
-        return
+        should_create_or_update = not is_review_enabled or is_review_approved
 
-    create_or_update_entity_from_instance(instance)
+    if should_create_or_update:
+        create_or_update_entity_from_instance(instance)
 
 
 @receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")
