@@ -2,52 +2,45 @@
 """
 logger signals module
 """
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import F
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
+from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
-from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
 from onadata.apps.logger.tasks import set_entity_list_perms_async
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.logger_tools import (
-    create_entity_from_instance,
-    update_entity_from_instance,
-)
+from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
 
 
 # pylint: disable=unused-argument
 @receiver(post_save, sender=Instance, dispatch_uid="create_or_update_entity")
 def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Create or update an Entity after Instance saved"""
-    if instance:
-        if RegistrationForm.objects.filter(
-            xform=instance.xform, is_active=True
-        ).exists():
-            entity_node = get_meta_from_xml(instance.xml, "entity")
-            registration_form = RegistrationForm.objects.filter(
-                xform=instance.xform, is_active=True
-            ).first()
-            mutation_success_checks = ["1", "true"]
-            entity_uuid = entity_node.getAttribute("id")
-            exists = False
+    content_type = ContentType.objects.get_for_model(instance.xform)
+    is_review_enabled = MetaData.objects.filter(
+        content_type=content_type,
+        object_id=instance.xform.id,
+        data_type="submission_review",
+        data_value="true",
+    ).exists()
+    should_create_or_update = False
 
-            if entity_uuid is not None:
-                exists = Entity.objects.filter(uuid=entity_uuid).exists()
+    if not is_review_enabled:
+        should_create_or_update = True
 
-            if exists and entity_node.getAttribute("update") in mutation_success_checks:
-                # Update Entity
-                update_entity_from_instance(entity_uuid, instance, registration_form)
+    else:
+        if not created:
+            is_review_approved = SubmissionReview.objects.filter(
+                instance_id=instance.id, status=SubmissionReview.APPROVED
+            ).exists()
+            should_create_or_update = is_review_approved
 
-            elif (
-                not exists
-                and entity_node.getAttribute("create") in mutation_success_checks
-            ):
-                # Create Entity
-                create_entity_from_instance(instance, registration_form)
+    if should_create_or_update:
+        create_or_update_entity_from_instance(instance)
 
 
 @receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")

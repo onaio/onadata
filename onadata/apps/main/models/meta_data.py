@@ -208,6 +208,9 @@ class MetaData(models.Model):
     class Meta:
         app_label = "main"
         unique_together = ("object_id", "data_type", "data_value", "content_type")
+        indexes = [
+            models.Index(fields=["object_id", "data_type"]),
+        ]
 
     # pylint: disable=arguments-differ
     def save(self, *args, **kwargs):

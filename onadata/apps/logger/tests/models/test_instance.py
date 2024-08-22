@@ -24,6 +24,7 @@ from onadata.apps.logger.models.instance import (
     get_id_string_from_xml_str,
     numeric_checker,
 )
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance,
@@ -1005,6 +1006,119 @@ class TestInstance(TestBase):
                 "label": "300cm purpleheart",
             },
         )
+
+    def test_submission_review_enabled_entity_create(self):
+        """Submission review disables automatic creation of Entity"""
+        self.project = get_user_default_project(self.user)
+        xform = self._publish_registration_form(self.user)
+        MetaData.submission_review(xform, "true")
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_submission_review_enabled_entity_update(self):
+        """Submission review disables automatic update of an Entity
+
+        Only an approved Instance will update an Entity
+        """
+        self._simulate_existing_entity()
+        xform = self._publish_entity_update_form(self.user)
+        MetaData.submission_review(xform, "true")
+
+        # Try to update Entity via Instance creation
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        entity = Entity.objects.first()
+        expected_json = {
+            "label": "300cm purpleheart",
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "circumference_cm": 300,
+        }
+        # Entity not updated
+        self.assertDictEqual(entity.json, expected_json)
+        # Approve submission
+        SubmissionReview.objects.create(
+            instance=instance, status=SubmissionReview.APPROVED
+        )
+        entity.refresh_from_db()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "300cm purpleheart",
+        }
+        self.assertDictEqual(entity.json, expected_json)
+
+        # Update Entity via Instance update
+        instance = Instance.objects.get(
+            pk=instance.pk
+        )  # Get anew from DB to update Instance._parser
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>32</circumference>"  # Update to 32
+            "<today>2024-06-19</today>"
+            "<meta>"
+            "<instanceID>uuid:fa6bcdce-e344-4dbd-9227-0f1cbdddb09c</instanceID>"
+            "<instanceName>32cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion="">'
+            "<label>32cm purpleheart</label>"
+            "</entity>"
+            "<deprecatedID>uuid:45d27780-48fd-4035-8655-9332649385bd</deprecatedID>"
+            "</meta>"
+            "</data>"
+        )
+        instance.xml = xml
+        instance.uuid = "fa6bcdce-e344-4dbd-9227-0f1cbdddb09c"
+        instance.save()
+        entity.refresh_from_db()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-06-19",
+            "circumference_cm": 32,
+            "label": "32cm purpleheart",
+        }
+        # Entity updated since the submission is already approved
+        self.assertDictEqual(entity.json, expected_json)
 
     def test_parse_numbers(self):
         """Integers and decimals are parsed correctly"""
