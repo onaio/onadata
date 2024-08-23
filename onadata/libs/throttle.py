@@ -14,7 +14,7 @@ class SubmissionURLThrottle(SimpleRateThrottle):
         return getattr(
             settings,
             "THROTTLE_USERS_RATE",
-            "300/min"
+            "40/min"
         )
 
     def get_form_owner_or_project_from_url(self, url):
