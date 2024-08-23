@@ -4,6 +4,7 @@ Viewer signals module.
 """
 import django.dispatch
 from django.conf import settings
+from django.db import transaction
 from django.db.models.signals import post_save
 
 from onadata.apps.logger.models import Instance
@@ -37,29 +38,26 @@ def _post_process_submissions(instance):
 
 def post_save_submission(sender, **kwargs):  # pylint: disable=unused-argument
     """
-    Calls webhooks and OSM data processing for ParsedInstance model.
+    Calls webhooks and OSM data processing for ParsedInstance/Instance model.
     """
-    parsed_instance = kwargs.get("instance")
     created = kwargs.get("created")
+    instance = kwargs.get("instance")
 
-    if created:
-        _post_process_submissions(parsed_instance.instance)
+    if created and isinstance(instance, ParsedInstance):
+        # Get submission from ParsedInstance
+        instance = instance.instance
+
+    if isinstance(instance, Instance):
+        # Trigger webhooks only if the Instance has been commited by using
+        # transaction.on_commit. In case, the transaction is rolled back,
+        # the webhooks will not be called. Also, ensures getting the Instance
+        # again from the database later will not return stale data
+        transaction.on_commit(lambda: _post_process_submissions(instance))
 
 
 post_save.connect(
     post_save_submission, sender=ParsedInstance, dispatch_uid="post_save_submission"
 )
-
-
-def process_saved_submission(sender, **kwargs):  # pylint: disable=unused-argument
-    """
-    Calls webhooks and OSM data processing for Instance model.
-    """
-    instance = kwargs.get("instance")
-    if instance:
-        _post_process_submissions(instance)
-
-
 process_submission.connect(
-    process_saved_submission, sender=Instance, dispatch_uid="process_saved_submission"
+    post_save_submission, sender=Instance, dispatch_uid="process_saved_submission"
 )

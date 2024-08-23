@@ -10,7 +10,7 @@ from onadata.celeryapp import app
 
 
 @app.task()
-def call_service_async(instance_pk, latest_json=None):
+def call_service_async(instance_pk):
     """Async function that calls call_service()."""
     # Pin to master just incase the Instance was created and is not available
     # in the replicas
@@ -21,11 +21,5 @@ def call_service_async(instance_pk, latest_json=None):
             # if the instance has already been removed we do not send it to the
             # service
             return
-
-    if latest_json is None:
-        instance.json = instance.get_full_dict()
-
-    else:
-        instance.json = latest_json
 
     call_service(instance)
