@@ -1266,12 +1266,16 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
             with open(submission_path, "rb") as sf:
                 data = {"xml_submission_file": sf, "media_file": f}
-                request = self.factory.post("/submission", data)
-                response = self.view(request)
-                self.assertEqual(response.status_code, 401)
-                auth = DigestAuth("bob", "bobbob")
-                request.META.update(auth(request.META, response))
-                response = self.view(request, username=self.user.username)
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    # Ensure on commit callbacks are executed
+                    request = self.factory.post("/submission", data)
+                    response = self.view(request)
+                    self.assertEqual(response.status_code, 401)
+                    auth = DigestAuth("bob", "bobbob")
+                    request.META.update(auth(request.META, response))
+                    response = self.view(request, username=self.user.username)
+
                 self.assertContains(response, "Successful submission", status_code=201)
                 instance = Instance.objects.all().order_by("-pk")[0]
                 mock_send.assert_called_once_with(rest_service.service_url, instance)
@@ -1310,12 +1314,16 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
 
             with open(submission_path, "rb") as sf:
                 data = {"xml_submission_file": sf, "media_file": f}
-                request = self.factory.post("/submission", data)
-                response = self.view(request)
-                self.assertEqual(response.status_code, 401)
-                auth = DigestAuth("bob", "bobbob")
-                request.META.update(auth(request.META, response))
-                response = self.view(request, username=self.user.username)
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    # Ensure on commit callbacks are executed
+                    request = self.factory.post("/submission", data)
+                    response = self.view(request)
+                    self.assertEqual(response.status_code, 401)
+                    auth = DigestAuth("bob", "bobbob")
+                    request.META.update(auth(request.META, response))
+                    response = self.view(request, username=self.user.username)
+
                 self.assertContains(response, "Successful submission", status_code=201)
                 new_uuid = "6b2cc313-fc09-437e-8139-fcd32f695d41"
                 instance = Instance.objects.get(uuid=new_uuid)

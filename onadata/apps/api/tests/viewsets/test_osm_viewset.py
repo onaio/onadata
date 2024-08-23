@@ -65,9 +65,15 @@ class TestOSMViewSet(TestAbstractViewSet):
         count = Attachment.objects.filter(extension="osm").count()
         count_osm = OsmData.objects.count()
         _submission_time = parse_datetime("2013-02-18 15:54:01Z")
-        self._make_submission(
-            submission_path, media_file=files, forced_submission_time=_submission_time
-        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            # Ensure on commit callbacks are executed
+            self._make_submission(
+                submission_path,
+                media_file=files,
+                forced_submission_time=_submission_time,
+            )
+
         self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
         self.assertEqual(OsmData.objects.count(), count_osm + 2)
 
