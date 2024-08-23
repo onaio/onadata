@@ -102,7 +102,10 @@ class TestExportTools(TestAbstractViewSet):
         self._publish_xls_file_and_set_xform(xlsform_path)
         submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
         count = Attachment.objects.filter(extension="osm").count()
-        self._make_submission_w_attachment(submission_path, paths)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            # Ensure on commit callbacks are executed
+            self._make_submission_w_attachment(submission_path, paths)
         self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
 
         options = {"extension": Attachment.OSM}

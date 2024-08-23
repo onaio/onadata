@@ -3782,7 +3782,10 @@ class TestOSM(TestAbstractViewSet):
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
         files = [open(path, "rb") for path in paths]
-        self._make_submission(submission_path, media_file=files)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            # Ensure on commit callbacks are executed
+            self._make_submission(submission_path, media_file=files)
         self.assertTrue(hasattr(self, "instance"))
         self.assertEqual(self.instance.attachments.all().count(), len(files))
 
