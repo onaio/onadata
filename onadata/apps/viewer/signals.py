@@ -44,8 +44,8 @@ def post_save_submission(sender, **kwargs):  # pylint: disable=unused-argument
     instance = kwargs.get("instance")
 
     if created:
-        parsed_instance = instance
-        instance = parsed_instance.instance
+        # Get submission from ParsedInstance
+        instance = instance.instance
 
     # Trigger webhooks only if the Instance has been commited by using
     # transaction.on_commit. In case, the transaction is rolled back,
