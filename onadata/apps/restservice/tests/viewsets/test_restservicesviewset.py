@@ -303,7 +303,10 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         )
 
         self.assertFalse(mock_http.called)
-        self._make_submissions()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            # Ensure on commit callbacks are executed
+            self._make_submissions()
 
         self.assertTrue(mock_http.called)
         self.assertEqual(mock_http.call_count, 4)
