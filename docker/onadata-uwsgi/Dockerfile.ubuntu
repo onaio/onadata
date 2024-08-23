@@ -27,12 +27,6 @@ RUN chown -R appuser:appuser /home/appuser/.pyenv
 
 USER appuser
 
-ARG INSTALL_DEV_DEPENDENCIES=false
-RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
-    git config --global http.version HTTP/1.1 && \
-    git config --global http.postBuffer 524288000; \
-    fi
-
 # hadolint ignore=DL3013
 RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/base.pip && \
@@ -41,6 +35,7 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
     python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
 
+ARG INSTALL_DEV_DEPENDENCIES=false
 RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
     python -m pip install --no-cache-dir -r requirements/dev.pip; \
     fi
