@@ -876,7 +876,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
 
         with self.captureOnCommitCallbacks(execute=True):
-            # Ensure on commit callbacks are executed
             self._publish_xls_form_to_project()
 
         alice_profile.refresh_from_db()
