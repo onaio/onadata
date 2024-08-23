@@ -24,10 +24,8 @@ class SubmissionURLThrottle(SimpleRateThrottle):
         return None
 
     def get_cache_key(self, request, _):
-        form_owner_or_project = self.get_form_owner_or_project_from_url(request.path)
-        if (form_owner_or_project and
-                request.method == 'POST'
-                and '/submission' in request.path):
+        if (request.method == 'POST' and '/submission' in request.path
+                and self.get_form_owner_or_project_from_url(request.path)):
             return f"throttle_method_{request.method}_path_{request.path}"
         return None
 
