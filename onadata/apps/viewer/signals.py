@@ -4,6 +4,7 @@ Viewer signals module.
 """
 import django.dispatch
 from django.conf import settings
+from django.db import transaction
 from django.db.models.signals import post_save
 
 from onadata.apps.logger.models import Instance
@@ -43,7 +44,13 @@ def post_save_submission(sender, **kwargs):  # pylint: disable=unused-argument
     created = kwargs.get("created")
 
     if created:
-        _post_process_submissions(parsed_instance.instance)
+        # Trigger webhooks only if the Instance has been commited by using
+        # transaction.on_commit. In case, the transaction is rolled back,
+        # the webhooks will not be called. Also, ensures getting the Instance
+        # again from the database later will not return stale data
+        transaction.on_commit(
+            lambda: _post_process_submissions(parsed_instance.instance)
+        )
 
 
 post_save.connect(
@@ -56,8 +63,13 @@ def process_saved_submission(sender, **kwargs):  # pylint: disable=unused-argume
     Calls webhooks and OSM data processing for Instance model.
     """
     instance = kwargs.get("instance")
+
     if instance:
-        _post_process_submissions(instance)
+        # Trigger webhooks only if the Instance has been commited by using
+        # transaction.on_commit. In case, the transaction is rolled back,
+        # the webhooks will not be called. Also, ensures getting the Instance
+        # again from the database later will not return stale data
+        transaction.on_commit(lambda: _post_process_submissions(instance))
 
 
 process_submission.connect(

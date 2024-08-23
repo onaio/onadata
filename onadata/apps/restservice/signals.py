@@ -17,9 +17,7 @@ def call_webhooks(sender, **kwargs):  # pylint: disable=unused-argument
     """
     instance = kwargs["instance"]
 
-    call_service_async.apply_async(
-        args=[instance.pk, instance.get_full_dict()], countdown=1
-    )
+    call_service_async.apply_async(args=[instance.pk], countdown=1)
 
 
 trigger_webhook.connect(call_webhooks, dispatch_uid="call_webhooks")
