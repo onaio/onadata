@@ -12,8 +12,7 @@ from onadata.celeryapp import app
 @app.task()
 def call_service_async(instance_pk):
     """Async function that calls call_service()."""
-    # Pin to master just incase the Instance was created and is not available
-    # in the replicas
+    # Use master database
     with use_master:
         try:
             instance = Instance.objects.get(pk=instance_pk)
@@ -22,4 +21,4 @@ def call_service_async(instance_pk):
             # service
             return
 
-    call_service(instance)
+        call_service(instance)
