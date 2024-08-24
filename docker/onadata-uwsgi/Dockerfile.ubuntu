@@ -35,6 +35,11 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
     python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
 
+ARG INSTALL_DEV_DEPENDENCIES=false
+RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
+    python -m pip install --no-cache-dir -r requirements/dev.pip; \
+    fi
+
 FROM base AS docs
 
 ENV PYENV_ROOT="$HOME/.pyenv"

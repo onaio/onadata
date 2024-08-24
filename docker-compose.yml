@@ -1,7 +1,11 @@
 services:
   api:
+    environment:
+      DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
+      args:
+        INSTALL_DEV_DEPENDENCIES: "true"
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
@@ -10,13 +14,18 @@ services:
     tty: true
     volumes:
       - ./:/srv/onadata
+      - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     ports:
-      - 8000:8000
-    command: python3.10 manage.py runserver --settings=onadata.settings.docker
+      - "8000:8000"
+    command: python3.10 manage.py runserver 0.0.0.0:8000
 
   celery:
+    environment:
+      DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
+      args:
+        INSTALL_DEV_DEPENDENCIES: "true"
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
     depends_on:
       - database
@@ -24,6 +33,7 @@ services:
       - api
     volumes:
       - ./:/srv/onadata
+      - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     command: celery -A onadata.celeryapp worker -B -l INFO -E
 
   database:
@@ -39,4 +49,5 @@ services:
     image: redis:alpine
 
 volumes:
+  savreaderwriter-exclusion:
   dbdata:
