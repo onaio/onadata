@@ -1054,8 +1054,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     def test_update_org_name(self):
         self._org_create()
 
-        # update name
-        data = {"name": "Dennis2"}
+        # update name and email
+        data = {"name": "Dennis2", "email": "dennis@mail.com"}
         request = self.factory.patch("/", data=data, **self.extra)
         response = self.view(request, user="denoinc")
         self.assertEqual(response.data["name"], "Dennis2")

@@ -73,6 +73,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.user.last_name = last_name
             instance.user.save()
 
+        if "email" in validated_data:
+            instance.user.email = validated_data.pop("email")
+            instance.user.save()
+
         return super().update(instance, validated_data)
 
     def create(self, validated_data):
