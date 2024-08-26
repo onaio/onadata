@@ -31,6 +31,7 @@ from onadata.libs.serializers.entity_serializer import (
     EntityListDetailSerializer,
     EntityDeleteSerializer,
 )
+from onadata.libs.utils.api_export_tools import get_entity_list_export_response
 
 
 BaseViewset = get_baseviewset_class()
@@ -172,3 +173,10 @@ class EntityListViewSet(
         queryset = queryset.order_by("id")
 
         return queryset
+
+    @action(methods=["GET"], detail=True)
+    def download(self, request, *args, **kwargs):
+        """Provides `download` action for dataset"""
+        entity_list = self.get_object()
+
+        return get_entity_list_export_response(request, entity_list, entity_list.name)

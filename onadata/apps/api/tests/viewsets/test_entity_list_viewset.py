@@ -1331,3 +1331,74 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 405)
+
+
+class DownloadEntityListTestCase(TestAbstractViewSet):
+    """Tests for `download` action"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"get": "download"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+
+    def test_download(self):
+        """EntityList dataset is downloaded"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Disposition"], "attachment; filename=trees.csv"
+        )
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot download a private EntityList"""
+        # Anonymous user cannot view private EntityList
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
+        # Anonymous user can view public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_object_permissions(self):
+        """User must have object view level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.get("/", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertEqual(response.status_code, 404)
+
+    def test_soft_deleted(self):
+        """Soft deleted dataset cannot be retrieved"""
+        self.entity_list.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
