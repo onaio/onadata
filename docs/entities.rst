@@ -255,8 +255,6 @@ This endpoint is used to download the dataset in CSV format.
 
 Status: ``200 OK``
 
-
-
 Delete EntityList
 -----------------
 .. raw:: html
