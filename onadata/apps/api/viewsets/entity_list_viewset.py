@@ -182,12 +182,12 @@ class EntityListViewSet(
         detail=True,
         renderer_classes=[renderers.CSVRenderer],
     )
-    def download(self, request, format=None, *args, **kwargs):
+    def download(self, request, *args, **kwargs):
         """Provides `download` action for dataset"""
         accept_header = request.headers.get("Accept", "")
 
         if (
-            format is not None or accept_header
+            kwargs.get("format") is not None or accept_header
         ) and not request.accepted_renderer.format == "csv":
             raise NotFound(code=status.HTTP_404_NOT_FOUND)
 
@@ -195,11 +195,11 @@ class EntityListViewSet(
 
         return get_entity_list_export_response(request, entity_list, entity_list.name)
 
-    def retrieve(self, request, format=None, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         """Override `retrieve` method"""
         instance = self.get_object()
 
-        if format == "csv" or request.accepted_renderer.format == "csv":
+        if kwargs.get("format") == "csv" or request.accepted_renderer.format == "csv":
             return get_entity_list_export_response(request, instance, instance.name)
 
         return super().retrieve(request, format, *args, **kwargs)
