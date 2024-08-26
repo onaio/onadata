@@ -15,11 +15,11 @@ def add_project_entitylist_perm(apps, schema_editor):
     """Assign `add_project_entitylist` permission to existing Owners, Managers"""
     Project = apps.get_model("logger", "Project")
     content_type = ContentType.objects.get_for_model(Project)
-    perm = "add_project_entitylist"
+    perm_str = "add_project_entitylist"
 
     with use_master:
         _, created = Permission.objects.get_or_create(
-            codename=perm,
+            codename=perm_str,
             content_type=content_type,
             defaults={
                 "name": "Can add entitylist to project",
@@ -27,7 +27,7 @@ def add_project_entitylist_perm(apps, schema_editor):
         )
 
         if created:
-            print(f"Permission {perm} created because it does not exist")
+            print(f"Permission {perm_str} created because it does not exist")
 
         project_qs = Project.objects.filter(deleted_at__isnull=True)
         eta = project_qs.count()
@@ -42,13 +42,13 @@ def add_project_entitylist_perm(apps, schema_editor):
                 permission__codename="add_project"
             )
 
-            for perm in project_user_obj_perm_qs.iterator(chunk_size=100):
-                user = User.objects.get(id=perm.user_id)
-                assign_perm(perm, user, project)
+            for user_obj_perm in project_user_obj_perm_qs.iterator(chunk_size=100):
+                user = User.objects.get(id=user_obj_perm.user_id)
+                assign_perm(perm_str, user, project)
 
-            for perm in project_group_obj_perm_qs.iterator(chunk_size=100):
-                group = Group.objects.get(id=perm.group_id)
-                assign_perm(perm, group, project)
+            for group_obj_perm in project_group_obj_perm_qs.iterator(chunk_size=100):
+                group = Group.objects.get(id=group_obj_perm.group_id)
+                assign_perm(perm_str, group, project)
 
             eta -= 1
             print("eta", eta)
