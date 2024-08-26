@@ -33,7 +33,7 @@ from onadata.apps.viewer import views as viewer_views
 from onadata.libs.utils.analytics import init_analytics
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
-ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin/")
+ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
 
 admin.autodiscover()
 
