@@ -235,6 +235,31 @@ Body:
          ]
       }
 
+Download EntityList
+-------------------
+.. raw:: html
+
+	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;/download</pre>
+
+or 
+
+.. raw:: html
+
+	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;.csv</pre>
+
+
+This endpoints are used to download the dataset in CSV format.
+
+**Example**
+
+.. code-block:: bash
+
+      curl -X GET https://api.ona.io/api/v2/entity-lists/1/download \
+      -H "Authorization: Token ACCESS_TOKEN"
+
+**Response**
+
+Status: ``200 OK``
 
 Delete EntityList
 -----------------
