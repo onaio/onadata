@@ -198,9 +198,8 @@ class EntityListViewSet(
     def retrieve(self, request, format=None, *args, **kwargs):
         """Override `retrieve` method"""
         instance = self.get_object()
-        format = format or request.accepted_renderer.format
 
-        if format == "csv":
+        if format == "csv" or request.accepted_renderer.format == "csv":
             return get_entity_list_export_response(request, instance, instance.name)
 
         return super().retrieve(request, format, *args, **kwargs)
