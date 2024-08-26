@@ -33,6 +33,7 @@ from onadata.apps.viewer import views as viewer_views
 from onadata.libs.utils.analytics import init_analytics
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
 
 admin.autodiscover()
 
@@ -50,8 +51,8 @@ urlpatterns = [
     re_path(r"^api/v1$", RedirectView.as_view(url="/api/v1/", permanent=True)),
     # django default stuff
     re_path(r"^accounts/", include(registration_patterns)),
-    re_path(r"^admin/", admin.site.urls),
-    re_path(r"^admin/doc/", include("django.contrib.admindocs.urls")),
+    re_path(f"^{ADMIN_URL_PATH}/", admin.site.urls),
+    re_path(f"^{ADMIN_URL_PATH}/doc/", include("django.contrib.admindocs.urls")),
     # oath2_provider
     re_path(
         r"^o/authorize/$",

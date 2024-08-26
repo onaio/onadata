@@ -1,4 +1,4 @@
-FROM onaio/python-deps:3.10.14-20240703 AS base
+FROM onaio/python-deps:3.10.14-20240820 AS base
 
 ARG optional_packages
 
@@ -58,7 +58,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20240722 as runtime
+FROM debian:bookworm-20240812 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 

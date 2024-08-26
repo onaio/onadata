@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import GenericViewSet
@@ -12,6 +13,7 @@ from rest_framework.mixins import (
     DestroyModelMixin,
     ListModelMixin,
 )
+
 
 from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
 from onadata.apps.api.tools import get_baseviewset_class
@@ -23,6 +25,7 @@ from onadata.libs.pagination import (
     StandardPageNumberPagination,
 )
 from onadata.libs.permissions import CAN_ADD_PROJECT_ENTITYLIST
+from onadata.libs.renderers import renderers
 from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
     EntitySerializer,
@@ -31,6 +34,7 @@ from onadata.libs.serializers.entity_serializer import (
     EntityListDetailSerializer,
     EntityDeleteSerializer,
 )
+from onadata.libs.utils.api_export_tools import get_entity_list_export_response
 
 
 BaseViewset = get_baseviewset_class()
@@ -172,3 +176,30 @@ class EntityListViewSet(
         queryset = queryset.order_by("id")
 
         return queryset
+
+    @action(
+        methods=["GET"],
+        detail=True,
+        renderer_classes=[renderers.CSVRenderer],
+    )
+    def download(self, request, *args, **kwargs):
+        """Provides `download` action for dataset"""
+        accept_header = request.headers.get("Accept", "")
+
+        if (
+            kwargs.get("format") is not None or accept_header
+        ) and not request.accepted_renderer.format == "csv":
+            raise NotFound(code=status.HTTP_404_NOT_FOUND)
+
+        entity_list = self.get_object()
+
+        return get_entity_list_export_response(request, entity_list, entity_list.name)
+
+    def retrieve(self, request, *args, **kwargs):
+        """Override `retrieve` method"""
+        instance = self.get_object()
+
+        if kwargs.get("format") == "csv" or request.accepted_renderer.format == "csv":
+            return get_entity_list_export_response(request, instance, instance.name)
+
+        return super().retrieve(request, format, *args, **kwargs)
