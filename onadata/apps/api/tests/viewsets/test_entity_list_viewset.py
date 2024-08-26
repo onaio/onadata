@@ -505,6 +505,25 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
 
+    def test_render_csv(self):
+        """Render in CSV format"""
+        request = self.factory.get("/", **self.extra)
+        # Using `.csv` suffix
+        response = self.view(request, pk=self.entity_list.pk, format="csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+        )
+        self.assertEqual(response["Content-Type"], "application/csv")
+        # Using `Accept` header
+        request = self.factory.get("/", HTTP_ACCEPT="text/csv", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+        )
+        self.assertEqual(response["Content-Type"], "application/csv")
+
 
 class DeleteEntityListTestCase(TestAbstractViewSet):
     """Tests for deleting a single EntityList"""
@@ -1352,6 +1371,31 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         self.assertEqual(
             response["Content-Disposition"], "attachment; filename=trees.csv"
         )
+        self.assertEqual(response["Content-Type"], "application/csv")
+        # Using `.csv` suffix
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, format="csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Disposition"], "attachment; filename=trees.csv"
+        )
+        self.assertEqual(response["Content-Type"], "application/csv")
+        # Using `Accept` header
+        request = self.factory.get("/", HTTP_ACCEPT="text/csv", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+        )
+        self.assertEqual(response["Content-Type"], "application/csv")
+        # Unsupported suffix
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, format="json")
+        self.assertEqual(response.status_code, 404)
+        # Unsupported accept header
+        request = self.factory.get("/", HTTP_ACCEPT="application/json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
 
     def test_anonymous_user(self):
         """Anonymous user cannot download a private EntityList"""

@@ -241,8 +241,14 @@ Download EntityList
 
 	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;/download</pre>
 
+or 
 
-This endpoint is used to download the dataset in CSV format.
+.. raw:: html
+
+	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;.csv</pre>
+
+
+This endpoints are used to download the dataset in CSV format.
 
 **Example**
 
