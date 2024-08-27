@@ -1,7 +1,4 @@
-"""EntityList ViewSet"""
-
 import uuid
-
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
