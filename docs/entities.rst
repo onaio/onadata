@@ -449,7 +449,7 @@ All property values are of type string.
             "data": {
                   "geometry": "-1.286805 36.772845 0 0",
                   "species": "mora",
-                  "circumference_cm": 30
+                  "circumference_cm": "30"
             }
          }'
 
@@ -469,7 +469,7 @@ Body:
          "data": {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
             "label": "30cm mora",
          }
       }
@@ -539,7 +539,7 @@ The label must be a non-empty string.
             "data": {
                   "geometry": "-1.286805 36.772845 0 0",
                   "species": "mora",
-                  "circumference_cm": 30
+                  "circumference_cm": "30"
             }
          }'
 
@@ -559,7 +559,7 @@ Body:
          "data": {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
             "label": "30cm mora",
          }
       }
