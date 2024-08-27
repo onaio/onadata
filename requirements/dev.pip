@@ -104,7 +104,7 @@ dill==0.3.8
     # via pylint
 distlib==0.3.8
     # via virtualenv
-django==4.2.14
+django==4.2.15
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -467,7 +467,7 @@ s3transfer==0.10.2
     # via boto3
 semver==3.0.2
     # via requirements-detector
-sentry-sdk==1.45.0
+sentry-sdk==2.8
     # via onadata
 setoptconf-tmp==0.3.1
     # via prospector

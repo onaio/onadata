@@ -22,7 +22,7 @@ cryptography==42.0.8
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==4.2.14
+django==4.2.15
     # via
     #   -r requirements/azure.in
     #   django-storages
