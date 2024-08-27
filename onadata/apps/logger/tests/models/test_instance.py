@@ -464,7 +464,7 @@ class TestInstance(TestBase):
         }
 
         self.assertDictEqual(entity.json, expected_json)
-        self.assertEqual(entity.uuid, "dbee4c32-a922-451c-9df7-42f40bf78f48")
+        self.assertEqual(str(entity.uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
         self.assertEqual(entity.history.count(), 1)
 
         entity_history = entity.history.first()
