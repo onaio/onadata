@@ -1122,6 +1122,59 @@ class CreateEntityTestCase(TestAbstractViewSet):
         response = self.view(request, pk=sys.maxsize)
         self.assertEqual(response.status_code, 404)
 
+    def test_empty_properties(self):
+        """Empty properties are not saved"""
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": "",
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 201)
+        entity = Entity.objects.first()
+        expected_json = {
+            "label": "30cm mora",
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+        }
+        self.assertEqual(
+            response.data,
+            {
+                "id": entity.pk,
+                "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+                "date_created": entity.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": entity.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "data": expected_json,
+            },
+        )
+        self.assertEqual(entity.json, expected_json)
+
+    def test_null_properties(self):
+        """Null properties not allowed"""
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": None,
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Invalid dataset properties: circumference_cm. Nulls are not allowed",
+            str(response.data["data"][0]),
+        )
+
 
 @override_settings(TIME_ZONE="UTC")
 class UpdateEntityTestCase(TestAbstractViewSet):
@@ -1336,6 +1389,17 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data={}, format="json", **self.extra)
         response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 404)
+
+    def test_null_properties(self):
+        """Null properties not allowed"""
+        data = {"data": {"species": None}}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Invalid dataset properties: species. Nulls are not allowed",
+            str(response.data["data"][0]),
+        )
 
 
 class DeleteEntityTestCase(TestAbstractViewSet):

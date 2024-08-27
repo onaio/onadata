@@ -520,7 +520,7 @@ Update Entity
 
 This endpoint is used to update the label or the properties (passed as JSON in the request body) of an Entity.
 
-You only need to include the properties you wish to update. To unset the value of any property, you can set it to empty string ("") or null.
+You only need to include the properties you wish to update. To unset the value of any property, you can set it to empty string ("").
 
 A property must exist in the EntityList dataset.
 

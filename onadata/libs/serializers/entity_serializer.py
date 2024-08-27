@@ -188,6 +188,7 @@ class EntitySerializer(serializers.ModelSerializer):
 
         if invalid_properties:
             invalid_properties_str = ", ".join(invalid_properties)
+
             raise serializers.ValidationError(
                 _(
                     f"Invalid dataset properties: {invalid_properties_str}. "
@@ -195,10 +196,27 @@ class EntitySerializer(serializers.ModelSerializer):
                 )
             )
 
-        # Cast all data field values to strings
-        value = {key: str(val) for key, val in value.items()}
+        parsed_value = {}
+        invalid_properties = []
 
-        return value
+        for key, val in value.items():
+            if val is None:
+                invalid_properties.append(key)
+
+            else:
+                parsed_value[key] = str(val)
+
+        if invalid_properties:
+            invalid_properties_str = ", ".join(invalid_properties)
+
+            raise serializers.ValidationError(
+                _(
+                    f"Invalid dataset properties: {invalid_properties_str}. "
+                    f"Nulls are not allowed"
+                )
+            )
+
+        return parsed_value
 
     def validate(self, attrs):
         """Override `validate`"""
@@ -226,7 +244,7 @@ class EntitySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Override `create`"""
-        data = validated_data.pop("data")
+        data = {key: val for key, val in validated_data.pop("data").items() if val}
         label = validated_data.pop("label")
 
         return super().create(
