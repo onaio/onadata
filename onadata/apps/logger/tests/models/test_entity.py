@@ -36,15 +36,15 @@ class EntityTestCase(TestBase):
             "circumference_cm": 300,
             "label": "300cm purpleheart",
         }
-        uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
         entity = Entity.objects.create(
             entity_list=self.entity_list,
             json=entity_json,
-            uuid=uuid,
+            uuid=entity_uuid,
         )
         self.assertEqual(entity.entity_list, self.entity_list)
         self.assertEqual(entity.json, entity_json)
-        self.assertEqual(entity.uuid, uuid)
+        self.assertEqual(entity.uuid, entity_uuid)
         self.assertEqual(f"{entity}", f"{entity.pk}|{self.entity_list}")
         self.assertEqual(entity.date_created, self.mocked_now)
 

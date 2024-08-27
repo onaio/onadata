@@ -18,7 +18,6 @@ from rest_framework.mixins import (
     ListModelMixin,
 )
 
-
 from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
