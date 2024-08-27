@@ -180,7 +180,7 @@ class EntitySerializer(serializers.ModelSerializer):
     data = serializers.JSONField(write_only=True, required=False)
 
     def validate_data(self, value):
-        """Validate `data` field"""
+        """Validate and cast `data` field values to strings"""
         allowed_properties = set(self.context["entity_list"].properties)
         invalid_properties = [
             key for key in value.keys() if key not in allowed_properties
@@ -194,6 +194,9 @@ class EntitySerializer(serializers.ModelSerializer):
                     f"Allowed properties are: {', '.join(allowed_properties)}."
                 )
             )
+
+        # Cast all data field values to strings
+        value = {key: str(val) for key, val in value.items()}
 
         return value
 

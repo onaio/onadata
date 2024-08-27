@@ -960,7 +960,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
             "label": "30cm mora",
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
         }
         self.assertEqual(
             response.data,
@@ -1157,7 +1157,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         expected_json = {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
             "label": "30cm mora",
         }
 
