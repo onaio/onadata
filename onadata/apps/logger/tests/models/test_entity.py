@@ -1,7 +1,7 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
-import pytz
 import uuid
+import pytz
 from datetime import datetime
 from unittest.mock import patch
 

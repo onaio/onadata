@@ -3,7 +3,7 @@
 import json
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone as dtz
 
 from unittest.mock import patch
 
@@ -948,7 +948,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_create_entity(self, mock_now):
         """Creating single Entity works"""
-        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=timezone.utc)
+        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=dtz.utc)
         mock_now.return_value = mock_date
         request = self.factory.post("/", data=self.data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
