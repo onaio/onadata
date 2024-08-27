@@ -440,7 +440,6 @@ All property values are of type string.
 
 .. code-block:: bash
 
-
       curl -X POST https://api.ona.io/api/v2/entity-lists/1/entities \
       -H "Authorization: Token ACCESS_TOKEN" \
       -H "Content-Type: application/json" \
