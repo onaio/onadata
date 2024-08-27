@@ -108,70 +108,73 @@ class EntityListViewSet(
         method = request.method.upper()
 
         if entity_pk is not None:
-            entity = get_object_or_404(
-                Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
-            )
+            return self._handle_entity_detail(entity_list, entity_pk, method, request)
 
-            if method == "DELETE":
-                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return self._handle_entity_list(method, entity_list, request)
 
-            if method in ["PUT", "PATCH"]:
-                serializer = self.get_serializer(entity, data=request.data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-
-                return Response(serializer.data)
-
-            serializer = self.get_serializer(entity)
-
-            return Response(serializer.data)
+    def _handle_entity_detail(self, entity_list, entity_pk, method, request):
+        """Handles detail actions (retrieve, update, delete) for a single entity."""
+        entity = get_object_or_404(
+            Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
+        )
 
         if method == "DELETE":
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if method in ["PUT", "PATCH"]:
+            return self._update_entity(entity, request)
+
+        return self._retrieve_entity(entity)
+
+    def _handle_entity_list(self, method, entity_list, request):
+        """Handles list actions (list, create, bulk delete) for entities."""
+        if method == "DELETE":
+            return self._bulk_delete_entities(request)
 
         if method == "POST":
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            return self._create_entity(request)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return self._list_entities(entity_list, request)
 
-        entity_qs = self.get_queryset_entities(request, entity_list)
+    def _retrieve_entity(self, entity):
+        """Retrieves a single entity."""
+        serializer = self.get_serializer(entity)
+        return Response(serializer.data)
+
+    def _update_entity(self, entity, request):
+        """Updates a single entity."""
+        serializer = self.get_serializer(entity, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def _create_entity(self, request):
+        """Creates a new entity."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _bulk_delete_entities(self, request):
+        """Handles bulk deletion of entities."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _list_entities(self, entity_list, request):
+        """Lists entities with pagination."""
+        entity_qs = self._get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(entity_qs, many=True)
-
         return Response(serializer.data)
 
-    def perform_destroy(self, instance):
-        """Override `perform_detroy` method"""
-        instance.soft_delete(self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        """Override `create` method"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        project = serializer.validated_data["project"]
-
-        if not self.request.user.has_perm(CAN_ADD_PROJECT_ENTITYLIST, project):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
-
-    def get_queryset_entities(self, request, entity_list):
+    def _get_queryset_entities(self, request, entity_list):
         """Returns queryset for Entities."""
         search_param = api_settings.SEARCH_PARAM
         search = request.query_params.get(search_param, "")
@@ -197,6 +200,25 @@ class EntityListViewSet(
         queryset = queryset.order_by("id")
 
         return queryset
+
+    def perform_destroy(self, instance):
+        """Override `perform_detroy` method"""
+        instance.soft_delete(self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Override `create` method"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data["project"]
+
+        if not self.request.user.has_perm(CAN_ADD_PROJECT_ENTITYLIST, project):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     @action(
         methods=["GET"],
