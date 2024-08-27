@@ -2,6 +2,8 @@
 Entity model
 """
 
+import uuid
+
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
 from django.utils import timezone
@@ -23,7 +25,7 @@ class Entity(BaseModel):
         on_delete=models.CASCADE,
     )
     json = models.JSONField(default=dict)
-    uuid = models.CharField(max_length=249, default="", db_index=True)
+    uuid = models.UUIDField(default=uuid.uuid4, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 

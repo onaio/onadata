@@ -1,6 +1,7 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
 import pytz
+import uuid
 from datetime import datetime
 from unittest.mock import patch
 
@@ -53,7 +54,7 @@ class EntityTestCase(TestBase):
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
         self.assertEqual(entity.json, {})
-        self.assertEqual(entity.uuid, "")
+        self.assertIsInstance(entity.uuid, uuid.UUID)
 
     @patch("django.utils.timezone.now")
     def test_soft_delete(self, mock_now):

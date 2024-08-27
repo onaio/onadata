@@ -180,17 +180,62 @@ class EntitySerializer(serializers.ModelSerializer):
     data = serializers.JSONField(write_only=True, required=False)
 
     def validate_data(self, value):
-        """Validates Entity dataset properties"""
-        if value:
-            for key in value.keys():
-                if key not in self.context["entity_list"].properties:
-                    raise serializers.ValidationError(
-                        _(f"Invalid dataset property {key}.")
-                    )
+        """Validate `data` field"""
+        allowed_properties = set(self.context["entity_list"].properties)
+        invalid_properties = [
+            key for key in value.keys() if key not in allowed_properties
+        ]
+
+        if invalid_properties:
+            invalid_properties_str = ", ".join(invalid_properties)
+            raise serializers.ValidationError(
+                _(
+                    f"Invalid dataset properties: {invalid_properties_str}. "
+                    f"Allowed properties are: {', '.join(allowed_properties)}."
+                )
+            )
 
         return value
 
+    def validate(self, attrs):
+        """Override `validate`"""
+        if self.instance is None:
+            # Create operation
+            data = attrs.get("data")
+            label = attrs.get("label")
+
+            if data is None:
+                raise serializers.ValidationError(
+                    {"data": _("This field is required.")}
+                )
+
+            if not data:
+                raise serializers.ValidationError(
+                    {"data": _("This field may not be empty.")}
+                )
+
+            if label is None:
+                raise serializers.ValidationError(
+                    {"label": _("This field is required.")}
+                )
+
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        """Override `create`"""
+        data = validated_data.pop("data")
+        label = validated_data.pop("label")
+
+        return super().create(
+            {
+                **validated_data,
+                "json": {"label": label, **data},
+                "entity_list": self.context["entity_list"],
+            }
+        )
+
     def update(self, instance, validated_data):
+        """Override `update`"""
         data = validated_data.pop("data", {})
         label = validated_data.pop("label", None)
 
@@ -208,9 +253,6 @@ class EntitySerializer(serializers.ModelSerializer):
             instance.json = updated_data
 
         instance.save()
-        instance.history.create(
-            json=instance.json, created_by=self.context["request"].user
-        )
 
         return instance
 
@@ -219,6 +261,14 @@ class EntitySerializer(serializers.ModelSerializer):
         instance_json = data.pop("json")
 
         return {**data, "data": instance_json}
+
+    def save(self, **kwargs):
+        instance = super().save(**kwargs)
+        instance.history.create(
+            json=instance.json, created_by=self.context["request"].user
+        )
+
+        return instance
 
     class Meta:
         model = Entity
@@ -231,6 +281,7 @@ class EntitySerializer(serializers.ModelSerializer):
             "label",
             "data",
         )
+        read_only_fields = ("json",)
 
 
 class EntityArraySerializer(EntitySerializer):

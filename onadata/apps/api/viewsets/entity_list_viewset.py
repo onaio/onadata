@@ -1,3 +1,5 @@
+import uuid
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
@@ -78,7 +80,7 @@ class EntityListViewSet(
             if self.request.method == "DELETE":
                 return EntityDeleteSerializer
 
-            if self.kwargs.get("entity_pk") is None:
+            if self.request.method == "GET" and self.kwargs.get("entity_pk") is None:
                 return EntityArraySerializer
 
             return EntitySerializer
@@ -95,12 +97,12 @@ class EntityListViewSet(
         return context
 
     @action(
-        methods=["GET", "PUT", "PATCH", "DELETE"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         detail=True,
         url_path="entities(?:/(?P<entity_pk>[^/.]+))?",
     )
     def entities(self, request, *args, **kwargs):
-        """Provides `list`, `retrieve`, `update`, and `destroy` actions for Entities"""
+        """`list`, `create`, `retrieve`, `update`, `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
         method = request.method.upper()
@@ -130,6 +132,13 @@ class EntityListViewSet(
             serializer.save()
 
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if method == "POST":
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         entity_qs = self.get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
@@ -163,15 +172,27 @@ class EntityListViewSet(
         )
 
     def get_queryset_entities(self, request, entity_list):
-        """Returns queryset for Entities"""
+        """Returns queryset for Entities."""
         search_param = api_settings.SEARCH_PARAM
         search = request.query_params.get(search_param, "")
         queryset = Entity.objects.filter(
             entity_list_id=entity_list.pk, deleted_at__isnull=True
         )
 
+        def is_valid_uuid(uuid_string):
+            """Check if the provided string is a valid UUID."""
+            try:
+                uuid.UUID(uuid_string)
+                return True
+            except ValueError:
+                return False
+
         if search:
-            queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
+            if is_valid_uuid(search):
+                queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
+            else:
+                # Only apply regex filter if search is not a valid UUID
+                queryset = queryset.filter(Q(json__iregex=search))
 
         queryset = queryset.order_by("id")
 
