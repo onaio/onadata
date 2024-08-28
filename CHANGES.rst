@@ -17,9 +17,6 @@ v4.5.0(2024-08-28)
 - Fix exception thrown when updating organization profile
   `PR #2677 <https://github.com/onaio/onadata/pull/2677>`
   [@FrankApiyo]
-- Wait for transaction to complete before calling webhooks
-  `PR #2675 <https://github.com/onaio/onadata/pull/2675>`
-  [@kelvin-muchiri]
 - Create Entity only if submission is approved when form submission review is enabled
   `PR #2673 <https://github.com/onaio/onadata/pull/2673>`
   [@kelvin-muchiri]
