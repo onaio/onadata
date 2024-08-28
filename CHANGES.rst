@@ -3,6 +3,39 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.5.0(2024-08-28)
+------------------
+- Fix argument of type 'ProjectUserObjectPermission' is not iterable 
+  `PR #2682 <https://github.com/onaio/onadata/pull/2682>`
+  [@kelvin-muchiri]
+- Updated docker file to use latest base images 
+  `PR #2680 <https://github.com/onaio/onadata/pull/2680>`
+  [@ukanga]
+- Add support for downloading EntityList dataset 
+  `PR #2678 <https://github.com/onaio/onadata/pull/2678>`
+  [@kelvin-muchiri]
+- Fix exception thrown when updating organization profile
+  `PR #2677 <https://github.com/onaio/onadata/pull/2677>`
+  [@FrankApiyo]
+- Wait for transaction to complete before calling webhooks
+  `PR #2675 <https://github.com/onaio/onadata/pull/2675>`
+  [@kelvin-muchiri]
+- Create Entity only if submission is approved when form submission review is enabled
+  `PR #2673 <https://github.com/onaio/onadata/pull/2673>`
+  [@kelvin-muchiri]
+- docker: Use latest build of python-deps
+  `PR #2670 <https://github.com/onaio/onadata/pull/2670>`
+  [@ukanga]
+- Fix stale data sent to rest services after editing submission
+  `PR #2667 <https://github.com/onaio/onadata/pull/2667>`
+  [@kelvin-muchiri]
+- Add ability to have configurable Django admin path
+  `PR #2666 <https://github.com/onaio/onadata/pull/2666>`
+  [@kelvin-muchiri]
+- User per-role cache key for the organization_profile_viewset
+  `PR #2665 <https://github.com/onaio/onadata/pull/2665>`
+  [@FrankApiyo]
+
 v4.4.0(2024-08-13)
 ------------------
 - Fix untracked Django's view of migration state
