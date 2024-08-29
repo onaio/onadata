@@ -68,6 +68,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer
     template_name = "api/xformsList.xml"
+    throttle_scope = "xformlist"
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
