@@ -78,6 +78,7 @@ class XFormSubmissionViewSet(
     serializer_class = SubmissionSerializer
     template_name = "submission.xml"
     parser_classes = (FLOIPParser, JSONParser, FormParser, MultiPartParser)
+    throttle_scope = "submission"
 
     def get_serializer(self, *args, **kwargs):
         """
