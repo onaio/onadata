@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.5.1(2024-08-30)
+------------------
+- Add throttle scopes for xform_list and xform_submission viewsets
+  `PR #2685 <https://github.com/onaio/onadata/pull/2685>`
+  [@FrankApiyo]
+
 v4.5.0(2024-08-28)
 ------------------
 - Fix argument of type 'ProjectUserObjectPermission' is not iterable 
