@@ -8,9 +8,7 @@ from onadata.libs.throttle import RequestHeaderThrottle, CustomScopedRateThrottl
 
 class CustomScopedRateThrottleTest(TestCase):
     def setUp(self):
-        """
-        Reset the cache so that no throttles will be active
-        """
+        # Reset the cache so that no throttles will be active
         cache.clear()
         self.factory = APIRequestFactory()
         self.throttle = CustomScopedRateThrottle()
@@ -25,7 +23,7 @@ class CustomScopedRateThrottleTest(TestCase):
             "throttle_submission_/enketo/1234/submission_127.0.0.1"
         )
 
-    def test_users_get_throttled_based_on_uri_path(self):
+    def test_users_get_throttled_based_on_user_id(self):
         request = self.factory.get("/enketo/1234/submission")
         user, _created = User.objects.get_or_create(username='throttleduser')
         request.user = user
@@ -37,9 +35,7 @@ class CustomScopedRateThrottleTest(TestCase):
 class ThrottlingTests(TestCase):
 
     def setUp(self):
-        """
-        Reset the cache so that no throttles will be active
-        """
+        # Reset the cache so that no throttles will be active
         cache.clear()
         self.factory = APIRequestFactory()
         self.throttle = RequestHeaderThrottle()
