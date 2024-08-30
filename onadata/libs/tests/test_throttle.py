@@ -1,20 +1,43 @@
 from django.core.cache import cache
+from django.contrib.auth.models import AnonymousUser, User
 from django.test import TestCase, override_settings
 
 from rest_framework.test import APIRequestFactory
 
-from onadata.libs.throttle import RequestHeaderThrottle
+from onadata.libs.throttle import RequestHeaderThrottle, CustomScopedRateThrottle
+
+class CustomScopedRateThrottleTest(TestCase):
+    def setUp(self):
+        # Reset the cache so that no throttles will be active
+        cache.clear()
+        self.factory = APIRequestFactory()
+        self.throttle = CustomScopedRateThrottle()
+
+    def test_anonymous_users(self):
+        """Anonymous users  get throttled base on URI path"""
+        request = self.factory.get("/enketo/1234/submission")
+        request.user = AnonymousUser()
+        self.throttle.scope = "submission"
+        cache_key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(
+            cache_key,
+            "throttle_submission_/enketo/1234/submission_127.0.0.1"
+        )
+
+    def test_authenticated_users(self):
+        """Authenticated users  get throttled base on user id"""
+        request = self.factory.get("/enketo/1234/submission")
+        user, _created = User.objects.get_or_create(username='throttleduser')
+        request.user = user
+        self.throttle.scope = "submission"
+        cache_key = self.throttle.get_cache_key(request, None)
+        self.assertEqual(cache_key, f"throttle_submission_{user.id}")
 
 
 class ThrottlingTests(TestCase):
-    """
-    Test Renderer class.
-    """
 
     def setUp(self):
-        """
-        Reset the cache so that no throttles will be active
-        """
+        # Reset the cache so that no throttles will be active
         cache.clear()
         self.factory = APIRequestFactory()
         self.throttle = RequestHeaderThrottle()
