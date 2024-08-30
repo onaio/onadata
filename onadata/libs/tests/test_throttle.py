@@ -13,7 +13,8 @@ class CustomScopedRateThrottleTest(TestCase):
         self.factory = APIRequestFactory()
         self.throttle = CustomScopedRateThrottle()
 
-    def test_anonymous_users_get_throttled_based_on_uri_path(self):
+    def test_anonymous_users(self):
+        """Anonymous users  get throttled base on URI path"""
         request = self.factory.get("/enketo/1234/submission")
         request.user = AnonymousUser()
         self.throttle.scope = "submission"
@@ -23,7 +24,8 @@ class CustomScopedRateThrottleTest(TestCase):
             "throttle_submission_/enketo/1234/submission_127.0.0.1"
         )
 
-    def test_users_get_throttled_based_on_user_id(self):
+    def test_authenticated_users(self):
+        """Authenticated users  get throttled base on user id"""
         request = self.factory.get("/enketo/1234/submission")
         user, _created = User.objects.get_or_create(username='throttleduser')
         request.user = user
