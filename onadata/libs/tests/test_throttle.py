@@ -20,7 +20,10 @@ class CustomScopedRateThrottleTest(TestCase):
         request.user = AnonymousUser()
         self.throttle.scope = "submission"
         cache_key = self.throttle.get_cache_key(request, None)
-        self.assertEqual(cache_key, "throttle_submission_/enketo/1234/submission")
+        self.assertEqual(
+            cache_key,
+            "throttle_submission_/enketo/1234/submission_127.0.0.1"
+        )
 
     def test_users_get_throttled_based_on_uri_path(self):
         request = self.factory.get("/enketo/1234/submission")
