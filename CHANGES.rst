@@ -5,6 +5,12 @@ Changelog for Onadata
 
 v4.5.1(2024-08-30)
 ------------------
+- Add CustomScopedRateThrolle throttling class
+  `PR #2685 <https://github.com/onaio/onadata/pull/2689>`
+  [@FrankApiyo]
+
+v4.5.1(2024-08-30)
+------------------
 - Add throttle scopes for xform_list and xform_submission viewsets
   `PR #2685 <https://github.com/onaio/onadata/pull/2685>`
   [@FrankApiyo]
