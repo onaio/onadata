@@ -4,7 +4,19 @@ Module containing throttling utilities
 
 from django.conf import settings
 
-from rest_framework.throttling import SimpleRateThrottle
+from rest_framework.throttling import SimpleRateThrottle, ScopedRateThrottle
+
+
+class CustomScopedRateThrottle(ScopedRateThrottle):
+    """
+    Custom throttling for fair throttling for anonymous users sharing IP
+    """
+
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            return super().get_cache_key(request, view)
+
+        return f'throttle_{self.scope}_{request.path}'
 
 
 class RequestHeaderThrottle(SimpleRateThrottle):
