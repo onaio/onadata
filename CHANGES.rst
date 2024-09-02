@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v4.5.1(2024-08-30)
+v4.6.0(2024-09-02)
+------------------
+- Cache xform list results
+  `PR #2692 <https://github.com/onaio/onadata/pull/2692>`
+  [@kelvin-muchiri]
+
+v4.5.2(2024-08-30)
 ------------------
 - Add CustomScopedRateThrolle throttling class
   `PR #2685 <https://github.com/onaio/onadata/pull/2689>`
