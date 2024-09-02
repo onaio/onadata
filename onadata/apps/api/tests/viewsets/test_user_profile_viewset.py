@@ -290,6 +290,21 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
 
+    @override_settings(DISABLE_CREATING_USERS=True)
+    def test_block_profile_create(self):
+        data = _profile_data()
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(
+            str(response.data["detail"]),
+            "You do not have permission to create user.")
+        self.assertEqual(response.status_code, 403)
+
     def _create_user_using_profiles_endpoint(self, data):
         request = self.factory.post(
             "/api/v1/profiles",

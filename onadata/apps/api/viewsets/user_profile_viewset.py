@@ -20,7 +20,7 @@ from multidb.pinning import use_master
 from registration.models import RegistrationProfile
 from rest_framework import serializers, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -224,6 +224,12 @@ class UserProfileViewSet(
 
     def create(self, request, *args, **kwargs):
         """Create and cache user profile"""
+        disable_user_creation = getattr(settings, "DISABLE_CREATING_USERS", False)
+        if disable_user_creation:
+            raise PermissionDenied(
+                _("You do not have permission to create user.")
+            )
+
         response = super().create(request, *args, **kwargs)
         profile = response.data
         user_name = profile.get("username")

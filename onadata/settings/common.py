@@ -185,6 +185,9 @@ USE_TZ = True
 # needed by guardian
 ANONYMOUS_DEFAULT_USERNAME = "AnonymousUser"
 
+# disable creating users
+DISABLE_CREATING_USERS = False
+
 INSTALLED_APPS = (
     "django.contrib.contenttypes",
     "django.contrib.auth",
