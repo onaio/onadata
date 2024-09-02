@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from onadata.apps.api.tools import (
     get_baseviewset_class,
     get_media_file_response,
-    get_xform_list_cache_key_by_role,
+    get_xform_list_cache_key,
 )
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
@@ -170,11 +170,11 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         if xform_pk:
             xform = get_object_or_404(XForm, pk=xform_pk)
-            cache_key = get_xform_list_cache_key_by_role(self.request.user, xform)
+            cache_key = get_xform_list_cache_key(self.request.user, xform)
 
         elif project_pk:
             project = get_object_or_404(Project, pk=project_pk)
-            cache_key = get_xform_list_cache_key_by_role(self.request.user, project)
+            cache_key = get_xform_list_cache_key(self.request.user, project)
 
         return cache_key
 
