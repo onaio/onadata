@@ -97,7 +97,7 @@ def reset_project_cache(project, request, project_serializer_class):
     project_cache_data = project_serializer_class(
         project, context={"request": request}
     ).data
-    safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+    cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
 
 
 def safe_cache_set(key, value, timeout=None):
