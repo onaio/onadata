@@ -228,9 +228,6 @@ def update_xform_submission_count_async(self, instance_id, created):
 def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if created:
-        # pylint: disable=import-outside-toplevel
-        from multidb.pinning import use_master
-
         with use_master:
             try:
                 instance = (
