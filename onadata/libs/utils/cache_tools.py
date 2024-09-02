@@ -87,8 +87,7 @@ def safe_cache_set(key, value, timeout=None):
     """
     Safely set a value in the cache.
 
-    If the cache is not reachable, the operation silently
-    fails.
+    If the cache is not reachable, the operation silently fails.
 
     Args:
         key (str): The cache key to set.
@@ -113,8 +112,7 @@ def safe_cache_get(key, default=None):
     """
     Safely get a value from the cache.
 
-    If the cache is not reachable, the operation silently
-    fails.
+    If the cache is not reachable, the operation silently fails.
 
     Args:
         key (str): The cache key to retrieve.
