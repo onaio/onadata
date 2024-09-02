@@ -7,6 +7,7 @@ import datetime
 import json
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.validators import ValidationError
@@ -32,6 +33,10 @@ from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.apps.messaging.constants import (
+    USER, USER_CREATED, USER_UPDATED, USER_PASSWORD_CHANGED
+)
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -49,6 +54,9 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
+
+# pylint: disable=invalid-name
+User = get_user_model()
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
@@ -211,6 +219,16 @@ class UserProfileViewSet(
         username = kwargs.get("user")
         response = super().update(request, *args, **kwargs)
         cache.set(f"{USER_PROFILE_PREFIX}{username}", response.data)
+
+        # send notification on updating user profile
+        send_message(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_UPDATED,
+        )
+
         return response
 
     def retrieve(self, request, *args, **kwargs):
@@ -228,6 +246,17 @@ class UserProfileViewSet(
         profile = response.data
         user_name = profile.get("username")
         cache.set(f"{USER_PROFILE_PREFIX}{user_name}", profile)
+
+        # send notification on creating new user account
+        user = User.objects.get(username__iexact=user_name)
+        send_message(
+            instance_id=user_name,
+            target_id=user.id,
+            target_type=USER,
+            user=user,
+            message_verb=USER_CREATED,
+        )
+
         return response
 
     @action(methods=["POST"], detail=True)
@@ -283,6 +312,15 @@ class UserProfileViewSet(
         user_profile.save()
         data.update(invalidate_and_regen_tokens(user=user_profile.user))
 
+        # send notification account password change
+        send_message(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_PASSWORD_CHANGED,
+        )
+
         return Response(status=status.HTTP_200_OK, data=data)
 
     def partial_update(self, request, *args, **kwargs):
@@ -303,6 +341,16 @@ class UserProfileViewSet(
 
             profile.metadata = metadata
             profile.save()
+
+            # send notification on updating user profile
+            send_message(
+                instance_id=request.user.username,
+                target_id=request.user.id,
+                target_type=USER,
+                user=request.user,
+                message_verb=USER_UPDATED,
+            )
+
             return Response(data=profile.metadata, status=status.HTTP_200_OK)
 
         return super().partial_update(request, *args, **kwargs)
