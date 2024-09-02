@@ -17,7 +17,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
     OrganizationsSharedWithUserFilter,
@@ -32,7 +32,6 @@ from onadata.libs.serializers.organization_member_serializer import (
 from onadata.libs.serializers.organization_serializer import OrganizationSerializer
 from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
-from onadata.libs.utils.logger_tools import get_org_profile_cache_key
 
 BaseViewset = get_baseviewset_class()
 
@@ -121,14 +120,11 @@ class OrganizationProfileViewSet(
 
         serializer.save()
 
-        data = self.serializer_class(
-            organization, context={"request": request}
-        ).data
+        data = self.serializer_class(organization, context={"request": request}).data
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = json.dumps(data)
         resp_status = (
-            status.HTTP_201_CREATED if request.method == "POST"
-            else status.HTTP_200_OK
+            status.HTTP_201_CREATED if request.method == "POST" else status.HTTP_200_OK
         )
 
         return Response(status=resp_status, data=serializer.data)

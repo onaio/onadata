@@ -20,6 +20,7 @@ from django.utils.datastructures import MultiValueDict
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
+from onadata.apps.api.tools import invalidate_organization_cache
 from onadata.celeryapp import app
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -27,7 +28,6 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
 )
-from onadata.libs.utils.logger_tools import invalidate_organization_cache
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.email import ProjectInvitationEmail
 

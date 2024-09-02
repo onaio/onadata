@@ -3,9 +3,13 @@
 Cache utilities.
 """
 import hashlib
+import logging
+import socket
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
+
+logger = logging.getLogger(__name__)
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -57,6 +61,8 @@ XFORM_SUBMISSION_STAT = "xfm-get_form_submissions_grouped_by_field-"
 XFORM_CHARTS = "xfm-get_form_charts-"
 XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 XFORM_MANIFEST_CACHE = "xfm-manifest-"
+XFORM_LIST_CACHE = "xfm-list-"
+XFROM_LIST_CACHE_TTL = 10 * 60
 
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
@@ -77,18 +83,54 @@ def safe_key(key):
     return hashlib.sha256(force_bytes(key)).hexdigest()
 
 
-def reset_project_cache(project, request, project_serializer_class):
+def safe_cache_set(key, value, timeout=None):
     """
-    Clears and sets project cache
+    Safely set a value in the cache.
+
+    If the cache is not reachable, the operation silently
+    fails.
+
+    Args:
+        key (str): The cache key to set.
+        value (Any): The value to store in the cache.
+        timeout (int, optional): The cache timeout in seconds. If None,
+            the default cache timeout will be used.
+    Returns:
+        None
     """
+    try:
+        cache.set(key, value, timeout)
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
 
-    # Clear all project cache entries
-    for prefix in project_cache_prefixes:
-        safe_delete(f"{prefix}{project.pk}")
 
-    # Reserialize project and cache value
-    # Note: The ProjectSerializer sets all the other cache entries
-    project_cache_data = project_serializer_class(
-        project, context={"request": request}
-    ).data
-    cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+def safe_cache_get(key, default=None):
+    """
+    Safely get a value from the cache.
+
+    If the cache is not reachable, the operation silently
+    fails.
+
+    Args:
+        key (str): The cache key to retrieve.
+        default (Any): The default value to return if the cache is inaccessible
+            or the key does not exist.
+    Returns:
+        Any: The value from the cache if accessible, otherwise the default value.
+    """
+    try:
+        return cache.get(key, default)
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+        return default
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
+        return default
