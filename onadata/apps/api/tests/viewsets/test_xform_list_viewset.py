@@ -1338,6 +1338,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
     def test_xform_list_cache_set(self):
         """Cache is set if xform_pk or project_pk kwargs is present"""
+        # `xform_pk` present
         request = self.factory.get("/")
         response = self.view(request, xform_pk=self.xform.pk)
         self.assertEqual(response.status_code, 401)

@@ -185,9 +185,6 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
             return Response("", headers=headers, status=204)
 
         cache_key = self._get_xform_list_cache_key()
-        import ipdb
-
-        ipdb.set_trace()
 
         if cache_key is not None:
             cached_result = safe_cache_get(cache_key)
