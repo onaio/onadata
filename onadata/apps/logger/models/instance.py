@@ -266,6 +266,7 @@ def update_xform_submission_count(instance_id, created):
                 safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
                 safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
                 # Clear project cache
+                # pylint: disable=import-outside-toplevel
                 from onadata.apps.logger.models.xform import clear_project_cache
 
                 clear_project_cache(instance.xform.project_id)
