@@ -18,6 +18,7 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from multidb.pinning import use_master
 
 from celery import current_task
 from deprecated import deprecated
@@ -273,6 +274,7 @@ def update_xform_submission_count(instance_id, created):
                 clear_project_cache(instance.xform.project_id)
 
 
+@use_master
 @transaction.atomic()
 def _update_xform_submission_count_delete(instance):
     """Updates the XForm submissions count on deletion of a submission."""
@@ -335,17 +337,19 @@ def save_full_json_async(self, instance_id):
     Celery task to asynchrounously generate and save an Instances JSON
     once a submission has been made
     """
-    try:
-        instance = Instance.objects.get(pk=instance_id)
-    except Instance.DoesNotExist as e:
-        if self.request.retries > 2:
-            msg = f"Failed to save full JSON for Instance {instance_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
-    else:
-        save_full_json(instance)
+    with use_master:
+        try:
+            instance = Instance.objects.get(pk=instance_id)
+        except Instance.DoesNotExist as e:
+            if self.request.retries > 2:
+                msg = f"Failed to save full JSON for Instance {instance_id}"
+                report_exception(msg, e, sys.exc_info())
+            self.retry(exc=e, countdown=60 * self.request.retries)
+        else:
+            save_full_json(instance)
 
 
+@use_master
 def save_full_json(instance: "Instance", include_related=True):
     """Save full json dict
 
@@ -374,6 +378,7 @@ def update_project_date_modified_async(self, instance_id, created):
         self.retry(exc=e, countdown=60 * self.request.retries)
 
 
+@use_master
 def update_project_date_modified(instance_id, _):
     """Update the project's date_modified
 
@@ -861,6 +866,7 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
 
 # pylint: disable=unused-argument
+@use_master
 def permanently_delete_attachments(sender, instance=None, created=False, **kwargs):
     if instance:
         attachments = instance.attachments.all()
