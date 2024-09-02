@@ -901,7 +901,15 @@ def invalidate_organization_cache(org_username):
 
 
 def get_xform_list_cache_key(user, xform_or_project):
-    """Get the cache key for the XForm list by user role"""
+    """Get the cache key for the XForm list by user's role
+
+    Args:
+        user: User making request
+        xform_or_project: XForm or Project being accessed
+
+    Returns:
+        str: cache key based on role assigned to form/project
+    """
     object_type = type(xform_or_project).__name__
     cache_key_prefix = f"{XFORM_LIST_CACHE}{xform_or_project.id}-{object_type}"
     anonymous_user_key = f"{cache_key_prefix}-anon"
