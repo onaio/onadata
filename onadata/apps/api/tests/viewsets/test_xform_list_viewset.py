@@ -1337,7 +1337,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(len(response.data), 3)
 
     def test_xform_list_set_cache(self):
-        """Cache is set if xform_pk or project_pk kwargs is present"""
+        """XForm list cache is set if xform_pk or project_pk kwargs present"""
         # `xform_pk` anonymous user
         request = self.factory.get("/")
         response = self.view(request, xform_pk=self.xform.pk)
@@ -1418,7 +1418,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
 
     def test_xform_list_cache_hit(self):
-        """Results returned from cache if available"""
+        """XForm list results returned from cache if available"""
         cache.set(
             f"xfm-list-{self.xform.pk}-XForm-anon",
             [
