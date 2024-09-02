@@ -83,6 +83,23 @@ def safe_key(key):
     return hashlib.sha256(force_bytes(key)).hexdigest()
 
 
+def reset_project_cache(project, request, project_serializer_class):
+    """
+    Clears and sets project cache
+    """
+
+    # Clear all project cache entries
+    for prefix in project_cache_prefixes:
+        safe_delete(f"{prefix}{project.pk}")
+
+    # Reserialize project and cache value
+    # Note: The ProjectSerializer sets all the other cache entries
+    project_cache_data = project_serializer_class(
+        project, context={"request": request}
+    ).data
+    safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+
+
 def safe_cache_set(key, value, timeout=None):
     """
     Safely set a value in the cache.

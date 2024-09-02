@@ -78,9 +78,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     ORG_PROFILE_CACHE,
     XFORM_LIST_CACHE,
-    project_cache_prefixes,
+    reset_project_cache,
     safe_delete,
-    safe_cache_set,
 )
 from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (
@@ -371,23 +370,6 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
         return form.publish(owner, id_string=id_string, created_by=user)
 
     return publish_form(set_form)
-
-
-def reset_project_cache(project, request, project_serializer_class):
-    """
-    Clears and sets project cache
-    """
-
-    # Clear all project cache entries
-    for prefix in project_cache_prefixes:
-        safe_delete(f"{prefix}{project.pk}")
-
-    # Reserialize project and cache value
-    # Note: The ProjectSerializer sets all the other cache entries
-    project_cache_data = project_serializer_class(
-        project, context={"request": request}
-    ).data
-    safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
 
 
 def publish_project_xform(request, project):
