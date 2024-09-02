@@ -1416,3 +1416,39 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
                 }
             ],
         )
+
+    def test_xform_list_cache_hit(self):
+        """Results returned from cache if available"""
+        cache.set(
+            f"xfm-list-{self.xform.pk}-XForm-anon",
+            [
+                {
+                    "formID": "transportation_2011_07_25",
+                    "name": "transportation_2011_07_25",
+                    "version": "2014111",
+                    "hash": self.xform.hash,
+                    "descriptionText": "",
+                    "downloadUrl": f"http://testserver/bob/forms/{self.xform.pk}/form.xml",
+                    "manifestUrl": None,
+                }
+            ],
+        )
+
+        with patch.object(cache, "set") as mock_cache_set:
+            request = self.factory.get("/")
+            response = self.view(request, xform_pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+            # Cache set not called because results were returned from cache
+            mock_cache_set.assert_not_called()
+
+        path = os.path.join(os.path.dirname(__file__), "..", "fixtures", "formList.xml")
+
+        with open(path, encoding="utf-8") as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content.decode("utf-8")
+            self.assertEqual(content, form_list_xml % data)
+            self.assertTrue(response.has_header("X-OpenRosa-Version"))
+            self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+            self.assertTrue(response.has_header("Date"))
+            self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
