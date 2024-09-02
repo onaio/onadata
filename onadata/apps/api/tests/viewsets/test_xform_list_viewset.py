@@ -1336,7 +1336,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
-    def test_xform_list_set_cache(self):
+    def test_xform_list_cache_set(self):
         """XForm list cache is set if xform_pk or project_pk kwargs present"""
         # `xform_pk` anonymous user
         request = self.factory.get("/")
