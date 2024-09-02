@@ -18,6 +18,12 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Project, XForm, ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.messaging.constants import (
+    USER, PROJECT, PROJECT_EDITED, XFORM, FORM_CREATED,
+    USER_ADDED_TO_PROJECT, USER_REMOVED_FROM_PROJECT, PROJECT_DELETED,
+    PROJECT_CREATED
+)
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.data import strtobool
 from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter, TagFilter
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
@@ -102,11 +108,39 @@ class ProjectViewSet(
 
         return super().get_queryset()
 
+    def create(self, request, *args, **kwargs):
+        """Creates new project"""
+        response = super().create(request, *args, **kwargs)
+        project = response.data
+        project_id = project.get("projectid")
+        cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+
+        # send notification upon creating new project
+        send_message(
+            instance_id=project_id,
+            target_id=project_id,
+            target_type=PROJECT,
+            user=request.user,
+            message_verb=PROJECT_CREATED,
+        )
+
+        return response
+
     def update(self, request, *args, **kwargs):
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
         cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+
+        # send notification upon updating project details
+        send_message(
+            instance_id=project_id,
+            target_id=project_id,
+            target_type=PROJECT,
+            user=request.user,
+            message_verb=PROJECT_EDITED,
+        )
+
         return response
 
     def retrieve(self, request, *args, **kwargs):
@@ -157,6 +191,14 @@ class ProjectViewSet(
                     propagate_project_permissions_async.apply_async(
                         args=[project.id], countdown=30
                     )
+                # send form publish notification
+                send_message(
+                    instance_id=survey.id,
+                    target_id=survey.id,
+                    target_type=XFORM,
+                    user=request.user,
+                    message_verb=FORM_CREATED,
+                )
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -181,26 +223,30 @@ class ProjectViewSet(
             remove = strtobool(remove)
 
         if remove:
-            serializer = RemoveUserFromProjectSerializer(data={**data, remove: True})
+            serializer = RemoveUserFromProjectSerializer(data=data)
+            message_verb = USER_REMOVED_FROM_PROJECT
         else:
             serializer = ShareProjectSerializer(data=data)
+            message_verb = USER_ADDED_TO_PROJECT
         if serializer.is_valid():
             serializer.save()
             email_msg = data.get("email_msg")
-            if email_msg:
-                # send out email message.
-                try:
-                    user = serializer.instance.user
-                except AttributeError:
-                    for instance in serializer.instance:
-                        user = instance.user
+            try:
+                user = serializer.instance.user
+            except AttributeError:
+                for instance in serializer.instance:
+                    user = instance.user
+                    if email_msg:
+                        # send email if email_msg is present in payload
                         send_mail(
                             SHARE_PROJECT_SUBJECT.format(self.object.name),
                             email_msg,
                             DEFAULT_FROM_EMAIL,
                             (user.email,),
                         )
-                else:
+            else:
+                if email_msg:
+                    # send email if email_msg is present in payload
                     send_mail(
                         SHARE_PROJECT_SUBJECT.format(self.object.name),
                         email_msg,
@@ -212,6 +258,14 @@ class ProjectViewSet(
 
         # clear cache
         safe_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
+        # send message upon sharing/unsharing project with user
+        send_message(
+            instance_id=self.object.pk,
+            target_id=self.object.pk,
+            target_type=PROJECT,
+            user=user,
+            message_verb=message_verb,
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -312,5 +366,14 @@ class ProjectViewSet(
         project = self.get_object()
         user = request.user
         project.soft_delete(user)
+
+        # send notification to user target upon project deletion
+        send_message(
+            instance_id=project.pk,
+            target_id=user.id,
+            target_type=USER,
+            user=user,
+            message_verb=PROJECT_DELETED,
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
