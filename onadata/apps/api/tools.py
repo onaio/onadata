@@ -51,6 +51,7 @@ from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES,
+    ROLES_ORDERED,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -75,6 +76,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
+    ORG_PROFILE_CACHE,
+    XFORM_LIST_CACHE,
     reset_project_cache,
     safe_delete,
 )
@@ -92,6 +95,7 @@ from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
 )
+
 
 DECIMAL_PRECISION = 2
 
@@ -873,3 +877,50 @@ def add_org_user_and_share_projects(
             else:
                 project_role = get_team_project_default_permissions(team, project)
                 share(project, project_role)
+
+
+def get_org_profile_cache_key(user, organization):
+    """Return cache key given user and organization profile"""
+    org_username = organization.user.username
+
+    if user.is_anonymous:
+        return f"{ORG_PROFILE_CACHE}{org_username}-anon"
+
+    user_role = get_role_in_org(user, organization)
+
+    return f"{ORG_PROFILE_CACHE}{org_username}-{user_role}"
+
+
+def invalidate_organization_cache(org_username):
+    """Set organization cache to none for all roles"""
+    for role in ROLES_ORDERED:
+        key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
+        safe_delete(key)
+
+    safe_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
+
+
+def get_xform_list_cache_key(user, xform_or_project):
+    """Get the cache key for the XForm list by user's role
+
+    Args:
+        user: User making request
+        xform_or_project: XForm or Project being accessed
+
+    Returns:
+        str: cache key based on role assigned to form/project
+    """
+    object_type = type(xform_or_project).__name__
+    cache_key_prefix = f"{XFORM_LIST_CACHE}{xform_or_project.id}-{object_type}"
+    anonymous_user_key = f"{cache_key_prefix}-anon"
+
+    if user.is_anonymous:
+        return anonymous_user_key
+
+    perms = get_perms(user, xform_or_project)
+    user_role = get_role(perms, xform_or_project)
+
+    if user_role is None:
+        return anonymous_user_key
+
+    return f"{cache_key_prefix}-{user_role}"

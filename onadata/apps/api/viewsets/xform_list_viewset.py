@@ -13,7 +13,12 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from onadata.apps.api.tools import get_baseviewset_class, get_media_file_response
+from onadata.apps.api.tools import (
+    get_baseviewset_class,
+    get_media_file_response,
+    get_xform_list_cache_key,
+)
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
@@ -30,7 +35,12 @@ from onadata.libs.serializers.xform_serializer import (
     XFormListSerializer,
     XFormManifestSerializer,
 )
-from onadata.libs.utils.cache_tools import XFORM_MANIFEST_CACHE
+from onadata.libs.utils.cache_tools import (
+    XFORM_MANIFEST_CACHE,
+    XFROM_LIST_CACHE_TTL,
+    safe_cache_get,
+    safe_cache_set,
+)
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
 
@@ -153,14 +163,41 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return queryset
 
-    def list(self, request, *args, **kwargs):
-        # pylint: disable=attribute-defined-outside-init
-        self.object_list = self.filter_queryset(self.get_queryset())
+    def _get_xform_list_cache_key(self):
+        xform_pk = self.kwargs.get("xform_pk")
+        project_pk = self.kwargs.get("project_pk")
+        cache_key = None
 
+        if xform_pk:
+            xform = get_object_or_404(XForm, pk=xform_pk)
+            cache_key = get_xform_list_cache_key(self.request.user, xform)
+
+        elif project_pk:
+            project = get_object_or_404(Project, pk=project_pk)
+            cache_key = get_xform_list_cache_key(self.request.user, project)
+
+        return cache_key
+
+    def list(self, request, *args, **kwargs):
         headers = get_openrosa_headers(request, location=False)
-        serializer = self.get_serializer(self.object_list, many=True)
+
         if request.method in ["HEAD"]:
             return Response("", headers=headers, status=204)
+
+        cache_key = self._get_xform_list_cache_key()
+
+        if cache_key is not None:
+            cached_result = safe_cache_get(cache_key)
+
+            if cached_result is not None:
+                return Response(cached_result, headers=headers)
+
+        # pylint: disable=attribute-defined-outside-init
+        self.object_list = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(self.object_list, many=True)
+
+        if cache_key is not None:
+            safe_cache_set(cache_key, serializer.data, XFROM_LIST_CACHE_TTL)
 
         return Response(serializer.data, headers=headers)
 
