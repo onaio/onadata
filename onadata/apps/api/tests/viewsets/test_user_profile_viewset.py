@@ -25,6 +25,9 @@ from six.moves.urllib.parse import parse_qs, urlparse
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from onadata.apps.messaging.constants import (
+    USER, USER_CREATED, USER_UPDATED, USER_PASSWORD_CHANGED
+)
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
@@ -252,13 +255,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
+    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
     @patch(
         (
             "onadata.libs.serializers.user_profile_serializer."
             "send_verification_email.delay"
         )
     )
-    def test_profile_create(self, mock_send_verification_email):
+    def test_profile_create(self, mock_send_verification_email, mock_send_message):
         request = self.factory.get("/", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
@@ -289,6 +293,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username="deno")
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+        # Save on user creation event
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=user.username,
+            target_id=user.id,
+            target_type=USER,
+            user=user,
+            message_verb=USER_CREATED
+        )
 
     def _create_user_using_profiles_endpoint(self, data):
         request = self.factory.post(
@@ -572,7 +586,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(first_name, "(CPLTGL) Centre Pour la Promot")
         self.assertEqual(last_name, "ion de la Liberte D'Expression")
 
-    def test_partial_updates(self):
+    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
+    def test_partial_updates(self, mock_send_message):
         self.assertEqual(self.user.profile.country, "US")
         country = "KE"
         username = "george"
@@ -587,7 +602,18 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
 
-    def test_partial_updates_empty_metadata(self):
+        # Save on user update (Patch) event
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_UPDATED
+        )
+
+    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
+    def test_partial_updates_empty_metadata(self, mock_send_message):
         profile = UserProfile.objects.get(user=self.user)
         profile.metadata = {}
         profile.save()
@@ -599,6 +625,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
+
+        # Save on user update (Patch) event
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_UPDATED
+        )
 
     def test_partial_updates_too_long(self):
         # the max field length for username is 30 in django
@@ -678,7 +714,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, {"b": "caah"})
 
-    def test_put_update(self):
+    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
+    def test_put_update(self, mock_send_message):
         data = _profile_data()
         # create profile
         request = self.factory.post(
@@ -714,6 +751,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["city"], data["city"])
+
+        # Save on user update (Put) event
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_UPDATED
+        )
 
     def test_profile_create_mixed_case(self):
         request = self.factory.get("/", **self.extra)
@@ -757,7 +804,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             {"NAME": "onadata.libs.utils.validators.PreviousPasswordValidator"}
         ]
     )
-    def test_change_password(self):
+    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
+    def test_change_password(self, mock_send_message):
         view = UserProfileViewSet.as_view({"post": "change_password"})
         current_password = "bobbob"
         new_password = "bobbob1"
@@ -821,6 +869,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["username"], self.user.username)
         self.assertNotEqual(response.data["access_token"], old_token)
         new_token = response.data["access_token"]
+
+        # Save password change event
+        self.assertTrue(mock_send_message.called)
+        mock_send_message.assert_called_with(
+            instance_id=request.user.username,
+            target_id=request.user.id,
+            target_type=USER,
+            user=request.user,
+            message_verb=USER_PASSWORD_CHANGED
+        )
 
         # Assert requests made with the old tokens are rejected
         post_data = {"current_password": new_password, "new_password": "random"}
