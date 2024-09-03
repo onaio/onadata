@@ -432,7 +432,7 @@ The data is passed as JSON in the request body. The following keys are available
 
 - ``label`` - A user-friendly label for forms that use Entities.
 - ``data`` - An object with values for user-defined Dataset properties. (Not all properties need to have values.). A property must exist in the EntityList dataset.
-- ``uuid`` (optional) - A unique ID. If not provided, one will be generated for the Entity upon creation.
+- ``uuid`` (optional) - A unique ID. If not provided, one will be generated for the Entity upon creation. The uuid is unique per Entity List.
 
 All property values are of type string.
 
@@ -525,6 +525,8 @@ You only need to include the properties you wish to update. To unset the value o
 A property must exist in the EntityList dataset.
 
 The label must be a non-empty string.
+
+The uuid is unique per Entity List.
 
 **Example**
 
