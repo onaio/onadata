@@ -1115,6 +1115,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
 
             else:
                 self.assertEqual(response.status_code, 201)
+                Entity.objects.all().delete()
 
     def test_invalid_entity_list(self):
         """Invalid EntityList is handled"""
@@ -1173,6 +1174,17 @@ class CreateEntityTestCase(TestAbstractViewSet):
         self.assertIn(
             "Invalid dataset properties: circumference_cm. Nulls are not allowed",
             str(response.data["data"][0]),
+        )
+
+    def test_uuid_unique(self):
+        """`uuid` is unique per Entity List"""
+        Entity.objects.create(entity_list=self.entity_list, uuid=self.data["uuid"])
+        request = self.factory.post("/", data=self.data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "An Entity with that uuid already exists",
+            str(response.data["uuid"][0]),
         )
 
 
@@ -1266,6 +1278,36 @@ class UpdateEntityTestCase(TestAbstractViewSet):
             },
         }
         self.assertDictEqual(response.data, expected_data)
+
+    def test_patch_uuid(self):
+        """Patch uuid works"""
+        # Patch same uuid
+        data = {"uuid": str(self.entity.uuid)}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Patch new uuid
+        data = {"uuid": "64631f40-e1d6-4401-860d-18f38ec4c2c5"}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["uuid"], "64631f40-e1d6-4401-860d-18f38ec4c2c5")
+        self.assertEqual(str(self.entity.uuid), "64631f40-e1d6-4401-860d-18f38ec4c2c5")
+
+        # New uuid should be unique
+        Entity.objects.create(
+            entity_list=self.entity_list, uuid="edca2c69-986d-4415-b05a-96b306faeb44"
+        )
+        data = {"uuid": "edca2c69-986d-4415-b05a-96b306faeb44"}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "An Entity with that uuid already exists",
+            str(response.data["uuid"][0]),
+        )
 
     def test_patch_data(self):
         """Patch data only works"""

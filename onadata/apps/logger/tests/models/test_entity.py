@@ -5,6 +5,7 @@ import pytz
 from datetime import datetime
 from unittest.mock import patch
 
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from onadata.apps.logger.models import (
@@ -108,6 +109,20 @@ class EntityTestCase(TestBase):
 
         self.assertEqual(self.entity_list.num_entities, 0)
         self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+
+    def test_entity_list_uuid_unique(self):
+        """`entity_list` and `uuid` are unique together"""
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            uuid=entity_uuid,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Entity.objects.create(
+                entity_list=self.entity_list,
+                uuid=entity_uuid,
+            )
 
 
 class EntityHistoryTestCase(TestBase):

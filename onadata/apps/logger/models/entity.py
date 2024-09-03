@@ -45,7 +45,14 @@ class Entity(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        indexes = [models.Index(fields=["deleted_at"])]
+        indexes = [
+            models.Index(fields=["deleted_at"]),
+            models.Index(fields=["entity_list", "uuid"]),
+        ]
+        unique_together = (
+            "entity_list",
+            "uuid",
+        )
 
 
 class EntityHistory(BaseModel):

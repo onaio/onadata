@@ -218,6 +218,22 @@ class EntitySerializer(serializers.ModelSerializer):
 
         return parsed_value
 
+    def validate_uuid(self, value):
+        """Validate `uuid` field"""
+        entity_qs = Entity.objects.filter(
+            entity_list=self.context["entity_list"], uuid=value
+        )
+
+        if self.instance is not None:
+            entity_qs = entity_qs.exclude(pk=self.instance.pk)
+
+        if entity_qs.exists():
+            raise serializers.ValidationError(
+                _("An Entity with that uuid already exists.")
+            )
+
+        return value
+
     def validate(self, attrs):
         """Override `validate`"""
         if self.instance is None:
@@ -273,6 +289,7 @@ class EntitySerializer(serializers.ModelSerializer):
 
             instance.json = updated_data
 
+        instance.uuid = validated_data.get("uuid", instance.uuid)
         instance.save()
 
         return instance
