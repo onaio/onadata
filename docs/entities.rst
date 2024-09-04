@@ -419,8 +419,8 @@ Body:
          }
       ]
 
-Creating Entities
------------------
+Create Entity
+-------------
 
 .. raw:: html
 
