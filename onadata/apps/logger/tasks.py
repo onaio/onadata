@@ -8,8 +8,6 @@ from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 
-from multidb.pinning import use_master
-
 from onadata.apps.logger.models import Entity, EntityList, Project
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import (
@@ -36,15 +34,14 @@ def set_entity_list_perms_async(entity_list_id):
     Args:
         pk (int): Primary key for EntityList
     """
-    with use_master:
-        try:
-            entity_list = EntityList.objects.get(pk=entity_list_id)
+    try:
+        entity_list = EntityList.objects.get(pk=entity_list_id)
 
-        except EntityList.DoesNotExist as err:
-            logger.exception(err)
-            return
+    except EntityList.DoesNotExist as err:
+        logger.exception(err)
+        return
 
-        set_project_perms_to_object(entity_list, entity_list.project)
+    set_project_perms_to_object(entity_list, entity_list.project)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -72,19 +69,18 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
         entity_pks (list(int)): Primary keys of Entities to be deleted
         username (str): Username of the user initiating the delete
     """
-    with use_master:
-        entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
-        deleted_by = None
+    entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
+    deleted_by = None
 
-        try:
-            if username is not None:
-                deleted_by = User.objects.get(username=username)
+    try:
+        if username is not None:
+            deleted_by = User.objects.get(username=username)
 
-        except User.DoesNotExist as exc:
-            logger.exception(exc)
+    except User.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            soft_delete_entities_bulk(entity_qs, deleted_by)
+    else:
+        soft_delete_entities_bulk(entity_qs, deleted_by)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
