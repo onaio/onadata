@@ -427,16 +427,18 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         # Create Entity for trees EntityList
         trees_entity_list = EntityList.objects.get(name="trees")
         OwnerRole.add(self.user, trees_entity_list)
-        Entity.objects.create(
-            entity_list=trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
