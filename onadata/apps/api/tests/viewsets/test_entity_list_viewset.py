@@ -1,10 +1,11 @@
-"""Tests for module onadata.apps.api.viewsets.entity_list_viewset"""
+"""
+Tests for module onadata.apps.api.viewsets.entity_list_viewset
+"""
 
 import json
 import sys
 import uuid
 from datetime import datetime, timezone as dtz
-
 from unittest.mock import patch
 
 from django.test import override_settings
