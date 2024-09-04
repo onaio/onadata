@@ -81,6 +81,7 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
         soft_delete_entities_bulk(entity_qs, deleted_by)
 
 
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def commit_cached_elist_num_entities_async():
     """Commit cached EntityList `num_entities` counter to the database
 
