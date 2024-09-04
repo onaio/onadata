@@ -10,13 +10,13 @@ from django.utils import timezone
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
-from onadata.apps.logger.tasks import set_entity_list_perms_async
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.logger_tools import (
-    create_or_update_entity_from_instance,
-    dec_elist_num_entities,
-    inc_elist_num_entities,
+from onadata.apps.logger.tasks import (
+    dec_elist_num_entities_async,
+    inc_elist_num_entities_async,
+    set_entity_list_perms_async,
 )
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
 
 
 # pylint: disable=unused-argument
@@ -52,13 +52,17 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
     entity_list = instance.entity_list
 
     if created:
-        inc_elist_num_entities(entity_list.pk)
+        transaction.on_commit(
+            lambda: inc_elist_num_entities_async.delay(entity_list.pk)
+        )
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
 def decrement_entity_list_num_entities(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
-    dec_elist_num_entities(instance.entity_list.pk)
+    transaction.on_commit(
+        lambda: dec_elist_num_entities_async.delay(instance.entity_list.pk)
+    )
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")
