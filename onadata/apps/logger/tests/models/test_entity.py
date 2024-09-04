@@ -58,7 +58,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity.json, {})
         self.assertIsInstance(entity.uuid, uuid.UUID)
 
-    @patch("onadata.libs.utils.logger_tools.dec_elist_num_entities")
+    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
     @patch("django.utils.timezone.now")
     def test_soft_delete(self, mock_now, mock_dec):
         """Soft delete works"""
@@ -96,7 +96,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity3.deleted_at, self.mocked_now)
         self.assertIsNone(entity3.deleted_by)
 
-    @patch("onadata.apps.logger.signals.dec_elist_num_entities")
+    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
     def test_hard_delete(self, mock_dec):
         """Hard deleting updates dataset info"""
         entity = Entity.objects.create(entity_list=self.entity_list)
