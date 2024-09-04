@@ -244,16 +244,17 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
     @override_settings(TIME_ZONE="UTC")
     def test_get_all(self):
         """Getting all EntityLists works"""
-        Entity.objects.create(
-            entity_list=self.trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=self.trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
         second = qs[1]
@@ -1477,7 +1478,10 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"delete": "entities"})
-        self._create_entity()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._create_entity()
+
         OwnerRole.add(self.user, self.entity_list)
 
     @patch("django.utils.timezone.now")
@@ -1487,12 +1491,14 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
-        request = self.factory.delete(
-            "/", data={"entity_ids": [self.entity.pk]}, **self.extra
-        )
-        response = self.view(request, pk=self.entity_list.pk)
-        self.entity.refresh_from_db()
-        self.entity_list.refresh_from_db()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            request = self.factory.delete(
+                "/", data={"entity_ids": [self.entity.pk]}, **self.extra
+            )
+            response = self.view(request, pk=self.entity_list.pk)
+            self.entity.refresh_from_db()
+            self.entity_list.refresh_from_db()
 
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
