@@ -1113,6 +1113,7 @@ def update_entity_from_instance(
     return entity
 
 
+@use_master
 def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> None:
     """Soft delete Entities in bulk
 
@@ -1124,6 +1125,7 @@ def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> N
         entity.soft_delete(deleted_by)
 
 
+@use_master
 def create_or_update_entity_from_instance(instance: Instance) -> None:
     """Create or Update Entity from Instance
 
@@ -1221,6 +1223,7 @@ def _dec_elist_num_entities_cache(pk: int) -> None:
         cache.decr(counter_cache_key)
 
 
+@use_master
 def inc_elist_num_entities(pk: int) -> None:
     """Increment EntityList `num_entities` counter
 
@@ -1245,6 +1248,7 @@ def inc_elist_num_entities(pk: int) -> None:
             _inc_elist_num_entities_db(pk)
 
 
+@use_master
 def dec_elist_num_entities(pk: int) -> None:
     """Decrement EntityList `num_entities` counter
 

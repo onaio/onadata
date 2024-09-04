@@ -314,6 +314,7 @@ def propagate_project_permissions(
                 )
 
 
+@use_master
 def set_project_perms_to_object(obj: Any, project: Project) -> None:
     """Apply project permissions to an object
 

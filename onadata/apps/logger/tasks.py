@@ -98,8 +98,7 @@ def commit_cached_elist_num_entities_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    with use_master:
-        commit_cached_elist_num_entities()
+    commit_cached_elist_num_entities()
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -109,8 +108,7 @@ def inc_elist_num_entities_async(elist_pk: int):
     Args:
         elist_pk (int): Primary key for EntityList
     """
-    with use_master:
-        inc_elist_num_entities(elist_pk)
+    inc_elist_num_entities(elist_pk)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -120,5 +118,4 @@ def dec_elist_num_entities_async(elist_pk: int) -> None:
     Args:
         elist_pk (int): Primary key for EntityList
     """
-    with use_master:
-        dec_elist_num_entities(elist_pk)
+    dec_elist_num_entities(elist_pk)
