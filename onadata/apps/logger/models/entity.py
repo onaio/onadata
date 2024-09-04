@@ -41,7 +41,9 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            dec_elist_num_entities_async.delay(self.entity_list.pk)
+            transaction.on_commit(
+                lambda: dec_elist_num_entities_async.delay(self.entity_list.pk)
+            )
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
