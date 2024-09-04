@@ -103,22 +103,22 @@ def commit_cached_elist_num_entities_async():
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def inc_elist_num_entities_async(pk: int):
+def inc_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
 
     Args:
-        pk (int): Primary key for EntityList
+        elist_pk (int): Primary key for EntityList
     """
     with use_master:
-        inc_elist_num_entities(pk)
+        inc_elist_num_entities(elist_pk)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def dec_elist_num_entities_async(pk: int) -> None:
+def dec_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
 
     Args:
-        pk (int): Primary key for EntityList
+        elist_pk (int): Primary key for EntityList
     """
     with use_master:
-        dec_elist_num_entities(pk)
+        dec_elist_num_entities(elist_pk)
