@@ -125,6 +125,7 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
 
     def test_counter_commited(self, mock_commit):
         """Cached counter is commited in the database"""
+        # pylint: disable=no-member
         commit_cached_elist_num_entities_async.delay()
         mock_commit.assert_called_once()
 
@@ -133,7 +134,7 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
         """ConnectionError exception is retried"""
         mock_retry.side_effect = Retry
         mock_set_perms.side_effect = ConnectionError
-
+        # pylint: disable=no-member
         commit_cached_elist_num_entities_async.delay()
 
         self.assertTrue(mock_retry.called)
@@ -146,7 +147,7 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
         """DatabaseError exception is retried"""
         mock_retry.side_effect = Retry
         mock_set_perms.side_effect = DatabaseError
-
+        # pylint: disable=no-member
         commit_cached_elist_num_entities_async.delay()
 
         self.assertTrue(mock_retry.called)
