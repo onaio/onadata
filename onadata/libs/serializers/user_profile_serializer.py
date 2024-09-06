@@ -28,6 +28,8 @@ from onadata.apps.api.tasks import (
 )
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
+from onadata.apps.messaging.constants import USER, USER_CREATED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -318,6 +320,15 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             metadata=metadata,
         )
         profile.save()
+
+        # send notification on creating new user account
+        send_message(
+            instance_id=new_user.username,
+            target_id=new_user.id,
+            target_type=USER,
+            user=new_user,
+            message_verb=USER_CREATED,
+        )
 
         if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
             redirect_url = params.get("redirect_url")

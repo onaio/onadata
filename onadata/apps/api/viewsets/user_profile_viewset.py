@@ -34,7 +34,7 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
 from onadata.apps.messaging.constants import (
-    USER, USER_CREATED, USER_UPDATED, USER_PASSWORD_CHANGED
+    USER, USER_UPDATED, USER_PASSWORD_CHANGED
 )
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs import filters
@@ -246,17 +246,6 @@ class UserProfileViewSet(
         profile = response.data
         user_name = profile.get("username")
         cache.set(f"{USER_PROFILE_PREFIX}{user_name}", profile)
-
-        # send notification on creating new user account
-        user = User.objects.get(username__iexact=user_name)
-        send_message(
-            instance_id=user_name,
-            target_id=user.id,
-            target_type=USER,
-            user=user,
-            message_verb=USER_CREATED,
-        )
-
         return response
 
     @action(methods=["POST"], detail=True)

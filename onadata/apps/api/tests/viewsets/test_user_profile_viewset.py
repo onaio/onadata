@@ -255,7 +255,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
-    @patch("onadata.apps.api.viewsets.user_profile_viewset.send_message")
+    @patch("onadata.libs.serializers.user_profile_serializer.send_message")
     @patch(
         (
             "onadata.libs.serializers.user_profile_serializer."
