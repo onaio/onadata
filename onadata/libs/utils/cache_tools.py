@@ -77,13 +77,13 @@ PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 LOCK_SUFFIX = "-lock"
 
 # Entities
-ELIST_NUM_ENTITIES = "el-num-entities-"
-ELIST_NUM_ENTITIES_IDS = "el-num-entities-ids"
+ELIST_NUM_ENTITIES = "elist-num-entities-"
+ELIST_NUM_ENTITIES_IDS = "elist-num-entities-ids"
 ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
 ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 
 # Report exception
-ELIST_FAILOVER_REPORT = "el-failover-report"
+ELIST_FAILOVER_REPORT = "elist-failover-report-sent"
 
 
 def safe_delete(key):

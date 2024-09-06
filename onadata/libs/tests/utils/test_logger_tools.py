@@ -725,7 +725,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
         self.assertCountEqual(entity.json, expected_json)
         self.assertEqual(str(entity.uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
 
-        self.assertEqual(cache.get(f"el-num-entities-{entity_list.pk}"), 1)
+        self.assertEqual(cache.get(f"elist-num-entities-{entity_list.pk}"), 1)
         self.assertEqual(entity_list.last_entity_update_time, entity.date_modified)
         self.assertEqual(entity.history.count(), 1)
 
@@ -805,11 +805,11 @@ class EntityListNumEntitiesBase(TestBase):
         self.entity_list = EntityList.objects.create(
             name="trees", project=self.project, num_entities=10
         )
-        self.ids_key = "el-num-entities-ids"
+        self.ids_key = "elist-num-entities-ids"
         self.lock_key = f"{self.ids_key}-lock"
-        self.counter_key_prefix = "el-num-entities-"
+        self.counter_key_prefix = "elist-num-entities-"
         self.counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
-        self.created_at_key = "el-num-entities-ids-created-at"
+        self.created_at_key = "elist-num-entities-ids-created-at"
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -927,13 +927,13 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
             "is not configured or has malfunctioned"
         )
         mock_report_exc.assert_called_once_with(subject, msg)
-        self.assertEqual(cache.get("el-failover-report"), "sent")
+        self.assertEqual(cache.get("elist-failover-report-sent"), "sent")
 
     @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
     @patch("onadata.libs.utils.logger_tools.report_exception")
     def test_failover_report_cache_hit(self, mock_report_exc):
-        """Report exception not sent if cache `el-failover-report` set"""
-        cache.set("el-failover-report", "sent")
+        """Report exception not sent if cache `elist-failover-report-sent` set"""
+        cache.set("elist-failover-report-sent", "sent")
         cache_created_at = timezone.now() - timedelta(minutes=10)
         cache.set(self.counter_key, 3)
         cache.set(self.created_at_key, cache_created_at)

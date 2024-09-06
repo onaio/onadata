@@ -391,7 +391,7 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         entity_list = EntityList.objects.get(name="trees")
         entity_list.num_entities = 5
         entity_list.save()
-        cache.set(f"el-num-entities-{entity_list.pk}", 7)
+        cache.set(f"elist-num-entities-{entity_list.pk}", 7)
 
         request = self.factory.get("/", **self.extra)
         response = self.view(request)
@@ -1490,7 +1490,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
     def test_delete(self, mock_now):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
-        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 1)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
 
@@ -1505,7 +1505,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.assertEqual(cache.get(f"el-num-entities-{self.entity_list.pk}"), 0)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 0)
         self.assertEqual(
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )
