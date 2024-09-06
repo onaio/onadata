@@ -98,7 +98,7 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_IDS,
     ELIST_NUM_ENTITIES_LOCK,
     ELIST_NUM_ENTITIES_CREATED_AT,
-    ELIST_FAILOVER_REPORT,
+    ELIST_FAILOVER_REPORT_SENT,
     safe_delete,
     set_cache_with_lock,
 )
@@ -1330,7 +1330,7 @@ def _exec_cached_elist_counter_commit_failover() -> None:
     if time_lapse.total_seconds() > failover_timeout:
         commit_cached_elist_num_entities()
         # Do not send report exception if already sent within the past 24 hrs
-        if cache.get(ELIST_FAILOVER_REPORT) is None:
+        if cache.get(ELIST_FAILOVER_REPORT_SENT) is None:
             subject = "Periodic task not running"
             task_name = (
                 "onadata.apps.logger.tasks.commit_cached_elist_num_entities_async"
@@ -1340,4 +1340,4 @@ def _exec_cached_elist_counter_commit_failover() -> None:
                 "is not configured or has malfunctioned"
             )
             report_exception(subject, msg)
-            cache.set(ELIST_FAILOVER_REPORT, "sent", 86400)
+            cache.set(ELIST_FAILOVER_REPORT_SENT, "sent", 86400)

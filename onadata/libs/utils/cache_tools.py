@@ -83,7 +83,7 @@ ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
 ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 
 # Report exception
-ELIST_FAILOVER_REPORT = "elist-failover-report-sent"
+ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
 
 
 def safe_delete(key):
