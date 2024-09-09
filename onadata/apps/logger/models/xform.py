@@ -912,6 +912,12 @@ class XForm(XFormMixin, BaseModel):
             ("can_export_xform_data", _("Can export form data")),
             ("delete_submission", _("Can delete submissions from form")),
         )
+        indexes = [
+            models.Index(
+                fields=["deleted_at"],
+                name="idx_logger_xform_deleted_at",
+            )
+        ]
 
     def file_name(self):
         """Returns the XML filename based on the ``self.id_string``."""
