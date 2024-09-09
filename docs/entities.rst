@@ -420,7 +420,7 @@ Body:
       ]
 
 Create Entity
--------------
+--------------
 
 .. raw:: html
 
