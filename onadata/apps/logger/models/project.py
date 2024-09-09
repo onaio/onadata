@@ -134,6 +134,9 @@ class Project(BaseModel):
             ("view_project_data", "Can view submitted data"),
             ("add_project_entitylist", "Can add entitylist to project"),
         )
+        indexes = [
+            models.Index(fields=["deleted_at"], name="idx_logger_project_deleted_at"),
+        ]
 
     def __str__(self):
         return f"{self.organization}|{self.name}"
