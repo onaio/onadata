@@ -212,6 +212,7 @@ INSTALLED_APPS = (
     "onadata.apps.main",
     "onadata.apps.restservice",
     "onadata.apps.api",
+    "onadata.apps.interview",
     "guardian",
     "onadata.apps.sms_support",
     "onadata.libs",

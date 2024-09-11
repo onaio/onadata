@@ -48,3 +48,4 @@ tomli==2.0.1
     # via sphinx
 urllib3==2.2.2
     # via requests
+djangorestframework-simplejwt
