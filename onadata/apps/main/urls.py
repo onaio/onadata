@@ -11,7 +11,7 @@ from django.conf.urls import i18n
 # enable the admin:
 from django.contrib import admin
 from django.contrib.staticfiles import views as staticfiles_views
-from django.urls import include, re_path
+from django.urls import include, re_path, path
 from django.views.generic import RedirectView
 
 from onadata.apps import sms_support
@@ -38,6 +38,7 @@ ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
 admin.autodiscover()
 
 urlpatterns = [
+    re_path("^api/v1/", include("onadata.apps.interview.urls")),
     # change Language
     re_path(r"^i18n/", include(i18n)),
     re_path("^api/v1/", include(api_v1_router.urls)),
