@@ -9,7 +9,11 @@ from django.shortcuts import get_object_or_404
 
 from django_filters import rest_framework as django_filter_filters
 from rest_framework import permissions, viewsets
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import (
+    TokenAuthentication,
+    BaseAuthentication,
+    BasicAuthentication,
+)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -43,6 +47,7 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.export_builder import ExportBuilder
+from rest_framework import renderers
 
 BaseViewset = get_baseviewset_class()
 
@@ -57,11 +62,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     OpenRosa Form List API - https://docs.getodk.org/openrosa-form-list/
     """
 
-    authentication_classes = (
-        DigestAuthentication,
-        EnketoTokenAuthentication,
-        TokenAuthentication,
-    )
+    authentication_classes = [BasicAuthentication, TokenAuthentication]
     content_negotiation_class = MediaFileContentNegotiation
     filterset_class = filters.FormIDFilter
     filter_backends = (
@@ -74,7 +75,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     ).only(
         "id_string", "title", "version", "uuid", "description", "user__username", "hash"
     )
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = [permissions.AllowAny]
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer
     template_name = "api/xformsList.xml"
