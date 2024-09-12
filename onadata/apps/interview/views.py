@@ -28,7 +28,6 @@ class FetchOnadataFormView(ListAPIView):
             pk = kwargs.get("pk")
             model = get_object_or_404(XForm, id=pk)
             if model:
-                print("YES!!")
                 endpoint = f"http://localhost:8000/api/v1/formlist/{pk}"
 
                 # Send a GET request to the endpoint with basic authentication
