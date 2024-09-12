@@ -31,7 +31,7 @@ class XFormVersion(models.Model):
     json = models.TextField()
 
     def __str__(self):
-        return f"{self.xform.title}-{self.version}"
+        return f"{self.xform.title}-{self.version}-{self.xform.form_id}"
 
     class Meta:
         unique_together = ["xform", "version"]
