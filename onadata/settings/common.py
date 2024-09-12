@@ -206,6 +206,7 @@ INSTALLED_APPS = (
     "oauth2_provider",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt",
     "taggit",
     "onadata.apps.logger",
     "onadata.apps.viewer",
@@ -293,12 +294,13 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "onadata.libs.authentication.DigestAuthentication",
         "onadata.libs.authentication.TempTokenAuthentication",
         "onadata.libs.authentication.EnketoTokenAuthentication",
         "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
