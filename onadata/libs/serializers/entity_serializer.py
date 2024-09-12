@@ -180,17 +180,99 @@ class EntitySerializer(serializers.ModelSerializer):
     data = serializers.JSONField(write_only=True, required=False)
 
     def validate_data(self, value):
-        """Validates Entity dataset properties"""
-        if value:
-            for key in value.keys():
-                if key not in self.context["entity_list"].properties:
-                    raise serializers.ValidationError(
-                        _(f"Invalid dataset property {key}.")
-                    )
+        """Validate and cast `data` field values to strings"""
+        allowed_properties = set(self.context["entity_list"].properties)
+        invalid_properties = [
+            key for key in value.keys() if key not in allowed_properties
+        ]
+
+        if invalid_properties:
+            invalid_properties_str = ", ".join(invalid_properties)
+
+            raise serializers.ValidationError(
+                _(
+                    f"Invalid dataset properties: {invalid_properties_str}. "
+                    f"Allowed properties are: {', '.join(allowed_properties)}."
+                )
+            )
+
+        parsed_value = {}
+        invalid_properties = []
+
+        for key, val in value.items():
+            if val is None:
+                invalid_properties.append(key)
+
+            else:
+                parsed_value[key] = str(val)
+
+        if invalid_properties:
+            invalid_properties_str = ", ".join(invalid_properties)
+
+            raise serializers.ValidationError(
+                _(
+                    f"Invalid dataset properties: {invalid_properties_str}. "
+                    f"Nulls are not allowed"
+                )
+            )
+
+        return parsed_value
+
+    def validate_uuid(self, value):
+        """Validate `uuid` field"""
+        entity_qs = Entity.objects.filter(
+            entity_list=self.context["entity_list"], uuid=value
+        )
+
+        if self.instance is not None:
+            entity_qs = entity_qs.exclude(pk=self.instance.pk)
+
+        if entity_qs.exists():
+            raise serializers.ValidationError(
+                _("An Entity with that uuid already exists.")
+            )
 
         return value
 
+    def validate(self, attrs):
+        """Override `validate`"""
+        if self.instance is None:
+            # Create operation
+            data = attrs.get("data")
+            label = attrs.get("label")
+
+            if data is None:
+                raise serializers.ValidationError(
+                    {"data": _("This field is required.")}
+                )
+
+            if not data:
+                raise serializers.ValidationError(
+                    {"data": _("This field may not be empty.")}
+                )
+
+            if label is None:
+                raise serializers.ValidationError(
+                    {"label": _("This field is required.")}
+                )
+
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        """Override `create`"""
+        data = {key: val for key, val in validated_data.pop("data").items() if val}
+        label = validated_data.pop("label")
+
+        return super().create(
+            {
+                **validated_data,
+                "json": {"label": label, **data},
+                "entity_list": self.context["entity_list"],
+            }
+        )
+
     def update(self, instance, validated_data):
+        """Override `update`"""
         data = validated_data.pop("data", {})
         label = validated_data.pop("label", None)
 
@@ -207,10 +289,8 @@ class EntitySerializer(serializers.ModelSerializer):
 
             instance.json = updated_data
 
+        instance.uuid = validated_data.get("uuid", instance.uuid)
         instance.save()
-        instance.history.create(
-            json=instance.json, created_by=self.context["request"].user
-        )
 
         return instance
 
@@ -219,6 +299,14 @@ class EntitySerializer(serializers.ModelSerializer):
         instance_json = data.pop("json")
 
         return {**data, "data": instance_json}
+
+    def save(self, **kwargs):
+        instance = super().save(**kwargs)
+        instance.history.create(
+            json=instance.json, created_by=self.context["request"].user
+        )
+
+        return instance
 
     class Meta:
         model = Entity
@@ -231,6 +319,7 @@ class EntitySerializer(serializers.ModelSerializer):
             "label",
             "data",
         )
+        read_only_fields = ("json",)
 
 
 class EntityArraySerializer(EntitySerializer):

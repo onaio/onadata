@@ -1,3 +1,8 @@
+"""
+ViewSet for EntityList actions
+"""
+
+import uuid
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
@@ -13,7 +18,6 @@ from rest_framework.mixins import (
     DestroyModelMixin,
     ListModelMixin,
 )
-
 
 from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
 from onadata.apps.api.tools import get_baseviewset_class
@@ -78,7 +82,7 @@ class EntityListViewSet(
             if self.request.method == "DELETE":
                 return EntityDeleteSerializer
 
-            if self.kwargs.get("entity_pk") is None:
+            if self.request.method == "GET" and self.kwargs.get("entity_pk") is None:
                 return EntityArraySerializer
 
             return EntitySerializer
@@ -95,53 +99,109 @@ class EntityListViewSet(
         return context
 
     @action(
-        methods=["GET", "PUT", "PATCH", "DELETE"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         detail=True,
         url_path="entities(?:/(?P<entity_pk>[^/.]+))?",
     )
     def entities(self, request, *args, **kwargs):
-        """Provides `list`, `retrieve`, `update`, and `destroy` actions for Entities"""
+        """`list`, `create`, `retrieve`, `update`, `destroy` actions for Entities"""
         entity_list = self.get_object()
         entity_pk = kwargs.get("entity_pk")
         method = request.method.upper()
 
         if entity_pk is not None:
-            entity = get_object_or_404(
-                Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
-            )
+            return self._handle_entity_detail(entity_list, entity_pk, method, request)
 
-            if method == "DELETE":
-                return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return self._handle_entity_list(method, entity_list, request)
 
-            if method in ["PUT", "PATCH"]:
-                serializer = self.get_serializer(entity, data=request.data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-
-                return Response(serializer.data)
-
-            serializer = self.get_serializer(entity)
-
-            return Response(serializer.data)
+    def _handle_entity_detail(self, entity_list, entity_pk, method, request):
+        """Handles detail actions (retrieve, update, delete) for a single entity."""
+        entity = get_object_or_404(
+            Entity, pk=entity_pk, deleted_at__isnull=True, entity_list=entity_list
+        )
 
         if method == "DELETE":
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if method in ["PUT", "PATCH"]:
+            return self._update_entity(entity, request)
 
-        entity_qs = self.get_queryset_entities(request, entity_list)
+        return self._retrieve_entity(entity)
+
+    def _handle_entity_list(self, method, entity_list, request):
+        """Handles list actions (list, create, bulk delete) for entities."""
+        if method == "DELETE":
+            return self._bulk_delete_entities(request)
+
+        if method == "POST":
+            return self._create_entity(request)
+
+        return self._list_entities(entity_list, request)
+
+    def _retrieve_entity(self, entity):
+        """Retrieves a single entity."""
+        serializer = self.get_serializer(entity)
+        return Response(serializer.data)
+
+    def _update_entity(self, entity, request):
+        """Updates a single entity."""
+        serializer = self.get_serializer(entity, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def _create_entity(self, request):
+        """Creates a new entity."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _bulk_delete_entities(self, request):
+        """Handles bulk deletion of entities."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _list_entities(self, entity_list, request):
+        """Lists entities with pagination."""
+        entity_qs = self._get_queryset_entities(request, entity_list)
         page = self.paginate_queryset(entity_qs)
 
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(entity_qs, many=True)
-
         return Response(serializer.data)
+
+    def _get_queryset_entities(self, request, entity_list):
+        """Returns queryset for Entities."""
+        search_param = api_settings.SEARCH_PARAM
+        search = request.query_params.get(search_param, "")
+        queryset = Entity.objects.filter(
+            entity_list_id=entity_list.pk, deleted_at__isnull=True
+        )
+
+        def is_valid_uuid(uuid_string):
+            """Check if the provided string is a valid UUID."""
+            try:
+                uuid.UUID(uuid_string)
+                return True
+            except ValueError:
+                return False
+
+        if search:
+            if is_valid_uuid(search):
+                queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
+            else:
+                # Only apply regex filter if search is not a valid UUID
+                queryset = queryset.filter(Q(json__iregex=search))
+
+        queryset = queryset.order_by("id")
+
+        return queryset
 
     def perform_destroy(self, instance):
         """Override `perform_detroy` method"""
@@ -161,21 +221,6 @@ class EntityListViewSet(
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
-
-    def get_queryset_entities(self, request, entity_list):
-        """Returns queryset for Entities"""
-        search_param = api_settings.SEARCH_PARAM
-        search = request.query_params.get(search_param, "")
-        queryset = Entity.objects.filter(
-            entity_list_id=entity_list.pk, deleted_at__isnull=True
-        )
-
-        if search:
-            queryset = queryset.filter(Q(json__iregex=search) | Q(uuid=search))
-
-        queryset = queryset.order_by("id")
-
-        return queryset
 
     @action(
         methods=["GET"],

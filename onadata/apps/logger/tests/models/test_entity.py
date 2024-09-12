@@ -1,9 +1,11 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
+import uuid
 import pytz
 from datetime import datetime
 from unittest.mock import patch
 
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from onadata.apps.logger.models import (
@@ -35,15 +37,15 @@ class EntityTestCase(TestBase):
             "circumference_cm": 300,
             "label": "300cm purpleheart",
         }
-        uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
         entity = Entity.objects.create(
             entity_list=self.entity_list,
             json=entity_json,
-            uuid=uuid,
+            uuid=entity_uuid,
         )
         self.assertEqual(entity.entity_list, self.entity_list)
         self.assertEqual(entity.json, entity_json)
-        self.assertEqual(entity.uuid, uuid)
+        self.assertEqual(entity.uuid, entity_uuid)
         self.assertEqual(f"{entity}", f"{entity.pk}|{self.entity_list}")
         self.assertEqual(entity.date_created, self.mocked_now)
 
@@ -53,7 +55,7 @@ class EntityTestCase(TestBase):
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
         self.assertEqual(entity.json, {})
-        self.assertEqual(entity.uuid, "")
+        self.assertIsInstance(entity.uuid, uuid.UUID)
 
     @patch("django.utils.timezone.now")
     def test_soft_delete(self, mock_now):
@@ -107,6 +109,20 @@ class EntityTestCase(TestBase):
 
         self.assertEqual(self.entity_list.num_entities, 0)
         self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+
+    def test_entity_list_uuid_unique(self):
+        """`entity_list` and `uuid` are unique together"""
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            uuid=entity_uuid,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Entity.objects.create(
+                entity_list=self.entity_list,
+                uuid=entity_uuid,
+            )
 
 
 class EntityHistoryTestCase(TestBase):
