@@ -14,9 +14,9 @@ from django.utils import timezone
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.utils.user_auth import get_user_default_project
 
