@@ -77,6 +77,7 @@ def report_exception(subject, info, exc_info=None):
         sentry_sdk.capture_exception(exc_info)
     else:
         message = f"{info}"
+        sentry_sdk.capture_message(f"{subject}: {info}")
 
     if settings.DEBUG or settings.TESTING_MODE:
         sys.stdout.write(f"Subject: {subject}\n")
