@@ -5,6 +5,8 @@ Cache utilities.
 import hashlib
 import logging
 import socket
+import time
+from contextlib import contextmanager
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
@@ -71,6 +73,17 @@ XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
 
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
+
+LOCK_SUFFIX = "-lock"
+
+# Entities
+ELIST_NUM_ENTITIES = "elist-num-entities-"
+ELIST_NUM_ENTITIES_IDS = "elist-num-entities-ids"
+ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
+ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
+
+# Report exception
+ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
 
 
 def safe_delete(key):
@@ -149,3 +162,79 @@ def safe_cache_get(key, default=None):
         # older Python versions
         logger.exception(exc)
         return default
+
+
+class CacheLockError(Exception):
+    """Custom exception raised when a cache lock cannot be acquired."""
+
+
+@contextmanager
+def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
+    """
+    Context manager for safely setting a cache value with a lock.
+
+    Args:
+        cache_key (str): The key under which the value is stored in the cache.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
+
+    Raises:
+        CacheLockError: If the lock cannot be acquired within
+                        the specified lock_timeout.
+
+    Yields:
+        None
+    """
+    lock_key = f"lock:{cache_key}"
+    start_time = time.time()
+
+    # Try to acquire the lock
+    lock_acquired = cache.add(lock_key, "locked", lock_expire)
+
+    while not lock_acquired and time.time() - start_time < lock_timeout:
+        time.sleep(0.1)
+        lock_acquired = cache.add(lock_key, "locked", lock_expire)
+
+    if not lock_acquired:
+        raise CacheLockError(f"Could not acquire lock for {cache_key}")
+
+    try:
+        yield
+
+    finally:
+        cache.delete(lock_key)
+
+
+def set_cache_with_lock(
+    cache_key, modify_callback, cache_timeout=None, lock_expire=30, lock_timeout=10
+):
+    """
+    Set a cache value with a lock, using a callback function to modify the value.
+
+    Use of lock ensures that race conditions are avoided, even when multiple processes
+    or threads attempt to modifiy the cache concurrently.
+
+    Args:
+        cache_key (str): The key under which the value is stored in the cache.
+        modify_callback (callable): A callback function that takes the current cache
+                                    value and returns the modified value.
+        cache_timeout (int, optional): The expiration time for the cached value
+                                        in seconds. If None, the default cache
+                                        timeout is used.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
+
+    Raises:
+        CacheLockError: If the lock cannot be acquired within the specified
+                        lock_timeout.
+
+    Returns:
+        None
+    """
+    with with_cache_lock(cache_key, lock_expire, lock_timeout):
+        # Get the current value from cache
+        current_value = cache.get(cache_key)
+        # Use the callback to get the modified value
+        new_value = modify_callback(current_value)
+        # Set the new value in the cache with the specified timeout
+        cache.set(cache_key, new_value, cache_timeout)

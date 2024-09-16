@@ -2,6 +2,7 @@
 """
 Entities serializer module.
 """
+
 from django.utils.translation import gettext as _
 
 from pyxform.constants import ENTITIES_RESERVED_PREFIX
@@ -19,6 +20,7 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.logger.tasks import delete_entities_bulk_async
 from onadata.libs.permissions import CAN_VIEW_PROJECT
+from onadata.libs.utils.cache_tools import ELIST_NUM_ENTITIES, safe_cache_get
 
 
 class EntityListSerializer(serializers.ModelSerializer):
@@ -79,6 +81,7 @@ class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source="project.shared")
     num_registration_forms = serializers.SerializerMethodField()
     num_follow_up_forms = serializers.SerializerMethodField()
+    num_entities = serializers.SerializerMethodField()
 
     def get_num_registration_forms(self, obj: EntityList) -> int:
         """Returns number of RegistrationForms for EntityList object"""
@@ -87,6 +90,15 @@ class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):
     def get_num_follow_up_forms(self, obj: EntityList) -> int:
         """Returns number of FollowUpForms consuming Entities from dataset"""
         return obj.follow_up_forms.count()
+
+    def get_num_entities(self, obj: EntityList) -> int:
+        """Returns number of Entities in the dataset
+
+        Adds cached counter to database counter
+        """
+        cached_counter = safe_cache_get(f"{ELIST_NUM_ENTITIES}{obj.pk}", 0)
+
+        return obj.num_entities + cached_counter
 
     class Meta:
         model = EntityList

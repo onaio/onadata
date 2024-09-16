@@ -8,14 +8,15 @@ import uuid
 from datetime import datetime, timezone as dtz
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -243,16 +244,17 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
     @override_settings(TIME_ZONE="UTC")
     def test_get_all(self):
         """Getting all EntityLists works"""
-        Entity.objects.create(
-            entity_list=self.trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=self.trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
         second = qs[1]
@@ -384,6 +386,30 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
 
+    def test_num_entities_cached(self):
+        """`num_entities` includes cached counter"""
+        entity_list = EntityList.objects.get(name="trees")
+        entity_list.num_entities = 5
+        entity_list.save()
+        cache.set(f"elist-num-entities-{entity_list.pk}", 7)
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["num_entities"], 12)
+
+        # Defaults to database counter if cache inaccessible
+        with patch.object(cache, "get") as mock_cache_get:
+            with patch("onadata.libs.utils.cache_tools.logger.exception") as mock_exc:
+                mock_cache_get.side_effect = ConnectionError
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data[0]["num_entities"], 5)
+                mock_exc.assert_called()
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):
@@ -401,16 +427,18 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         # Create Entity for trees EntityList
         trees_entity_list = EntityList.objects.get(name="trees")
         OwnerRole.add(self.user, trees_entity_list)
-        Entity.objects.create(
-            entity_list=trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -1452,27 +1480,32 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"delete": "entities"})
-        self._create_entity()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._create_entity()
+
         OwnerRole.add(self.user, self.entity_list)
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
-        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
-        request = self.factory.delete(
-            "/", data={"entity_ids": [self.entity.pk]}, **self.extra
-        )
-        response = self.view(request, pk=self.entity_list.pk)
-        self.entity.refresh_from_db()
-        self.entity_list.refresh_from_db()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            request = self.factory.delete(
+                "/", data={"entity_ids": [self.entity.pk]}, **self.extra
+            )
+            response = self.view(request, pk=self.entity_list.pk)
+            self.entity.refresh_from_db()
+            self.entity_list.refresh_from_db()
 
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 0)
         self.assertEqual(
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )

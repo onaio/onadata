@@ -955,7 +955,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, ["denoinc", "aboy"])
+        self.assertCountEqual(response.data, ["denoinc", "aboy"])
 
         project_view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get(
