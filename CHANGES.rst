@@ -3,6 +3,11 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.7.1(2024-09-16)
+- Use chunked queryset when iterating queryset
+  `PR #2701 <https://github.com/onaio/onadata/pull/2701>`
+  [@kelvin-muchiri]
+
 v4.7.0(2024-09-16)
 ------------------
 - Add logging to project view page: add why we get 400 in log
