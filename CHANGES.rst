@@ -3,6 +3,30 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.7.0(2024-09-16)
+------------------
+- Add logging to project view page: add why we get 400 in log
+  `PR #2699 <https://github.com/onaio/onadata/pull/2699>`
+  [@FrankApiyo]
+- Add missing model index changes
+  `PR #2697 <https://github.com/onaio/onadata/pull/2697>`
+  [@kelvin-muchiri]
+- Add index for logger_xform and logger_project deleted_at fields
+  `PR #2696 <https://github.com/onaio/onadata/pull/2696>`
+  [@FrankApiyo]
+- Pin submission post processing actions to master database
+  `PR #2694 <https://github.com/onaio/onadata/pull/2694>`
+  [@kelvin-muchiri]
+- Add config to disable user creation
+  `PR #2688 <https://github.com/onaio/onadata/pull/2688>`
+  [@ciremusyoka]
+- Add support for creating Entity via API
+  `PR #2683 <https://github.com/onaio/onadata/pull/2683>`
+  [@kelvin-muchiri]
+- Use eventual consistency to update EntityList num_entities
+  `PR #2651 <https://github.com/onaio/onadata/pull/2651>`
+  [@kelvin-muchiri]
+
 v4.6.0(2024-09-02)
 ------------------
 - Cache xform list results
