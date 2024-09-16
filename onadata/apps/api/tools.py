@@ -217,7 +217,9 @@ def remove_user_from_organization(organization, user):
         role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
 
     # Remove user from all org projects
-    for project in organization.user.project_org.all():
+    project_qs = organization.user.project_org.all()
+
+    for project in queryset_iterator(project_qs):
         ShareProject(project, user.username, role, remove=True).save()
 
 
@@ -690,7 +692,9 @@ def get_xform_users(xform):
     """
     data = {}
     org_members = []
-    for perm in xform.xformuserobjectpermission_set.all():
+    xform_user_obj_perm_qs = xform.xformuserobjectpermission_set.all()
+
+    for perm in queryset_iterator(xform_user_obj_perm_qs):
         if perm.user not in data:
             user = perm.user
 
