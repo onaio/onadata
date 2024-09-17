@@ -120,14 +120,15 @@ class TestParsedInstance(TestBase):
             '{"_last_edited": "2024-04-01"}]}'
         )
         where, where_params = get_where_clause(query)
-        self.assertEqual(
-            where,
-            ["((date_created = %s) OR (last_edited = %s))"],
+        self.assertEqual(where, ["((date_created = %s) OR (last_edited = %s))"])
+        self.assertEqual(where_params, ["2024-09-17", "2024-04-01"])
+        query = (
+            '{"$or": [{"_submission_time":{"$lte": "2024-09-17"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01"}}]}'
         )
-        self.assertEqual(
-            where_params,
-            ["2024-09-17", "2024-04-01"],
-        )
+        where, where_params = get_where_clause(query)
+        self.assertEqual(where, ["((date_created <= %s) OR (last_edited >= %s))"])
+        self.assertEqual(where_params, ["2024-09-17 00:00:00", "2024-04-01 00:00:00"])
 
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()
