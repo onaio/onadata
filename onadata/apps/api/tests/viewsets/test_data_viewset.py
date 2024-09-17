@@ -3514,7 +3514,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 4)
 
     def test_data_query_or_metadata(self):
-        """$or filter works for meta data"""
+        """OR operation filter works for meta data"""
         view = DataViewSet.as_view({"get": "list"})
         # Mock date_created
         with patch(
@@ -3559,6 +3559,13 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 5)
+        # Invalid dates
+        query_str = (
+            '{"$or": [{"_submission_time": "foo"}, {"_last_edited": "2024-04-01"}]}'
+        )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 400)
 
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
