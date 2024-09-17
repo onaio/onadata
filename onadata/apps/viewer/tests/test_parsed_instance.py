@@ -92,12 +92,37 @@ class TestParsedInstance(TestBase):
 
     def test_get_where_clause_w_metadata(self):
         """get_where_clause with meta data fields"""
-        # Date in ISO format
+        # UTC date format
         query = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694+00:00", '
             '"$lte": "2024-09-17T13:39:40.001694+00:00"}}, '
             '{"_last_edited":{"$gte": "2024-04-01T13:39:40.001694+00:00", '
             '"$lte": "2024-04-01T13:39:40.001694+00:00"}}]}'
+        )
+        where, where_params = get_where_clause(query)
+        self.assertEqual(
+            where,
+            [
+                (
+                    "((date_created >= %s AND date_created <= %s) OR "
+                    "(last_edited >= %s AND last_edited <= %s))"
+                )
+            ],
+        )
+        self.assertEqual(
+            where_params,
+            [
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+            ],
+        )
+        query = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694Z", '
+            '"$lte": "2024-09-17T13:39:40.001694Z"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01T13:39:40.001694Z", '
+            '"$lte": "2024-04-01T13:39:40.001694Z"}}]}'
         )
         where, where_params = get_where_clause(query)
         self.assertEqual(
