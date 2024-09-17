@@ -9,9 +9,9 @@ from typing import Any, Tuple
 
 import six
 
-from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
+from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
 
-KNOWN_DATES = ["_submission_time"]
+KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
 NONE_JSON_FIELDS = {
     "_submission_time": "date_created",
     "_date_modified": "date_modified",
@@ -62,11 +62,14 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                 _v = value
                 if field_key in KNOWN_DATES:
                     raw_date = value
-                    for date_format in (MONGO_STRFTIME, DATE_FORMAT):
+                    for date_format in KNOWN_DATE_FORMATS:
                         try:
-                            _v = datetime.datetime.strptime(raw_date[:19], date_format)
+                            _v = datetime.datetime.strptime(raw_date, date_format)
                         except ValueError:
                             pass
+                        else:
+                            break
+
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
                 else:

@@ -92,11 +92,12 @@ class TestParsedInstance(TestBase):
 
     def test_get_where_clause_w_metadata(self):
         """get_where_clause with meta data fields"""
+        # Date in ISO format
         query = (
-            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T10:32:52", '
-            '"$lte": "2024-09-17T10:32:52"}}, '
-            '{"_last_edited":{"$gte": "2024-04-01T10:32:52", '
-            '"$lte": "2024-04-01T10:32:52"}}]}'
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694+00:00", '
+            '"$lte": "2024-09-17T13:39:40.001694+00:00"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01T13:39:40.001694+00:00", '
+            '"$lte": "2024-04-01T13:39:40.001694+00:00"}}]}'
         )
         where, where_params = get_where_clause(query)
         self.assertEqual(
@@ -111,10 +112,36 @@ class TestParsedInstance(TestBase):
         self.assertEqual(
             where_params,
             [
-                "2024-09-17 10:32:52",
-                "2024-09-17 10:32:52",
-                "2024-04-01T10:32:52",
-                "2024-04-01T10:32:52",
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+            ],
+        )
+        # Date with time
+        query = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40", '
+            '"$lte": "2024-09-17T13:39:40"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01T13:39:40", '
+            '"$lte": "2024-04-01T13:39:40"}}]}'
+        )
+        where, where_params = get_where_clause(query)
+        self.assertEqual(
+            where,
+            [
+                (
+                    "((date_created >= %s AND date_created <= %s) OR "
+                    "(last_edited >= %s AND last_edited <= %s))"
+                )
+            ],
+        )
+        self.assertEqual(
+            where_params,
+            [
+                "2024-09-17 13:39:40",
+                "2024-09-17 13:39:40",
+                "2024-04-01 13:39:40",
+                "2024-04-01 13:39:40",
             ],
         )
         query = (
@@ -133,7 +160,7 @@ class TestParsedInstance(TestBase):
         )
         where, where_params = get_where_clause(query)
         self.assertEqual(where, ["((date_created <= %s) OR (last_edited >= %s))"])
-        self.assertEqual(where_params, ["2024-09-17 10:32:52", "2024-04-01T10:32:52"])
+        self.assertEqual(where_params, ["2024-09-17 10:32:52", "2024-04-01 10:32:52"])
 
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()
