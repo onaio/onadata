@@ -11,7 +11,7 @@ import six
 
 from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
 
-KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
+KNOWN_DATES = ["_submission_time"]
 NONE_JSON_FIELDS = {
     "_submission_time": "date_created",
     "_date_modified": "date_modified",
