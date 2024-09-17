@@ -90,6 +90,45 @@ class TestParsedInstance(TestBase):
         self.assertEqual(where, ["json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, [11])
 
+    def test_get_where_clause_w_metadata(self):
+        """get_where_clause with meta data fields"""
+        query = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17", "$lte": "2024-09-17"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01", "$lte": "2024-04-01"}}]}'
+        )
+        where, where_params = get_where_clause(query)
+        self.assertEqual(
+            where,
+            [
+                (
+                    "((date_created >= %s AND date_created <= %s) OR "
+                    "(last_edited >= %s AND last_edited <= %s))"
+                )
+            ],
+        )
+        self.assertEqual(
+            where_params,
+            [
+                "2024-09-17 00:00:00",
+                "2024-09-17 00:00:00",
+                "2024-04-01 00:00:00",
+                "2024-04-01 00:00:00",
+            ],
+        )
+        query = (
+            '{"$or": [{"_submission_time": "2024-09-17"}, '
+            '{"_last_edited": "2024-04-01"}]}'
+        )
+        where, where_params = get_where_clause(query)
+        self.assertEqual(
+            where,
+            ["((date_created = %s) OR (last_edited = %s))"],
+        )
+        self.assertEqual(
+            where_params,
+            ["2024-09-17", "2024-04-01"],
+        )
+
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()
         self._publish_transportation_form()
