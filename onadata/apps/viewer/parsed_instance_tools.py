@@ -11,7 +11,7 @@ import six
 
 from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
 
-KNOWN_DATES = ["_submission_time"]
+KNOWN_DATES = ["_submission_time", "_last_edited", "__date_modified"]
 NONE_JSON_FIELDS = {
     "_submission_time": "date_created",
     "_date_modified": "date_modified",
@@ -131,6 +131,20 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
 
                 for or_query in or_dict:
                     for key, value in or_query.items():
+                        if key in NONE_JSON_FIELDS:
+                            and_query_where, and_query_where_params = _parse_where(
+                                or_query,
+                                known_integers,
+                                known_decimals,
+                                [],
+                                [],
+                            )
+                            or_where.extend(
+                                ["".join(["(", " AND ".join(and_query_where), ")"])]
+                            )
+                            or_params.extend(and_query_where_params)
+                            continue
+
                         if value is None:
                             or_where.extend([f"json->>'{key}' IS NULL"])
                         elif isinstance(value, list):

@@ -3513,6 +3513,38 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+    def test_data_query_or_metadata(self):
+        """$or filter works for meta data"""
+        view = DataViewSet.as_view({"get": "list"})
+        # Mock date_created
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2024, 9, 17, tzinfo=timezone.utc)),
+        ):
+            self._make_submissions()
+
+        Instance.objects.create(
+            xform=self.xform,
+            last_edited=datetime.datetime(2024, 4, 1, tzinfo=timezone.utc),
+            xml='<data id="b"><fruit>mango</fruit></data>',
+        )
+        query_str = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17", "$lte": "2024-09-17"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01", "$lte": "2024-04-01"}}]}'
+        )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 5)
+        query_str = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-17"}}, '
+            '{"_last_edited":{"$gte": "2024-04-01"}}]}'
+        )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 5)
+
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
         # create submission
