@@ -674,11 +674,19 @@ Query submissions with `NULL` submission review status
 
 Example XIII
 
-Query submissions collected within specific dates and submissions edited within specific dates
+Query submissions collected within specific dates and edited within specific dates
 
 ::
 
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"_submission_time":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}, {"_last_edited":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}]}
+
+Example XIV
+
+Query submissions collected on specific dates and edited on specifc date
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"_submission_time": "2020-01-01"}, {"_last_edited": "2020-01-01"}]}
 
 
 All Filters Options

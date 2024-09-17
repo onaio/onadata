@@ -3528,6 +3528,16 @@ class TestDataViewSet(SerializeMixin, TestBase):
             last_edited=datetime.datetime(2024, 4, 1, tzinfo=timezone.utc),
             xml='<data id="b"><fruit>mango</fruit></data>',
         )
+        # Mock date_created
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2023, 4, 1, tzinfo=timezone.utc)),
+        ):
+            Instance.objects.create(
+                xform=self.xform,
+                last_edited=datetime.datetime(2023, 4, 1, tzinfo=timezone.utc),
+                xml='<data id="b"><fruit>mango</fruit></data>',
+            )
         query_str = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17", "$lte": "2024-09-17"}}, '
             '{"_last_edited":{"$gte": "2024-04-01", "$lte": "2024-04-01"}}]}'
@@ -3540,6 +3550,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17"}}, '
             '{"_last_edited":{"$gte": "2024-04-01"}}]}'
         )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 5)
+        query_str = '{"$or": [{"_submission_time": "2024-09-17"}, {"_last_edited": "2024-04-01"}]}'
         request = self.factory.get("/?query=%s" % query_str, **self.extra)
         response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
