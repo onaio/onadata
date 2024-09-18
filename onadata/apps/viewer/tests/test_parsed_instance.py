@@ -90,9 +90,8 @@ class TestParsedInstance(TestBase):
         self.assertEqual(where, ["json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, [11])
 
-    def test_get_where_clause_w_metadata(self):
-        """get_where_clause with meta data fields"""
-        # Date and Time with Time Zone Offset
+    def test_get_where_clause_or_date_range(self):
+        """OR operation get_where_clause with date range"""
         query = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694+00:00", '
             '"$lte": "2024-09-17T13:39:40.001694+00:00"}}, '
@@ -112,65 +111,15 @@ class TestParsedInstance(TestBase):
         self.assertEqual(
             where_params,
             [
-                "2024-09-17 13:39:40.001694+00:00",
-                "2024-09-17 13:39:40.001694+00:00",
-                "2024-04-01 13:39:40.001694+00:00",
-                "2024-04-01 13:39:40.001694+00:00",
+                "2024-09-17T13:39:40.001694+00:00",
+                "2024-09-17T13:39:40.001694+00:00",
+                "2024-04-01T13:39:40.001694+00:00",
+                "2024-04-01T13:39:40.001694+00:00",
             ],
         )
-        # Date and Time with UTC Designation ("Z")
-        query = (
-            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694Z", '
-            '"$lte": "2024-09-17T13:39:40.001694Z"}}, '
-            '{"_last_edited":{"$gte": "2024-04-01T13:39:40.001694Z", '
-            '"$lte": "2024-04-01T13:39:40.001694Z"}}]}'
-        )
-        where, where_params = get_where_clause(query)
-        self.assertEqual(
-            where,
-            [
-                (
-                    "((date_created >= %s AND date_created <= %s) OR "
-                    "(last_edited >= %s AND last_edited <= %s))"
-                )
-            ],
-        )
-        self.assertEqual(
-            where_params,
-            [
-                "2024-09-17 13:39:40.001694+00:00",
-                "2024-09-17 13:39:40.001694+00:00",
-                "2024-04-01 13:39:40.001694+00:00",
-                "2024-04-01 13:39:40.001694+00:00",
-            ],
-        )
-        # Extended Format (YYYY-MM-DD)
-        query = (
-            '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40", '
-            '"$lte": "2024-09-17T13:39:40"}}, '
-            '{"_last_edited":{"$gte": "2024-04-01T13:39:40", '
-            '"$lte": "2024-04-01T13:39:40"}}]}'
-        )
-        where, where_params = get_where_clause(query)
-        self.assertEqual(
-            where,
-            [
-                (
-                    "((date_created >= %s AND date_created <= %s) OR "
-                    "(last_edited >= %s AND last_edited <= %s))"
-                )
-            ],
-        )
-        self.assertEqual(
-            where_params,
-            [
-                "2024-09-17 13:39:40",
-                "2024-09-17 13:39:40",
-                "2024-04-01 13:39:40",
-                "2024-04-01 13:39:40",
-            ],
-        )
-        # Exact date match
+
+    def test_get_where_clause_or_exact_date(self):
+        """OR operation get_where_clause with exact dates"""
         query = (
             '{"$or": [{"_submission_time": "2024-09-17T10:32:52"}, '
             '{"_last_edited": "2024-04-01T10:32:52"}]}'
@@ -181,14 +130,6 @@ class TestParsedInstance(TestBase):
             where_params,
             ["2024-09-17T10:32:52", "2024-04-01T10:32:52"],
         )
-        # No range
-        query = (
-            '{"$or": [{"_submission_time":{"$lte": "2024-09-17T10:32:52"}}, '
-            '{"_last_edited":{"$gte": "2024-04-01T10:32:52"}}]}'
-        )
-        where, where_params = get_where_clause(query)
-        self.assertEqual(where, ["((date_created <= %s) OR (last_edited >= %s))"])
-        self.assertEqual(where_params, ["2024-09-17 10:32:52", "2024-04-01 10:32:52"])
 
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()

@@ -2,14 +2,11 @@
 """
 ParsedInstance model utility functions
 """
-import datetime
 import json
 from builtins import str as text
 from typing import Any, Tuple
 
 import six
-
-from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
 
 KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
 NONE_JSON_FIELDS = {
@@ -60,15 +57,6 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                 if key in OPERANDS:
                     where.append(" ".join([json_str, OPERANDS.get(key), "%s"]))
                 _v = value
-                if field_key in KNOWN_DATES:
-                    raw_date = value
-                    for date_format in KNOWN_DATE_FORMATS:
-                        try:
-                            _v = datetime.datetime.strptime(raw_date, date_format)
-                        except ValueError:
-                            pass
-                        else:
-                            break
 
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
