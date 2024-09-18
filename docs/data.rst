@@ -676,7 +676,7 @@ Example XIII
 
 Query submissions collected within specific dates and edited within specific dates.
 
-Supported date formats:
+ISO 8601 date formats are supported. Below are examples of common formats:
 
 - ``YYYY-MM-DD`` (e.g., 2024-09-18)
 - ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
@@ -693,7 +693,7 @@ Example XIV
 
 Query submissions collected on specific dates and edited on specifc date
 
-Supported date formats:
+ISO 8601 date formats are supported. Below are examples of common formats:
 
 - ``YYYY-MM-DD`` (e.g., 2024-09-18)
 - ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
