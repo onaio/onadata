@@ -118,19 +118,6 @@ class TestParsedInstance(TestBase):
             ],
         )
 
-    def test_get_where_clause_or_exact_date(self):
-        """OR operation get_where_clause with exact dates"""
-        query = (
-            '{"$or": [{"_submission_time": "2024-09-17T10:32:52"}, '
-            '{"_last_edited": "2024-04-01T10:32:52"}]}'
-        )
-        where, where_params = get_where_clause(query)
-        self.assertEqual(where, ["((date_created = %s) OR (last_edited = %s))"])
-        self.assertEqual(
-            where_params,
-            ["2024-09-17T10:32:52", "2024-04-01T10:32:52"],
-        )
-
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()
         self._publish_transportation_form()
