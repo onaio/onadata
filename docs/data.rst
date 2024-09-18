@@ -683,7 +683,7 @@ Query submissions with `NULL` submission review status
 
 Example XIII
 
-Query submissions collected within specific dates and edited within specific dates.
+Query submissions collected within specific dates or edited within specific dates.
 
 ::
 
@@ -691,7 +691,7 @@ Query submissions collected within specific dates and edited within specific dat
 
 Example XIV
 
-Query submissions collected on specific dates and edited on specifc date
+Query submissions collected on specific dates or edited on specifc date
 
 ::
 
