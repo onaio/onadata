@@ -92,7 +92,7 @@ class TestParsedInstance(TestBase):
 
     def test_get_where_clause_w_metadata(self):
         """get_where_clause with meta data fields"""
-        # UTC date format
+        # Date and Time with Time Zone Offset
         query = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694+00:00", '
             '"$lte": "2024-09-17T13:39:40.001694+00:00"}}, '
@@ -118,6 +118,7 @@ class TestParsedInstance(TestBase):
                 "2024-04-01 13:39:40.001694+00:00",
             ],
         )
+        # Date and Time with UTC Designation ("Z")
         query = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694Z", '
             '"$lte": "2024-09-17T13:39:40.001694Z"}}, '
@@ -143,7 +144,7 @@ class TestParsedInstance(TestBase):
                 "2024-04-01 13:39:40.001694+00:00",
             ],
         )
-        # Date with time
+        # Extended Format (YYYY-MM-DD)
         query = (
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40", '
             '"$lte": "2024-09-17T13:39:40"}}, '
@@ -169,6 +170,7 @@ class TestParsedInstance(TestBase):
                 "2024-04-01 13:39:40",
             ],
         )
+        # Exact date match
         query = (
             '{"$or": [{"_submission_time": "2024-09-17T10:32:52"}, '
             '{"_last_edited": "2024-04-01T10:32:52"}]}'
@@ -179,6 +181,7 @@ class TestParsedInstance(TestBase):
             where_params,
             ["2024-09-17T10:32:52", "2024-04-01T10:32:52"],
         )
+        # No range
         query = (
             '{"$or": [{"_submission_time":{"$lte": "2024-09-17T10:32:52"}}, '
             '{"_last_edited":{"$gte": "2024-04-01T10:32:52"}}]}'

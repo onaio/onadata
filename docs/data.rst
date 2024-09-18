@@ -681,7 +681,9 @@ Supported date formats:
 - ``YYYY-MM-DD`` (e.g., 2024-09-18)
 - ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
 - ``YYYY-MM-DDThh:mm:ssZ`` (e.g., 2024-09-18T14:30:00Z)
+- ``YYYY-MM-DDThh:mm:ss.ssssssZ`` (e.g., 2024-09-18T14:30:00.169615Z)
 - ``YYYY-MM-DDThh:mm:ss±hh:mm`` (e.g., 2024-09-17T13:39:40+00:00)
+- ``YYYY-MM-DDThh:mm:ss.ssssss±hh:mm`` (e.g., 2024-09-17T13:39:40.169615+00:00)
 
 ::
 
@@ -696,7 +698,9 @@ Supported date formats:
 - ``YYYY-MM-DD`` (e.g., 2024-09-18)
 - ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
 - ``YYYY-MM-DDThh:mm:ssZ`` (e.g., 2024-09-18T14:30:00Z)
+- ``YYYY-MM-DDThh:mm:ss.ssssssZ`` (e.g., 2024-09-18T14:30:00.169615Z)
 - ``YYYY-MM-DDThh:mm:ss±hh:mm`` (e.g., 2024-09-17T13:39:40+00:00)
+- ``YYYY-MM-DDThh:mm:ss.ssssss±hh:mm`` (e.g., 2024-09-17T13:39:40.169615+00:00)
 
 ::
 
