@@ -674,7 +674,14 @@ Query submissions with `NULL` submission review status
 
 Example XIII
 
-Query submissions collected within specific dates and edited within specific dates
+Query submissions collected within specific dates and edited within specific dates.
+
+Supported date formats:
+
+- ``YYYY-MM-DD`` (e.g., 2024-09-18)
+- ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
+- ``YYYY-MM-DDThh:mm:ssZ`` (e.g., 2024-09-18T14:30:00Z)
+- ``YYYY-MM-DDThh:mm:ss±hh:mm`` (e.g., 2024-09-17T13:39:40+00:00)
 
 ::
 
@@ -683,6 +690,13 @@ Query submissions collected within specific dates and edited within specific dat
 Example XIV
 
 Query submissions collected on specific dates and edited on specifc date
+
+Supported date formats:
+
+- ``YYYY-MM-DD`` (e.g., 2024-09-18)
+- ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
+- ``YYYY-MM-DDThh:mm:ssZ`` (e.g., 2024-09-18T14:30:00Z)
+- ``YYYY-MM-DDThh:mm:ss±hh:mm`` (e.g., 2024-09-17T13:39:40+00:00)
 
 ::
 
