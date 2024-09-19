@@ -76,7 +76,11 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                             break
 
                     if not is_date_valid:
-                        raise InavlidDateFormat(_(f"Invalid date {field_key}"))
+                        raise InavlidDateFormat(
+                            _(
+                                f'Invalid date value "{value}" for the field {field_key}.'
+                            )
+                        )
 
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
