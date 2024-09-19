@@ -2,7 +2,7 @@
 """Custom Expecting classes."""
 from django.utils.translation import gettext_lazy as _
 
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ParseError
 
 
 class EnketoError(Exception):
@@ -35,3 +35,9 @@ class ServiceUnavailable(APIException):
 
     status_code = 503
     default_detail = "Service temporarily unavailable, try again later."
+
+
+class InavlidDateFormat(ParseError):
+    """Raise when request query has invalid date."""
+
+    default_detail = _("Invalid date format.")

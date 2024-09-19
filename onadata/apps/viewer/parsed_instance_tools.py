@@ -6,12 +6,15 @@ import datetime
 import json
 from builtins import str as text
 from typing import Any, Tuple
-
 import six
 
-from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
+from django.utils.translation import gettext_lazy as _
 
-KNOWN_DATES = ["_submission_time"]
+from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
+from onadata.libs.exceptions import InavlidDateFormat
+
+
+KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
 NONE_JSON_FIELDS = {
     "_submission_time": "date_created",
     "_date_modified": "date_modified",
@@ -62,11 +65,23 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                 _v = value
                 if field_key in KNOWN_DATES:
                     raw_date = value
-                    for date_format in (MONGO_STRFTIME, DATE_FORMAT):
+                    is_date_valid = False
+                    for date_format in KNOWN_DATE_FORMATS:
                         try:
-                            _v = datetime.datetime.strptime(raw_date[:19], date_format)
+                            _v = datetime.datetime.strptime(raw_date, date_format)
                         except ValueError:
-                            pass
+                            is_date_valid = False
+                        else:
+                            is_date_valid = True
+                            break
+
+                    if not is_date_valid:
+                        err_msg = _(
+                            f'Invalid date value "{value}" '
+                            f"for the field {field_key}."
+                        )
+                        raise InavlidDateFormat(err_msg)
+
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
                 else:
@@ -131,6 +146,20 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
 
                 for or_query in or_dict:
                     for key, value in or_query.items():
+                        if key in NONE_JSON_FIELDS:
+                            and_query_where, and_query_where_params = _parse_where(
+                                or_query,
+                                known_integers,
+                                known_decimals,
+                                [],
+                                [],
+                            )
+                            or_where.extend(
+                                ["".join(["(", " AND ".join(and_query_where), ")"])]
+                            )
+                            or_params.extend(and_query_where_params)
+                            continue
+
                         if value is None:
                             or_where.extend([f"json->>'{key}' IS NULL"])
                         elif isinstance(value, list):

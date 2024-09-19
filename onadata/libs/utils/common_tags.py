@@ -71,6 +71,12 @@ LAST_EDITED = "_last_edited"
 # datetime format that we store in mongo
 MONGO_STRFTIME = "%Y-%m-%dT%H:%M:%S"
 DATE_FORMAT = "%Y-%m-%d"
+KNOWN_DATE_FORMATS = [
+    DATE_FORMAT,
+    MONGO_STRFTIME,
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S.%f%z",
+]
 
 # how to represent N/A in exports
 NA_REP = "n/a"

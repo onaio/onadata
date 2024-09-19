@@ -571,6 +571,15 @@ Query submitted data of a specific form
 ----------------------------------------
 Use the `query` or `data` parameter to pass in a JSON key/value query.
 
+ISO 8601 date formats are supported. Below are examples of common formats:
+
+- ``YYYY-MM-DD`` (e.g., 2024-09-18)
+- ``YYYY-MM-DDThh:mm:ss`` (e.g., 2024-09-18T14:30:00)
+- ``YYYY-MM-DDThh:mm:ssZ`` (e.g., 2024-09-18T14:30:00Z)
+- ``YYYY-MM-DDThh:mm:ss.ssssssZ`` (e.g., 2024-09-18T14:30:00.169615Z)
+- ``YYYY-MM-DDThh:mm:ss±hh:mm`` (e.g., 2024-09-17T13:39:40+00:00)
+- ``YYYY-MM-DDThh:mm:ss.ssssss±hh:mm`` (e.g., 2024-09-17T13:39:40.169615+00:00)
+
 When quering a date time field whose value is in ISO format such as ``2020-12-18T09:36:19.767455+00:00``, it is important to ensure the ``+`` (plus) is encoded to ``%2b``.
 
 ``+`` without encoding is parsed as whitespace. So ``2020-12-18T09:36:19.767455+00:00`` should be converted to ``2020-12-18T09:36:19.767455%2b00:00``.
@@ -672,6 +681,15 @@ Query submissions with `NULL` submission review status
 
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"_review_status": null}
 
+Example XIII
+^^^^^^^^^^^^
+
+Query submissions collected within specific dates or edited within specific dates.
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"_submission_time":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}, {"_last_edited":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}]}
+    
 
 All Filters Options
 
