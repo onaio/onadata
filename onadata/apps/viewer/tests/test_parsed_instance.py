@@ -1,6 +1,8 @@
 import os
-
 from datetime import datetime
+
+from rest_framework.exceptions import ParseError
+
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
@@ -96,6 +98,8 @@ class TestParsedInstance(TestBase):
             '{"$or": [{"_submission_time":{"$gte": "2024-09-17T13:39:40.001694+00:00", '
             '"$lte": "2024-09-17T13:39:40.001694+00:00"}}, '
             '{"_last_edited":{"$gte": "2024-04-01T13:39:40.001694+00:00", '
+            '"$lte": "2024-04-01T13:39:40.001694+00:00"}}, '
+            '{"_date_modified":{"$gte": "2024-04-01T13:39:40.001694+00:00", '
             '"$lte": "2024-04-01T13:39:40.001694+00:00"}}]}'
         )
         where, where_params = get_where_clause(query)
@@ -104,19 +108,30 @@ class TestParsedInstance(TestBase):
             [
                 (
                     "((date_created >= %s AND date_created <= %s) OR "
-                    "(last_edited >= %s AND last_edited <= %s))"
+                    "(last_edited >= %s AND last_edited <= %s) OR "
+                    "(date_modified >= %s AND date_modified <= %s))"
                 )
             ],
         )
         self.assertEqual(
             where_params,
             [
-                "2024-09-17T13:39:40.001694+00:00",
-                "2024-09-17T13:39:40.001694+00:00",
-                "2024-04-01T13:39:40.001694+00:00",
-                "2024-04-01T13:39:40.001694+00:00",
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-09-17 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
+                "2024-04-01 13:39:40.001694+00:00",
             ],
         )
+
+    def test_invalid_date_format(self):
+        """Inavlid date format is handled"""
+        for json_date_field in ["_submission_time", "_date_modified", "_last_edited"]:
+            query = {json_date_field: {"$lte": "watermelon"}}
+
+            with self.assertRaises(ParseError):
+                get_where_clause(query)
 
     def test_retrieve_records_based_on_form_verion(self):
         self._create_user_and_login()

@@ -3572,6 +3572,18 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
+    def test_query_invalid_date_format(self):
+        """Invalid formatted date filters are handled"""
+        view = DataViewSet.as_view({"get": "list"})
+
+        for json_date_field in ["_submission_time", "_date_modified", "_last_edited"]:
+            query_str = '{"%s": {"$lte": "watermelon"}}' % json_date_field
+            # query_str = '{"_submission_time": {"$lte": "watermelon"}}'
+            request = self.factory.get("/?query=%s" % query_str, **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(f"{response.data['detail']}", "Invalid date format.")
+
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
         # create submission
