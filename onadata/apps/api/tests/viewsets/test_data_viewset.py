@@ -3513,7 +3513,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-    def test_data_query_or_date_fields(self):
+    def test_or_with_date_filters(self):
         """OR operation filter works for date fields"""
         view = DataViewSet.as_view({"get": "list"})
         # Mock date_created (_submission_time)
@@ -3572,8 +3572,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
-    def test_query_invalid_date_format(self):
-        """Invalid formatted date filters are handled"""
+    def test_invalid_date_filters(self):
+        """Invalid date filters are handled appropriately"""
         view = DataViewSet.as_view({"get": "list"})
 
         for json_date_field in ["_submission_time", "_date_modified", "_last_edited"]:
