@@ -3578,7 +3578,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         for json_date_field in ["_submission_time", "_date_modified", "_last_edited"]:
             query_str = '{"%s": {"$lte": "watermelon"}}' % json_date_field
-            # query_str = '{"_submission_time": {"$lte": "watermelon"}}'
             request = self.factory.get("/?query=%s" % query_str, **self.extra)
             response = view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 400)
