@@ -4,7 +4,6 @@ ParsedInstance model utility functions
 """
 import datetime
 import json
-import six
 from builtins import str as text
 from typing import Any, Tuple
 
@@ -12,6 +11,8 @@ from django.utils.translation import gettext_lazy as _
 
 from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
 from onadata.libs.exceptions import InavlidDateFormat
+
+import six
 
 
 KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
