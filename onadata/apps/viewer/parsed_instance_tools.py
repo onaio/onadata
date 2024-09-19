@@ -6,12 +6,15 @@ import datetime
 import json
 from builtins import str as text
 from typing import Any, Tuple
-
 import six
 
-from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
+from django.utils.translation import gettext_lazy as _
 
-KNOWN_DATES = ["_submission_time"]
+from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
+from onadata.libs.exceptions import InavlidDateFormat
+
+
+KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
 NONE_JSON_FIELDS = {
     "_submission_time": "date_created",
     "_date_modified": "date_modified",
@@ -47,7 +50,7 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     # other table columns
     where, where_params = [], []
     # pylint: disable=too-many-nested-blocks
-    for (field_key, field_value) in six.iteritems(query):
+    for field_key, field_value in six.iteritems(query):
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
                 json_str = NONE_JSON_FIELDS.get(field_key)
@@ -55,18 +58,30 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                 json_str = _json_sql_str(
                     field_key, known_integers, KNOWN_DATES, known_decimals
                 )
-            for (key, value) in six.iteritems(field_value):
+            for key, value in six.iteritems(field_value):
                 _v = None
                 if key in OPERANDS:
                     where.append(" ".join([json_str, OPERANDS.get(key), "%s"]))
                 _v = value
                 if field_key in KNOWN_DATES:
                     raw_date = value
-                    for date_format in (MONGO_STRFTIME, DATE_FORMAT):
+                    is_date_valid = False
+                    for date_format in KNOWN_DATE_FORMATS:
                         try:
-                            _v = datetime.datetime.strptime(raw_date[:19], date_format)
+                            _v = datetime.datetime.strptime(raw_date, date_format)
                         except ValueError:
-                            pass
+                            is_date_valid = False
+                        else:
+                            is_date_valid = True
+                            break
+
+                    if not is_date_valid:
+                        err_msg = _(
+                            f'Invalid date value "{value}" '
+                            f"for the field {field_key}."
+                        )
+                        raise InavlidDateFormat(err_msg)
+
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
                 else:
@@ -130,16 +145,30 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
                 or_dict = query.pop("$or")
 
                 for or_query in or_dict:
-                    for k, v in or_query.items():
-                        if v is None:
-                            or_where.extend([f"json->>'{k}' IS NULL"])
-                        elif isinstance(v, list):
-                            for value in v:
+                    for key, value in or_query.items():
+                        if key in NONE_JSON_FIELDS:
+                            and_query_where, and_query_where_params = _parse_where(
+                                or_query,
+                                known_integers,
+                                known_decimals,
+                                [],
+                                [],
+                            )
+                            or_where.extend(
+                                ["".join(["(", " AND ".join(and_query_where), ")"])]
+                            )
+                            or_params.extend(and_query_where_params)
+                            continue
+
+                        if value is None:
+                            or_where.extend([f"json->>'{key}' IS NULL"])
+                        elif isinstance(value, list):
+                            for item in value:
                                 or_where.extend(["json->>%s = %s"])
-                                or_params.extend([k, value])
+                                or_params.extend([key, item])
                         else:
                             or_where.extend(["json->>%s = %s"])
-                            or_params.extend([k, v])
+                            or_params.extend([key, value])
 
                 or_where = ["".join(["(", " OR ".join(or_where), ")"])]
 
@@ -147,9 +176,9 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
                 query, known_integers, known_decimals, or_where, or_params
             )
 
-    except (ValueError, AttributeError) as e:
+    except (ValueError, AttributeError) as error:
         if query and isinstance(query, six.string_types) and query.startswith("{"):
-            raise e
+            raise error
         # cast query param to text
         where = ["json::text ~* cast(%s as text)"]
         where_params = [query]
