@@ -3581,7 +3581,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             request = self.factory.get("/?query=%s" % query_str, **self.extra)
             response = view(request, pk=self.xform.pk)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(f"{response.data['detail']}", "Invalid date format.")
+            self.assertEqual(f"{response.data['detail']}", f"Invalid date {json_date_field}")
 
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""

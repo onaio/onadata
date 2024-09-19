@@ -8,6 +8,8 @@ import six
 from builtins import str as text
 from typing import Any, Tuple
 
+from django.utils.translation import gettext_lazy as _
+
 from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
 from onadata.libs.exceptions import InavlidDateFormat
 
@@ -74,7 +76,7 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                             break
 
                 if not is_date_valid:
-                    raise InavlidDateFormat()
+                    raise InavlidDateFormat(_(f"Invalid date {field_key}"))
 
                 if field_key in NONE_JSON_FIELDS:
                     where_params.extend([text(_v)])
