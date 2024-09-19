@@ -38,6 +38,6 @@ class ServiceUnavailable(APIException):
 
 
 class InavlidDateFormat(ParseError):
-    """Raise when request query has invalid date field"""
+    """Raise when request query has invalid date."""
 
     default_detail = _("Invalid date format.")
