@@ -3,7 +3,17 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.8.0(2024-09-23)
+------------------
+- Update ona-oidc version to 1.1.1 
+  `PR #2708 <https://github.com/onaio/onadata/pull/2708>`
+  [@FrankApiyo]
+- Add support for OR operation data filter for date fields 
+  `PR #2701 <https://github.com/onaio/onadata/pull/2704>`
+  [@kelvin-muchiri]
+
 v4.7.1(2024-09-16)
+------------------
 - Use chunked queryset when iterating queryset
   `PR #2701 <https://github.com/onaio/onadata/pull/2701>`
   [@kelvin-muchiri]
