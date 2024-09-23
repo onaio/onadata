@@ -7,5 +7,5 @@ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15
 git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52#egg=django-multidb-router
 git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d#egg=pyfloip
 git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0#egg=python-json2xlsclient
-git+https://github.com/onaio/ona-oidc.git@v1.0.4#egg=ona-oidc
+git+https://github.com/onaio/ona-oidc.git@v1.1.1#egg=ona-oidc
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
