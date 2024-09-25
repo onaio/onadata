@@ -177,16 +177,9 @@ def create_organization_object(org_name, creator, attrs=None):
     )
     new_user.save()
     try:
-        registration_profile = RegistrationProfile.objects.create_profile(new_user)
+        RegistrationProfile.objects.create_profile(new_user)
     except IntegrityError as e:
         raise ValidationError(_(f"{org_name} already exists")) from e
-    if email:
-        site = (
-            attrs["host"]
-            if "host" in attrs
-            else Site.objects.get(pk=settings.SITE_ID).domain
-        )
-        registration_profile.send_activation_email(site)
     profile = OrganizationProfile(
         user=new_user,
         name=name,
