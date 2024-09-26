@@ -189,9 +189,8 @@ def create_organization_object(org_name, creator, attrs=None):
         organization=attrs.get("organization", ""),
         home_page=attrs.get("home_page", ""),
         twitter=attrs.get("twitter", ""),
+        metadata={"billing_email": email},
     )
-    profile.metadata["billing_email"] = email
-    profile.save()
     return profile
 
 
