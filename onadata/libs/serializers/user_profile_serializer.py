@@ -299,7 +299,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 new_user.delete()
             raise serializers.ValidationError({"password": e.messages})
 
-        new_user.is_active = True
+        new_user.is_active = settings.USER_ACTIVE_BY_DEFAULT
         new_user.first_name = params.get("first_name")
         new_user.last_name = params.get("last_name")
         new_user.save()
