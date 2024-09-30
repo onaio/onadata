@@ -77,7 +77,7 @@ class MediaViewSet(
                     raise Http404()
 
         if not url:
-            response = generate_media_download_url(obj)
+            response = generate_media_download_url(obj.media_file.name, obj.mimetype)
 
             return response
 

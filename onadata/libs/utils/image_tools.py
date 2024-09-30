@@ -30,14 +30,18 @@ def flat(*nums):
     return tuple(int(round(n)) for n in nums)
 
 
-def generate_media_download_url(obj, expiration: int = 3600):
+def generate_media_download_url(
+    file_path, mimetype, filename=None, expiration: int = 3600
+):
     """
     Returns a HTTP response of a media object or a redirect to the image URL for S3 and
     Azure storage objects.
     """
-    file_path = obj.media_file.name
     default_storage = get_storage_class()()
-    filename = file_path.split("/")[-1]
+
+    if not filename:
+        filename = file_path.split("/")[-1]
+
     content_disposition = urllib.parse.quote(f"attachment; filename={filename}")
     s3_class = None
     azure = None
@@ -66,7 +70,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
 
     # pylint: disable=consider-using-with
     file_obj = open(settings.MEDIA_ROOT + file_path, "rb")
-    response = HttpResponse(FileWrapper(file_obj), content_type=obj.mimetype)
+    response = HttpResponse(FileWrapper(file_obj), content_type=mimetype)
     response["Content-Disposition"] = content_disposition
 
     return response
