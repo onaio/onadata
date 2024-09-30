@@ -1022,7 +1022,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=trees.csv"
+            response["Content-Disposition"], 'attachment; filename="trees.csv"'
         )
 
     def test_retrieve_xform_manifest_linked_form(self):
