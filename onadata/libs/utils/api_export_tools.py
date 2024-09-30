@@ -714,8 +714,4 @@ def get_entity_list_export_response(request, entity_list, filename):
     if Export.EXPORT_MIMES[ext] == "csv":
         mimetype = "text/csv"
 
-    import ipdb
-
-    ipdb.set_trace()
-
     return generate_media_download_url(export.filepath, mimetype, f"{filename}.{ext}")

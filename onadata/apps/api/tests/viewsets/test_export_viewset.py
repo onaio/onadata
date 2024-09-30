@@ -50,7 +50,7 @@ class TestExportViewSet(TestBase):
         request = self.factory.get("/export")
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
-        self.assertIn(export.filename, response.get("Content-Disposition"))
+        self.assertIn(filename, response.get("Content-Disposition"))
 
     def test_export_formats_present(self):
         """
