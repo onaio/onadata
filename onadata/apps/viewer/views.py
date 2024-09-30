@@ -894,7 +894,9 @@ def attachment_url(request, size="medium"):
 
         return response
     if not attachment.mimetype.startswith("image"):
-        return generate_media_download_url(attachment)
+        return generate_media_download_url(
+            attachment.media_file.name, attachment.mimetype
+        )
     media_url = image_url(attachment, size)
     if media_url:
         return redirect(media_url)
