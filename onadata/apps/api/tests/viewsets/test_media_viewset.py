@@ -4,7 +4,6 @@ Tests the MediaViewSet.
 """
 # pylint: disable=too-many-lines
 import os
-import urllib
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -134,9 +133,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
             Params={
                 "Bucket": "onadata",
                 "Key": self.attachment.media_file.name,
-                "ResponseContentDisposition": urllib.parse.quote(
-                    f"attachment; filename={filename}"
-                ),
+                "ResponseContentDisposition": f'attachment; filename="{filename}"',
                 "ResponseContentType": "application/octet-stream",
             },
             ExpiresIn=3600,
