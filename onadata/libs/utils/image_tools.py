@@ -3,7 +3,6 @@
 Image utility functions module.
 """
 import logging
-import urllib
 from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile
 from wsgiref.util import FileWrapper
@@ -42,7 +41,7 @@ def generate_media_download_url(
     if not filename:
         filename = file_path.split("/")[-1]
 
-    content_disposition = urllib.parse.quote(f"attachment; filename={filename}")
+    content_disposition = f"attachment; filename={filename}"
     s3_class = None
     azure = None
 
