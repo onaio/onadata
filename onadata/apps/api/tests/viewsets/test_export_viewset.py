@@ -4,6 +4,7 @@ test_export_viewset module
 """
 import os
 from tempfile import NamedTemporaryFile
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
@@ -38,18 +39,18 @@ class TestExportViewSet(TestBase):
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
+        # Create the 'exports' directory inside MEDIA_ROOT if it does not exist
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(temp_dir, exist_ok=True)
         dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
         filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
         export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
+            xform=self.xform, filename=filename, filedir="exports"
         )
-        export.save()
         request = self.factory.get("/export")
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
-        self.assertIn(filename, response.get("Content-Disposition"))
+        self.assertIn(export.filename, response.get("Content-Disposition"))
 
     def test_export_formats_present(self):
         """
@@ -622,3 +623,46 @@ class TestExportViewSet(TestBase):
         request = self.factory.get("/export", **alices_extra)
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
+
+    @patch("onadata.libs.utils.image_tools.get_storage_class")
+    @patch("onadata.libs.utils.image_tools.boto3.client")
+    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+        """Export is downloaded from Amazon S3"""
+        expected_url = (
+            "https://testing.s3.amazonaws.com/bob/exports/"
+            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
+            "response-content-disposition=attachment%3Bfilename%trees.csv&"
+            "response-content-type=application%2Foctet-stream&"
+            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
+            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
+        )
+        mock_presigned_urls().generate_presigned_url = MagicMock(
+            return_value=expected_url
+        )
+        mock_get_storage_class()().bucket.name = "onadata"
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        # Create the 'exports' directory inside MEDIA_ROOT if it does not exist
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(temp_dir, exist_ok=True)
+        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        export = Export.objects.create(
+            xform=self.xform, filename=filename, filedir="exports"
+        )
+        request = self.factory.get("/export")
+        force_authenticate(request, user=self.user)
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.url, expected_url)
+        self.assertTrue(mock_presigned_urls.called)
+        mock_presigned_urls().generate_presigned_url.assert_called_with(
+            "get_object",
+            Params={
+                "Bucket": "onadata",
+                "Key": export.filepath,
+                "ResponseContentDisposition": f'attachment; filename="{filename}"',
+                "ResponseContentType": "application/octet-stream",
+            },
+            ExpiresIn=3600,
+        )
