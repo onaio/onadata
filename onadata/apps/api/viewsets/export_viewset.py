@@ -16,7 +16,7 @@ from onadata.libs import filters
 from onadata.libs.authentication import TempTokenURLParameterAuthentication
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.export_serializer import ExportSerializer
-from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.image_tools import generate_media_download_url
 
 
 # pylint: disable=too-many-ancestors
@@ -47,13 +47,11 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         export = self.get_object()
-        filename, extension = os.path.splitext(export.filename)
+        _, extension = os.path.splitext(export.filename)
         extension = extension[1:]
+        mimetype = f"application/{Export.EXPORT_MIMES[extension]}"
 
-        return response_with_mimetype_and_name(
-            Export.EXPORT_MIMES[extension],
-            filename,
-            extension=extension,
-            file_path=export.filepath,
-            show_date=False,
-        )
+        if Export.EXPORT_MIMES[extension] == "csv":
+            mimetype = "text/csv"
+
+        return generate_media_download_url(export.filepath, mimetype, export.filename)
