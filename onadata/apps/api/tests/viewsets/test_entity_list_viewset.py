@@ -6,7 +6,7 @@ import json
 import sys
 import uuid
 from datetime import datetime, timezone as dtz
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from django.core.cache import cache
 from django.test import override_settings
@@ -18,6 +18,7 @@ from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Projec
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
+from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -1786,3 +1787,35 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
+
+    @patch("onadata.libs.utils.image_tools.get_storage_class")
+    @patch("onadata.libs.utils.image_tools.boto3.client")
+    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+        expected_url = (
+            "https://testing.s3.amazonaws.com/bob/exports/"
+            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
+            "response-content-disposition=attachment%3Bfilename%trees.csv&"
+            "response-content-type=application%2Foctet-stream&"
+            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
+            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
+        )
+        mock_presigned_urls().generate_presigned_url = MagicMock(
+            return_value=expected_url
+        )
+        mock_get_storage_class()().bucket.name = "onadata"
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.url, expected_url)
+        self.assertTrue(mock_presigned_urls.called)
+        export = GenericExport.objects.first()
+        mock_presigned_urls().generate_presigned_url.assert_called_with(
+            "get_object",
+            Params={
+                "Bucket": "onadata",
+                "Key": export.filepath,
+                "ResponseContentDisposition": 'attachment; filename="trees.csv"',
+                "ResponseContentType": "application/octet-stream",
+            },
+            ExpiresIn=3600,
+        )
