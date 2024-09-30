@@ -709,6 +709,9 @@ def get_entity_list_export_response(request, entity_list, filename):
     # xlsx if it exceeds limits
     __, ext = os.path.splitext(export.filename)
     ext = ext[1:]
-    mimetype = f"text/{Export.EXPORT_MIMES[ext]}"
+    mimetype = f"application/{Export.EXPORT_MIMES[ext]}"
+
+    if Export.EXPORT_MIMES[ext] == "csv":
+        mimetype = f"text/{Export.EXPORT_MIMES[ext]}"
 
     return generate_media_download_url(export.filepath, mimetype, f"{filename}.{ext}")
