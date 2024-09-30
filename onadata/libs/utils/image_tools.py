@@ -41,7 +41,11 @@ def generate_media_download_url(
     if not filename:
         filename = file_path.split("/")[-1]
 
-    content_disposition = f"attachment; filename={filename}"
+    # The filename is enclosed in quotes because it ensures that special characters,
+    # spaces, or punctuation in the filename are correctly interpreted by browsers
+    # and clients. This is particularly important for filenames that may contain
+    # spaces or non-ASCII characters.
+    content_disposition = f'attachment; filename="{filename}"'
     s3_class = None
     azure = None
 

@@ -542,7 +542,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, format="csv")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "text/csv")
         # Using `Accept` header
@@ -550,7 +550,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "text/csv")
 
@@ -1709,7 +1709,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=trees.csv"
+            response["Content-Disposition"], 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "text/csv")
         # Using `.csv` suffix
@@ -1717,7 +1717,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, format="csv")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=trees.csv"
+            response["Content-Disposition"], 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "text/csv")
         # Using `Accept` header
@@ -1725,7 +1725,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "text/csv")
         # Unsupported suffix
