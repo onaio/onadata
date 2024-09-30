@@ -1791,6 +1791,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
     @patch("onadata.libs.utils.image_tools.get_storage_class")
     @patch("onadata.libs.utils.image_tools.boto3.client")
     def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+        """EntityList dataset is downloaded from Amazon S3"""
         expected_url = (
             "https://testing.s3.amazonaws.com/bob/exports/"
             "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
