@@ -990,7 +990,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=transportation.csv"
+            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
         )
 
     def test_retrieve_xform_media_entity_list_dataset(self):
