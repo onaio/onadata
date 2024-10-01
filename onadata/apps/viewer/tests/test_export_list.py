@@ -226,7 +226,7 @@ class TestDataExportURL(TestBase):
         content_disposition = headers["Content-Disposition"]
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
     def test_csv_export_url_without_records(self):
         # this has been refactored so that if NoRecordsFound Exception is
@@ -267,7 +267,7 @@ class TestDataExportURL(TestBase):
         content_disposition = headers["Content-Disposition"]
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".xlsx")
+        self.assertEqual(ext, '.xlsx"')
 
     def test_csv_zip_export_url(self):
         self._submit_transport_instance()
@@ -284,7 +284,7 @@ class TestDataExportURL(TestBase):
         content_disposition = headers["Content-Disposition"]
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".zip")
+        self.assertEqual(ext, '.zip"')
 
     def test_sav_zip_export_url(self):
         filename = os.path.join(
@@ -309,7 +309,7 @@ class TestDataExportURL(TestBase):
         content_disposition = headers["Content-Disposition"]
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".zip")
+        self.assertEqual(ext, '.zip"')
 
     def test_sav_zip_export_long_variable_length(self):
         self._submit_transport_instance()

@@ -82,7 +82,7 @@ class TestFormShow(TestBase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=exp_one.xlsx"
+            response["Content-Disposition"], 'attachment; filename="exp_one.xlsx"'
         )
 
         # test with unavailable id_string
