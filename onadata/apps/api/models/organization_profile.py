@@ -7,6 +7,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_delete, post_save
+from django.utils.translation import gettext_lazy as _
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
@@ -154,7 +155,6 @@ def _post_save_create_owner_team(sender, instance, created, **kwargs):
 
 
 class OrganizationProfile(UserProfile):
-
     """Organization: Extends the user profile for organization specific info
 
     * What does this do?
@@ -176,6 +176,7 @@ class OrganizationProfile(UserProfile):
     is_organization = models.BooleanField(default=True)
     # Other fields here
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    organization_email = models.EmailField(_("email address"), blank=True)
 
     def __str__(self):
         return f"{self.name}[{self.user.username}]"
@@ -186,7 +187,7 @@ class OrganizationProfile(UserProfile):
     @property
     def email(self):
         "organization email"
-        return self.user.email
+        return self.organization_email
 
     def remove_user_from_organization(self, user):
         """Removes a user from all teams/groups in the organization.

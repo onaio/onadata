@@ -73,7 +73,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.user.last_name = last_name
 
         if "email" in validated_data:
-            instance.metadata["billing_email"] = validated_data.pop("email")
+            instance.organization_email = validated_data.pop("email")
 
         instance.user.save()
         return super().update(instance, validated_data)

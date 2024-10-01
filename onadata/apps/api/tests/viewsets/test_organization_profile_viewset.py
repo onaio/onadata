@@ -222,10 +222,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     def test_orgs_create(self):
         self._org_create()
         self.assertTrue(self.organization.user.is_active)
-        self.assertTrue("billing_email" in self.organization.metadata)
-        self.assertEqual(
-            self.organization.metadata["billing_email"], "mail@mail-server.org"
-        )
+        self.assertEqual(self.organization.email, "mail@mail-server.org")
 
     def test_orgs_create_without_name(self):
         data = {
@@ -267,8 +264,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request.user = self.user
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
-        self.assertTrue("billing_email" in response.data["metadata"])
-        self.assertEqual(response.data["metadata"]["billing_email"], org_email)
+        self.assertEqual(response.data["email"], org_email)
 
     def test_org_create_with_anonymous_user(self):
         data = {
@@ -456,10 +452,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue("billing_email" in response.data["metadata"])
-        self.assertEqual(
-            response.data["metadata"]["billing_email"], "mail@mail-server.org"
-        )
+        self.assertEqual(response.data["email"], "mail@mail-server.org")
         self.assertIn("users", list(response.data))
 
         for user in response.data["users"]:
@@ -988,7 +981,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             },
             {
                 "is_org": True,
-                "metadata": {"billing_email": "mail@mail-server.org"},
+                "metadata": {},
                 "first_name": "Dennis",
                 "last_name": "",
                 "user": "denoinc",
