@@ -307,7 +307,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.metadata.pk, format=ext)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=transportation.csv"
+            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
         )
 
     def test_add_media_geojson_link(self):
@@ -329,7 +329,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response["Content-Disposition"],
-            "attachment; filename=transportation.geojson",
+            'attachment; filename="transportation.geojson"',
         )
 
     def test_add_media_dataview_link(self):
@@ -344,7 +344,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.metadata.pk, format=ext)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=transportation.csv"
+            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
         )
 
     def test_invalid_post(self):
