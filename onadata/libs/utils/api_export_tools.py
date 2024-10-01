@@ -69,7 +69,6 @@ from onadata.libs.utils.export_tools import (
     should_create_new_export,
 )
 from onadata.libs.utils.google import create_flow
-from onadata.libs.utils.image_tools import generate_media_download_url
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
@@ -709,9 +708,11 @@ def get_entity_list_export_response(request, entity_list, filename):
     # xlsx if it exceeds limits
     __, ext = os.path.splitext(export.filename)
     ext = ext[1:]
-    mimetype = f"application/{Export.EXPORT_MIMES[ext]}"
 
-    if Export.EXPORT_MIMES[ext] == "csv":
-        mimetype = "text/csv"
-
-    return generate_media_download_url(export.filepath, mimetype, f"{filename}.{ext}")
+    return response_with_mimetype_and_name(
+        Export.EXPORT_MIMES[ext],
+        filename,
+        extension=ext,
+        show_date=False,
+        file_path=export.filepath,
+    )

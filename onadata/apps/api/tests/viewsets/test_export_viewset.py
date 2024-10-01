@@ -590,8 +590,8 @@ class TestExportViewSet(TestBase):
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
 
-    @patch("onadata.libs.utils.image_tools.get_storage_class")
-    @patch("onadata.libs.utils.image_tools.boto3.client")
+    @patch("onadata.libs.utils.logger_tools.get_storage_class")
+    @patch("onadata.libs.utils.logger_tools.boto3.client")
     def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
         """Export is downloaded from Amazon S3"""
         expected_url = (
