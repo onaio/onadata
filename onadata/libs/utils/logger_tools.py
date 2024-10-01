@@ -794,14 +794,14 @@ def get_storages_media_download_url(
         try:
             url = generate_aws_media_url(file_path, content_disposition, expires_in)
         except Exception as error:
-            logging.error(f"Failed to generate S3 URL: {error}")
+            logging.exception(error)
 
     # Check if the storage backend is Azure
     elif isinstance(default_storage, type(azure_class)):
         try:
             url = generate_media_url_with_sas(file_path, expires_in)
         except Exception as error:
-            logging.error(f"Failed to generate Azure URL: {error}")
+            logging.error(error)
 
     return url
 
@@ -847,7 +847,7 @@ def response_with_mimetype_and_name(
                 response["Content-Length"] = default_storage.size(file_path)
 
             except IOError as error:
-                logging.error(f"Failed to open file: {error}")
+                logging.exception(error)
                 response = not_found_response
 
         else:
@@ -857,7 +857,7 @@ def response_with_mimetype_and_name(
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = os.path.getsize(file_path)
             except IOError as error:
-                logging.error(f"Failed to open file: {error}")
+                logging.exception(error)
                 response = not_found_response
     else:
         response = HttpResponse(content_type=mimetype)
