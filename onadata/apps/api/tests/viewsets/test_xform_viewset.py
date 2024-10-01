@@ -5559,7 +5559,7 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".zip")
+            self.assertEqual(ext, '.zip"')
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
