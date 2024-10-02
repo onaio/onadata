@@ -195,7 +195,14 @@ def create_organization_object(org_name, creator, attrs=None):
 
 
 def remove_user_from_organization(organization, user):
-    """Remove a user from an organization"""
+    """Remove a user from an organization
+
+    Remove user from organization and all projects in the organization
+
+    :param organization: OrganizationProfile instance
+    :param user: User instance
+    :return: None
+    """
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
     owners_team = get_or_create_organization_owners_team(organization)
@@ -244,7 +251,15 @@ def remove_user_from_team(team, user):
 
 
 def add_user_to_organization(organization, user, role=None):
-    """Add a user to an organization"""
+    """Add a user to an organization
+
+    Add user to organization and all projects in the organization
+
+    :param organization: OrganizationProfile instance
+    :param user: User instance
+    :param role: Role name
+    :return: None
+    """
 
     team = get_organization_members_team(organization)
     add_user_to_team(team, user)
