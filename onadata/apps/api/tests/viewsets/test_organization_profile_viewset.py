@@ -734,7 +734,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
-    @patch("onadata.apps.api.tasks.send_mail")
+    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
     def test_add_members_to_org_email(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
@@ -759,7 +759,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(set(response.data), set(["denoinc", "aboy"]))
 
     @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
-    @patch("onadata.apps.api.tasks.send_mail")
+    @patch("onadata.libs.serializers.organization_member_serializer.send_mail")
     def test_add_members_to_org_email_custom_subj(self, mock_email):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({"post": "members"})
