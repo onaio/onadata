@@ -809,6 +809,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
+        # items can be in any order
         self.assertTrue(
             any(
                 item["user"] == "aboy" and item["role"] == "editor"
