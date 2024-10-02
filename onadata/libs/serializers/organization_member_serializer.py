@@ -2,18 +2,18 @@
 """
 The OrganizationMemberSerializer - manages a users access in an organization
 """
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 
 from onadata.apps.api.tools import (
     _get_owners,
+    add_user_to_organization,
     get_organization_members,
-)
-from onadata.apps.api.tasks import (
-    add_org_user_and_share_projects_async,
-    remove_org_user_async,
+    remove_user_from_organization,
 )
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (
@@ -108,12 +108,18 @@ class OrganizationMemberSerializer(serializers.Serializer):
             user = User.objects.get(username=username)
 
             if remove:
-                remove_org_user_async.apply_async(args=[organization.pk, user.pk])
+                remove_user_from_organization(organization, user)
 
             else:
-                add_org_user_and_share_projects_async.apply_async(
-                    args=[organization.pk, user.pk, role, email_subject, email_msg]
-                )
+                add_user_to_organization(organization, user, role)
+
+                if email_msg and email_subject and user.email:
+                    send_mail(
+                        email_subject,
+                        email_msg,
+                        settings.DEFAULT_FROM_EMAIL,
+                        (user.email,),
+                    )
 
         return organization
 

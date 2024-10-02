@@ -48,7 +48,6 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
-from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
@@ -209,11 +208,17 @@ def remove_user_from_organization(organization, user):
         role_cls.remove_obj_permissions(user, organization)
         role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
 
+    # Invalidate organization cache
+    invalidate_organization_cache(organization.user.username)
+
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.api.tasks import share_project_async
+
     # Remove user from all org projects
     project_qs = organization.user.project_org.all()
 
     for project in queryset_iterator(project_qs):
-        ShareProject(project, user.username, role, remove=True).save()
+        share_project_async.delay(project.pk, user.username, role, remove=True)
 
 
 def remove_user_from_team(team, user):
@@ -255,6 +260,33 @@ def add_user_to_organization(organization, user, role=None):
         else:
             remove_user_from_team(owners_team, user)
             OwnerRole.remove_obj_permissions(user, organization.userprofile_ptr)
+
+    # Invalidate organization cache
+    invalidate_organization_cache(organization.user.username)
+
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.api.tasks import share_project_async
+
+    # Share all organization projects with the new user
+    project_qs = organization.user.project_org.all()
+
+    if role == OwnerRole.name:
+        # New owners have owner role on all projects
+        for project in queryset_iterator(project_qs):
+            share_project_async.delay(project.pk, user.username, role)
+
+    else:
+        # New members & managers gain default team permissions on projects
+        team = get_organization_members_team(organization)
+
+        for project in queryset_iterator(project_qs):
+            if role == ManagerRole.name and project.created_by == user:
+                # New managers are only granted the manager role on the
+                # projects they created
+                share_project_async.delay(project.pk, user.username, role)
+            else:
+                project_role = get_team_project_default_permissions(team, project)
+                share_project_async.delay(project.pk, user.username, project_role)
 
 
 def get_organization_members(organization):
@@ -843,37 +875,6 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
-
-
-def add_org_user_and_share_projects(
-    organization: OrganizationProfile, user, org_role: str = None
-):
-    """Add user to organization and share all projects"""
-    add_user_to_organization(organization, user, org_role)
-
-    def share(project, role):
-        share = ShareProject(project, user.username, role)
-        share.save()
-
-    project_qs = organization.user.project_org.all()
-
-    if org_role == OwnerRole.name:
-        # New owners have owner role on all projects
-        for project in queryset_iterator(project_qs):
-            share(project, org_role)
-
-    else:
-        # New members & managers gain default team permissions on projects
-        team = get_organization_members_team(organization)
-
-        for project in queryset_iterator(project_qs):
-            if org_role == ManagerRole.name and project.created_by == user:
-                # New managers are only granted the manager role on the
-                # projects they created
-                share(project, org_role)
-            else:
-                project_role = get_team_project_default_permissions(team, project)
-                share(project, project_role)
 
 
 def get_org_profile_cache_key(user, organization):
