@@ -176,18 +176,13 @@ class OrganizationProfile(UserProfile):
     is_organization = models.BooleanField(default=True)
     # Other fields here
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
-    organization_email = models.EmailField(_("email address"), blank=True)
+    email = models.EmailField(_("email address"), blank=True)
 
     def __str__(self):
         return f"{self.name}[{self.user.username}]"
 
     def save(self, *args, **kwargs):  # pylint: disable=arguments-differ
         super().save(*args, **kwargs)
-
-    @property
-    def email(self):
-        "organization email"
-        return self.organization_email
 
     def remove_user_from_organization(self, user):
         """Removes a user from all teams/groups in the organization.
