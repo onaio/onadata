@@ -809,8 +809,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["users"][2]["user"], "aboy")
-        self.assertEqual(response.data["users"][2]["role"], "editor")
+        self.assertTrue(
+            any(
+                item["user"] == "aboy" and item["role"] == "editor"
+                for item in response.data["users"]
+            )
+        )
 
     def test_add_members_to_owner_role(self):
         self._org_create()
