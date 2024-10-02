@@ -2,6 +2,7 @@
 """
 API utility functions.
 """
+import importlib
 import os
 import tempfile
 from datetime import datetime
@@ -211,14 +212,16 @@ def remove_user_from_organization(organization, user):
     # Invalidate organization cache
     invalidate_organization_cache(organization.user.username)
 
-    # pylint: disable=import-outside-toplevel
-    from onadata.apps.api.tasks import share_project_async
+    # Avoid cyclic dependency errors
+    api_tasks = importlib.import_module("onadata.apps.api.tasks")
 
     # Remove user from all org projects
     project_qs = organization.user.project_org.all()
 
     for project in queryset_iterator(project_qs):
-        share_project_async.delay(project.pk, user.username, role, remove=True)
+        api_tasks.share_project_async.delay(
+            project.pk, user.username, role, remove=True
+        )
 
 
 def remove_user_from_team(team, user):
@@ -264,8 +267,8 @@ def add_user_to_organization(organization, user, role=None):
     # Invalidate organization cache
     invalidate_organization_cache(organization.user.username)
 
-    # pylint: disable=import-outside-toplevel
-    from onadata.apps.api.tasks import share_project_async
+    # Avoid cyclic dependency errors
+    api_tasks = importlib.import_module("onadata.apps.api.tasks")
 
     # Share all organization projects with the new user
     project_qs = organization.user.project_org.all()
@@ -273,7 +276,7 @@ def add_user_to_organization(organization, user, role=None):
     if role == OwnerRole.name:
         # New owners have owner role on all projects
         for project in queryset_iterator(project_qs):
-            share_project_async.delay(project.pk, user.username, role)
+            api_tasks.share_project_async.delay(project.pk, user.username, role)
 
     else:
         # New members & managers gain default team permissions on projects
@@ -283,10 +286,12 @@ def add_user_to_organization(organization, user, role=None):
             if role == ManagerRole.name and project.created_by == user:
                 # New managers are only granted the manager role on the
                 # projects they created
-                share_project_async.delay(project.pk, user.username, role)
+                api_tasks.share_project_async.delay(project.pk, user.username, role)
             else:
                 project_role = get_team_project_default_permissions(team, project)
-                share_project_async.delay(project.pk, user.username, project_role)
+                api_tasks.share_project_async.delay(
+                    project.pk, user.username, project_role
+                )
 
 
 def get_organization_members(organization):
