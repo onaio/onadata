@@ -196,8 +196,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="denoinc")
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
-        del self.company_data['email']
-        del self.company_data['metadata']
+        del self.company_data["email"]
+        del self.company_data["metadata"]
         self.assertEqual(response.data, self.company_data)
         self.assertIn("users", list(response.data))
         for user in response.data["users"]:
@@ -212,7 +212,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         del self.company_data["email"]
-        del self.company_data['metadata']
+        del self.company_data["metadata"]
         self.assertEqual(response.data, self.company_data)
         self.assertIn("users", list(response.data))
         for user in response.data["users"]:
@@ -222,7 +222,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     def test_orgs_create(self):
         self._org_create()
         self.assertTrue(self.organization.user.is_active)
-        self.assertEqual(self.organization.user.email, "mail@mail-server.org")
+        self.assertEqual(self.organization.email, "mail@mail-server.org")
 
     def test_orgs_create_without_name(self):
         data = {
@@ -264,7 +264,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request.user = self.user
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data['email'], org_email)
+        self.assertEqual(response.data["email"], org_email)
 
     def test_org_create_with_anonymous_user(self):
         data = {
@@ -420,7 +420,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             }
         )
         del expected_data["metadata"]
-        del expected_data['email']
+        del expected_data["email"]
 
         request = self.factory.get("/", **self.extra)
         response = view(request)
@@ -452,8 +452,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue('email' in response.data)
-        self.assertEqual(response.data['email'], 'mail@mail-server.org')
+        self.assertEqual(response.data["email"], "mail@mail-server.org")
         self.assertIn("users", list(response.data))
 
         for user in response.data["users"]:
@@ -476,10 +475,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         request.user = AnonymousUser()
         request.headers = None
-        request.META['HTTP_AUTHORIZATION'] = ""
+        request.META["HTTP_AUTHORIZATION"] = ""
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
-        self.assertFalse('email' in response.data)
+        self.assertFalse("email" in response.data)
 
     def test_add_members_to_org_with_anonymous_user(self):
         self._org_create()

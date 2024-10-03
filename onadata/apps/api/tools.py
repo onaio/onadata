@@ -172,7 +172,6 @@ def create_organization_object(org_name, creator, attrs=None):
         username=org_name,
         first_name=first_name,
         last_name=last_name,
-        email=email,
         is_active=getattr(settings, "ORG_ON_CREATE_IS_ACTIVE", True),
     )
     new_user.save()
@@ -190,6 +189,7 @@ def create_organization_object(org_name, creator, attrs=None):
         organization=attrs.get("organization", ""),
         home_page=attrs.get("home_page", ""),
         twitter=attrs.get("twitter", ""),
+        email=email,
     )
     return profile
 
