@@ -308,7 +308,43 @@ class ProjectXFormSerializer(BaseProjectXFormSerializer):
         return metadata and hasattr(metadata, "data_value") and metadata.data_value
 
 
-class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
+class DataViewsProjectSerializerMixin(serializers.Serializer):
+    data_views = serializers.SerializerMethodField()
+
+    @check_obj
+    def get_data_views(self, obj):
+        """
+        Return a list of filtered datasets.
+        """
+        project_dataview_cache_key = f"{PROJECT_LINKED_DATAVIEWS}{obj.pk}"
+        data_views = cache.get(project_dataview_cache_key)
+        if data_views:
+            return data_views
+
+        data_views_obj = (
+            obj.dataview_prefetch
+            if hasattr(obj, "dataview_prefetch")
+            else obj.dataview_set.filter(deleted_at__isnull=True)
+        )
+
+        # pylint: disable=import-outside-toplevel
+        from onadata.libs.serializers.dataview_serializer import (
+            DataViewMinimalSerializer,
+        )
+
+        serializer = DataViewMinimalSerializer(
+            data_views_obj, many=True, context=self.context
+        )
+        data_views = list(serializer.data)
+
+        cache.set(project_dataview_cache_key, data_views)
+
+        return data_views
+
+
+class BaseProjectSerializer(
+    DataViewsProjectSerializerMixin, serializers.HyperlinkedModelSerializer
+):
     """
     BaseProjectSerializer class.
     """
@@ -358,6 +394,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "date_created",
             "date_modified",
             "deleted_at",
+            "data_views",
         ]
 
     def get_starred(self, obj):
@@ -430,7 +467,9 @@ def can_add_project_to_profile(user, organization):
     return True
 
 
-class ProjectSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectSerializer(
+    DataViewsProjectSerializerMixin, serializers.HyperlinkedModelSerializer
+):
     """
     ProjectSerializer class - creates and updates a project.
     """
@@ -459,7 +498,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     num_datasets = serializers.SerializerMethodField()
     last_submission_date = serializers.SerializerMethodField()
     teams = serializers.SerializerMethodField()
-    data_views = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -654,33 +692,3 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return the teams with access to the project.
         """
         return get_teams(obj)
-
-    @check_obj
-    def get_data_views(self, obj):
-        """
-        Return a list of filtered datasets.
-        """
-        project_dataview_cache_key = f"{PROJECT_LINKED_DATAVIEWS}{obj.pk}"
-        data_views = cache.get(project_dataview_cache_key)
-        if data_views:
-            return data_views
-
-        data_views_obj = (
-            obj.dataview_prefetch
-            if hasattr(obj, "dataview_prefetch")
-            else obj.dataview_set.filter(deleted_at__isnull=True)
-        )
-
-        # pylint: disable=import-outside-toplevel
-        from onadata.libs.serializers.dataview_serializer import (
-            DataViewMinimalSerializer,
-        )
-
-        serializer = DataViewMinimalSerializer(
-            data_views_obj, many=True, context=self.context
-        )
-        data_views = list(serializer.data)
-
-        cache.set(project_dataview_cache_key, data_views)
-
-        return data_views
