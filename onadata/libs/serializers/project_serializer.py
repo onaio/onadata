@@ -308,6 +308,7 @@ class ProjectXFormSerializer(BaseProjectXFormSerializer):
         return metadata and hasattr(metadata, "data_value") and metadata.data_value
 
 
+# pylint: disable=abstract-method
 class DataViewsProjectSerializerMixin(serializers.Serializer):
     data_views = serializers.SerializerMethodField()
 

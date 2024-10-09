@@ -217,6 +217,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                         self.project.date_modified.isoformat().replace("+00:00", "Z"),
                     ),
                     ("deleted_at", None),
+                    ("data_views", []),
                 ]
             )
         ]
