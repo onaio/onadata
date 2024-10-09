@@ -612,7 +612,7 @@ class TestExportViewSet(TestBase):
         request = self.factory.get("/export")
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
-        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, expected_url)
         self.assertTrue(mock_presigned_urls.called)
         mock_presigned_urls().generate_presigned_url.assert_called_with(

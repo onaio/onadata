@@ -120,7 +120,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         )
         response = self.retrieve_view(request, pk=self.attachment.pk)
 
-        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, expected_url)
         filename = self.attachment.media_file.name.split("/")[-1]
         mock_download_url.assert_called_once_with(
