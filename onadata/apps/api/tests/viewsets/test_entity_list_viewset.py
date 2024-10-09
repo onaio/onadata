@@ -1740,10 +1740,10 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
 
     def test_anonymous_user(self):
         """Anonymous user cannot download a private EntityList"""
-        # # Anonymous user cannot view private EntityList
-        # request = self.factory.get("/")
-        # response = self.view(request, pk=self.entity_list.pk)
-        # self.assertEqual(response.status_code, 404)
+        # Anonymous user cannot view private EntityList
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 404)
         # Anonymous user can view public EntityList
         self.project.shared = True
         self.project.save()
