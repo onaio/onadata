@@ -35,6 +35,10 @@ def generate_media_download_url(obj, expiration: int = 3600):
     """
     file_path = obj.media_file.name
     filename = file_path.split("/")[-1]
+    # The filename is enclosed in quotes because it ensures that special characters,
+    # spaces, or punctuation in the filename are correctly interpreted by browsers
+    # and clients. This is particularly important for filenames that may contain
+    # spaces or non-ASCII characters.
     content_disposition = f'attachment; filename="{filename}"'
     download_url = get_storages_media_download_url(
         file_path, content_disposition, expiration
