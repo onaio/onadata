@@ -73,6 +73,7 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
 
+
 # Supported external exports
 EXTERNAL_EXPORT_TYPES = ["xlsx"]
 

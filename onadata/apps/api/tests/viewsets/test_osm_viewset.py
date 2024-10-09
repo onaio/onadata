@@ -147,7 +147,7 @@ class TestOSMViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         content = get_response_content(response)
         reader = csv.DictReader(StringIO(content))

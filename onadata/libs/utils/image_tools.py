@@ -2,9 +2,6 @@
 """
 Image utility functions module.
 """
-import logging
-import urllib
-from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile
 from wsgiref.util import FileWrapper
 
@@ -13,12 +10,13 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
 from django.http import HttpResponse, HttpResponseRedirect
 
-import boto3
-from botocore.client import Config
-from botocore.exceptions import ClientError
 from PIL import Image
 
 from onadata.libs.utils.viewer_tools import get_path
+from onadata.libs.utils.logger_tools import (
+    generate_media_url_with_sas,
+    get_storages_media_download_url,
+)
 
 
 def flat(*nums):
@@ -36,33 +34,17 @@ def generate_media_download_url(obj, expiration: int = 3600):
     Azure storage objects.
     """
     file_path = obj.media_file.name
-    default_storage = get_storage_class()()
     filename = file_path.split("/")[-1]
-    content_disposition = urllib.parse.quote(f"attachment; filename={filename}")
-    s3_class = None
-    azure = None
-
-    try:
-        s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
-    except ModuleNotFoundError:
-        pass
-
-    try:
-        azure = get_storage_class("storages.backends.azure_storage.AzureStorage")()
-    except ModuleNotFoundError:
-        pass
-
-    if isinstance(default_storage, type(s3_class)):
-        try:
-            url = generate_aws_media_url(file_path, content_disposition, expiration)
-        except ClientError as error:
-            logging.error(error)
-            return None
-        return HttpResponseRedirect(url)
-
-    if isinstance(default_storage, type(azure)):
-        media_url = generate_media_url_with_sas(file_path, expiration)
-        return HttpResponseRedirect(media_url)
+    # The filename is enclosed in quotes because it ensures that special characters,
+    # spaces, or punctuation in the filename are correctly interpreted by browsers
+    # and clients. This is particularly important for filenames that may contain
+    # spaces or non-ASCII characters.
+    content_disposition = f'attachment; filename="{filename}"'
+    download_url = get_storages_media_download_url(
+        file_path, content_disposition, expiration
+    )
+    if download_url is not None:
+        return HttpResponseRedirect(download_url)
 
     # pylint: disable=consider-using-with
     file_obj = open(settings.MEDIA_ROOT + file_path, "rb")
@@ -70,61 +52,6 @@ def generate_media_download_url(obj, expiration: int = 3600):
     response["Content-Disposition"] = content_disposition
 
     return response
-
-
-def generate_aws_media_url(
-    file_path: str, content_disposition: str, expiration: int = 3600
-):
-    """Generate S3 URL."""
-    s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
-    bucket_name = s3_class.bucket.name
-    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
-    s3_config = Config(
-        signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
-        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
-    )
-    s3_client = boto3.client(
-        "s3",
-        config=s3_config,
-        endpoint_url=aws_endpoint_url,
-        aws_access_key_id=s3_class.access_key,
-        aws_secret_access_key=s3_class.secret_key,
-    )
-
-    # Generate a presigned URL for the S3 object
-    return s3_client.generate_presigned_url(
-        "get_object",
-        Params={
-            "Bucket": bucket_name,
-            "Key": file_path,
-            "ResponseContentDisposition": content_disposition,
-            "ResponseContentType": "application/octet-stream",
-        },
-        ExpiresIn=expiration,
-    )
-
-
-def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
-    """
-    Generate Azure storage URL.
-    """
-    # pylint: disable=import-outside-toplevel
-    from azure.storage.blob import AccountSasPermissions, generate_blob_sas
-
-    account_name = getattr(settings, "AZURE_ACCOUNT_NAME", "")
-    container_name = getattr(settings, "AZURE_CONTAINER", "")
-    media_url = (
-        f"https://{account_name}.blob.core.windows.net/{container_name}/{file_path}"
-    )
-    sas_token = generate_blob_sas(
-        account_name=account_name,
-        account_key=getattr(settings, "AZURE_ACCOUNT_KEY", ""),
-        container_name=container_name,
-        blob_name=file_path,
-        permission=AccountSasPermissions(read=True),
-        expiry=datetime.utcnow() + timedelta(seconds=expiration),
-    )
-    return f"{media_url}?{sas_token}"
 
 
 def get_dimensions(size, longest_side):

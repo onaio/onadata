@@ -3977,7 +3977,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             _, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
             # sort csv data in ascending order
             data = {"win_excel_utf8": False}
             request = self.factory.get("/", data=data, **self.extra)
@@ -4002,7 +4002,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
     @flaky
     def test_csv_export_with_and_without_include_hxl(self):
@@ -4067,7 +4067,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             request = self.factory.get("/", **self.extra)
             response = view(request, pk=self.xform.pk, format="csv")
@@ -4090,7 +4090,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
     def test_csv_export__with_and_without_group_delimiter(self):
         with HTTMock(enketo_mock):
@@ -4124,7 +4124,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             content = get_response_content(response)
             content_header_row_with_slashes = content.split("\n")[0]
@@ -4139,7 +4139,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             content = get_response_content(response)
             content_header_row_with_dots = content.split("\n")[0]
@@ -4186,7 +4186,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             content = get_response_content(response)
             content_header_row_select_multiple_split = content.split("\n")[0]
@@ -4204,7 +4204,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             content = get_response_content(response)
             content_header_row_select_multiple_not_split = content.split("\n")[0]
@@ -4250,7 +4250,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             filename = filename_from_disposition(content_disposition)
             self.assertIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             expected_data = ["n/a"]
             key = "available_transportation_types_to_referral_facility_other"  # noqa
@@ -4266,7 +4266,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             expected_data = ["n/a"]
             key = "transport/available_transportation_types_to_referral_facility_other"  # noqa
@@ -4307,7 +4307,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             request = self.factory.get("/", **self.extra)
             response = view(request, pk=self.xform.pk, format="csv")
@@ -4322,7 +4322,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
     def test_xform_linked_dataviews(self):
         xlsform_path = os.path.join(
@@ -4513,7 +4513,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         content = get_response_content(response)
 
@@ -4990,7 +4990,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".csv")
+            self.assertEqual(ext, '.csv"')
 
             expected_data = ["alice", "alice"]
             key = "_submitted_by"
@@ -5559,7 +5559,7 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
             content_disposition = headers["Content-Disposition"]
             filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
-            self.assertEqual(ext, ".zip")
+            self.assertEqual(ext, '.zip"')
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.libs.utils.api_export_tools.AsyncResult")
