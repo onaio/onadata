@@ -1806,7 +1806,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         mock_get_storage_class()().bucket.name = "onadata"
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, expected_url)
         self.assertTrue(mock_presigned_urls.called)
         export = GenericExport.objects.first()
