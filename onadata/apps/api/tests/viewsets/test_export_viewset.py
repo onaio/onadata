@@ -4,6 +4,7 @@ test_export_viewset module
 """
 import os
 from tempfile import NamedTemporaryFile
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
@@ -32,24 +33,32 @@ class TestExportViewSet(TestBase):
         self.formats = ["csv", "csvzip", "kml", "osm", "savzip", "xls", "xlsx", "zip"]
         self.view = ExportViewSet.as_view({"get": "retrieve"})
 
+    def _create_export(self):
+        # Create a temporary file in the 'exports' directory and
+        # prevent it from being deleted automatically
+        temp_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(temp_dir, exist_ok=True)
+        dummy_export_file = NamedTemporaryFile(
+            suffix=".xlsx", dir=temp_dir, delete=False
+        )
+        dummy_export_file.close()  # Explicitly close the file
+        filename = os.path.basename(dummy_export_file.name)
+        export = Export.objects.create(
+            xform=self.xform, filename=filename, filedir="exports"
+        )
+        return export
+
     def test_export_response(self):
         """
         Test ExportViewSet retrieve has the correct headers in response.
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        export = self._create_export()
         request = self.factory.get("/export")
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
-        self.assertIn(filename, response.get("Content-Disposition"))
+        self.assertIn(export.filename, response.get("Content-Disposition"))
 
     def test_export_formats_present(self):
         """
@@ -92,14 +101,7 @@ class TestExportViewSet(TestBase):
         self._publish_transportation_form()
         self.xform.shared_data = True
         self.xform.save()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        self._create_export()
         view = ExportViewSet.as_view({"get": "list"})
 
         # Should be empty list when no xform filter is provided
@@ -123,14 +125,7 @@ class TestExportViewSet(TestBase):
         self._publish_transportation_form()
         self.xform.shared_data = True
         self.xform.save()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        self._create_export()
         view = ExportViewSet.as_view({"get": "list"})
         request = self.factory.get("/export", {"xform": self.xform.pk})
         force_authenticate(request, user=user_mosh)
@@ -220,14 +215,7 @@ class TestExportViewSet(TestBase):
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        exports = [
-            Export.objects.create(xform=self.xform, filename=filename, filedir=filedir)
-        ]
-        exports[0].save()
+        exports = [self._create_export()]
         view = ExportViewSet.as_view({"get": "list"})
         request = self.factory.get("/export", data={"xform": self.xform.id})
         force_authenticate(request, user=self.user)
@@ -242,14 +230,7 @@ class TestExportViewSet(TestBase):
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        self._create_export()
         view = ExportViewSet.as_view({"get": "list"})
         request = self.factory.get("/export", data={"xform": self.xform.id})
         self._create_user_and_login(username="mary", password="password1")
@@ -546,14 +527,7 @@ class TestExportViewSet(TestBase):
         """
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        export = self._create_export()
         extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token.key}"}
 
         request = self.factory.get("/export", **extra)
@@ -589,14 +563,7 @@ class TestExportViewSet(TestBase):
     def test_export_are_downloadable_to_all_users_when_public_form(self):
         self._create_user_and_login()
         self._publish_transportation_form()
-        temp_dir = settings.MEDIA_ROOT
-        dummy_export_file = NamedTemporaryFile(suffix=".xlsx", dir=temp_dir)
-        filename = os.path.basename(dummy_export_file.name)
-        filedir = os.path.dirname(dummy_export_file.name)
-        export = Export.objects.create(
-            xform=self.xform, filename=filename, filedir=filedir
-        )
-        export.save()
+        export = self._create_export()
 
         user_alice = self._create_user("alice", "alice")
         # create user profile and set require_auth to false for tests
@@ -622,3 +589,39 @@ class TestExportViewSet(TestBase):
         request = self.factory.get("/export", **alices_extra)
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
+
+    @patch("onadata.libs.utils.logger_tools.get_storage_class")
+    @patch("onadata.libs.utils.logger_tools.boto3.client")
+    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+        """Export is downloaded from Amazon S3"""
+        expected_url = (
+            "https://testing.s3.amazonaws.com/bob/exports/"
+            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
+            "response-content-disposition=attachment%3Bfilename%trees.csv&"
+            "response-content-type=application%2Foctet-stream&"
+            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
+            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
+        )
+        mock_presigned_urls().generate_presigned_url = MagicMock(
+            return_value=expected_url
+        )
+        mock_get_storage_class()().bucket.name = "onadata"
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        export = self._create_export()
+        request = self.factory.get("/export")
+        force_authenticate(request, user=self.user)
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, expected_url)
+        self.assertTrue(mock_presigned_urls.called)
+        mock_presigned_urls().generate_presigned_url.assert_called_with(
+            "get_object",
+            Params={
+                "Bucket": "onadata",
+                "Key": export.filepath,
+                "ResponseContentDisposition": f'attachment; filename="{export.filename}"',
+                "ResponseContentType": "application/octet-stream",
+            },
+            ExpiresIn=3600,
+        )

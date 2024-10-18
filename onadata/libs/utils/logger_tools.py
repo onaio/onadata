@@ -10,14 +10,15 @@ import re
 import sys
 import tempfile
 from builtins import str as text
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import sha256
 from http.client import BadStatusLine
 from typing import NoReturn, Any
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
-
+import boto3
+from botocore.client import Config
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -33,6 +34,7 @@ from django.db.models import Q, F
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
+    HttpResponseRedirect,
     HttpResponseNotFound,
     StreamingHttpResponse,
     UnreadablePostError,
@@ -41,6 +43,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
+
 
 from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
@@ -704,6 +707,105 @@ def safe_create_instance(  # noqa C901
     return [error, instance]
 
 
+def generate_aws_media_url(
+    file_path: str, content_disposition: str, expiration: int = 3600
+):
+    """Generate S3 URL."""
+    s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    bucket_name = s3_class.bucket.name
+    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
+    s3_config = Config(
+        signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
+        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
+    )
+    s3_client = boto3.client(
+        "s3",
+        config=s3_config,
+        endpoint_url=aws_endpoint_url,
+        aws_access_key_id=s3_class.access_key,
+        aws_secret_access_key=s3_class.secret_key,
+    )
+
+    # Generate a presigned URL for the S3 object
+    return s3_client.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": bucket_name,
+            "Key": file_path,
+            "ResponseContentDisposition": content_disposition,
+            "ResponseContentType": "application/octet-stream",
+        },
+        ExpiresIn=expiration,
+    )
+
+
+def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
+    """
+    Generate Azure storage URL.
+    """
+    # pylint: disable=import-outside-toplevel
+    from azure.storage.blob import AccountSasPermissions, generate_blob_sas
+
+    account_name = getattr(settings, "AZURE_ACCOUNT_NAME", "")
+    container_name = getattr(settings, "AZURE_CONTAINER", "")
+    media_url = (
+        f"https://{account_name}.blob.core.windows.net/{container_name}/{file_path}"
+    )
+    sas_token = generate_blob_sas(
+        account_name=account_name,
+        account_key=getattr(settings, "AZURE_ACCOUNT_KEY", ""),
+        container_name=container_name,
+        blob_name=file_path,
+        permission=AccountSasPermissions(read=True),
+        expiry=timezone.now() + timedelta(seconds=expiration),
+    )
+    return f"{media_url}?{sas_token}"
+
+
+def get_storages_media_download_url(
+    file_path: str, content_disposition: str, expires_in=3600
+) -> str | None:
+    """Get the media download URL for the storages backend.
+
+    :param file_path: The path to the media file.
+    :param content_disposition: The content disposition header.
+    :param expires_in: The expiration time in seconds.
+    :returns: The media download URL.
+    """
+    s3_class = None
+    azure_class = None
+    default_storage = get_storage_class()()
+    url = None
+
+    try:
+        s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    except ModuleNotFoundError:
+        pass
+
+    try:
+        azure_class = get_storage_class(
+            "storages.backends.azure_storage.AzureStorage"
+        )()
+    except ModuleNotFoundError:
+        pass
+
+    # Check if the storage backend is S3
+    if isinstance(default_storage, type(s3_class)):
+        try:
+            url = generate_aws_media_url(file_path, content_disposition, expires_in)
+        except Exception as error:
+            logging.exception(error)
+
+    # Check if the storage backend is Azure
+    elif isinstance(default_storage, type(azure_class)):
+        try:
+            url = generate_media_url_with_sas(file_path, expires_in)
+        except Exception as error:
+            logging.error(error)
+
+    return url
+
+
 def response_with_mimetype_and_name(
     mimetype,
     name,
@@ -712,33 +814,54 @@ def response_with_mimetype_and_name(
     file_path=None,
     use_local_filesystem=False,
     full_mime=False,
+    expires_in=3600,
 ):
     """Returns a HttpResponse with Content-Disposition header set
 
     Triggers a download on the browser."""
     if extension is None:
         extension = mimetype
+
     if not full_mime:
         mimetype = f"application/{mimetype}"
+
+    content_disposition = generate_content_disposition_header(
+        name, extension, show_date
+    )
+    not_found_response = HttpResponseNotFound(
+        _("The requested file could not be found.")
+    )
+
     if file_path:
-        try:
-            if not use_local_filesystem:
+        if not use_local_filesystem:
+            download_url = get_storages_media_download_url(
+                file_path, content_disposition, expires_in
+            )
+            if download_url is not None:
+                return HttpResponseRedirect(download_url)
+
+            try:
                 default_storage = get_storage_class()()
                 wrapper = FileWrapper(default_storage.open(file_path))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = default_storage.size(file_path)
-            else:
+
+            except IOError as error:
+                logging.exception(error)
+                response = not_found_response
+
+        else:
+            try:
                 # pylint: disable=consider-using-with
                 wrapper = FileWrapper(open(file_path, "rb"))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = os.path.getsize(file_path)
-        except IOError:
-            response = HttpResponseNotFound(_("The requested file could not be found."))
+            except IOError as error:
+                logging.exception(error)
+                response = not_found_response
     else:
         response = HttpResponse(content_type=mimetype)
-    response["Content-Disposition"] = generate_content_disposition_header(
-        name, extension, show_date
-    )
+    response["Content-Disposition"] = content_disposition
     return response
 
 
@@ -749,7 +872,11 @@ def generate_content_disposition_header(name, extension, show_date=True):
     if show_date:
         timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         name = f"{name}-{timestamp}"
-    return f"attachment; filename={name}.{extension}"
+    # The filename is enclosed in quotes because it ensures that special characters,
+    # spaces, or punctuation in the filename are correctly interpreted by browsers
+    # and clients. This is particularly important for filenames that may contain
+    # spaces or non-ASCII characters.
+    return f'attachment; filename="{name}.{extension}"'
 
 
 def store_temp_file(data):

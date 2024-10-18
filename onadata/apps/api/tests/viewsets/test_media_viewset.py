@@ -4,8 +4,7 @@ Tests the MediaViewSet.
 """
 # pylint: disable=too-many-lines
 import os
-import urllib
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -105,9 +104,8 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 404)
 
-    @patch("onadata.libs.utils.image_tools.get_storage_class")
-    @patch("onadata.libs.utils.image_tools.boto3.client")
-    def test_retrieve_view_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+    @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")
+    def test_retrieve_view_from_s3(self, mock_download_url):
         expected_url = (
             "https://testing.s3.amazonaws.com/doe/attachments/"
             "4_Media_file/media.png?"
@@ -116,37 +114,21 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
             "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
             "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
         )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_get_storage_class()().bucket.name = "onadata"
+        mock_download_url.return_value = expected_url
         request = self.factory.get(
             "/", {"filename": self.attachment.media_file.name}, **self.extra
         )
         response = self.retrieve_view(request, pk=self.attachment.pk)
 
-        self.assertEqual(response.status_code, 302, response.url)
+        self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, expected_url)
-        self.assertTrue(mock_presigned_urls.called)
         filename = self.attachment.media_file.name.split("/")[-1]
-        mock_presigned_urls().generate_presigned_url.assert_called_with(
-            "get_object",
-            Params={
-                "Bucket": "onadata",
-                "Key": self.attachment.media_file.name,
-                "ResponseContentDisposition": urllib.parse.quote(
-                    f"attachment; filename={filename}"
-                ),
-                "ResponseContentType": "application/octet-stream",
-            },
-            ExpiresIn=3600,
+        mock_download_url.assert_called_once_with(
+            self.attachment.media_file.name, f'attachment; filename="{filename}"', 3600
         )
 
-    @patch("onadata.libs.utils.image_tools.get_storage_class")
-    @patch("onadata.libs.utils.image_tools.boto3.client")
-    def test_anon_retrieve_view_from_s3(
-        self, mock_presigned_urls, mock_get_storage_class
-    ):
+    @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")
+    def test_anon_retrieve_view_from_s3(self, mock_download_url):
         """Test that anonymous user cannot retrieve media from s3"""
         expected_url = (
             "https://testing.s3.amazonaws.com/doe/attachments/"
@@ -156,20 +138,14 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
             "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
             "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
         )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_get_storage_class()().bucket.name = "onadata"
+        mock_download_url.return_value = expected_url
         request = self.factory.get("/", {"filename": self.attachment.media_file.name})
         response = self.retrieve_view(request, pk=self.attachment.pk)
 
         self.assertEqual(response.status_code, 404, response)
 
-    @patch("onadata.libs.utils.image_tools.get_storage_class")
-    @patch("onadata.libs.utils.image_tools.boto3.client")
-    def test_retrieve_view_from_s3_no_perms(
-        self, mock_presigned_urls, mock_get_storage_class
-    ):
+    @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")
+    def test_retrieve_view_from_s3_no_perms(self, mock_download_url):
         """Test that authenticated user without correct perms
         cannot retrieve media from s3
         """
@@ -181,10 +157,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
             "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
             "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
         )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_get_storage_class()().bucket.name = "onadata"
+        mock_download_url.return_value = expected_url
         request = self.factory.get(
             "/", {"filename": self.attachment.media_file.name}, **self.extra
         )
