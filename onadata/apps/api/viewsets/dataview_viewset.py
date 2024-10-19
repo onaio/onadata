@@ -155,6 +155,14 @@ class DataViewViewSet(
 
         return serializer_class
 
+    def filter_queryset(self, queryset):
+        """
+        Remove deleted DataViews
+        """
+        return super().filter_queryset(
+            queryset.filter(deleted_at=None, deleted_by=None)
+        )
+
     def list(self, request, *args, **kwargs):
         """
         List endpoint for Filtered datasets
