@@ -79,11 +79,8 @@ class TestDataViewSerializer(TestAbstractViewSet):
         serialized_dataview = DataViewSerializer(
             dataview, context={"request": request}
         ).data
-        self.assertEqual(
-            serialized_dataview["deleted_by"],
-            f"http://testserver/api/v1/users/{self.user.username}",
-        )
-        self.assertTrue("deleted_at" in serialized_dataview)
+        self.assertEqual(serialized_dataview["deleted_by"], None)
+        self.assertFalse("deleted_at" in serialized_dataview)
 
     def test_name_and_xform_are_unique(self):
         """
