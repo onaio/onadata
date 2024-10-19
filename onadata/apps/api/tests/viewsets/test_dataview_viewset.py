@@ -454,6 +454,16 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        # delete DataView and check that we don't get it in response
+        dataview = DataView.objects.get(name="My DataView2")
+        deleted_dataview_id = dataview.id
+        dataview.soft_delete(user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(response.data[0]["dataviewid"], deleted_dataview_id)
+
         anon_request = request = self.factory.get("/")
         anon_response = view(anon_request)
         self.assertEqual(anon_response.status_code, 401)

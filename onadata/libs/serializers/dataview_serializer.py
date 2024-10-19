@@ -109,11 +109,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     project = serializers.HyperlinkedRelatedField(
         view_name="project-detail", lookup_field="pk", queryset=Project.objects.all()
     )
-    deleted_by = serializers.HyperlinkedRelatedField(
-        view_name="user-detail",
-        lookup_field="username",
-        read_only=True,
-    )
     columns = JsonField()
     query = JsonField(required=False)
     count = serializers.SerializerMethodField()
@@ -124,7 +119,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = DataView
-        exclude = ["deleted_by", "deleted_at"]
         fields = (
             "dataviewid",
             "name",
