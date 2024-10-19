@@ -487,6 +487,36 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_can_not_get_deleted_dataview(self):
+        data = {
+            "name": "Agriculture Dataview",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": '[{"column":"age","filter":">","value":"20"},'
+            '{"column":"age","filter":"<","value":"50"}]',
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view(
+            {
+                "get": "retrieve",
+            }
+        )
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["dataviewid"], self.data_view.pk)
+
+        dataview = DataView.objects.get(id=response.data["dataviewid"])
+        dataview.soft_delete(user=self.user)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 404)
+
     # pylint: disable=invalid-name
     def test_dataview_data_filter_integer(self):
         data = {
