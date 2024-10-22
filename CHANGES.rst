@@ -3,12 +3,30 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.9.0(2024-10-22)
+------------------
+- Update pre-commit hooks
+  `PR #2717 <https://github.com/onaio/onadata/pull/2717>`
+  [@kelvin-muchiri]
+- Add/remove user from organization synchronously
+  `PR #2715 <https://github.com/onaio/onadata/pull/2715>`
+  [@kelvin-muchiri]
+- Redirect client to download media directly from Amazon S3 / Azure Storage
+  `PR #2713 <https://github.com/onaio/onadata/pull/2713>`
+  [@kelvin-muchiri]
+- Add organization email to organization profile instead of adding to organization user
+  `PR #2712 <https://github.com/onaio/onadata/pull/2712>`
+  [@FrankApiyo]
+- Disable sending of activation email when creating organization
+  `PR #2710 <https://github.com/onaio/onadata/pull/2710>`
+  [@kelvin-muchiri]
+
 v4.8.0(2024-09-23)
 ------------------
-- Update ona-oidc version to 1.1.1 
+- Update ona-oidc version to 1.1.1
   `PR #2708 <https://github.com/onaio/onadata/pull/2708>`
   [@FrankApiyo]
-- Add support for OR operation data filter for date fields 
+- Add support for OR operation data filter for date fields
   `PR #2701 <https://github.com/onaio/onadata/pull/2704>`
   [@kelvin-muchiri]
 
@@ -62,13 +80,13 @@ v4.5.1(2024-08-30)
 
 v4.5.0(2024-08-28)
 ------------------
-- Fix argument of type 'ProjectUserObjectPermission' is not iterable 
+- Fix argument of type 'ProjectUserObjectPermission' is not iterable
   `PR #2682 <https://github.com/onaio/onadata/pull/2682>`
   [@kelvin-muchiri]
-- Updated docker file to use latest base images 
+- Updated docker file to use latest base images
   `PR #2680 <https://github.com/onaio/onadata/pull/2680>`
   [@ukanga]
-- Add support for downloading EntityList dataset 
+- Add support for downloading EntityList dataset
   `PR #2678 <https://github.com/onaio/onadata/pull/2678>`
   [@kelvin-muchiri]
 - Fix exception thrown when updating organization profile
@@ -140,7 +158,7 @@ v4.3.4(2024-07-29)
 
 v4.3.3(2024-07-10)
 ------------------
-- Add Entity related data to forms on project retrieve endpoint 
+- Add Entity related data to forms on project retrieve endpoint
   `PR #2639 <https://github.com/onaio/onadata/pull/2639>`
   [@kelvin-muchiri]
 - Ignore EntityList model permissions on API endpoints
@@ -149,10 +167,10 @@ v4.3.3(2024-07-10)
 - Docs update
   `PR #2629 <https://github.com/onaio/onadata/pull/2629>`
   [@ukanga]
-- Make pending migrations 
+- Make pending migrations
   `PR #2632 <https://github.com/onaio/onadata/pull/2632>`
   [@kelvin-muchiri]
-- Check attempts is truthy before int comparison 
+- Check attempts is truthy before int comparison
   `PR #2618 <https://github.com/onaio/onadata/pull/2618>`
   [@ukanga]
 - Tune migration performance
@@ -185,7 +203,7 @@ v4.3.0(2024-06-26)
 - Update messaging endpoint docs
   `PR #2616 <https://github.com/onaio/onadata/pull/2616>`
   [@KipSigei]
-- Fix ValueError for User instance primary key in password validation 
+- Fix ValueError for User instance primary key in password validation
   `PR #2613 <https://github.com/onaio/onadata/pull/2613>`
   [@KipSigei]
 
