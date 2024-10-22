@@ -2,6 +2,7 @@
 """
 DataView model class
 """
+
 import datetime
 import json
 
@@ -9,11 +10,12 @@ from django.conf import settings
 from django.contrib.gis.db import models
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
+from django.db.utils import DataError
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.db.utils import DataError
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
+from onadata.libs.models.base_model import SoftDeleteManager
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
     json_order_by_params,
@@ -22,8 +24,8 @@ from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
 from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-import
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
-    XFORM_LINKED_DATAVIEWS,
     PROJ_OWNER_CACHE,
+    XFORM_LINKED_DATAVIEWS,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -122,6 +124,8 @@ class DataView(models.Model):
         default=None,
         blank=True,
     )
+
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "logger"

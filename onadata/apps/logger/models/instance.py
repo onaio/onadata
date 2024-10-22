@@ -2,6 +2,7 @@
 """
 Instance model class
 """
+
 import math
 import sys
 from datetime import datetime
@@ -18,15 +19,19 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from multidb.pinning import use_master
 
 from celery import current_task
 from deprecated import deprecated
+from multidb.pinning import use_master
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.models.xform import (
+    XFORM_TITLE_LENGTH,
+    SoftDeleteManager,
+    XForm,
+)
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
@@ -35,11 +40,11 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
-    PROJECT_DATE_MODIFIED_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
+    PROJECT_DATE_MODIFIED_CACHE,
     XFORM_COUNT,
     XFORM_DATA_VERSIONS,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
@@ -693,6 +698,7 @@ class Instance(models.Model, InstanceBaseClass):
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
 
     tags = TaggableManager()
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "logger"
