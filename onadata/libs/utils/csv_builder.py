@@ -854,9 +854,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 )
 
                 # add extra columns
-                for column in filter(
-                    lambda col: col in dataview.columns, self.extra_columns
-                ):
+                for column in filter(lambda col: col not in columns, dataview.columns):
                     if column in self.extra_columns:
                         columns.append(column)
 
