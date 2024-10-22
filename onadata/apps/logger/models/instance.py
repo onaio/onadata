@@ -392,7 +392,8 @@ def update_project_date_modified(instance_id, _):
     # the etag value of the projects endpoint
     try:
         instance = (
-            Instance.objects.select_related("xform__project")
+            Instance.objects.all_with_deleted()
+            .select_related("xform__project")
             .only("xform__project__date_modified")
             .get(pk=instance_id)
         )
