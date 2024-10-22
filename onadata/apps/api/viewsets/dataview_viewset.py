@@ -159,9 +159,7 @@ class DataViewViewSet(
         """
         Remove deleted DataViews
         """
-        return super().filter_queryset(
-            queryset.filter(deleted_at=None, deleted_by=None)
-        )
+        return super().filter_queryset(queryset.filter(deleted_at=None))
 
     def list(self, request, *args, **kwargs):
         """

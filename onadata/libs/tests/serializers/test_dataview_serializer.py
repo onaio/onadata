@@ -50,38 +50,6 @@ class TestDataViewSerializer(TestAbstractViewSet):
         self.assertTrue(get_has_hxl_support_value("age_only"))
         self.assertTrue(get_has_hxl_support_value("age_and_name"))
 
-    def test_no_error_thrown_for_a_dataview_with_deleted_by_set(self):
-        """
-        When `deleted_by` is set, don't throw error when serializing a DataView
-        """
-        self._publish_form_with_hxl_support()
-        request = self.factory.get("/", **self.extra)
-        request.user = self.user
-
-        dataview_name = "My deleted DataView"
-        payload = {
-            "name": dataview_name,
-            "xform": "http://testserver/api/v1/forms/%s" % self.xform.pk,
-            "project": "http://testserver/api/v1/projects/%s" % self.project.pk,
-            "columns": '["name", "age"]',
-            "query": "[]",
-        }
-        serializer = DataViewSerializer(data=payload, context={"request": request})
-        is_valid = serializer.is_valid()
-        self.assertTrue(is_valid)
-
-        serializer.save()
-        self.assertEqual(DataView.objects.count(), 1)
-
-        # delete dataview and check dataviews endpoint
-        dataview = DataView.objects.get(name=dataview_name)
-        dataview.soft_delete(self.user)
-        serialized_dataview = DataViewSerializer(
-            dataview, context={"request": request}
-        ).data
-        self.assertFalse("deleted_by" in serialized_dataview)
-        self.assertFalse("deleted_at" in serialized_dataview)
-
     def test_name_and_xform_are_unique(self):
         """
         Test that we are preventing the creation of exactly the same dataview
