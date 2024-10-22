@@ -10,7 +10,7 @@ import os
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from onadata.libs.models.base_model import SoftDeleteManager
+from onadata.libs.models import SoftDeleteManager
 
 
 def get_original_filename(filename):
