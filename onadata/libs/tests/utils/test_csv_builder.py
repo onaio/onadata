@@ -2104,20 +2104,7 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 3     | Apple  |
         """
         xform = self._publish_markdown(md_xform, self.user, id_string="b")
-        dataview_cols = [
-            "_id",
-            "_uuid",
-            "_submission_time",
-            "_date_modified",
-            "_tags",
-            "_notes",
-            "_version",
-            "_duration",
-            "_submitted_by",
-            "_total_media",
-            "_media_count",
-            "_media_all_received",
-        ]
+        dataview_cols = ["_id"]
         dataview = DataView.objects.create(
             xform=xform, columns=dataview_cols, name="test", project=self.project
         )
@@ -2134,4 +2121,4 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_file = open(temp_file.name, "r")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
-        self.assertEqual(header, csv_df_builder.extra_columns)
+        self.assertEqual(header, ["_id"])
