@@ -2104,10 +2104,6 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | fruits                 | 3     | Apple  |
         """
         xform = self._publish_markdown(md_xform, self.user, id_string="b")
-        dataview_cols = ["_id"]
-        dataview = DataView.objects.create(
-            xform=xform, columns=dataview_cols, name="test", project=self.project
-        )
         cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
@@ -2116,9 +2112,16 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False,
             show_choice_labels=True,
         )
-        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name, cursor, dataview=dataview)
-        csv_file = open(temp_file.name, "r")
-        csv_reader = csv.reader(csv_file)
-        header = next(csv_reader)
-        self.assertEqual(header, ["_id"])
+
+        for extra_col in csv_df_builder.extra_columns:
+            dataview = DataView.objects.get_or_create(
+                xform=xform, name="test", project=self.project
+            )
+            dataview.columns = [extra_col]
+            dataview.save()
+            temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+            csv_df_builder.export_to(temp_file.name, cursor, dataview=dataview)
+            csv_file = open(temp_file.name, "r")
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader)
+            self.assertEqual(header, [extra_col])
