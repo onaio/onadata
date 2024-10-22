@@ -2,13 +2,14 @@
 """
 MetaData model
 """
+
 from __future__ import unicode_literals
 
+import hashlib
 import logging
 import mimetypes
 import os
 from contextlib import closing
-import hashlib
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -23,9 +24,10 @@ from django.utils import timezone
 
 import requests
 
+from onadata.libs.models import SoftDeleteManager
 from onadata.libs.utils.cache_tools import (
-    XFORM_METADATA_CACHE,
     XFORM_MANIFEST_CACHE,
+    XFORM_METADATA_CACHE,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -203,7 +205,7 @@ class MetaData(models.Model):
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")
 
-    objects = models.Manager()
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "main"

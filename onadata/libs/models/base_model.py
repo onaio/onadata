@@ -39,4 +39,4 @@ class SoftDeleteManager(models.Manager):
 
     def all_with_deleted(self):
         """Return all objects, including those that have been deleted"""
-        return self.get_queryset().all_with_deleted()
+        return SoftDeleteQuerySet(self.model, using=self._db)
