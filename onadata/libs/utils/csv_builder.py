@@ -2,6 +2,7 @@
 """
 CSV export utility functions.
 """
+
 from collections import OrderedDict
 from itertools import chain, tee
 
@@ -10,11 +11,10 @@ from django.utils.translation import gettext as _
 
 import unicodecsv as csv
 from pyxform.question import Question
-from pyxform.section import RepeatingSection, Section, GroupedSection
+from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
 
-from onadata.apps.logger.models import EntityList
-from onadata.apps.logger.models import OsmData
+from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
@@ -852,6 +852,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         ]
                     )
                 )
+
+                # add extra columns
+                for column in filter(lambda col: col not in columns, dataview.columns):
+                    if column in self.extra_columns:
+                        columns.append(column)
+
             else:
                 columns = list(
                     chain.from_iterable(
