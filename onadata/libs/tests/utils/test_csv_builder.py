@@ -2115,8 +2115,22 @@ class TestCSVDataFrameBuilder(TestBase):
             include_images=False,
             show_choice_labels=True,
         )
+        extra_cols = [
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
 
-        for extra_col in csv_df_builder.extra_columns:
+        for extra_col in extra_cols:
             dataview = DataView.objects.create(
                 xform=xform,
                 name="test",

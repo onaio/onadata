@@ -3679,13 +3679,28 @@ class TestExportBuilder(TestBase):
         )
         export_builder = ExportBuilder()
         export_builder.set_survey(self.xform.survey)
-        dataview = DataView.objects.create(
-            xform=self.xform,
-            name="test",
-            columns=["name", "_id"],
-            project=self.project,
-        )
-        fields = export_builder.get_fields(
-            dataview, export_builder.sections[0], "title"
-        )
-        self.assertEqual(fields, ["name", "_id"])
+        extra_cols = [
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_index",
+            "_parent_table_name",
+            "_parent_index",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+        ]
+
+        for extra_col in extra_cols:
+            dataview = DataView.objects.create(
+                xform=self.xform,
+                name="test",
+                columns=["name", extra_col],
+                project=self.project,
+            )
+            fields = export_builder.get_fields(
+                dataview, export_builder.sections[0], "title"
+            )
+            self.assertEqual(fields, ["name", extra_col])
