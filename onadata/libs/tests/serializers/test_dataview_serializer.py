@@ -46,9 +46,9 @@ class TestDataViewSerializer(TestAbstractViewSet):
 
             return data.get('has_hxl_support')
 
-        self.assertFalse(get_has_hxl_support_value("name_only"))
-        self.assertTrue(get_has_hxl_support_value("age_only"))
-        self.assertTrue(get_has_hxl_support_value("age_and_name"))
+        self.assertFalse(get_has_hxl_support_value('name_only'))
+        self.assertTrue(get_has_hxl_support_value('age_only'))
+        self.assertTrue(get_has_hxl_support_value('age_and_name'))
 
     def test_name_and_xform_are_unique(self):
         """

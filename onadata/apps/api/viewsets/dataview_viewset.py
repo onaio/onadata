@@ -126,7 +126,7 @@ class DataViewViewSet(
     A simple ViewSet for viewing and editing DataViews.
     """
 
-    queryset = DataView.objects.select_related()
+    queryset = DataView.objects.filter(deleted_at__isnull=True).select_related()
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = "pk"
@@ -154,12 +154,6 @@ class DataViewViewSet(
             serializer_class = self.serializer_class
 
         return serializer_class
-
-    def filter_queryset(self, queryset):
-        """
-        Remove deleted DataViews
-        """
-        return super().filter_queryset(queryset.filter(deleted_at=None))
 
     def list(self, request, *args, **kwargs):
         """
