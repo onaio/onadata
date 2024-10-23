@@ -8,7 +8,7 @@ v4.9.1(2024-10-23)
 - Fix extra columns excluded in DataView CSV export
   `PR #2727 <https://github.com/onaio/onadata/pull/2727>`
   [@kelvin-muchiri]
-- Customized deleted_by serializer field for Dataviews
+- Remove deleted_by serializer field for Dataviews
   `PR #2721 <https://github.com/onaio/onadata/pull/2721>`
   [@FrankApiyo]
 
