@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Test DataViewViewSet"""
+
 import csv
 import json
 import os
 from datetime import datetime, timedelta
 from unittest.mock import patch
-
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,9 +13,8 @@ from django.core.files.storage import default_storage
 from django.test.utils import override_settings
 from django.utils.timezone import utc
 
-from openpyxl import load_workbook
-
 from flaky import flaky
+from openpyxl import load_workbook
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
@@ -1050,7 +1049,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
             "name": "My DataView",
             "xform": f"http://testserver/api/v1/forms/{xform.pk}",
             "project": f"http://testserver/api/v1/projects/{project.pk}",
-            "columns": '["name", "age", "gender", "pizza_type"]',
+            "columns": (
+                '["name", "age", "gender", "pizza_type", "_id", "_uuid", '
+                '"_submission_time", "_index", "_parent_table_name",  "_parent_index", '
+                '"_tags", "_notes", "_version", "_duration","_submitted_by"]'
+            ),
             "query": ('[{"column":"age","filter":"=","value":"28"}]'),
         }
         self._create_dataview(data=data)
@@ -1089,8 +1092,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertTrue(export.is_successful)
         workbook = load_workbook(export.full_filepath)
         workbook.iso_dates = True
-        sheet_name = workbook.get_sheet_names()[0]
-        main_sheet = workbook.get_sheet_by_name(sheet_name)
+        sheet_name = workbook.sheetnames[0]
+        main_sheet = workbook[sheet_name]
         sheet_headers = list(main_sheet.values)[0]
         sheet_data = list(main_sheet.values)[1]
         inst = self.xform.instances.get(id=sheet_data[4])
