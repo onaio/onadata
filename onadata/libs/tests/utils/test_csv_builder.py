@@ -2114,11 +2114,9 @@ class TestCSVDataFrameBuilder(TestBase):
         )
 
         for extra_col in csv_df_builder.extra_columns:
-            dataview = DataView.objects.get_or_create(
-                xform=xform, name="test", project=self.project
+            dataview = DataView.objects.create(
+                xform=xform, name="test", columns=[extra_col], project=self.project
             )
-            dataview.columns = [extra_col]
-            dataview.save()
             temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
             csv_df_builder.export_to(temp_file.name, cursor, dataview=dataview)
             csv_file = open(temp_file.name, "r")
