@@ -3672,7 +3672,7 @@ class TestExportBuilder(TestBase):
     def test_extra_columns_dataview(self):
         """Extra columns are included in export for dataview
 
-        Only extra columns in the dataview are included in the export
+        Extra columns included only if in the dataview
         """
         self._publish_xls_file_and_set_xform(
             _logger_fixture_path("childrens_survey.xlsx")

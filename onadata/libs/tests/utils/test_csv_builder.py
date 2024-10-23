@@ -2092,7 +2092,7 @@ class TestCSVDataFrameBuilder(TestBase):
     def test_extra_columns_dataview(self):
         """Extra columns are included in export for dataview
 
-        Only extra columns in the dataview are included in the export
+        Extra columns included only if in the dataview
         """
         md_xform = """
         | survey  |
@@ -2118,11 +2118,14 @@ class TestCSVDataFrameBuilder(TestBase):
 
         for extra_col in csv_df_builder.extra_columns:
             dataview = DataView.objects.create(
-                xform=xform, name="test", columns=[extra_col], project=self.project
+                xform=xform,
+                name="test",
+                columns=["age", extra_col],
+                project=self.project,
             )
             temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
             csv_df_builder.export_to(temp_file.name, cursor, dataview=dataview)
             csv_file = open(temp_file.name, "r")
             csv_reader = csv.reader(csv_file)
             header = next(csv_reader)
-            self.assertEqual(header, [extra_col])
+            self.assertEqual(header, ["age", extra_col])
