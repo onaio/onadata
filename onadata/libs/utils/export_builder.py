@@ -1496,6 +1496,8 @@ class ExportBuilder:
                 if column in self.extra_columns:
                     columns.append(column)
 
+            return columns
+
         return [
             (
                 element.get("_label_xpath") or element[key]

@@ -2090,7 +2090,10 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertCountEqual(row, expected_row)
 
     def test_extra_columns_dataview(self):
-        """Extra columns are included in export for dataview"""
+        """Extra columns are included in export for dataview
+
+        Only extra columns in the dataview are included in the export
+        """
         md_xform = """
         | survey  |
         |         | type                   | name  | label  |
