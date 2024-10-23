@@ -1740,7 +1740,7 @@ class TestExportBuilder(TestBase):
             workbook = load_workbook(filename)
 
             # check header columns
-            main_sheet = workbook.get_sheet_by_name("childrens_survey")
+            main_sheet = workbook["childrens_survey"]
             expected_column_headers = [
                 "name",
                 "age",
@@ -1819,7 +1819,7 @@ class TestExportBuilder(TestBase):
                 "childrens_survey_with_a_very_l2",
                 "childrens_survey_with_a_very_l3",
             ]
-            self.assertEqual(list(workbook.get_sheet_names()), expected_sheet_names)
+            self.assertEqual(list(workbook.sheetnames), expected_sheet_names)
 
     # pylint: disable=invalid-name
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
@@ -3674,12 +3674,11 @@ class TestExportBuilder(TestBase):
 
         Only extra columns in the dataview are included in the export
         """
-        survey = self._create_childrens_survey()
         self._publish_xls_file_and_set_xform(
             _logger_fixture_path("childrens_survey.xlsx")
         )
         export_builder = ExportBuilder()
-        export_builder.set_survey(survey)
+        export_builder.set_survey(self.xform.survey)
         dataview = DataView.objects.create(
             xform=self.xform,
             name="test",
