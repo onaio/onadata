@@ -3,6 +3,7 @@
 """
 ExportBuilder
 """
+
 from __future__ import unicode_literals
 
 import csv
@@ -1480,7 +1481,7 @@ class ExportBuilder:
         Return list of element value with the key in section['elements'].
         """
         if dataview:
-            return [
+            columns = [
                 (
                     element.get("_label_xpath") or element[key]
                     if self.SHOW_CHOICE_LABELS
@@ -1488,7 +1489,12 @@ class ExportBuilder:
                 )
                 for element in section["elements"]
                 if element["title"] in dataview.columns
-            ] + self.extra_columns
+            ]
+
+            # add extra columns
+            for column in filter(lambda col: col not in columns, dataview.columns):
+                if column in self.extra_columns:
+                    columns.append(column)
 
         return [
             (
