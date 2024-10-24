@@ -2,8 +2,8 @@
 Entity model
 """
 
-import uuid
 import importlib
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
@@ -12,7 +12,7 @@ from django.utils import timezone
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.registration_form import RegistrationForm
-from onadata.libs.models import BaseModel
+from onadata.libs.models import BaseModel, SoftDeleteManager
 
 User = get_user_model()
 
@@ -29,6 +29,8 @@ class Entity(BaseModel):
     uuid = models.UUIDField(default=uuid.uuid4, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    objects = SoftDeleteManager()
 
     def __str__(self) -> str:
         return f"{self.pk}|{self.entity_list}"

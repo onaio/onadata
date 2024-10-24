@@ -2,6 +2,7 @@
 """
 Test BriefcaseViewset
 """
+
 import codecs
 import os
 import shutil
@@ -792,9 +793,10 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
         self.assertEqual(instances.count(), optimized_instances.count())
         op_sql_query = (
             'SELECT "logger_instance"."id", "logger_instance"."uuid" FROM "logger_instance"'
-            f' WHERE "logger_instance"."id" IN ({optimized_instances[0].get("pk")},'
+            f' WHERE ("logger_instance"."deleted_at" IS NULL AND "logger_instance"."id"'
+            f' IN ({optimized_instances[0].get("pk")},'
             f' {optimized_instances[1].get("pk")}, {optimized_instances[2].get("pk")},'
-            f' {optimized_instances[3].get("pk")})'
+            f' {optimized_instances[3].get("pk")}))'
         )
         self.assertEqual(str(optimized_instances.query), op_sql_query)
 

@@ -2,6 +2,7 @@
 """
 Project model class
 """
+
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,7 +16,7 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from taggit.managers import TaggableManager
 
-from onadata.libs.models.base_model import BaseModel
+from onadata.libs.models.base_model import BaseModel, SoftDeleteManager
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
 # pylint: disable=invalid-name
@@ -118,7 +119,7 @@ class Project(BaseModel):
         on_delete=models.SET_NULL,
     )
 
-    objects = models.Manager()
+    objects = SoftDeleteManager()
     tags = TaggableManager(related_name="project_tags")
     prefetched = PrefetchManager()
 
