@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.9.1(2024-10-23)
+------------------
+- Fix extra columns excluded in DataView CSV export
+  `PR #2727 <https://github.com/onaio/onadata/pull/2727>`
+  [@kelvin-muchiri]
+- Remove deleted_by serializer field for Dataviews
+  `PR #2721 <https://github.com/onaio/onadata/pull/2721>`
+  [@FrankApiyo]
+
 v4.9.0(2024-10-22)
 ------------------
 - Update pre-commit hooks
