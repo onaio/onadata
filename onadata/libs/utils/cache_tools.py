@@ -165,6 +165,33 @@ def safe_cache_get(key, default=None):
         return default
 
 
+def safe_cache_add(key, value, timeout=None):
+    """
+    Safely add a value to the cache.
+
+    If the cache is not reachable, the operation silently fails.
+
+    Args:
+        key (str): The cache key to add.
+        value (Any): The value to store in the cache.
+        timeout (int, optional): The cache timeout in seconds. If None,
+            the default cache timeout will be used.
+    Returns:
+        bool: True if the value was added to the cache, False otherwise.
+    """
+    try:
+        return cache.add(key, value, timeout)
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+        return False
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
+        return False
+
+
 class CacheLockError(Exception):
     """Custom exception raised when a cache lock cannot be acquired."""
 
