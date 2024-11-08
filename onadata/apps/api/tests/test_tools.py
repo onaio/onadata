@@ -127,5 +127,11 @@ class InvalidateXFormListCacheTestCase(TestBase):
         """Cache invalidated for xform and project"""
         invalidate_xform_list_cache(self.xform)
 
-        for key in self.cache_keys:
-            self.assertIsNone(cache.get(key))
+        self.assertIsNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-anon"))
+        self.assertIsNone(cache.get(f"xfm-list-{self.xform.project.pk}-Project-anon"))
+
+        for role in ROLES:
+            self.assertIsNone(cache.get(f"xfm-list-{self.xform.pk}-XForm-{role}"))
+            self.assertIsNone(
+                cache.get(f"xfm-list-{self.xform.project.pk}-Project-{role}")
+            )
