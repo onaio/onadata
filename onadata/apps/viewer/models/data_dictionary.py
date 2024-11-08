@@ -418,6 +418,7 @@ post_save.connect(
 
 def invalidate_caches(sender, instance=None, created=False, **kwargs):
     """Invalidate caches"""
+    # pylint: disable=import-outside-toplevel
     from onadata.apps.api.tools import invalidate_xform_list_cache
 
     xform = XForm.objects.get(pk=instance.pk)
