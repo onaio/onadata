@@ -3,6 +3,7 @@
 DataDictionary model.
 """
 
+import importlib
 import json
 import os
 from io import BytesIO, StringIO
@@ -418,14 +419,14 @@ post_save.connect(
 
 def invalidate_caches(sender, instance=None, created=False, **kwargs):
     """Invalidate caches"""
-    # pylint: disable=import-outside-toplevel
-    from onadata.apps.api.tools import invalidate_xform_list_cache
+    # Avoid cyclic dependency errors
+    api_tools = importlib.import_module("onadata.apps.api.tools")
 
     xform = XForm.objects.get(pk=instance.pk)
 
     safe_delete(f"{PROJ_FORMS_CACHE}{instance.project.pk}")
     safe_delete(f"{PROJ_BASE_FORMS_CACHE}{instance.project.pk}")
-    invalidate_xform_list_cache(xform)
+    api_tools.invalidate_xform_list_cache(xform)
 
 
 post_save.connect(
