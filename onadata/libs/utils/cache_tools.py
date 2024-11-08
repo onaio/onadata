@@ -2,6 +2,7 @@
 """
 Cache utilities.
 """
+
 import hashlib
 import logging
 import socket
@@ -88,7 +89,7 @@ ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
-    _ = cache.get(key) and cache.delete(key)
+    _ = safe_cache_get(key) and cache.delete(key)
 
 
 def safe_key(key):

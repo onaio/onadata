@@ -1,16 +1,17 @@
 """Tests for module onadata.apps.api.tools"""
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
     Team,
     get_organization_members_team,
 )
-from onadata.apps.api.tools import add_user_to_organization
+from onadata.apps.api.tools import add_user_to_organization, invalidate_xform_list_cache
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import DataEntryRole, ManagerRole, OwnerRole
+from onadata.libs.permissions import ROLES, DataEntryRole, ManagerRole, OwnerRole
 
 User = get_user_model()
 
@@ -96,3 +97,35 @@ class AddUserToOrganizationTestCase(TestBase):
             members_team.user_set.filter(username=self.user.username).exists()
         )
         self.assertTrue(DataEntryRole.user_has_role(self.user, self.project))
+
+
+class InvalidateXFormListCacheTestCase(TestBase):
+    """Tests for invalidate_xform_list_cache"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+        self.cache_keys = [
+            f"xfm-list-{self.xform.pk}-XForm-anon",
+            f"xfm-list-{self.xform.project.pk}-Project-anon",
+        ]
+
+        # Simulate cached data
+        for role in ROLES:
+            self.cache_keys.extend(
+                [
+                    f"xfm-list-{self.xform.pk}-XForm-{role}",
+                    f"xfm-list-{self.xform.project.pk}-Project-{role}",
+                ]
+            )
+
+        for key in self.cache_keys:
+            cache.set(key, "data")
+
+    def test_cache_invalidated(self):
+        """Cache invalidated for xform and project"""
+        invalidate_xform_list_cache(self.xform)
+
+        for key in self.cache_keys:
+            self.assertIsNone(cache.get(key))

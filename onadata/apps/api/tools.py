@@ -2,6 +2,7 @@
 """
 API utility functions.
 """
+
 import importlib
 import os
 import tempfile
@@ -37,13 +38,7 @@ from onadata.apps.api.models.organization_profile import (
     get_organization_members_team,
 )
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models import (
-    DataView,
-    Instance,
-    Project,
-    XForm,
-    EntityList,
-)
+from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
@@ -61,22 +56,22 @@ from onadata.libs.permissions import (
     OwnerRole,
     get_role,
     get_role_in_org,
-    is_organization,
     get_team_project_default_permissions,
+    is_organization,
 )
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
-    get_metadata_format,
     get_entity_list_export_response,
+    get_metadata_format,
 )
 from onadata.libs.utils.cache_tools import (
+    ORG_PROFILE_CACHE,
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
-    ORG_PROFILE_CACHE,
     XFORM_LIST_CACHE,
     reset_project_cache,
     safe_delete,
@@ -95,7 +90,6 @@ from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
 )
-
 
 DECIMAL_PRECISION = 2
 
@@ -918,18 +912,24 @@ def invalidate_organization_cache(org_username):
     safe_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
 
 
+def _get_xform_list_cache_key_prefix(xform_or_project):
+    """Get the cache key prefix for the XForm list by user's role
+
+    :param xform_or_project: XForm or Project being accessed
+    :return: cache key prefix based on role assigned to form/project
+    """
+    object_type = type(xform_or_project).__name__
+    return f"{XFORM_LIST_CACHE}{xform_or_project.id}-{object_type}"
+
+
 def get_xform_list_cache_key(user, xform_or_project):
     """Get the cache key for the XForm list by user's role
 
-    Args:
-        user: User making request
-        xform_or_project: XForm or Project being accessed
-
-    Returns:
-        str: cache key based on role assigned to form/project
+    :param user: User making request
+    :param xform_or_project: XForm or Project being accessed
+    :return: cache key based on role assigned to form/project
     """
-    object_type = type(xform_or_project).__name__
-    cache_key_prefix = f"{XFORM_LIST_CACHE}{xform_or_project.id}-{object_type}"
+    cache_key_prefix = _get_xform_list_cache_key_prefix(xform_or_project)
     anonymous_user_key = f"{cache_key_prefix}-anon"
 
     if user.is_anonymous:
@@ -942,3 +942,20 @@ def get_xform_list_cache_key(user, xform_or_project):
         return anonymous_user_key
 
     return f"{cache_key_prefix}-{user_role}"
+
+
+def invalidate_xform_list_cache(xform):
+    """Invalidate the cache for the XForm list by user's role
+
+    :param xform: XForm instance
+    :return: None
+    """
+    xform_cache_key_prefix = _get_xform_list_cache_key_prefix(xform)
+    project_cache_key_prefix = _get_xform_list_cache_key_prefix(xform.project)
+
+    for role in ROLES_ORDERED:
+        safe_delete(f"{xform_cache_key_prefix}-{role.name}")
+        safe_delete(f"{project_cache_key_prefix}-{role.name}")
+
+    safe_delete(f"{xform_cache_key_prefix}-anon")
+    safe_delete(f"{project_cache_key_prefix}-anon")

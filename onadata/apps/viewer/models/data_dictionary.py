@@ -2,14 +2,15 @@
 """
 DataDictionary model.
 """
+
 import json
 import os
 from io import BytesIO, StringIO
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models.signals import post_save, pre_save
 from django.db import transaction
+from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -23,8 +24,8 @@ from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.entity_list import EntityList
-from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
+from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
@@ -205,11 +206,6 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     Apply the relevant object permissions for the form to all users who should
     have access to it.
     """
-    if instance.project:
-        # clear cache
-        safe_delete(f"{PROJ_FORMS_CACHE}{instance.project.pk}")
-        safe_delete(f"{PROJ_BASE_FORMS_CACHE}{instance.project.pk}")
-
     # seems the super is not called, have to get xform from here
     xform = XForm.objects.get(pk=instance.pk)
 
@@ -223,9 +219,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (
+        from onadata.libs.utils.project_utils import (  # noqa
             set_project_perms_to_xform_async,
-        )  # noqa
+        )
 
         try:
             transaction.on_commit(
@@ -235,9 +231,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (
+            from onadata.libs.utils.project_utils import (  # noqa
                 set_project_perms_to_xform,
-            )  # noqa
+            )
 
             set_project_perms_to_xform(xform, instance.project)
 
@@ -417,4 +413,22 @@ post_save.connect(
     disable_registration_form,
     sender=DataDictionary,
     dispatch_uid="disable_registration_form_datadictionary",
+)
+
+
+def invalidate_caches(sender, instance=None, created=False, **kwargs):
+    """Invalidate caches"""
+    from onadata.apps.api.tools import invalidate_xform_list_cache
+
+    xform = XForm.objects.get(pk=instance.pk)
+
+    safe_delete(f"{PROJ_FORMS_CACHE}{instance.project.pk}")
+    safe_delete(f"{PROJ_BASE_FORMS_CACHE}{instance.project.pk}")
+    invalidate_xform_list_cache(xform)
+
+
+post_save.connect(
+    invalidate_caches,
+    sender=DataDictionary,
+    dispatch_uid="xform_invalidate_caches",
 )
