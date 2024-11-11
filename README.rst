@@ -63,12 +63,11 @@ Edit top level requirements in the file `requirements/base.in <requirements/base
 
     pip-compile --output-file requirements/base.pip requirements/base.in
 
-Copy `pre-commit.sh <pre-commit.sh>`_ into `.git/hooks/pre-commit`, it ensures staged python flake8 are in acceptable code style and conventions.
+Install the pre-commit hooks by running:
 
 .. code-block:: sh
 
-    cp pre-commit.sh .git/hooks/pre-commit
-    chmod +x .git/hooks/pre-commit
+    pre-commit install
 
 **Security Acknowledgments**
 
