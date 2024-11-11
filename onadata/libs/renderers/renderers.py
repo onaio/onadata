@@ -2,18 +2,17 @@
 """
 Custom renderers for use with django rest_framework.
 """
+
 import decimal
 import json
 import math
 from io import BytesIO, StringIO
 from typing import Tuple
 
-from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.encoding import force_str, smart_str
 from django.utils.xmlutils import SimplerXMLGenerator
-
 
 import six
 from rest_framework import negotiation
@@ -28,11 +27,14 @@ from rest_framework_xml.renderers import XMLRenderer
 from six import iteritems
 
 from onadata.libs.utils.cache_tools import (
-    XFORM_MANIFEST_CACHE_TTL,
     XFORM_MANIFEST_CACHE_LOCK_TTL,
+    XFORM_MANIFEST_CACHE_TTL,
+    safe_cache_add,
+    safe_cache_get,
+    safe_cache_set,
+    safe_delete,
 )
 from onadata.libs.utils.osm import get_combined_osm
-
 
 IGNORE_FIELDS = [
     "formhub/uuid",
@@ -395,18 +397,20 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
 
         if data and self.can_update_cache:
             data = data.strip()
-            cached_manifest: str | None = cache.get(self.cache_key)
+            cached_manifest: str | None = safe_cache_get(self.cache_key)
 
             if cached_manifest is not None:
                 cached_manifest += data
-                cache.set(self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL)
+                safe_cache_set(
+                    self.cache_key, cached_manifest, XFORM_MANIFEST_CACHE_TTL
+                )
 
                 if data.endswith("</manifest>"):
                     # We are done, release the lock
-                    cache.delete(self.cache_lock_key)
+                    safe_delete(self.cache_lock_key)
 
             else:
-                cache.set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
+                safe_cache_set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)
 
         return data
 
@@ -415,7 +419,7 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
             # In the case of concurrent requests, we ensure only the first
             # request is updating the cache
             self.cache_lock_key = f"{self.cache_key}_lock"
-            self.can_update_cache = cache.add(
+            self.can_update_cache = safe_cache_add(
                 self.cache_lock_key, "true", XFORM_MANIFEST_CACHE_LOCK_TTL
             )
 
