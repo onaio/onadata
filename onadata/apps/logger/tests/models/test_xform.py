@@ -2,6 +2,7 @@
 """
 test_xform module
 """
+
 import os
 
 from builtins import str as text
@@ -227,3 +228,26 @@ class TestXForm(TestBase):
 
         with self.assertRaises(XLSFormError):
             xform.save()
+
+    def test_multiple_model_nodes(self):
+        """
+        Test XForm.set_uuid_in_xml() function is able to handle
+        a form that has field named model which may match the XForm's
+        top level node also named model.
+        """
+        md = """
+        | survey  |
+        |         | type              | name  | label   |
+        |         | select one fruits | fruit | Fruit   |
+        |         | text              | model | Model   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        |         | fruits            | mango  | Mango  |
+        """
+        dd = self._publish_markdown(md, self.user, id_string="a")
+        self.assertNotIn(
+            "<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml
+        )
+        dd.set_uuid_in_xml()
+        self.assertIn("<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml)
