@@ -198,7 +198,11 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         super().save(*args, **kwargs)
 
     def file_name(self):
-        return os.path.split(self.xls.name)[-1]
+        return (
+            os.path.split(self.xls.name)[-1]
+            if self.xls.name is not None
+            else self.id_string + ".xml"
+        )
 
 
 # pylint: disable=unused-argument
