@@ -264,7 +264,7 @@ def _generate_new_export(  # noqa: C0901
         "host": request.get_host(),
         "sort": request.query_params.get("sort"),
     }
-    if export_options is not None:
+    if isinstance(export_options, dict):
         options.update(export_options)
     if query:
         options["query"] = query
