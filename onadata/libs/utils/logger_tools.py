@@ -1495,7 +1495,8 @@ def delete_xform_submissions(
         instances = xform.instances.filter(deleted_at__isnull=True)
 
     if soft_delete:
-        instances.update(deleted_at=timezone.now(), deleted_by=deleted_by)
+        now = timezone.now()
+        instances.update(deleted_at=now, date_modified=now, deleted_by=deleted_by)
     else:
         # Hard delete
         instances.delete()

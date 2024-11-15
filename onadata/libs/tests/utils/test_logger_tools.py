@@ -1084,7 +1084,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertEqual(self.xform.num_of_submissions, 3)
 
     def test_sets_deleted_at(self):
-        """Deleted_at is set to the current time"""
+        """deleted_at is set to the current time"""
         mocked_now = timezone.now()
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
@@ -1092,6 +1092,17 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
         self.assertTrue(
             all(instance.deleted_at == mocked_now for instance in self.instances)
+        )
+
+    def test_sets_date_modified(self):
+        """date_modified is set to the current time"""
+        mocked_now = timezone.now()
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            delete_xform_submissions(self.xform)
+
+        self.assertTrue(
+            all(instance.date_modified == mocked_now for instance in self.instances)
         )
 
     def test_sets_deleted_by(self):
