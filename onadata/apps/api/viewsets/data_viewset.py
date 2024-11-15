@@ -2,6 +2,7 @@
 """
 The /data API endpoint.
 """
+
 import json
 import math
 import types
@@ -24,12 +25,8 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.pagination import (
-    CountOverridablePageNumberPagination,
-)
-
 from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
+from onadata.apps.api.tasks import delete_xform_submissions_async
 from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
 from onadata.apps.logger.models import MergedXForm, OsmData
 from onadata.apps.logger.models.attachment import Attachment
@@ -38,14 +35,14 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance,
+    _get_sort_fields,
     get_etag_hash_from_query,
     get_sql_with_params,
     get_where_clause,
+    query_count,
     query_data,
     query_fields_data,
-    query_count,
-    _get_sort_fields,
-    ParsedInstance,
 )
 from onadata.libs import filters
 from onadata.libs.data import parse_int, strtobool
@@ -56,6 +53,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.pagination import CountOverridablePageNumberPagination
 from onadata.libs.permissions import (
     CAN_DELETE_SUBMISSION,
     filter_queryset_xform_meta_perms,
@@ -70,6 +68,7 @@ from onadata.libs.serializers.data_serializer import (
     JsonDataSerializer,
     OSMSerializer,
 )
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
@@ -346,8 +345,6 @@ class DataViewSet(
     # pylint: disable=too-many-branches,too-many-locals
     def destroy(self, request, *args, **kwargs):
         """Deletes submissions data."""
-        instance_ids = request.data.get("instance_ids")
-        delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
         # get param to trigger permanent submission deletion
         permanent_delete = str_to_bool(request.data.get("permanent_delete"))
         enable_submission_permanent_delete = getattr(
@@ -356,66 +353,36 @@ class DataViewSet(
         permanent_delete_disabled_msg = _(
             "Permanent submission deletion is not enabled for this server."
         )
+
+        if permanent_delete and not enable_submission_permanent_delete:
+            return Response(
+                {"error": permanent_delete_disabled_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
+        instance_ids = request.data.get("instance_ids")
+        delete_all_submissions = strtobool(request.data.get("delete_all", "False"))
 
         if isinstance(self.object, XForm):
             if not instance_ids and not delete_all_submissions:
                 raise ParseError(_("Data id(s) not provided."))
-            initial_count = self.object.submission_count()
-            if delete_all_submissions:
-                # Update timestamp only for active records
-                queryset = self.object.instances.filter(deleted_at__isnull=True)
-            else:
+
+            if instance_ids:
                 instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
+
                 if not instance_ids:
                     raise ParseError(_("Invalid data ids were provided."))
 
-                queryset = self.object.instances.filter(
-                    id__in=instance_ids,
-                    xform=self.object,
-                    # do not update this timestamp when the record have
-                    # already been deleted.
-                    deleted_at__isnull=True,
-                )
-
-            error_msg = None
-            for instance in queryset.iterator():
-                if permanent_delete:
-                    if enable_submission_permanent_delete:
-                        instance.delete()
-                    else:
-                        error_msg = {"error": permanent_delete_disabled_msg}
-                        break
-                else:
-                    # enable soft deletion
-                    delete_instance(instance, request.user)
-
-            if error_msg:
-                # return error msg if permanent deletion not enabled
-                return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
-
-            # updates the num_of_submissions for the form.
-            after_count = self.object.submission_count(force_update=True)
-            number_of_records_deleted = initial_count - after_count
-
-            # update the date modified field of the project
-            self.object.project.date_modified = timezone.now()
-            self.object.project.save(update_fields=["date_modified"])
-
-            # send message
-            send_message(
-                instance_id=instance_ids,
-                target_id=self.object.id,
-                target_type=XFORM,
-                user=request.user,
-                message_verb=SUBMISSION_DELETED,
+            delete_xform_submissions_async.delay(
+                self.object.id,
+                instance_ids,
+                not permanent_delete,
+                request.user.id,
             )
 
-            return Response(
-                data={"message": f"{number_of_records_deleted} records were deleted"},
-                status=status.HTTP_200_OK,
-            )
+            return Response(status=status.HTTP_200_OK)
 
         if isinstance(self.object, Instance):
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):

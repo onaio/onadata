@@ -2,31 +2,33 @@
 """
 Celery api.tasks module.
 """
+
+import logging
 import os
 import sys
-import logging
 from datetime import timedelta
 
-from celery.result import AsyncResult
 from django.conf import settings
-from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.core.files.storage import default_storage
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
+from celery.result import AsyncResult
+
 from onadata.apps.api import tools
-from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
+from onadata.apps.logger.models import Instance, Project, ProjectInvitation, XForm
 from onadata.celeryapp import app
-from onadata.libs.utils.email import send_generic_email
-from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.cache_tools import (
-    safe_delete,
-    XFORM_REGENERATE_INSTANCE_JSON_TASK,
-)
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.cache_tools import (
+    XFORM_REGENERATE_INSTANCE_JSON_TASK,
+    safe_delete,
+)
+from onadata.libs.utils.email import ProjectInvitationEmail, send_generic_email
+from onadata.libs.utils.logger_tools import delete_xform_submissions
+from onadata.libs.utils.model_tools import queryset_iterator
 
 logger = logging.getLogger(__name__)
 
@@ -200,3 +202,19 @@ def share_project_async(project_id, username, role, remove=False):
     else:
         share = ShareProject(project, username, role, remove)
         share.save()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def delete_xform_submissions_async(
+    xform_id, instance_ids=None, soft_delete=True, deleted_by_id=None
+):
+    """Delete xform submissions asynchronously"""
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+        deleted_by = User.objects.get(pk=deleted_by_id) if deleted_by_id else None
+
+    except (XForm.DoesNotExist, User.DoesNotExist) as err:
+        logger.exception(err)
+
+    else:
+        delete_xform_submissions(xform, instance_ids, soft_delete, deleted_by)

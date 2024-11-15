@@ -3,6 +3,7 @@
 """
 logger_tools - Logger app utility functions.
 """
+
 import json
 import logging
 import os
@@ -13,12 +14,10 @@ from builtins import str as text
 from datetime import datetime, timedelta
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import NoReturn, Any
+from typing import Any, NoReturn
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
-import boto3
-from botocore.client import Config
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -30,12 +29,12 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q, F
+from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
-    HttpResponseRedirect,
     HttpResponseNotFound,
+    HttpResponseRedirect,
     StreamingHttpResponse,
     UnreadablePostError,
 )
@@ -44,7 +43,8 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
 
-
+import boto3
+from botocore.client import Config
 from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
@@ -81,13 +81,14 @@ from onadata.apps.logger.xform_instance_parser import (
     NonUniqueFormIdError,
     clean_and_parse_xml,
     get_deprecated_uuid_from_xml,
-    get_submission_date_from_xml,
-    get_uuid_from_xml,
     get_entity_uuid_from_xml,
     get_meta_from_xml,
+    get_submission_date_from_xml,
+    get_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
+    SUBMISSION_DELETED,
     SUBMISSION_EDITED,
     XFORM,
 )
@@ -97,19 +98,18 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
+    ELIST_FAILOVER_REPORT_SENT,
     ELIST_NUM_ENTITIES,
+    ELIST_NUM_ENTITIES_CREATED_AT,
     ELIST_NUM_ENTITIES_IDS,
     ELIST_NUM_ENTITIES_LOCK,
-    ELIST_NUM_ENTITIES_CREATED_AT,
-    ELIST_FAILOVER_REPORT_SENT,
     safe_delete,
     set_cache_with_lock,
 )
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
-from onadata.libs.utils.model_tools import set_uuid, queryset_iterator
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
-
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
 HTTP_OPEN_ROSA_VERSION_HEADER = "HTTP_X_OPENROSA_VERSION"
@@ -1468,3 +1468,47 @@ def _exec_cached_elist_counter_commit_failover() -> None:
             )
             report_exception(subject, msg)
             cache.set(ELIST_FAILOVER_REPORT_SENT, "sent", 86400)
+
+
+def delete_xform_submissions(
+    xform: XForm,
+    instance_ids: list[int] | None = None,
+    soft_delete: bool = True,
+    deleted_by: User | None = None,
+) -> None:
+    """ "Delete subset or all submissions of an XForm
+
+    :param xform: XForm object
+    :param instance_ids: List of instance ids to delete
+    :param soft_delete: Flag to soft delete or hard delete
+    :param deleted_by: User initiating the delete
+    """
+    if instance_ids:
+        instances = xform.instances.filter(id__in=instance_ids, deleted_at__isnull=True)
+    else:
+        instances = xform.instances.filter(deleted_at__isnull=True)
+
+    if soft_delete:
+        instances.update(deleted_at=timezone.now(), deleted_by=deleted_by)
+    else:
+        # Hard delete
+        instances.delete()
+
+    if instance_ids is None:
+        # Every submission has been deleted
+        xform.num_of_submissions = 0
+        xform.save(update_fields=["num_of_submissions"])
+
+    else:
+        xform.submission_count(force_update=True)
+
+    xform.project.date_modified = timezone.now()
+    xform.project.save(update_fields=["date_modified"])
+
+    send_message(
+        instance_id=instance_ids,
+        target_id=xform.id,
+        target_type=XFORM,
+        user=deleted_by,
+        message_verb=SUBMISSION_DELETED,
+    )

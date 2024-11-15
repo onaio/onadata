@@ -1,26 +1,26 @@
 """Tests for module onadata.apps.api.tasks"""
 
 import sys
-
 from unittest.mock import patch
 
-from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
 from onadata.apps.api.tasks import (
-    send_project_invitation_email_async,
-    regenerate_form_instance_json,
-    share_project_async,
     ShareProject,
+    delete_xform_submissions_async,
+    regenerate_form_instance_json,
+    send_project_invitation_email_async,
+    share_project_async,
 )
-from onadata.apps.logger.models import ProjectInvitation, Instance
+from onadata.apps.logger.models import Instance, ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.organization_serializer import OrganizationSerializer
-from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
+from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
 
@@ -185,3 +185,48 @@ class ShareProjectAsyncTestCase(TestBase):
         self.assertTrue(mock_retry.called)
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], OperationalError))
+
+
+@patch("onadata.apps.api.tasks.delete_xform_submissions")
+class DeleteXFormSubmissionsAsyncTestCase(TestBase):
+    """Tests for delete_xform_submissions_async"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+
+    def test_delete(self, mock_delete):
+        """Submissions are deleted"""
+        delete_xform_submissions_async.delay(self.xform.pk, [1, 2], False, self.user.id)
+        mock_delete.assert_called_once_with(self.xform, [1, 2], False, self.user)
+
+    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
+    def test_database_error(self, mock_retry, mock_delete):
+        """We retry calls if DatabaseError is raised"""
+        with patch("onadata.apps.api.tasks.delete_xform_submissions") as mock_delete:
+            mock_delete.side_effect = DatabaseError()
+            delete_xform_submissions_async.delay(self.xform.pk)
+            self.assertTrue(mock_retry.called)
+
+    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
+    def test_connection_error(self, mock_retry, mock_delete):
+        """We retry calls if ConnectionError is raised"""
+        with patch("onadata.apps.api.tasks.delete_xform_submissions") as mock_delete:
+            mock_delete.side_effect = ConnectionError()
+            delete_xform_submissions_async.delay(self.xform.pk)
+            self.assertTrue(mock_retry.called)
+
+    @patch("onadata.apps.api.tasks.logger.exception")
+    def test_xform_id_invalid(self, mock_logger, mock_delete):
+        """Invalid xform_id is handled"""
+        delete_xform_submissions_async.delay(sys.maxsize)
+        self.assertFalse(mock_delete.called)
+        mock_logger.assert_called_once()
+
+    @patch("onadata.apps.api.tasks.logger.exception")
+    def test_user_id_invalid(self, mock_logger, mock_delete):
+        """Invalid user_id is handled"""
+        delete_xform_submissions_async.delay(self.xform.pk, deleted_by_id=sys.maxsize)
+        self.assertFalse(mock_delete.called)
+        mock_logger.assert_called_once()
