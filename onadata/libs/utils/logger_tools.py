@@ -1484,6 +1484,11 @@ def delete_xform_submissions(
     :param deleted_by: User initiating the delete
     :return: None
     """
+    if not soft_delete and not getattr(
+        settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+    ):
+        raise PermissionDenied("Hard delete is not enabled")
+
     if instance_ids:
         instances = xform.instances.filter(id__in=instance_ids, deleted_at__isnull=True)
     else:

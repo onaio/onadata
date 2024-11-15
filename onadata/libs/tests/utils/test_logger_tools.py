@@ -11,6 +11,7 @@ from unittest.mock import Mock, call, patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
@@ -1054,6 +1055,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 0)
 
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     def test_hard_delete_all(self):
         """All submissions are hard deleted"""
         delete_xform_submissions(self.xform, soft_delete=False)
@@ -1070,6 +1072,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 3)
 
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     def test_hard_delete_subset(self):
         """Subset of submissions are hard deleted"""
         delete_xform_submissions(
@@ -1123,3 +1126,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
             user=self.user,
             message_verb="submission_deleted",
         )
+
+    def test_hard_delete_enabled(self):
+        """Hard delete should be enabled for hard delete to be successful"""
+        with self.assertRaises(PermissionDenied):
+            delete_xform_submissions(self.xform, soft_delete=False)
