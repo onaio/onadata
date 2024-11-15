@@ -214,7 +214,7 @@ def delete_xform_submissions_async(
     """Delete xform submissions asynchronously
 
     :param xform_id: XForm id
-    :param instance_ids: List of instance ids to delete
+    :param instance_ids: List of instance ids to delete, None to delete all
     :param soft_delete: Soft delete instances if True, otherwise hard delete
     :param deleted_by_id: User id who deleted the instances
     """
