@@ -1482,6 +1482,7 @@ def delete_xform_submissions(
     :param instance_ids: List of instance ids to delete
     :param soft_delete: Flag to soft delete or hard delete
     :param deleted_by: User initiating the delete
+    :return: None
     """
     if instance_ids:
         instances = xform.instances.filter(id__in=instance_ids, deleted_at__isnull=True)
