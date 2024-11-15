@@ -204,18 +204,16 @@ class DeleteXFormSubmissionsAsyncTestCase(TestBase):
     @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
     def test_database_error(self, mock_retry, mock_delete):
         """We retry calls if DatabaseError is raised"""
-        with patch("onadata.apps.api.tasks.delete_xform_submissions") as mock_delete:
-            mock_delete.side_effect = DatabaseError()
-            delete_xform_submissions_async.delay(self.xform.pk)
-            self.assertTrue(mock_retry.called)
+        mock_delete.side_effect = DatabaseError()
+        delete_xform_submissions_async.delay(self.xform.pk)
+        self.assertTrue(mock_retry.called)
 
     @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
     def test_connection_error(self, mock_retry, mock_delete):
         """We retry calls if ConnectionError is raised"""
-        with patch("onadata.apps.api.tasks.delete_xform_submissions") as mock_delete:
-            mock_delete.side_effect = ConnectionError()
-            delete_xform_submissions_async.delay(self.xform.pk)
-            self.assertTrue(mock_retry.called)
+        mock_delete.side_effect = ConnectionError()
+        delete_xform_submissions_async.delay(self.xform.pk)
+        self.assertTrue(mock_retry.called)
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_xform_id_invalid(self, mock_logger, mock_delete):
