@@ -103,6 +103,7 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_CREATED_AT,
     ELIST_NUM_ENTITIES_IDS,
     ELIST_NUM_ENTITIES_LOCK,
+    XFORM_SUBMISSIONS_DELETING,
     safe_delete,
     set_cache_with_lock,
 )
@@ -1511,7 +1512,7 @@ def delete_xform_submissions(
 
     xform.project.date_modified = timezone.now()
     xform.project.save(update_fields=["date_modified"])
-
+    safe_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
     send_message(
         instance_id=instance_ids,
         target_id=xform.id,

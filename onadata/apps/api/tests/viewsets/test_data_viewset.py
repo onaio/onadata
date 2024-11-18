@@ -2,6 +2,7 @@
 """
 Test /data API endpoint implementation.
 """
+
 from __future__ import unicode_literals
 
 import csv
@@ -1796,7 +1797,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
         mock_cache_set.assert_called_once_with(
-            f"xfm-submissions-under-deletion-{formid}",
+            f"xfm-submissions-deleting-{formid}",
             [str(i.pk) for i in records_to_be_deleted],
             3600,
         )
@@ -3780,6 +3781,35 @@ class TestDataViewSet(SerializeMixin, TestBase):
             },
             response.data,
         )
+
+    def test_submissions_deletion_in_progress(self):
+        """Submissions whose deletion is in progress are excluded from list"""
+        self._make_submissions()
+        self.assertEqual(self.xform.instances.count(), 4)
+        view = DataViewSet.as_view({"get": "list"})
+        formid = self.xform.pk
+        instances = self.xform.instances.all()
+        cache.set(
+            f"xfm-submissions-deleting-{self.xform.pk}",
+            [instances[0].pk, instances[1].pk],
+        )
+        # No query
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        # With query
+        data = {"query": '{"_submission_time":{"$gt":"2018-04-19"}}'}
+        request = self.factory.get("/", **self.extra, data=data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        # With sort
+        data = {"sort": 1}
+        request = self.factory.get("/", **self.extra, data=data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
 
 class TestOSM(TestAbstractViewSet):

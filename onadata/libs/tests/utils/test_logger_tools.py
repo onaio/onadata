@@ -1142,3 +1142,10 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         """Hard delete should be enabled for hard delete to be successful"""
         with self.assertRaises(PermissionDenied):
             delete_xform_submissions(self.xform, soft_delete=False)
+
+    def test_cache_deleted(self):
+        """Cache tracking submissions being deleted is cleared"""
+        cache.set(f"xfm-submissions-deleting-{self.xform.id}", [self.instances[0].pk])
+        delete_xform_submissions(self.xform)
+
+        self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))

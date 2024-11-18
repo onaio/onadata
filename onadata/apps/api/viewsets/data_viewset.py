@@ -37,6 +37,7 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance,
     _get_sort_fields,
+    exclude_deleting_submissions_clause,
     get_etag_hash_from_query,
     get_sql_with_params,
     get_where_clause,
@@ -70,6 +71,11 @@ from onadata.libs.serializers.data_serializer import (
 )
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.cache_tools import (
+    XFORM_SUBMISSIONS_DELETING,
+    XFORM_SUBMISSIONS_DELETING_TTL,
+    safe_cache_set,
+)
 from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
 
@@ -369,17 +375,25 @@ class DataViewSet(
             if not instance_ids and not delete_all_submissions:
                 raise ParseError(_("Data id(s) not provided."))
 
-            if instance_ids:
+            if not delete_all_submissions:
                 instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
 
                 if not instance_ids:
                     raise ParseError(_("Invalid data ids were provided."))
+
+            else:
+                instance_ids = None
 
             delete_xform_submissions_async.delay(
                 self.object.id,
                 instance_ids,
                 not permanent_delete,
                 request.user.id,
+            )
+            safe_cache_set(
+                f"{XFORM_SUBMISSIONS_DELETING}{self.object.id}",
+                instance_ids,
+                XFORM_SUBMISSIONS_DELETING_TTL,
             )
 
             return Response(status=status.HTTP_200_OK)
@@ -654,6 +668,16 @@ class DataViewSet(
                 enable_etag = self.data_count < SUBMISSION_RETRIEVAL_THRESHOLD
 
             where, where_params = get_where_clause(query)
+
+            if not is_public_request:
+                # Exclude submissions whose deletion is in progress
+                exclude_del_sql, exclude_del_params = (
+                    exclude_deleting_submissions_clause(self.get_object().id)
+                )
+
+                if exclude_del_sql:
+                    where.append(f" {exclude_del_sql}")
+                    where_params.extend(exclude_del_params)
 
             if where:
                 # pylint: disable=attribute-defined-outside-init

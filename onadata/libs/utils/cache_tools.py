@@ -66,6 +66,8 @@ XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 XFORM_MANIFEST_CACHE = "xfm-manifest-"
 XFORM_LIST_CACHE = "xfm-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
+XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
+XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
 
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
