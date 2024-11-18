@@ -402,11 +402,7 @@ class DataViewSet(
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
                 instance_id = self.object.pk
                 if permanent_delete:
-                    if enable_submission_permanent_delete:
-                        self.object.delete()
-                    else:
-                        error_msg = {"error": permanent_delete_disabled_msg}
-                        return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+                    self.object.delete()
                 else:
                     # enable soft deletion
                     delete_instance(self.object, request.user)

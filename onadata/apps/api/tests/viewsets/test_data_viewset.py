@@ -3811,6 +3811,30 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    @patch(
+        "onadata.apps.api.viewsets.data_viewset.delete_xform_submissions_async.delay"
+    )
+    def test_deletion_of_bulk_submissions_async(self, mock_del_async):
+        """Deletion of bulk submissions is done asynchronously"""
+        self._make_submissions()
+
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ",".join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids}
+
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        mock_del_async.assert_called_once_with(
+            self.xform.pk,
+            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            True,
+            self.user.id,
+        )
+
 
 class TestOSM(TestAbstractViewSet):
     """
