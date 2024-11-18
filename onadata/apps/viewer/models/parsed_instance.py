@@ -196,6 +196,7 @@ def exclude_deleting_submissions_clause(xform_id: int) -> tuple[str, list[int]]:
     return (f"id NOT IN ({placeholders})", instance_ids)
 
 
+# pylint: disable=too-many-locals
 def build_sql_where(xform, query, start=None, end=None):
     """Build SQL WHERE clause"""
     known_integers = [
