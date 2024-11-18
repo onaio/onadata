@@ -3811,6 +3811,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch(
         "onadata.apps.api.viewsets.data_viewset.delete_xform_submissions_async.delay"
     )
@@ -3823,7 +3824,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         records_to_be_deleted = self.xform.instances.all()[:2]
         instance_ids = ",".join([str(i.pk) for i in records_to_be_deleted])
         data = {"instance_ids": instance_ids}
-
         request = self.factory.delete("/", data=data, **self.extra)
         response = view(request, pk=self.xform.pk)
 
@@ -3832,6 +3832,19 @@ class TestDataViewSet(SerializeMixin, TestBase):
             self.xform.pk,
             [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
             True,
+            self.user.id,
+        )
+        # Permanent deletion
+        mock_del_async.reset_mock()  # Reset mock
+        data = {"permanent_delete": True, "instance_ids": instance_ids}
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        mock_del_async.assert_called_once_with(
+            self.xform.pk,
+            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            False,
             self.user.id,
         )
 
