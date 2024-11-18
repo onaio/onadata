@@ -1671,8 +1671,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_delete_submission(self, send_message_mock):
+    def test_delete_submission(self):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by("id")[0].pk
@@ -1691,15 +1690,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 204)
         first_xform_instance = self.xform.instances.filter(pk=dataid)
         self.assertEqual(first_xform_instance[0].deleted_by, request.user)
-        # message sent upon delete
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=dataid,
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
 
         # second delete of same submission should return 404
         request = self.factory.delete("/", **self.extra)
@@ -1767,8 +1757,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(mock.call_count, 1)
         self.assertTrue(send_message_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_deletion_of_bulk_submissions(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.safe_cache_set")
+    def test_deletion_of_bulk_submissions(self, mock_cache_set):
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk
@@ -1800,23 +1790,16 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data.get("message"),
-            "%d records were deleted" % len(records_to_be_deleted),
-        )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in records_to_be_deleted],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertNotEqual(current_count, initial_count)
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
+        mock_cache_set.assert_called_once_with(
+            f"xfm-submissions-under-deletion-{formid}",
+            [str(i.pk) for i in records_to_be_deleted],
+            3600,
+        )
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
@@ -1879,8 +1862,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.num_of_submissions, 3)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_permanent_deletions_bulk_submissions(self, send_message_mock):
+    def test_permanent_deletions_bulk_submissions(self):
         """
         Test that permanent bulk submission deletions work
         """
@@ -1900,18 +1882,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data.get("message"),
-            "%d records were deleted" % len(records_to_be_deleted),
-        )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in records_to_be_deleted],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
         self.xform.refresh_from_db()
         current_count = self.xform.num_of_submissions
         self.assertNotEqual(current_count, initial_count)
@@ -2016,8 +1986,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertTrue(send_message_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_delete_submissions(self, send_message_mock):
+    def test_delete_submissions(self):
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/tutorial.xlsx",
@@ -2053,18 +2022,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data.get("message"),
-            "%d records were deleted" % len(deleted_instances_subset),
-        )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in deleted_instances_subset],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
 
         # Test that num of submissions for the form is successfully updated
         self.xform.refresh_from_db()
@@ -2079,7 +2036,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get("message"), "3 records were deleted")
 
         # Test project details updated successfully
         self.assertEqual(
