@@ -3,6 +3,30 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.9.2(2024-11-18)
+------------------
+- Security updates
+  `PR #2729 <https://github.com/onaio/onadata/pull/2729>`
+  [@kelvin-muchiri]
+- Invalidate XForm list cache when form is published/replaced
+  `PR #2730 <https://github.com/onaio/onadata/pull/2730>`
+  [@kelvin-muchiri]
+- Update pre commit install instructions
+  `PR #2723 <https://github.com/onaio/onadata/pull/2723>`
+  [@kelvin-muchiri]
+- Update to oidc v1.1.2
+  `PR #2736 <https://github.com/onaio/onadata/pull/2736>`
+  [@ukanga]
+- Security updates
+  `PR #2737 <https://github.com/onaio/onadata/pull/2737>`
+  [@kelvin-muchiri]
+- Ensure geojson exports creation process is idempotent
+  `PR #2734 <https://github.com/onaio/onadata/pull/2734>`
+  [@FrankApiyo]
+- [fix] Lookup only models where the parent is h:head
+  `PR #2733 <https://github.com/onaio/onadata/pull/2733>`
+  [@ukanga]
+
 v4.9.1(2024-10-23)
 ------------------
 - Fix extra columns excluded in DataView CSV export
