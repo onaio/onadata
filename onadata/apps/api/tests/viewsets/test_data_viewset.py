@@ -1887,6 +1887,10 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data.get("message"),
+            "%d records were deleted" % len(records_to_be_deleted),
+        )
         self.xform.refresh_from_db()
         current_count = self.xform.num_of_submissions
         self.assertNotEqual(current_count, initial_count)
