@@ -396,7 +396,10 @@ class DataViewSet(
                 XFORM_SUBMISSIONS_DELETING_TTL,
             )
 
-            return Response(status=status.HTTP_200_OK)
+            return Response(
+                data={"message": f"{len(instance_ids)} records were deleted"},
+                status=status.HTTP_200_OK,
+            )
 
         if isinstance(self.object, Instance):
             if request.user.has_perm(CAN_DELETE_SUBMISSION, self.object.xform):
