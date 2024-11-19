@@ -387,9 +387,9 @@ class DataViewSet(
             initial_num_of_submissions = self.object.num_of_submissions
             delete_xform_submissions_async.delay(
                 self.object.id,
+                request.user.id,
                 instance_ids,
                 not permanent_delete,
-                request.user.id,
             )
             safe_cache_set(
                 f"{XFORM_SUBMISSIONS_DELETING}{self.object.id}",

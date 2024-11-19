@@ -1473,9 +1473,9 @@ def _exec_cached_elist_counter_commit_failover() -> None:
 
 def delete_xform_submissions(
     xform: XForm,
+    deleted_by: User,
     instance_ids: list[int] | None = None,
     soft_delete: bool = True,
-    deleted_by: User | None = None,
 ) -> None:
     """ "Delete subset or all submissions of an XForm
 

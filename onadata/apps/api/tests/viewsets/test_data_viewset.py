@@ -3852,9 +3852,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         mock_del_async.assert_called_once_with(
             self.xform.pk,
+            self.user.pk,
             [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
             True,
-            self.user.id,
         )
         # Permanent deletion
         mock_del_async.reset_mock()  # Reset mock
@@ -3865,9 +3865,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         mock_del_async.assert_called_once_with(
             self.xform.pk,
+            self.user.pk,
             [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
             False,
-            self.user.id,
         )
 
 

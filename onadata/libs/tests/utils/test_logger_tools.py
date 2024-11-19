@@ -1049,7 +1049,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
     def test_soft_delete_all(self):
         """All submissions are soft deleted"""
-        delete_xform_submissions(self.xform)
+        delete_xform_submissions(self.xform, self.user)
 
         self.assertEqual(Instance.objects.filter(deleted_at__isnull=False).count(), 4)
         self.xform.refresh_from_db()
@@ -1058,7 +1058,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     def test_hard_delete_all(self):
         """All submissions are hard deleted"""
-        delete_xform_submissions(self.xform, soft_delete=False)
+        delete_xform_submissions(self.xform, self.user, soft_delete=False)
 
         self.assertEqual(Instance.objects.count(), 0)
         self.xform.refresh_from_db()
@@ -1066,7 +1066,9 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
     def test_soft_delete_subset(self):
         """Subset of submissions are soft deleted"""
-        delete_xform_submissions(self.xform, instance_ids=[self.instances[0].pk])
+        delete_xform_submissions(
+            self.xform, self.user, instance_ids=[self.instances[0].pk]
+        )
 
         self.assertEqual(Instance.objects.filter(deleted_at__isnull=False).count(), 1)
         self.xform.refresh_from_db()
@@ -1076,7 +1078,10 @@ class DeleteXFormSubmissionsTestCase(TestBase):
     def test_hard_delete_subset(self):
         """Subset of submissions are hard deleted"""
         delete_xform_submissions(
-            self.xform, instance_ids=[self.instances[0].pk], soft_delete=False
+            self.xform,
+            self.user,
+            instance_ids=[self.instances[0].pk],
+            soft_delete=False,
         )
 
         self.assertEqual(Instance.objects.count(), 3)
@@ -1088,7 +1093,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         mocked_now = timezone.now()
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            delete_xform_submissions(self.xform)
+            delete_xform_submissions(self.xform, self.user)
 
         self.assertTrue(
             all(instance.deleted_at == mocked_now for instance in self.instances)
@@ -1099,7 +1104,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         mocked_now = timezone.now()
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            delete_xform_submissions(self.xform)
+            delete_xform_submissions(self.xform, self.user)
 
         self.assertTrue(
             all(instance.date_modified == mocked_now for instance in self.instances)
@@ -1107,7 +1112,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
     def test_sets_deleted_by(self):
         """Deleted_by is set to the user who initiated the deletion"""
-        delete_xform_submissions(self.xform, deleted_by=self.user)
+        delete_xform_submissions(self.xform, self.user)
 
         self.assertTrue(
             all(instance.deleted_by == self.user for instance in self.instances)
@@ -1118,7 +1123,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         mocked_now = timezone.now()
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
-            delete_xform_submissions(self.xform)
+            delete_xform_submissions(self.xform, self.user)
 
         self.project.refresh_from_db()
         self.assertEqual(self.project.date_modified, mocked_now)
@@ -1126,9 +1131,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
     @patch("onadata.libs.utils.logger_tools.send_message")
     def test_action_recorded(self, mock_send_message):
         """Action is recorded in the audit log"""
-        delete_xform_submissions(
-            self.xform, [self.instances[0].pk], deleted_by=self.user
-        )
+        delete_xform_submissions(self.xform, self.user, [self.instances[0].pk])
 
         mock_send_message.assert_called_once_with(
             instance_id=[self.instances[0].pk],
@@ -1141,11 +1144,11 @@ class DeleteXFormSubmissionsTestCase(TestBase):
     def test_hard_delete_enabled(self):
         """Hard delete should be enabled for hard delete to be successful"""
         with self.assertRaises(PermissionDenied):
-            delete_xform_submissions(self.xform, soft_delete=False)
+            delete_xform_submissions(self.xform, self.user, soft_delete=False)
 
     def test_cache_deleted(self):
         """Cache tracking submissions being deleted is cleared"""
         cache.set(f"xfm-submissions-deleting-{self.xform.id}", [self.instances[0].pk])
-        delete_xform_submissions(self.xform)
+        delete_xform_submissions(self.xform, self.user)
 
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))

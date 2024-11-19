@@ -198,33 +198,33 @@ class DeleteXFormSubmissionsAsyncTestCase(TestBase):
 
     def test_delete(self, mock_delete):
         """Submissions are deleted"""
-        delete_xform_submissions_async.delay(self.xform.pk, [1, 2], False, self.user.id)
-        mock_delete.assert_called_once_with(self.xform, [1, 2], False, self.user)
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk, [1, 2], False)
+        mock_delete.assert_called_once_with(self.xform, self.user, [1, 2], False)
 
     @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
     def test_database_error(self, mock_retry, mock_delete):
         """We retry calls if DatabaseError is raised"""
         mock_delete.side_effect = DatabaseError()
-        delete_xform_submissions_async.delay(self.xform.pk)
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
         self.assertTrue(mock_retry.called)
 
     @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
     def test_connection_error(self, mock_retry, mock_delete):
         """We retry calls if ConnectionError is raised"""
         mock_delete.side_effect = ConnectionError()
-        delete_xform_submissions_async.delay(self.xform.pk)
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
         self.assertTrue(mock_retry.called)
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_xform_id_invalid(self, mock_logger, mock_delete):
         """Invalid xform_id is handled"""
-        delete_xform_submissions_async.delay(sys.maxsize)
+        delete_xform_submissions_async.delay(sys.maxsize, self.user.pk)
         self.assertFalse(mock_delete.called)
         mock_logger.assert_called_once()
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_user_id_invalid(self, mock_logger, mock_delete):
         """Invalid user_id is handled"""
-        delete_xform_submissions_async.delay(self.xform.pk, deleted_by_id=sys.maxsize)
+        delete_xform_submissions_async.delay(self.xform.pk, sys.maxsize)
         self.assertFalse(mock_delete.called)
         mock_logger.assert_called_once()

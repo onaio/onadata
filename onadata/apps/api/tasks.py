@@ -207,9 +207,9 @@ def share_project_async(project_id, username, role, remove=False):
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def delete_xform_submissions_async(
     xform_id: int,
+    deleted_by_id: int,
     instance_ids: list[int] | None = None,
     soft_delete: bool = True,
-    deleted_by_id: int | None = None,
 ):
     """Delete xform submissions asynchronously
 
@@ -220,10 +220,10 @@ def delete_xform_submissions_async(
     """
     try:
         xform = XForm.objects.get(pk=xform_id)
-        deleted_by = User.objects.get(pk=deleted_by_id) if deleted_by_id else None
+        deleted_by = User.objects.get(pk=deleted_by_id)
 
     except (XForm.DoesNotExist, User.DoesNotExist) as err:
         logger.exception(err)
 
     else:
-        delete_xform_submissions(xform, instance_ids, soft_delete, deleted_by)
+        delete_xform_submissions(xform, deleted_by, instance_ids, soft_delete)
