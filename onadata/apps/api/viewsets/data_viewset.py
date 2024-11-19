@@ -384,6 +384,7 @@ class DataViewSet(
             else:
                 instance_ids = None
 
+            initial_num_of_submissions = self.object.num_of_submissions
             delete_xform_submissions_async.delay(
                 self.object.id,
                 instance_ids,
@@ -395,9 +396,12 @@ class DataViewSet(
                 instance_ids,
                 XFORM_SUBMISSIONS_DELETING_TTL,
             )
+            number_of_records_deleted = (
+                len(instance_ids) if instance_ids else initial_num_of_submissions
+            )
 
             return Response(
-                data={"message": f"{len(instance_ids)} records were deleted"},
+                data={"message": f"{number_of_records_deleted} records were deleted"},
                 status=status.HTTP_200_OK,
             )
 
