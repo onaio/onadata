@@ -3810,6 +3810,15 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        # Cached submission ids saved as strings
+        cache.set(
+            f"xfm-submissions-deleting-{self.xform.pk}",
+            [str(instances[0].pk), str(instances[1].pk)],
+        )
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch(
