@@ -1480,9 +1480,9 @@ def delete_xform_submissions(
     """ "Delete subset or all submissions of an XForm
 
     :param xform: XForm object
+    :param deleted_by: User initiating the delete
     :param instance_ids: List of instance ids to delete, None to delete all
     :param soft_delete: Flag to soft delete or hard delete
-    :param deleted_by: User initiating the delete
     :return: None
     """
     if not soft_delete and not getattr(
