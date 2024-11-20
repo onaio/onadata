@@ -1490,17 +1490,17 @@ def delete_xform_submissions(
     ):
         raise PermissionDenied("Hard delete is not enabled")
 
+    instance_qs = xform.instances.filter(deleted_at__isnull=True)
+
     if instance_ids:
-        instances = xform.instances.filter(id__in=instance_ids, deleted_at__isnull=True)
-    else:
-        instances = xform.instances.filter(deleted_at__isnull=True)
+        instance_qs = instance_qs.filter(id__in=instance_ids)
 
     if soft_delete:
         now = timezone.now()
-        instances.update(deleted_at=now, date_modified=now, deleted_by=deleted_by)
+        instance_qs.update(deleted_at=now, date_modified=now, deleted_by=deleted_by)
     else:
         # Hard delete
-        instances.delete()
+        instance_qs.delete()
 
     if instance_ids is None:
         # Every submission has been deleted
