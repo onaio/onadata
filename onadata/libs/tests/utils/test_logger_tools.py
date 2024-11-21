@@ -2,26 +2,28 @@
 """
 Test logger_tools utility functions.
 """
+
 import os
 import re
 from datetime import datetime, timedelta
 from io import BytesIO
-from unittest.mock import patch, call
+from unittest.mock import Mock, call, patch
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
-from django.utils import timezone
 from django.test.utils import override_settings
+from django.utils import timezone
 
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import (
-    Instance,
     Entity,
     EntityList,
+    Instance,
     RegistrationForm,
     SurveyType,
     XForm,
@@ -35,6 +37,7 @@ from onadata.libs.utils.logger_tools import (
     create_entity_from_instance,
     create_instance,
     dec_elist_num_entities,
+    delete_xform_submissions,
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
@@ -1032,3 +1035,120 @@ class CommitCachedEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertIsNotNone(cache.get(self.ids_key))
         self.assertIsNotNone(cache.get(self.counter_key))
         self.assertIsNotNone(cache.get(self.created_at_key))
+
+
+class DeleteXFormSubmissionsTestCase(TestBase):
+    """Tests for method `delete_xform_submissions`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+        self._make_submissions()
+        self.instances = self.xform.instances.all()
+
+    def test_soft_delete_all(self):
+        """All submissions are soft deleted"""
+        delete_xform_submissions(self.xform, self.user)
+
+        self.assertEqual(Instance.objects.filter(deleted_at__isnull=False).count(), 4)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 0)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    def test_hard_delete_all(self):
+        """All submissions are hard deleted"""
+        delete_xform_submissions(self.xform, self.user, soft_delete=False)
+
+        self.assertEqual(Instance.objects.count(), 0)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 0)
+
+    def test_soft_delete_subset(self):
+        """Subset of submissions are soft deleted"""
+        delete_xform_submissions(
+            self.xform, self.user, instance_ids=[self.instances[0].pk]
+        )
+
+        self.assertEqual(Instance.objects.filter(deleted_at__isnull=False).count(), 1)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    def test_hard_delete_subset(self):
+        """Subset of submissions are hard deleted"""
+        delete_xform_submissions(
+            self.xform,
+            self.user,
+            instance_ids=[self.instances[0].pk],
+            soft_delete=False,
+        )
+
+        self.assertEqual(Instance.objects.count(), 3)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_submissions, 3)
+
+    def test_sets_deleted_at(self):
+        """deleted_at is set to the current time"""
+        mocked_now = timezone.now()
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            delete_xform_submissions(self.xform, self.user)
+
+        self.assertTrue(
+            all(instance.deleted_at == mocked_now for instance in self.instances)
+        )
+
+    def test_sets_date_modified(self):
+        """date_modified is set to the current time"""
+        mocked_now = timezone.now()
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            delete_xform_submissions(self.xform, self.user)
+
+        self.assertTrue(
+            all(instance.date_modified == mocked_now for instance in self.instances)
+        )
+
+    def test_sets_deleted_by(self):
+        """Deleted_by is set to the user who initiated the deletion"""
+        delete_xform_submissions(self.xform, self.user)
+
+        self.assertTrue(
+            all(instance.deleted_by == self.user for instance in self.instances)
+        )
+
+    def test_project_date_modified_updated(self):
+        """Project date_modified is updated to the current time"""
+        mocked_now = timezone.now()
+
+        with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
+            delete_xform_submissions(self.xform, self.user)
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.date_modified, mocked_now)
+
+    @patch("onadata.libs.utils.logger_tools.send_message")
+    def test_action_recorded(self, mock_send_message):
+        """Action is recorded in the audit log"""
+        delete_xform_submissions(self.xform, self.user, [self.instances[0].pk])
+
+        mock_send_message.assert_called_once_with(
+            instance_id=[self.instances[0].pk],
+            target_id=self.xform.id,
+            target_type="xform",
+            user=self.user,
+            message_verb="submission_deleted",
+        )
+
+    def test_hard_delete_enabled(self):
+        """Hard delete should be enabled for hard delete to be successful"""
+        with self.assertRaises(PermissionDenied):
+            delete_xform_submissions(self.xform, self.user, soft_delete=False)
+
+    def test_cache_deleted(self):
+        """Cache tracking submissions being deleted is cleared"""
+        cache.set(f"xfm-submissions-deleting-{self.xform.id}", [self.instances[0].pk])
+        delete_xform_submissions(self.xform, self.user)
+
+        self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))

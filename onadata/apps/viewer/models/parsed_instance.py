@@ -2,6 +2,7 @@
 """
 ParsedInstance model
 """
+
 import datetime
 
 from django.conf import settings
@@ -21,6 +22,7 @@ from onadata.libs.models.sorting import (
     json_order_by_params,
     sort_from_mongo_sort_str,
 )
+from onadata.libs.utils.cache_tools import XFORM_SUBMISSIONS_DELETING, safe_cache_get
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     BAMBOO_DATASET_ID,
@@ -179,6 +181,22 @@ def _get_sort_fields(sort):
     return list(_parse_sort_fields(sort))
 
 
+def exclude_deleting_submissions_clause(xform_id: int) -> tuple[str, list[int]]:
+    """Return SQL clause to exclude submissions whose deletion is in progress
+
+    :param xform_id: XForm ID
+    :return: SQL and list of submission IDs under deletion
+    """
+    instance_ids = safe_cache_get(f"{XFORM_SUBMISSIONS_DELETING}{xform_id}", [])
+
+    if not instance_ids:
+        return ("", [])
+
+    placeholders = ", ".join(["%s"] * len(instance_ids))
+    return (f"id NOT IN ({placeholders})", instance_ids)
+
+
+# pylint: disable=too-many-locals
 def build_sql_where(xform, query, start=None, end=None):
     """Build SQL WHERE clause"""
     known_integers = [
@@ -208,6 +226,13 @@ def build_sql_where(xform, query, start=None, end=None):
     if isinstance(end, datetime.datetime):
         sql_where += " AND date_created <= %s"
         where_params += [end.isoformat()]
+
+    exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)
+
+    if exclude_sql:
+        # Exclude submissions whose deletion is in progress
+        sql_where += f" AND {exclude_sql}"
+        where_params += exclude_params
 
     xform_pks = [xform.pk]
 
