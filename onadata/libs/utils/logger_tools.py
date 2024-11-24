@@ -3,6 +3,7 @@
 """
 logger_tools - Logger app utility functions.
 """
+
 import json
 import logging
 import os
@@ -10,17 +11,17 @@ import re
 import sys
 import tempfile
 from builtins import str as text
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import NoReturn, Any
+from typing import Any, NoReturn
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
 
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import (
     MultipleObjectsReturned,
     PermissionDenied,
@@ -28,11 +29,12 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import get_storage_class
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
+    HttpResponseRedirect,
     StreamingHttpResponse,
     UnreadablePostError,
 )
@@ -41,6 +43,8 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import gettext as _
 
+import boto3
+from botocore.client import Config
 from defusedxml.ElementTree import ParseError, fromstring
 from dict2xml import dict2xml
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
@@ -52,12 +56,13 @@ from rest_framework.response import Response
 
 from onadata.apps.logger.models import (
     Attachment,
-    Entity,
     Instance,
     RegistrationForm,
     XForm,
     XFormVersion,
 )
+from onadata.apps.logger.models.entity import Entity
+from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.instance import (
     FormInactiveError,
     FormIsMergedDatasetError,
@@ -76,13 +81,14 @@ from onadata.apps.logger.xform_instance_parser import (
     NonUniqueFormIdError,
     clean_and_parse_xml,
     get_deprecated_uuid_from_xml,
-    get_submission_date_from_xml,
-    get_uuid_from_xml,
     get_entity_uuid_from_xml,
     get_meta_from_xml,
+    get_submission_date_from_xml,
+    get_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
+    SUBMISSION_DELETED,
     SUBMISSION_EDITED,
     XFORM,
 )
@@ -91,11 +97,20 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
+from onadata.libs.utils.cache_tools import (
+    ELIST_FAILOVER_REPORT_SENT,
+    ELIST_NUM_ENTITIES,
+    ELIST_NUM_ENTITIES_CREATED_AT,
+    ELIST_NUM_ENTITIES_IDS,
+    ELIST_NUM_ENTITIES_LOCK,
+    XFORM_SUBMISSIONS_DELETING,
+    safe_delete,
+    set_cache_with_lock,
+)
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
-from onadata.libs.utils.model_tools import set_uuid, queryset_iterator
+from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
-
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
 HTTP_OPEN_ROSA_VERSION_HEADER = "HTTP_X_OPENROSA_VERSION"
@@ -693,6 +708,105 @@ def safe_create_instance(  # noqa C901
     return [error, instance]
 
 
+def generate_aws_media_url(
+    file_path: str, content_disposition: str, expiration: int = 3600
+):
+    """Generate S3 URL."""
+    s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    bucket_name = s3_class.bucket.name
+    aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
+    s3_config = Config(
+        signature_version=getattr(settings, "AWS_S3_SIGNATURE_VERSION", "s3v4"),
+        region_name=getattr(settings, "AWS_S3_REGION_NAME", None),
+    )
+    s3_client = boto3.client(
+        "s3",
+        config=s3_config,
+        endpoint_url=aws_endpoint_url,
+        aws_access_key_id=s3_class.access_key,
+        aws_secret_access_key=s3_class.secret_key,
+    )
+
+    # Generate a presigned URL for the S3 object
+    return s3_client.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": bucket_name,
+            "Key": file_path,
+            "ResponseContentDisposition": content_disposition,
+            "ResponseContentType": "application/octet-stream",
+        },
+        ExpiresIn=expiration,
+    )
+
+
+def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
+    """
+    Generate Azure storage URL.
+    """
+    # pylint: disable=import-outside-toplevel
+    from azure.storage.blob import AccountSasPermissions, generate_blob_sas
+
+    account_name = getattr(settings, "AZURE_ACCOUNT_NAME", "")
+    container_name = getattr(settings, "AZURE_CONTAINER", "")
+    media_url = (
+        f"https://{account_name}.blob.core.windows.net/{container_name}/{file_path}"
+    )
+    sas_token = generate_blob_sas(
+        account_name=account_name,
+        account_key=getattr(settings, "AZURE_ACCOUNT_KEY", ""),
+        container_name=container_name,
+        blob_name=file_path,
+        permission=AccountSasPermissions(read=True),
+        expiry=timezone.now() + timedelta(seconds=expiration),
+    )
+    return f"{media_url}?{sas_token}"
+
+
+def get_storages_media_download_url(
+    file_path: str, content_disposition: str, expires_in=3600
+) -> str | None:
+    """Get the media download URL for the storages backend.
+
+    :param file_path: The path to the media file.
+    :param content_disposition: The content disposition header.
+    :param expires_in: The expiration time in seconds.
+    :returns: The media download URL.
+    """
+    s3_class = None
+    azure_class = None
+    default_storage = get_storage_class()()
+    url = None
+
+    try:
+        s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    except ModuleNotFoundError:
+        pass
+
+    try:
+        azure_class = get_storage_class(
+            "storages.backends.azure_storage.AzureStorage"
+        )()
+    except ModuleNotFoundError:
+        pass
+
+    # Check if the storage backend is S3
+    if isinstance(default_storage, type(s3_class)):
+        try:
+            url = generate_aws_media_url(file_path, content_disposition, expires_in)
+        except Exception as error:
+            logging.exception(error)
+
+    # Check if the storage backend is Azure
+    elif isinstance(default_storage, type(azure_class)):
+        try:
+            url = generate_media_url_with_sas(file_path, expires_in)
+        except Exception as error:
+            logging.error(error)
+
+    return url
+
+
 def response_with_mimetype_and_name(
     mimetype,
     name,
@@ -701,33 +815,54 @@ def response_with_mimetype_and_name(
     file_path=None,
     use_local_filesystem=False,
     full_mime=False,
+    expires_in=3600,
 ):
     """Returns a HttpResponse with Content-Disposition header set
 
     Triggers a download on the browser."""
     if extension is None:
         extension = mimetype
+
     if not full_mime:
         mimetype = f"application/{mimetype}"
+
+    content_disposition = generate_content_disposition_header(
+        name, extension, show_date
+    )
+    not_found_response = HttpResponseNotFound(
+        _("The requested file could not be found.")
+    )
+
     if file_path:
-        try:
-            if not use_local_filesystem:
+        if not use_local_filesystem:
+            download_url = get_storages_media_download_url(
+                file_path, content_disposition, expires_in
+            )
+            if download_url is not None:
+                return HttpResponseRedirect(download_url)
+
+            try:
                 default_storage = get_storage_class()()
                 wrapper = FileWrapper(default_storage.open(file_path))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = default_storage.size(file_path)
-            else:
+
+            except IOError as error:
+                logging.exception(error)
+                response = not_found_response
+
+        else:
+            try:
                 # pylint: disable=consider-using-with
                 wrapper = FileWrapper(open(file_path, "rb"))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = os.path.getsize(file_path)
-        except IOError:
-            response = HttpResponseNotFound(_("The requested file could not be found."))
+            except IOError as error:
+                logging.exception(error)
+                response = not_found_response
     else:
         response = HttpResponse(content_type=mimetype)
-    response["Content-Disposition"] = generate_content_disposition_header(
-        name, extension, show_date
-    )
+    response["Content-Disposition"] = content_disposition
     return response
 
 
@@ -738,7 +873,11 @@ def generate_content_disposition_header(name, extension, show_date=True):
     if show_date:
         timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         name = f"{name}-{timestamp}"
-    return f"attachment; filename={name}.{extension}"
+    # The filename is enclosed in quotes because it ensures that special characters,
+    # spaces, or punctuation in the filename are correctly interpreted by browsers
+    # and clients. This is particularly important for filenames that may contain
+    # spaces or non-ASCII characters.
+    return f'attachment; filename="{name}.{extension}"'
 
 
 def store_temp_file(data):
@@ -1142,3 +1281,242 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     elif not exists and entity_node.getAttribute("create") in mutation_success_checks:
         # Create Entity
         create_entity_from_instance(instance, registration_form)
+
+
+def _inc_elist_num_entities_db(pk: int, count=1) -> None:
+    """Increment EntityList `num_entities` counter in the database
+
+    Args:
+        pk (int): Primary key for EntityList
+        count (int): Value to increase by
+    """
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") + count)
+
+
+def _dec_elist_num_entities_db(pk: int, count=1) -> None:
+    """Decrement EntityList `num_entities` counter in the database
+
+    Args:
+        pk (int): Primary key for EntityList
+        count (int): Value to decrease by
+    """
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") - count)
+
+
+def _inc_elist_num_entities_cache(pk: int) -> None:
+    """Increment EntityList `num_entities` counter in cache
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
+    # Cache timeout is None (no expiry). A background task should be run
+    # periodically to persist the cached counters to the db
+    # and delete the cache. If we were to set a timeout, the cache could
+    # expire before the next periodic run and data will be lost.
+    counter_cache_ttl = None
+    counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
+
+    def add_to_cached_ids(current_ids: set | None):
+        if current_ids is None:
+            current_ids = set()
+
+        if pk not in current_ids:
+            current_ids.add(pk)
+
+        return current_ids
+
+    set_cache_with_lock(ELIST_NUM_ENTITIES_IDS, add_to_cached_ids, counter_cache_ttl)
+    cache.add(ELIST_NUM_ENTITIES_CREATED_AT, timezone.now(), counter_cache_ttl)
+
+    if not counter_cache_created:
+        cache.incr(counter_cache_key)
+
+
+def _dec_elist_num_entities_cache(pk: int) -> None:
+    """Decrement EntityList `num_entities` counter in cache
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
+
+    if cache.get(counter_cache_key) is not None:
+        cache.decr(counter_cache_key)
+
+
+def inc_elist_num_entities(pk: int) -> None:
+    """Increment EntityList `num_entities` counter
+
+    Updates cached counter if cache is not locked. Else, the database
+    counter is updated
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+
+    if _is_elist_num_entities_cache_locked():
+        _inc_elist_num_entities_db(pk)
+
+    else:
+        try:
+            _inc_elist_num_entities_cache(pk)
+            _exec_cached_elist_counter_commit_failover()
+
+        except ConnectionError as exc:
+            logger.exception(exc)
+            # Fallback to db if cache inacessible
+            _inc_elist_num_entities_db(pk)
+
+
+def dec_elist_num_entities(pk: int) -> None:
+    """Decrement EntityList `num_entities` counter
+
+    Updates cached counter if cache is not locked. Else, the database
+    counter is updated.
+
+    Args:
+        pk (int): Primary key for EntityList
+    """
+    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
+
+    if _is_elist_num_entities_cache_locked() or cache.get(counter_cache_key) is None:
+        _dec_elist_num_entities_db(pk)
+
+    else:
+        try:
+            _dec_elist_num_entities_cache(pk)
+
+        except ConnectionError as exc:
+            logger.exception(exc)
+            # Fallback to db if cache inacessible
+            _dec_elist_num_entities_db(pk)
+
+
+def _is_elist_num_entities_cache_locked() -> bool:
+    """Checks if EntityList `num_entities` cached counter is locked
+
+    Typically, the cache is locked if the cached data is in the process
+    of being persisted in the database.
+
+    The cache is locked to ensure no further updates are made when the
+    data is being committed to the database.
+
+    Returns True, if cache is locked, False otherwise
+    """
+
+    return cache.get(ELIST_NUM_ENTITIES_LOCK) is not None
+
+
+def commit_cached_elist_num_entities() -> None:
+    """Commit cached EntityList `num_entities` counter to the database
+
+    Commit is successful if no other process holds the lock
+    """
+    lock_acquired = cache.add(ELIST_NUM_ENTITIES_LOCK, "true", 7200)
+
+    if lock_acquired:
+        entity_list_pks: set[int] = cache.get(ELIST_NUM_ENTITIES_IDS, set())
+
+        for pk in entity_list_pks:
+            counter_key = f"{ELIST_NUM_ENTITIES}{pk}"
+            counter: int = cache.get(counter_key, 0)
+
+            if counter:
+                _inc_elist_num_entities_db(pk, counter)
+
+            safe_delete(counter_key)
+
+        safe_delete(ELIST_NUM_ENTITIES_IDS)
+        safe_delete(ELIST_NUM_ENTITIES_LOCK)
+        safe_delete(ELIST_NUM_ENTITIES_CREATED_AT)
+
+
+def _exec_cached_elist_counter_commit_failover() -> None:
+    """Check the time lapse since the cached EntityList `num_entities`
+    counters were created and commit if the time lapse exceeds
+    the threshold allowed.
+
+    Acts as a failover incase the cron job responsible for committing
+    the cached data fails or is not configured
+    """
+    cache_created_at: datetime | None = cache.get(ELIST_NUM_ENTITIES_CREATED_AT)
+
+    if cache_created_at is None:
+        return
+
+    # If the time lapse is > ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT, run the failover
+    failover_timeout: int = getattr(
+        settings, "ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT", 7200
+    )
+    time_lapse = timezone.now() - cache_created_at
+
+    if time_lapse.total_seconds() > failover_timeout:
+        commit_cached_elist_num_entities()
+        # Do not send report exception if already sent within the past 24 hrs
+        if cache.get(ELIST_FAILOVER_REPORT_SENT) is None:
+            subject = "Periodic task not running"
+            task_name = (
+                "onadata.apps.logger.tasks.commit_cached_elist_num_entities_async"
+            )
+            msg = (
+                f"The failover has been executed because task {task_name} "
+                "is not configured or has malfunctioned"
+            )
+            report_exception(subject, msg)
+            cache.set(ELIST_FAILOVER_REPORT_SENT, "sent", 86400)
+
+
+def delete_xform_submissions(
+    xform: XForm,
+    deleted_by: User,
+    instance_ids: list[int] | None = None,
+    soft_delete: bool = True,
+) -> None:
+    """ "Delete subset or all submissions of an XForm
+
+    :param xform: XForm object
+    :param deleted_by: User initiating the delete
+    :param instance_ids: List of instance ids to delete, None to delete all
+    :param soft_delete: Flag to soft delete or hard delete
+    :return: None
+    """
+    if not soft_delete and not getattr(
+        settings, "ENABLE_SUBMISSION_PERMANENT_DELETE", False
+    ):
+        raise PermissionDenied("Hard delete is not enabled")
+
+    instance_qs = xform.instances.filter(deleted_at__isnull=True)
+
+    if instance_ids:
+        instance_qs = instance_qs.filter(id__in=instance_ids)
+
+    if soft_delete:
+        now = timezone.now()
+        instance_qs.update(deleted_at=now, date_modified=now, deleted_by=deleted_by)
+    else:
+        # Hard delete
+        instance_qs.delete()
+
+    if instance_ids is None:
+        # Every submission has been deleted
+        xform.num_of_submissions = 0
+        xform.save(update_fields=["num_of_submissions"])
+
+    else:
+        xform.submission_count(force_update=True)
+
+    xform.project.date_modified = timezone.now()
+    xform.project.save(update_fields=["date_modified"])
+    safe_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
+    send_message(
+        instance_id=instance_ids,
+        target_id=xform.id,
+        target_type=XFORM,
+        user=deleted_by,
+        message_verb=SUBMISSION_DELETED,
+    )

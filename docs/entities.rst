@@ -419,6 +419,60 @@ Body:
          }
       ]
 
+Create Entity
+--------------
+
+.. raw:: html
+
+	   <pre class="prettyprint"><b>POST</b> /api/v2/entity-lists/1/entities</pre>
+
+This endpoint is used for creating a single Entity in the Entity List.
+
+The data is passed as JSON in the request body. The following keys are available:
+
+- ``label`` - A user-friendly label for forms that use Entities.
+- ``data`` - An object with values for user-defined Dataset properties. (Not all properties need to have values.). A property must exist in the EntityList dataset.
+- ``uuid`` (optional) - A unique ID. If not provided, one will be generated for the Entity upon creation. The uuid is unique per Entity List.
+
+All property values are of type string.
+
+**Example**
+
+.. code-block:: bash
+
+      curl -X POST https://api.ona.io/api/v2/entity-lists/1/entities \
+      -H "Authorization: Token ACCESS_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+            "label": "30cm mora",
+            "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
+            "data": {
+                  "geometry": "-1.286805 36.772845 0 0",
+                  "species": "mora",
+                  "circumference_cm": "30"
+            }
+         }'
+
+**Response**
+
+Status: ``201 Created``
+
+Body:
+
+.. code-block:: json
+
+      {
+         "id": 1,
+         "uuid": "dbee4c32-a922-451c-9df7-42f40bf78f48",
+         "date_created": "2024-06-20T07:37:20.416054Z",
+         "date_modified": "2024-06-20T08:37:20.416054Z",
+         "data": {
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+            "circumference_cm": "30",
+            "label": "30cm mora",
+         }
+      }
 
 Get Entity Details
 -------------------
@@ -466,11 +520,13 @@ Update Entity
 
 This endpoint is used to update the label or the properties (passed as JSON in the request body) of an Entity.
 
-You only need to include the properties you wish to update. To unset the value of any property, you can set it to empty string ("") or null.
+You only need to include the properties you wish to update. To unset the value of any property, you can set it to empty string ("").
 
 A property must exist in the EntityList dataset.
 
 The label must be a non-empty string.
+
+The uuid is unique per Entity List.
 
 **Example**
 
@@ -485,7 +541,7 @@ The label must be a non-empty string.
             "data": {
                   "geometry": "-1.286805 36.772845 0 0",
                   "species": "mora",
-                  "circumference_cm": 30
+                  "circumference_cm": "30"
             }
          }'
 
@@ -505,7 +561,7 @@ Body:
          "data": {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
             "label": "30cm mora",
          }
       }

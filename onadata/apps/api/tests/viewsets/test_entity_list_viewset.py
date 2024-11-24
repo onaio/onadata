@@ -1,20 +1,24 @@
-"""Tests for module onadata.apps.api.viewsets.entity_list_viewset"""
+"""
+Tests for module onadata.apps.api.viewsets.entity_list_viewset
+"""
 
 import json
 import sys
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone as dtz
+from unittest.mock import patch, MagicMock
 
-from unittest.mock import patch
-
+from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
+from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -241,16 +245,17 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
     @override_settings(TIME_ZONE="UTC")
     def test_get_all(self):
         """Getting all EntityLists works"""
-        Entity.objects.create(
-            entity_list=self.trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=self.trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
         qs = EntityList.objects.all().order_by("pk")
         first = qs[0]
         second = qs[1]
@@ -382,6 +387,30 @@ class GetEntityListArrayTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
 
+    def test_num_entities_cached(self):
+        """`num_entities` includes cached counter"""
+        entity_list = EntityList.objects.get(name="trees")
+        entity_list.num_entities = 5
+        entity_list.save()
+        cache.set(f"elist-num-entities-{entity_list.pk}", 7)
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["num_entities"], 12)
+
+        # Defaults to database counter if cache inaccessible
+        with patch.object(cache, "get") as mock_cache_get:
+            with patch("onadata.libs.utils.cache_tools.logger.exception") as mock_exc:
+                mock_cache_get.side_effect = ConnectionError
+                request = self.factory.get("/", **self.extra)
+                response = self.view(request)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data[0]["num_entities"], 5)
+                mock_exc.assert_called()
+
 
 @override_settings(TIME_ZONE="UTC")
 class GetSingleEntityListTestCase(TestAbstractViewSet):
@@ -399,16 +428,18 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         # Create Entity for trees EntityList
         trees_entity_list = EntityList.objects.get(name="trees")
         OwnerRole.add(self.user, trees_entity_list)
-        Entity.objects.create(
-            entity_list=trees_entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            Entity.objects.create(
+                entity_list=trees_entity_list,
+                json={
+                    "species": "purpleheart",
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            )
 
     def test_get_entity_list(self):
         """Returns a single EntityList"""
@@ -512,7 +543,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, format="csv")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "application/csv")
         # Using `Accept` header
@@ -520,7 +551,7 @@ class GetSingleEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "application/csv")
 
@@ -924,6 +955,270 @@ class GetSingleEntityTestCase(TestAbstractViewSet):
 
 
 @override_settings(TIME_ZONE="UTC")
+class CreateEntityTestCase(TestAbstractViewSet):
+    """Tests for creating a single Entity"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"post": "entities"})
+        self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees")
+        OwnerRole.add(self.user, self.entity_list)
+        self.data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": 30,
+            },
+        }
+
+    @patch("django.utils.timezone.now")
+    def test_create_entity(self, mock_now):
+        """Creating single Entity works"""
+        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=dtz.utc)
+        mock_now.return_value = mock_date
+        request = self.factory.post("/", data=self.data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.entity_list.refresh_from_db()
+        self.assertEqual(Entity.objects.count(), 1)
+        entity = Entity.objects.get(uuid="0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e")
+        self.assertEqual(response.status_code, 201)
+        expected_json = {
+            "label": "30cm mora",
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+            "circumference_cm": "30",
+        }
+        self.assertEqual(
+            response.data,
+            {
+                "id": entity.pk,
+                "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+                "date_created": entity.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": entity.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "data": expected_json,
+            },
+        )
+        self.assertEqual(entity.json, expected_json)
+        self.assertEqual(self.entity_list.last_entity_update_time, mock_date)
+        history = EntityHistory.objects.first()
+        self.assertEqual(history.entity, entity)
+        self.assertIsNone(history.registration_form)
+        self.assertIsNone(history.instance)
+        self.assertIsNone(history.xml)
+        self.assertIsNone(history.form_version)
+        self.assertDictEqual(history.json, expected_json)
+        self.assertEqual(history.created_by, self.user)
+
+    def test_label_required(self):
+        """`label` field is required"""
+        # Required
+        data = {
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": 30,
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field is required.")
+        self.assertEqual(Entity.objects.count(), 0)
+        # Should not be blank
+        data = {
+            "label": "",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": 30,
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["label"][0]), "This field may not be blank.")
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_data_required(self):
+        """`data` field is required"""
+        # Missing field
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["data"][0]), "This field is required.")
+        self.assertEqual(Entity.objects.count(), 0)
+        # Empty JSON
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {},
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["data"][0]), "This field may not be empty.")
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_uuid_optional(self):
+        """`uuid` field is optional"""
+        # UUID is generated internally
+        data = {
+            "label": "30cm mora",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": 30,
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Entity.objects.count(), 1)
+        entity = Entity.objects.first()
+        self.assertIsInstance(entity.uuid, uuid.UUID)
+
+    def test_invalid_property(self):
+        """A property that does not exist in the EntityList fails"""
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "jane": "doe",
+                "foo": "bar",
+                "circumference_cm": 30,
+            },
+        }
+        self.assertTrue("foo" not in self.entity_list.properties)
+
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Invalid dataset properties: jane, foo", str(response.data["data"][0])
+        )
+
+    def test_anonymous_user(self):
+        """Anonymous user cannot update Entity"""
+        # Anonymous user cannot create private Entity
+        request = self.factory.post("/", data={}, format="json")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+        # Anonymous user cannot create public Entity
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.patch("/", data={}, format="json")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_object_permissions(self):
+        """User must have create level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+            request = self.factory.post("/", data=self.data, format="json", **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role not in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 404)
+
+            else:
+                self.assertEqual(response.status_code, 201)
+                Entity.objects.all().delete()
+
+    def test_invalid_entity_list(self):
+        """Invalid EntityList is handled"""
+        request = self.factory.post("/", data={}, format="json", **self.extra)
+        response = self.view(request, pk=sys.maxsize)
+        self.assertEqual(response.status_code, 404)
+
+    def test_empty_properties(self):
+        """Empty properties are not saved"""
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": "",
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 201)
+        entity = Entity.objects.first()
+        expected_json = {
+            "label": "30cm mora",
+            "geometry": "-1.286805 36.772845 0 0",
+            "species": "mora",
+        }
+        self.assertEqual(
+            response.data,
+            {
+                "id": entity.pk,
+                "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+                "date_created": entity.date_created.isoformat().replace("+00:00", "Z"),
+                "date_modified": entity.date_modified.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "data": expected_json,
+            },
+        )
+        self.assertEqual(entity.json, expected_json)
+
+    def test_null_properties(self):
+        """Null properties not allowed"""
+        data = {
+            "label": "30cm mora",
+            "uuid": "0c5cb7fe-9f5f-4ca5-84ca-127e35a7c65e",
+            "data": {
+                "geometry": "-1.286805 36.772845 0 0",
+                "species": "mora",
+                "circumference_cm": None,
+            },
+        }
+        request = self.factory.post("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Invalid dataset properties: circumference_cm. Nulls are not allowed",
+            str(response.data["data"][0]),
+        )
+
+    def test_uuid_unique(self):
+        """`uuid` is unique per Entity List"""
+        Entity.objects.create(entity_list=self.entity_list, uuid=self.data["uuid"])
+        request = self.factory.post("/", data=self.data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "An Entity with that uuid already exists",
+            str(response.data["uuid"][0]),
+        )
+
+
+@override_settings(TIME_ZONE="UTC")
 class UpdateEntityTestCase(TestAbstractViewSet):
     """Tests for updating a single Entity"""
 
@@ -957,7 +1252,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         expected_json = {
             "geometry": "-1.286805 36.772845 0 0",
             "species": "mora",
-            "circumference_cm": 30,
+            "circumference_cm": "30",
             "label": "30cm mora",
         }
 
@@ -1002,7 +1297,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
-            "uuid": self.entity.uuid,
+            "uuid": str(self.entity.uuid),
             "date_created": self.entity.date_created.isoformat().replace("+00:00", "Z"),
             "date_modified": self.entity.date_modified.isoformat().replace(
                 "+00:00", "Z"
@@ -1014,6 +1309,36 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         }
         self.assertDictEqual(response.data, expected_data)
 
+    def test_patch_uuid(self):
+        """Patch uuid works"""
+        # Patch same uuid
+        data = {"uuid": str(self.entity.uuid)}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Patch new uuid
+        data = {"uuid": "64631f40-e1d6-4401-860d-18f38ec4c2c5"}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.entity.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["uuid"], "64631f40-e1d6-4401-860d-18f38ec4c2c5")
+        self.assertEqual(str(self.entity.uuid), "64631f40-e1d6-4401-860d-18f38ec4c2c5")
+
+        # New uuid should be unique
+        Entity.objects.create(
+            entity_list=self.entity_list, uuid="edca2c69-986d-4415-b05a-96b306faeb44"
+        )
+        data = {"uuid": "edca2c69-986d-4415-b05a-96b306faeb44"}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "An Entity with that uuid already exists",
+            str(response.data["uuid"][0]),
+        )
+
     def test_patch_data(self):
         """Patch data only works"""
         data = {"data": {"species": "mora"}}
@@ -1023,7 +1348,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         expected_data = {
             "id": self.entity.pk,
-            "uuid": self.entity.uuid,
+            "uuid": str(self.entity.uuid),
             "date_created": self.entity.date_created.isoformat().replace("+00:00", "Z"),
             "date_modified": self.entity.date_modified.isoformat().replace(
                 "+00:00", "Z"
@@ -1081,7 +1406,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         request = self.factory.patch("/", data=data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(str(response.data["data"][0]), "Invalid dataset property foo.")
+        self.assertIn("Invalid dataset properties: foo", str(response.data["data"][0]))
 
     def test_anonymous_user(self):
         """Anonymous user cannot update Entity"""
@@ -1137,6 +1462,17 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         response = self.view(request, pk=sys.maxsize, entity_pk=self.entity.pk)
         self.assertEqual(response.status_code, 404)
 
+    def test_null_properties(self):
+        """Null properties not allowed"""
+        data = {"data": {"species": None}}
+        request = self.factory.patch("/", data=data, format="json", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk, entity_pk=self.entity.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Invalid dataset properties: species. Nulls are not allowed",
+            str(response.data["data"][0]),
+        )
+
 
 class DeleteEntityTestCase(TestAbstractViewSet):
     """Tests for delete Entity"""
@@ -1145,27 +1481,32 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         super().setUp()
 
         self.view = EntityListViewSet.as_view({"delete": "entities"})
-        self._create_entity()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._create_entity()
+
         OwnerRole.add(self.user, self.entity_list)
 
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
-        self.assertEqual(self.entity_list.num_entities, 1)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 1)
         date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
         mock_now.return_value = date
-        request = self.factory.delete(
-            "/", data={"entity_ids": [self.entity.pk]}, **self.extra
-        )
-        response = self.view(request, pk=self.entity_list.pk)
-        self.entity.refresh_from_db()
-        self.entity_list.refresh_from_db()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            request = self.factory.delete(
+                "/", data={"entity_ids": [self.entity.pk]}, **self.extra
+            )
+            response = self.view(request, pk=self.entity_list.pk)
+            self.entity.refresh_from_db()
+            self.entity_list.refresh_from_db()
 
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.entity.deleted_at, date)
         self.assertEqual(self.entity.deleted_by, self.user)
-        self.assertEqual(self.entity_list.num_entities, 0)
+        self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 0)
         self.assertEqual(
             self.entity_list.last_entity_update_time, self.entity.date_modified
         )
@@ -1369,7 +1710,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=trees.csv"
+            response["Content-Disposition"], 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "application/csv")
         # Using `.csv` suffix
@@ -1377,7 +1718,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk, format="csv")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], "attachment; filename=trees.csv"
+            response["Content-Disposition"], 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "application/csv")
         # Using `Accept` header
@@ -1385,7 +1726,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.get("Content-Disposition"), "attachment; filename=trees.csv"
+            response.get("Content-Disposition"), 'attachment; filename="trees.csv"'
         )
         self.assertEqual(response["Content-Type"], "application/csv")
         # Unsupported suffix
@@ -1446,3 +1787,36 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
+
+    @patch("onadata.libs.utils.logger_tools.get_storage_class")
+    @patch("onadata.libs.utils.logger_tools.boto3.client")
+    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+        """EntityList dataset is downloaded from Amazon S3"""
+        expected_url = (
+            "https://testing.s3.amazonaws.com/bob/exports/"
+            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
+            "response-content-disposition=attachment%3Bfilename%trees.csv&"
+            "response-content-type=application%2Foctet-stream&"
+            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
+            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
+        )
+        mock_presigned_urls().generate_presigned_url = MagicMock(
+            return_value=expected_url
+        )
+        mock_get_storage_class()().bucket.name = "onadata"
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, expected_url)
+        self.assertTrue(mock_presigned_urls.called)
+        export = GenericExport.objects.first()
+        mock_presigned_urls().generate_presigned_url.assert_called_with(
+            "get_object",
+            Params={
+                "Bucket": "onadata",
+                "Key": export.filepath,
+                "ResponseContentDisposition": 'attachment; filename="trees.csv"',
+                "ResponseContentType": "application/octet-stream",
+            },
+            ExpiresIn=3600,
+        )

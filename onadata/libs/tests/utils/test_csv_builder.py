@@ -2,14 +2,16 @@
 """
 Test CSVDataFrameBuilder
 """
+
 import csv
 import os
+from builtins import chr, open
 from tempfile import NamedTemporaryFile
 
-from builtins import chr, open
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
+from onadata.apps.logger.models import DataView
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
@@ -2086,3 +2088,58 @@ class TestCSVDataFrameBuilder(TestBase):
         ]
         row = next(csv_reader)
         self.assertCountEqual(row, expected_row)
+
+    def test_extra_columns_dataview(self):
+        """Extra columns are included in export for dataview
+
+        Extra columns included only if in the dataview
+        """
+        md_xform = """
+        | survey  |
+        |         | type                   | name  | label  |
+        |         | text                   | name  | Name   |
+        |         | integer                | age   | Age    |
+        |         | select_multiple fruits | fruit | Fruit  |
+        |         |                        |       |        |
+        | choices | list name              | name  | label  |
+        |         | fruits                 | 1     | Mango  |
+        |         | fruits                 | 2     | Orange |
+        |         | fruits                 | 3     | Apple  |
+        """
+        xform = self._publish_markdown(md_xform, self.user, id_string="b")
+        cursor = [{"name": "Maria", "age": 25, "fruit": "1 2"}]
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            split_select_multiples=False,
+            include_images=False,
+            show_choice_labels=True,
+        )
+        extra_cols = [
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+
+        for extra_col in extra_cols:
+            dataview = DataView.objects.create(
+                xform=xform,
+                name="test",
+                columns=["age", extra_col],
+                project=self.project,
+            )
+            temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+            csv_df_builder.export_to(temp_file.name, cursor, dataview=dataview)
+            csv_file = open(temp_file.name, "r")
+            csv_reader = csv.reader(csv_file)
+            header = next(csv_reader)
+            self.assertEqual(header, ["age", extra_col])

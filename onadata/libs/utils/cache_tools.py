@@ -2,9 +2,12 @@
 """
 Cache utilities.
 """
+
 import hashlib
 import logging
 import socket
+import time
+from contextlib import contextmanager
 
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
@@ -63,6 +66,8 @@ XFORM_REGENERATE_INSTANCE_JSON_TASK = "xfm-regenerate_instance_json_task-"
 XFORM_MANIFEST_CACHE = "xfm-manifest-"
 XFORM_LIST_CACHE = "xfm-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
+XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
+XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
 
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
@@ -72,10 +77,21 @@ XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 
+LOCK_SUFFIX = "-lock"
+
+# Entities
+ELIST_NUM_ENTITIES = "elist-num-entities-"
+ELIST_NUM_ENTITIES_IDS = "elist-num-entities-ids"
+ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
+ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
+
+# Report exception
+ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
-    _ = cache.get(key) and cache.delete(key)
+    _ = safe_cache_get(key) and cache.delete(key)
 
 
 def safe_key(key):
@@ -149,3 +165,106 @@ def safe_cache_get(key, default=None):
         # older Python versions
         logger.exception(exc)
         return default
+
+
+def safe_cache_add(key, value, timeout=None):
+    """
+    Safely add a value to the cache.
+
+    If the cache is not reachable, the operation silently fails.
+
+    Args:
+        key (str): The cache key to add.
+        value (Any): The value to store in the cache.
+        timeout (int, optional): The cache timeout in seconds. If None,
+            the default cache timeout will be used.
+    Returns:
+        bool: True if the value was added to the cache, False otherwise.
+    """
+    try:
+        return cache.add(key, value, timeout)
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+        return False
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
+        return False
+
+
+class CacheLockError(Exception):
+    """Custom exception raised when a cache lock cannot be acquired."""
+
+
+@contextmanager
+def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
+    """
+    Context manager for safely setting a cache value with a lock.
+
+    Args:
+        cache_key (str): The key under which the value is stored in the cache.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
+
+    Raises:
+        CacheLockError: If the lock cannot be acquired within
+                        the specified lock_timeout.
+
+    Yields:
+        None
+    """
+    lock_key = f"lock:{cache_key}"
+    start_time = time.time()
+
+    # Try to acquire the lock
+    lock_acquired = cache.add(lock_key, "locked", lock_expire)
+
+    while not lock_acquired and time.time() - start_time < lock_timeout:
+        time.sleep(0.1)
+        lock_acquired = cache.add(lock_key, "locked", lock_expire)
+
+    if not lock_acquired:
+        raise CacheLockError(f"Could not acquire lock for {cache_key}")
+
+    try:
+        yield
+
+    finally:
+        cache.delete(lock_key)
+
+
+def set_cache_with_lock(
+    cache_key, modify_callback, cache_timeout=None, lock_expire=30, lock_timeout=10
+):
+    """
+    Set a cache value with a lock, using a callback function to modify the value.
+
+    Use of lock ensures that race conditions are avoided, even when multiple processes
+    or threads attempt to modifiy the cache concurrently.
+
+    Args:
+        cache_key (str): The key under which the value is stored in the cache.
+        modify_callback (callable): A callback function that takes the current cache
+                                    value and returns the modified value.
+        cache_timeout (int, optional): The expiration time for the cached value
+                                        in seconds. If None, the default cache
+                                        timeout is used.
+        lock_expire (int): The expiration time for the lock in seconds.
+        lock_timeout (int): The maximum time to wait for the lock in seconds.
+
+    Raises:
+        CacheLockError: If the lock cannot be acquired within the specified
+                        lock_timeout.
+
+    Returns:
+        None
+    """
+    with with_cache_lock(cache_key, lock_expire, lock_timeout):
+        # Get the current value from cache
+        current_value = cache.get(cache_key)
+        # Use the callback to get the modified value
+        new_value = modify_callback(current_value)
+        # Set the new value in the cache with the specified timeout
+        cache.set(cache_key, new_value, cache_timeout)

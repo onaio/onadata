@@ -133,8 +133,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             "has_hxl_support",
             "url",
             "date_created",
-            "deleted_at",
-            "deleted_by",
         )
         validators = [
             serializers.UniqueTogetherValidator(

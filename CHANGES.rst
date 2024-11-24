@@ -3,6 +3,96 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.9.2(2024-11-18)
+------------------
+- Security updates
+  `PR #2729 <https://github.com/onaio/onadata/pull/2729>`
+  [@kelvin-muchiri]
+- Invalidate XForm list cache when form is published/replaced
+  `PR #2730 <https://github.com/onaio/onadata/pull/2730>`
+  [@kelvin-muchiri]
+- Update pre commit install instructions
+  `PR #2723 <https://github.com/onaio/onadata/pull/2723>`
+  [@kelvin-muchiri]
+- Update to oidc v1.1.2
+  `PR #2736 <https://github.com/onaio/onadata/pull/2736>`
+  [@ukanga]
+- Security updates
+  `PR #2737 <https://github.com/onaio/onadata/pull/2737>`
+  [@kelvin-muchiri]
+- Ensure geojson exports creation process is idempotent
+  `PR #2734 <https://github.com/onaio/onadata/pull/2734>`
+  [@FrankApiyo]
+- [fix] Lookup only models where the parent is h:head
+  `PR #2733 <https://github.com/onaio/onadata/pull/2733>`
+  [@ukanga]
+
+v4.9.1(2024-10-23)
+------------------
+- Fix extra columns excluded in DataView CSV export
+  `PR #2727 <https://github.com/onaio/onadata/pull/2727>`
+  [@kelvin-muchiri]
+- Remove deleted_by serializer field for Dataviews
+  `PR #2721 <https://github.com/onaio/onadata/pull/2721>`
+  [@FrankApiyo]
+
+v4.9.0(2024-10-22)
+------------------
+- Update pre-commit hooks
+  `PR #2717 <https://github.com/onaio/onadata/pull/2717>`
+  [@kelvin-muchiri]
+- Add/remove user from organization synchronously
+  `PR #2715 <https://github.com/onaio/onadata/pull/2715>`
+  [@kelvin-muchiri]
+- Redirect client to download media directly from Amazon S3 / Azure Storage
+  `PR #2713 <https://github.com/onaio/onadata/pull/2713>`
+  [@kelvin-muchiri]
+- Add organization email to organization profile instead of adding to organization user
+  `PR #2712 <https://github.com/onaio/onadata/pull/2712>`
+  [@FrankApiyo]
+- Disable sending of activation email when creating organization
+  `PR #2710 <https://github.com/onaio/onadata/pull/2710>`
+  [@kelvin-muchiri]
+
+v4.8.0(2024-09-23)
+------------------
+- Update ona-oidc version to 1.1.1
+  `PR #2708 <https://github.com/onaio/onadata/pull/2708>`
+  [@FrankApiyo]
+- Add support for OR operation data filter for date fields
+  `PR #2701 <https://github.com/onaio/onadata/pull/2704>`
+  [@kelvin-muchiri]
+
+v4.7.1(2024-09-16)
+------------------
+- Use chunked queryset when iterating queryset
+  `PR #2701 <https://github.com/onaio/onadata/pull/2701>`
+  [@kelvin-muchiri]
+
+v4.7.0(2024-09-16)
+------------------
+- Add logging to project view page: add why we get 400 in log
+  `PR #2699 <https://github.com/onaio/onadata/pull/2699>`
+  [@FrankApiyo]
+- Add missing model index changes
+  `PR #2697 <https://github.com/onaio/onadata/pull/2697>`
+  [@kelvin-muchiri]
+- Add index for logger_xform and logger_project deleted_at fields
+  `PR #2696 <https://github.com/onaio/onadata/pull/2696>`
+  [@FrankApiyo]
+- Pin submission post processing actions to master database
+  `PR #2694 <https://github.com/onaio/onadata/pull/2694>`
+  [@kelvin-muchiri]
+- Add config to disable user creation
+  `PR #2688 <https://github.com/onaio/onadata/pull/2688>`
+  [@ciremusyoka]
+- Add support for creating Entity via API
+  `PR #2683 <https://github.com/onaio/onadata/pull/2683>`
+  [@kelvin-muchiri]
+- Use eventual consistency to update EntityList num_entities
+  `PR #2651 <https://github.com/onaio/onadata/pull/2651>`
+  [@kelvin-muchiri]
+
 v4.6.0(2024-09-02)
 ------------------
 - Cache xform list results
@@ -23,13 +113,13 @@ v4.5.1(2024-08-30)
 
 v4.5.0(2024-08-28)
 ------------------
-- Fix argument of type 'ProjectUserObjectPermission' is not iterable 
+- Fix argument of type 'ProjectUserObjectPermission' is not iterable
   `PR #2682 <https://github.com/onaio/onadata/pull/2682>`
   [@kelvin-muchiri]
-- Updated docker file to use latest base images 
+- Updated docker file to use latest base images
   `PR #2680 <https://github.com/onaio/onadata/pull/2680>`
   [@ukanga]
-- Add support for downloading EntityList dataset 
+- Add support for downloading EntityList dataset
   `PR #2678 <https://github.com/onaio/onadata/pull/2678>`
   [@kelvin-muchiri]
 - Fix exception thrown when updating organization profile
@@ -101,7 +191,7 @@ v4.3.4(2024-07-29)
 
 v4.3.3(2024-07-10)
 ------------------
-- Add Entity related data to forms on project retrieve endpoint 
+- Add Entity related data to forms on project retrieve endpoint
   `PR #2639 <https://github.com/onaio/onadata/pull/2639>`
   [@kelvin-muchiri]
 - Ignore EntityList model permissions on API endpoints
@@ -110,10 +200,10 @@ v4.3.3(2024-07-10)
 - Docs update
   `PR #2629 <https://github.com/onaio/onadata/pull/2629>`
   [@ukanga]
-- Make pending migrations 
+- Make pending migrations
   `PR #2632 <https://github.com/onaio/onadata/pull/2632>`
   [@kelvin-muchiri]
-- Check attempts is truthy before int comparison 
+- Check attempts is truthy before int comparison
   `PR #2618 <https://github.com/onaio/onadata/pull/2618>`
   [@ukanga]
 - Tune migration performance
@@ -146,7 +236,7 @@ v4.3.0(2024-06-26)
 - Update messaging endpoint docs
   `PR #2616 <https://github.com/onaio/onadata/pull/2616>`
   [@KipSigei]
-- Fix ValueError for User instance primary key in password validation 
+- Fix ValueError for User instance primary key in password validation
   `PR #2613 <https://github.com/onaio/onadata/pull/2613>`
   [@KipSigei]
 

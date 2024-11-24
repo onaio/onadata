@@ -15,6 +15,7 @@ from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.test.utils import override_settings
+from django.test import RequestFactory
 from django.utils import timezone
 
 from pyxform.builder import create_survey_from_xls
@@ -23,8 +24,11 @@ from rest_framework.authtoken.models import Token
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
+from onadata.apps.main.models import MetaData
+from django.contrib.contenttypes.models import ContentType
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.apps.logger.models import Attachment, Instance, XForm, Entity, EntityList
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
@@ -272,6 +276,78 @@ class TestExportTools(TestAbstractViewSet):
         )
 
         self.assertFalse(will_create_new_export)
+
+    def test_should_not_create_new_export_when_old_exists(self):
+        export_type = "geojson"
+        self._publish_transportation_form_and_submit_instance()
+
+        request = RequestFactory().get("/")
+        request.user = self.user
+        request.query_params = options = {}
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(XForm),
+            data_type="media",
+            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            extra_data={
+                "data_title": "start",
+                "data_fields": "",
+                "data_geo_field": "qn09",
+                "data_simple_style": True,
+            },
+            object_id=self.xform.id,
+        )
+        _response = custom_response_handler(
+            request,
+            self.xform,
+            {},
+            export_type,
+            filename="testgeojson",
+            dataview=False,
+            metadata=metadata,
+        )
+
+        self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
+        self.assertEqual(
+            {
+                "dataview_pk": False,
+                "include_hxl": True,
+                "include_images": True,
+                "include_labels": False,
+                "win_excel_utf8": False,
+                "group_delimiter": "/",
+                "include_reviews": False,
+                "remove_group_name": False,
+                "include_labels_only": False,
+                "split_select_multiples": True,
+            },
+            Export.objects.get(xform=self.xform).options,
+        )
+        _response = custom_response_handler(
+            request,
+            self.xform,
+            {},
+            export_type,
+            filename="testgeojson",
+            dataview=False,
+            metadata=metadata,
+        )
+        # we still have only one export, we didn't generate another
+        self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
+        self.assertEqual(
+            {
+                "dataview_pk": False,
+                "include_hxl": True,
+                "include_images": True,
+                "include_labels": False,
+                "win_excel_utf8": False,
+                "group_delimiter": "/",
+                "include_reviews": False,
+                "remove_group_name": False,
+                "include_labels_only": False,
+                "split_select_multiples": True,
+            },
+            Export.objects.get(xform=self.xform).options,
+        )
 
     def test_should_create_new_export_when_filter_defined(self):
         export_type = "csv"

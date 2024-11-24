@@ -2,34 +2,33 @@
 """
 Celery api.tasks module.
 """
+
+import logging
 import os
 import sys
-import logging
 from datetime import timedelta
 
-from celery.result import AsyncResult
 from django.conf import settings
-from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.core.files.storage import default_storage
-from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import TemporaryUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
+from celery.result import AsyncResult
+
 from onadata.apps.api import tools
-from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.logger.models import Instance, ProjectInvitation, XForm, Project
-from onadata.apps.api.tools import invalidate_organization_cache
+from onadata.apps.logger.models import Instance, Project, ProjectInvitation, XForm
 from onadata.celeryapp import app
-from onadata.libs.utils.email import send_generic_email
-from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.cache_tools import (
-    safe_delete,
-    XFORM_REGENERATE_INSTANCE_JSON_TASK,
-)
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.cache_tools import (
+    XFORM_REGENERATE_INSTANCE_JSON_TASK,
+    safe_delete,
+)
+from onadata.libs.utils.email import ProjectInvitationEmail, send_generic_email
+from onadata.libs.utils.logger_tools import delete_xform_submissions
+from onadata.libs.utils.model_tools import queryset_iterator
 
 logger = logging.getLogger(__name__)
 
@@ -191,69 +190,7 @@ def regenerate_form_instance_json(xform_id: int):
             safe_delete(cache_key)
 
 
-class ShareProjectBaseTask(app.Task):  # pylint: disable=too-few-public-methods
-    """A Task base class for sharing a project."""
-
-    autoretry_for = (
-        DatabaseError,
-        ConnectionError,
-    )
-    retry_backoff = 3
-
-
-@app.task(base=ShareProjectBaseTask)
-def add_org_user_and_share_projects_async(
-    org_id: int,
-    user_id: int,
-    role: str = None,
-    email_subject: str = None,
-    email_msg: str = None,
-):  # pylint: disable=invalid-name
-    """Add user to organization and share projects asynchronously"""
-    try:
-        organization = OrganizationProfile.objects.get(pk=org_id)
-        user = User.objects.get(pk=user_id)
-
-    except OrganizationProfile.DoesNotExist as err:
-        logger.exception(err)
-
-    except User.DoesNotExist as err:
-        logger.exception(err)
-
-    else:
-        tools.add_org_user_and_share_projects(organization, user, role)
-
-        invalidate_organization_cache(organization.user.username)
-
-        if email_msg and email_subject and user.email:
-            send_mail(
-                email_subject,
-                email_msg,
-                settings.DEFAULT_FROM_EMAIL,
-                (user.email,),
-            )
-
-
-@app.task(base=ShareProjectBaseTask)
-def remove_org_user_async(org_id, user_id):
-    """Remove user from organization asynchronously"""
-    try:
-        organization = OrganizationProfile.objects.get(pk=org_id)
-        user = User.objects.get(pk=user_id)
-
-    except OrganizationProfile.DoesNotExist as err:
-        logger.exception(err)
-
-    except User.DoesNotExist as err:
-        logger.exception(err)
-
-    else:
-        tools.remove_user_from_organization(organization, user)
-
-        invalidate_organization_cache(organization.user.username)
-
-
-@app.task(base=ShareProjectBaseTask)
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def share_project_async(project_id, username, role, remove=False):
     """Share project asynchronously"""
     try:
@@ -265,3 +202,28 @@ def share_project_async(project_id, username, role, remove=False):
     else:
         share = ShareProject(project, username, role, remove)
         share.save()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def delete_xform_submissions_async(
+    xform_id: int,
+    deleted_by_id: int,
+    instance_ids: list[int] | None = None,
+    soft_delete: bool = True,
+):
+    """Delete xform submissions asynchronously
+
+    :param xform_id: XForm id
+    :param deleted_by_id: User id who deleted the instances
+    :param instance_ids: List of instance ids to delete, None to delete all
+    :param soft_delete: Soft delete instances if True, otherwise hard delete
+    """
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+        deleted_by = User.objects.get(pk=deleted_by_id)
+
+    except (XForm.DoesNotExist, User.DoesNotExist) as err:
+        logger.exception(err)
+
+    else:
+        delete_xform_submissions(xform, deleted_by, instance_ids, soft_delete)

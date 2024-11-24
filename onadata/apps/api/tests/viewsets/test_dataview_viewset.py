@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Test DataViewViewSet"""
+
 import csv
 import json
 import os
 from datetime import datetime, timedelta
 from unittest.mock import patch
-
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,9 +13,8 @@ from django.core.files.storage import default_storage
 from django.test.utils import override_settings
 from django.utils.timezone import utc
 
-from openpyxl import load_workbook
-
 from flaky import flaky
+from openpyxl import load_workbook
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
@@ -454,6 +453,16 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        # delete DataView and check that we don't get it in response
+        dataview = DataView.objects.get(name="My DataView2")
+        deleted_dataview_id = dataview.id
+        dataview.soft_delete(user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(response.data[0]["dataviewid"], deleted_dataview_id)
+
         anon_request = request = self.factory.get("/")
         anon_response = view(anon_request)
         self.assertEqual(anon_response.status_code, 401)
@@ -476,6 +485,36 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.data_view.pk)
 
         self.assertEqual(response.status_code, 200)
+
+    def test_can_not_get_deleted_dataview(self):
+        data = {
+            "name": "Agriculture Dataview",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": '[{"column":"age","filter":">","value":"20"},'
+            '{"column":"age","filter":"<","value":"50"}]',
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view(
+            {
+                "get": "retrieve",
+            }
+        )
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["dataviewid"], self.data_view.pk)
+
+        dataview = DataView.objects.get(id=response.data["dataviewid"])
+        dataview.soft_delete(user=self.user)
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 404)
 
     # pylint: disable=invalid-name
     def test_dataview_data_filter_integer(self):
@@ -756,7 +795,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         content = get_response_content(response)
         test_file_path = os.path.join(
@@ -838,7 +877,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".zip")
+        self.assertEqual(ext, '.zip"')
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -1010,7 +1049,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
             "name": "My DataView",
             "xform": f"http://testserver/api/v1/forms/{xform.pk}",
             "project": f"http://testserver/api/v1/projects/{project.pk}",
-            "columns": '["name", "age", "gender", "pizza_type"]',
+            "columns": (
+                '["name", "age", "gender", "pizza_type", "_id", "_uuid", '
+                '"_submission_time", "_index", "_parent_table_name",  "_parent_index", '
+                '"_tags", "_notes", "_version", "_duration","_submitted_by"]'
+            ),
             "query": ('[{"column":"age","filter":"=","value":"28"}]'),
         }
         self._create_dataview(data=data)
@@ -1049,8 +1092,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertTrue(export.is_successful)
         workbook = load_workbook(export.full_filepath)
         workbook.iso_dates = True
-        sheet_name = workbook.get_sheet_names()[0]
-        main_sheet = workbook.get_sheet_by_name(sheet_name)
+        sheet_name = workbook.sheetnames[0]
+        main_sheet = workbook[sheet_name]
         sheet_headers = list(main_sheet.values)[0]
         sheet_data = list(main_sheet.values)[1]
         inst = self.xform.instances.get(id=sheet_data[4])
@@ -1574,7 +1617,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         content = get_response_content(response)
 
@@ -1957,7 +2000,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         content = get_response_content(response)
         self.assertEqual(content, "name,age,gender\nDennis Wambua,28,male\n")

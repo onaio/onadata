@@ -2,6 +2,7 @@
 """
 Test /data API endpoint implementation.
 """
+
 from __future__ import unicode_literals
 
 import csv
@@ -1671,8 +1672,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_delete_submission(self, send_message_mock):
+    def test_delete_submission(self):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by("id")[0].pk
@@ -1691,15 +1691,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 204)
         first_xform_instance = self.xform.instances.filter(pk=dataid)
         self.assertEqual(first_xform_instance[0].deleted_by, request.user)
-        # message sent upon delete
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=dataid,
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
 
         # second delete of same submission should return 404
         request = self.factory.delete("/", **self.extra)
@@ -1767,8 +1758,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(mock.call_count, 1)
         self.assertTrue(send_message_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_deletion_of_bulk_submissions(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.safe_cache_set")
+    def test_deletion_of_bulk_submissions(self, mock_cache_set):
         self._make_submissions()
         self.xform.refresh_from_db()
         formid = self.xform.pk
@@ -1804,19 +1795,16 @@ class TestDataViewSet(SerializeMixin, TestBase):
             response.data.get("message"),
             "%d records were deleted" % len(records_to_be_deleted),
         )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in records_to_be_deleted],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
-        )
         self.xform.refresh_from_db()
         current_count = self.xform.instances.filter(deleted_at=None).count()
         self.assertNotEqual(current_count, initial_count)
         self.assertEqual(current_count, 2)
         self.assertEqual(self.xform.num_of_submissions, 2)
+        mock_cache_set.assert_called_once_with(
+            f"xfm-submissions-deleting-{formid}",
+            [str(i.pk) for i in records_to_be_deleted],
+            3600,
+        )
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
@@ -1879,8 +1867,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.num_of_submissions, 3)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_permanent_deletions_bulk_submissions(self, send_message_mock):
+    def test_permanent_deletions_bulk_submissions(self):
         """
         Test that permanent bulk submission deletions work
         """
@@ -1903,14 +1890,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(
             response.data.get("message"),
             "%d records were deleted" % len(records_to_be_deleted),
-        )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in records_to_be_deleted],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
         )
         self.xform.refresh_from_db()
         current_count = self.xform.num_of_submissions
@@ -2016,8 +1995,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertTrue(send_message_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
-    def test_delete_submissions(self, send_message_mock):
+    def test_delete_submissions(self):
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/tutorial.xlsx",
@@ -2056,14 +2034,6 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(
             response.data.get("message"),
             "%d records were deleted" % len(deleted_instances_subset),
-        )
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
-            instance_id=[str(i.pk) for i in deleted_instances_subset],
-            target_id=formid,
-            target_type=XFORM,
-            user=request.user,
-            message_verb=SUBMISSION_DELETED,
         )
 
         # Test that num of submissions for the form is successfully updated
@@ -3513,6 +3483,79 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+    def test_or_with_date_filters(self):
+        """OR operation filter works for date fields"""
+        view = DataViewSet.as_view({"get": "list"})
+        # Mock date_created (_submission_time)
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2024, 9, 16, tzinfo=timezone.utc)),
+        ):
+            Instance.objects.create(
+                xform=self.xform,
+                xml='<data id="b"><fruit>mango</fruit></data>',
+            )
+        # Mock date_created (_submission_time)
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2024, 9, 18, tzinfo=timezone.utc)),
+        ):
+            Instance.objects.create(
+                xform=self.xform,
+                xml='<data id="b"><fruit>mango</fruit></data>',
+            )
+        # Mock date_created (_submission_time)
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2022, 4, 1, tzinfo=timezone.utc)),
+        ):
+            Instance.objects.create(
+                xform=self.xform,
+                last_edited=datetime.datetime(2023, 4, 1, tzinfo=timezone.utc),
+                xml='<data id="b"><fruit>mango</fruit></data>',
+            )
+        # Mock date_created (_submission_time)
+        with patch(
+            "django.utils.timezone.now",
+            Mock(return_value=datetime.datetime(2022, 4, 1, tzinfo=timezone.utc)),
+        ):
+            Instance.objects.create(
+                xform=self.xform,
+                last_edited=datetime.datetime(2023, 5, 1, tzinfo=timezone.utc),
+                xml='<data id="b"><fruit>mango</fruit></data>',
+            )
+
+        query_str = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-16", "$lte": "2024-09-18"}}, '
+            '{"_last_edited":{"$gte": "2023-04-01", "$lte": "2023-05-01"}}]}'
+        )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+        query_str = (
+            '{"$or": [{"_submission_time":{"$gte": "2024-09-16"}}, '
+            '{"_last_edited":{"$gte": "2023-05-01"}}]}'
+        )
+        request = self.factory.get("/?query=%s" % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+    def test_invalid_date_filters(self):
+        """Invalid date filters are handled appropriately"""
+        view = DataViewSet.as_view({"get": "list"})
+
+        for json_date_field in ["_submission_time", "_date_modified", "_last_edited"]:
+            query_str = '{"%s": {"$lte": "watermelon"}}' % json_date_field
+            request = self.factory.get("/?query=%s" % query_str, **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                f"{response.data['detail']}",
+                f'Invalid date value "watermelon" for the field {json_date_field}.',
+            )
+
     def test_data_list_xml_format(self):
         """Test DataViewSet list XML"""
         # create submission
@@ -3750,6 +3793,81 @@ class TestDataViewSet(SerializeMixin, TestBase):
                 ],
             },
             response.data,
+        )
+
+    def test_submissions_deletion_in_progress(self):
+        """Submissions whose deletion is in progress are excluded from list"""
+        self._make_submissions()
+        self.assertEqual(self.xform.instances.count(), 4)
+        view = DataViewSet.as_view({"get": "list"})
+        formid = self.xform.pk
+        instances = self.xform.instances.all()
+        cache.set(
+            f"xfm-submissions-deleting-{self.xform.pk}",
+            [instances[0].pk, instances[1].pk],
+        )
+        # No query
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        # With query
+        data = {"query": '{"_submission_time":{"$gt":"2018-04-19"}}'}
+        request = self.factory.get("/", **self.extra, data=data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        # With sort
+        data = {"sort": 1}
+        request = self.factory.get("/", **self.extra, data=data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        # Cached submission ids saved as strings
+        cache.set(
+            f"xfm-submissions-deleting-{self.xform.pk}",
+            [str(instances[0].pk), str(instances[1].pk)],
+        )
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+    @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
+    @patch(
+        "onadata.apps.api.viewsets.data_viewset.delete_xform_submissions_async.delay"
+    )
+    def test_deletion_of_bulk_submissions_async(self, mock_del_async):
+        """Deletion of bulk submissions is done asynchronously"""
+        self._make_submissions()
+
+        view = DataViewSet.as_view({"delete": "destroy"})
+
+        records_to_be_deleted = self.xform.instances.all()[:2]
+        instance_ids = ",".join([str(i.pk) for i in records_to_be_deleted])
+        data = {"instance_ids": instance_ids}
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        mock_del_async.assert_called_once_with(
+            self.xform.pk,
+            self.user.pk,
+            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            True,
+        )
+        # Permanent deletion
+        mock_del_async.reset_mock()  # Reset mock
+        data = {"permanent_delete": True, "instance_ids": instance_ids}
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        mock_del_async.assert_called_once_with(
+            self.xform.pk,
+            self.user.pk,
+            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            False,
         )
 
 

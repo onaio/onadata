@@ -2,12 +2,15 @@
 
 import json
 
-from onadata.apps.main.tests.test_base import TestBase
+from django.core.cache import cache
+
 from onadata.apps.logger.models.entity_list import EntityList
-from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
 from onadata.apps.logger.models.registration_form import RegistrationForm
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import ROLES
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -269,3 +272,38 @@ class DataDictionaryTestCase(TestBase):
         self._replace_form(self.follow_up_form, data_dict)
         form.refresh_from_db()
         self.assertTrue(form.is_active)
+
+    def test_cache_invalidated(self):
+        """Various caches are invalidated when form is created/replaced"""
+        cache_keys = [
+            f"ps-project_forms-{self.project.pk}",
+            f"ps-project_base_forms-{self.project.pk}",
+            f"xfm-list-{self.project.pk}-Project-anon",
+        ]
+
+        for role in ROLES:
+            cache_keys.append(f"xfm-list-{self.project.pk}-Project-{role}")
+
+        for key in cache_keys:
+            cache.set(key, "data")
+
+        data_dict = self._publish_markdown(self.registration_form, self.user)
+
+        for key in cache_keys:
+            self.assertIsNone(cache.get(key))
+
+        # Reset caches
+        xform = XForm.objects.get(pk=data_dict.pk)
+        cache_keys.append(f"xfm-list-{xform.pk}-XForm-anon")
+
+        for role in ROLES:
+            cache_keys.append(f"xfm-list-{xform.pk}-XForm-{role}")
+
+        for key in cache_keys:
+            cache.set(key, "data")
+
+        # Replace form
+        self._replace_form(self.follow_up_form, data_dict)
+
+        for key in cache_keys:
+            self.assertIsNone(cache.get(key))

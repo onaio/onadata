@@ -2,6 +2,7 @@
 """
 Tests Export Builder Functionality
 """
+
 from __future__ import unicode_literals
 
 import csv
@@ -23,6 +24,7 @@ from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavHeaderReader, SavReader
 
 from onadata.apps.logger.import_tools import django_file
+from onadata.apps.logger.models import DataView
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo, query_data
@@ -1622,10 +1624,10 @@ class TestExportBuilder(TestBase):
                 "children_cartoons",
                 "children_cartoons_characters",
             ]
-            self.assertEqual(list(workbook.get_sheet_names()), expected_sheet_names)
+            self.assertEqual(list(workbook.sheetnames), expected_sheet_names)
 
             # check header columns
-            main_sheet = workbook.get_sheet_by_name("childrens_survey")
+            main_sheet = workbook["childrens_survey"]
             expected_column_headers = [
                 "name",
                 "age",
@@ -1654,7 +1656,7 @@ class TestExportBuilder(TestBase):
                 sorted(list(column_headers)), sorted(expected_column_headers)
             )
 
-            childrens_sheet = workbook.get_sheet_by_name("children")
+            childrens_sheet = workbook["children"]
             expected_column_headers = [
                 "children/name",
                 "children/age",
@@ -1683,7 +1685,7 @@ class TestExportBuilder(TestBase):
                 sorted(list(column_headers)), sorted(expected_column_headers)
             )
 
-            cartoons_sheet = workbook.get_sheet_by_name("children_cartoons")
+            cartoons_sheet = workbook["children_cartoons"]
             expected_column_headers = [
                 "children/cartoons/name",
                 "children/cartoons/why",
@@ -1704,9 +1706,7 @@ class TestExportBuilder(TestBase):
                 sorted(list(column_headers)), sorted(expected_column_headers)
             )
 
-            characters_sheet = workbook.get_sheet_by_name(
-                "children_cartoons_characters"
-            )
+            characters_sheet = workbook["children_cartoons_characters"]
             expected_column_headers = [
                 "children/cartoons/characters/name",
                 "children/cartoons/characters/good_or_evil",
@@ -1740,7 +1740,7 @@ class TestExportBuilder(TestBase):
             workbook = load_workbook(filename)
 
             # check header columns
-            main_sheet = workbook.get_sheet_by_name("childrens_survey")
+            main_sheet = workbook["childrens_survey"]
             expected_column_headers = [
                 "name",
                 "age",
@@ -1819,7 +1819,7 @@ class TestExportBuilder(TestBase):
                 "childrens_survey_with_a_very_l2",
                 "childrens_survey_with_a_very_l3",
             ]
-            self.assertEqual(list(workbook.get_sheet_names()), expected_sheet_names)
+            self.assertEqual(list(workbook.sheetnames), expected_sheet_names)
 
     # pylint: disable=invalid-name
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
@@ -3668,3 +3668,39 @@ class TestExportBuilder(TestBase):
             rows[1] = list(map(_str_if_bytes, rows[1]))
             self.assertEqual(expected_data, rows)
         shutil.rmtree(temp_dir)
+
+    def test_extra_columns_dataview(self):
+        """Extra columns are included in export for dataview
+
+        Extra columns included only if in the dataview
+        """
+        self._publish_xls_file_and_set_xform(
+            _logger_fixture_path("childrens_survey.xlsx")
+        )
+        export_builder = ExportBuilder()
+        export_builder.set_survey(self.xform.survey)
+        extra_cols = [
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_index",
+            "_parent_table_name",
+            "_parent_index",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+        ]
+
+        for extra_col in extra_cols:
+            dataview = DataView.objects.create(
+                xform=self.xform,
+                name="test",
+                columns=["name", extra_col],
+                project=self.project,
+            )
+            fields = export_builder.get_fields(
+                dataview, export_builder.sections[0], "title"
+            )
+            self.assertEqual(fields, ["name", extra_col])

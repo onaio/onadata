@@ -2,6 +2,8 @@
 """
 The /projects API endpoint implementation.
 """
+import logging
+
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
@@ -34,6 +36,7 @@ from onadata.libs.serializers.share_project_serializer import (
     RemoveUserFromProjectSerializer,
     ShareProjectSerializer,
 )
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
@@ -49,6 +52,8 @@ from onadata.libs.utils.common_tools import merge_dicts
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_PROJECT_SUBJECT
+
+logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -159,7 +164,13 @@ class ProjectViewSet(
                     )
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+            if survey['type'] and survey['text']:
+                error_message = f"{survey['type']}:{survey['text']}"
+            else:
+                error_message = f"{survey}"
+            message_subject = "Failed to upload form"
+            report_exception(message_subject, error_message)
+            logger.info("%s: %s", message_subject, error_message)
             return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
         xforms = XForm.objects.filter(project=project, deleted_at__isnull=True)

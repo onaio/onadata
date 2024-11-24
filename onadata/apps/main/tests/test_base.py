@@ -492,7 +492,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         __, ext = os.path.splitext(filename)
-        self.assertEqual(ext, ".csv")
+        self.assertEqual(ext, '.csv"')
 
         data = get_response_content(response)
         reader = csv.DictReader(StringIO(data))

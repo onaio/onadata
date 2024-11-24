@@ -2,6 +2,7 @@
 """
 The XForm model
 """
+
 # pylint: disable=too-many-lines
 import hashlib
 import json
@@ -243,7 +244,11 @@ class XFormMixin:
         file_name, _file_ext = os.path.splitext(file_name)
 
         doc = clean_and_parse_xml(self.xml)
-        model_nodes = doc.getElementsByTagName("model")
+        model_nodes = [
+            model_node
+            for model_node in doc.getElementsByTagName("model")
+            if model_node.parentNode.nodeName == "h:head"
+        ]
         if len(model_nodes) != 1:
             raise Exception("xml contains multiple model nodes")
 

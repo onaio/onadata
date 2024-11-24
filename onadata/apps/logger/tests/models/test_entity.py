@@ -1,9 +1,11 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
+import uuid
 import pytz
 from datetime import datetime
 from unittest.mock import patch
 
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from onadata.apps.logger.models import (
@@ -22,6 +24,7 @@ class EntityTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
+
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
         self.project = get_user_default_project(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
@@ -35,15 +38,15 @@ class EntityTestCase(TestBase):
             "circumference_cm": 300,
             "label": "300cm purpleheart",
         }
-        uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
         entity = Entity.objects.create(
             entity_list=self.entity_list,
             json=entity_json,
-            uuid=uuid,
+            uuid=entity_uuid,
         )
         self.assertEqual(entity.entity_list, self.entity_list)
         self.assertEqual(entity.json, entity_json)
-        self.assertEqual(entity.uuid, uuid)
+        self.assertEqual(entity.uuid, entity_uuid)
         self.assertEqual(f"{entity}", f"{entity.pk}|{self.entity_list}")
         self.assertEqual(entity.date_created, self.mocked_now)
 
@@ -53,16 +56,16 @@ class EntityTestCase(TestBase):
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
         self.assertEqual(entity.json, {})
-        self.assertEqual(entity.uuid, "")
+        self.assertIsInstance(entity.uuid, uuid.UUID)
 
+    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
     @patch("django.utils.timezone.now")
-    def test_soft_delete(self, mock_now):
+    def test_soft_delete(self, mock_now, mock_dec):
         """Soft delete works"""
         mock_now.return_value = self.mocked_now
         entity = Entity.objects.create(entity_list=self.entity_list)
         self.entity_list.refresh_from_db()
 
-        self.assertEqual(self.entity_list.num_entities, 1)
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
 
@@ -70,10 +73,10 @@ class EntityTestCase(TestBase):
         self.entity_list.refresh_from_db()
         entity.refresh_from_db()
 
-        self.assertEqual(self.entity_list.num_entities, 0)
         self.assertEqual(self.entity_list.last_entity_update_time, self.mocked_now)
         self.assertEqual(entity.deleted_at, self.mocked_now)
         self.assertEqual(entity.deleted_at, self.mocked_now)
+        mock_dec.assert_called_once_with(self.entity_list.pk)
 
         # Soft deleted item cannot be soft deleted again
         deleted_at = timezone.now()
@@ -93,20 +96,33 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity3.deleted_at, self.mocked_now)
         self.assertIsNone(entity3.deleted_by)
 
-    def test_hard_delete(self):
+    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
+    def test_hard_delete(self, mock_dec):
         """Hard deleting updates dataset info"""
         entity = Entity.objects.create(entity_list=self.entity_list)
         self.entity_list.refresh_from_db()
         old_last_entity_update_time = self.entity_list.last_entity_update_time
 
-        self.assertEqual(self.entity_list.num_entities, 1)
-
         entity.delete()
         self.entity_list.refresh_from_db()
         new_last_entity_update_time = self.entity_list.last_entity_update_time
 
-        self.assertEqual(self.entity_list.num_entities, 0)
         self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+        mock_dec.assert_called_once_with(self.entity_list.pk)
+
+    def test_entity_list_uuid_unique(self):
+        """`entity_list` and `uuid` are unique together"""
+        entity_uuid = "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        Entity.objects.create(
+            entity_list=self.entity_list,
+            uuid=entity_uuid,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Entity.objects.create(
+                entity_list=self.entity_list,
+                uuid=entity_uuid,
+            )
 
 
 class EntityHistoryTestCase(TestBase):

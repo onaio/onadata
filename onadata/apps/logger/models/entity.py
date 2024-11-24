@@ -2,6 +2,9 @@
 Entity model
 """
 
+import uuid
+import importlib
+
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
 from django.utils import timezone
@@ -23,7 +26,7 @@ class Entity(BaseModel):
         on_delete=models.CASCADE,
     )
     json = models.JSONField(default=dict)
-    uuid = models.CharField(max_length=249, default="", db_index=True)
+    uuid = models.UUIDField(default=uuid.uuid4, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
@@ -38,12 +41,24 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            self.entity_list.num_entities = models.F("num_entities") - 1
-            self.entity_list.save()
+            # Avoid cyclic dependency errors
+            logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+            transaction.on_commit(
+                lambda: logger_tasks.dec_elist_num_entities_async.delay(
+                    self.entity_list.pk
+                )
+            )
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        indexes = [models.Index(fields=["deleted_at"])]
+        indexes = [
+            models.Index(fields=["deleted_at"]),
+            models.Index(fields=["entity_list", "uuid"]),
+        ]
+        unique_together = (
+            "entity_list",
+            "uuid",
+        )
 
 
 class EntityHistory(BaseModel):

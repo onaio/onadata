@@ -1,30 +1,26 @@
 """Tests for module onadata.apps.api.tasks"""
 
 import sys
-
 from unittest.mock import patch
 
-from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
-from django.test import override_settings
 
 from onadata.apps.api.tasks import (
-    send_project_invitation_email_async,
-    regenerate_form_instance_json,
-    add_org_user_and_share_projects_async,
-    remove_org_user_async,
-    share_project_async,
     ShareProject,
+    delete_xform_submissions_async,
+    regenerate_form_instance_json,
+    send_project_invitation_email_async,
+    share_project_async,
 )
-from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.logger.models import ProjectInvitation, Instance
+from onadata.apps.logger.models import Instance, ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.organization_serializer import OrganizationSerializer
-from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.utils.email import ProjectInvitationEmail
 from onadata.libs.utils.cache_tools import ORG_PROFILE_CACHE
+from onadata.libs.utils.email import ProjectInvitationEmail
+from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
 
@@ -122,179 +118,11 @@ class RegenerateFormInstanceJsonTestCase(TestBase):
         instance.refresh_from_db()
         self.assertFalse(instance.json)
 
+
 def set_cache_for_org(org, request):
     """Utility to set org cache"""
-    org_profile_json = OrganizationSerializer(
-            org, context={"request": request}
-    ).data
+    org_profile_json = OrganizationSerializer(org, context={"request": request}).data
     cache.set(f"{ORG_PROFILE_CACHE}{org.user.username}-owner", org_profile_json)
-
-@patch("onadata.apps.api.tasks.tools.add_org_user_and_share_projects")
-class AddOrgUserAndShareProjectsAsyncTestCase(TestBase):
-    """Tests for add_org_user_and_share_projects_async"""
-
-    def setUp(self):
-        super().setUp()
-
-        self.org_user = User.objects.create(username="onaorg")
-        alice = self._create_user("alice", "1234&&")
-        self.org = OrganizationProfile.objects.create(
-            user=self.org_user, name="Ona Org", creator=alice
-        )
-        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
-
-    def test_user_added_to_org(self, mock_add):
-        """User is added to organization"""
-        request = self.factory.get("/", **self.extra)
-        request.user = self.user
-        set_cache_for_org(self.org, request)
-        cache_key = f"{ORG_PROFILE_CACHE}{self.org.user.username}-owner"
-        self.assertIsNotNone(cache.get(cache_key))
-        add_org_user_and_share_projects_async.delay(
-            self.org.pk, self.user.pk, "manager"
-        )
-        mock_add.assert_called_once_with(self.org, self.user, "manager")
-        self.assertEqual(cache.get(cache_key), None)
-
-    def test_role_optional(self, mock_add):
-        """role param is optional"""
-        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
-        mock_add.assert_called_once_with(self.org, self.user, None)
-
-    @patch("onadata.apps.api.tasks.logger.exception")
-    def test_invalid_org_id(self, mock_log, mock_add):
-        """Invalid org_id is handled"""
-        add_org_user_and_share_projects_async.delay(sys.maxsize, self.user.pk)
-        mock_add.assert_not_called()
-        mock_log.assert_called_once()
-
-    @patch("onadata.apps.api.tasks.logger.exception")
-    def test_invalid_user_id(self, mock_log, mock_add):
-        """Invalid org_id is handled"""
-        add_org_user_and_share_projects_async.delay(self.org.pk, sys.maxsize)
-        mock_add.assert_not_called()
-        mock_log.assert_called_once()
-
-    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
-    def test_database_error(self, mock_retry, mock_add):
-        """We retry calls if DatabaseError is raised"""
-        mock_add.side_effect = DatabaseError()
-        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
-
-    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
-    def test_connection_error(self, mock_retry, mock_add):
-        """We retry calls if ConnectionError is raised"""
-        mock_add.side_effect = ConnectionError()
-        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
-
-    @patch("onadata.apps.api.tasks.add_org_user_and_share_projects_async.retry")
-    def test_operation_error(self, mock_retry, mock_add):
-        """We retry calls if OperationError is raised"""
-        mock_add.side_effect = OperationalError()
-        add_org_user_and_share_projects_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
-
-    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
-    @patch("onadata.apps.api.tasks.send_mail")
-    def test_send_mail(self, mock_email, mock_add):
-        """Send mail works"""
-        self.user.email = "bob@example.com"
-        self.user.save()
-        add_org_user_and_share_projects_async.delay(
-            self.org.pk, self.user.pk, "manager", "Subject", "Body"
-        )
-        mock_email.assert_called_with(
-            "Subject",
-            "Body",
-            "noreply@ona.io",
-            ("bob@example.com",),
-        )
-        mock_add.assert_called_once_with(self.org, self.user, "manager")
-
-    @override_settings(DEFAULT_FROM_EMAIL="noreply@ona.io")
-    @patch("onadata.apps.api.tasks.send_mail")
-    def test_user_email_none(self, mock_email, mock_add):
-        """Email not sent if user email is None"""
-        add_org_user_and_share_projects_async.delay(
-            self.org.pk, self.user.pk, "manager", "Subject", "Body"
-        )
-        mock_email.assert_not_called()
-        mock_add.assert_called_once_with(self.org, self.user, "manager")
-
-
-@patch("onadata.apps.api.tasks.tools.remove_user_from_organization")
-class RemoveOrgUserAsyncTestCase(TestBase):
-    """Tests for remove_org_user_async"""
-
-    def setUp(self):
-        super().setUp()
-
-        self.org_user = User.objects.create(username="onaorg")
-        alice = self._create_user("alice", "1234&&")
-        self.org = OrganizationProfile.objects.create(
-            user=self.org_user, name="Ona Org", creator=alice
-        )
-        self.extra = {"HTTP_AUTHORIZATION": f"Token {self.user.auth_token}"}
-
-    def test_user_removed_from_org(self, mock_remove):
-        """User is removed from organization"""
-        request = self.factory.get("/", **self.extra)
-        request.user = self.user
-        set_cache_for_org(self.org, request)
-        cache_key = f"{ORG_PROFILE_CACHE}{self.org.user.username}-owner"
-        self.assertIsNotNone(cache.get(cache_key))
-        remove_org_user_async.delay(self.org.pk, self.user.pk)
-        mock_remove.assert_called_once_with(self.org, self.user)
-        self.assertEqual(cache.get(cache_key), None)
-
-    @patch("onadata.apps.api.tasks.logger.exception")
-    def test_invalid_org_id(self, mock_log, mock_remove):
-        """Invalid org_id is handled"""
-        remove_org_user_async.delay(sys.maxsize, self.user.pk)
-        mock_remove.assert_not_called()
-        mock_log.assert_called_once()
-
-    @patch("onadata.apps.api.tasks.logger.exception")
-    def test_invalid_user_id(self, mock_log, mock_remove):
-        """Invalid user_id is handled"""
-        remove_org_user_async.delay(self.org.pk, sys.maxsize)
-        mock_remove.assert_not_called()
-        mock_log.assert_called_once()
-
-    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
-    def test_database_error(self, mock_retry, mock_remove):
-        """We retry calls if DatabaseError is raised"""
-        mock_remove.side_effect = DatabaseError()
-        remove_org_user_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
-
-    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
-    def test_connection_error(self, mock_retry, mock_remove):
-        """We retry calls if ConnectionError is raised"""
-        mock_remove.side_effect = ConnectionError()
-        remove_org_user_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
-
-    @patch("onadata.apps.api.tasks.remove_org_user_async.retry")
-    def test_operation_error(self, mock_retry, mock_remove):
-        """We retry calls if OperationError is raised"""
-        mock_remove.side_effect = OperationalError()
-        remove_org_user_async.delay(self.org.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
 
 
 class ShareProjectAsyncTestCase(TestBase):
@@ -357,3 +185,46 @@ class ShareProjectAsyncTestCase(TestBase):
         self.assertTrue(mock_retry.called)
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], OperationalError))
+
+
+@patch("onadata.apps.api.tasks.delete_xform_submissions")
+class DeleteXFormSubmissionsAsyncTestCase(TestBase):
+    """Tests for delete_xform_submissions_async"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+
+    def test_delete(self, mock_delete):
+        """Submissions are deleted"""
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk, [1, 2], False)
+        mock_delete.assert_called_once_with(self.xform, self.user, [1, 2], False)
+
+    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
+    def test_database_error(self, mock_retry, mock_delete):
+        """We retry calls if DatabaseError is raised"""
+        mock_delete.side_effect = DatabaseError()
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+
+    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
+    def test_connection_error(self, mock_retry, mock_delete):
+        """We retry calls if ConnectionError is raised"""
+        mock_delete.side_effect = ConnectionError()
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
+        self.assertTrue(mock_retry.called)
+
+    @patch("onadata.apps.api.tasks.logger.exception")
+    def test_xform_id_invalid(self, mock_logger, mock_delete):
+        """Invalid xform_id is handled"""
+        delete_xform_submissions_async.delay(sys.maxsize, self.user.pk)
+        self.assertFalse(mock_delete.called)
+        mock_logger.assert_called_once()
+
+    @patch("onadata.apps.api.tasks.logger.exception")
+    def test_user_id_invalid(self, mock_logger, mock_delete):
+        """Invalid user_id is handled"""
+        delete_xform_submissions_async.delay(self.xform.pk, sys.maxsize)
+        self.assertFalse(mock_delete.called)
+        mock_logger.assert_called_once()

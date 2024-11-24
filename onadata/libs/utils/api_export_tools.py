@@ -73,6 +73,7 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
 
+
 # Supported external exports
 EXTERNAL_EXPORT_TYPES = ["xlsx"]
 
@@ -202,6 +203,7 @@ def custom_response_handler(  # noqa: C0901
                 export_type,
                 dataview_pk=dataview_pk,
                 metadata=metadata,
+                export_options=options,
             )
 
         if should_create_new_export(xform, export_type, options, request=request):
@@ -244,7 +246,13 @@ def custom_response_handler(  # noqa: C0901
 
 
 def _generate_new_export(  # noqa: C0901
-    request, xform, query, export_type, dataview_pk=False, metadata=None
+    request,
+    xform,
+    query,
+    export_type,
+    dataview_pk=False,
+    metadata=None,
+    export_options=None,
 ):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
@@ -256,6 +264,8 @@ def _generate_new_export(  # noqa: C0901
         "host": request.get_host(),
         "sort": request.query_params.get("sort"),
     }
+    if isinstance(export_options, dict):
+        options.update(export_options)
     if query:
         options["query"] = query
 

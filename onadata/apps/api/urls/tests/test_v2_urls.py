@@ -34,7 +34,7 @@ class EntityListTestCase(TestAbstractViewSet):
     def test_create(self):
         """POST Entity"""
         response = self.client.post(self.url)
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 400)
 
 
 class EntityDetailTestCase(TestAbstractViewSet):
