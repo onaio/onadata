@@ -2,6 +2,7 @@
 """
 Test Attachment viewsets.
 """
+
 import os
 
 from django.utils import timezone
@@ -235,11 +236,18 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.list_view(request)
         self.assertEqual(response.status_code, 404)
 
+        # Authenticated user access
         data["xform"] = "lol"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get("Cache-Control"), None)
+
+        # Anonymous user access
+        data["xform"] = "lol"
+        request = self.factory.get("/", data)
+        response = self.list_view(request)
+        self.assertContains(response, "Not Found", status_code=404)
 
     def test_list_view_filter_by_instance(self):
         self._submit_transport_instance_w_attachment()
