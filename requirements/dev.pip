@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements/dev.pip --strip-extras requirements/dev.in
 #
--e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
+# -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
     # via -r requirements/base.in
 amqp==5.2.0
     # via kombu

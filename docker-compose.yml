@@ -14,10 +14,13 @@ services:
     tty: true
     volumes:
       - ./:/srv/onadata
-      - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
+      - ../savreaderwriter:/srv/onadata/src/savreaderwriter
+      - ./onadata/apps/api/static/docs:/srv/onadata/onadata/apps/api/static/docs
+      - ../pricing:/srv/onadata/src/pricing
+      - ../ona-oidc:/srv/onadata/src/ona-oidc
     ports:
       - "8000:8000"
-    command: python3.10 manage.py runserver 0.0.0.0:8000
+    command: ["./docker-startup-api.sh"]
 
   celery:
     environment:
@@ -33,8 +36,10 @@ services:
       - api
     volumes:
       - ./:/srv/onadata
-      - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
-    command: celery -A onadata.celeryapp worker -B -l INFO -E
+      - ../savreaderwriter:/srv/onadata/src/savreaderwriter
+      - ../pricing:/srv/onadata/src/pricing
+      - ../ona-oidc:/srv/onadata/src/ona-oidc
+    command: ["./docker-startup-celery.sh"]
 
   database:
     image: postgis/postgis:13-3.3-alpine

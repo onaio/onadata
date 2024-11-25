@@ -54,8 +54,7 @@ RUN chown -R appuser:appuser /srv/onadata/
 USER appuser
 
 # install sphinx and build API docs.
-RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
-    make -C docs html
+RUN python -m pip install --no-cache-dir -r requirements/docs.pip
 
 
 FROM debian:bookworm-20241202 as runtime
