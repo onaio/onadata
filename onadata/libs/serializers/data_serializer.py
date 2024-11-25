@@ -2,6 +2,7 @@
 """
 Submission data serializers module.
 """
+
 from io import BytesIO
 
 from django.shortcuts import get_object_or_404
@@ -13,6 +14,7 @@ from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
+from onadata.libs.data import parse_int
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import (
@@ -56,11 +58,19 @@ def get_request_and_username(context):
         # get the username from the XForm object if form_id is
         # present else utilize the request users username
         if form_pk:
-            form = get_object_or_404(XForm, pk=form_pk)
-            username = form.user.username
+            form_pk = parse_int(form_pk)
+            if form_pk:
+                form = get_object_or_404(XForm, pk=form_pk)
+                username = form.user.username
+            else:
+                raise ValueError(_("Invalid XForm id."))
         elif project_pk:
-            project = get_object_or_404(Project, pk=project_pk)
-            username = project.user.username
+            project_pk = parse_int(project_pk)
+            if project_pk:
+                project = get_object_or_404(Project, pk=project_pk)
+                username = project.user.username
+            else:
+                raise ValueError(_("Invalid Project id."))
         else:
             username = request.user and request.user.username
 
@@ -296,7 +306,10 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         pass
 
     def validate(self, attrs):
-        request, __ = get_request_and_username(self.context)
+        try:
+            request, __ = get_request_and_username(self.context)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc))
         if not request.FILES or "xml_submission_file" not in request.FILES:
             raise serializers.ValidationError(_("No XML submission file."))
 
