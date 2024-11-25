@@ -1274,7 +1274,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                 auth = DigestAuth("bob", "bobbob")
                 request.META.update(auth(request.META, response))
                 response = self.view(request, project_pk=f"{self.project.pk}hello")
-                self.assertEqual(response.status_code, 400)
+                self.assertContains(response, "Invalid Project id.", status_code=400)
                 self.assertTrue(response.has_header("X-OpenRosa-Version"))
                 self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
                 self.assertTrue(response.has_header("Date"))
