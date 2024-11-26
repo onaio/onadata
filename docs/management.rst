@@ -18,7 +18,7 @@ Regenerate submission JSON
 
 Regenerates the JSON for all submissions of a form.
 
-This is useful in the case where the JSON was saved incorrectly due to some bug when parsing the XML.
+This is useful in the case where the JSON was saved incorrectly due to some bug when parsing the XML or when saving metadata.
 
 The form is identified by its ID.
 
