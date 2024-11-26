@@ -28,10 +28,16 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     """Customise the XForm admin view."""
 
     exclude = ("user",)
-    list_display = ("id", "id_string", "downloadable", "shared")
-    search_fields = ("id", "id_string", "title")
+    list_display = ("internal_id", "id_string", "project_id", "downloadable", "shared")
+    search_fields = ("id_string", "title", "project__id", "project__name")
     user_lookup_field = "user"
     actions = ["restore_form"]
+
+    def internal_id(self, obj):
+        """Display the internal ID."""
+        return obj.id
+
+    internal_id.short_description = "Internal ID"  # Label for the admin column
 
     def restore_form(self, request, queryset):
         """Custom admin action to restore soft-deleted XForms."""
