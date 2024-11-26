@@ -35,3 +35,11 @@ Restores a soft deleted form. The form is identified by its ID.
 .. code-block:: bash
 
     python manage.py restore_form form_id
+
+You can also restore a form in Django admin by:
+
+1. **Navigate to XForms**: Go to the XForm section in the Django admin interface.
+
+2. **Select Forms**: Select the soft-deleted forms you want to restore.
+
+3. **Run Action**: Choose the "Restore selected soft-deleted forms" action from the dropdown menu and click "Go".
