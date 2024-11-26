@@ -36,12 +36,14 @@ class TestDataView(TestBase):
         data_view.refresh_from_db()
 
         self.assertIsNotNone(data_view.deleted_at)
+        self.assertIn("-deleted-at-", data_view.name)
 
         # Restore DataView
         data_view.restore()
         data_view.refresh_from_db()
 
         self.assertIsNone(data_view.deleted_at)
+        self.assertNotIn("-deleted-at-", data_view.name)
 
 
 class TestIntegratedDataView(TestAbstractViewSet):
