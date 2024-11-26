@@ -24,7 +24,7 @@ The form is identified by its ID.
 
 .. code-block:: bash
 
-    python manage.py regenerate_submission_json <form_id1> <form_id2>
+    python manage.py regenerate_submission_json form_id1 form_id2
 
 
 Restore soft deleted form
@@ -34,4 +34,4 @@ Restores a soft deleted form. The form is identified by its ID.
 
 .. code-block:: bash
 
-    python manage.py restore_form <form_id>
+    python manage.py restore_form form_id
