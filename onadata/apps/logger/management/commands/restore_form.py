@@ -39,17 +39,14 @@ class Command(BaseCommand):
             xform.restore()
 
             # Display success message
-            self.stdout.write(
-                self.style.SUCCESS(
-                    (
-                        f"Successfully restored form '{xform.id_string}' with "
-                        f"ID {form_id} deleted by {was_deleted_by} at {was_deleted_at}."
-                    )
-                )
+            success_msg = (
+                f"Successfully restored form '{xform.id_string}' with "
+                f"ID {form_id} deleted by {was_deleted_by} at {was_deleted_at}."
             )
+            self.stdout.write(self.style.SUCCESS(success_msg))
 
-        except XForm.DoesNotExist:
-            raise CommandError(f"Form with ID {form_id} does not exist")
+        except XForm.DoesNotExist as exc:
+            raise CommandError(f"Form with ID {form_id} does not exist") from exc
 
         except Exception as exc:
             raise CommandError(
