@@ -1,3 +1,7 @@
+"""
+Restore a soft-deleted XForm object.
+"""
+
 from django.core.management.base import BaseCommand, CommandError
 
 from onadata.apps.logger.models import XForm

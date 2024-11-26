@@ -5,6 +5,7 @@ Logger admin module.
 
 from django.contrib import admin, messages
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.utils.translation import gettext_lazy as _
 
 from reversion.admin import VersionAdmin
@@ -47,7 +48,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
                 try:
                     call_command("restore_form", xform.id)
                     restored_count += 1
-                except Exception as exc:
+                except CommandError as exc:
                     self.message_user(
                         request,
                         _(f"Failed to restore form {xform.id_string}: {exc}"),
