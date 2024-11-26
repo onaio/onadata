@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 class Command(BaseCommand):
@@ -42,8 +42,8 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(
                     (
-                        f"Successfully restored form '{xform.id_string}' with ID {form_id} "
-                        f"deleted by {was_deleted_by} at {was_deleted_at}."
+                        f"Successfully restored form '{xform.id_string}' with "
+                        f"ID {form_id} deleted by {was_deleted_by} at {was_deleted_at}."
                     )
                 )
             )
@@ -51,5 +51,7 @@ class Command(BaseCommand):
         except XForm.DoesNotExist:
             raise CommandError(f"Form with ID {form_id} does not exist")
 
-        except Exception as e:
-            raise CommandError(f"An error occurred while restoring the form: {e}")
+        except Exception as exc:
+            raise CommandError(
+                f"An error occurred while restoring the form: {exc}"
+            ) from exc
