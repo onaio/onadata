@@ -41,10 +41,10 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
                 try:
                     call_command("restore_form", xform.id)
                     restored_count += 1
-                except Exception as e:
+                except Exception as exc:
                     self.message_user(
                         request,
-                        _(f"Failed to restore form {xform.id_string}: {e}"),
+                        _(f"Failed to restore form {xform.id_string}: {exc}"),
                         level=messages.ERROR,
                     )
         if restored_count > 0:
