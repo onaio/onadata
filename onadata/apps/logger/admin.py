@@ -2,7 +2,10 @@
 """
 Logger admin module.
 """
-from django.contrib import admin
+
+from django.contrib import admin, messages
+from django.core.management import call_command
+from django.utils.translation import gettext_lazy as _
 
 from reversion.admin import VersionAdmin
 
@@ -12,7 +15,7 @@ from onadata.apps.logger.models import Project, XForm
 class FilterByUserMixin:  # pylint: disable=too-few-public-methods
     """Filter queryset by ``request.user``."""
 
-    # A user should only see forms/projects that belong to him.
+    # A user should only see forms/projects that belong to them.
     def get_queryset(self, request):
         """Returns queryset filtered by the `request.user`."""
         queryset = super().get_queryset(request)
@@ -25,9 +28,33 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     """Customise the XForm admin view."""
 
     exclude = ("user",)
-    list_display = ("id_string", "downloadable", "shared")
+    list_display = ("id_string", "downloadable", "shared", "deleted_at")
     search_fields = ("id_string", "title")
     user_lookup_field = "user"
+    actions = ["restore_form"]
+
+    def restore_form(self, request, queryset):
+        """Custom admin action to restore soft-deleted XForms."""
+        restored_count = 0
+        for xform in queryset:
+            if xform.deleted_at:
+                try:
+                    call_command("restore_form", xform.id)
+                    restored_count += 1
+                except Exception as e:
+                    self.message_user(
+                        request,
+                        _(f"Failed to restore form {xform.id_string}: {e}"),
+                        level=messages.ERROR,
+                    )
+        if restored_count > 0:
+            self.message_user(
+                request,
+                _(f"Successfully restored {restored_count} forms."),
+                level=messages.SUCCESS,
+            )
+
+    restore_form.short_description = _("Restore selected soft-deleted forms")
 
 
 admin.site.register(XForm, XFormAdmin)
