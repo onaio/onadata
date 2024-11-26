@@ -3,16 +3,6 @@ Management Commands
 
 The following custom Django management commands are available:
 
-Soft delete user
-----------------
-
-Softs deletes a user. The user is identified by their username and email
-
-.. code-block:: bash
-
-    python manage.py delete_users --user_details username1:email username2:email
-
-
 Regenerate submission JSON
 --------------------------
 
@@ -43,3 +33,13 @@ You can also restore a form in Django admin interface:
 2. **Select Forms**: Select the soft-deleted forms you want to restore.
 
 3. **Run Action**: Choose the "Restore selected soft-deleted forms" action from the dropdown menu and click "Go".
+
+
+Soft delete user
+----------------
+
+Softs deletes a user. The user is identified by their username and email
+
+.. code-block:: bash
+
+    python manage.py delete_users --user_details username1:email username2:email
