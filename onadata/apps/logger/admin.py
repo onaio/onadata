@@ -28,7 +28,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     """Customise the XForm admin view."""
 
     exclude = ("user",)
-    list_display = ("id_string", "downloadable", "shared", "deleted_at")
+    list_display = ("id", "id_string", "downloadable", "shared")
     search_fields = ("id_string", "title")
     user_lookup_field = "user"
     actions = ["restore_form"]
