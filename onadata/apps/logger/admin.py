@@ -51,17 +51,17 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
                 except CommandError as exc:
                     self.message_user(
                         request,
-                        _(f"Failed to restore form {xform.id_string}: {exc}"),
+                        _(f"Failed to restore XForm {xform.id_string}: {exc}"),
                         level=messages.ERROR,
                     )
         if restored_count > 0:
             self.message_user(
                 request,
-                _(f"Successfully restored {restored_count} forms."),
+                _(f"Successfully restored {restored_count} XForms."),
                 level=messages.SUCCESS,
             )
 
-    restore_form.short_description = _("Restore selected soft-deleted forms")
+    restore_form.short_description = _("Restore selected soft-deleted XForms")
 
 
 admin.site.register(XForm, XFormAdmin)
