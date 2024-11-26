@@ -1106,6 +1106,9 @@ class XForm(XFormMixin, BaseModel):
         without violating the uniqueness constraint.
         Also soft deletes associated dataviews
         """
+        if self.deleted_at is not None:
+            return
+
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime("-deleted-at-%s")
         self.deleted_at = soft_deletion_time
@@ -1138,6 +1141,38 @@ class XForm(XFormMixin, BaseModel):
         # Delete associated Form Media Files
         for metadata in self.metadata_set.filter(deleted_at__isnull=True):
             metadata.soft_delete()
+        clear_project_cache(self.project_id)
+
+    @transaction.atomic()
+    def restore(self):
+        """Restore a soft-deleted XForm"""
+        if self.deleted_at is None:
+            return
+
+        self.deleted_at = None
+        self.id_string = self.id_string.split("-deleted-at-")[0]
+        self.sms_id_string = self.sms_id_string.split("-deleted-at-")[0]
+        self.downloadable = True
+        self.deleted_by = None
+        self.save(
+            update_fields=[
+                "deleted_at",
+                "id_string",
+                "sms_id_string",
+                "downloadable",
+                "deleted_by",
+            ]
+        )
+        # Restore associated filtered datasets
+        for dataview in self.dataview_set.all():
+            dataview.restore()
+        # Restore associated Merged-Datasets
+        for merged_dataset in self.mergedxform_ptr.filter(deleted_at__isnull=False):
+            merged_dataset.restore()
+        # Restore associated Form Media Files
+        for metadata in self.metadata_set.filter(deleted_at__isnull=False):
+            metadata.restore()
+
         clear_project_cache(self.project_id)
 
     def submission_count(self, force_update=False):

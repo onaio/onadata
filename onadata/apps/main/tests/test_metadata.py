@@ -2,6 +2,7 @@
 """
 Test MetaData model.
 """
+
 from django.core.cache import cache
 
 from onadata.apps.logger.models import Instance, Project, XForm
@@ -180,3 +181,18 @@ class TestMetaData(TestBase):
         metadata.save()
 
         self.assertIsNone(cache.get(key_2))
+
+    def test_restore_deleted(self):
+        """Soft deleted MetaData is restored"""
+        # Create metadata and soft delete
+        metadata = MetaData.objects.create(data_type="media", object_id=self.xform.id)
+        metadata.soft_delete()
+        metadata.refresh_from_db()
+
+        self.assertIsNotNone(metadata.deleted_at)
+
+        # Restore metadata
+        metadata.restore()
+        metadata.refresh_from_db()
+
+        self.assertIsNone(metadata.deleted_at)
