@@ -29,7 +29,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
 
     exclude = ("user",)
     list_display = ("id", "id_string", "downloadable", "shared")
-    search_fields = ("id_string", "title")
+    search_fields = ("id", "id_string", "title")
     user_lookup_field = "user"
     actions = ["restore_form"]
 
