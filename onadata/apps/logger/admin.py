@@ -62,13 +62,6 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
 
     restore_form.short_description = _("Restore selected soft-deleted forms")
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if "delete_selected" in actions:
-            # disable delete_selected action
-            del actions["delete_selected"]
-        return actions
-
 
 admin.site.register(XForm, XFormAdmin)
 
