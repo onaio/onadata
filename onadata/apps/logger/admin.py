@@ -32,7 +32,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     list_display = ("internal_id", "id_string", "project_id", "downloadable", "shared")
     search_fields = ("id", "id_string", "title", "project__id", "project__name")
     user_lookup_field = "user"
-    actions = ["restore_form", "delete_queryset", "delete_model"]
+    actions = ["restore_form"]
 
     def internal_id(self, obj):
         """Display the internal ID."""
@@ -44,7 +44,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
         """Custom admin action to restore soft-deleted XForms."""
         restored_count = 0
 
-        for xform in queryset:
+        for xform in queryset.iterator(chunk_size=100):
             if xform.deleted_at is not None:
                 try:
                     call_command("restore_form", xform.id)
@@ -69,38 +69,16 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
         """
         Override delete_queryset to perform soft deletion on XForms.
         """
-        deleted_count = 0
-
-        for xform in queryset:
+        for xform in queryset.iterator(chunk_size=100):
             if xform.deleted_at is None:
                 xform.soft_delete(user=request.user)
-                deleted_count += 1
-
-        if deleted_count > 0:
-            self.message_user(
-                request,
-                _(f"Successfully soft-deleted {deleted_count} XForms."),
-                level=messages.SUCCESS,
-            )
 
     def delete_model(self, request, obj):
         """
         Override delete_model to perform soft deletion on a single XForm.
         """
-        if obj.deleted_at is not None:
-            self.message_user(
-                request,
-                _(f"The XForm {obj.id_string} has already been soft-deleted."),
-                level=messages.WARNING,
-            )
-            return
-
-        obj.soft_delete(user=request.user)
-        self.message_user(
-            request,
-            _(f"The XForm {obj.id_string} has been soft-deleted successfully."),
-            level=messages.SUCCESS,
-        )
+        if obj.deleted_at is None:
+            obj.soft_delete(user=request.user)
 
 
 admin.site.register(XForm, XFormAdmin)
