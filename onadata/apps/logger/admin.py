@@ -76,6 +76,15 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
             level=messages.SUCCESS,
         )
 
+    def delete_model(self, request, obj):
+        """
+        Override delete_model to perform soft deletion on a single XForm.
+        """
+        obj.soft_delete(user=request.user)
+        self.message_user(
+            request, _("The XForm has been soft-deleted."), level=messages.SUCCESS
+        )
+
 
 admin.site.register(XForm, XFormAdmin)
 
