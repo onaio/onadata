@@ -25,7 +25,7 @@ class FilterByUserMixin:  # pylint: disable=too-few-public-methods
         return queryset.filter(**{self.user_lookup_field: request.user})
 
 
-class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
+class XFormAdmin(FilterByUserMixin, admin.ModelAdmin):
     """Customise the XForm admin view."""
 
     exclude = ("user",)
