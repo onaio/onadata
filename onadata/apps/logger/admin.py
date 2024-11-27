@@ -63,7 +63,7 @@ class XFormAdmin(FilterByUserMixin, admin.ModelAdmin):
                 level=messages.SUCCESS,
             )
 
-    restore_form.short_description = _("Restore selected soft-deleted XForms")
+    restore_form.short_description = _("Restore selected deleted XForms")
 
     def delete_queryset(self, request, queryset):
         """
