@@ -60,6 +60,8 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
 
 FROM debian:bookworm-20241111 as runtime
 
+python -m pip install --no-cache-dir cryptography==43.0.1
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
