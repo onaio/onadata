@@ -32,7 +32,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     list_display = ("internal_id", "id_string", "project_id", "downloadable", "shared")
     search_fields = ("id", "id_string", "title", "project__id", "project__name")
     user_lookup_field = "user"
-    actions = ["restore_form"]
+    actions = ["restore_form", "delete_queryset", "delete_model"]
 
     def internal_id(self, obj):
         """Display the internal ID."""
@@ -90,14 +90,16 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
         if obj.deleted_at is not None:
             self.message_user(
                 request,
-                _("The XForm has already been soft-deleted."),
+                _(f"The XForm {obj.id_string} has already been soft-deleted."),
                 level=messages.WARNING,
             )
             return
 
         obj.soft_delete(user=request.user)
         self.message_user(
-            request, _("The XForm has been soft-deleted."), level=messages.SUCCESS
+            request,
+            _(f"The XForm {obj.id_string} has been soft-deleted successfully."),
+            level=messages.SUCCESS,
         )
 
 
