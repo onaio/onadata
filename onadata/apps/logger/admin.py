@@ -43,8 +43,9 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
     def restore_form(self, request, queryset):
         """Custom admin action to restore soft-deleted XForms."""
         restored_count = 0
+
         for xform in queryset:
-            if xform.deleted_at:
+            if xform.deleted_at is not None:
                 try:
                     call_command("restore_form", xform.id)
                     restored_count += 1
@@ -54,6 +55,7 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
                         _(f"Failed to restore XForm {xform.id_string}: {exc}"),
                         level=messages.ERROR,
                     )
+
         if restored_count > 0:
             self.message_user(
                 request,
@@ -67,19 +69,32 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
         """
         Override delete_queryset to perform soft deletion on XForms.
         """
-        for xform in queryset:
-            xform.soft_delete(user=request.user)
+        deleted_count = 0
 
-        self.message_user(
-            request,
-            _("Selected XForms have been soft-deleted."),
-            level=messages.SUCCESS,
-        )
+        for xform in queryset:
+            if xform.deleted_at is None:
+                xform.soft_delete(user=request.user)
+                deleted_count += 1
+
+        if deleted_count > 0:
+            self.message_user(
+                request,
+                _(f"Successfully soft-deleted {deleted_count} XForms."),
+                level=messages.SUCCESS,
+            )
 
     def delete_model(self, request, obj):
         """
         Override delete_model to perform soft deletion on a single XForm.
         """
+        if obj.deleted_at is not None:
+            self.message_user(
+                request,
+                _("The XForm has already been soft-deleted."),
+                level=messages.WARNING,
+            )
+            return
+
         obj.soft_delete(user=request.user)
         self.message_user(
             request, _("The XForm has been soft-deleted."), level=messages.SUCCESS
