@@ -33,7 +33,7 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/s3.pip && \
     python -m pip install --no-cache-dir -r requirements/ses.pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
+    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5 cryptography==43.0.1
 
 ARG INSTALL_DEV_DEPENDENCIES=false
 RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
@@ -58,7 +58,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20241016 as runtime
+FROM debian:bookworm-20241111 as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
