@@ -63,6 +63,19 @@ class XFormAdmin(FilterByUserMixin, VersionAdmin, admin.ModelAdmin):
 
     restore_form.short_description = _("Restore selected soft-deleted XForms")
 
+    def delete_queryset(self, request, queryset):
+        """
+        Override delete_queryset to perform soft deletion on XForms.
+        """
+        for xform in queryset:
+            xform.soft_delete(user=request.user)
+
+        self.message_user(
+            request,
+            _("Selected XForms have been soft-deleted."),
+            level=messages.SUCCESS,
+        )
+
 
 admin.site.register(XForm, XFormAdmin)
 
