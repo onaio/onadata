@@ -2,6 +2,7 @@
 """
 URLs path.
 """
+
 import sys
 
 import django
@@ -204,7 +205,7 @@ urlpatterns = [
         name="view-submission-list",
     ),
     re_path(
-        r"^forms/(?P<xform_pk>\w+)/view/submissionList$",
+        r"^forms/(?P<xform_pk>\d+)/view/submissionList$",
         BriefcaseViewset.as_view({"get": "list", "head": "list"}),
         name="view-submission-list",
     ),
@@ -219,7 +220,7 @@ urlpatterns = [
         name="view-download-submission",
     ),
     re_path(
-        r"^forms/(?P<xform_pk>\w+)/view/downloadSubmission$",
+        r"^forms/(?P<xform_pk>\d+)/view/downloadSubmission$",
         BriefcaseViewset.as_view({"get": "retrieve", "head": "retrieve"}),
         name="view-download-submission",
     ),
@@ -378,17 +379,17 @@ urlpatterns = [
         name="form-list",
     ),
     re_path(
-        r"^enketo/(?P<xform_pk>\w+)/formList$",
+        r"^enketo/(?P<xform_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
     re_path(
-        r"^forms/(?P<xform_pk>\w+)/formList$",
+        r"^forms/(?P<xform_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
     re_path(
-        r"^enketo-preview/(?P<xform_pk>\w+)/formList$",
+        r"^enketo-preview/(?P<xform_pk>\d+)/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
@@ -445,17 +446,17 @@ urlpatterns = [
         name="submissions",
     ),
     re_path(
-        r"^enketo/(?P<xform_pk>\w+)/submission$",
+        r"^enketo/(?P<xform_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
     re_path(
-        r"^projects/(?P<project_pk>\w+)/submission$",
+        r"^projects/(?P<project_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
     re_path(
-        r"^forms/(?P<xform_pk>\w+)/submission$",
+        r"^forms/(?P<xform_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),

@@ -2,9 +2,11 @@
 """
 The /api/v1/attachments API implementation.
 """
+
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 from rest_framework import renderers, viewsets
@@ -16,6 +18,7 @@ from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
+from onadata.libs.data import parse_int
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -106,8 +109,12 @@ class AttachmentViewSet(
         if request.user.is_anonymous:
             xform = request.query_params.get("xform")
             if xform:
-                xform = XForm.objects.get(id=xform)
-                if not xform.shared_data:
+                xform = parse_int(xform)
+                if xform:
+                    xform = get_object_or_404(XForm, pk=xform)
+                    if not xform.shared_data:
+                        raise Http404(_("Not Found"))
+                else:
                     raise Http404(_("Not Found"))
 
         # pylint: disable=attribute-defined-outside-init
