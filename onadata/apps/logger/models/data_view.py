@@ -2,6 +2,7 @@
 """
 DataView model class
 """
+
 import datetime
 import json
 
@@ -9,9 +10,9 @@ from django.conf import settings
 from django.contrib.gis.db import models
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
+from django.db.utils import DataError
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.db.utils import DataError
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
@@ -22,8 +23,8 @@ from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
 from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-import
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
-    XFORM_LINKED_DATAVIEWS,
     PROJ_OWNER_CACHE,
+    XFORM_LINKED_DATAVIEWS,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -215,6 +216,19 @@ class DataView(models.Model):
             self.deleted_by = user
             update_fields.append("deleted_by")
         self.save(update_fields=update_fields)
+
+    def restore(self):
+        """
+        Restore the dataview by removing the timestamped suffix from the name
+        and setting the deleted_at field to None.
+        """
+        if self.deleted_at is not None:
+            self.name = self.name.split("-deleted-at-")[0]
+            self.deleted_at = None
+            self.deleted_by = None
+            self.save(
+                update_fields=["name", "deleted_at", "deleted_by", "date_modified"]
+            )
 
     @classmethod
     def _get_where_clause(  # pylint: disable=too-many-locals
