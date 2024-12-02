@@ -3,6 +3,24 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v.4.10.0(2024-12-02)
+--------------------
+- Add management command to restore soft deleted form
+  `PR #2744 <https://github.com/onaio/onadata/pull/2744>`
+  [@kelvin-muchiri]
+- fix: ensure xform GET query parameter is numeric
+  `PR #2743 <https://github.com/onaio/onadata/pull/2743>`
+  [@ukanga]
+- Check error message in response
+  `PR #2742 <https://github.com/onaio/onadata/pull/2742>`
+  [@ukanga]
+- fix: value error exception for non numeric project id
+  `PR #2741 <https://github.com/onaio/onadata/pull/2741>`
+  [@ukanga]
+- Delete bulk submissions asynchronously
+  `PR #2738 <https://github.com/onaio/onadata/pull/2738>`
+  [@kelvin-muchiri]
+
 v4.9.2(2024-11-18)
 ------------------
 - Security updates
