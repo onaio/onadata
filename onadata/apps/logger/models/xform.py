@@ -34,7 +34,7 @@ from six import iteritems
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError, clean_and_parse_xml
-from onadata.libs.models.base_model import BaseModel
+from onadata.libs.models.base_model import BaseModel, SoftDeleteManager
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -899,6 +899,7 @@ class XForm(XFormMixin, BaseModel):
     is_merged_dataset = models.BooleanField(default=False)
     is_instance_json_regenerated = models.BooleanField(default=False)
     tags = TaggableManager()
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "logger"
