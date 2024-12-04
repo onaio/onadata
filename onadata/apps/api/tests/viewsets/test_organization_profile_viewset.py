@@ -2,11 +2,12 @@
 """
 Test /orgs API endpoint implementation.
 """
+
 import json
 from builtins import str as text
 from unittest.mock import patch
 
-from django.contrib.auth.models import User, timezone, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User, timezone
 from django.core.cache import cache
 from django.test.utils import override_settings
 
@@ -15,8 +16,8 @@ from rest_framework import status
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
-    get_organization_members_team,
     Team,
+    get_organization_members_team,
 )
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
@@ -1012,7 +1013,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         returned_data = response.data
 
         # Ensure default team role has been set on the project
-        self.assertEqual(returned_data["teams"], expected_teams)
+        self.assertCountEqual(returned_data["teams"], expected_teams)
 
         # Ensure new managers are not granted the manager role
         # on projects they did not create
