@@ -4,13 +4,13 @@ test_xform module
 """
 
 import os
-
 from builtins import str as text
+from unittest.mock import call, patch
 
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import DuplicateUUIDError, check_xform_uuid
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestXForm(TestBase):
@@ -251,3 +251,106 @@ class TestXForm(TestBase):
         )
         dd.set_uuid_in_xml()
         self.assertIn("<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml)
+
+    @patch("onadata.apps.logger.models.xform.clear_project_cache")
+    def test_restore_deleted(self, mock_clear_project_cache):
+        """Deleted XForm can be restored"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        # Create dataview for form
+        data_view = DataView.objects.create(
+            name="test_view",
+            project=self.project,
+            xform=xform,
+            columns=["name", "age"],
+        )
+        # Create metadata for form
+        metadata = xform.metadata_set.create(
+            data_value="test",
+            data_type="test",
+            data_file="test",
+            data_file_type="test",
+        )
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        data_view.refresh_from_db()
+        metadata.refresh_from_db()
+
+        # deleted_at is not None
+        self.assertIsNotNone(xform.deleted_at)
+        self.assertIsNotNone(data_view.deleted_at)
+        self.assertIsNotNone(metadata.deleted_at)
+
+        # is inactive, no submissions will be allowed
+        self.assertFalse(xform.downloadable)
+
+        # deleted-at suffix is present
+        self.assertIn("-deleted-at-", xform.id_string)
+        self.assertIn("-deleted-at-", xform.sms_id_string)
+        self.assertEqual(xform.deleted_by.username, "bob")
+        calls = [call(self.project.pk), call(self.project.pk)]
+        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.reset_mock()
+
+        xform.restore()
+        xform.refresh_from_db()
+        data_view.refresh_from_db()
+        metadata.refresh_from_db()
+
+        # deleted_at is None
+        self.assertIsNone(xform.deleted_at)
+        self.assertIsNone(data_view.deleted_at)
+        self.assertIsNone(metadata.deleted_at)
+
+        # is active
+        self.assertTrue(xform.downloadable)
+
+        # deleted-at suffix not present
+        self.assertNotIn("-deleted-at-", xform.id_string)
+        self.assertNotIn("-deleted-at-", xform.sms_id_string)
+        self.assertIsNone(xform.deleted_by)
+        calls = [call(self.project.pk), call(self.project.pk)]
+        mock_clear_project_cache.has_calls(calls, any_order=True)
+
+    @patch("onadata.apps.logger.models.xform.clear_project_cache")
+    def test_restore_deleted_merged_xform(self, mock_clear_project_cache):
+        """Deleted merged XForm can be restored"""
+        merged_xf = self._create_merged_dataset()
+        xform = XForm.objects.get(pk=merged_xf.pk)
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        merged_xf.refresh_from_db()
+
+        # deleted_at is not None
+        self.assertIsNotNone(xform.deleted_at)
+        self.assertIsNotNone(merged_xf.deleted_at)
+
+        # is inactive, no submissions will be allowed
+        self.assertFalse(xform.downloadable)
+
+        # deleted-at suffix is present
+        self.assertIn("-deleted-at-", xform.id_string)
+        self.assertIn("-deleted-at-", xform.sms_id_string)
+        self.assertEqual(xform.deleted_by.username, "bob")
+        calls = [call(self.project.pk), call(self.project.pk)]
+        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.reset_mock()
+
+        xform.restore()
+        xform.refresh_from_db()
+        merged_xf.refresh_from_db()
+
+        # deleted_at is None
+        self.assertIsNone(xform.deleted_at)
+        self.assertIsNone(merged_xf.deleted_at)
+
+        # is active
+        self.assertTrue(xform.downloadable)
+
+        # deleted-at suffix not present
+        self.assertNotIn("-deleted-at-", xform.id_string)
+        self.assertNotIn("-deleted-at-", xform.sms_id_string)
+        self.assertIsNone(xform.deleted_by)
+        calls = [call(self.project.pk), call(self.project.pk)]
+        mock_clear_project_cache.has_calls(calls, any_order=True)

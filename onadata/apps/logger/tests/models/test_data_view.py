@@ -1,11 +1,13 @@
 import os
 from builtins import str
+
 from django.conf import settings
 from django.db import connection
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.logger.models.data_view import append_where_list, DataView
+from onadata.apps.logger.models.data_view import DataView, append_where_list
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestDataView(TestBase):
@@ -18,6 +20,30 @@ class TestDataView(TestBase):
         self.assertEqual(append_where_list("<", [], json_str), ["json->>%s < %s"])
         self.assertEqual(append_where_list(">=", [], json_str), ["json->>%s >= %s"])
         self.assertEqual(append_where_list("<=", [], json_str), ["json->>%s <= %s"])
+
+    def test_restore_deleted(self):
+        """Soft deleted DataView can be restored"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        # Create dataview for form and soft delete it
+        data_view = DataView.objects.create(
+            name="test_view",
+            project=self.project,
+            xform=xform,
+            columns=["name", "age"],
+        )
+        data_view.soft_delete()
+        data_view.refresh_from_db()
+
+        self.assertIsNotNone(data_view.deleted_at)
+        self.assertIn("-deleted-at-", data_view.name)
+
+        # Restore DataView
+        data_view.restore()
+        data_view.refresh_from_db()
+
+        self.assertIsNone(data_view.deleted_at)
+        self.assertNotIn("-deleted-at-", data_view.name)
 
 
 class TestIntegratedDataView(TestAbstractViewSet):

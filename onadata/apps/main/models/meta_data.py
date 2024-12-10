@@ -2,13 +2,14 @@
 """
 MetaData model
 """
+
 from __future__ import unicode_literals
 
+import hashlib
 import logging
 import mimetypes
 import os
 from contextlib import closing
-import hashlib
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -24,8 +25,8 @@ from django.utils import timezone
 import requests
 
 from onadata.libs.utils.cache_tools import (
-    XFORM_METADATA_CACHE,
     XFORM_MANIFEST_CACHE,
+    XFORM_METADATA_CACHE,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -260,6 +261,13 @@ class MetaData(models.Model):
         """
         soft_deletion_time = timezone.now()
         self.deleted_at = soft_deletion_time
+        self.save()
+
+    def restore(self):
+        """
+        Restore the MetaData by setting the deleted_at field to None.
+        """
+        self.deleted_at = None
         self.save()
 
     @staticmethod
