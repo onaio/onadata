@@ -109,7 +109,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import METADATA_FIELDS, REPEAT_EXPORT_COLUMNS
+from onadata.libs.utils.common_tags import EXPORT_REPEAT_COLUMNS, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1551,8 +1551,8 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
 
 
 @transaction.atomic()
-def update_xform_repeat_export_columns(instance: Instance) -> None:
-    """Update XForm repeat export columns count
+def update_xform_export_repeat_columns(instance: Instance) -> None:
+    """Update XForm export repeat columns count
 
     :param instance: Instance object
     """
@@ -1632,7 +1632,7 @@ def update_xform_repeat_export_columns(instance: Instance) -> None:
         metadata = MetaData.objects.get(
             content_type=content_type,
             object_id=instance.xform.pk,
-            data_type=REPEAT_EXPORT_COLUMNS,
+            data_type=EXPORT_REPEAT_COLUMNS,
             data_value=instance.version,
         )
 
@@ -1648,7 +1648,7 @@ def update_xform_repeat_export_columns(instance: Instance) -> None:
         MetaData.objects.create(
             content_type=content_type,
             object_id=instance.xform.pk,
-            data_type=REPEAT_EXPORT_COLUMNS,
+            data_type=EXPORT_REPEAT_COLUMNS,
             data_value=instance.version,
             extra_data={
                 "repeat_columns": repeat_counts,

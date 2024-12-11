@@ -44,7 +44,7 @@ from onadata.libs.utils.logger_tools import (
     get_first_record,
     inc_elist_num_entities,
     safe_create_instance,
-    update_xform_repeat_export_columns,
+    update_xform_export_repeat_columns,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -1157,8 +1157,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class UpdateXFormRepeatExportCols(TestBase):
-    """Tests for method `update_xform_repeat_export_columns`"""
+class UpdateXFormExportRepeatColumns(TestBase):
+    """Tests for method `update_xform_export_repeat_columns`"""
 
     def setUp(self):
         super().setUp()
@@ -1214,9 +1214,9 @@ class UpdateXFormRepeatExportCols(TestBase):
 
     def test_repeat_count_create(self):
         """Repeat count is created"""
-        update_xform_repeat_export_columns(self.instance)
+        update_xform_export_repeat_columns(self.instance)
 
-        metadata = MetaData.objects.get(data_type="repeat_export_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_columns")
         self.assertEqual(
             metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
         )
@@ -1235,7 +1235,7 @@ class UpdateXFormRepeatExportCols(TestBase):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(self.xform),
             object_id=self.xform.id,
-            data_type="repeat_export_columns",
+            data_type="export_repeat_columns",
             extra_data={
                 "repeat_columns": {
                     "hospital_repeat": 1,
@@ -1248,7 +1248,7 @@ class UpdateXFormRepeatExportCols(TestBase):
             },
             data_value="2024050801",
         )
-        update_xform_repeat_export_columns(self.instance)
+        update_xform_export_repeat_columns(self.instance)
 
         metadata.refresh_from_db()
         self.assertEqual(
@@ -1290,9 +1290,9 @@ class UpdateXFormRepeatExportCols(TestBase):
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
-        update_xform_repeat_export_columns(instance)
+        update_xform_export_repeat_columns(instance)
 
-        exists = MetaData.objects.filter(data_type="repeat_export_columns").exists()
+        exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
         self.assertFalse(exists)
 
     def test_incoming_repeat_max_less(self):
@@ -1300,7 +1300,7 @@ class UpdateXFormRepeatExportCols(TestBase):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(self.xform),
             object_id=self.xform.id,
-            data_type="repeat_export_columns",
+            data_type="export_repeat_columns",
             extra_data={
                 "repeat_columns": {
                     "hospital_repeat": 3,
@@ -1313,7 +1313,7 @@ class UpdateXFormRepeatExportCols(TestBase):
             },
             data_value="2024050801",
         )
-        update_xform_repeat_export_columns(self.instance)
+        update_xform_export_repeat_columns(self.instance)
 
         metadata.refresh_from_db()
         self.assertEqual(
