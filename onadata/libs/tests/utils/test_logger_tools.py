@@ -10,6 +10,7 @@ from io import BytesIO
 from unittest.mock import Mock, call, patch
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -29,6 +30,7 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
@@ -42,6 +44,7 @@ from onadata.libs.utils.logger_tools import (
     get_first_record,
     inc_elist_num_entities,
     safe_create_instance,
+    update_xform_repeat_export_columns,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -1152,3 +1155,176 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         delete_xform_submissions(self.xform, self.user)
 
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
+
+
+class UpdateXFormRepeatExportCols(TestBase):
+    """Tests for method `update_xform_repeat_export_columns`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        md = """
+        | survey |
+        |        | type         | name            | label               |
+        |        | begin repeat | hospital_repeat |                     |
+        |        | text         | hospital        | Name of hospital    |
+        |        | begin repeat | child_repeat    |                     |
+        |        | text         | name            | Child's name        |
+        |        | decimal      | birthweight     | Child's birthweight |
+        |        | end_repeat   |                 |                     |
+        |        | end_repeat   |                 |                     |
+        | settings|             |                 |                     |
+        |         | form_title  | form_id         |                     |
+        |         | Births      | births          |                     |
+        """
+        self._publish_markdown(md, self.user, self.project)
+        self.xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{self.xform.uuid}</uuid></formhub>"
+            "<hospital_repeat>"
+            "<hospital>Aga Khan</hospital>"
+            "<child_repeat>"
+            "<name>Zakayo</name>"
+            "<birthweight>3.3</birthweight>"
+            "</child_repeat>"
+            "<child_repeat>"
+            "<name>Melania</name>"
+            "<birthweight>3.5</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mama Lucy</hospital>"
+            "<child_repeat>"
+            "<name>Winnie</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        self.instance = Instance.objects.create(
+            xml=xml, user=self.user, xform=self.xform
+        )
+
+    def test_repeat_count_create(self):
+        """Repeat count is created"""
+        update_xform_repeat_export_columns(self.instance)
+
+        metadata = MetaData.objects.get(data_type="repeat_export_columns")
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("child_repeat"), 2
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 1
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("child_repeat"), 1
+        )
+
+    def test_repeat_count_update(self):
+        """Repeat count is updated"""
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(self.xform),
+            object_id=self.xform.id,
+            data_type="repeat_export_columns",
+            extra_data={
+                "repeat_columns": {
+                    "hospital_repeat": 1,
+                    "child_repeat": 1,
+                },
+                "repeat_instances": {
+                    "hospital_repeat": 4,
+                    "child_repeat": 8,
+                },
+            },
+            data_value="2024050801",
+        )
+        update_xform_repeat_export_columns(self.instance)
+
+        metadata.refresh_from_db()
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("child_repeat"), 2
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 5
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("child_repeat"), 9
+        )
+
+    def test_no_repeats(self):
+        """Instance has no repeats"""
+        md = """
+        | survey |
+        |        | type         | name            | label               |
+        |        | text         | hospital        | Name of hospital    |
+        | settings|             |                 |                     |
+        |         | form_title  | form_id         |                     |
+        |         | Births      | births          |                     |
+        """
+        xform = self._publish_markdown(
+            md, self.user, self.project, id_string="no-repeats"
+        )
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
+            "<hospital>Aga Khan</hospital>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        update_xform_repeat_export_columns(instance)
+
+        exists = MetaData.objects.filter(data_type="repeat_export_columns").exists()
+        self.assertFalse(exists)
+
+    def test_incoming_repeat_max_less(self):
+        """Repeat count is unchanged if incoming repeat count is less"""
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(self.xform),
+            object_id=self.xform.id,
+            data_type="repeat_export_columns",
+            extra_data={
+                "repeat_columns": {
+                    "hospital_repeat": 3,
+                    "child_repeat": 3,
+                },
+                "repeat_instances": {
+                    "hospital_repeat": 1,
+                    "child_repeat": 1,
+                },
+            },
+            data_value="2024050801",
+        )
+        update_xform_repeat_export_columns(self.instance)
+
+        metadata.refresh_from_db()
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 3
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_columns").get("child_repeat"), 3
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 1
+        )
+        self.assertEqual(
+            metadata.extra_data.get("repeat_instances").get("child_repeat"), 1
+        )

@@ -21,6 +21,7 @@ from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import (
     MultipleObjectsReturned,
@@ -28,7 +29,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, transaction
+from django.db import DataError, IntegrityError, connection, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
@@ -86,6 +87,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_submission_date_from_xml,
     get_uuid_from_xml,
 )
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
     SUBMISSION_DELETED,
@@ -107,7 +109,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import METADATA_FIELDS
+from onadata.libs.utils.common_tags import METADATA_FIELDS, REPEAT_EXPORT_COLUMNS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1520,3 +1522,136 @@ def delete_xform_submissions(
         user=deleted_by,
         message_verb=SUBMISSION_DELETED,
     )
+
+
+def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
+    """Get the maximum number of occurrences for each repeat group
+
+    :param instance: Instance object
+    :return: Dictionary of repeat counts
+    """
+    repeat_max = {}
+    instance_json = instance.get_dict()
+
+    def _get_repeat_max(data):
+        for key, value in data.items():
+            if isinstance(value, list):
+                repeat_name = key.split("/")[-1]
+                repeat_max[repeat_name] = max(
+                    len(value), repeat_max.get(repeat_name, 0)
+                )
+
+                for item in value:
+                    if isinstance(item, dict):
+                        _get_repeat_max(item)
+
+    _get_repeat_max(instance_json)
+
+    return repeat_max
+
+
+@transaction.atomic()
+def update_xform_repeat_export_columns(instance: Instance) -> None:
+    """Update XForm repeat export columns count
+
+    :param instance: Instance object
+    """
+    repeat_counts = _get_instance_repeat_max(instance)
+
+    if not repeat_counts:
+        return
+
+    content_type = ContentType.objects.get_for_model(instance.xform)
+
+    def update_repeat_columns(metadata_pk, repeat, incoming_max):
+        """Get the maximum between incoming max and current max
+
+        extra_data > repeat_columns keeps track of the maximum number of
+        occurrences for each repeat group
+
+        We update at the database level to ensure atomicity
+        and avoid race conditions if it were done at the application level
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    COALESCE(extra_data, '{}'::jsonb),
+                    %s,
+                    GREATEST(
+                        COALESCE((extra_data->'repeat_columns'->>%s)::int, 0),
+                        %s
+                    )::text::jsonb,
+                    true
+                )
+                WHERE id = %s
+                """,
+                [
+                    ["repeat_columns", repeat],  # Path to the nested key
+                    repeat,
+                    incoming_max,
+                    metadata_pk,
+                ],
+            )
+
+    def inc_repeat_instances(metadata_pk, repeat):
+        """Increment the number of instances for a repeat group
+
+        extra_data > repeat_instances keeps track of the number of instances
+        for each repeat group.
+
+        We increment the database level to ensure atomicity
+        """
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    COALESCE(extra_data, '{}'::jsonb),
+                    %s,
+                    (
+                        COALESCE(
+                            (extra_data->'repeat_instances'->>%s)::int,
+                            0
+                        ) + 1
+                    )::text::jsonb,
+                    true
+                )
+                WHERE id = %s
+                """,
+                [
+                    ["repeat_instances", repeat],  # Path to the nested key
+                    repeat,
+                    metadata_pk,
+                ],
+            )
+
+    try:
+        metadata = MetaData.objects.get(
+            content_type=content_type,
+            object_id=instance.xform.pk,
+            data_type=REPEAT_EXPORT_COLUMNS,
+            data_value=instance.version,
+        )
+
+        for repeat, count in repeat_counts.items():
+            update_repeat_columns(metadata.pk, repeat, count)
+            metadata.refresh_from_db()
+
+            if count == metadata.extra_data.get("repeat_columns", {}).get(repeat, 0):
+                # Increment the number of instances for the repeat group
+                inc_repeat_instances(metadata.pk, repeat)
+
+    except MetaData.DoesNotExist:
+        MetaData.objects.create(
+            content_type=content_type,
+            object_id=instance.xform.pk,
+            data_type=REPEAT_EXPORT_COLUMNS,
+            data_value=instance.version,
+            extra_data={
+                "repeat_columns": repeat_counts,
+                "repeat_instances": {repeat: 1 for repeat in repeat_counts},
+            },
+        )
