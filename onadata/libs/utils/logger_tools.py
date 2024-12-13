@@ -1566,31 +1566,6 @@ def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
 
     content_type = ContentType.objects.get_for_model(instance.xform)
 
-    def update_repeat_column(metadata_pk, repeat, incoming_max):
-        """Get the maximum between incoming max and extra_data[repeat]."""
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE main_metadata
-                SET extra_data = jsonb_set(
-                    COALESCE(extra_data, '{}'::jsonb),
-                    %s,
-                    GREATEST(
-                        COALESCE((extra_data->>%s)::int, 0),
-                        %s
-                    )::text::jsonb,
-                    true
-                )
-                WHERE id = %s
-                """,
-                [
-                    [repeat],
-                    repeat,
-                    incoming_max,
-                    metadata_pk,
-                ],
-            )
-
     try:
         metadata = MetaData.objects.get(
             content_type=content_type,
@@ -1611,5 +1586,28 @@ def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
         )
 
     else:
-        for repeat, count in repeat_counts.items():
-            update_repeat_column(metadata.pk, repeat, count)
+        for repeat, incoming_max in repeat_counts.items():
+            # Get the maximum between incoming max and the current max
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE main_metadata
+                    SET extra_data = jsonb_set(
+                        COALESCE(extra_data, '{}'::jsonb),
+                        %s,
+                        GREATEST(
+                            COALESCE((extra_data->>%s)::int, 0),
+                            %s
+                        )::text::jsonb,
+                        true
+                    )
+                    WHERE id = %s
+                    """,
+                    [
+                        [repeat],
+                        repeat,
+                        incoming_max,
+                        metadata.pk,
+                    ],
+                )
