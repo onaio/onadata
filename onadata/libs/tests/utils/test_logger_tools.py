@@ -35,6 +35,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
+    add_instance_rpts_to_export_rpts,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
     create_instance,
@@ -44,7 +45,6 @@ from onadata.libs.utils.logger_tools import (
     get_first_record,
     inc_elist_num_entities,
     safe_create_instance,
-    update_xform_export_repeat_columns,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -1157,8 +1157,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class UpdateXFormExportRepeatColumns(TestBase):
-    """Tests for method `update_xform_export_repeat_columns`"""
+class AddInstanceRptsToExportRptsTestCase(TestBase):
+    """Tests for method `add_instance_rpts_to_export_rpts`"""
 
     def setUp(self):
         super().setUp()
@@ -1214,21 +1214,11 @@ class UpdateXFormExportRepeatColumns(TestBase):
 
     def test_repeat_count_create(self):
         """MetaData of type export_repeat_columns is created"""
-        update_xform_export_repeat_columns(self.instance)
+        add_instance_rpts_to_export_rpts(self.instance)
 
         metadata = MetaData.objects.get(data_type="export_repeat_columns")
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("child_repeat"), 2
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 1
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("child_repeat"), 1
-        )
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
 
     def test_incoming_repeat_max_greater(self):
         """Repeat count is incremented if incoming repeat count is greater"""
@@ -1237,33 +1227,16 @@ class UpdateXFormExportRepeatColumns(TestBase):
             object_id=self.xform.id,
             data_type="export_repeat_columns",
             extra_data={
-                "repeat_columns": {
-                    "hospital_repeat": 1,
-                    "child_repeat": 1,
-                },
-                "repeat_instances": {
-                    "hospital_repeat": 4,
-                    "child_repeat": 8,
-                },
+                "hospital_repeat": 1,
+                "child_repeat": 1,
             },
             data_value="2024050801",
         )
-        update_xform_export_repeat_columns(self.instance)
+        add_instance_rpts_to_export_rpts(self.instance)
 
         metadata.refresh_from_db()
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("child_repeat"), 2
-        )
-        # repeat_instances are reset to 1, since there is a new sheriff in town
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 1
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("child_repeat"), 1
-        )
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
 
     def test_incoming_repeat_max_less(self):
         """Repeat count is unchanged if incoming repeat count is less"""
@@ -1272,33 +1245,17 @@ class UpdateXFormExportRepeatColumns(TestBase):
             object_id=self.xform.id,
             data_type="export_repeat_columns",
             extra_data={
-                "repeat_columns": {
-                    "hospital_repeat": 3,
-                    "child_repeat": 3,
-                },
-                "repeat_instances": {
-                    "hospital_repeat": 1,
-                    "child_repeat": 1,
-                },
+                "hospital_repeat": 3,
+                "child_repeat": 3,
             },
             data_value="2024050801",
         )
-        update_xform_export_repeat_columns(self.instance)
+        add_instance_rpts_to_export_rpts(self.instance)
 
         metadata.refresh_from_db()
-        # repeat_columns and repeat_instances remain unchanged
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 3
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("child_repeat"), 3
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 1
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("child_repeat"), 1
-        )
+        # repeat counts remain unchanged
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 3)
 
     def test_incoming_repeat_max_equal(self):
         """Repeat count is unchanged if incoming repeat count is equal"""
@@ -1307,34 +1264,17 @@ class UpdateXFormExportRepeatColumns(TestBase):
             object_id=self.xform.id,
             data_type="export_repeat_columns",
             extra_data={
-                "repeat_columns": {
-                    "hospital_repeat": 2,
-                    "child_repeat": 2,
-                },
-                "repeat_instances": {
-                    "hospital_repeat": 2,
-                    "child_repeat": 2,
-                },
+                "hospital_repeat": 2,
+                "child_repeat": 2,
             },
             data_value="2024050801",
         )
-        update_xform_export_repeat_columns(self.instance)
+        add_instance_rpts_to_export_rpts(self.instance)
 
         metadata.refresh_from_db()
-        # repeat_columns remain unchanged
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("hospital_repeat"), 2
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_columns").get("child_repeat"), 2
-        )
-        # repeat_instances incremented
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("hospital_repeat"), 3
-        )
-        self.assertEqual(
-            metadata.extra_data.get("repeat_instances").get("child_repeat"), 3
-        )
+        # repeat counts remain unchanged
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
 
     def test_no_repeats(self):
         """Instance has no repeats"""
@@ -1362,7 +1302,7 @@ class UpdateXFormExportRepeatColumns(TestBase):
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
-        update_xform_export_repeat_columns(instance)
+        add_instance_rpts_to_export_rpts(instance)
 
         exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
         self.assertFalse(exists)
