@@ -1551,8 +1551,8 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
 
 
 @transaction.atomic()
-def update_xform_export_repeat_columns(instance: Instance) -> None:
-    """Update XForm export repeat columns count
+def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
+    """Add instance repeat groups to export repeat groups
 
     :param instance: Instance object
     """
@@ -1567,7 +1567,7 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
     content_type = ContentType.objects.get_for_model(instance.xform)
 
     def update_repeat_column(metadata_pk, repeat, incoming_max):
-        """Get the maximum between incoming max and repeat_column[repeat]."""
+        """Get the maximum between incoming max and extra_data[repeat]."""
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -1576,7 +1576,7 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
                     COALESCE(extra_data, '{}'::jsonb),
                     %s,
                     GREATEST(
-                        COALESCE((extra_data->'repeat_columns'->>%s)::int, 0),
+                        COALESCE((extra_data->>%s)::int, 0),
                         %s
                     )::text::jsonb,
                     true
@@ -1584,56 +1584,9 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
                 WHERE id = %s
                 """,
                 [
-                    ["repeat_columns", repeat],  # Path to the nested key
+                    [repeat],
                     repeat,
                     incoming_max,
-                    metadata_pk,
-                ],
-            )
-
-    def inc_repeat_instance(metadata_pk, repeat):
-        """Increment repeat_instances[repeat] by 1."""
-
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE main_metadata
-                SET extra_data = jsonb_set(
-                    COALESCE(extra_data, '{}'::jsonb),
-                    %s,
-                    (
-                        COALESCE(
-                            (extra_data->'repeat_instances'->>%s)::int,
-                            0
-                        ) + 1
-                    )::text::jsonb,
-                    true
-                )
-                WHERE id = %s
-                """,
-                [
-                    ["repeat_instances", repeat],  # Path to the nested key
-                    repeat,
-                    metadata_pk,
-                ],
-            )
-
-    def reset_repeat_instance(metadata_pk, repeat):
-        """Set the value of repeat_instances[repeat] to 1."""
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE main_metadata
-                SET extra_data = jsonb_set(
-                    COALESCE(extra_data, '{}'::jsonb),
-                    %s,
-                    '1'::jsonb,
-                    true
-                )
-                WHERE id = %s
-                """,
-                [
-                    ["repeat_instances", repeat],  # Path to the nested key
                     metadata_pk,
                 ],
             )
@@ -1656,23 +1609,9 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
             object_id=instance.xform.pk,
             data_type=EXPORT_REPEAT_COLUMNS,
             data_value=instance.version,
-            extra_data={
-                "repeat_columns": repeat_counts,
-                "repeat_instances": {repeat: 1 for repeat in repeat_counts},
-            },
+            extra_data=repeat_counts,
         )
 
     else:
         for repeat, count in repeat_counts.items():
-            old_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
             update_repeat_column(metadata.pk, repeat, count)
-            metadata.refresh_from_db()
-            new_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
-
-            if new_max > old_max:
-                # There is a new sheriff in town
-                reset_repeat_instance(metadata.pk, repeat)
-
-            elif count == new_max:
-                # Increment the number of instances found for the repeat group
-                inc_repeat_instance(metadata.pk, repeat)
