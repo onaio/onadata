@@ -1556,9 +1556,6 @@ def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
 
     :param instance: Instance object
     """
-    # Operations are done at database level to gurantee atomicity and
-    # consistency. Avoids race conditions if it were done at the
-    # application level
     repeat_counts = _get_instance_repeat_max(instance)
 
     if not repeat_counts:
@@ -1588,6 +1585,9 @@ def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
     else:
         for repeat, incoming_max in repeat_counts.items():
             # Get the maximum between incoming max and the current max
+            # Done at database level to gurantee atomicity and
+            # consistency. Avoids race conditions if it were done at the
+            # application level
 
             with connection.cursor() as cursor:
                 cursor.execute(
