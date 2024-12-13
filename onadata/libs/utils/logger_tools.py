@@ -1556,6 +1556,9 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
 
     :param instance: Instance object
     """
+    # Operations are done at database level to gurantee atomicity and
+    # consistency. Avoids race conditions if it were done at the
+    # application level
     repeat_counts = _get_instance_repeat_max(instance)
 
     if not repeat_counts:
@@ -1564,11 +1567,7 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
     content_type = ContentType.objects.get_for_model(instance.xform)
 
     def update_repeat_column(metadata_pk, repeat, incoming_max):
-        """Get the maximum between incoming max and repeat_column[repeat]
-
-        We update at the database level to ensure atomicity
-        and avoid race conditions if it were done at the application level
-        """
+        """Get the maximum between incoming max and repeat_column[repeat]."""
         with connection.cursor() as cursor:
             cursor.execute(
                 """
@@ -1593,10 +1592,7 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
             )
 
     def inc_repeat_instance(metadata_pk, repeat):
-        """Increment repeat_instances[repeat] by 1
-
-        We increment at the database level to ensure atomicity
-        """
+        """Increment repeat_instances[repeat] by 1."""
 
         with connection.cursor() as cursor:
             cursor.execute(
@@ -1623,11 +1619,7 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
             )
 
     def reset_repeat_instance(metadata_pk, repeat):
-        """
-        Set the value of repeat_instances[repeat] to 1.
-
-        This ensures the database operation is atomic and consistent.
-        """
+        """Set the value of repeat_instances[repeat] to 1."""
         with connection.cursor() as cursor:
             cursor.execute(
                 """
