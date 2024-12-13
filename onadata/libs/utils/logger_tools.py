@@ -1563,11 +1563,8 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
 
     content_type = ContentType.objects.get_for_model(instance.xform)
 
-    def update_repeat_columns(metadata_pk, repeat, incoming_max):
-        """Get the maximum between incoming max and current max
-
-        extra_data > repeat_columns keeps track of the maximum number of
-        occurrences for each repeat group
+    def update_repeat_column(metadata_pk, repeat, incoming_max):
+        """Get the maximum between incoming max and repeat_column[repeat]
 
         We update at the database level to ensure atomicity
         and avoid race conditions if it were done at the application level
@@ -1595,13 +1592,10 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
                 ],
             )
 
-    def inc_repeat_instances(metadata_pk, repeat):
-        """Increment the number of instances for a repeat group
+    def inc_repeat_instance(metadata_pk, repeat):
+        """Increment repeat_instances[repeat] by 1
 
-        extra_data > repeat_instances keeps track of the number of instances
-        for each repeat group.
-
-        We increment the database level to ensure atomicity
+        We increment at the database level to ensure atomicity
         """
 
         with connection.cursor() as cursor:
@@ -1628,6 +1622,30 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
                 ],
             )
 
+    def reset_repeat_instance(metadata_pk, repeat):
+        """
+        Set the value of repeat_instances[repeat] to 1.
+
+        This ensures the database operation is atomic and consistent.
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    COALESCE(extra_data, '{}'::jsonb),
+                    %s,
+                    '1'::jsonb,
+                    true
+                )
+                WHERE id = %s
+                """,
+                [
+                    ["repeat_instances", repeat],  # Path to the nested key
+                    metadata_pk,
+                ],
+            )
+
     try:
         metadata = MetaData.objects.get(
             content_type=content_type,
@@ -1637,14 +1655,24 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
         )
 
         for repeat, count in repeat_counts.items():
-            update_repeat_columns(metadata.pk, repeat, count)
+            old_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
+            update_repeat_column(metadata.pk, repeat, count)
             metadata.refresh_from_db()
+            new_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
 
-            if count == metadata.extra_data.get("repeat_columns", {}).get(repeat, 0):
+            if new_max > old_max:
+                # There is a new sheriff in town
+                reset_repeat_instance(metadata.pk, repeat)
+
+            elif count == new_max:
                 # Increment the number of instances for the repeat group
-                inc_repeat_instances(metadata.pk, repeat)
+                inc_repeat_instance(metadata.pk, repeat)
 
     except MetaData.DoesNotExist:
+        # extra_data > repeat_columns keeps track of the maximum number of
+        # occurrences for each repeat group across all submissions
+        # repeat_instances[repeat] keeps track of the number of instances
+        # recorded for repeat_columns[repeat]
         MetaData.objects.create(
             content_type=content_type,
             object_id=instance.xform.pk,
