@@ -1646,20 +1646,6 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
             data_value=instance.version,
         )
 
-        for repeat, count in repeat_counts.items():
-            old_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
-            update_repeat_column(metadata.pk, repeat, count)
-            metadata.refresh_from_db()
-            new_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
-
-            if new_max > old_max:
-                # There is a new sheriff in town
-                reset_repeat_instance(metadata.pk, repeat)
-
-            elif count == new_max:
-                # Increment the number of instances for the repeat group
-                inc_repeat_instance(metadata.pk, repeat)
-
     except MetaData.DoesNotExist:
         # extra_data > repeat_columns keeps track of the maximum number of
         # occurrences for each repeat group across all submissions
@@ -1675,3 +1661,18 @@ def update_xform_export_repeat_columns(instance: Instance) -> None:
                 "repeat_instances": {repeat: 1 for repeat in repeat_counts},
             },
         )
+
+    else:
+        for repeat, count in repeat_counts.items():
+            old_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
+            update_repeat_column(metadata.pk, repeat, count)
+            metadata.refresh_from_db()
+            new_max = metadata.extra_data.get("repeat_columns", {}).get(repeat, 0)
+
+            if new_max > old_max:
+                # There is a new sheriff in town
+                reset_repeat_instance(metadata.pk, repeat)
+
+            elif count == new_max:
+                # Increment the number of instances found for the repeat group
+                inc_repeat_instance(metadata.pk, repeat)
