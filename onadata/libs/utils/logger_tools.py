@@ -1600,10 +1600,8 @@ def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
         )
 
     except MetaData.DoesNotExist:
-        # extra_data > repeat_columns keeps track of the maximum number of
+        # extra_data keeps track of the maximum number of
         # occurrences for each repeat group across all submissions
-        # repeat_instances[repeat] keeps track of the number of instances
-        # recorded for repeat_columns[repeat]
         MetaData.objects.create(
             content_type=content_type,
             object_id=instance.xform.pk,
