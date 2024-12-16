@@ -1551,7 +1551,7 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
 
 
 @transaction.atomic()
-def add_instance_rpts_to_export_rpts(instance: Instance) -> None:
+def register_export_repeats(instance: Instance) -> None:
     """Add instance repeat groups to export repeat groups
 
     :param instance: Instance object
