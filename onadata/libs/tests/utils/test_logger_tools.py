@@ -14,6 +14,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.models.signals import post_save
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -35,7 +36,6 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
-    add_instance_rpts_to_export_rpts,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
     create_instance,
@@ -44,6 +44,7 @@ from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
+    register_export_repeats,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1157,8 +1158,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class AddInstanceRptsToExportRptsTestCase(TestBase):
-    """Tests for method `add_instance_rpts_to_export_rpts`"""
+class RegisterExportRepeatsTestCase(TestBase):
+    """Tests for method `register_export_repeats`"""
 
     def setUp(self):
         super().setUp()
@@ -1208,13 +1209,15 @@ class AddInstanceRptsToExportRptsTestCase(TestBase):
             "</meta>"
             "</data>"
         )
+        # Disable signals to avoid creating MetaData
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
             xml=xml, user=self.user, xform=self.xform
         )
 
     def test_repeat_count_create(self):
         """MetaData of type export_repeat_columns is created"""
-        add_instance_rpts_to_export_rpts(self.instance)
+        register_export_repeats(self.instance)
 
         metadata = MetaData.objects.get(data_type="export_repeat_columns")
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
@@ -1232,7 +1235,7 @@ class AddInstanceRptsToExportRptsTestCase(TestBase):
             },
             data_value="2024050801",
         )
-        add_instance_rpts_to_export_rpts(self.instance)
+        register_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
@@ -1250,7 +1253,7 @@ class AddInstanceRptsToExportRptsTestCase(TestBase):
             },
             data_value="2024050801",
         )
-        add_instance_rpts_to_export_rpts(self.instance)
+        register_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         # repeat counts remain unchanged
@@ -1269,7 +1272,7 @@ class AddInstanceRptsToExportRptsTestCase(TestBase):
             },
             data_value="2024050801",
         )
-        add_instance_rpts_to_export_rpts(self.instance)
+        register_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         # repeat counts remain unchanged
@@ -1302,7 +1305,7 @@ class AddInstanceRptsToExportRptsTestCase(TestBase):
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
-        add_instance_rpts_to_export_rpts(instance)
+        register_export_repeats(instance)
 
         exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
         self.assertFalse(exists)

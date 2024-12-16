@@ -2,6 +2,7 @@
 """
 Instance model class
 """
+
 import math
 import sys
 from datetime import datetime
@@ -18,10 +19,10 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from multidb.pinning import use_master
 
 from celery import current_task
 from deprecated import deprecated
+from multidb.pinning import use_master
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
@@ -35,11 +36,11 @@ from onadata.apps.logger.xform_instance_parser import (
 from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
-    PROJECT_DATE_MODIFIED_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
+    PROJECT_DATE_MODIFIED_CACHE,
     XFORM_COUNT,
     XFORM_DATA_VERSIONS,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
@@ -875,6 +876,14 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
             )
 
 
+@use_master
+def register_export_repeats(sender, instance, created=False, **kwargs):
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.tasks import register_export_repeats_async
+
+    register_export_repeats_async.delay(instance.pk)
+
+
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
 )
@@ -889,6 +898,12 @@ pre_delete.connect(
     permanently_delete_attachments,
     sender=Instance,
     dispatch_uid="permanently_delete_attachments",
+)
+
+post_save.connect(
+    register_export_repeats,
+    sender=Instance,
+    dispatch_uid="register_export_repeats",
 )
 
 
