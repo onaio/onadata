@@ -195,3 +195,10 @@ class RegisterExportRepeatsAsyncTestCase(TestBase):
 
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_pk(self, mock_logger, mock_register):
+        """Invalid Instance primary key is handled"""
+        register_export_repeats_async.delay(sys.maxsize)
+        mock_register.assert_not_called()
+        mock_logger.assert_called_once()
