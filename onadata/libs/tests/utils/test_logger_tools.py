@@ -1233,7 +1233,7 @@ class RegisterExportRepeatsTestCase(TestBase):
                 "hospital_repeat": 1,
                 "child_repeat": 1,
             },
-            data_value="2024050801",
+            data_value="",
         )
         register_export_repeats(self.instance)
 
@@ -1251,7 +1251,7 @@ class RegisterExportRepeatsTestCase(TestBase):
                 "hospital_repeat": 3,
                 "child_repeat": 3,
             },
-            data_value="2024050801",
+            data_value="",
         )
         register_export_repeats(self.instance)
 
@@ -1270,7 +1270,7 @@ class RegisterExportRepeatsTestCase(TestBase):
                 "hospital_repeat": 2,
                 "child_repeat": 2,
             },
-            data_value="2024050801",
+            data_value="",
         )
         register_export_repeats(self.instance)
 
