@@ -1,20 +1,20 @@
 """Tests for module onadata.apps.logger.tasks"""
 
 import sys
-
 from unittest.mock import patch
-
-from celery.exceptions import Retry
 
 from django.core.cache import cache
 from django.db import DatabaseError
 from django.utils import timezone
 
+from celery.exceptions import Retry
+
 from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
-    set_entity_list_perms_async,
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
+    register_export_repeats_async,
+    set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
@@ -149,6 +149,47 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
         mock_set_perms.side_effect = DatabaseError
         # pylint: disable=no-member
         commit_cached_elist_num_entities_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+
+@patch("onadata.apps.logger.tasks.register_export_repeats")
+class RegisterExportRepeatsAsyncTestCase(TestBase):
+    """Tests for register_export_repeats_async"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.instance = self.xform.instances.first()
+
+    def test_register_repeats(self, mock_register):
+        """Repeats are registered"""
+        register_export_repeats_async.delay(self.instance.pk)
+        mock_register.assert_called_once_with(self.instance)
+
+    @patch("onadata.apps.logger.tasks.register_export_repeats_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_register):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_register.side_effect = ConnectionError
+        register_export_repeats_async.delay(self.instance.pk)
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.register_export_repeats_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_register):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_register.side_effect = DatabaseError
+        register_export_repeats_async.delay(self.instance.pk)
 
         self.assertTrue(mock_retry.called)
 
