@@ -1568,7 +1568,7 @@ def register_export_repeats(instance: Instance) -> None:
             content_type=content_type,
             object_id=instance.xform.pk,
             data_type=EXPORT_REPEAT_COLUMNS,
-            data_value=instance.version,
+            data_value="",
         )
 
     except MetaData.DoesNotExist:
@@ -1578,7 +1578,7 @@ def register_export_repeats(instance: Instance) -> None:
             content_type=content_type,
             object_id=instance.xform.pk,
             data_type=EXPORT_REPEAT_COLUMNS,
-            data_value=instance.version,
+            data_value="",
             extra_data=repeat_counts,
         )
 
