@@ -1551,7 +1551,7 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
 
 
 @transaction.atomic()
-def register_export_repeats(instance: Instance) -> None:
+def register_instance_export_repeats(instance: Instance) -> None:
     """Add instance repeat groups to export repeat groups
 
     :param instance: Instance object
@@ -1611,3 +1611,14 @@ def register_export_repeats(instance: Instance) -> None:
                         metadata.pk,
                     ],
                 )
+
+
+def register_xform_export_repeats(xform: XForm) -> None:
+    """Add XForm's submissions repeat groups to export repeat groups
+
+    :param xform: XForm object
+    """
+    instance_qs = xform.instances.filter(deleted_at__isnull=True)
+
+    for instance in queryset_iterator(instance_qs):
+        register_instance_export_repeats(instance)

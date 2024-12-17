@@ -7,6 +7,7 @@ from collections import OrderedDict
 from itertools import chain, tee
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
@@ -16,6 +17,8 @@ from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
+from onadata.apps.logger.tasks import register_xform_export_repeats_async
+from onadata.apps.main.models import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
@@ -24,6 +27,7 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT,
     DURATION,
     EDITED,
+    EXPORT_REPEAT_COLUMNS,
     GEOLOCATION,
     ID,
     MEDIA_ALL_RECEIVED,
@@ -770,23 +774,85 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             gps_xpaths = self.data_dictionary.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
 
-        # add ordered columns for nested repeat data
-        for record in cursor:
-            # re index column repeats
-            for key, value in iteritems(record):
-                self._reindex(
-                    key,
-                    value,
-                    self.ordered_columns,
-                    record,
-                    self.data_dictionary,
-                    include_images=self.image_xpaths,
-                    split_select_multiples=self.split_select_multiples,
-                    index_tags=self.index_tags,
-                    show_choice_labels=self.show_choice_labels,
-                    language=self.language,
-                    host=self.host,
+        # Add ordered columns for nested repeat data
+        content_type = ContentType.objects.get_for_model(self.xform)
+
+        try:
+            registered_repeats = MetaData.objects.get(
+                content_type=content_type,
+                object_id=self.xform.pk,
+                data_type=EXPORT_REPEAT_COLUMNS,
+                data_value="",
+            )
+
+        except MetaData.DoesNotExist:
+            # Build repeat columns from the data
+            for record in cursor:
+                # re index column repeats
+                for key, value in iteritems(record):
+                    self._reindex(
+                        key,
+                        value,
+                        self.ordered_columns,
+                        record,
+                        self.data_dictionary,
+                        include_images=self.image_xpaths,
+                        split_select_multiples=self.split_select_multiples,
+                        index_tags=self.index_tags,
+                        show_choice_labels=self.show_choice_labels,
+                        language=self.language,
+                        host=self.host,
+                    )
+
+        else:
+            # Build repeat columns from the registered repeats
+            def get_ordered_repeat_columns():
+                """Return OrderedDict of repeats in the order in which
+                they appear in the XForm."""
+                ordered_columns = OrderedDict()
+
+                for repeat, column in registered_repeats.extra_data.items():
+                    elements = self.data_dictionary.get_child_elements(
+                        repeat, self.split_select_multiples
+                    )
+
+                    for element in elements:
+                        if not question_types_to_exclude(element.type):
+                            element_xpath = element.get_abbreviated_xpath()
+                            ordered_columns[element_xpath] = []
+
+            def build_repeat(repeat, parent_prefix):
+                pass
+
+            for repeat, column in registered_repeats.extra_data.items():
+                elements = self.data_dictionary.get_child_elements(
+                    repeat, self.split_select_multiples
                 )
+
+                for element in elements:
+                    if not question_types_to_exclude(element.type):
+                        element_xpath = element.get_abbreviated_xpath()
+
+                        for index in range(1, column + 1):
+                            if element.children:
+                                for child in element.children:
+                                    if not question_types_to_exclude(child.type):
+                                        parent_prefixed_xpath = (
+                                            f"{element_xpath}[{index}]"
+                                        )
+
+                                        if not isinstance(child, RepeatingSection):
+                                            self.ordered_columns[element_xpath].append(
+                                                f"{parent_prefixed_xpath}/{child.name}"
+                                            )
+
+                                        else:
+                                            build_repeat(
+                                                child.name, parent_prefixed_xpath
+                                            )
+
+            # Register repeat columns for future use
+            register_xform_export_repeats_async.delay(self.xform.pk)
 
     def _format_for_dataframe(self, cursor):
         """
