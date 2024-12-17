@@ -11,14 +11,15 @@ from django.db import DatabaseError
 
 from multidb.pinning import use_master
 
-from onadata.apps.logger.models import Entity, EntityList, Instance, Project
+from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.logger_tools import (
     commit_cached_elist_num_entities,
     dec_elist_num_entities,
     inc_elist_num_entities,
-    register_export_repeats,
+    register_instance_export_repeats,
+    register_xform_export_repeats,
     soft_delete_entities_bulk,
 )
 from onadata.libs.utils.project_utils import set_project_perms_to_object
@@ -116,7 +117,7 @@ def dec_elist_num_entities_async(elist_pk: int) -> None:
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def register_export_repeats_async(instance_pk: int) -> None:
+def register_instance_export_repeats_async(instance_pk: int) -> None:
     """Register export repeats asynchronously
 
     :param instance_pk: Primary key for Instance
@@ -128,4 +129,20 @@ def register_export_repeats_async(instance_pk: int) -> None:
         logger.exception(exc)
 
     else:
-        register_export_repeats(instance)
+        register_instance_export_repeats(instance)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def register_xform_export_repeats_async(xform_id: int) -> None:
+    """Register export repeats for an XForm asynchronously
+
+    :param xform_id: Primary key for XForm
+    """
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        register_xform_export_repeats(xform)

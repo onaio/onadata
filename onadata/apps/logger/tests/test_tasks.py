@@ -13,7 +13,8 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
-    register_export_repeats_async,
+    register_instance_export_repeats_async,
+    register_xform_export_repeats_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
@@ -156,9 +157,9 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
         self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
 
 
-@patch("onadata.apps.logger.tasks.register_export_repeats")
-class RegisterExportRepeatsAsyncTestCase(TestBase):
-    """Tests for register_export_repeats_async"""
+@patch("onadata.apps.logger.tasks.register_instance_export_repeats")
+class RegisterInstanceExportRepeatsAsyncTestCase(TestBase):
+    """Tests for register_instance_export_repeats_async"""
 
     def setUp(self):
         super().setUp()
@@ -169,27 +170,27 @@ class RegisterExportRepeatsAsyncTestCase(TestBase):
 
     def test_register_repeats(self, mock_register):
         """Repeats are registered"""
-        register_export_repeats_async.delay(self.instance.pk)
+        register_instance_export_repeats_async.delay(self.instance.pk)
         mock_register.assert_called_once_with(self.instance)
 
-    @patch("onadata.apps.logger.tasks.register_export_repeats_async.retry")
+    @patch("onadata.apps.logger.tasks.register_instance_export_repeats_async.retry")
     def test_retry_connection_error(self, mock_retry, mock_register):
         """ConnectionError exception is retried"""
         mock_retry.side_effect = Retry
         mock_register.side_effect = ConnectionError
-        register_export_repeats_async.delay(self.instance.pk)
+        register_instance_export_repeats_async.delay(self.instance.pk)
 
         self.assertTrue(mock_retry.called)
 
         _, kwargs = mock_retry.call_args_list[0]
         self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
 
-    @patch("onadata.apps.logger.tasks.register_export_repeats_async.retry")
+    @patch("onadata.apps.logger.tasks.register_instance_export_repeats_async.retry")
     def test_retry_database_error(self, mock_retry, mock_register):
         """DatabaseError exception is retried"""
         mock_retry.side_effect = Retry
         mock_register.side_effect = DatabaseError
-        register_export_repeats_async.delay(self.instance.pk)
+        register_instance_export_repeats_async.delay(self.instance.pk)
 
         self.assertTrue(mock_retry.called)
 
@@ -199,6 +200,53 @@ class RegisterExportRepeatsAsyncTestCase(TestBase):
     @patch("onadata.apps.logger.tasks.logger.exception")
     def test_invalid_pk(self, mock_logger, mock_register):
         """Invalid Instance primary key is handled"""
-        register_export_repeats_async.delay(sys.maxsize)
+        register_instance_export_repeats_async.delay(sys.maxsize)
+        mock_register.assert_not_called()
+        mock_logger.assert_called_once()
+
+
+@patch("onadata.apps.logger.tasks.register_xform_export_repeats")
+class RegisterXFormExportRepeatsAsyncTestCase(TestBase):
+    """Tests for register_xform_export_repeats_async"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+
+    def test_register_repeats(self, mock_register):
+        """Repeats are registered"""
+        register_xform_export_repeats_async.delay(self.xform.pk)
+        mock_register.assert_called_once_with(self.xform)
+
+    @patch("onadata.apps.logger.tasks.register_xform_export_repeats_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_register):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_register.side_effect = ConnectionError
+        register_xform_export_repeats_async.delay(self.xform.pk)
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.register_xform_export_repeats_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_register):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_register.side_effect = DatabaseError
+        register_xform_export_repeats_async.delay(self.xform.pk)
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_pk(self, mock_logger, mock_register):
+        """Invalid XForm primary key is handled"""
+        register_xform_export_repeats_async.delay(sys.maxsize)
         mock_register.assert_not_called()
         mock_logger.assert_called_once()

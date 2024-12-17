@@ -44,7 +44,8 @@ from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
-    register_export_repeats,
+    register_instance_export_repeats,
+    register_xform_export_repeats,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1158,8 +1159,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class RegisterExportRepeatsTestCase(TestBase):
-    """Tests for method `register_export_repeats`"""
+class RegisterInstanceExportRepeatsTestCase(TestBase):
+    """Tests for method `register_instance_export_repeats`"""
 
     def setUp(self):
         super().setUp()
@@ -1217,7 +1218,7 @@ class RegisterExportRepeatsTestCase(TestBase):
 
     def test_repeat_count_create(self):
         """MetaData of type export_repeat_columns is created"""
-        register_export_repeats(self.instance)
+        register_instance_export_repeats(self.instance)
 
         metadata = MetaData.objects.get(data_type="export_repeat_columns")
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
@@ -1235,7 +1236,7 @@ class RegisterExportRepeatsTestCase(TestBase):
             },
             data_value="",
         )
-        register_export_repeats(self.instance)
+        register_instance_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
@@ -1253,7 +1254,7 @@ class RegisterExportRepeatsTestCase(TestBase):
             },
             data_value="",
         )
-        register_export_repeats(self.instance)
+        register_instance_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         # repeat counts remain unchanged
@@ -1272,7 +1273,7 @@ class RegisterExportRepeatsTestCase(TestBase):
             },
             data_value="",
         )
-        register_export_repeats(self.instance)
+        register_instance_export_repeats(self.instance)
 
         metadata.refresh_from_db()
         # repeat counts remain unchanged
@@ -1305,7 +1306,73 @@ class RegisterExportRepeatsTestCase(TestBase):
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
-        register_export_repeats(instance)
+        register_instance_export_repeats(instance)
 
         exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
         self.assertFalse(exists)
+
+
+class RegisterXFormExportRepeatsTestCase(TestBase):
+    """Tests for method `register_xform_export_repeats`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        md = """
+        | survey |
+        |        | type         | name            | label               |
+        |        | begin repeat | hospital_repeat |                     |
+        |        | text         | hospital        | Name of hospital    |
+        |        | begin repeat | child_repeat    |                     |
+        |        | text         | name            | Child's name        |
+        |        | decimal      | birthweight     | Child's birthweight |
+        |        | end_repeat   |                 |                     |
+        |        | end_repeat   |                 |                     |
+        | settings|             |                 |                     |
+        |         | form_title  | form_id         |                     |
+        |         | Births      | births          |                     |
+        """
+        self._publish_markdown(md, self.user, self.project)
+        self.xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{self.xform.uuid}</uuid></formhub>"
+            "<hospital_repeat>"
+            "<hospital>Aga Khan</hospital>"
+            "<child_repeat>"
+            "<name>Zakayo</name>"
+            "<birthweight>3.3</birthweight>"
+            "</child_repeat>"
+            "<child_repeat>"
+            "<name>Melania</name>"
+            "<birthweight>3.5</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mama Lucy</hospital>"
+            "<child_repeat>"
+            "<name>Winnie</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        # Disable signals to avoid creating MetaData
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        self.instance = Instance.objects.create(
+            xml=xml, user=self.user, xform=self.xform
+        )
+
+    def test_register(self):
+        """Repeats from all instances are registered"""
+        register_xform_export_repeats(self.xform)
+
+        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)

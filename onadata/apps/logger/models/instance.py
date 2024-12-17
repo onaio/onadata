@@ -879,9 +879,9 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 @use_master
 def register_export_repeats(sender, instance, created=False, **kwargs):
     # pylint: disable=import-outside-toplevel
-    from onadata.apps.logger.tasks import register_export_repeats_async
+    from onadata.apps.logger.tasks import register_instance_export_repeats_async
 
-    register_export_repeats_async.delay(instance.pk)
+    register_instance_export_repeats_async.delay(instance.pk)
 
 
 post_save.connect(
