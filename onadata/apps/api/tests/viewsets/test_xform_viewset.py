@@ -2,6 +2,7 @@
 """
 Tests the XForm viewset.
 """
+
 from __future__ import unicode_literals
 
 import codecs
@@ -3629,7 +3630,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         with HTTMock(enketo_mock):
             mock_get_status.return_value = {"job_status": "PENDING"}
             self._publish_xls_form_to_project()
-            count = XForm.objects.count()
             view = XFormViewSet.as_view(
                 {
                     "delete": "delete_async",
@@ -3642,7 +3642,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 202)
             self.assertTrue("job_uuid" in response.data)
             self.assertTrue("time_async_triggered" in response.data)
-            self.assertEqual(count, XForm.objects.count())
+            self.assertEqual(0, XForm.objects.count())
 
             view = XFormViewSet.as_view({"get": "delete_async"})
 
@@ -3654,7 +3654,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response.data, {"job_status": "PENDING"})
 
-            xform = XForm.objects.get(pk=formid)
+            xform = XForm.objects.all_with_deleted().get(pk=formid)
 
             self.assertIsNotNone(xform.deleted_at)
             self.assertTrue("deleted-at" in xform.id_string)

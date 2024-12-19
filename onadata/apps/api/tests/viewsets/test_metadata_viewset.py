@@ -2,6 +2,7 @@
 """
 Tests the MetaDataViewSet.
 """
+
 # pylint: disable=too-many-lines
 import os
 from builtins import open
@@ -242,9 +243,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.xform.soft_delete()
         # Confirm that all metadata was deleted
         response2 = self.view(request)
-        self.assertEqual(response2.status_code, 200)
-        self.assertEqual(len(response2.data), 0)
-        self.assertEqual(response2.data, [])
+        self.assertEqual(response2.status_code, 404)
 
     def test_windows_csv_file_upload_to_metadata(self):
         data_value = "transportation.csv"
