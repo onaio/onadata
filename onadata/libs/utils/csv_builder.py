@@ -778,7 +778,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         content_type = ContentType.objects.get_for_model(self.xform)
 
         def build_repeat_cols_from_data():
-            # Build repeat columns from the data
+            """Build repeat columns from data."""
             for record in cursor:
                 # re index column repeats
                 for key, value in iteritems(record):
@@ -800,10 +800,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             register_xform_export_repeats_async.delay(self.xform.pk)
 
         def fall_back_to_data():
-            # Fall back to building repeat columns from data
+            """Fall back to building repeat columns from data.
+
+            Revert any changes made to the ordered columns.
+            """
             for column_xpath in self.ordered_columns:
                 if isinstance(value, list) and not self.ordered_columns[column_xpath]:
-                    # Revert any changes made to the ordered columns
                     self.ordered_columns[column_xpath] = []
 
             build_repeat_cols_from_data()
