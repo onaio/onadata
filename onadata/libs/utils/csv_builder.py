@@ -809,24 +809,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         else:
             # Build repeat columns from the registered repeats
-            def get_ordered_repeat_columns():
-                """Return OrderedDict of repeats in the order in which
-                they appear in the XForm."""
-                ordered_columns = OrderedDict()
-
-                for repeat, column in registered_repeats.extra_data.items():
-                    elements = self.data_dictionary.get_child_elements(
-                        repeat, self.split_select_multiples
-                    )
-
-                    for element in elements:
-                        if not question_types_to_exclude(element.type):
-                            element_xpath = element.get_abbreviated_xpath()
-                            ordered_columns[element_xpath] = column
-
-                return ordered_columns
-
-            ordered_columns = get_ordered_repeat_columns()
 
             def build_repeat_columns(repeat_xpath, num_repeats, parent_prefix=None):
                 for index in range(1, num_repeats + 1):
@@ -850,18 +832,19 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
                             else:
                                 child_repeat_xpath = element.get_abbreviated_xpath()
-                                child_repeat_num = ordered_columns.get(
-                                    child_repeat_xpath
-                                )
+                                child_repeat_name = child_repeat_xpath.split("/")[-1]
+                                child_repeat_num = registered_repeats.extra_data[
+                                    child_repeat_name
+                                ]
                                 build_repeat_columns(
-                                    element.get_abbreviated_xpath(),
-                                    child_repeat_num,
-                                    prefix,
+                                    child_repeat_xpath, child_repeat_num, prefix
                                 )
 
-            for repeat_xpath, num_repeats in ordered_columns.items():
-                if not self.ordered_columns.get(repeat_xpath, []):
-                    build_repeat_columns(repeat_xpath, num_repeats)
+            for column_xpath, value in self.ordered_columns.items():
+                if isinstance(value, list) and not self.ordered_columns[column_xpath]:
+                    repeat_name = column_xpath.split("/")[-1]
+                    repeat_num = registered_repeats.extra_data[repeat_name]
+                    build_repeat_columns(column_xpath, repeat_num)
 
     def _format_for_dataframe(self, cursor):
         """
