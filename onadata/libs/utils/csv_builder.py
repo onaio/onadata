@@ -804,6 +804,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         host=self.host,
                     )
 
+            # Register repeat columns for future use
+            register_xform_export_repeats_async.delay(self.xform.pk)
+
         else:
             # Build repeat columns from the registered repeats
             def get_ordered_repeat_columns():
@@ -819,40 +822,46 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     for element in elements:
                         if not question_types_to_exclude(element.type):
                             element_xpath = element.get_abbreviated_xpath()
-                            ordered_columns[element_xpath] = []
+                            ordered_columns[element_xpath] = column
 
-            def build_repeat(repeat, parent_prefix):
-                pass
+                return ordered_columns
 
-            for repeat, column in registered_repeats.extra_data.items():
-                elements = self.data_dictionary.get_child_elements(
-                    repeat, self.split_select_multiples
-                )
+            ordered_columns = get_ordered_repeat_columns()
 
-                for element in elements:
-                    if not question_types_to_exclude(element.type):
-                        element_xpath = element.get_abbreviated_xpath()
+            def build_repeat_columns(repeat_xpath, num_repeats, parent_prefix=None):
+                for index in range(1, num_repeats + 1):
+                    child_elements = self.data_dictionary.get_child_elements(
+                        repeat_xpath, self.split_select_multiples
+                    )
 
-                        for index in range(1, column + 1):
-                            if element.children:
-                                for child in element.children:
-                                    if not question_types_to_exclude(child.type):
-                                        parent_prefixed_xpath = (
-                                            f"{element_xpath}[{index}]"
-                                        )
+                    if parent_prefix is None:
+                        prefix = f"{repeat_xpath}[{index}]"
 
-                                        if not isinstance(child, RepeatingSection):
-                                            self.ordered_columns[element_xpath].append(
-                                                f"{parent_prefixed_xpath}/{child.name}"
-                                            )
+                    else:
+                        repeat_name = repeat_xpath.split("/")[-1]
+                        prefix = f"{parent_prefix}/{repeat_name}[{index}]"
 
-                                        else:
-                                            build_repeat(
-                                                child.name, parent_prefixed_xpath
-                                            )
+                    for element in child_elements:
+                        if not question_types_to_exclude(element.type):
+                            if not isinstance(element, RepeatingSection):
+                                self.ordered_columns[repeat_xpath].append(
+                                    f"{prefix}/{element.name}"
+                                )
 
-            # Register repeat columns for future use
-            register_xform_export_repeats_async.delay(self.xform.pk)
+                            else:
+                                child_repeat_xpath = element.get_abbreviated_xpath()
+                                child_repeat_num = ordered_columns.get(
+                                    child_repeat_xpath
+                                )
+                                build_repeat_columns(
+                                    element.get_abbreviated_xpath(),
+                                    child_repeat_num,
+                                    prefix,
+                                )
+
+            for repeat_xpath, num_repeats in ordered_columns.items():
+                if not self.ordered_columns.get(repeat_xpath, []):
+                    build_repeat_columns(repeat_xpath, num_repeats)
 
     def _format_for_dataframe(self, cursor):
         """

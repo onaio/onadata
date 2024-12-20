@@ -15,6 +15,7 @@ from onadata.apps.logger.models import DataView
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
@@ -128,6 +129,8 @@ class TestCSVDataFrameBuilder(TestBase):
         cursor = (
             self.xform.instances.all().order_by("id").values_list("json", flat=True)
         )
+        # De-register repeats, simulate case where repeats are not registered
+        MetaData.objects.filter(data_type="export_repeat_columns").delete()
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
