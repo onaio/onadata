@@ -799,6 +799,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # Register repeat columns for future use
             register_xform_export_repeats_async.delay(self.xform.pk)
 
+        def fall_back_to_data():
+            # Fall back to building repeat columns from data
+            for column_xpath in self.ordered_columns:
+                if isinstance(value, list) and not self.ordered_columns[column_xpath]:
+                    # Revert any changes made to the ordered columns
+                    self.ordered_columns[column_xpath] = []
+
+            build_repeat_cols_from_data()
+
         try:
             registered_repeats = MetaData.objects.get(
                 content_type=content_type,
@@ -811,18 +820,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             build_repeat_cols_from_data()
         else:
             # Build repeat columns from the registered repeats
-            def fall_back_to_data():
-                """Fall back to building repeat columns from data."""
-
-                for column_xpath in self.ordered_columns:
-                    if (
-                        isinstance(value, list)
-                        and not self.ordered_columns[column_xpath]
-                    ):
-                        # Revert any changes made to the ordered columns
-                        self.ordered_columns[column_xpath] = []
-
-                build_repeat_cols_from_data()
 
             def build_repeat_columns(repeat_xpath, num_repeats, parent_prefix=None):
                 for index in range(1, num_repeats + 1):
