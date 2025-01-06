@@ -9,6 +9,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
@@ -55,6 +56,7 @@ from onadata.libs.utils.common_tags import (
     DURATION,
     EDITED,
     END,
+    EXPORT_REPEAT_COLUMNS,
     GEOLOCATION,
     ID,
     LAST_EDITED,
@@ -879,9 +881,29 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 @use_master
 def register_export_repeats(sender, instance, created=False, **kwargs):
     # pylint: disable=import-outside-toplevel
-    from onadata.apps.logger.tasks import register_instance_export_repeats_async
+    from onadata.apps.logger.tasks import (
+        register_instance_export_repeats_async,
+        register_xform_export_repeats_async,
+    )
+    from onadata.apps.main.models import MetaData
 
-    register_instance_export_repeats_async.delay(instance.pk)
+    xform = instance.xform
+    content_type = ContentType.objects.get_for_model(xform)
+
+    try:
+        MetaData.objects.get(
+            content_type=content_type,
+            object_id=xform.pk,
+            data_type=EXPORT_REPEAT_COLUMNS,
+            data_value="",
+        )
+
+    except MetaData.DoesNotExist:
+        # Traverse all submissions and register repeats
+        register_xform_export_repeats_async.delay(xform.pk)
+
+    else:
+        register_instance_export_repeats_async.delay(instance.pk)
 
 
 post_save.connect(
