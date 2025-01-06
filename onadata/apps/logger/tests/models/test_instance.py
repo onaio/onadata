@@ -2,6 +2,7 @@
 """
 Test Instance model.
 """
+
 import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
@@ -1186,3 +1187,26 @@ class TestInstance(TestBase):
         instance.refresh_from_db()
         self.assertEqual(instance.json["num_integer"], -1)
         self.assertEqual(instance.json["num_decimal"], -1.0)
+
+    def test_xml_entity_node_missing(self):
+        """Entity node missing in submission XML"""
+        self.project = get_user_default_project(self.user)
+        xform = self._publish_registration_form(self.user)
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.count(), 0)

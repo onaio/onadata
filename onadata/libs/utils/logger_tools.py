@@ -1261,11 +1261,11 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     registration_form_qs = RegistrationForm.objects.filter(
         xform=instance.xform, is_active=True
     )
+    entity_node = get_meta_from_xml(instance.xml, "entity")
 
-    if not registration_form_qs.exists():
+    if not registration_form_qs.exists() or not entity_node:
         return
 
-    entity_node = get_meta_from_xml(instance.xml, "entity")
     registration_form = registration_form_qs.first()
     mutation_success_checks = ["1", "true"]
     entity_uuid = entity_node.getAttribute("id")
