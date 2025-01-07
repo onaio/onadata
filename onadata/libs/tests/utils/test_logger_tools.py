@@ -1311,6 +1311,54 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
         self.assertFalse(exists)
 
+    def test_create_register_previous_candidates(self):
+        """Previous submissions are considered when creating repeat register"""
+        # Existing submission with a higher repeat count for hospital_repeat
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{self.xform.uuid}</uuid></formhub>"
+            "<hospital_repeat>"
+            "<hospital>Aga Khan</hospital>"
+            "<child_repeat>"
+            "<name>Zakayo</name>"
+            "<birthweight>3.3</birthweight>"
+            "</child_repeat>"
+            "<child_repeat>"
+            "<name>Melania</name>"
+            "<birthweight>3.5</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mama Lucy</hospital>"
+            "<child_repeat>"
+            "<name>Winnie</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Nairobi West</hospital>"
+            "<child_repeat>"
+            "<name>Tom</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<meta>"
+            "<instanceID>uuid:cb5eb8fe-a046-4e75-9c7f-72183b871698</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xml=xml, user=self.user, xform=self.xform)
+
+        register_instance_export_repeats(self.instance)
+
+        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        # The previous submission should be considered since it has the most repeats
+        # for hospital_repeat
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+
 
 class RegisterXFormExportRepeatsTestCase(TestBase):
     """Tests for method `register_xform_export_repeats`"""

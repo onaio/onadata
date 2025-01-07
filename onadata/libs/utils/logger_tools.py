@@ -1550,9 +1550,55 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
     return repeat_max
 
 
+def _update_export_repeats(
+    incoming_repeats: dict[str, int], metadata: MetaData
+) -> None:
+    for repeat, incoming_max in incoming_repeats.items():
+        # Get the maximum between incoming max and the current max
+        # Done at database level to gurantee atomicity and
+        # consistency. Avoids race conditions if it were done at the
+        # application level
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    COALESCE(extra_data, '{}'::jsonb),
+                    %s,
+                    GREATEST(
+                        COALESCE((extra_data->>%s)::int, 0),
+                        %s
+                    )::text::jsonb,
+                    true
+                )
+                WHERE id = %s
+                """,
+                [
+                    [repeat],
+                    repeat,
+                    incoming_max,
+                    metadata.pk,
+                ],
+            )
+
+
+def _get_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
+    content_type = ContentType.objects.get_for_model(xform)
+
+    obj, created = MetaData.objects.get_or_create(
+        content_type=content_type,
+        object_id=xform.pk,
+        data_type=EXPORT_REPEAT_COLUMNS,
+        data_value="",
+    )
+
+    return obj, created
+
+
 @transaction.atomic()
 def register_instance_export_repeats(instance: Instance) -> None:
-    """Add instance repeat groups to export repeat groups
+    """Register an Instance's repeats for export
 
     :param instance: Instance object
     """
@@ -1561,64 +1607,28 @@ def register_instance_export_repeats(instance: Instance) -> None:
     if not repeat_counts:
         return
 
-    content_type = ContentType.objects.get_for_model(instance.xform)
+    metadata, created = _get_repeat_register(instance.xform)
 
-    try:
-        metadata = MetaData.objects.get(
-            content_type=content_type,
-            object_id=instance.xform.pk,
-            data_type=EXPORT_REPEAT_COLUMNS,
-            data_value="",
-        )
-
-    except MetaData.DoesNotExist:
-        # extra_data keeps track of the maximum number of
-        # occurrences for each repeat group across all submissions
-        MetaData.objects.create(
-            content_type=content_type,
-            object_id=instance.xform.pk,
-            data_type=EXPORT_REPEAT_COLUMNS,
-            data_value="",
-            extra_data=repeat_counts,
-        )
+    if created:
+        register_xform_export_repeats(instance.xform)
 
     else:
-        for repeat, incoming_max in repeat_counts.items():
-            # Get the maximum between incoming max and the current max
-            # Done at database level to gurantee atomicity and
-            # consistency. Avoids race conditions if it were done at the
-            # application level
-
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    UPDATE main_metadata
-                    SET extra_data = jsonb_set(
-                        COALESCE(extra_data, '{}'::jsonb),
-                        %s,
-                        GREATEST(
-                            COALESCE((extra_data->>%s)::int, 0),
-                            %s
-                        )::text::jsonb,
-                        true
-                    )
-                    WHERE id = %s
-                    """,
-                    [
-                        [repeat],
-                        repeat,
-                        incoming_max,
-                        metadata.pk,
-                    ],
-                )
+        _update_export_repeats(repeat_counts, metadata)
 
 
+@transaction.atomic()
 def register_xform_export_repeats(xform: XForm) -> None:
-    """Add XForm's submissions repeat groups to export repeat groups
+    """Register a XForm's Instances repeats for export
 
     :param xform: XForm object
     """
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        register_instance_export_repeats(instance)
+        repeat_counts = _get_instance_repeat_max(instance)
+
+        if not repeat_counts:
+            continue
+
+        metadata, _ = _get_repeat_register(xform)
+        _update_export_repeats(repeat_counts, metadata)
