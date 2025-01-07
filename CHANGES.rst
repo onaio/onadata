@@ -3,7 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v.4.10.0(2024-12-02)
+v4.10.1(2025-01-07)
+-------------------
+- Fix CSV import error for a form that defines Entities
+  `PR #2754 <https://github.com/onaio/onadata/pull/2754>`
+  [@kelvin-muchiri]
+- Security updates
+  `PR #2750 <https://github.com/onaio/onadata/pull/2750>`
+  [@kelvin-muchiri]
+
+v4.10.0(2024-12-02)
 --------------------
 - Add management command to restore soft deleted form
   `PR #2744 <https://github.com/onaio/onadata/pull/2744>`
