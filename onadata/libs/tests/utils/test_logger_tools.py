@@ -1309,7 +1309,9 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         register_instance_export_repeats(instance)
 
         exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
-        self.assertFalse(exists)
+        self.assertTrue(exists)
+        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        self.assertEqual(metadata.extra_data, {})
 
     def test_create_register_previous_candidates(self):
         """Previous submissions are considered when creating repeat register"""

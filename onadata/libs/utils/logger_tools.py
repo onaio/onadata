@@ -1550,10 +1550,13 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
     return repeat_max
 
 
-def _update_export_repeats(
-    incoming_repeats: dict[str, int], metadata: MetaData
-) -> None:
-    for repeat, incoming_max in incoming_repeats.items():
+def _update_export_repeats(instance: Instance, metadata: MetaData) -> None:
+    repeat_counts = _get_instance_repeat_max(instance)
+
+    if not repeat_counts:
+        return
+
+    for repeat, incoming_max in repeat_counts.items():
         # Get the maximum between incoming max and the current max
         # Done at database level to gurantee atomicity and
         # consistency. Avoids race conditions if it were done at the
@@ -1602,18 +1605,13 @@ def register_instance_export_repeats(instance: Instance) -> None:
 
     :param instance: Instance object
     """
-    repeat_counts = _get_instance_repeat_max(instance)
-
-    if not repeat_counts:
-        return
-
     metadata, created = _get_repeat_register(instance.xform)
 
     if created:
         register_xform_export_repeats(instance.xform)
 
     else:
-        _update_export_repeats(repeat_counts, metadata)
+        _update_export_repeats(instance, metadata)
 
 
 @transaction.atomic()
@@ -1625,10 +1623,5 @@ def register_xform_export_repeats(xform: XForm) -> None:
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        repeat_counts = _get_instance_repeat_max(instance)
-
-        if not repeat_counts:
-            continue
-
         metadata, _ = _get_repeat_register(xform)
-        _update_export_repeats(repeat_counts, metadata)
+        _update_export_repeats(instance, metadata)
