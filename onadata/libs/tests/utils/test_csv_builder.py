@@ -7,6 +7,7 @@ import csv
 import os
 from builtins import chr, open
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.test.utils import override_settings
@@ -111,7 +112,8 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
-    def test_csv_dataframe_export_to(self):
+    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
+    def test_csv_dataframe_export_to(self, mock_register_repeats):
         """
         Test CSVDataFrameBuilder.export_to().
         """
@@ -143,6 +145,8 @@ class TestCSVDataFrameBuilder(TestBase):
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
+        # Repeat register is created for future use
+        mock_register_repeats.assert_called_once_with(self.xform.id)
 
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
@@ -2284,7 +2288,8 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(row, expected_row)
         csv_file.close()
 
-    def test_registered_repeat_not_found(self):
+    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
+    def test_registered_repeat_not_found(self, mock_register_repeats):
         """Registered repeat not found in MetaData
 
         If a registered repeat is not found in MetaData, the columns
@@ -2401,3 +2406,4 @@ class TestCSVDataFrameBuilder(TestBase):
         header = next(csv_reader)
         self.assertCountEqual(header, expected_header)
         csv_file.close()
+        mock_register_repeats.assert_called()
