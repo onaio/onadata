@@ -1550,7 +1550,7 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
     return repeat_max
 
 
-def _update_export_repeats(instance: Instance, metadata: MetaData) -> None:
+def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> None:
     repeat_counts = _get_instance_repeat_max(instance)
 
     if not repeat_counts:
@@ -1586,9 +1586,8 @@ def _update_export_repeats(instance: Instance, metadata: MetaData) -> None:
             )
 
 
-def _get_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
+def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
     content_type = ContentType.objects.get_for_model(xform)
-
     obj, created = MetaData.objects.get_or_create(
         content_type=content_type,
         object_id=xform.pk,
@@ -1605,13 +1604,13 @@ def register_instance_export_repeats(instance: Instance) -> None:
 
     :param instance: Instance object
     """
-    metadata, created = _get_repeat_register(instance.xform)
+    metadata, created = _get_export_repeat_register(instance.xform)
 
     if created:
         register_xform_export_repeats(instance.xform)
 
     else:
-        _update_export_repeats(instance, metadata)
+        _update_export_repeat_register(instance, metadata)
 
 
 @transaction.atomic()
@@ -1623,5 +1622,5 @@ def register_xform_export_repeats(xform: XForm) -> None:
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        metadata, _ = _get_repeat_register(xform)
-        _update_export_repeats(instance, metadata)
+        metadata, _ = _get_export_repeat_register(xform)
+        _update_export_repeat_register(instance, metadata)
