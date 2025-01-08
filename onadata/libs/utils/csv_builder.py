@@ -858,7 +858,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 )
 
             for column_xpath, value in self.ordered_columns.items():
-                if isinstance(value, list) and not self.ordered_columns[column_xpath]:
+                if isinstance(value, list) and not value:
                     # Build repeat columns, start from parent and recurse into children
                     # repeat columns
                     repeat_name = column_xpath.split("/")[-1]
