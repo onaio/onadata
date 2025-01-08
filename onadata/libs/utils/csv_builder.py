@@ -18,7 +18,7 @@ from six import iteritems
 from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.logger.tasks import register_xform_export_repeats_async
-from onadata.apps.main.models import MetaData
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
