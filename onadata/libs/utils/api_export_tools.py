@@ -152,7 +152,7 @@ def custom_response_handler(  # noqa: C0901
     ):
         export_type = Export.EXTERNAL_EXPORT
 
-    metadata_query_params = get_query_params_from_metadata(metadata)
+    metadata_query_params = get_query_params_from_metadata(metadata) or {}
 
     options = {
         **parse_request_export_options(request.query_params),

@@ -642,13 +642,27 @@ def generate_kml_export(
 
 
 def get_query_params_from_metadata(metadata):
+    """
+    Build out query params to be used in GeoJsonSerializer
+    """
+    if metadata is None:
+        return None
+
     extra_data = metadata.extra_data
-    # build out query params to be used in GeoJsonSerializer
+    if extra_data is None:
+        return None
+
+    keys_mapping = {
+        "data_geo_field": "geo_field",
+        "data_simple_style": "simple_style",
+        "data_title": "title",
+        "data_fields": "fields",
+    }
+
     return {
-        "geo_field": extra_data.get("data_geo_field"),
-        "simple_style": extra_data.get("data_simple_style"),
-        "title": extra_data.get("data_title"),
-        "fields": extra_data.get("data_fields"),
+        mapped_key: extra_data[original_key]
+        for original_key, mapped_key in keys_mapping.items()
+        if original_key in extra_data
     }
 
 

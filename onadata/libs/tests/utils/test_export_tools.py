@@ -47,6 +47,7 @@ from onadata.libs.utils.export_tools import (
     generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
+    get_query_params_from_metadata,
     get_repeat_index_tags,
     kml_export_data,
     parse_request_export_options,
@@ -276,6 +277,51 @@ class TestExportTools(TestAbstractViewSet):
         )
 
         self.assertFalse(will_create_new_export)
+
+    def test_get_query_params_from_metadata_fn(self):
+        self._publish_transportation_form_and_submit_instance()
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(XForm),
+            data_type="media",
+            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            extra_data={
+                "data_title": "start",
+                "data_fields": "",
+                "data_geo_field": "qn09",
+                "data_simple_style": True,
+            },
+            object_id=self.xform.id,
+        )
+        self.assertEqual(
+            {
+                "title": "start",
+                "fields": "",
+                "geo_field": "qn09",
+                "simple_style": True,
+            },
+            get_query_params_from_metadata(metadata),
+        )
+
+        metadata.delete()
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(XForm),
+            data_type="media",
+            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            extra_data={
+                "data_title": "start",
+                "data_fields": "",
+                "data_geo_field": "qn09",
+            },
+            object_id=self.xform.id,
+        )
+        self.assertEqual(
+            {
+                "title": "start",
+                "fields": "",
+                "geo_field": "qn09",
+            },
+            get_query_params_from_metadata(metadata),
+        )
 
     def test_should_not_create_new_export_when_old_exists(self):
         export_type = "geojson"
