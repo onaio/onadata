@@ -799,17 +799,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # Register repeat columns for future use
             register_xform_export_repeats_async.delay(self.xform.pk)
 
-        def fall_back_to_data():
-            """Fall back to building repeat columns from data.
-
-            Revert any changes made to the ordered columns.
-            """
-            for column_xpath in self.ordered_columns:
-                if isinstance(value, list) and not self.ordered_columns[column_xpath]:
-                    self.ordered_columns[column_xpath] = []
-
-            build_repeat_cols_from_data()
-
         try:
             registered_repeats = MetaData.objects.get(
                 content_type=content_type,
@@ -847,28 +836,22 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 child_repeat_xpath = element.get_abbreviated_xpath()
                                 child_repeat_name = child_repeat_xpath.split("/")[-1]
                                 child_repeat_num = registered_repeats.extra_data.get(
-                                    child_repeat_name
+                                    child_repeat_name, 0
                                 )
-                                if child_repeat_num is None:
-                                    fall_back_to_data()
-                                    return
-
-                                build_repeat_columns(
-                                    child_repeat_xpath, child_repeat_num, prefix
-                                )
+                                if child_repeat_num:
+                                    build_repeat_columns(
+                                        child_repeat_xpath, child_repeat_num, prefix
+                                    )
 
             for column_xpath, value in self.ordered_columns.items():
                 if isinstance(value, list) and not value:
                     # Build repeat columns, start from parent and recurse into children
                     # repeat columns
                     repeat_name = column_xpath.split("/")[-1]
-                    repeat_num = registered_repeats.extra_data.get(repeat_name)
+                    repeat_num = registered_repeats.extra_data.get(repeat_name, 0)
 
-                    if repeat_num is None:
-                        fall_back_to_data()
-                        return
-
-                    build_repeat_columns(column_xpath, repeat_num)
+                    if repeat_num:
+                        build_repeat_columns(column_xpath, repeat_num)
 
     def _format_for_dataframe(self, cursor):
         """

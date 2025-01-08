@@ -2288,13 +2288,8 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(row, expected_row)
         csv_file.close()
 
-    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
-    def test_registered_repeat_not_found(self, mock_register_repeats):
-        """Registered repeat not found in MetaData
-
-        If a registered repeat is not found in MetaData, the columns
-        should be generated based on the data.
-        """
+    def test_repeat_not_found_in_register(self):
+        """Repeat not found in register"""
         md_xform = """
         | survey  |
         |         | type          | name            | label         |
@@ -2368,15 +2363,7 @@ class TestCSVDataFrameBuilder(TestBase):
         expected_header = [
             "hospital_repeat[1]/hospital",
             "hospital_repeat[2]/hospital",
-            "hospital_repeat[1]/child_repeat[1]/name",
-            "hospital_repeat[1]/child_repeat[1]/birthweight",
-            "hospital_repeat[1]/child_repeat[1]/sex",
-            "hospital_repeat[1]/child_repeat[2]/name",
-            "hospital_repeat[1]/child_repeat[2]/birthweight",
-            "hospital_repeat[1]/child_repeat[2]/sex",
-            "hospital_repeat[2]/child_repeat[1]/name",
-            "hospital_repeat[2]/child_repeat[1]/birthweight",
-            "hospital_repeat[2]/child_repeat[1]/sex",
+            "meta/instanceID",
             "_id",
             "_uuid",
             "_submission_time",
@@ -2391,7 +2378,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_media_all_received",
         ]
         self.assertCountEqual(header, expected_header)
-        # Missing registered parent repeat should not affect the export
+        # Parent repeat not registered
         metadata.extra_data = {"child_repeat": 2}
         metadata.save
         builder = CSVDataFrameBuilder(
@@ -2406,4 +2393,3 @@ class TestCSVDataFrameBuilder(TestBase):
         header = next(csv_reader)
         self.assertCountEqual(header, expected_header)
         csv_file.close()
-        mock_register_repeats.assert_called()
