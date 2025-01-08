@@ -2,6 +2,7 @@
 """
 Instance model class
 """
+# pylint: disable=too-many-lines
 
 import math
 import sys
