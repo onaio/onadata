@@ -4,6 +4,7 @@ Instance model class
 """
 # pylint: disable=too-many-lines
 
+import importlib
 import math
 import sys
 from datetime import datetime
@@ -879,10 +880,10 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 
 @use_master
 def register_export_repeats(sender, instance, created=False, **kwargs):
-    # pylint: disable=import-outside-toplevel
-    from onadata.apps.logger.tasks import register_instance_export_repeats_async
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
-    register_instance_export_repeats_async.delay(instance.pk)
+    logger_tasks.register_instance_export_repeats_async.delay(instance.pk)
 
 
 post_save.connect(
