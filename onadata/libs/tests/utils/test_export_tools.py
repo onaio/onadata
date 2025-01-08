@@ -261,7 +261,7 @@ class TestExportTools(TestAbstractViewSet):
 
         self.assertTrue(will_create_new_export)
 
-    def test_should_not_create_new_export_when_old_exists(self):
+    def test_should_not_create_new_export_fn(self):
         export_type = "csv"
         self._publish_transportation_form_and_submit_instance()
         options = {
@@ -310,6 +310,9 @@ class TestExportTools(TestAbstractViewSet):
         self.assertEqual(
             {
                 "dataview_pk": False,
+                "title": "start",
+                "fields": "",
+                "simple_style": True,
                 "include_hxl": True,
                 "include_images": True,
                 "include_labels": False,
@@ -336,6 +339,9 @@ class TestExportTools(TestAbstractViewSet):
         self.assertEqual(
             {
                 "dataview_pk": False,
+                "title": "start",
+                "fields": "",
+                "simple_style": True,
                 "include_hxl": True,
                 "include_images": True,
                 "include_labels": False,
@@ -347,6 +353,50 @@ class TestExportTools(TestAbstractViewSet):
                 "split_select_multiples": True,
             },
             Export.objects.get(xform=self.xform).options,
+        )
+
+        # New metadata will yield a new export
+        metadata.delete()
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(XForm),
+            data_type="media",
+            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            extra_data={
+                "data_title": "end",
+                "data_fields": "",
+                "data_geo_field": "qn09",
+                "data_simple_style": True,
+            },
+            object_id=self.xform.id,
+        )
+        _response = custom_response_handler(
+            request,
+            self.xform,
+            {},
+            export_type,
+            filename="testgeojson2",
+            dataview=False,
+            metadata=metadata,
+        )
+        # we generated a new export since the extra_data has been updated
+        self.assertEqual(2, Export.objects.filter(xform=self.xform).count())
+        self.assertEqual(
+            {
+                "dataview_pk": False,
+                "title": "end",
+                "fields": "",
+                "simple_style": True,
+                "include_hxl": True,
+                "include_images": True,
+                "include_labels": False,
+                "win_excel_utf8": False,
+                "group_delimiter": "/",
+                "include_reviews": False,
+                "remove_group_name": False,
+                "include_labels_only": False,
+                "split_select_multiples": True,
+            },
+            Export.objects.filter(xform=self.xform).last().options,
         )
 
     def test_should_create_new_export_when_filter_defined(self):
