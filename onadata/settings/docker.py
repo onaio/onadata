@@ -230,6 +230,7 @@ PRICING_ENTERPRISE_PLAN_FEATURES = PRICING_PRO_PLAN_FEATURES
 OAUTH2_PROVIDER_APPLICATION_MODEL = "oauth2_provider.Application"
 LOGGING = {
     "version": 1,
+    "disable_existing_loggers": False,
     "filters": {
         "require_debug_true": {
             "()": "django.utils.log.RequireDebugTrue",
@@ -243,9 +244,19 @@ LOGGING = {
         }
     },
     "loggers": {
-        "django.db.backends": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "django.server": {  # Logs HTTP requests
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {  # Logs database queries
             "level": "DEBUG",
             "handlers": ["console"],
-        }
+        },
     },
 }
