@@ -641,6 +641,17 @@ def generate_kml_export(
     return export
 
 
+def get_query_params_from_metadata(metadata):
+    extra_data = metadata.extra_data
+    # build out query params to be used in GeoJsonSerializer
+    return {
+        "geo_field": extra_data.get("data_geo_field"),
+        "simple_style": extra_data.get("data_simple_style"),
+        "title": extra_data.get("data_title"),
+        "fields": extra_data.get("data_fields"),
+    }
+
+
 def generate_geojson_export(
     export_type,
     username,
@@ -665,14 +676,7 @@ def generate_geojson_export(
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
     request = HttpRequest()
-    extra_data = metadata.extra_data
-    # build out query params to be used in GeoJsonSerializer
-    request.query_params = {
-        "geo_field": extra_data.get("data_geo_field"),
-        "simple_style": extra_data.get("data_simple_style"),
-        "title": extra_data.get("data_title"),
-        "fields": extra_data.get("data_fields"),
-    }
+    request.query_params = get_query_params_from_metadata(metadata)
     _context = {}
     _context["request"] = request
     # filter out deleted submissions

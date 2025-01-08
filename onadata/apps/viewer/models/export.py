@@ -111,6 +111,10 @@ class ExportBaseModel(models.Model):
     EXPORT_OPTION_FIELDS = [
         "binary_select_multiples",
         "dataview_pk",
+        "title",
+        "fields",
+        "geo_fields",
+        "simple_style",
         "group_delimiter",
         "include_images",
         "include_labels",
