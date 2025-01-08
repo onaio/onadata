@@ -27,7 +27,7 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT,
     DURATION,
     EDITED,
-    EXPORT_REPEAT_COLUMNS,
+    EXPORT_REPEAT_REGISTER,
     GEOLOCATION,
     ID,
     MEDIA_ALL_RECEIVED,
@@ -803,7 +803,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             registered_repeats = MetaData.objects.get(
                 content_type=content_type,
                 object_id=self.xform.pk,
-                data_type=EXPORT_REPEAT_COLUMNS,
+                data_type=EXPORT_REPEAT_REGISTER,
                 data_value="",
             )
 

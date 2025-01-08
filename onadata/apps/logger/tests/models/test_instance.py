@@ -1260,7 +1260,7 @@ class TestInstance(TestBase):
         )
         # Repeats are registered on creation
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
-        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
         self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
         # Repeats are registered on update

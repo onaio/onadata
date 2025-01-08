@@ -133,7 +133,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.instances.all().order_by("id").values_list("json", flat=True)
         )
         # De-register repeats, simulate case where repeats are not registered
-        MetaData.objects.filter(data_type="export_repeat_columns").delete()
+        MetaData.objects.filter(data_type="export_repeat_register").delete()
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -2208,7 +2208,7 @@ class TestCSVDataFrameBuilder(TestBase):
         MetaData.objects.create(
             content_type=content_type,
             object_id=xform.pk,
-            data_type="export_repeat_columns",
+            data_type="export_repeat_register",
             data_value="",
             extra_data={
                 "hospital_repeat": 2,
@@ -2344,7 +2344,7 @@ class TestCSVDataFrameBuilder(TestBase):
         metadata = MetaData.objects.create(
             content_type=content_type,
             object_id=xform.pk,
-            data_type="export_repeat_columns",
+            data_type="export_repeat_register",
             data_value="",
             extra_data={
                 "hospital_repeat": 2,  # nested child_repeat not registered

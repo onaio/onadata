@@ -1217,10 +1217,10 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         )
 
     def test_repeat_count_create(self):
-        """MetaData of type export_repeat_columns is created"""
+        """MetaData of type export_repeat_register is created"""
         register_instance_export_repeats(self.instance)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
         self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
 
@@ -1229,7 +1229,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(self.xform),
             object_id=self.xform.id,
-            data_type="export_repeat_columns",
+            data_type="export_repeat_register",
             extra_data={
                 "hospital_repeat": 1,
                 "child_repeat": 1,
@@ -1247,7 +1247,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(self.xform),
             object_id=self.xform.id,
-            data_type="export_repeat_columns",
+            data_type="export_repeat_register",
             extra_data={
                 "hospital_repeat": 3,
                 "child_repeat": 3,
@@ -1266,7 +1266,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(self.xform),
             object_id=self.xform.id,
-            data_type="export_repeat_columns",
+            data_type="export_repeat_register",
             extra_data={
                 "hospital_repeat": 2,
                 "child_repeat": 2,
@@ -1308,9 +1308,9 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
 
         register_instance_export_repeats(instance)
 
-        exists = MetaData.objects.filter(data_type="export_repeat_columns").exists()
+        exists = MetaData.objects.filter(data_type="export_repeat_register").exists()
         self.assertTrue(exists)
-        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
         self.assertEqual(metadata.extra_data, {})
 
     def test_create_register_previous_candidates(self):
@@ -1355,7 +1355,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
 
         register_instance_export_repeats(self.instance)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
         # The previous submission should be considered since it has the most repeats
         # for hospital_repeat
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
@@ -1423,6 +1423,6 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
         """Repeats from all instances are registered"""
         register_xform_export_repeats(self.xform)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_columns")
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
         self.assertEqual(metadata.extra_data.get("child_repeat"), 2)

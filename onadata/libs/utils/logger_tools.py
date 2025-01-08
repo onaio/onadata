@@ -109,7 +109,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import EXPORT_REPEAT_COLUMNS, METADATA_FIELDS
+from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1592,7 +1592,7 @@ def _get_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
     obj, created = MetaData.objects.get_or_create(
         content_type=content_type,
         object_id=xform.pk,
-        data_type=EXPORT_REPEAT_COLUMNS,
+        data_type=EXPORT_REPEAT_REGISTER,
         data_value="",
     )
 
