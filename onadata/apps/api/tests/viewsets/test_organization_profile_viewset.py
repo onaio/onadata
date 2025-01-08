@@ -2,11 +2,12 @@
 """
 Test /orgs API endpoint implementation.
 """
+
 import json
 from builtins import str as text
 from unittest.mock import patch
 
-from django.contrib.auth.models import User, timezone, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User, timezone
 from django.core.cache import cache
 from django.test.utils import override_settings
 
@@ -15,8 +16,8 @@ from rest_framework import status
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
-    get_organization_members_team,
     Team,
+    get_organization_members_team,
 )
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.tools import (
@@ -840,8 +841,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = view(request, user="denoinc")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["users"][1]["user"], "aboy")
-        self.assertEqual(response.data["users"][1]["role"], "owner")
+        aboy_data = {"user": "aboy", "role": "owner"}
+        self.assertTrue(
+            any(  # Order doesn't matter. aboy can be first or last
+                all(item.get(key) == value for key, value in aboy_data.items())
+                for item in response.data["users"]
+            )
+        )
 
         owner_team = get_or_create_organization_owners_team(self.organization)
 
