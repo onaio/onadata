@@ -1,4 +1,3 @@
-# pylint: disable=import-error,ungrouped-imports
 """
 Asynchronous tasks for the logger app
 """
