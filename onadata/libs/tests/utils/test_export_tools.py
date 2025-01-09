@@ -283,12 +283,11 @@ class TestExportTools(TestAbstractViewSet):
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(XForm),
             data_type="media",
-            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            data_value=f"xform_geojson {self.xform.id} testgeojson2",
             extra_data={
                 "data_title": "start",
                 "data_fields": "",
                 "data_geo_field": "qn09",
-                "data_simple_style": True,
             },
             object_id=self.xform.id,
         )
@@ -297,29 +296,32 @@ class TestExportTools(TestAbstractViewSet):
                 "title": "start",
                 "fields": "",
                 "geo_field": "qn09",
-                "simple_style": True,
             },
             get_query_params_from_metadata(metadata),
         )
 
-        metadata.delete()
-        metadata = MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(XForm),
-            data_type="media",
-            data_value=f"xform_geojson {self.xform.id} testgeojson",
-            extra_data={
-                "data_title": "start",
-                "data_fields": "",
-                "data_geo_field": "qn09",
-            },
-            object_id=self.xform.id,
-        )
+        metadata.extra_data = {
+            "data_title": "start",
+            "data_fields": "one,two",
+            "data_geo_field": "qn09",
+        }
         self.assertEqual(
             {
                 "title": "start",
-                "fields": "",
+                "fields": "one,two",
                 "geo_field": "qn09",
             },
+            get_query_params_from_metadata(metadata),
+        )
+
+        metadata.extra_data = {
+            "data_title": "start",
+            "data_fields": "",
+            "data_geo_field": "qn09",
+            "data_simple_style": True,
+        }
+        self.assertEqual(
+            {"title": "start", "fields": "", "geo_field": "qn09", "simple_style": True},
             get_query_params_from_metadata(metadata),
         )
 
@@ -402,11 +404,10 @@ class TestExportTools(TestAbstractViewSet):
         )
 
         # New metadata will yield a new export
-        metadata.delete()
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(XForm),
             data_type="media",
-            data_value=f"xform_geojson {self.xform.id} testgeojson",
+            data_value=f"xform_geojson {self.xform.id} testgeojson2",
             extra_data={
                 "data_title": "end",
                 "data_fields": "",
