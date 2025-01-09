@@ -823,7 +823,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         else:
                             child_repeat_xpath = element.get_abbreviated_xpath()
                             child_repeat_name = child_repeat_xpath.split("/")[-1]
-                            child_repeat_num = registered_repeats.extra_data.get(
+                            child_repeat_num = repeat_register.extra_data.get(
                                 child_repeat_name, 0
                             )
                             if child_repeat_num:
@@ -832,7 +832,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                 )
 
         try:
-            registered_repeats = MetaData.objects.get(
+            repeat_register = MetaData.objects.get(
                 content_type=content_type,
                 object_id=self.xform.pk,
                 data_type=EXPORT_REPEAT_REGISTER,
@@ -847,7 +847,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             for column_xpath, value in self.ordered_columns.items():
                 if isinstance(value, list) and not value:
                     repeat_name = column_xpath.split("/")[-1]
-                    repeat_num = registered_repeats.extra_data.get(repeat_name, 0)
+                    repeat_num = repeat_register.extra_data.get(repeat_name, 0)
 
                     if repeat_num:
                         build_columns_from_register(column_xpath, repeat_num)
