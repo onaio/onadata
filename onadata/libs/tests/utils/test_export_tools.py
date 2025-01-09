@@ -783,7 +783,7 @@ class TestExportTools(TestAbstractViewSet):
         username = self.xform.user.username
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
-        self.assertEqual(self.xform.metadata_set.count(), 2)
+        self.assertEqual(self.xform.metadata_set.filter(data_type="media").count(), 1)
         metadata = self.xform.metadata_set.filter(data_type="media")[0]
         export = generate_geojson_export(
             export_type, username, id_string, metadata, options=options, xform=xform1
@@ -888,7 +888,7 @@ class TestExportTools(TestAbstractViewSet):
         username = self.xform.user.username
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
-        self.assertEqual(self.xform.metadata_set.count(), 2)
+        self.assertEqual(self.xform.metadata_set.filter(data_type="media").count(), 1)
         metadata = self.xform.metadata_set.filter(data_type="media")[0]
         export = generate_geojson_export(
             export_type, username, id_string, metadata, options=options, xform=xform1
