@@ -2,6 +2,7 @@
 """
 Test export_tools module
 """
+
 import csv
 import json
 import os
@@ -11,11 +12,12 @@ import zipfile
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
-from django.test.utils import override_settings
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from pyxform.builder import create_survey_from_xls
@@ -24,16 +26,15 @@ from rest_framework.authtoken.models import Token
 from savReaderWriter import SavWriter
 
 from onadata.apps.api import tests as api_tests
-from onadata.apps.main.models import MetaData
-from django.contrib.contenttypes.models import ContentType
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.apps.logger.models import Attachment, Instance, XForm, Entity, EntityList
+from onadata.apps.logger.models import Attachment, Entity, EntityList, Instance, XForm
+from onadata.apps.main.models import MetaData
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.export_builder import (
     ExportBuilder,
     encode_if_str,
@@ -782,8 +783,8 @@ class TestExportTools(TestAbstractViewSet):
         username = self.xform.user.username
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
-        self.assertEqual(self.xform.metadata_set.count(), 1)
-        metadata = self.xform.metadata_set.all()[0]
+        self.assertEqual(self.xform.metadata_set.count(), 2)
+        metadata = self.xform.metadata_set.filter(data_type="media")[0]
         export = generate_geojson_export(
             export_type, username, id_string, metadata, options=options, xform=xform1
         )
@@ -887,8 +888,8 @@ class TestExportTools(TestAbstractViewSet):
         username = self.xform.user.username
         id_string = self.xform.id_string
         # get metadata instance and pass to geojson export util function
-        self.assertEqual(self.xform.metadata_set.count(), 1)
-        metadata = self.xform.metadata_set.all()[0]
+        self.assertEqual(self.xform.metadata_set.count(), 2)
+        metadata = self.xform.metadata_set.filter(data_type="media")[0]
         export = generate_geojson_export(
             export_type, username, id_string, metadata, options=options, xform=xform1
         )
