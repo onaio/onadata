@@ -1551,6 +1551,7 @@ def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
 
 
 def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> None:
+    """Update the export repeat register"""
     repeat_counts = _get_instance_repeat_max(instance)
 
     if not repeat_counts:
@@ -1587,6 +1588,7 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
 
 
 def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
+    """Get or create the export repeat register"""
     content_type = ContentType.objects.get_for_model(xform)
     obj, created = MetaData.objects.get_or_create(
         content_type=content_type,
