@@ -1592,7 +1592,7 @@ def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
         content_type=content_type,
         object_id=xform.pk,
         data_type=EXPORT_REPEAT_REGISTER,
-        data_value="",
+        defaults={"data_value": ""},
     )
 
     return obj, created

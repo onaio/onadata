@@ -836,7 +836,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 content_type=content_type,
                 object_id=self.xform.pk,
                 data_type=EXPORT_REPEAT_REGISTER,
-                data_value="",
             )
 
         except MetaData.DoesNotExist:
