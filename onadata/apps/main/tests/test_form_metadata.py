@@ -65,7 +65,11 @@ class TestFormMetadata(TestBase):
                 },
             )
         else:
-            self.doc = MetaData.objects.filter(data_type="supporting_doc")[0]
+            self.doc = (
+                MetaData.objects.all()
+                .exclude(data_type="export_repeat_register")
+                .reverse()[0]
+            )
             self.doc_url = reverse(
                 download_metadata,
                 kwargs={
