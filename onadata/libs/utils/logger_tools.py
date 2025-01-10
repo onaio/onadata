@@ -1619,8 +1619,8 @@ def register_xform_export_repeats(xform: XForm) -> None:
 
     :param xform: XForm object
     """
+    metadata, _ = _get_export_repeat_register(xform)
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        metadata, _ = _get_export_repeat_register(xform)
         _update_export_repeat_register(instance, metadata)
