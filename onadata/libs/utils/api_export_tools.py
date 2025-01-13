@@ -57,6 +57,7 @@ from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.export_tools import (
     check_pending_export,
     get_latest_generic_export,
+    get_query_params_from_metadata,
     generate_attachments_zip_export,
     generate_entity_list_export,
     generate_export,
@@ -151,7 +152,12 @@ def custom_response_handler(  # noqa: C0901
     ):
         export_type = Export.EXTERNAL_EXPORT
 
-    options = parse_request_export_options(request.query_params)
+    metadata_query_params = get_query_params_from_metadata(metadata) or {}
+
+    options = {
+        **parse_request_export_options(request.query_params),
+        **metadata_query_params,
+    }
 
     dataview_pk = hasattr(dataview, "pk") and dataview.pk
     options["dataview_pk"] = dataview_pk
