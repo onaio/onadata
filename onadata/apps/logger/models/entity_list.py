@@ -6,17 +6,16 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, transaction
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
-
-from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 from guardian.compat import user_model_label
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.models import BaseModel
+from onadata.libs.models import BaseModel, SoftDeleteManager
 from onadata.libs.utils.model_tools import queryset_iterator
 
 User = get_user_model()
@@ -42,6 +41,8 @@ class EntityList(BaseModel):
     exports = GenericRelation("viewer.GenericExport")
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    objects = SoftDeleteManager()
 
     def __str__(self):
         return f"{self.name}|{self.project}"

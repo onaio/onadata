@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
+from onadata.libs.models import SoftDeleteManager
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
     json_order_by_params,
@@ -123,6 +124,8 @@ class DataView(models.Model):
         default=None,
         blank=True,
     )
+
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "logger"

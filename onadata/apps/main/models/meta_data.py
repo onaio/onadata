@@ -24,6 +24,7 @@ from django.utils import timezone
 
 import requests
 
+from onadata.libs.models import SoftDeleteManager
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
@@ -204,7 +205,7 @@ class MetaData(models.Model):
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")
 
-    objects = models.Manager()
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "main"

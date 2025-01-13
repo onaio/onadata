@@ -2,12 +2,15 @@
 """
 Attachment model.
 """
+
 import hashlib
 import mimetypes
 import os
 
 from django.contrib.auth import get_user_model
 from django.db import models
+
+from onadata.libs.models import SoftDeleteManager
 
 
 def get_original_filename(filename):
@@ -82,6 +85,8 @@ class Attachment(models.Model):
         null=True,
         on_delete=models.SET_NULL,
     )
+
+    objects = SoftDeleteManager()
 
     class Meta:
         app_label = "logger"
