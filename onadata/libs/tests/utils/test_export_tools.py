@@ -344,7 +344,7 @@ class TestExportTools(TestAbstractViewSet):
             },
             object_id=self.xform.id,
         )
-        _response = custom_response_handler(
+        custom_response_handler(
             request,
             self.xform,
             {},
@@ -373,7 +373,7 @@ class TestExportTools(TestAbstractViewSet):
             },
             Export.objects.get(xform=self.xform).options,
         )
-        _response = custom_response_handler(
+        custom_response_handler(
             request,
             self.xform,
             {},
@@ -416,7 +416,7 @@ class TestExportTools(TestAbstractViewSet):
             },
             object_id=self.xform.id,
         )
-        _response = custom_response_handler(
+        custom_response_handler(
             request,
             self.xform,
             {},
