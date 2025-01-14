@@ -1557,10 +1557,10 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
     :param instance: Instance object
     :param metadata: MetaData object that stores the export repeat register
     """
-    repeat_counts = _get_instance_repeat_max(instance)
-
-    if not repeat_counts or not _should_register_instance_export_repeats(instance):
+    if not _is_submission_approved(instance):
         return
+
+    repeat_counts = _get_instance_repeat_max(instance)
 
     for repeat, incoming_max in repeat_counts.items():
         # Get the maximum between incoming max and the current max
@@ -1610,11 +1610,11 @@ def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
     return obj, created
 
 
-def _should_register_instance_export_repeats(instance: Instance) -> bool:
-    """Check if an Instance's repeats should be registered for export
+def _is_submission_approved(instance: Instance) -> bool:
+    """Check if a submission has been approved
 
     :param instance: Instance object
-    :return: True if repeats should be registered, False otherwise
+    :return: True if submission is approved, False otherwise
     """
     content_type = ContentType.objects.get_for_model(instance.xform)
     is_review_enabled = MetaData.objects.filter(
