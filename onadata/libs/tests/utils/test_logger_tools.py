@@ -27,6 +27,7 @@ from onadata.apps.logger.models import (
     EntityList,
     Instance,
     RegistrationForm,
+    SubmissionReview,
     SurveyType,
     XForm,
 )
@@ -1182,7 +1183,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         """
         self._publish_markdown(md, self.user, self.project)
         self.xform = XForm.objects.all().order_by("-pk").first()
-        xml = (
+        self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
             '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
@@ -1213,7 +1214,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         # Disable signals to avoid creating MetaData
         post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
-            xml=xml, user=self.user, xform=self.xform
+            xml=self.xml, user=self.user, xform=self.xform
         )
 
     def test_repeat_count_create(self):
@@ -1360,6 +1361,30 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         # for hospital_repeat
         self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
         self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+
+    def test_submission_review_enabled(self):
+        """When submission review is enabled, only approved Instance is registered"""
+        self.instance.delete()
+        MetaData.submission_review(self.xform, "true")  # Enable submission review
+        self.instance = Instance.objects.create(
+            xml=self.xml, user=self.user, xform=self.xform
+        )
+        register_instance_export_repeats(self.instance)
+
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
+
+        self.assertEqual(metadata.extra_data, {})
+
+        # Approve submission
+        SubmissionReview.objects.create(
+            instance=self.instance, status=SubmissionReview.APPROVED
+        )
+
+        register_instance_export_repeats(self.instance)
+
+        metadata.refresh_from_db()
+
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
 
 
 class RegisterXFormExportRepeatsTestCase(TestBase):
