@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.11.0(2025-01-14)
+-------------------
+- CSV export optimisation
+  `PR #2755 <https://github.com/onaio/onadata/pull/2755>`
+  [@kelvin-muchiri]
+- Add GeoJSON attachment params to EXPORT_OPTIONS
+  `PR #2757 <https://github.com/onaio/onadata/pull/2757>`
+  [@FrankApiyo]
+
 v4.10.1(2025-01-07)
 -------------------
 - Fix CSV import error for a form that defines Entities
