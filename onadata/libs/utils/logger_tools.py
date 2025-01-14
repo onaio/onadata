@@ -1560,9 +1560,9 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
     if not _is_submission_approved(instance):
         return
 
-    repeat_count = _get_instance_repeat_max(instance)
+    repeat_max = _get_instance_repeat_max(instance)
 
-    for repeat, incoming_max in repeat_count.items():
+    for repeat, incoming_max in repeat_max.items():
         # Get the maximum between incoming max and the current max
         # Done at database level to gurantee atomicity and
         # consistency. Avoids race conditions if it were done at the
