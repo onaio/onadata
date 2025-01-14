@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
+"""
+Tests for the onadata.apps.logger.management.commands.export_data module.
+"""
 
 from io import StringIO
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 
 
 class ExportDataTest(TestBase):
+    """Tests for the export_data management command."""
+
     def test_command_output(self):
+        """Test the output of the export_data management command."""
         output = StringIO()
         error_output = StringIO()
         with self.assertRaisesMessage(

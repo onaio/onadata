@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+"""
+Management command to export data from a form in CSV format.
+"""
+
 from django.core.management.base import BaseCommand
+
+from codetiming import Timer
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import generate_export
-
-from codetiming import Timer
 
 
 class Command(BaseCommand):
@@ -35,8 +39,8 @@ class Command(BaseCommand):
             plural_or_singular = (
                 "submission" if xform.num_of_submissions == 1 else "submissions"
             )
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'{export.pk}: Exporting {xform.num_of_submissions} {plural_or_singular} of the form "{xform.title}"'
-                )
+            msg = (
+                f"{export.pk}: Exporting {xform.num_of_submissions}"
+                f'{plural_or_singular} of the form "{xform.title}"'
             )
+            self.stdout.write(self.style.SUCCESS(msg))
