@@ -1560,9 +1560,9 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
     if not _is_submission_approved(instance):
         return
 
-    repeat_counts = _get_instance_repeat_max(instance)
+    repeat_count = _get_instance_repeat_max(instance)
 
-    for repeat, incoming_max in repeat_counts.items():
+    for repeat, incoming_max in repeat_count.items():
         # Get the maximum between incoming max and the current max
         # Done at database level to gurantee atomicity and
         # consistency. Avoids race conditions if it were done at the
@@ -1627,11 +1627,11 @@ def _is_submission_approved(instance: Instance) -> bool:
     if not is_review_enabled:
         return True
 
-    is_review_approved = SubmissionReview.objects.filter(
+    is_submission_approved = SubmissionReview.objects.filter(
         instance_id=instance.id, status=SubmissionReview.APPROVED
     ).exists()
 
-    return is_review_approved
+    return is_submission_approved
 
 
 @transaction.atomic()
