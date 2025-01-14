@@ -13,6 +13,8 @@ from onadata.libs.utils.export_tools import generate_export
 
 
 class Command(BaseCommand):
+    """Export data from a form in CSV format"""
+
     help = "Exports data from a form in CSV format"
 
     def add_arguments(self, parser):
