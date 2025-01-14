@@ -28,14 +28,14 @@ class Command(BaseCommand):
                 self.style.ERROR(f"There is no form with id {form_id} present.")
             )
         else:
-            with Timer() as t:
+            with Timer() as timer:
                 export = generate_export(Export.CSV_EXPORT, xform)
-            elapsed_time = t.last
-            self.stdout.write(
-                self.style.NOTICE(
-                    f"The file {export.full_filepath} was exported in {elapsed_time:.2f} seconds."
-                )
+            elapsed_time = timer.last
+            msg = (
+                f"The file {export.full_filepath} was exported in "
+                f"{elapsed_time:.2f} seconds."
             )
+            self.stdout.write(self.style.NOTICE(msg))
             plural_or_singular = (
                 "submission" if xform.num_of_submissions == 1 else "submissions"
             )
