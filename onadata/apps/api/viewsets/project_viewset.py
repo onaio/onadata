@@ -2,6 +2,7 @@
 """
 The /projects API endpoint implementation.
 """
+
 import logging
 
 from django.core.cache import cache
@@ -17,7 +18,7 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models import Project, XForm, ProjectInvitation
+from onadata.apps.logger.models import Project, ProjectInvitation, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.data import strtobool
@@ -28,6 +29,11 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.serializers.project_invitation_serializer import (
+    ProjectInvitationResendSerializer,
+    ProjectInvitationRevokeSerializer,
+    ProjectInvitationSerializer,
+)
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
@@ -36,19 +42,13 @@ from onadata.libs.serializers.share_project_serializer import (
     RemoveUserFromProjectSerializer,
     ShareProjectSerializer,
 )
-from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
 )
-from onadata.libs.serializers.project_invitation_serializer import (
-    ProjectInvitationSerializer,
-    ProjectInvitationRevokeSerializer,
-    ProjectInvitationResendSerializer,
-)
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
-from onadata.libs.utils.common_tools import merge_dicts
+from onadata.libs.utils.common_tools import merge_dicts, report_exception
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
 from onadata.settings.common import DEFAULT_FROM_EMAIL, SHARE_PROJECT_SUBJECT
@@ -83,7 +83,7 @@ class ProjectViewSet(
     pagination_class = StandardPageNumberPagination
 
     def get_serializer_class(self):
-        """Return BaseProjectSerializer class when listing projects."""
+        """Override `get_serializer_class."""
         if self.action == "list":
             return BaseProjectSerializer
 
@@ -164,7 +164,7 @@ class ProjectViewSet(
                     )
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            if survey['type'] and survey['text']:
+            if survey["type"] and survey["text"]:
                 error_message = f"{survey['type']}:{survey['text']}"
             else:
                 error_message = f"{survey}"

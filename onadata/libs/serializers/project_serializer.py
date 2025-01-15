@@ -2,6 +2,7 @@
 """
 Project Serializer module.
 """
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -16,9 +17,9 @@ from onadata.apps.api.models.organization_profile import (
     get_or_create_organization_owners_team,
     get_organization_members_team,
 )
-from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import (
     ManagerRole,
     OwnerRole,
@@ -262,6 +263,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             "formid",
             "id_string",
             "is_merged_dataset",
+            "encrypted",
             "contributes_entities_to",
             "consumes_entities_from",
         )
