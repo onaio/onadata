@@ -21,6 +21,7 @@ from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import (
     MultipleObjectsReturned,
@@ -28,7 +29,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, transaction
+from django.db import DataError, IntegrityError, connection, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
@@ -58,6 +59,7 @@ from onadata.apps.logger.models import (
     Attachment,
     Instance,
     RegistrationForm,
+    SubmissionReview,
     XForm,
     XFormVersion,
 )
@@ -86,6 +88,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_submission_date_from_xml,
     get_uuid_from_xml,
 )
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
     SUBMISSION_DELETED,
@@ -107,7 +110,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import METADATA_FIELDS
+from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1520,3 +1523,140 @@ def delete_xform_submissions(
         user=deleted_by,
         message_verb=SUBMISSION_DELETED,
     )
+
+
+def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
+    """Get the maximum number of occurrences for each repeat group
+
+    :param instance: Instance object
+    :return: Dictionary of repeat counts
+    """
+    repeat_max = {}
+    instance_json = instance.get_dict()
+
+    def _get_repeat_max(data):
+        for key, value in data.items():
+            if isinstance(value, list):
+                repeat_name = key.split("/")[-1]
+                repeat_max[repeat_name] = max(
+                    len(value), repeat_max.get(repeat_name, 0)
+                )
+
+                for item in value:
+                    if isinstance(item, dict):
+                        _get_repeat_max(item)
+
+    _get_repeat_max(instance_json)
+
+    return repeat_max
+
+
+def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> None:
+    """Update the export repeat register:
+
+    :param instance: Instance object
+    :param metadata: MetaData object that stores the export repeat register
+    """
+    if not _is_submission_approved(instance):
+        return
+
+    repeat_max = _get_instance_repeat_max(instance)
+
+    for repeat, incoming_max in repeat_max.items():
+        # Get the maximum between incoming max and the current max
+        # Done at database level to gurantee atomicity and
+        # consistency. Avoids race conditions if it were done at the
+        # application level
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    COALESCE(extra_data, '{}'::jsonb),
+                    %s,
+                    GREATEST(
+                        COALESCE((extra_data->>%s)::int, 0),
+                        %s
+                    )::text::jsonb,
+                    true
+                )
+                WHERE id = %s
+                """,
+                [
+                    [repeat],
+                    repeat,
+                    incoming_max,
+                    metadata.pk,
+                ],
+            )
+
+
+def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
+    """Get or create the export repeat register
+
+    :param xform: XForm object
+    :return: Tuple of MetaData object and a boolean indicating if it was
+            created
+    """
+    content_type = ContentType.objects.get_for_model(xform)
+    obj, created = MetaData.objects.get_or_create(
+        content_type=content_type,
+        object_id=xform.pk,
+        data_type=EXPORT_REPEAT_REGISTER,
+        defaults={"data_value": ""},
+    )
+
+    return obj, created
+
+
+def _is_submission_approved(instance: Instance) -> bool:
+    """Check if a submission has been approved
+
+    :param instance: Instance object
+    :return: True if submission is approved, False otherwise
+    """
+    content_type = ContentType.objects.get_for_model(instance.xform)
+    is_review_enabled = MetaData.objects.filter(
+        content_type=content_type,
+        object_id=instance.xform.id,
+        data_type="submission_review",
+        data_value="true",
+    ).exists()
+
+    if not is_review_enabled:
+        return True
+
+    is_submission_approved = SubmissionReview.objects.filter(
+        instance_id=instance.id, status=SubmissionReview.APPROVED
+    ).exists()
+
+    return is_submission_approved
+
+
+@transaction.atomic()
+def register_instance_export_repeats(instance: Instance) -> None:
+    """Register an Instance's repeats for export
+
+    :param instance: Instance object
+    """
+    metadata, created = _get_export_repeat_register(instance.xform)
+
+    if created:
+        register_xform_export_repeats(instance.xform)
+
+    else:
+        _update_export_repeat_register(instance, metadata)
+
+
+@transaction.atomic()
+def register_xform_export_repeats(xform: XForm) -> None:
+    """Register a XForm's Instances repeats for export
+
+    :param xform: XForm object
+    """
+    metadata, _ = _get_export_repeat_register(xform)
+    instance_qs = xform.instances.filter(deleted_at__isnull=True)
+
+    for instance in queryset_iterator(instance_qs):
+        _update_export_repeat_register(instance, metadata)

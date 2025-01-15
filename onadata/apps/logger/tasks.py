@@ -1,28 +1,27 @@
-# pylint: disable=import-error,ungrouped-imports
 """
 Asynchronous tasks for the logger app
 """
+
 import logging
 
-from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import DatabaseError
+
 from multidb.pinning import use_master
 
-from onadata.apps.logger.models import Entity, EntityList, Project
+from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import (
-    PROJECT_DATE_MODIFIED_CACHE,
-    safe_delete,
-)
-from onadata.libs.utils.project_utils import set_project_perms_to_object
+from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.logger_tools import (
     commit_cached_elist_num_entities,
     dec_elist_num_entities,
     inc_elist_num_entities,
+    register_instance_export_repeats,
+    register_xform_export_repeats,
     soft_delete_entities_bulk,
 )
-
+from onadata.libs.utils.project_utils import set_project_perms_to_object
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -32,8 +31,7 @@ User = get_user_model()
 def set_entity_list_perms_async(entity_list_id):
     """Set permissions for EntityList asynchronously
 
-    Args:
-        pk (int): Primary key for EntityList
+    :param entity_list_id: Primary key for EntityList
     """
     with use_master:
         try:
@@ -67,9 +65,8 @@ def apply_project_date_modified_async():
 def delete_entities_bulk_async(entity_pks: list[int], username: str | None = None):
     """Delete Entities asynchronously
 
-    Args:
-        entity_pks (list(int)): Primary keys of Entities to be deleted
-        username (str): Username of the user initiating the delete
+    :param entity_pks: Primary keys of Entities to be deleted
+    :param username: Username of the user initiating the delete operation
     """
     with use_master:
         entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
@@ -104,8 +101,7 @@ def commit_cached_elist_num_entities_async():
 def inc_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
 
-    Args:
-        elist_pk (int): Primary key for EntityList
+    :param elist_pk: Primary key for EntityList
     """
     inc_elist_num_entities(elist_pk)
 
@@ -114,7 +110,38 @@ def inc_elist_num_entities_async(elist_pk: int):
 def dec_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
 
-    Args:
-        elist_pk (int): Primary key for EntityList
+    :param elist_pk: Primary key for EntityList
     """
     dec_elist_num_entities(elist_pk)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def register_instance_export_repeats_async(instance_pk: int) -> None:
+    """Register export repeats asynchronously
+
+    :param instance_pk: Primary key for Instance
+    """
+    try:
+        instance = Instance.objects.get(pk=instance_pk)
+
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        register_instance_export_repeats(instance)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def register_xform_export_repeats_async(xform_id: int) -> None:
+    """Register export repeats for an XForm asynchronously
+
+    :param xform_id: Primary key for XForm
+    """
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        register_xform_export_repeats(xform)

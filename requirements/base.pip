@@ -66,6 +66,8 @@ click-plugins==1.1.1
     # via celery
 click-repl==0.3.0
     # via celery
+codetiming==1.4.0
+    # via -r requirements/base.in
 cryptography==43.0.1
     # via
     #   jwcrypto

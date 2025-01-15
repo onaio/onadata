@@ -3,6 +3,7 @@
 """
 Export tools
 """
+
 from __future__ import unicode_literals
 
 import hashlib
@@ -207,9 +208,7 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
             dataview,
             count=True,
             sort=sort,
-        )[
-            0
-        ].get("count")
+        )[0].get("count")
     else:
         records = query_data(
             xform,

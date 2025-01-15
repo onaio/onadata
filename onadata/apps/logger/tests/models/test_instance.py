@@ -1210,3 +1210,99 @@ class TestInstance(TestBase):
         Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         self.assertEqual(Entity.objects.count(), 0)
+
+    def test_register_repeats(self):
+        """Repeats are registered correctly"""
+        project = get_user_default_project(self.user)
+        md = """
+        | survey |
+        |        | type         | name            | label               |
+        |        | begin repeat | hospital_repeat |                     |
+        |        | text         | hospital        | Name of hospital    |
+        |        | begin repeat | child_repeat    |                     |
+        |        | text         | name            | Child's name        |
+        |        | decimal      | birthweight     | Child's birthweight |
+        |        | end_repeat   |                 |                     |
+        |        | end_repeat   |                 |                     |
+        | settings|             |                 |                     |
+        |         | form_title  | form_id         |                     |
+        |         | Births      | births          |                     |
+        """
+        self._publish_markdown(md, self.user, project)
+        xform = XForm.objects.all().order_by("-pk").first()
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
+            "<hospital_repeat>"
+            "<hospital>Aga Khan</hospital>"
+            "<child_repeat>"
+            "<name>Zakayo</name>"
+            "<birthweight>3.3</birthweight>"
+            "</child_repeat>"
+            "<child_repeat>"
+            "<name>Melania</name>"
+            "<birthweight>3.5</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mama Lucy</hospital>"
+            "<child_repeat>"
+            "<name>Winnie</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        # Repeats are registered on creation
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        metadata = MetaData.objects.get(data_type="export_repeat_register")
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        # Repeats are registered on update
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
+            "<hospital_repeat>"
+            "<hospital>Aga Khan</hospital>"
+            "<child_repeat>"
+            "<name>Zakayo</name>"
+            "<birthweight>3.3</birthweight>"
+            "</child_repeat>"
+            "<child_repeat>"
+            "<name>Melania</name>"
+            "<birthweight>3.5</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mama Lucy</hospital>"
+            "<child_repeat>"
+            "<name>Winnie</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<hospital_repeat>"
+            "<hospital>Mp Shah</hospital>"
+            "<child_repeat>"
+            "<name>Ada</name>"
+            "<birthweight>3.1</birthweight>"
+            "</child_repeat>"
+            "</hospital_repeat>"
+            "<meta>"
+            "<instanceID>uuid:51cb9e07-cfc7-413b-bc22-ee7adfa9dec4</instanceID>"
+            "<deprecatedID>uuid:45d27780-48fd-4035-8655-9332649385bd</deprecatedID>"
+            "</meta>"
+            "</data>"
+        )
+        instance.xml = xml
+        instance.uuid = "51cb9e07-cfc7-413b-bc22-ee7adfa9dec4"
+        instance.save()
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
+        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)

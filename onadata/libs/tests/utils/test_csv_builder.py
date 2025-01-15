@@ -7,7 +7,9 @@ import csv
 import os
 from builtins import chr, open
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
@@ -15,6 +17,7 @@ from onadata.apps.logger.models import DataView
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
@@ -109,7 +112,8 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
-    def test_csv_dataframe_export_to(self):
+    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
+    def test_csv_dataframe_export_to(self, mock_register_repeats):
         """
         Test CSVDataFrameBuilder.export_to().
         """
@@ -128,6 +132,8 @@ class TestCSVDataFrameBuilder(TestBase):
         cursor = (
             self.xform.instances.all().order_by("id").values_list("json", flat=True)
         )
+        # De-register repeats, simulate case where repeats are not registered
+        MetaData.objects.filter(data_type="export_repeat_register").delete()
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -139,6 +145,8 @@ class TestCSVDataFrameBuilder(TestBase):
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
+        # Repeat register is created for future use
+        mock_register_repeats.assert_called_once_with(self.xform.id)
 
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
@@ -2143,3 +2151,245 @@ class TestCSVDataFrameBuilder(TestBase):
             csv_reader = csv.reader(csv_file)
             header = next(csv_reader)
             self.assertEqual(header, ["age", extra_col])
+
+    def test_registered_repeats(self):
+        """Registered repeats are used to generate export"""
+        md_xform = """
+        | survey  |
+        |         | type          | name            | label         |
+        |         | begin repeat  | hospital_repeat |               |
+        |         | text          | hospital        | Hospital Name |
+        |         | begin repeat  | child_repeat    |               |
+        |         | text          | name            | Child Name    |
+        |         | decimal       | birthweight     | Birth Weight  |
+        |         | select_one male_female | sex    | Child sex     |
+        |         | end repeat    |                 |               |
+        |         | end repeat    |                 |               |
+        | choices |               |                 |               |
+        |         | list name     | name            | label         |
+        |         | male_female   | male            | Male          |
+        |         | male_female   | female          | Female        |
+        """
+        self._publish_markdown(md_xform, self.user, id_string="nested_repeats")
+        xform = XForm.objects.get(user=self.user, id_string="nested_repeats")
+        cursor = [
+            {
+                "hospital_repeat": [
+                    {
+                        "hospital_repeat/hospital": "Aga Khan",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "male",
+                                "hospital_repeat/child_repeat/name": "Zakayo",
+                                "hospital_repeat/child_repeat/birthweight": 3.3,
+                            },
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Melania",
+                                "hospital_repeat/child_repeat/birthweight": 3.5,
+                            },
+                        ],
+                    },
+                    {
+                        "hospital_repeat/hospital": "Mama Lucy",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Winnie",
+                                "hospital_repeat/child_repeat/birthweight": 3.1,
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+        content_type = ContentType.objects.get_for_model(xform)
+        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
+        MetaData.objects.create(
+            content_type=content_type,
+            object_id=xform.pk,
+            data_type="export_repeat_register",
+            data_value="",
+            extra_data={
+                "hospital_repeat": 2,
+                "child_repeat": 2,
+            },
+        )
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "hospital_repeat[1]/hospital",
+            "hospital_repeat[2]/hospital",
+            "hospital_repeat[1]/child_repeat[1]/name",
+            "hospital_repeat[1]/child_repeat[1]/birthweight",
+            "hospital_repeat[1]/child_repeat[1]/sex",
+            "hospital_repeat[1]/child_repeat[2]/name",
+            "hospital_repeat[1]/child_repeat[2]/birthweight",
+            "hospital_repeat[1]/child_repeat[2]/sex",
+            "hospital_repeat[2]/child_repeat[1]/name",
+            "hospital_repeat[2]/child_repeat[1]/birthweight",
+            "hospital_repeat[2]/child_repeat[1]/sex",
+            "hospital_repeat[2]/child_repeat[2]/name",
+            "hospital_repeat[2]/child_repeat[2]/birthweight",
+            "hospital_repeat[2]/child_repeat[2]/sex",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertCountEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Aga Khan",
+            "Mama Lucy",
+            "Zakayo",
+            "3.3",
+            "male",
+            "Melania",
+            "3.5",
+            "female",
+            "Winnie",
+            "3.1",
+            "female",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertEqual(row, expected_row)
+        csv_file.close()
+
+    def test_repeat_not_found_in_register(self):
+        """Repeat not found in register"""
+        md_xform = """
+        | survey  |
+        |         | type          | name            | label         |
+        |         | begin repeat  | hospital_repeat |               |
+        |         | text          | hospital        | Hospital Name |
+        |         | begin repeat  | child_repeat    |               |
+        |         | text          | name            | Child Name    |
+        |         | decimal       | birthweight     | Birth Weight  |
+        |         | select_one male_female | sex    | Child sex     |
+        |         | end repeat    |                 |               |
+        |         | end repeat    |                 |               |
+        | choices |               |                 |               |
+        |         | list name     | name            | label         |
+        |         | male_female   | male            | Male          |
+        |         | male_female   | female          | Female        |
+        """
+        self._publish_markdown(md_xform, self.user, id_string="nested_repeats")
+        xform = XForm.objects.get(user=self.user, id_string="nested_repeats")
+        cursor = [
+            {
+                "hospital_repeat": [
+                    {
+                        "hospital_repeat/hospital": "Aga Khan",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "male",
+                                "hospital_repeat/child_repeat/name": "Zakayo",
+                                "hospital_repeat/child_repeat/birthweight": 3.3,
+                            },
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Melania",
+                                "hospital_repeat/child_repeat/birthweight": 3.5,
+                            },
+                        ],
+                    },
+                    {
+                        "hospital_repeat/hospital": "Mama Lucy",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Winnie",
+                                "hospital_repeat/child_repeat/birthweight": 3.1,
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+        content_type = ContentType.objects.get_for_model(xform)
+        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
+        metadata = MetaData.objects.create(
+            content_type=content_type,
+            object_id=xform.pk,
+            data_type="export_repeat_register",
+            data_value="",
+            extra_data={
+                "hospital_repeat": 2,  # nested child_repeat not registered
+            },
+        )
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "hospital_repeat[1]/hospital",
+            "hospital_repeat[2]/hospital",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertCountEqual(header, expected_header)
+        # Parent repeat not registered
+        metadata.extra_data = {"child_repeat": 2}
+        metadata.save
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        self.assertCountEqual(header, expected_header)
+        csv_file.close()

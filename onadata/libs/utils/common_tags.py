@@ -2,6 +2,7 @@
 """
 Common tags.
 """
+
 from __future__ import unicode_literals
 
 from django.utils.translation import gettext_lazy as _
@@ -210,3 +211,4 @@ INSTANCE_UPDATE_EVENT = "Submission updated"
 XFORM_CREATION_EVENT = "XForm created"
 PROJECT_CREATION_EVENT = "Project created"
 USER_CREATION_EVENT = "User account created"
+EXPORT_REPEAT_REGISTER = "export_repeat_register"

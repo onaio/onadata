@@ -88,3 +88,5 @@ tags
 .eggs
 sonar-project.properties
 .scannerwork
+
+*.er
