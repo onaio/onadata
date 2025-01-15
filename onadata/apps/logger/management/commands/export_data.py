@@ -42,7 +42,7 @@ class Command(BaseCommand):
                 "submission" if xform.num_of_submissions == 1 else "submissions"
             )
             msg = (
-                f"{export.pk}: Exporting {xform.num_of_submissions}"
+                f"{export.pk}: Exporting {xform.num_of_submissions} "
                 f'{plural_or_singular} of the form "{xform.title}"'
             )
             self.stdout.write(self.style.SUCCESS(msg))
