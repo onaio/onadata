@@ -2,6 +2,7 @@
 """
 Test ProjectViewSet module.
 """
+
 import json
 import os
 from collections import OrderedDict
@@ -60,8 +61,8 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
+from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
 
@@ -196,6 +197,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                     ("formid", self.xform.pk),
                                     ("id_string", "transportation_2011_07_25"),
                                     ("is_merged_dataset", False),
+                                    ("encrypted", False),
                                     ("contributes_entities_to", None),
                                     ("consumes_entities_from", []),
                                 ]
