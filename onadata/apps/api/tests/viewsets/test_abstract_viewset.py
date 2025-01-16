@@ -141,6 +141,14 @@ class TestAbstractViewSet(TestBase, TestCase):
             sender=DataDictionary, dispatch_uid="create_export_repeat_register"
         )
 
+    def tearDown(self):
+        TestCase.tearDown(self)
+
+        # Enable signals
+        post_save.connect(
+            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+        )
+
     def user_profile_data(self):
         """Returns the user profile python object."""
         return {
