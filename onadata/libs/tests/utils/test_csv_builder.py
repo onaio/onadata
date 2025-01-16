@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
+from django.db.models.signals import post_save
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
@@ -19,6 +20,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
     AbstractDataFrameBuilder,
@@ -63,6 +65,10 @@ class TestCSVDataFrameBuilder(TestBase):
     def setUp(self):
         self._create_user_and_login()
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
+        # Disable signals
+        post_save.disconnect(
+            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+        )
 
     def _publish_xls_fixture_set_xform(self, fixture):
         """
@@ -132,8 +138,6 @@ class TestCSVDataFrameBuilder(TestBase):
         cursor = (
             self.xform.instances.all().order_by("id").values_list("json", flat=True)
         )
-        # De-register repeats, simulate case where repeats are not registered
-        MetaData.objects.filter(data_type="export_repeat_register").delete()
         csv_df_builder.export_to(temp_file.name, cursor)
         csv_fixture_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),

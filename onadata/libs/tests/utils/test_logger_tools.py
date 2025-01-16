@@ -34,6 +34,7 @@ from onadata.apps.logger.models import (
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models import DataDictionary
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
@@ -1166,6 +1167,11 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
+        # Disable signals
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        post_save.disconnect(
+            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+        )
         self.project = get_user_default_project(self.user)
         md = """
         | survey |
@@ -1211,8 +1217,6 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        # Disable signals to avoid creating MetaData
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
             xml=self.xml, user=self.user, xform=self.xform
         )
