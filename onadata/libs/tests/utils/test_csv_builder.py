@@ -72,14 +72,14 @@ class TestCSVDataFrameBuilder(TestBase):
         )
 
     def tearDown(self):
-        super().tearDown()
-
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
             dispatch_uid="create_export_repeat_register",
             receiver=create_export_repeat_register,
         )
+
+        super().tearDown()
 
     def _publish_xls_fixture_set_xform(self, fixture):
         """
