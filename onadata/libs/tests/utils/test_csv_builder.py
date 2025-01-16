@@ -21,6 +21,7 @@ from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
+from onadata.apps.viewer.models.data_dictionary import create_export_repeat_register
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
     AbstractDataFrameBuilder,
@@ -68,6 +69,16 @@ class TestCSVDataFrameBuilder(TestBase):
         # Disable signals
         post_save.disconnect(
             sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+        )
+
+    def tearDown(self):
+        super().tearDown()
+
+        # Enable signals
+        post_save.connect(
+            sender=DataDictionary,
+            dispatch_uid="create_export_repeat_register",
+            receiver=create_export_repeat_register,
         )
 
     def _publish_xls_fixture_set_xform(self, fixture):
