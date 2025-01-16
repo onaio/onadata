@@ -1215,7 +1215,12 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         self.instance = Instance.objects.create(
             xml=self.xml, user=self.user, xform=self.xform
         )
-        self.register = MetaData.objects.get(data_type="export_repeat_register")
+        self.register, _ = MetaData.objects.get_or_create(
+            data_type="export_repeat_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
+            defaults={"data_value": ""},
+        )
 
     def test_repeat_register_not_found(self):
         """Nothing happens if export repeat register is not found"""
@@ -1333,6 +1338,8 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
+        # Disable signals
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.project = get_user_default_project(self.user)
         md = """
         | survey |
@@ -1377,14 +1384,20 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        # Disable signals to avoid creating MetaData
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
             xml=xml, user=self.user, xform=self.xform
+        )
+        self.register, _ = MetaData.objects.get_or_create(
+            data_type="export_repeat_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
+            defaults={"data_value": ""},
         )
 
     def test_register(self):
         """Repeats from all instances are registered"""
+        self.assertEqual(self.register.extra_data, {})
+
         register_xform_export_repeats(self.xform)
 
         metadata = MetaData.objects.get(data_type="export_repeat_register")
