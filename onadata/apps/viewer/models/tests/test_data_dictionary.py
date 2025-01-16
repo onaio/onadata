@@ -311,8 +311,7 @@ class DataDictionaryTestCase(TestBase):
 
     def test_export_repeat_register_created(self):
         """Export repeat register is created when form is published"""
-        self._publish_markdown(self.registration_form, self.user)
-        xform = XForm.objects.all().order_by("-pk").first()
+        xform = self._publish_markdown(self.registration_form, self.user)
         content_type = ContentType.objects.get_for_model(xform)
         exists = MetaData.objects.filter(
             data_type="export_repeat_register",
