@@ -1228,8 +1228,7 @@ class TestInstance(TestBase):
         |         | form_title  | form_id         |                     |
         |         | Births      | births          |                     |
         """
-        self._publish_markdown(md, self.user, project)
-        xform = XForm.objects.all().order_by("-pk").first()
+        xform = self._publish_markdown(md, self.user, project)
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='

@@ -1183,8 +1183,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         |         | form_title  | form_id         |                     |
         |         | Births      | births          |                     |
         """
-        self._publish_markdown(md, self.user, self.project)
-        self.xform = XForm.objects.all().order_by("-pk").first()
+        self.xform = self._publish_markdown(md, self.user, self.project)
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
@@ -1349,8 +1348,7 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
         |         | form_title  | form_id         |                     |
         |         | Births      | births          |                     |
         """
-        self._publish_markdown(md, self.user, self.project)
-        self.xform = XForm.objects.all().order_by("-pk").first()
+        self.xform = self._publish_markdown(md, self.user, self.project)
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
