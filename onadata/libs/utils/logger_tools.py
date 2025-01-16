@@ -1592,24 +1592,6 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
             )
 
 
-def _get_export_repeat_register(xform: XForm) -> tuple[MetaData, bool]:
-    """Get or create the export repeat register
-
-    :param xform: XForm object
-    :return: Tuple of MetaData object and a boolean indicating if it was
-            created
-    """
-    content_type = ContentType.objects.get_for_model(xform)
-    obj, created = MetaData.objects.get_or_create(
-        content_type=content_type,
-        object_id=xform.pk,
-        data_type=EXPORT_REPEAT_REGISTER,
-        defaults={"data_value": ""},
-    )
-
-    return obj, created
-
-
 def _is_submission_approved(instance: Instance) -> bool:
     """Check if a submission has been approved
 
@@ -1640,13 +1622,19 @@ def register_instance_export_repeats(instance: Instance) -> None:
 
     :param instance: Instance object
     """
-    metadata, created = _get_export_repeat_register(instance.xform)
+    content_type = ContentType.objects.get_for_model(instance.xform)
 
-    if created:
-        register_xform_export_repeats(instance.xform)
+    try:
+        metadata = MetaData.objects.get(
+            content_type=content_type,
+            object_id=instance.xform.pk,
+            data_type=EXPORT_REPEAT_REGISTER,
+        )
 
-    else:
-        _update_export_repeat_register(instance, metadata)
+    except MetaData.DoesNotExist:
+        return
+
+    _update_export_repeat_register(instance, metadata)
 
 
 @transaction.atomic()
@@ -1655,7 +1643,13 @@ def register_xform_export_repeats(xform: XForm) -> None:
 
     :param xform: XForm object
     """
-    metadata, _ = _get_export_repeat_register(xform)
+    content_type = ContentType.objects.get_for_model(xform)
+    metadata, _ = MetaData.objects.get_or_create(
+        content_type=content_type,
+        object_id=xform.pk,
+        data_type=EXPORT_REPEAT_REGISTER,
+        defaults={"data_value": ""},
+    )
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):

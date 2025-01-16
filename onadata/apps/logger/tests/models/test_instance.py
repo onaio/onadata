@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.http.request import HttpRequest
 from django.test import override_settings
 from django.utils.timezone import utc
@@ -1230,6 +1231,12 @@ class TestInstance(TestBase):
         """
         self._publish_markdown(md, self.user, project)
         xform = XForm.objects.all().order_by("-pk").first()
+        metadata = MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(xform),
+            object_id=xform.id,
+            data_type="export_repeat_register",
+            data_value="",
+        )
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
