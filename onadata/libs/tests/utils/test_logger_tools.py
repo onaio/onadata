@@ -1166,6 +1166,9 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
+        # Disable signals
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+
         self.project = get_user_default_project(self.user)
         md = """
         | survey |
@@ -1181,8 +1184,7 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         |         | form_title  | form_id         |                     |
         |         | Births      | births          |                     |
         """
-        self._publish_markdown(md, self.user, self.project)
-        self.xform = XForm.objects.all().order_by("-pk").first()
+        self.xform = self._publish_markdown(md, self.user, self.project)
         self.xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
@@ -1211,78 +1213,66 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        # Disable signals to avoid creating MetaData
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
             xml=self.xml, user=self.user, xform=self.xform
         )
+        self.register = MetaData.objects.get(
+            data_type="export_repeat_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
+        )
 
-    def test_repeat_count_create(self):
-        """MetaData of type export_repeat_register is created"""
+    def test_repeat_register_not_found(self):
+        """Nothing happens if export repeat register is not found"""
+        self.register.delete()
         register_instance_export_repeats(self.instance)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        exists = MetaData.objects.filter(data_type="export_repeat_register").exists()
+        self.assertFalse(exists)
 
     def test_incoming_repeat_max_greater(self):
         """Repeat count is incremented if incoming repeat count is greater"""
-        metadata = MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(self.xform),
-            object_id=self.xform.id,
-            data_type="export_repeat_register",
-            extra_data={
-                "hospital_repeat": 1,
-                "child_repeat": 1,
-            },
-            data_value="",
-        )
+        self.register.extra_data = {
+            "hospital_repeat": 1,
+            "child_repeat": 1,
+        }
+        self.register.save()
         register_instance_export_repeats(self.instance)
 
-        metadata.refresh_from_db()
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        self.register.refresh_from_db()
+        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
 
     def test_incoming_repeat_max_less(self):
         """Repeat count is unchanged if incoming repeat count is less"""
-        metadata = MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(self.xform),
-            object_id=self.xform.id,
-            data_type="export_repeat_register",
-            extra_data={
-                "hospital_repeat": 3,
-                "child_repeat": 3,
-            },
-            data_value="",
-        )
+        self.register.extra_data = {
+            "hospital_repeat": 3,
+            "child_repeat": 3,
+        }
+        self.register.save()
         register_instance_export_repeats(self.instance)
 
-        metadata.refresh_from_db()
+        self.register.refresh_from_db()
         # repeat counts remain unchanged
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 3)
+        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 3)
+        self.assertEqual(self.register.extra_data.get("child_repeat"), 3)
 
     def test_incoming_repeat_max_equal(self):
         """Repeat count is unchanged if incoming repeat count is equal"""
-        metadata = MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(self.xform),
-            object_id=self.xform.id,
-            data_type="export_repeat_register",
-            extra_data={
-                "hospital_repeat": 2,
-                "child_repeat": 2,
-            },
-            data_value="",
-        )
+        self.register.extra_data = {
+            "hospital_repeat": 2,
+            "child_repeat": 2,
+        }
+        self.register.save()
         register_instance_export_repeats(self.instance)
 
-        metadata.refresh_from_db()
+        self.register.refresh_from_db()
         # repeat counts remain unchanged
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
 
     def test_no_repeats(self):
-        """Instance has no repeats"""
+        """No change in register if no repeats are found in the instance"""
         md = """
         | survey |
         |        | type         | name            | label               |
@@ -1306,61 +1296,16 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
             "</data>"
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+        register = MetaData.objects.get(
+            content_type=ContentType.objects.get_for_model(xform),
+            object_id=self.xform.id,
+            data_type="export_repeat_register",
+        )
 
         register_instance_export_repeats(instance)
+        register.refresh_from_db()
 
-        exists = MetaData.objects.filter(data_type="export_repeat_register").exists()
-        self.assertTrue(exists)
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        self.assertEqual(metadata.extra_data, {})
-
-    def test_create_register_previous_candidates(self):
-        """Previous submissions are considered when creating repeat register"""
-        # Existing submission with a higher repeat count for hospital_repeat
-        xml = (
-            '<?xml version="1.0" encoding="UTF-8"?>'
-            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
-            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
-            f"<formhub><uuid>{self.xform.uuid}</uuid></formhub>"
-            "<hospital_repeat>"
-            "<hospital>Aga Khan</hospital>"
-            "<child_repeat>"
-            "<name>Zakayo</name>"
-            "<birthweight>3.3</birthweight>"
-            "</child_repeat>"
-            "<child_repeat>"
-            "<name>Melania</name>"
-            "<birthweight>3.5</birthweight>"
-            "</child_repeat>"
-            "</hospital_repeat>"
-            "<hospital_repeat>"
-            "<hospital>Mama Lucy</hospital>"
-            "<child_repeat>"
-            "<name>Winnie</name>"
-            "<birthweight>3.1</birthweight>"
-            "</child_repeat>"
-            "</hospital_repeat>"
-            "<hospital_repeat>"
-            "<hospital>Nairobi West</hospital>"
-            "<child_repeat>"
-            "<name>Tom</name>"
-            "<birthweight>3.1</birthweight>"
-            "</child_repeat>"
-            "</hospital_repeat>"
-            "<meta>"
-            "<instanceID>uuid:cb5eb8fe-a046-4e75-9c7f-72183b871698</instanceID>"
-            "</meta>"
-            "</data>"
-        )
-        Instance.objects.create(xml=xml, user=self.user, xform=self.xform)
-
-        register_instance_export_repeats(self.instance)
-
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        # The previous submission should be considered since it has the most repeats
-        # for hospital_repeat
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        self.assertEqual(register.extra_data, {})
 
     def test_submission_review_enabled(self):
         """When submission review is enabled, only approved Instance is registered"""
@@ -1371,9 +1316,9 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         )
         register_instance_export_repeats(self.instance)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
+        self.register.refresh_from_db()
 
-        self.assertEqual(metadata.extra_data, {})
+        self.assertEqual(self.register.extra_data, {})
 
         # Approve submission
         SubmissionReview.objects.create(
@@ -1382,9 +1327,9 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
 
         register_instance_export_repeats(self.instance)
 
-        metadata.refresh_from_db()
+        self.register.refresh_from_db()
 
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
+        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
 
 
 class RegisterXFormExportRepeatsTestCase(TestBase):
@@ -1392,6 +1337,9 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
+
+        # Disable signals
+        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
 
         self.project = get_user_default_project(self.user)
         md = """
@@ -1408,8 +1356,7 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
         |         | form_title  | form_id         |                     |
         |         | Births      | births          |                     |
         """
-        self._publish_markdown(md, self.user, self.project)
-        self.xform = XForm.objects.all().order_by("-pk").first()
+        self.xform = self._publish_markdown(md, self.user, self.project)
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
@@ -1438,14 +1385,19 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
             "</meta>"
             "</data>"
         )
-        # Disable signals to avoid creating MetaData
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
         self.instance = Instance.objects.create(
             xml=xml, user=self.user, xform=self.xform
+        )
+        self.register = MetaData.objects.get(
+            data_type="export_repeat_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
         )
 
     def test_register(self):
         """Repeats from all instances are registered"""
+        self.assertEqual(self.register.extra_data, {})
+
         register_xform_export_repeats(self.xform)
 
         metadata = MetaData.objects.get(data_type="export_repeat_register")
