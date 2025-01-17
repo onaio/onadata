@@ -444,9 +444,10 @@ post_save.connect(
 
 def create_export_columns_register(sender, instance=None, created=False, **kwargs):
     """Create export repeat register for the form"""
+    # Avoid cyclic import by using importlib
+    csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
+
     if created:
-        # Avoid cyclic import by using importlib
-        csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
         ordered_columns = OrderedDict()
         # pylint: disable=protected-access
         csv_builder.CSVDataFrameBuilder._build_ordered_columns(
