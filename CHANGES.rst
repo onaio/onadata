@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.11.1(2025-01-17)
+-------------------
+- Do not create export register when Instance is saved
+  `PR #2760 <https://github.com/onaio/onadata/pull/2760>`
+  [@kelvin-muchiri]
+
 v4.11.0(2025-01-14)
 -------------------
 - CSV export optimisation
