@@ -3,8 +3,10 @@
 Test logger_tools utility functions.
 """
 
+import json
 import os
 import re
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import BytesIO
 from unittest.mock import Mock, call, patch
@@ -44,8 +46,8 @@ from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
-    register_instance_export_repeats,
-    register_xform_export_repeats,
+    register_instance_export_columns,
+    register_xform_export_columns,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1159,8 +1161,8 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class RegisterInstanceExportRepeatsTestCase(TestBase):
-    """Tests for method `register_instance_export_repeats`"""
+class RegisterInstanceExportColumnsTestCase(TestBase):
+    """Tests for method `register_instance_export_columns`"""
 
     def setUp(self):
         super().setUp()
@@ -1216,99 +1218,71 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
             xml=self.xml, user=self.user, xform=self.xform
         )
         self.register = MetaData.objects.get(
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
         )
 
-    def test_repeat_register_not_found(self):
-        """Nothing happens if export repeat register is not found"""
-        self.register.delete()
-        register_instance_export_repeats(self.instance)
+    def test_columns_added(self):
+        """Incoming columns are added to the register"""
+        ordered_columns = json.loads(
+            self.register.extra_data, object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+        self.assertEqual(ordered_columns, expected_columns)
 
-        exists = MetaData.objects.filter(data_type="export_repeat_register").exists()
+        register_instance_export_columns(self.instance)
+
+        self.register.refresh_from_db()
+        ordered_columns = json.loads(
+            self.register.extra_data, object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(ordered_columns, expected_columns)
+
+    def test_register_not_found(self):
+        """Nothing happens if export columns register is not found"""
+        self.register.delete()
+        register_instance_export_columns(self.instance)
+
+        exists = MetaData.objects.filter(data_type="export_columns_register").exists()
         self.assertFalse(exists)
 
-    def test_incoming_repeat_max_greater(self):
-        """Repeat count is incremented if incoming repeat count is greater"""
-        self.register.extra_data = {
-            "hospital_repeat": 1,
-            "child_repeat": 1,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
 
-        self.register.refresh_from_db()
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
-
-    def test_incoming_repeat_max_less(self):
-        """Repeat count is unchanged if incoming repeat count is less"""
-        self.register.extra_data = {
-            "hospital_repeat": 3,
-            "child_repeat": 3,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-        # repeat counts remain unchanged
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 3)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 3)
-
-    def test_incoming_repeat_max_equal(self):
-        """Repeat count is unchanged if incoming repeat count is equal"""
-        self.register.extra_data = {
-            "hospital_repeat": 2,
-            "child_repeat": 2,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-        # repeat counts remain unchanged
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
-
-    def test_no_repeats(self):
-        """No change in register if no repeats are found in the instance"""
-        md = """
-        | survey |
-        |        | type         | name            | label               |
-        |        | text         | hospital        | Name of hospital    |
-        | settings|             |                 |                     |
-        |         | form_title  | form_id         |                     |
-        |         | Births      | births          |                     |
-        """
-        xform = self._publish_markdown(
-            md, self.user, self.project, id_string="no-repeats"
-        )
-        xml = (
-            '<?xml version="1.0" encoding="UTF-8"?>'
-            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
-            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
-            f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
-            "<hospital>Aga Khan</hospital>"
-            "<meta>"
-            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
-            "</meta>"
-            "</data>"
-        )
-        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
-        register = MetaData.objects.get(
-            content_type=ContentType.objects.get_for_model(xform),
-            object_id=self.xform.id,
-            data_type="export_repeat_register",
-        )
-
-        register_instance_export_repeats(instance)
-        register.refresh_from_db()
-
-        self.assertEqual(register.extra_data, {})
-
-
-class RegisterXFormExportRepeatsTestCase(TestBase):
-    """Tests for method `register_xform_export_repeats`"""
+class RegisterXFormExportColumnsTestCase(TestBase):
+    """Tests for method `register_xform_export_columns`"""
 
     def setUp(self):
         super().setUp()
@@ -1364,17 +1338,56 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
             xml=xml, user=self.user, xform=self.xform
         )
         self.register = MetaData.objects.get(
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
         )
 
     def test_register(self):
         """Repeats from all instances are registered"""
-        self.assertEqual(self.register.extra_data, {})
+        ordered_columns = json.loads(
+            self.register.extra_data, object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+        self.assertEqual(ordered_columns, expected_columns)
 
-        register_xform_export_repeats(self.xform)
+        register_xform_export_columns(self.xform)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        self.register.refresh_from_db()
+        ordered_columns = json.loads(
+            self.register.extra_data, object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(ordered_columns, expected_columns)

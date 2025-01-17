@@ -883,9 +883,7 @@ def register_export_repeats(sender, instance, created=False, **kwargs):
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
-    transaction.on_commit(
-        lambda: logger_tasks.register_instance_export_repeats_async.delay(instance.pk)
-    )
+    logger_tasks.register_instance_export_columns_async.delay(instance.pk)
 
 
 post_save.connect(

@@ -4,6 +4,7 @@
 logger_tools - Logger app utility functions.
 """
 
+import importlib
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ import re
 import sys
 import tempfile
 from builtins import str as text
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from hashlib import sha256
 from http.client import BadStatusLine
@@ -29,7 +31,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, connection, transaction
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
@@ -109,7 +111,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER, METADATA_FIELDS
+from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1524,73 +1526,44 @@ def delete_xform_submissions(
     )
 
 
-def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
-    """Get the maximum number of occurrences for each repeat group
-
-    :param instance: Instance object
-    :return: Dictionary of repeat counts
-    """
-    repeat_max = {}
-    instance_json = instance.get_dict()
-
-    def _get_repeat_max(data):
-        for key, value in data.items():
-            if isinstance(value, list):
-                repeat_name = key.split("/")[-1]
-                repeat_max[repeat_name] = max(
-                    len(value), repeat_max.get(repeat_name, 0)
-                )
-
-                for item in value:
-                    if isinstance(item, dict):
-                        _get_repeat_max(item)
-
-    _get_repeat_max(instance_json)
-
-    return repeat_max
-
-
-def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> None:
+def _update_export_columns_register(instance: Instance, metadata: MetaData) -> None:
     """Update the export repeat register:
 
     :param instance: Instance object
     :param metadata: MetaData object that stores the export repeat register
     """
-    repeat_max = _get_instance_repeat_max(instance)
+    # Avoid cyclic import by using importlib
+    csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
 
-    for repeat, incoming_max in repeat_max.items():
-        # Get the maximum between incoming max and the current max
-        # Done at database level to gurantee atomicity and
-        # consistency. Avoids race conditions if it were done at the
-        # application level
+    with transaction.atomic():
+        # We use select_for_update to acquire a row-level lock
+        # Only one process updates it at a time. This prevents race conditions
+        # and updates extra_data atomically
+        metadata = MetaData.objects.select_for_update().get(pk=metadata.pk)
+        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        xform = instance.xform
+        csv_builder = csv_builder.CSVDataFrameBuilder(
+            xform=xform, username=xform.user.username, id_string=xform.id_string
+        )
+        data = instance.get_full_dict()
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE main_metadata
-                SET extra_data = jsonb_set(
-                    COALESCE(extra_data, '{}'::jsonb),
-                    %s,
-                    GREATEST(
-                        COALESCE((extra_data->>%s)::int, 0),
-                        %s
-                    )::text::jsonb,
-                    true
-                )
-                WHERE id = %s
-                """,
-                [
-                    [repeat],
-                    repeat,
-                    incoming_max,
-                    metadata.pk,
-                ],
+        for key, value in data.items():
+            csv_builder._reindex(
+                key,
+                value,
+                ordered_columns,
+                data,
+                instance.xform,
+                include_images=[],
             )
+
+        metadata.extra_data = json.dumps(ordered_columns)
+        metadata.save()
 
 
 @transaction.atomic()
-def register_instance_export_repeats(instance: Instance) -> None:
-    """Register an Instance's repeats for export
+def register_instance_export_columns(instance: Instance) -> None:
+    """Register an Instance's export columns
 
     :param instance: Instance object
     """
@@ -1600,18 +1573,18 @@ def register_instance_export_repeats(instance: Instance) -> None:
         metadata = MetaData.objects.get(
             content_type=content_type,
             object_id=instance.xform.pk,
-            data_type=EXPORT_REPEAT_REGISTER,
+            data_type=EXPORT_COLUMNS_REGISTER,
         )
 
     except MetaData.DoesNotExist:
         return
 
-    _update_export_repeat_register(instance, metadata)
+    _update_export_columns_register(instance, metadata)
 
 
 @transaction.atomic()
-def register_xform_export_repeats(xform: XForm) -> None:
-    """Register a XForm's Instances repeats for export
+def register_xform_export_columns(xform: XForm) -> None:
+    """Register a XForm's Instances export columns
 
     :param xform: XForm object
     """
@@ -1619,10 +1592,10 @@ def register_xform_export_repeats(xform: XForm) -> None:
     metadata, _ = MetaData.objects.get_or_create(
         content_type=content_type,
         object_id=xform.pk,
-        data_type=EXPORT_REPEAT_REGISTER,
+        data_type=EXPORT_COLUMNS_REGISTER,
         defaults={"data_value": ""},
     )
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        _update_export_repeat_register(instance, metadata)
+        _update_export_columns_register(instance, metadata)

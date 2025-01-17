@@ -6,6 +6,7 @@ DataDictionary model.
 import importlib
 import json
 import os
+from collections import OrderedDict
 from io import BytesIO, StringIO
 
 from django.contrib.contenttypes.models import ContentType
@@ -35,7 +36,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
-from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER
+from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -441,19 +442,26 @@ post_save.connect(
 )
 
 
-def create_export_repeat_register(sender, instance=None, created=False, **kwargs):
+def create_export_columns_register(sender, instance=None, created=False, **kwargs):
     """Create export repeat register for the form"""
     if created:
+        # Avoid cyclic import by using importlib
+        csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
+        ordered_columns = OrderedDict()
+        csv_builder.CSVDataFrameBuilder._build_ordered_columns(
+            instance.survey, ordered_columns
+        )
         MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(instance),
             object_id=instance.pk,
-            data_type=EXPORT_REPEAT_REGISTER,
+            data_type=EXPORT_COLUMNS_REGISTER,
             data_value="",
+            extra_data=json.dumps(ordered_columns),
         )
 
 
 post_save.connect(
-    create_export_repeat_register,
+    create_export_columns_register,
     sender=DataDictionary,
-    dispatch_uid="create_export_repeat_register",
+    dispatch_uid="create_export_columns_register",
 )

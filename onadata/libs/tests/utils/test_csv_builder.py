@@ -4,8 +4,10 @@ Test CSVDataFrameBuilder
 """
 
 import csv
+import json
 import os
 from builtins import chr, open
+from collections import OrderedDict
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
@@ -21,7 +23,7 @@ from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import create_export_repeat_register
+from onadata.apps.viewer.models.data_dictionary import create_export_columns_register
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
     AbstractDataFrameBuilder,
@@ -68,16 +70,24 @@ class TestCSVDataFrameBuilder(TestBase):
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
         # Disable signals
         post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+            sender=DataDictionary, dispatch_uid="create_export_columns_register"
         )
+        # Patch and start the mock
+        self.patcher = patch(
+            "onadata.libs.utils.csv_builder.register_xform_export_columns_async.delay",
+            autospec=True,
+        )
+        self.mock_register = self.patcher.start()
 
     def tearDown(self):
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
-            dispatch_uid="create_export_repeat_register",
-            receiver=create_export_repeat_register,
+            dispatch_uid="create_export_columns_register",
+            receiver=create_export_columns_register,
         )
+        # Stop the mock
+        self.patcher.stop()
 
         super().tearDown()
 
@@ -129,8 +139,7 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
-    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
-    def test_csv_dataframe_export_to(self, mock_register_repeats):
+    def test_csv_dataframe_export_to(self):
         """
         Test CSVDataFrameBuilder.export_to().
         """
@@ -160,8 +169,6 @@ class TestCSVDataFrameBuilder(TestBase):
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
-        # Repeat register is created for future use
-        mock_register_repeats.assert_called()
 
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
@@ -2167,8 +2174,8 @@ class TestCSVDataFrameBuilder(TestBase):
             header = next(csv_reader)
             self.assertEqual(header, ["age", extra_col])
 
-    def test_registered_repeats(self):
-        """Registered repeats are used to generate export"""
+    def test_registered_export_columns(self):
+        """Registered export columns are used to generate export"""
         md_xform = """
         | survey  |
         |         | type          | name            | label         |
@@ -2219,16 +2226,40 @@ class TestCSVDataFrameBuilder(TestBase):
             }
         ]
         content_type = ContentType.objects.get_for_model(xform)
-        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
+        # Simulate registered export columns
         MetaData.objects.create(
             content_type=content_type,
             object_id=xform.pk,
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             data_value="",
-            extra_data={
-                "hospital_repeat": 2,
-                "child_repeat": 2,
-            },
+            extra_data=json.dumps(
+                OrderedDict(
+                    [
+                        (
+                            "hospital_repeat",
+                            [
+                                "hospital_repeat[1]/hospital",
+                                "hospital_repeat[2]/hospital",
+                            ],
+                        ),
+                        (
+                            "hospital_repeat/child_repeat",
+                            [
+                                "hospital_repeat[1]/child_repeat[1]/name",
+                                "hospital_repeat[1]/child_repeat[1]/birthweight",
+                                "hospital_repeat[1]/child_repeat[1]/sex",
+                                "hospital_repeat[1]/child_repeat[2]/name",
+                                "hospital_repeat[1]/child_repeat[2]/birthweight",
+                                "hospital_repeat[1]/child_repeat[2]/sex",
+                                "hospital_repeat[2]/child_repeat[1]/name",
+                                "hospital_repeat[2]/child_repeat[1]/birthweight",
+                                "hospital_repeat[2]/child_repeat[1]/sex",
+                            ],
+                        ),
+                        ("meta/instanceID", None),
+                    ]
+                )
+            ),
         )
         builder = CSVDataFrameBuilder(
             self.user.username,
@@ -2252,9 +2283,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "hospital_repeat[2]/child_repeat[1]/name",
             "hospital_repeat[2]/child_repeat[1]/birthweight",
             "hospital_repeat[2]/child_repeat[1]/sex",
-            "hospital_repeat[2]/child_repeat[2]/name",
-            "hospital_repeat[2]/child_repeat[2]/birthweight",
-            "hospital_repeat[2]/child_repeat[2]/sex",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2296,15 +2324,12 @@ class TestCSVDataFrameBuilder(TestBase):
             "n/a",
             "n/a",
             "n/a",
-            "n/a",
-            "n/a",
-            "n/a",
         ]
         self.assertEqual(row, expected_row)
         csv_file.close()
 
-    def test_repeat_not_found_in_register(self):
-        """Repeat not found in register"""
+    def test_export_columns_register_missing(self):
+        """Export columns register not found"""
         md_xform = """
         | survey  |
         |         | type          | name            | label         |
@@ -2355,16 +2380,14 @@ class TestCSVDataFrameBuilder(TestBase):
             }
         ]
         content_type = ContentType.objects.get_for_model(xform)
-        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
-        metadata = MetaData.objects.create(
+        exists = MetaData.objects.filter(
             content_type=content_type,
             object_id=xform.pk,
-            data_type="export_repeat_register",
-            data_value="",
-            extra_data={
-                "hospital_repeat": 2,  # nested child_repeat not registered
-            },
-        )
+            data_type="export_columns_register",
+        ).exists()
+        # Confirm register is not found
+        self.assertFalse(exists)
+
         builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
@@ -2378,6 +2401,15 @@ class TestCSVDataFrameBuilder(TestBase):
         expected_header = [
             "hospital_repeat[1]/hospital",
             "hospital_repeat[2]/hospital",
+            "hospital_repeat[1]/child_repeat[1]/name",
+            "hospital_repeat[1]/child_repeat[1]/birthweight",
+            "hospital_repeat[1]/child_repeat[1]/sex",
+            "hospital_repeat[1]/child_repeat[2]/name",
+            "hospital_repeat[1]/child_repeat[2]/birthweight",
+            "hospital_repeat[1]/child_repeat[2]/sex",
+            "hospital_repeat[2]/child_repeat[1]/name",
+            "hospital_repeat[2]/child_repeat[1]/birthweight",
+            "hospital_repeat[2]/child_repeat[1]/sex",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2393,18 +2425,34 @@ class TestCSVDataFrameBuilder(TestBase):
             "_media_all_received",
         ]
         self.assertCountEqual(header, expected_header)
-        # Parent repeat not registered
-        metadata.extra_data = {"child_repeat": 2}
-        metadata.save
-        builder = CSVDataFrameBuilder(
-            self.user.username,
-            xform.id_string,
-            include_images=False,
-        )
-        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        builder.export_to(temp_file.name, cursor)
-        csv_file = open(temp_file.name, "r")
-        csv_reader = csv.reader(csv_file)
-        header = next(csv_reader)
-        self.assertCountEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Aga Khan",
+            "Mama Lucy",
+            "Zakayo",
+            "3.3",
+            "male",
+            "Melania",
+            "3.5",
+            "female",
+            "Winnie",
+            "3.1",
+            "female",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertEqual(row, expected_row)
         csv_file.close()
+        # Columns registered for future use
+        self.mock_register.assert_called_once_with(xform.pk)

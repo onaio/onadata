@@ -3,7 +3,9 @@
 Test Instance model.
 """
 
+import json
 import os
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
@@ -1211,8 +1213,8 @@ class TestInstance(TestBase):
 
         self.assertEqual(Entity.objects.count(), 0)
 
-    def test_register_repeats(self):
-        """Repeats are registered correctly"""
+    def test_export_columns_registered(self):
+        """Export columns are registered correctly"""
         project = get_user_default_project(self.user)
         md = """
         | survey |
@@ -1229,6 +1231,24 @@ class TestInstance(TestBase):
         |         | Births      | births          |                     |
         """
         xform = self._publish_markdown(md, self.user, project)
+        metadata = MetaData.objects.get(data_type="export_columns_register")
+        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+        # Default export columns are correctly registered
+        self.assertEqual(ordered_columns, expected_columns)
+
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
@@ -1259,9 +1279,31 @@ class TestInstance(TestBase):
         )
         # Repeats are registered on creation
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        metadata.refresh_from_db()
+        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(ordered_columns, expected_columns)
+
         # Repeats are registered on update
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -1303,5 +1345,32 @@ class TestInstance(TestBase):
         instance.uuid = "51cb9e07-cfc7-413b-bc22-ee7adfa9dec4"
         instance.save()
         metadata.refresh_from_db()
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 3)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [
+                        "hospital_repeat[1]/hospital",
+                        "hospital_repeat[2]/hospital",
+                        "hospital_repeat[3]/hospital",
+                    ],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                        "hospital_repeat[3]/child_repeat[1]/name",
+                        "hospital_repeat[3]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(ordered_columns, expected_columns)

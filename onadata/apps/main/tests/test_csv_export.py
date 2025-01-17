@@ -13,7 +13,7 @@ from django.utils.dateparse import parse_datetime
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary, Export
-from onadata.apps.viewer.models.data_dictionary import create_export_repeat_register
+from onadata.apps.viewer.models.data_dictionary import create_export_columns_register
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -31,15 +31,15 @@ class TestCsvExport(TestBase):
         self.xform = None
         # Disable signals
         post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+            sender=DataDictionary, dispatch_uid="create_export_columns_register"
         )
 
     def tearDown(self):
         # Reconnect signals
         post_save.connect(
             sender=DataDictionary,
-            dispatch_uid="create_export_repeat_register",
-            receiver=create_export_repeat_register,
+            dispatch_uid="create_export_columns_register",
+            receiver=create_export_columns_register,
         )
 
         super().tearDown()

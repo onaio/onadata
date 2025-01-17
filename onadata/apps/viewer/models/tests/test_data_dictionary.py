@@ -309,12 +309,12 @@ class DataDictionaryTestCase(TestBase):
         for key in cache_keys:
             self.assertIsNone(cache.get(key))
 
-    def test_export_repeat_register_created(self):
-        """Export repeat register is created when form is published"""
+    def test_export_columns_register_created(self):
+        """Export export columns register is created when form is published"""
         xform = self._publish_markdown(self.registration_form, self.user)
         content_type = ContentType.objects.get_for_model(xform)
         exists = MetaData.objects.filter(
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             object_id=xform.pk,
             content_type=content_type,
         ).exists()
