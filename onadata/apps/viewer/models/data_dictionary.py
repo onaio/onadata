@@ -448,6 +448,7 @@ def create_export_columns_register(sender, instance=None, created=False, **kwarg
         # Avoid cyclic import by using importlib
         csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
         ordered_columns = OrderedDict()
+        # pylint: disable=protected-access
         csv_builder.CSVDataFrameBuilder._build_ordered_columns(
             instance.survey, ordered_columns
         )

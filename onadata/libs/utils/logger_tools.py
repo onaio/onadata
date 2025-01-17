@@ -1548,6 +1548,7 @@ def _update_export_columns_register(instance: Instance, metadata: MetaData) -> N
         data = instance.get_full_dict()
 
         for key, value in data.items():
+            # pylint: disable=protected-access
             csv_builder._reindex(
                 key,
                 value,
