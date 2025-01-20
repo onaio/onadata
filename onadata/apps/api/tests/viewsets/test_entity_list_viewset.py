@@ -658,16 +658,18 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
         # Create Entity for trees EntityList
         self.entity_list = EntityList.objects.get(name="trees")
         OwnerRole.add(self.user, self.entity_list)
-        Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        ),
+        (
+            Entity.objects.create(
+                entity_list=self.entity_list,
+                json={
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "species": "purpleheart",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            ),
+        )
         Entity.objects.create(
             entity_list=self.entity_list,
             json={
@@ -1788,9 +1790,9 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
 
-    @patch("onadata.libs.utils.logger_tools.get_storage_class")
+    @patch("onadata.libs.utils.logger_tools.storages")
     @patch("onadata.libs.utils.logger_tools.boto3.client")
-    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+    def test_download_from_s3(self, mock_presigned_urls, mock_storages):
         """EntityList dataset is downloaded from Amazon S3"""
         expected_url = (
             "https://testing.s3.amazonaws.com/bob/exports/"
@@ -1803,7 +1805,7 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         mock_presigned_urls().generate_presigned_url = MagicMock(
             return_value=expected_url
         )
-        mock_get_storage_class()().bucket.name = "onadata"
+        mock_storages.create_storage().bucket.name = "onadata"
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 302)

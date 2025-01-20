@@ -11,7 +11,7 @@ from time import sleep
 from unittest.mock import patch
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.http import Http404
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
@@ -164,7 +164,7 @@ class TestExports(TestBase):
 
     def test_create_export(self):
         self._publish_transportation_form_and_submit_instance()
-        storage = get_storage_class()()
+        storage = storages["default"]
         # test xls
 
         export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
@@ -197,7 +197,7 @@ class TestExports(TestBase):
         self._submit_transport_instance()
 
         export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         # delete export object
         export.delete()
@@ -209,7 +209,7 @@ class TestExports(TestBase):
         self.options["id_string"] = self.xform.id_string
 
         export = generate_export(Export.XLSX_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         # delete file
         storage.delete(export.filepath)
         self.assertFalse(storage.exists(export.filepath))
@@ -897,7 +897,7 @@ class TestExports(TestBase):
         self.assertFalse(Export.exports_outdated(self.xform, export.export_type))
 
     def _get_csv_data(self, filepath):
-        storage = get_storage_class()()
+        storage = storages["default"]
         csv_file = storage.open(filepath, mode="r")
         reader = csv.DictReader(csv_file)
         data = next(reader)
@@ -1281,7 +1281,7 @@ class TestExports(TestBase):
         self.options["id_string"] = self.xform.id_string
 
         export = generate_export(Export.CSV_ZIP_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".zip")

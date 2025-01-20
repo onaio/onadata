@@ -25,22 +25,15 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.core.exceptions import (
-    MultipleObjectsReturned,
-    PermissionDenied,
-    ValidationError,
-)
-from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, transaction
+from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
+                                    ValidationError)
+from django.core.files.storage import storages
+from django.db import DataError, IntegrityError, connection, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
-from django.http import (
-    HttpResponse,
-    HttpResponseNotFound,
-    HttpResponseRedirect,
-    StreamingHttpResponse,
-    UnreadablePostError,
-)
+from django.http import (HttpResponse, HttpResponseNotFound,
+                         HttpResponseRedirect, StreamingHttpResponse,
+                         UnreadablePostError)
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
@@ -57,61 +50,39 @@ from pyxform.validators.odk_validate import ODKValidateError
 from pyxform.xform2json import create_survey_element_from_xml
 from rest_framework.response import Response
 
-from onadata.apps.logger.models import (
-    Attachment,
-    Instance,
-    RegistrationForm,
-    XForm,
-    XFormVersion,
-)
+from onadata.apps.logger.models import (Attachment, Instance, RegistrationForm,
+                                        XForm, XFormVersion)
 from onadata.apps.logger.models.entity import Entity
 from onadata.apps.logger.models.entity_list import EntityList
-from onadata.apps.logger.models.instance import (
-    FormInactiveError,
-    FormIsMergedDatasetError,
-    InstanceHistory,
-    get_id_string_from_xml_str,
-)
+from onadata.apps.logger.models.instance import (FormInactiveError,
+                                                 FormIsMergedDatasetError,
+                                                 InstanceHistory,
+                                                 get_id_string_from_xml_str)
 from onadata.apps.logger.models.xform import DuplicateUUIDError, XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
-    AttachmentNameError,
-    DuplicateInstance,
-    InstanceEmptyError,
-    InstanceEncryptionError,
-    InstanceFormatError,
-    InstanceInvalidUserError,
-    InstanceMultipleNodeError,
-    NonUniqueFormIdError,
-    clean_and_parse_xml,
-    get_deprecated_uuid_from_xml,
-    get_entity_uuid_from_xml,
-    get_meta_from_xml,
-    get_submission_date_from_xml,
-    get_uuid_from_xml,
-)
+    AttachmentNameError, DuplicateInstance, InstanceEmptyError,
+    InstanceEncryptionError, InstanceFormatError, InstanceInvalidUserError,
+    InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
+    get_deprecated_uuid_from_xml, get_entity_uuid_from_xml, get_meta_from_xml,
+    get_submission_date_from_xml, get_uuid_from_xml)
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.messaging.constants import (
-    SUBMISSION_CREATED,
-    SUBMISSION_DELETED,
-    SUBMISSION_EDITED,
-    XFORM,
-)
+from onadata.apps.messaging.constants import (SUBMISSION_CREATED,
+                                              SUBMISSION_DELETED,
+                                              SUBMISSION_EDITED, XFORM)
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
-from onadata.libs.utils.cache_tools import (
-    ELIST_FAILOVER_REPORT_SENT,
-    ELIST_NUM_ENTITIES,
-    ELIST_NUM_ENTITIES_CREATED_AT,
-    ELIST_NUM_ENTITIES_IDS,
-    ELIST_NUM_ENTITIES_LOCK,
-    XFORM_SUBMISSIONS_DELETING,
-    safe_delete,
-    set_cache_with_lock,
-)
-from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER, METADATA_FIELDS
+from onadata.libs.utils.cache_tools import (ELIST_FAILOVER_REPORT_SENT,
+                                            ELIST_NUM_ENTITIES,
+                                            ELIST_NUM_ENTITIES_CREATED_AT,
+                                            ELIST_NUM_ENTITIES_IDS,
+                                            ELIST_NUM_ENTITIES_LOCK,
+                                            XFORM_SUBMISSIONS_DELETING,
+                                            safe_delete, set_cache_with_lock)
+from onadata.libs.utils.common_tags import (EXPORT_COLUMNS_REGISTER,
+                                            METADATA_FIELDS)
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -716,7 +687,9 @@ def generate_aws_media_url(
     file_path: str, content_disposition: str, expiration: int = 3600
 ):
     """Generate S3 URL."""
-    s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    s3_class = storages.create_storage(
+        {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+    )
     bucket_name = s3_class.bucket.name
     aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
     s3_config = Config(
@@ -779,18 +752,20 @@ def get_storages_media_download_url(
     """
     s3_class = None
     azure_class = None
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     url = None
 
     try:
-        s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+        s3_class = storages.create_storage(
+            {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+        )
     except ModuleNotFoundError:
         pass
 
     try:
-        azure_class = get_storage_class(
-            "storages.backends.azure_storage.AzureStorage"
-        )()
+        azure_class = storages.create_storage(
+            {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+        )
     except ModuleNotFoundError:
         pass
 
@@ -846,7 +821,7 @@ def response_with_mimetype_and_name(
                 return HttpResponseRedirect(download_url)
 
             try:
-                default_storage = get_storage_class()()
+                default_storage = storages["default"]
                 wrapper = FileWrapper(default_storage.open(file_path))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = default_storage.size(file_path)

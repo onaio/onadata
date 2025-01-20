@@ -3,7 +3,7 @@ import shutil
 from io import open
 
 from django.contrib.auth import authenticate
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.urls import reverse
 
 from django_digest.test import DigestAuth
@@ -20,7 +20,7 @@ from onadata.apps.logger.views import (
 from onadata.apps.main.tests.test_base import TestBase
 
 NUM_INSTANCES = 4
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 def ordered_instances(xform):

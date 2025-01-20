@@ -2,6 +2,7 @@
 """
 test_export_viewset module
 """
+
 import os
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
@@ -590,9 +591,9 @@ class TestExportViewSet(TestBase):
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
 
-    @patch("onadata.libs.utils.logger_tools.get_storage_class")
+    @patch("onadata.libs.utils.logger_tools.storages")
     @patch("onadata.libs.utils.logger_tools.boto3.client")
-    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+    def test_download_from_s3(self, mock_presigned_urls, mock_storages):
         """Export is downloaded from Amazon S3"""
         expected_url = (
             "https://testing.s3.amazonaws.com/bob/exports/"
@@ -605,7 +606,7 @@ class TestExportViewSet(TestBase):
         mock_presigned_urls().generate_presigned_url = MagicMock(
             return_value=expected_url
         )
-        mock_get_storage_class()().bucket.name = "onadata"
+        mock_storages.create_storage().bucket.name = "onadata"
         self._create_user_and_login()
         self._publish_transportation_form()
         export = self._create_export()

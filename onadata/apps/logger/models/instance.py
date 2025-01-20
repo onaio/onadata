@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_delete
@@ -84,7 +84,7 @@ from onadata.libs.utils.timing import calculate_duration
 
 # pylint: disable=invalid-name
 User = get_user_model()
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 def get_attachment_url(attachment, suffix=None):

@@ -3,6 +3,7 @@
 """
 data views.
 """
+
 import os
 from datetime import datetime
 from tempfile import NamedTemporaryFile
@@ -12,7 +13,7 @@ from wsgiref.util import FileWrapper
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import FileSystemStorage, get_storage_class
+from django.core.files.storage import FileSystemStorage, storages
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -640,7 +641,7 @@ def export_download(request, username, id_string, export_type, filename):
     if request.GET.get("raw"):
         id_string = None
 
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     if not isinstance(default_storage, FileSystemStorage):
         return HttpResponseRedirect(default_storage.url(export.filepath))
     basename = os.path.splitext(export.filename)[0]
