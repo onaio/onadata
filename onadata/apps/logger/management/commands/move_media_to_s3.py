@@ -3,9 +3,10 @@
 """
 move_media_to_s3 - Moves all XLSForm file from local storage to S3 storage.
 """
+
 import sys
 
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
 from django.utils.translation import gettext as _, gettext_lazy
 
@@ -25,10 +26,14 @@ class Command(BaseCommand):
     # pylint: disable=unused-argument
     def handle(self, *args, **kwargs):
         """Moves all XLSForm file from local storage to S3 storage."""
-        local_fs = get_storage_class("django.core.files.storage.FileSystemStorage")()
-        s3_fs = get_storage_class("storages.backends.s3boto.S3BotoStorage")()
+        local_fs = storages.create_storage(
+            {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+        )
+        s3_fs = storages.create_storage(
+            {"BACKEND": "storages.backends.s3boto.S3BotoStorage"}
+        )
 
-        default_storage = get_storage_class()()
+        default_storage = storages["default"]
         if default_storage.__class__ != s3_fs.__class__:
             self.stderr.write(
                 _(
