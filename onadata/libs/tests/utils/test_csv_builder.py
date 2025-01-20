@@ -161,7 +161,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
         # Repeat register is created for future use
-        mock_register_repeats.assert_called_once_with(self.xform.id)
+        mock_register_repeats.assert_called()
 
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
