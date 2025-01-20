@@ -1564,7 +1564,7 @@ def _update_export_columns_register(instance: Instance, metadata: MetaData) -> N
 
 @transaction.atomic()
 def register_instance_export_columns(instance: Instance) -> None:
-    """Register an Instance's export columns
+    """Register an Instance's repeat columns for export
 
     :param instance: Instance object
     """
@@ -1589,12 +1589,21 @@ def register_xform_export_columns(xform: XForm) -> None:
 
     :param xform: XForm object
     """
-    content_type = ContentType.objects.get_for_model(xform)
+    # Avoid cyclic import by using importlib
+    csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
+    ordered_columns = OrderedDict()
+    # pylint: disable=protected-access
+    csv_builder.CSVDataFrameBuilder._build_ordered_columns(
+        xform._get_survey(), ordered_columns
+    )
     metadata, _ = MetaData.objects.get_or_create(
-        content_type=content_type,
+        content_type=ContentType.objects.get_for_model(xform),
         object_id=xform.pk,
         data_type=EXPORT_COLUMNS_REGISTER,
-        defaults={"data_value": ""},
+        defaults={
+            "data_value": "",
+            "extra_data": json.dumps(ordered_columns),
+        },
     )
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 

@@ -1342,6 +1342,26 @@ class RegisterXFormExportColumnsTestCase(TestBase):
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
         )
+        self.expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
 
     def test_register(self):
         """Repeats from all instances are registered"""
@@ -1369,25 +1389,23 @@ class RegisterXFormExportColumnsTestCase(TestBase):
         ordered_columns = json.loads(
             self.register.extra_data, object_pairs_hook=OrderedDict
         )
-        expected_columns = OrderedDict(
-            [
-                (
-                    "hospital_repeat",
-                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
-                ),
-                (
-                    "hospital_repeat/child_repeat",
-                    [
-                        "hospital_repeat[1]/child_repeat[1]/name",
-                        "hospital_repeat[1]/child_repeat[1]/birthweight",
-                        "hospital_repeat[1]/child_repeat[2]/name",
-                        "hospital_repeat[1]/child_repeat[2]/birthweight",
-                        "hospital_repeat[2]/child_repeat[1]/name",
-                        "hospital_repeat[2]/child_repeat[1]/birthweight",
-                    ],
-                ),
-                ("meta/instanceID", None),
-            ]
-        )
 
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(ordered_columns, self.expected_columns)
+
+    def test_register_not_found(self):
+        """Register is created if not found"""
+        self.register.delete()
+        register_xform_export_columns(self.xform)
+
+        exists = MetaData.objects.filter(data_type="export_columns_register").exists()
+
+        self.assertTrue(exists)
+
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
+        )
+        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+
+        self.assertEqual(ordered_columns, self.expected_columns)
