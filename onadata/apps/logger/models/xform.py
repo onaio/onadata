@@ -29,7 +29,6 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
-from pyxform.xform2json import create_survey_element_from_xml
 from six import iteritems
 from taggit.managers import TaggableManager
 
@@ -374,18 +373,20 @@ class XFormMixin:
 
         return id_string
 
+    def _get_survey(self):
+        try:
+            builder = SurveyElementBuilder()
+            if isinstance(self.json, str):
+                return builder.create_survey_element_from_json(self.json)
+            if isinstance(self.json, dict):
+                return builder.create_survey_element_from_dict(self.json)
+        except ValueError:
+            return bytes(bytearray(self.xml, encoding="utf-8"))
+
     def get_survey(self):
         """Returns an XML XForm survey object."""
         if not hasattr(self, "_survey"):
-            try:
-                builder = SurveyElementBuilder()
-                if isinstance(self.json, str):
-                    self._survey = builder.create_survey_element_from_json(self.json)
-                if isinstance(self.json, dict):
-                    self._survey = builder.create_survey_element_from_dict(self.json)
-            except ValueError:
-                xml = bytes(bytearray(self.xml, encoding="utf-8"))
-                self._survey = create_survey_element_from_xml(xml)
+            self._survey = self._get_survey()
         return self._survey
 
     survey = property(get_survey)

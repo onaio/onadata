@@ -446,20 +446,24 @@ def create_export_columns_register(sender, instance=None, created=False, **kwarg
     """Create export repeat register for the form"""
     # Avoid cyclic import by using importlib
     csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    ordered_columns = OrderedDict()
+    # pylint: disable=protected-access
+    csv_builder.CSVDataFrameBuilder._build_ordered_columns(
+        instance._get_survey(), ordered_columns
+    )
+    MetaData.objects.update_or_create(
+        content_type=ContentType.objects.get_for_model(instance),
+        object_id=instance.pk,
+        data_type=EXPORT_COLUMNS_REGISTER,
+        defaults={
+            "data_value": "",
+            "extra_data": json.dumps(ordered_columns),
+        },
+    )
 
-    if created:
-        ordered_columns = OrderedDict()
-        # pylint: disable=protected-access
-        csv_builder.CSVDataFrameBuilder._build_ordered_columns(
-            instance.survey, ordered_columns
-        )
-        MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(instance),
-            object_id=instance.pk,
-            data_type=EXPORT_COLUMNS_REGISTER,
-            data_value="",
-            extra_data=json.dumps(ordered_columns),
-        )
+    if not created:
+        logger_tasks.register_xform_export_columns_async.delay(instance.pk)
 
 
 post_save.connect(

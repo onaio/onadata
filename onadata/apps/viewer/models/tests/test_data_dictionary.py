@@ -1,6 +1,8 @@
 """Tests for onadata.apps.viewer.models.data_dictionary"""
 
 import json
+from collections import OrderedDict
+from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -310,7 +312,7 @@ class DataDictionaryTestCase(TestBase):
             self.assertIsNone(cache.get(key))
 
     def test_export_columns_register_created(self):
-        """Export export columns register is created when form is published"""
+        """Export columns register is created when form is published"""
         xform = self._publish_markdown(self.registration_form, self.user)
         content_type = ContentType.objects.get_for_model(xform)
         exists = MetaData.objects.filter(
@@ -320,3 +322,53 @@ class DataDictionaryTestCase(TestBase):
         ).exists()
 
         self.assertTrue(exists)
+
+    @patch("onadata.apps.logger.tasks.register_xform_export_columns_async.delay")
+    def test_export_columns_register_updated(self, mock_register_xform_columns):
+        """Export columns register is updated when form is replaced"""
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        | settings|             |                |            |
+        |         | form_title  | form_id        |            |
+        |         | Students    | students       |            |
+        """
+        xform = self._publish_markdown(md, self.user)
+        content_type = ContentType.objects.get_for_model(xform)
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=xform.pk,
+            content_type=content_type,
+        )
+        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        expected_columns = OrderedDict(
+            [
+                ("name", None),
+                ("meta/instanceID", None),
+            ]
+        )
+        self.assertEqual(ordered_columns, expected_columns)
+        # Replace form
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        |         | text        | age            | Age        |
+        | settings|             |                |            |
+        |         | form_title  | form_id        |            |
+        |         | Students    | students       |            |
+        """
+        self._replace_form(md, xform)
+        register.refresh_from_db()
+        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        expected_columns = OrderedDict(
+            [
+                ("name", None),
+                ("age", None),
+                ("meta/instanceID", None),
+            ]
+        )
+        self.assertEqual(ordered_columns, expected_columns)
+        # Task is called to add columns for repeat data
+        mock_register_xform_columns.assert_called_once_with(xform.pk)
