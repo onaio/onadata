@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -423,7 +423,7 @@ def download_xlsform(request, username, id_string):
         return HttpResponseForbidden("Not shared.")
 
     file_path = xform.xls.name
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
 
     if file_path != "" and default_storage.exists(file_path):
         audit = {"xform": xform.id_string}

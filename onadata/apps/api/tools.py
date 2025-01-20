@@ -12,7 +12,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator, ValidationError
 from django.db import transaction
@@ -607,7 +607,7 @@ def get_media_file_response(metadata, request=None):
         file_path = metadata.data_file.name
         filename, extension = os.path.splitext(file_path.split("/")[-1])
         extension = extension.strip(".")
-        dfs = get_storage_class()()
+        dfs = storages["default"]
 
         if dfs.exists(file_path):
             response = response_with_mimetype_and_name(

@@ -1,7 +1,7 @@
 import os
 from unittest import skip
 
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.urls import reverse
 from pyxform.errors import PyXFormError
 
@@ -39,7 +39,7 @@ class TestFormErrors(TestBase):
         self._create_xform()
         self.xform.shared_data = True
         self.xform.save()
-        default_storage = get_storage_class()()
+        default_storage = storages["default"]
         path = self.xform.xls.name
         self.assertEqual(default_storage.exists(path), True)
         default_storage.delete(path)
