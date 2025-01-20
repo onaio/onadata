@@ -59,7 +59,6 @@ from onadata.apps.logger.models import (
     Attachment,
     Instance,
     RegistrationForm,
-    SubmissionReview,
     XForm,
     XFormVersion,
 )
@@ -1557,9 +1556,6 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
     :param instance: Instance object
     :param metadata: MetaData object that stores the export repeat register
     """
-    if not _is_submission_approved(instance):
-        return
-
     repeat_max = _get_instance_repeat_max(instance)
 
     for repeat, incoming_max in repeat_max.items():
@@ -1590,30 +1586,6 @@ def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> No
                     metadata.pk,
                 ],
             )
-
-
-def _is_submission_approved(instance: Instance) -> bool:
-    """Check if a submission has been approved
-
-    :param instance: Instance object
-    :return: True if submission is approved, False otherwise
-    """
-    content_type = ContentType.objects.get_for_model(instance.xform)
-    is_review_enabled = MetaData.objects.filter(
-        content_type=content_type,
-        object_id=instance.xform.id,
-        data_type="submission_review",
-        data_value="true",
-    ).exists()
-
-    if not is_review_enabled:
-        return True
-
-    is_submission_approved = SubmissionReview.objects.filter(
-        instance_id=instance.id, status=SubmissionReview.APPROVED
-    ).exists()
-
-    return is_submission_approved
 
 
 @transaction.atomic()
