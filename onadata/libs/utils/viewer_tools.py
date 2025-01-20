@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Utility functions for data views."""
+
 import json
 import os
 import sys
@@ -9,7 +10,7 @@ from typing import Dict
 from defusedxml import minidom
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.utils.translation import gettext as _
 
 import requests
@@ -44,7 +45,7 @@ def image_urls(instance):
     arguments:
     instance -- Instance submission object.
     """
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     urls = []
     suffix = settings.THUMB_CONF["medium"]["suffix"]
     for attachment in instance.attachments.all():
@@ -241,7 +242,7 @@ def create_attachments_zipfile(attachments, zip_file):
         zip_file, "w", zipfile.ZIP_DEFLATED, allowZip64=True
     ) as z_file:
         for attachment in attachments:
-            default_storage = get_storage_class()()
+            default_storage = storages["default"]
             filename = attachment.media_file.name
 
             if default_storage.exists(filename):
