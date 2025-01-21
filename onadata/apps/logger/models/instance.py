@@ -884,9 +884,7 @@ def register_export_repeats(sender, instance, created=False, **kwargs):
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
     transaction.on_commit(
-        lambda: logger_tasks.register_xform_export_repeats_async.delay(
-            instance.xform.pk
-        )
+        lambda: logger_tasks.register_instance_export_repeats_async.delay(instance.pk)
     )
 
 
