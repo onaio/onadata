@@ -378,7 +378,7 @@ class XFormMixin:
             builder = SurveyElementBuilder()
             if isinstance(self.json, str):
                 return builder.create_survey_element_from_json(self.json)
-            elif isinstance(self.json, dict):
+            if isinstance(self.json, dict):
                 return builder.create_survey_element_from_dict(self.json)
         except ValueError:
             pass
