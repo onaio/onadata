@@ -378,10 +378,12 @@ class XFormMixin:
             builder = SurveyElementBuilder()
             if isinstance(self.json, str):
                 return builder.create_survey_element_from_json(self.json)
-            if isinstance(self.json, dict):
+            elif isinstance(self.json, dict):
                 return builder.create_survey_element_from_dict(self.json)
         except ValueError:
-            return bytes(bytearray(self.xml, encoding="utf-8"))
+            pass
+
+        return bytes(bytearray(self.xml, encoding="utf-8"))
 
     def get_survey(self):
         """Returns an XML XForm survey object."""
