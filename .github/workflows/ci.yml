@@ -46,7 +46,7 @@ jobs:
           pip install -r requirements/azure.pip
 
       - name: Install linting tools
-        run: pip install prospector==1.7.7 pylint==2.14.5
+        run: pip install prospector==1.13.3 pylint==3.3.3
 
       - name: Run Prospector
         run: prospector -X -s veryhigh onadata
