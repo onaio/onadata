@@ -74,7 +74,7 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         # Patch and start the mock
         self.patcher = patch(
-            "onadata.libs.utils.csv_builder.register_xform_export_columns_async.delay",
+            "onadata.libs.utils.csv_builder.reconstruct_xform_export_register_async.delay",
             autospec=True,
         )
         self.mock_register = self.patcher.start()

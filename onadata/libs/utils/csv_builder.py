@@ -18,7 +18,7 @@ from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
-from onadata.apps.logger.tasks import register_xform_export_columns_async
+from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
@@ -851,15 +851,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 )
                 self._add_ordered_columns_for_repeat_data(ordered_col_cursor)
                 # Register export columns for future use
-                register_xform_export_columns_async.delay(self.xform.pk)
+                reconstruct_xform_export_register_async.delay(self.xform.pk)
 
             else:
                 self.ordered_columns = json.loads(
                     columns_register.extra_data, object_pairs_hook=OrderedDict
                 )
 
-            self._add_ordered_columns_for_gps_fields()
             self._add_ordered_columns_for_select_multiples()
+            self._add_ordered_columns_for_gps_fields()
             # Unpack xform columns and data
             data = self._format_for_dataframe(cursor)
 

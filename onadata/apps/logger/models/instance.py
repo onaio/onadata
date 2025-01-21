@@ -879,12 +879,12 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 
 
 @use_master
-def register_export_repeats(sender, instance, created=False, **kwargs):
+def register_instance_repeat_columns(sender, instance, created=False, **kwargs):
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
     transaction.on_commit(
-        lambda: logger_tasks.register_instance_export_columns_async.delay(instance.pk)
+        lambda: logger_tasks.register_instance_repeat_columns_async.delay(instance.pk)
     )
 
 
@@ -905,9 +905,9 @@ pre_delete.connect(
 )
 
 post_save.connect(
-    register_export_repeats,
+    register_instance_repeat_columns,
     sender=Instance,
-    dispatch_uid="register_export_repeats",
+    dispatch_uid="register_instance_repeat_columns",
 )
 
 

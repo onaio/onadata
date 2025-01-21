@@ -463,7 +463,7 @@ def create_export_columns_register(sender, instance=None, created=False, **kwarg
     )
 
     if not created:
-        logger_tasks.register_xform_export_columns_async.delay(instance.pk)
+        logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)
 
 
 post_save.connect(

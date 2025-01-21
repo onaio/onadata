@@ -1213,8 +1213,8 @@ class TestInstance(TestBase):
 
         self.assertEqual(Entity.objects.count(), 0)
 
-    def test_export_columns_registered(self):
-        """Export columns are registered correctly"""
+    def test_repeat_columns_registered(self):
+        """Instance repeat columns are added to export columns register"""
         project = get_user_default_project(self.user)
         md = """
         | survey |

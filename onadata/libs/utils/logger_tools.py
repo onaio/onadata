@@ -1526,7 +1526,7 @@ def delete_xform_submissions(
     )
 
 
-def _update_export_columns_register(instance: Instance, register: MetaData) -> None:
+def _register_instance_repeat_columns(instance: Instance, register: MetaData) -> None:
     """Add Instance repeat columns to the export columns register
 
     :param instance: Instance object
@@ -1563,7 +1563,7 @@ def _update_export_columns_register(instance: Instance, register: MetaData) -> N
 
 
 @transaction.atomic()
-def register_instance_export_columns(instance: Instance) -> None:
+def register_instance_repeat_columns(instance: Instance) -> None:
     """Add an Instance repeat columns to the export columns register
 
     :param instance: Instance object
@@ -1580,12 +1580,12 @@ def register_instance_export_columns(instance: Instance) -> None:
     except MetaData.DoesNotExist:
         return
 
-    _update_export_columns_register(instance, metadata)
+    _register_instance_repeat_columns(instance, metadata)
 
 
 @transaction.atomic()
-def register_xform_export_columns(xform: XForm) -> None:
-    """Create an export columns register for an XForm
+def reconstruct_xform_export_register(xform: XForm) -> None:
+    """Reconstruct the export columns register for an XForm
 
     :param xform: XForm object
     """
@@ -1608,4 +1608,4 @@ def register_xform_export_columns(xform: XForm) -> None:
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs):
-        _update_export_columns_register(instance, metadata)
+        _register_instance_repeat_columns(instance, metadata)

@@ -46,8 +46,8 @@ from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
-    register_instance_export_columns,
-    register_xform_export_columns,
+    reconstruct_xform_export_register,
+    register_instance_repeat_columns,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1161,14 +1161,16 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class RegisterInstanceExportColumnsTestCase(TestBase):
-    """Tests for method `register_instance_export_columns`"""
+class RegisterInstanceRepeatColumnsTestCase(TestBase):
+    """Tests for method `register_instance_repeat_columns`"""
 
     def setUp(self):
         super().setUp()
 
         # Disable signals
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        post_save.disconnect(
+            sender=Instance, dispatch_uid="register_instance_repeat_columns"
+        )
 
         self.project = get_user_default_project(self.user)
         md = """
@@ -1243,7 +1245,7 @@ class RegisterInstanceExportColumnsTestCase(TestBase):
         )
         self.assertEqual(ordered_columns, expected_columns)
 
-        register_instance_export_columns(self.instance)
+        register_instance_repeat_columns(self.instance)
 
         self.register.refresh_from_db()
         ordered_columns = json.loads(
@@ -1275,20 +1277,22 @@ class RegisterInstanceExportColumnsTestCase(TestBase):
     def test_register_not_found(self):
         """Nothing happens if export columns register is not found"""
         self.register.delete()
-        register_instance_export_columns(self.instance)
+        register_instance_repeat_columns(self.instance)
 
         exists = MetaData.objects.filter(data_type="export_columns_register").exists()
         self.assertFalse(exists)
 
 
-class RegisterXFormExportColumnsTestCase(TestBase):
-    """Tests for method `register_xform_export_columns`"""
+class ReconstructXFormExportRegisterTestCase(TestBase):
+    """Tests for method `reconstruct_xform_export_register`"""
 
     def setUp(self):
         super().setUp()
 
         # Disable signals
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        post_save.disconnect(
+            sender=Instance, dispatch_uid="register_instance_repeat_columns"
+        )
 
         self.project = get_user_default_project(self.user)
         md = """
@@ -1383,7 +1387,7 @@ class RegisterXFormExportColumnsTestCase(TestBase):
         )
         self.assertEqual(ordered_columns, expected_columns)
 
-        register_xform_export_columns(self.xform)
+        reconstruct_xform_export_register(self.xform)
 
         self.register.refresh_from_db()
         ordered_columns = json.loads(
@@ -1395,7 +1399,7 @@ class RegisterXFormExportColumnsTestCase(TestBase):
     def test_register_not_found(self):
         """Register is created if not found"""
         self.register.delete()
-        register_xform_export_columns(self.xform)
+        reconstruct_xform_export_register(self.xform)
 
         exists = MetaData.objects.filter(data_type="export_columns_register").exists()
 

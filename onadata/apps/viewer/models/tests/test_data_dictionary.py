@@ -323,7 +323,7 @@ class DataDictionaryTestCase(TestBase):
 
         self.assertTrue(exists)
 
-    @patch("onadata.apps.logger.tasks.register_xform_export_columns_async.delay")
+    @patch("onadata.apps.logger.tasks.reconstruct_xform_export_register_async.delay")
     def test_export_columns_register_updated(self, mock_register_xform_columns):
         """Export columns register is updated when form is replaced"""
         md = """
