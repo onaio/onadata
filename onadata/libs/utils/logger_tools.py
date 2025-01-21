@@ -1526,8 +1526,8 @@ def delete_xform_submissions(
     )
 
 
-def _update_export_columns_register(instance: Instance, metadata: MetaData) -> None:
-    """Update the export repeat register:
+def _update_export_columns_register(instance: Instance, register: MetaData) -> None:
+    """Add Instance repeat columns to the export columns register
 
     :param instance: Instance object
     :param metadata: MetaData object that stores the export repeat register
@@ -1539,8 +1539,8 @@ def _update_export_columns_register(instance: Instance, metadata: MetaData) -> N
         # We use select_for_update to acquire a row-level lock
         # Only one process updates it at a time. This prevents race conditions
         # and updates extra_data atomically
-        metadata = MetaData.objects.select_for_update().get(pk=metadata.pk)
-        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        register = MetaData.objects.select_for_update().get(pk=register.pk)
+        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
         xform = instance.xform
         csv_builder = csv_builder.CSVDataFrameBuilder(
             xform=xform, username=xform.user.username, id_string=xform.id_string
@@ -1558,13 +1558,13 @@ def _update_export_columns_register(instance: Instance, metadata: MetaData) -> N
                 include_images=[],
             )
 
-        metadata.extra_data = json.dumps(ordered_columns)
-        metadata.save()
+        register.extra_data = json.dumps(ordered_columns)
+        register.save()
 
 
 @transaction.atomic()
 def register_instance_export_columns(instance: Instance) -> None:
-    """Register an Instance's repeat columns for export
+    """Add an Instance repeat columns to the export columns register
 
     :param instance: Instance object
     """
@@ -1585,7 +1585,7 @@ def register_instance_export_columns(instance: Instance) -> None:
 
 @transaction.atomic()
 def register_xform_export_columns(xform: XForm) -> None:
-    """Register a XForm's Instances export columns
+    """Create an export columns register for an XForm
 
     :param xform: XForm object
     """
