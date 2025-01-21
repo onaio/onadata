@@ -442,8 +442,8 @@ post_save.connect(
 )
 
 
-def create_export_columns_register(sender, instance=None, created=False, **kwargs):
-    """Create export repeat register for the form"""
+def create_or_update_export_register(sender, instance=None, created=False, **kwargs):
+    """Create or update export columns register for the form"""
     # Avoid cyclic import by using importlib
     csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
@@ -467,7 +467,7 @@ def create_export_columns_register(sender, instance=None, created=False, **kwarg
 
 
 post_save.connect(
-    create_export_columns_register,
+    create_or_update_export_register,
     sender=DataDictionary,
-    dispatch_uid="create_export_columns_register",
+    dispatch_uid="create_or_update_export_register",
 )

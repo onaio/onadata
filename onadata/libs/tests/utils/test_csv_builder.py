@@ -23,7 +23,7 @@ from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import create_export_columns_register
+from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
     AbstractDataFrameBuilder,
@@ -70,7 +70,7 @@ class TestCSVDataFrameBuilder(TestBase):
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
         # Disable signals
         post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_export_columns_register"
+            sender=DataDictionary, dispatch_uid="create_or_update_export_register"
         )
         # Patch and start the mock
         self.patcher = patch(
@@ -83,8 +83,8 @@ class TestCSVDataFrameBuilder(TestBase):
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
-            dispatch_uid="create_export_columns_register",
-            receiver=create_export_columns_register,
+            dispatch_uid="create_or_update_export_register",
+            receiver=create_or_update_export_register,
         )
         # Stop the mock
         self.patcher.stop()
