@@ -2,6 +2,7 @@
 """
 Chart utility functions.
 """
+
 from __future__ import unicode_literals
 
 import re
@@ -14,7 +15,7 @@ import six
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm, get_abbreviated_xpath
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
@@ -234,7 +235,7 @@ def build_chart_data_for_field(  # noqa C901
         field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
     else:
         field_label = get_field_label(field, language_index)
-        field_xpath = field.get_abbreviated_xpath()
+        field_xpath = get_abbreviated_xpath(field.get_xpath())
         field_type = field.type
 
     data_type = DATA_TYPE_MAP.get(field_type, "categorized")
@@ -242,14 +243,15 @@ def build_chart_data_for_field(  # noqa C901
 
     if group_by and isinstance(group_by, list):
         group_by_name = [
-            g.get_abbreviated_xpath() if not isinstance(g, str) else g for g in group_by
+            get_abbreviated_xpath(g.get_xpath()) if not isinstance(g, str) else g
+            for g in group_by
         ]
         result = get_form_submissions_aggregated_by_select_one(
             xform, field_xpath, field_name, group_by_name, data_view
         )
     elif group_by:
         group_by_name = (
-            group_by.get_abbreviated_xpath()
+            get_abbreviated_xpath(group_by.get_xpath())
             if not isinstance(group_by, str)
             else group_by
         )
@@ -308,7 +310,7 @@ def build_chart_data_for_field(  # noqa C901
             group_by_data_type = DATA_TYPE_MAP.get(a_group.type, "categorized")
             grp_choices = get_field_choices(a_group, xform)
             result = _use_labels_from_group_by_name(
-                a_group.get_abbreviated_xpath(),
+                get_abbreviated_xpath(a_group.get_xpath()),
                 a_group,
                 group_by_data_type,
                 result,
@@ -428,7 +430,7 @@ def get_field_from_field_name(field_name, xform):
 def get_field_from_field_xpath(field_xpath, xform):
     """Returns the field if the ``field_xpath`` is in the ``xform``."""
     return _get_field_from_field_fn(
-        field_xpath, xform, lambda x: x.get_abbreviated_xpath()
+        field_xpath, xform, lambda x: get_abbreviated_xpath(x.get_xpath())
     )
 
 
