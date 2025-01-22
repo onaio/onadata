@@ -14,6 +14,7 @@ import tempfile
 from builtins import str as text
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
 from typing import Any, NoReturn
@@ -475,9 +476,7 @@ def save_submission(
     if date_created_override:
         if not timezone.is_aware(date_created_override):
             # default to utc?
-            date_created_override = timezone.make_aware(
-                date_created_override, timezone.utc
-            )
+            date_created_override = timezone.make_aware(date_created_override, tz.utc)
         instance.date_created = date_created_override
         instance.save()
 
