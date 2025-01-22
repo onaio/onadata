@@ -1,10 +1,9 @@
 """
 Tests for ProjectInvitation model
 """
-from datetime import datetime
-from unittest.mock import Mock, patch
 
-from django.utils import timezone
+from datetime import datetime, timezone as tz
+from unittest.mock import Mock, patch
 
 from onadata.apps.logger.models import ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
@@ -12,7 +11,6 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class ProjectInvitationTestCase(TestBase):
-
     """Tests for ProjectInvitation model"""
 
     def setUp(self) -> None:
@@ -22,10 +20,10 @@ class ProjectInvitationTestCase(TestBase):
 
     def test_creation(self):
         """We can create a ProjectInvitation object"""
-        created_at = datetime(2023, 5, 17, 14, 21, 0, tzinfo=timezone.utc)
-        resent_at = datetime(2023, 5, 17, 14, 24, 0, tzinfo=timezone.utc)
-        accepted_at = datetime(2023, 5, 17, 14, 25, 0, tzinfo=timezone.utc)
-        revoked_at = datetime(2023, 5, 17, 14, 26, 0, tzinfo=timezone.utc)
+        created_at = datetime(2023, 5, 17, 14, 21, 0, tzinfo=tz.utc)
+        resent_at = datetime(2023, 5, 17, 14, 24, 0, tzinfo=tz.utc)
+        accepted_at = datetime(2023, 5, 17, 14, 25, 0, tzinfo=tz.utc)
+        revoked_at = datetime(2023, 5, 17, 14, 26, 0, tzinfo=tz.utc)
         jane = self._create_user("jane", "1234")
 
         with patch("django.utils.timezone.now", Mock(return_value=created_at)):
@@ -69,7 +67,7 @@ class ProjectInvitationTestCase(TestBase):
 
     def test_revoke(self):
         """Calling revoke method works correctly"""
-        mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=tz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             invitation = ProjectInvitation.objects.create(
@@ -84,7 +82,7 @@ class ProjectInvitationTestCase(TestBase):
             self.assertEqual(invitation.status, ProjectInvitation.Status.REVOKED)
 
         # setting revoked_at explicitly works
-        revoked_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=timezone.utc)
+        revoked_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=tz.utc)
         invitation = ProjectInvitation.objects.create(
             email="john@example.com",
             project=self.project,
@@ -98,7 +96,7 @@ class ProjectInvitationTestCase(TestBase):
 
     def test_accept(self):
         """Calling accept method works correctly"""
-        mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 11, 17, 0, tzinfo=tz.utc)
         jane = self._create_user("jane", "1234")
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
@@ -115,7 +113,7 @@ class ProjectInvitationTestCase(TestBase):
             self.assertEqual(invitation.status, ProjectInvitation.Status.ACCEPTED)
 
         # setting accepted_at explicitly works
-        accepted_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=timezone.utc)
+        accepted_at = datetime(2023, 5, 10, 11, 17, 0, tzinfo=tz.utc)
         invitation = ProjectInvitation.objects.create(
             email="john@example.com",
             project=self.project,
