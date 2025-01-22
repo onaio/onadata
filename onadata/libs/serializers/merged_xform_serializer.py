@@ -15,7 +15,7 @@ from pyxform.errors import PyXFormError
 from rest_framework import serializers
 
 from onadata.apps.logger.models import MergedXForm, XForm
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, get_abbreviated_xpath
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
 
 SELECTS = [SELECT_ONE, MULTIPLE_SELECT_TYPE]
@@ -23,7 +23,7 @@ SELECTS = [SELECT_ONE, MULTIPLE_SELECT_TYPE]
 
 def _get_fields_set(xform):
     return [
-        (element.get_abbreviated_xpath(), element.type)
+        (get_abbreviated_xpath(element.get_xpath()), element.type)
         for element in xform.survey_elements
         if element.type not in ["", "survey"]
     ]

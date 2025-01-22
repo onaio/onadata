@@ -76,6 +76,14 @@ TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 User = get_user_model()
 
 
+def get_abbreviated_xpath(xpath):
+    """Returns the abbreviated xpath without the root node
+
+    For example "/data/image1" results in "image1".
+    """
+    return "/".join(xpath.split("/")[2:])
+
+
 def cmp(x, y):
     """Returns the difference on the comparison of ``x`` and ``y``."""
     return (x > y) - (x < y)
@@ -219,7 +227,7 @@ def _expand_select_all_that_apply(item, key, elem):
     if elem and elem.bind.get("type") == "string" and elem.type == MULTIPLE_SELECT_TYPE:
         options_selected = item[key].split()
         for child in elem.children:
-            new_key = child.get_abbreviated_xpath()
+            new_key = get_abbreviated_xpath(child.get_xpath())
             item[new_key] = child.name in options_selected
 
         del item[key]
@@ -428,7 +436,7 @@ class XFormMixin:
             items = [] if items is None else items
             results = []
             if elem:
-                xpath = elem.get_abbreviated_xpath()
+                xpath = get_abbreviated_xpath(elem.get_xpath())
                 if elem.type in group_and_select_multiples or (
                     xpath == name_or_xpath and elem.type == "repeat"
                 ):
@@ -464,8 +472,8 @@ class XFormMixin:
         """
         names = {}
         for elem in self.get_survey_elements():
-            names[_encode_for_mongo(str(elem.get_abbreviated_xpath()))] = (
-                elem.get_abbreviated_xpath()
+            names[_encode_for_mongo(str(get_abbreviated_xpath(elem.get_xpath())))] = (
+                get_abbreviated_xpath(elem.get_xpath())
             )
         return names
 
@@ -474,7 +482,7 @@ class XFormMixin:
     def get_field_name_xpaths_only(self):
         """Returns the abbreviated_xpath of all fields in a survey form."""
         return [
-            elem.get_abbreviated_xpath()
+            get_abbreviated_xpath(elem.get_xpath())
             for elem in self.survey_elements
             if elem.type not in ("", "survey")
         ]
@@ -484,9 +492,11 @@ class XFormMixin:
         survey_elements = self.get_survey_elements()
 
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in survey_elements
-            if e.bind.get("type") == "geopoint"
+            if hasattr(e, "bind")
+            and e.bind is not None
+            and e.bind.get("type") == "geopoint"
         ]
 
     def polygon_xpaths(self):
@@ -494,7 +504,7 @@ class XFormMixin:
         survey_elements = self.get_survey_elements()
 
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in survey_elements
             if e.bind.get("type") == "geoshape"
         ]
@@ -504,7 +514,7 @@ class XFormMixin:
         survey_elements = self.get_survey_elements()
 
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in survey_elements
             if e.bind.get("type") == "geotrace"
         ]
@@ -620,7 +630,7 @@ class XFormMixin:
         if not hasattr(self, "_survey_elements"):
             self._survey_elements = {}
             for e in self.get_survey_elements():
-                self._survey_elements[e.get_abbreviated_xpath()] = e
+                self._survey_elements[get_abbreviated_xpath(e.get_xpath())] = e
 
         def remove_all_indices(xpath):
             """Removes all indices from an ``xpath``."""
@@ -669,7 +679,9 @@ class XFormMixin:
     def get_xpath_cmp(self):
         """Compare two xpaths"""
         if not hasattr(self, "_xpaths"):
-            self._xpaths = [e.get_abbreviated_xpath() for e in self.survey_elements]
+            self._xpaths = [
+                get_abbreviated_xpath(e.get_xpath()) for e in self.survey_elements
+            ]
 
         # pylint: disable=invalid-name
         def xpath_cmp(x, y):
@@ -755,7 +767,11 @@ class XFormMixin:
 
     def get_survey_elements_of_type(self, element_type):
         """Returns all survey elements of type ``element_type``."""
-        return [e for e in self.get_survey_elements() if e.type == element_type]
+        return [
+            e
+            for e in self.get_survey_elements()
+            if hasattr(e, "type") and e.type == element_type
+        ]
 
     # pylint: disable=invalid-name
     def get_survey_elements_with_choices(self):
@@ -764,7 +780,9 @@ class XFormMixin:
             choices_type = [constants.SELECT_ONE, constants.SELECT_ALL_THAT_APPLY]
 
             self._survey_elements_with_choices = [
-                e for e in self.get_survey_elements() if e.type in choices_type
+                e
+                for e in self.get_survey_elements()
+                if hasattr(e, "type") and e.type in choices_type
             ]
 
         return self._survey_elements_with_choices
@@ -775,7 +793,7 @@ class XFormMixin:
         """
         if not hasattr(self, "_select_one_xpaths"):
             self._select_one_xpaths = [
-                e.get_abbreviated_xpath()
+                get_abbreviated_xpath(e.get_xpath())
                 for e in sum(
                     [
                         self.get_survey_elements_of_type(select)
@@ -794,7 +812,7 @@ class XFormMixin:
         """
         if not hasattr(self, "_select_multiple_xpaths"):
             self._select_multiple_xpaths = [
-                e.get_abbreviated_xpath()
+                get_abbreviated_xpath(e.get_xpath())
                 for e in sum(
                     [
                         self.get_survey_elements_of_type(select)
@@ -809,7 +827,7 @@ class XFormMixin:
     def get_media_survey_xpaths(self):
         """Returns all survey element abbreviated_xpath of type in KNOWN_MEDIA_TYPES"""
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in sum(
                 [self.get_survey_elements_of_type(m) for m in KNOWN_MEDIA_TYPES], []
             )
@@ -820,7 +838,7 @@ class XFormMixin:
         Returns abbreviated_xpath for OSM question types in the survey.
         """
         return [
-            elem.get_abbreviated_xpath()
+            get_abbreviated_xpath(elem.get_xpath())
             for elem in self.get_survey_elements_of_type("osm")
         ]
 

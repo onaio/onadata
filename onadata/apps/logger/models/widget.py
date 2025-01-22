@@ -2,6 +2,7 @@
 """
 Widget class module.
 """
+
 from builtins import str as text
 
 from django.db.models import JSONField
@@ -14,7 +15,7 @@ from querybuilder.query import Query
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm, get_abbreviated_xpath
 from onadata.libs.utils.chart_tools import (
     DATA_TYPE_MAP,
     _flatten_multiple_dict_into_one,
@@ -61,7 +62,6 @@ class Widget(OrderedModel):
         app_label = "logger"
 
     def save(self, *args, **kwargs):
-
         if not self.key:
             self.key = get_uuid()
 
@@ -90,7 +90,7 @@ class Widget(OrderedModel):
         else:
             field_type = field.type
             data_type = DATA_TYPE_MAP.get(field.type, "categorized")
-            field_xpath = field.get_abbreviated_xpath()
+            field_xpath = get_abbreviated_xpath(field.get_xpath())
             field_label = get_field_label(field)
 
         columns = [

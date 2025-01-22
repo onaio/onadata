@@ -14,6 +14,7 @@ from django.db.utils import DataError
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
@@ -58,7 +59,7 @@ def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=Non
 
 def get_name_from_survey_element(element):
     """Returns the abbreviated xpath of a given ``SurveyElement``."""
-    return element.get_abbreviated_xpath()
+    return get_abbreviated_xpath(element.get_xpath())
 
 
 def append_where_list(comp, t_list, json_str):

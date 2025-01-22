@@ -2,12 +2,14 @@
 """
 Query data utility functions.
 """
+
 import logging
 
 from django.conf import settings
 from django.db import connection
 
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.libs.utils.common_tags import SUBMISSION_TIME, SUBMITTED_BY
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,7 @@ def _get_fields_of_type(xform, types):
     survey_elements = flatten([xform.get_survey_elements_of_type(t) for t in types])
 
     for element in survey_elements:
-        name = element.get_abbreviated_xpath()
+        name = get_abbreviated_xpath(element.get_xpath())
         k.append(name)
 
     return k

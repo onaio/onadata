@@ -39,6 +39,7 @@ except ImportError:
     SPSSIOError = Exception
 
 from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.main.models import MetaData, TokenStorageModel, UserProfile
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -238,7 +239,7 @@ def add_submission_with(request, username, id_string):
             user__username__iexact=username, id_string__iexact=id_string
         )
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in data_dictionary.get_survey_elements()
             if e.bind.get("type") == "geopoint"
         ]

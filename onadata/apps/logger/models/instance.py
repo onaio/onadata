@@ -29,7 +29,11 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.models.xform import (
+    XFORM_TITLE_LENGTH,
+    XForm,
+    get_abbreviated_xpath,
+)
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
@@ -123,7 +127,7 @@ def _get_attachments_from_instance(instance):
 def _get_tag_or_element_type_xpath(xform, tag):
     elems = xform.get_survey_elements_of_type(tag)
 
-    return elems[0].get_abbreviated_xpath() if elems else tag
+    return get_abbreviated_xpath(elems[0].get_xpath()) if elems else tag
 
 
 class FormInactiveError(Exception):
