@@ -26,6 +26,7 @@ from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (
     QUESTION_TYPES_TO_EXCLUDE,
     _encode_for_mongo,
+    get_abbreviated_xpath,
 )
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
@@ -425,7 +426,7 @@ class ExportBuilder:
             choices = (
                 [
                     get_choice_dict(
-                        "/".join([child.get_abbreviated_xpath(), i["name"]]),
+                        "/".join([get_abbreviated_xpath(child.get_xpath()), i["name"]]),
                         self.get_choice_label_from_dict(i["label"]),
                     )
                     for i in itemset
@@ -436,7 +437,7 @@ class ExportBuilder:
         else:
             choices = [
                 get_choice_dict(
-                    c.get_abbreviated_xpath(),
+                    get_abbreviated_xpath(c.get_xpath()),
                     get_choice_label(c.label, data_dicionary, language=self.language),
                 )
                 for c in child.children
@@ -480,7 +481,7 @@ class ExportBuilder:
                     if isinstance(child, RepeatingSection):
                         # section_name in recursive call changes
                         section = {
-                            "name": child.get_abbreviated_xpath(),
+                            "name": get_abbreviated_xpath(child.get_xpath()),
                             "elements": [],
                         }
                         self.sections.append(section)
@@ -518,9 +519,9 @@ class ExportBuilder:
                 ):
                     # add to survey_sections
                     if isinstance(child, Question):
-                        child_xpath = child.get_abbreviated_xpath()
+                        child_xpath = get_abbreviated_xpath(child.get_xpath())
                         _title = ExportBuilder.format_field_title(
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             field_delimiter,
                             data_dicionary,
                             remove_group_name,
@@ -568,16 +569,16 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             select_multiples,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             choices,
                         )
 
                     # split gps fields within this section
                     if child.bind.get("type") == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
-                        parent_xpath = child.get_abbreviated_xpath()
+                        parent_xpath = get_abbreviated_xpath(child.get_xpath())
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                            child.get_abbreviated_xpath()
+                            get_abbreviated_xpath(child.get_xpath())
                         )
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
@@ -599,7 +600,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             gps_fields,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             xpaths,
                         )
 
@@ -624,7 +625,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             osm_fields,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             xpaths,
                         )
                     if (
@@ -634,7 +635,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             select_ones,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             [],
                         )
 
@@ -651,7 +652,9 @@ class ExportBuilder:
             osm_columns = []
             if osm_field and xform:
                 osm_columns = OsmData.get_tag_keys(
-                    xform, osm_field.get_abbreviated_xpath(), include_prefix=True
+                    xform,
+                    osm_get_abbreviated_xpath(field.get_xpath()),
+                    include_prefix=True,
                 )
             return osm_columns
 
@@ -1198,11 +1201,11 @@ class ExportBuilder:
         for question in choice_questions:
             if (
                 xpath_var_names
-                and question.get_abbreviated_xpath() not in xpath_var_names  # noqa W503
+                and get_abbreviated_xpath(question.get_xpath()) not in xpath_var_names  # noqa W503
             ):
                 continue
             var_name = (
-                xpath_var_names.get(question.get_abbreviated_xpath())
+                xpath_var_names.get(get_abbreviated_xpath(question.get_xpath()))
                 if xpath_var_names
                 else question["name"]
             )

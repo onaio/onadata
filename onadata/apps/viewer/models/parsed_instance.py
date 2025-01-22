@@ -15,7 +15,7 @@ from dateutil import parser
 
 from onadata.apps.logger.models.instance import Instance, _get_attachments_from_instance
 from onadata.apps.logger.models.note import Note
-from onadata.apps.logger.models.xform import _encode_for_mongo
+from onadata.apps.logger.models.xform import _encode_for_mongo, get_abbreviated_xpath
 from onadata.apps.viewer.parsed_instance_tools import NONE_JSON_FIELDS, get_where_clause
 from onadata.libs.models.sorting import (
     json_order_by,
@@ -98,7 +98,7 @@ def get_name_from_survey_element(element):
     """
     Returns the abbreviated xpath of an element.
     """
-    return element.get_abbreviated_xpath()
+    return get_abbreviated_xpath(element.get_xpath())
 
 
 def _parse_sort_fields(fields):
