@@ -11,6 +11,9 @@ v4.11.2(2025-01-22)
 - Allow unapproved submissions when registering export repeats
   `PR #2764 <https://github.com/onaio/onadata/pull/2764>`
   [@kelvin-muchiri]
+- Update ona-oidc to v1.1.3
+  `PR #2766 <https://github.com/onaio/onadata/pull/2766>`
+  [@FrankApiyo]
 
 v4.11.1(2025-01-17)
 -------------------
