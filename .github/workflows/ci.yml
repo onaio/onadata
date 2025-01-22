@@ -119,6 +119,10 @@ jobs:
     name: Trivy Security Checks
     runs-on: ubuntu-22.04
     steps:
+      - name: Check if repository is public
+        id: check_visibility
+        run: echo "IS_PUBLIC_REPO=$(if [ ${{ github.event.repository.private }} = false ]; then echo true; else echo false; fi)" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -163,7 +167,7 @@ jobs:
 
       - name: Upload vulnerability scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
 
