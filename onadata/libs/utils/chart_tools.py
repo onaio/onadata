@@ -15,13 +15,14 @@ import six
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import XForm, get_abbreviated_xpath
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
     get_form_submissions_grouped_by_select_one,
 )
 from onadata.libs.utils import common_tags
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 # list of fields we can chart
 CHART_FIELDS = [
