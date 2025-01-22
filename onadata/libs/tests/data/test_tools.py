@@ -2,11 +2,10 @@
 """
 Test onadata.libs.data.query module
 """
-import os
-from datetime import datetime, timedelta
-from unittest.mock import patch
 
-from django.utils.timezone import utc
+import os
+from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
@@ -29,7 +28,7 @@ class TestTools(TestBase):
 
     @patch("django.utils.timezone.now")
     def test_get_form_submissions_grouped_by_field(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self._make_submissions()
 
         count_key = "count"
@@ -47,7 +46,7 @@ class TestTools(TestBase):
         self,
     ):  # pylint: disable=invalid-name
         """Test get_form_submissions_grouped_by_field datetime"""
-        now = datetime(2014, 1, 1, tzinfo=utc)
+        now = datetime(2014, 1, 1, tzinfo=timezone.utc)
         times = [
             now,
             now + timedelta(seconds=1),
@@ -74,7 +73,7 @@ class TestTools(TestBase):
 
     @patch("django.utils.timezone.now")
     def test_get_form_submissions_two_xforms(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self._make_submissions()
         self._publish_xls_file(os.path.join("fixtures", "gps", "gps.xlsx"))
 
@@ -115,7 +114,7 @@ class TestTools(TestBase):
 
     @patch("django.utils.timezone.now")
     def test_get_form_submissions_xform_no_submissions(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self._make_submissions()
         self._publish_xls_file(os.path.join("fixtures", "gps", "gps.xlsx"))
 
@@ -131,7 +130,7 @@ class TestTools(TestBase):
 
     @patch("django.utils.timezone.now")
     def test_get_form_submissions_grouped_by_field_sets_name(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self._make_submissions()
 
         count_key = "count"
