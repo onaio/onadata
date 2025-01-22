@@ -1,7 +1,7 @@
 """Tests for module onadata.apps.logger.models.entity_list"""
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone as tz
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError, DataError
@@ -19,7 +19,7 @@ class EntityListTestCase(TestBase):
         super().setUp()
 
         self.project = get_user_default_project(self.user)
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=timezone.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=tz.utc)
         self.fixture_dir = os.path.join(self.this_directory, "fixtures", "entities")
 
     @patch("django.utils.timezone.now")
