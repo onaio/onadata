@@ -1607,5 +1607,5 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     )
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
-    for instance in queryset_iterator(instance_qs):
+    for instance in queryset_iterator(instance_qs, chunksize=500):
         _register_instance_repeat_columns(instance, metadata)
