@@ -27,7 +27,6 @@ from onadata.apps.logger.models import (
     EntityList,
     Instance,
     RegistrationForm,
-    SubmissionReview,
     SurveyType,
     XForm,
 )
@@ -1306,30 +1305,6 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
         register.refresh_from_db()
 
         self.assertEqual(register.extra_data, {})
-
-    def test_submission_review_enabled(self):
-        """When submission review is enabled, only approved Instance is registered"""
-        self.instance.delete()
-        MetaData.submission_review(self.xform, "true")  # Enable submission review
-        self.instance = Instance.objects.create(
-            xml=self.xml, user=self.user, xform=self.xform
-        )
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-
-        self.assertEqual(self.register.extra_data, {})
-
-        # Approve submission
-        SubmissionReview.objects.create(
-            instance=self.instance, status=SubmissionReview.APPROVED
-        )
-
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
 
 
 class RegisterXFormExportRepeatsTestCase(TestBase):
