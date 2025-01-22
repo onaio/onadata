@@ -26,7 +26,6 @@ from onadata.apps.logger.models.open_data import OpenData
 from onadata.apps.logger.models.xform import (
     XForm,
     question_types_to_exclude,
-    get_abbreviated_xpath,
 )
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.data import parse_int
@@ -43,7 +42,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     REPEAT_SELECT_TYPE,
 )
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, json_stream
 from onadata.libs.utils.logger_tools import remove_metadata_fields
 
 BaseViewset = get_baseviewset_class()

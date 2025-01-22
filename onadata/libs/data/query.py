@@ -9,8 +9,8 @@ from django.conf import settings
 from django.db import connection
 
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.libs.utils.common_tags import SUBMISSION_TIME, SUBMITTED_BY
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 logger = logging.getLogger(__name__)
 

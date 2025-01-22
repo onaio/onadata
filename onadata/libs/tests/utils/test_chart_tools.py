@@ -9,7 +9,7 @@ from decimal import Decimal
 from collections import OrderedDict
 from rest_framework.exceptions import ParseError
 
-from onadata.apps.logger.models.xform import XForm, get_abbreviated_xpath
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import (
     _flatten_multiple_dict_into_one,
@@ -20,6 +20,7 @@ from onadata.libs.utils.chart_tools import (
     get_field_choices,
     utc_time_string_for_javascript,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
 def find_field_by_name(xform, field_name):

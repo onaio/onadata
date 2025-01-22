@@ -15,7 +15,7 @@ from querybuilder.query import Query
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.logger.models.xform import XForm, get_abbreviated_xpath
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.chart_tools import (
     DATA_TYPE_MAP,
     _flatten_multiple_dict_into_one,
@@ -25,7 +25,7 @@ from onadata.libs.utils.chart_tools import (
     get_field_label,
 )
 from onadata.libs.utils.common_tags import NUMERIC_LIST, SELECT_ONE, SUBMISSION_TIME
-from onadata.libs.utils.common_tools import get_uuid
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 
 
 class Widget(OrderedModel):

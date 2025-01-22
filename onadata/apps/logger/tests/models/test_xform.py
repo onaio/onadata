@@ -11,10 +11,10 @@ from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
-    get_abbreviated_xpath,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
 class TestXForm(TestBase):

@@ -17,9 +17,9 @@ from six import iteritems
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.restservice.signals import trigger_webhook
 from onadata.celeryapp import app
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
 def _get_xml_obj(xml):

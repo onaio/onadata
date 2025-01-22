@@ -39,7 +39,6 @@ except ImportError:
     SPSSIOError = Exception
 
 from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.main.models import MetaData, TokenStorageModel, UserProfile
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -48,7 +47,7 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
-from onadata.libs.utils.common_tools import get_uuid
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 from onadata.libs.utils.export_tools import (
     DEFAULT_GROUP_DELIMITER,
     generate_export,

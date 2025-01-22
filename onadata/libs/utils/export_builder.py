@@ -26,7 +26,6 @@ from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.xform import (
     QUESTION_TYPES_TO_EXCLUDE,
     _encode_for_mongo,
-    get_abbreviated_xpath,
 )
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
@@ -58,6 +57,7 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID_STRING,
 )
 from onadata.libs.utils.common_tools import (
+    get_abbreviated_xpath,
     get_choice_label,
     get_choice_label_value,
     get_value_or_attachment_uri,

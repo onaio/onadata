@@ -32,7 +32,6 @@ from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import (
     XFORM_TITLE_LENGTH,
     XForm,
-    get_abbreviated_xpath,
 )
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
@@ -81,7 +80,7 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID,
     XFORM_ID_STRING,
 )
-from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, report_exception
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration

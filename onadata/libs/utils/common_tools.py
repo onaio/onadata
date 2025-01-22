@@ -2,6 +2,7 @@
 """
 Common helper functions
 """
+
 from __future__ import unicode_literals
 
 import math
@@ -362,3 +363,11 @@ def track_task_progress(additions, total=None):
             current_task.update_state(state="PROGRESS", meta=meta)
         except AttributeError:
             pass
+
+
+def get_abbreviated_xpath(xpath):
+    """Returns the abbreviated xpath without the root node
+
+    For example "/data/image1" results in "image1".
+    """
+    return "/".join(xpath.split("/")[2:])

@@ -20,7 +20,6 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -31,6 +30,7 @@ from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.utils import common_tags
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     export_async_export_response,

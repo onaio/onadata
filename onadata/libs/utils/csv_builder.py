@@ -17,8 +17,7 @@ from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
-from onadata.apps.logger.models.xform import (XForm, get_abbreviated_xpath,
-                                              question_types_to_exclude)
+from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -33,7 +32,8 @@ from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
                                             STATUS, SUBMISSION_TIME,
                                             SUBMITTED_BY, TAGS, TOTAL_MEDIA,
                                             UUID, VERSION, XFORM_ID_STRING)
-from onadata.libs.utils.common_tools import (get_choice_label,
+from onadata.libs.utils.common_tools import (get_abbreviated_xpath,
+                                             get_choice_label,
                                              get_value_or_attachment_uri,
                                              str_to_bool, track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl

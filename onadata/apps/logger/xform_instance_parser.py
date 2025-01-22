@@ -13,8 +13,8 @@ import dateutil.parser
 from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.libs.utils.common_tags import XFORM_ID_STRING, VERSION
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
 class XLSFormError(Exception):
