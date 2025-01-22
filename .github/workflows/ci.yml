@@ -173,7 +173,7 @@ jobs:
 
       - name: Run Trivy vulnerability for Slack summary
         uses: aquasecurity/trivy-action@master
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           format: json
@@ -181,7 +181,7 @@ jobs:
           output: "trivy_results.json"
 
       - name: Create summary of trivy issues
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
           summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
           if [ -z $summary ]
@@ -192,7 +192,7 @@ jobs:
 
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.23.0
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           payload: |
             {
