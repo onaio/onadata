@@ -17,7 +17,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
-from pyxform.question import Question
+from pyxform.question import Option, Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter  # pylint: disable=no-name-in-module
 from six import iteritems
@@ -371,7 +371,7 @@ class ExportBuilder:
                 # incase abbreviated_xpath is a choices xpath
                 if elem is None:
                     pass
-                elif elem.type == "":
+                elif isinstance(elem, Option):
                     title = "/".join([elem.parent.name, elem.name])
                 else:
                     title = elem.name
@@ -1258,7 +1258,11 @@ class ExportBuilder:
                 # check if it is a choice part of multiple choice
                 # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
-                if element and element.type == SELECT_ONE:
+                if (
+                    element
+                    and not isinstance(element, Option)
+                    and element.type == SELECT_ONE
+                ):
                     # Determine if all select1 choices are numeric in nature.
                     # If the choices are numeric in nature have the field type
                     # in spss be numeric
@@ -1266,7 +1270,7 @@ class ExportBuilder:
                     if len(choices) == 0:
                         return False
                     return is_all_numeric(choices)
-                if element and element.type == "" and value_select_multiples:
+                if element and isinstance(element, Option) and value_select_multiples:
                     return is_all_numeric([element.name])
 
                 parent_xpath = "/".join(xpath.split("/")[:-1])
