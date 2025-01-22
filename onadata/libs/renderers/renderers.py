@@ -3,6 +3,7 @@
 Custom renderers for use with django rest_framework.
 """
 
+from datetime import timezone as tz
 import decimal
 import json
 import math
@@ -62,7 +63,7 @@ def floip_rows_list(data):
     """
     try:
         _submission_time = (
-            parse_datetime(data["_submission_time"]).replace(tzinfo=timezone.utc)
+            parse_datetime(data["_submission_time"]).replace(tzinfo=tz.utc)
         ).isoformat()
 
     except ValueError:
