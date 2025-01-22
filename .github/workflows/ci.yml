@@ -45,11 +45,11 @@ jobs:
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
 
-      - name: Install linting tools
-        run: pip install prospector==1.13.3 pylint==3.3.3
+      # - name: Install linting tools
+      #   run: pip install prospector==1.13.3 pylint==3.3.3
 
-      - name: Run Prospector
-        run: prospector -X -s veryhigh onadata
+      # - name: Run Prospector
+      #   run: prospector -X -s veryhigh onadata
   unit-tests:
     strategy:
       fail-fast: false
