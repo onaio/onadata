@@ -3489,7 +3489,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # Mock date_created (_submission_time)
         with patch(
             "django.utils.timezone.now",
-            Mock(return_value=datetime.datetime(2024, 9, 16, tzinfo=timezone.utc)),
+            Mock(
+                return_value=datetime.datetime(
+                    2024, 9, 16, tzinfo=datetime.timezone.utc
+                )
+            ),
         ):
             Instance.objects.create(
                 xform=self.xform,
@@ -3498,7 +3502,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # Mock date_created (_submission_time)
         with patch(
             "django.utils.timezone.now",
-            Mock(return_value=datetime.datetime(2024, 9, 18, tzinfo=timezone.utc)),
+            Mock(
+                return_value=datetime.datetime(
+                    2024, 9, 18, tzinfo=datetime.timezone.utc
+                )
+            ),
         ):
             Instance.objects.create(
                 xform=self.xform,
@@ -3507,21 +3515,25 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # Mock date_created (_submission_time)
         with patch(
             "django.utils.timezone.now",
-            Mock(return_value=datetime.datetime(2022, 4, 1, tzinfo=timezone.utc)),
+            Mock(
+                return_value=datetime.datetime(2022, 4, 1, tzinfo=datetime.timezone.utc)
+            ),
         ):
             Instance.objects.create(
                 xform=self.xform,
-                last_edited=datetime.datetime(2023, 4, 1, tzinfo=timezone.utc),
+                last_edited=datetime.datetime(2023, 4, 1, tzinfo=datetime.timezone.utc),
                 xml='<data id="b"><fruit>mango</fruit></data>',
             )
         # Mock date_created (_submission_time)
         with patch(
             "django.utils.timezone.now",
-            Mock(return_value=datetime.datetime(2022, 4, 1, tzinfo=timezone.utc)),
+            Mock(
+                return_value=datetime.datetime(2022, 4, 1, tzinfo=datetime.timezone.utc)
+            ),
         ):
             Instance.objects.create(
                 xform=self.xform,
-                last_edited=datetime.datetime(2023, 5, 1, tzinfo=timezone.utc),
+                last_edited=datetime.datetime(2023, 5, 1, tzinfo=datetime.timezone.utc),
                 xml='<data id="b"><fruit>mango</fruit></data>',
             )
 
@@ -3560,7 +3572,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         """Test DataViewSet list XML"""
         # create submission
         media_file = "1335783522563.jpg"
-        mocked_now = datetime.datetime(2023, 9, 20, 12, 49, 0, tzinfo=timezone.utc)
+        mocked_now = datetime.datetime(
+            2023, 9, 20, 12, 49, 0, tzinfo=datetime.timezone.utc
+        )
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             self._make_submission_w_attachment(
