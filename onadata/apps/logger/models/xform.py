@@ -535,7 +535,10 @@ class XFormMixin:
         result = [] if result is None else result
         path = "/".join([prefix, str(survey_element.name)])
 
-        if survey_element.children is not None:
+        if (
+            not isinstance(survey_element, Question)
+            and survey_element.children is not None
+        ):
             # add xpaths to result for each child
             indices = (
                 [""]
@@ -552,13 +555,20 @@ class XFormMixin:
         # replace the single question column with a column for each
         # item in a select all that apply question.
         if (
-            survey_element.bind.get("type") == "string"
+            hasattr(survey_element, "bind")
+            and hasattr(survey_element, "type")
+            and survey_element.bind is not None
+            and survey_element.bind.get("type") == "string"
             and survey_element.type == MULTIPLE_SELECT_TYPE
         ):
             result.pop()
             for child in survey_element.children:
                 result.append("/".join([path, child.name]))
-        elif survey_element.bind.get("type") == "geopoint":
+        elif (
+            hasattr(survey_element, "bind")
+            and survey_element.bind is not None
+            and survey_element.bind.get("type") == "geopoint"
+        ):
             result += self.get_additional_geopoint_xpaths(path)
 
         return result
