@@ -2,6 +2,7 @@
 """
 OSM utility module.
 """
+
 from __future__ import unicode_literals
 
 import logging
@@ -16,6 +17,7 @@ from six import iteritems
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.osmdata import OsmData
+from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.restservice.signals import trigger_webhook
 from onadata.celeryapp import app
 
@@ -25,9 +27,7 @@ def _get_xml_obj(xml):
         xml = xml.strip().encode()
     try:
         return fromstring(xml)
-    except (
-        _etree.XMLSyntaxError
-    ) as _etree_error:  # pylint: disable=c-extension-no-member
+    except _etree.XMLSyntaxError as _etree_error:  # pylint: disable=c-extension-no-member
         if "Attribute action redefined" in str(_etree_error):
             xml = xml.replace(b'action="modify" ', b"")
 
@@ -157,7 +157,7 @@ def save_osm_data(instance_id):
 
     if instance and osm_attachments:
         fields = [
-            f.get_abbreviated_xpath()
+            get_abbreviated_xpath(f.get_xpath())
             for f in instance.xform.get_survey_elements_of_type("osm")
         ]
         osm_filenames = {

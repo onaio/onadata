@@ -2,6 +2,7 @@
 """
 XForm submission XML parser utility functions.
 """
+
 import logging
 import re
 from xml.dom import Node
@@ -12,6 +13,7 @@ import dateutil.parser
 from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 
+from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.libs.utils.common_tags import XFORM_ID_STRING, VERSION
 
 
@@ -352,7 +354,7 @@ class XFormInstanceParser:
         self._xml_obj = clean_and_parse_xml(xml_str)
         self._root_node = self._xml_obj.documentElement
         repeats = [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in self.data_dicionary.get_survey_elements_of_type("repeat")
         ]
 

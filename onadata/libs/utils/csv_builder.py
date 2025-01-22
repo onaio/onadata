@@ -17,44 +17,25 @@ from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
-from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
+from onadata.apps.logger.models.xform import (XForm, get_abbreviated_xpath,
+                                              question_types_to_exclude)
 from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import (
-    ATTACHMENTS,
-    BAMBOO_DATASET_ID,
-    DATE_MODIFIED,
-    DELETEDAT,
-    DURATION,
-    EDITED,
-    EXPORT_COLUMNS_REGISTER,
-    GEOLOCATION,
-    ID,
-    MEDIA_ALL_RECEIVED,
-    MEDIA_COUNT,
-    MULTIPLE_SELECT_TYPE,
-    NA_REP,
-    NOTES,
-    REVIEW_COMMENT,
-    REVIEW_DATE,
-    REVIEW_STATUS,
-    SELECT_BIND_TYPE,
-    STATUS,
-    SUBMISSION_TIME,
-    SUBMITTED_BY,
-    TAGS,
-    TOTAL_MEDIA,
-    UUID,
-    VERSION,
-    XFORM_ID_STRING,
-)
-from onadata.libs.utils.common_tools import (
-    get_choice_label,
-    get_value_or_attachment_uri,
-    str_to_bool,
-    track_task_progress,
-)
+from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
+                                            DATE_MODIFIED, DELETEDAT, DURATION,
+                                            EDITED, EXPORT_COLUMNS_REGISTER,
+                                            GEOLOCATION, ID,
+                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            MULTIPLE_SELECT_TYPE, NA_REP,
+                                            NOTES, REVIEW_COMMENT, REVIEW_DATE,
+                                            REVIEW_STATUS, SELECT_BIND_TYPE,
+                                            STATUS, SUBMISSION_TIME,
+                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
+                                            UUID, VERSION, XFORM_ID_STRING)
+from onadata.libs.utils.common_tools import (get_choice_label,
+                                             get_value_or_attachment_uri,
+                                             str_to_bool, track_task_progress)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -331,7 +312,7 @@ class AbstractDataFrameBuilder:
     @classmethod
     def _fields_to_select(cls, data_dictionary):
         return [
-            c.get_abbreviated_xpath()
+            get_abbreviated_xpath(c.get_xpath())
             for c in data_dictionary.get_survey_elements()
             if isinstance(c, Question)
         ]
@@ -345,10 +326,10 @@ class AbstractDataFrameBuilder:
             if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
         ]
         for e in select_multiple_elements:
-            xpath = e.get_abbreviated_xpath()
+            xpath = get_abbreviated_xpath(e.get_xpath())
             choices = [
                 (
-                    c.get_abbreviated_xpath(),
+                    get_abbreviated_xpath(c.get_xpath()),
                     c.name,
                     get_choice_label(c.label, data_dictionary, language),
                 )
@@ -428,8 +409,7 @@ class AbstractDataFrameBuilder:
                                 choice.replace("/" + name, "/" + label)
                                 if show_choice_labels
                                 else choice
-                            ): choice
-                            in selections
+                            ): choice in selections
                             for choice, name, label in choices
                         }
                     )
@@ -465,7 +445,7 @@ class AbstractDataFrameBuilder:
     @classmethod
     def _collect_gps_fields(cls, data_dictionary):
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in data_dictionary.get_survey_elements()
             if e.bind.get("type") == "geopoint"
         ]
@@ -599,7 +579,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             for elem in children:
                 if not question_types_to_exclude(elem.type):
-                    abbreviated_xpath = elem.get_abbreviated_xpath()
+                    abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
                     item[abbreviated_xpath] = repeat_value.get(
                         abbreviated_xpath, DEFAULT_NA_REP
                     )
@@ -734,7 +714,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     child_is_repeating = True
 
                 if isinstance(child, RepeatingSection):
-                    ordered_columns[child.get_abbreviated_xpath()] = []
+                    ordered_columns[get_abbreviated_xpath(child.get_xpath())] = []
 
                 cls._build_ordered_columns(child, ordered_columns, child_is_repeating)
             elif (
@@ -746,7 +726,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # so we dont add it to our list of columns,
                 # the repeating columns list will be
                 # generated when we reindex
-                ordered_columns[child.get_abbreviated_xpath()] = None
+                ordered_columns[get_abbreviated_xpath(child.get_xpath())] = None
 
     def _add_ordered_columns_for_select_multiples(self):
         """Add ordered columns for select multiples"""
@@ -901,7 +881,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
                 for field in self.data_dictionary.get_survey_elements_of_type("osm"):
                     columns += OsmData.get_tag_keys(
-                        self.xform, field.get_abbreviated_xpath(), include_prefix=True
+                        self.xform,
+                        get_abbreviated_xpath(field.get_xpath()),
+                        include_prefix=True,
                     )
 
             columns_with_hxl = self.include_hxl and get_columns_with_hxl(
