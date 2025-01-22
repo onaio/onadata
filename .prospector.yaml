@@ -13,6 +13,8 @@ pylint:
     extension-pkg-allow-list:
       - ujson
       - lxml.etree
+    ignored-modules:
+      - google.auth.transport.requests
 
 mccabe:
   run: false
