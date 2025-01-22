@@ -499,7 +499,9 @@ class XFormMixin:
         return [
             get_abbreviated_xpath(e.get_xpath())
             for e in survey_elements
-            if e.bind.get("type") == "geoshape"
+            if hasattr(e, "bind")
+            and e.bind is not None
+            and e.bind.get("type") == "geoshape"
         ]
 
     def geotrace_xpaths(self):
@@ -509,7 +511,9 @@ class XFormMixin:
         return [
             get_abbreviated_xpath(e.get_xpath())
             for e in survey_elements
-            if e.bind.get("type") == "geotrace"
+            if hasattr(e, "bind")
+            and e.bind is not None
+            and e.bind.get("type") == "geotrace"
         ]
 
     def xpath_of_first_geopoint(self):
