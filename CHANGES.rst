@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.11.2(2025-01-22)
+-------------------
+- Fix exception Instance.DoesNotExist when registering Instance repeats
+  `PR #2763 <https://github.com/onaio/onadata/pull/2763>`
+  [@kelvin-muchiri]
+- Allow unapproved submissions when registering export repeats
+  `PR #2764 <https://github.com/onaio/onadata/pull/2764>`
+  [@kelvin-muchiri]
+
 v4.11.1(2025-01-17)
 -------------------
 - Do not create export register when Instance is saved
