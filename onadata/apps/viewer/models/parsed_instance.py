@@ -15,7 +15,7 @@ from dateutil import parser
 
 from onadata.apps.logger.models.instance import Instance, _get_attachments_from_instance
 from onadata.apps.logger.models.note import Note
-from onadata.apps.logger.models.xform import _encode_for_mongo, get_abbreviated_xpath
+from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.apps.viewer.parsed_instance_tools import NONE_JSON_FIELDS, get_where_clause
 from onadata.libs.models.sorting import (
     json_order_by,
@@ -47,6 +47,7 @@ from onadata.libs.utils.common_tags import (
     VERSION,
     XFORM_ID,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 

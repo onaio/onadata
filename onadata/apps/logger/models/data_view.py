@@ -14,7 +14,6 @@ from django.db.utils import DataError
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from onadata.apps.logger.models.xform import get_abbreviated_xpath
 from onadata.apps.viewer.parsed_instance_tools import get_where_clause
 from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
     json_order_by,
@@ -38,6 +37,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     SUBMISSION_TIME,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 SUPPORTED_FILTERS = ["=", ">", "<", ">=", "<=", "<>", "!="]
 ATTACHMENT_TYPES = ["photo", "audio", "video"]

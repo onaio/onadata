@@ -63,6 +63,7 @@ from onadata.libs.utils.common_tags import (
     UUID,
     VERSION,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
 
@@ -74,14 +75,6 @@ TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 
 # pylint: disable=invalid-name
 User = get_user_model()
-
-
-def get_abbreviated_xpath(xpath):
-    """Returns the abbreviated xpath without the root node
-
-    For example "/data/image1" results in "image1".
-    """
-    return "/".join(xpath.split("/")[2:])
 
 
 def cmp(x, y):
