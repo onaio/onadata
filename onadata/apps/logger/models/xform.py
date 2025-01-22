@@ -477,7 +477,7 @@ class XFormMixin:
         return [
             get_abbreviated_xpath(elem.get_xpath())
             for elem in self.survey_elements
-            if elem.type not in ("", "survey")
+            if hasattr(elem, "type") and elem.type not in ("", "survey")
         ]
 
     def geopoint_xpaths(self):

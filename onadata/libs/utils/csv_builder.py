@@ -447,7 +447,9 @@ class AbstractDataFrameBuilder:
         return [
             get_abbreviated_xpath(e.get_xpath())
             for e in data_dictionary.get_survey_elements()
-            if e.bind.get("type") == "geopoint"
+            if hasattr(e, "bind")
+            and e.bind is not None
+            and e.bind.get("type") == "geopoint"
         ]
 
     @classmethod
