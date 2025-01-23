@@ -1227,9 +1227,13 @@ class RegisterInstanceRepeatColumnsTestCase(TestBase):
 
     def test_columns_added(self):
         """Incoming columns are added to the register"""
-        ordered_columns = json.loads(
-            self.register.extra_data, object_pairs_hook=OrderedDict
+        merged_multiples = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
         )
+        split_multiples = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        # Before Instance repeat columns are added
         expected_columns = OrderedDict(
             [
                 (
@@ -1243,13 +1247,18 @@ class RegisterInstanceRepeatColumnsTestCase(TestBase):
                 ("meta/instanceID", None),
             ]
         )
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(merged_multiples, expected_columns)
+        self.assertEqual(split_multiples, expected_columns)
 
         register_instance_repeat_columns(self.instance)
 
+        # After Instance repeat columns are added
         self.register.refresh_from_db()
-        ordered_columns = json.loads(
-            self.register.extra_data, object_pairs_hook=OrderedDict
+        merged_multiples = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
         )
         expected_columns = OrderedDict(
             [
@@ -1272,7 +1281,8 @@ class RegisterInstanceRepeatColumnsTestCase(TestBase):
             ]
         )
 
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(merged_multiples, expected_columns)
+        self.assertEqual(split_multiples, expected_columns)
 
     def test_register_not_found(self):
         """Nothing happens if export columns register is not found"""
@@ -1281,6 +1291,113 @@ class RegisterInstanceRepeatColumnsTestCase(TestBase):
 
         exists = MetaData.objects.filter(data_type="export_columns_register").exists()
         self.assertFalse(exists)
+
+    def test_select_multiples(self):
+        """Columns for a form with select multiples are added"""
+        md = """
+        | survey |
+        |        | type                     | name         | label        |
+        |        | text                     | name         | Name         |
+        |        | integer                  | age          | Age          |
+        |        | begin repeat             | browser_use  | Browser Use  |
+        |        | integer                  | year         | Year         |
+        |        | select_multiple browsers | browsers     | Browsers     |
+        |        | end repeat               |              |              |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
+        """
+        xform = self._publish_markdown(
+            md, self.user, self.project, id_string="browser_use"
+        )
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=xform.pk,
+            content_type=ContentType.objects.get_for_model(xform),
+        )
+        # Before Instance repeat columns are added
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                ("name", None),
+                ("age", None),
+                ("browser_use", []),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
+            "<name>John Doe</name>"
+            "<age>25</age>"
+            "<browser_use>"
+            "<year>2021</year>"
+            "<browsers>firefox chrome</browsers>"
+            "</browser_use>"
+            "<meta>"
+            "<instanceID>uuid:cea7954a-60d5-4f40-b844-080733a74a34</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        register_instance_repeat_columns(instance)
+
+        # After Instance repeat columns are added
+        register.refresh_from_db()
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+
+        self.assertEqual(
+            split_multiples_columns,
+            OrderedDict(
+                [
+                    ("name", None),
+                    ("age", None),
+                    (
+                        "browser_use",
+                        [
+                            "browser_use[1]/year",
+                            "browser_use[1]/browsers/firefox",
+                            "browser_use[1]/browsers/chrome",
+                            "browser_use[1]/browsers/ie",
+                            "browser_use[1]/browsers/safari",
+                        ],
+                    ),
+                    ("meta/instanceID", None),
+                ]
+            ),
+        )
+        self.assertEqual(
+            merged_multiples_columns,
+            OrderedDict(
+                [
+                    ("name", None),
+                    ("age", None),
+                    ("browser_use", ["browser_use[1]/year", "browser_use[1]/browsers"]),
+                    ("meta/instanceID", None),
+                ]
+            ),
+        )
 
 
 class ReconstructXFormExportRegisterTestCase(TestBase):
@@ -1369,9 +1486,13 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
 
     def test_register(self):
         """Repeats from all instances are registered"""
-        ordered_columns = json.loads(
-            self.register.extra_data, object_pairs_hook=OrderedDict
+        merged_multiples_columns = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
         )
+        split_multiples_columns = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        # Before reconstructing export columns register
         expected_columns = OrderedDict(
             [
                 (
@@ -1385,16 +1506,23 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
                 ("meta/instanceID", None),
             ]
         )
-        self.assertEqual(ordered_columns, expected_columns)
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
 
         reconstruct_xform_export_register(self.xform)
 
+        # After reconstructing register
         self.register.refresh_from_db()
-        ordered_columns = json.loads(
-            self.register.extra_data, object_pairs_hook=OrderedDict
+        merged_multiples_columns = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
         )
 
-        self.assertEqual(ordered_columns, self.expected_columns)
+        self.assertEqual(merged_multiples_columns, self.expected_columns)
+        self.assertEqual(split_multiples_columns, self.expected_columns)
 
     def test_register_not_found(self):
         """Register is created if not found"""
@@ -1410,6 +1538,12 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
         )
-        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
 
-        self.assertEqual(ordered_columns, self.expected_columns)
+        self.assertEqual(merged_multiples_columns, self.expected_columns)
+        self.assertEqual(split_multiples_columns, self.expected_columns)

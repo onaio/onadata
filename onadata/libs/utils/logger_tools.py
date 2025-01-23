@@ -1540,7 +1540,12 @@ def _register_instance_repeat_columns(instance: Instance, register: MetaData) ->
         # Only one process updates it at a time. This prevents race conditions
         # and updates extra_data atomically
         register = MetaData.objects.select_for_update().get(pk=register.pk)
-        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        merged_multiples = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         xform = instance.xform
         csv_builder = csv_builder.CSVDataFrameBuilder(
             xform=xform, username=xform.user.username, id_string=xform.id_string
@@ -1552,13 +1557,26 @@ def _register_instance_repeat_columns(instance: Instance, register: MetaData) ->
             csv_builder._reindex(
                 key,
                 value,
-                ordered_columns,
+                split_multiples,
                 data,
-                instance.xform,
+                xform,
                 include_images=[],
+                split_select_multiples=True,
+            )
+            csv_builder._reindex(
+                key,
+                value,
+                merged_multiples,
+                data,
+                xform,
+                include_images=[],
+                split_select_multiples=False,
             )
 
-        register.extra_data = json.dumps(ordered_columns)
+        register.extra_data = {
+            "merged_multiples": json.dumps(merged_multiples),
+            "split_multiples": json.dumps(split_multiples),
+        }
         register.save()
 
 
@@ -1596,13 +1614,17 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     csv_builder.CSVDataFrameBuilder._build_ordered_columns(
         xform._get_survey(), ordered_columns
     )
+    serialized_columns = json.dumps(ordered_columns)
     metadata, _ = MetaData.objects.get_or_create(
         content_type=ContentType.objects.get_for_model(xform),
         object_id=xform.pk,
         data_type=EXPORT_COLUMNS_REGISTER,
         defaults={
             "data_value": "",
-            "extra_data": json.dumps(ordered_columns),
+            "extra_data": {
+                "merged_multiples": serialized_columns,
+                "split_multiples": serialized_columns,
+            },
         },
     )
     instance_qs = xform.instances.filter(deleted_at__isnull=True)

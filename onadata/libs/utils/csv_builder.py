@@ -854,8 +854,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 reconstruct_xform_export_register_async.delay(self.xform.pk)
 
             else:
+                serialized_columns = columns_register.extra_data.get("split_multiples")
+
+                if not self.split_select_multiples:
+                    serialized_columns = columns_register.extra_data.get(
+                        "merged_multiples"
+                    )
+
                 self.ordered_columns = json.loads(
-                    columns_register.extra_data, object_pairs_hook=OrderedDict
+                    serialized_columns, object_pairs_hook=OrderedDict
                 )
 
             self._add_ordered_columns_for_select_multiples()

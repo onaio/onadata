@@ -9,6 +9,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.http.request import HttpRequest
 from django.test import override_settings
 from django.utils.timezone import utc
@@ -1231,8 +1232,18 @@ class TestInstance(TestBase):
         |         | Births      | births          |                     |
         """
         xform = self._publish_markdown(md, self.user, project)
-        metadata = MetaData.objects.get(data_type="export_columns_register")
-        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=xform.pk,
+            content_type=ContentType.objects.get_for_model(xform),
+        )
+        # Default export columns are correctly registered
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         expected_columns = OrderedDict(
             [
                 (
@@ -1246,8 +1257,8 @@ class TestInstance(TestBase):
                 ("meta/instanceID", None),
             ]
         )
-        # Default export columns are correctly registered
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
 
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -1279,8 +1290,13 @@ class TestInstance(TestBase):
         )
         # Repeats are registered on creation
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
-        metadata.refresh_from_db()
-        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        register.refresh_from_db()
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         expected_columns = OrderedDict(
             [
                 (
@@ -1302,7 +1318,8 @@ class TestInstance(TestBase):
             ]
         )
 
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
 
         # Repeats are registered on update
         xml = (
@@ -1344,8 +1361,13 @@ class TestInstance(TestBase):
         instance.xml = xml
         instance.uuid = "51cb9e07-cfc7-413b-bc22-ee7adfa9dec4"
         instance.save()
-        metadata.refresh_from_db()
-        ordered_columns = json.loads(metadata.extra_data, object_pairs_hook=OrderedDict)
+        register.refresh_from_db()
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         expected_columns = OrderedDict(
             [
                 (
@@ -1373,4 +1395,5 @@ class TestInstance(TestBase):
             ]
         )
 
-        self.assertEqual(ordered_columns, expected_columns)
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)

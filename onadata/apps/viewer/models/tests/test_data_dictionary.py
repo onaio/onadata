@@ -313,7 +313,15 @@ class DataDictionaryTestCase(TestBase):
 
     def test_export_columns_register_created(self):
         """Export columns register is created when form is published"""
-        xform = self._publish_markdown(self.registration_form, self.user)
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        | settings|             |                |            |
+        |         | form_title  | form_id        |            |
+        |         | Students    | students       |            |
+        """
+        xform = self._publish_markdown(md, self.user)
         content_type = ContentType.objects.get_for_model(xform)
         exists = MetaData.objects.filter(
             data_type="export_columns_register",
@@ -322,6 +330,27 @@ class DataDictionaryTestCase(TestBase):
         ).exists()
 
         self.assertTrue(exists)
+
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=xform.pk,
+            content_type=content_type,
+        )
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                ("name", None),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
 
     @patch("onadata.apps.logger.tasks.reconstruct_xform_export_register_async.delay")
     def test_export_columns_register_updated(self, mock_register_xform_columns):
@@ -341,14 +370,21 @@ class DataDictionaryTestCase(TestBase):
             object_id=xform.pk,
             content_type=content_type,
         )
-        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         expected_columns = OrderedDict(
             [
                 ("name", None),
                 ("meta/instanceID", None),
             ]
         )
-        self.assertEqual(ordered_columns, expected_columns)
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
         # Replace form
         md = """
         | survey  |
@@ -361,7 +397,12 @@ class DataDictionaryTestCase(TestBase):
         """
         self._replace_form(md, xform)
         register.refresh_from_db()
-        ordered_columns = json.loads(register.extra_data, object_pairs_hook=OrderedDict)
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
         expected_columns = OrderedDict(
             [
                 ("name", None),
@@ -369,6 +410,8 @@ class DataDictionaryTestCase(TestBase):
                 ("meta/instanceID", None),
             ]
         )
-        self.assertEqual(ordered_columns, expected_columns)
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
         # Task is called to add columns for repeat data
         mock_register_xform_columns.assert_called_once_with(xform.pk)

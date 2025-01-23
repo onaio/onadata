@@ -130,6 +130,83 @@ class TestCSVDataFrameBuilder(TestBase):
         # pylint: disable=attribute-defined-outside-init
         self.survey_name = "grouped_gps"
 
+    def _publish_select_multiples_grouped_repeating(self):
+        md = """
+        | survey |
+        |        | type                     | name         | label        |
+        |        | text                     | name         | Name         |
+        |        | integer                  | age          | Age          |
+        |        | begin repeat             | browser_use  | Browser Use  |
+        |        | integer                  | year         | Year         |
+        |        | select_multiple browsers | browsers     | Browsers     |
+        |        | end repeat               |              |              |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
+        """
+        xform = self._publish_markdown(md, self.user, id_string="browser_use")
+        return xform
+
+    def _register_select_multiples_grouped_repeating(self, xform):
+        MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(xform),
+            object_id=xform.pk,
+            data_type="export_columns_register",
+            data_value="",
+            extra_data={
+                "merged_multiples": json.dumps(
+                    OrderedDict(
+                        [
+                            ("name", None),
+                            ("age", None),
+                            (
+                                "browser_use",
+                                ["browser_use[1]/year", "browser_use[1]/browsers"],
+                            ),
+                            ("meta/instanceID", None),
+                        ]
+                    )
+                ),
+                "split_multiples": json.dumps(
+                    OrderedDict(
+                        [
+                            ("name", None),
+                            ("age", None),
+                            (
+                                "browser_use",
+                                [
+                                    "browser_use[1]/year",
+                                    "browser_use[1]/browsers/firefox",
+                                    "browser_use[1]/browsers/chrome",
+                                    "browser_use[1]/browsers/ie",
+                                    "browser_use[1]/browsers/safari",
+                                ],
+                            ),
+                            ("meta/instanceID", None),
+                        ]
+                    )
+                ),
+            },
+        )
+        cursor = [
+            {
+                "name": "Tom",
+                "age": 23,
+                "browser_use": [
+                    {
+                        "browser_use/year": "2010",
+                        "browser_use/browsers": "firefox safari",
+                    },
+                ],
+            }
+        ]
+
+        return cursor
+
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False
@@ -2174,93 +2251,10 @@ class TestCSVDataFrameBuilder(TestBase):
             header = next(csv_reader)
             self.assertEqual(header, ["age", extra_col])
 
-    def test_registered_export_columns(self):
-        """Registered export columns are used to generate export"""
-        md_xform = """
-        | survey  |
-        |         | type          | name            | label         |
-        |         | begin repeat  | hospital_repeat |               |
-        |         | text          | hospital        | Hospital Name |
-        |         | begin repeat  | child_repeat    |               |
-        |         | text          | name            | Child Name    |
-        |         | decimal       | birthweight     | Birth Weight  |
-        |         | select_one male_female | sex    | Child sex     |
-        |         | end repeat    |                 |               |
-        |         | end repeat    |                 |               |
-        | choices |               |                 |               |
-        |         | list name     | name            | label         |
-        |         | male_female   | male            | Male          |
-        |         | male_female   | female          | Female        |
-        """
-        self._publish_markdown(md_xform, self.user, id_string="nested_repeats")
-        xform = XForm.objects.get(user=self.user, id_string="nested_repeats")
-        cursor = [
-            {
-                "hospital_repeat": [
-                    {
-                        "hospital_repeat/hospital": "Aga Khan",
-                        "hospital_repeat/child_repeat": [
-                            {
-                                "hospital_repeat/child_repeat/sex": "male",
-                                "hospital_repeat/child_repeat/name": "Zakayo",
-                                "hospital_repeat/child_repeat/birthweight": 3.3,
-                            },
-                            {
-                                "hospital_repeat/child_repeat/sex": "female",
-                                "hospital_repeat/child_repeat/name": "Melania",
-                                "hospital_repeat/child_repeat/birthweight": 3.5,
-                            },
-                        ],
-                    },
-                    {
-                        "hospital_repeat/hospital": "Mama Lucy",
-                        "hospital_repeat/child_repeat": [
-                            {
-                                "hospital_repeat/child_repeat/sex": "female",
-                                "hospital_repeat/child_repeat/name": "Winnie",
-                                "hospital_repeat/child_repeat/birthweight": 3.1,
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-        content_type = ContentType.objects.get_for_model(xform)
-        # Simulate registered export columns
-        MetaData.objects.create(
-            content_type=content_type,
-            object_id=xform.pk,
-            data_type="export_columns_register",
-            data_value="",
-            extra_data=json.dumps(
-                OrderedDict(
-                    [
-                        (
-                            "hospital_repeat",
-                            [
-                                "hospital_repeat[1]/hospital",
-                                "hospital_repeat[2]/hospital",
-                            ],
-                        ),
-                        (
-                            "hospital_repeat/child_repeat",
-                            [
-                                "hospital_repeat[1]/child_repeat[1]/name",
-                                "hospital_repeat[1]/child_repeat[1]/birthweight",
-                                "hospital_repeat[1]/child_repeat[1]/sex",
-                                "hospital_repeat[1]/child_repeat[2]/name",
-                                "hospital_repeat[1]/child_repeat[2]/birthweight",
-                                "hospital_repeat[1]/child_repeat[2]/sex",
-                                "hospital_repeat[2]/child_repeat[1]/name",
-                                "hospital_repeat[2]/child_repeat[1]/birthweight",
-                                "hospital_repeat[2]/child_repeat[1]/sex",
-                            ],
-                        ),
-                        ("meta/instanceID", None),
-                    ]
-                )
-            ),
-        )
+    def test_export_register_split_multiples(self):
+        """Export register works with split multiples"""
+        xform = self._publish_select_multiples_grouped_repeating()
+        cursor = self._register_select_multiples_grouped_repeating(xform)
         builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
@@ -2272,17 +2266,13 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         expected_header = [
-            "hospital_repeat[1]/hospital",
-            "hospital_repeat[2]/hospital",
-            "hospital_repeat[1]/child_repeat[1]/name",
-            "hospital_repeat[1]/child_repeat[1]/birthweight",
-            "hospital_repeat[1]/child_repeat[1]/sex",
-            "hospital_repeat[1]/child_repeat[2]/name",
-            "hospital_repeat[1]/child_repeat[2]/birthweight",
-            "hospital_repeat[1]/child_repeat[2]/sex",
-            "hospital_repeat[2]/child_repeat[1]/name",
-            "hospital_repeat[2]/child_repeat[1]/birthweight",
-            "hospital_repeat[2]/child_repeat[1]/sex",
+            "name",
+            "age",
+            "browser_use[1]/year",
+            "browser_use[1]/browsers/firefox",
+            "browser_use[1]/browsers/chrome",
+            "browser_use[1]/browsers/ie",
+            "browser_use[1]/browsers/safari",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2300,17 +2290,13 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertCountEqual(header, expected_header)
         row = next(csv_reader)
         expected_row = [
-            "Aga Khan",
-            "Mama Lucy",
-            "Zakayo",
-            "3.3",
-            "male",
-            "Melania",
-            "3.5",
-            "female",
-            "Winnie",
-            "3.1",
-            "female",
+            "Tom",
+            "23",
+            "2010",
+            "True",
+            "False",
+            "False",
+            "True",
             "n/a",
             "n/a",
             "n/a",
@@ -2326,6 +2312,64 @@ class TestCSVDataFrameBuilder(TestBase):
             "n/a",
         ]
         self.assertEqual(row, expected_row)
+        csv_file.close()
+
+    def test_export_register_merged_multiples(self):
+        """Export register works with merged multiples"""
+        xform = self._publish_select_multiples_grouped_repeating()
+        cursor = self._register_select_multiples_grouped_repeating(xform)
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+            split_select_multiples=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "age",
+            "browser_use[1]/year",
+            "browser_use[1]/browsers",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertCountEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Tom",
+            "23",
+            "2010",
+            "firefox safari",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertCountEqual(row, expected_row)
         csv_file.close()
 
     def test_export_columns_register_missing(self):

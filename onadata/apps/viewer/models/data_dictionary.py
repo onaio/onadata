@@ -452,13 +452,17 @@ def create_or_update_export_register(sender, instance=None, created=False, **kwa
     csv_builder.CSVDataFrameBuilder._build_ordered_columns(
         instance._get_survey(), ordered_columns
     )
+    serialized_columns = json.dumps(ordered_columns)
     MetaData.objects.update_or_create(
         content_type=ContentType.objects.get_for_model(instance),
         object_id=instance.pk,
         data_type=EXPORT_COLUMNS_REGISTER,
         defaults={
             "data_value": "",
-            "extra_data": json.dumps(ordered_columns),
+            "extra_data": {
+                "merged_multiples": serialized_columns,
+                "split_multiples": serialized_columns,
+            },
         },
     )
 
