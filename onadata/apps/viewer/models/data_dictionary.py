@@ -6,7 +6,6 @@ DataDictionary model.
 import importlib
 import json
 import os
-from collections import OrderedDict
 from io import BytesIO, StringIO
 
 from django.contrib.contenttypes.models import ContentType
@@ -36,7 +35,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
-from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -445,26 +443,9 @@ post_save.connect(
 def create_or_update_export_register(sender, instance=None, created=False, **kwargs):
     """Create or update export columns register for the form"""
     # Avoid cyclic import by using importlib
-    csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-    ordered_columns = OrderedDict()
-    # pylint: disable=protected-access
-    csv_builder.CSVDataFrameBuilder._build_ordered_columns(
-        instance._get_survey(), ordered_columns
-    )
-    serialized_columns = json.dumps(ordered_columns)
-    MetaData.objects.update_or_create(
-        content_type=ContentType.objects.get_for_model(instance),
-        object_id=instance.pk,
-        data_type=EXPORT_COLUMNS_REGISTER,
-        defaults={
-            "data_value": "",
-            "extra_data": {
-                "merged_multiples": serialized_columns,
-                "split_multiples": serialized_columns,
-            },
-        },
-    )
+    logger_tools = importlib.import_module("onadata.libs.utils.logger_tools")
+    logger_tools.update_or_create_export_register(instance)
 
     if not created:
         logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)

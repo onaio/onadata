@@ -1601,12 +1601,8 @@ def register_instance_repeat_columns(instance: Instance) -> None:
     _register_instance_repeat_columns(instance, metadata)
 
 
-@transaction.atomic()
-def reconstruct_xform_export_register(xform: XForm) -> None:
-    """Reconstruct the export columns register for an XForm
-
-    :param xform: XForm object
-    """
+def update_or_create_export_register(xform: XForm) -> tuple[MetaData, bool]:
+    """Update or create export columns register for the form"""
     # Avoid cyclic import by using importlib
     csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
     ordered_columns = OrderedDict()
@@ -1615,7 +1611,7 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
         xform._get_survey(), ordered_columns
     )
     serialized_columns = json.dumps(ordered_columns)
-    metadata, _ = MetaData.objects.get_or_create(
+    register, created = MetaData.objects.update_or_create(
         content_type=ContentType.objects.get_for_model(xform),
         object_id=xform.pk,
         data_type=EXPORT_COLUMNS_REGISTER,
@@ -1627,7 +1623,18 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
             },
         },
     )
+
+    return register, created
+
+
+@transaction.atomic()
+def reconstruct_xform_export_register(xform: XForm) -> None:
+    """Reconstruct the export columns register for an XForm
+
+    :param xform: XForm object
+    """
+    register, _ = update_or_create_export_register(xform)
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs, chunksize=500):
-        _register_instance_repeat_columns(instance, metadata)
+        _register_instance_repeat_columns(instance, register)
