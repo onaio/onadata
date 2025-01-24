@@ -31,7 +31,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, transaction
+from django.db import DataError, IntegrityError, connection, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
@@ -1526,34 +1526,51 @@ def delete_xform_submissions(
     )
 
 
-def _register_instance_repeat_columns(instance: Instance, register: MetaData) -> None:
-    """Add Instance repeat columns to the export columns register
+def _register_instance_repeat_columns(instance: Instance, register_pk: int) -> None:
+    """
+    Add Instance repeat columns to the export columns register.
 
     :param instance: Instance object
-    :param metadata: MetaData object that stores the export repeat register
+    :param register_pk: Primary key of the export columns register
     """
-    # Avoid cyclic import by using importlib
-    csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
 
-    with transaction.atomic():
-        # We use select_for_update to acquire a row-level lock
-        # Only one process updates it at a time. This prevents race conditions
-        # and updates extra_data atomically
-        register = MetaData.objects.select_for_update().get(pk=register.pk)
-        merged_multiples = json.loads(
-            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+    def get_existing_columns(register):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    extra_data->'merged_multiples' AS merged_multiples,
+                    extra_data->'split_multiples' AS split_multiples
+                FROM main_metadata
+                WHERE id = %s
+                """,
+                [register.pk],
+            )
+            row = cursor.fetchone()
+
+        merged_multiples = (
+            json.loads(row[0], object_pairs_hook=OrderedDict)
+            if row[0]
+            else OrderedDict()
         )
-        split_multiples = json.loads(
-            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        split_multiples = (
+            json.loads(row[1], object_pairs_hook=OrderedDict)
+            if row[1]
+            else OrderedDict()
         )
+
+        return merged_multiples, split_multiples
+
+    def process_and_update_columns(merged_multiples, split_multiples):
+        from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+
         xform = instance.xform
-        csv_builder = csv_builder.CSVDataFrameBuilder(
+        csv_builder = CSVDataFrameBuilder(
             xform=xform, username=xform.user.username, id_string=xform.id_string
         )
         data = instance.get_full_dict()
 
         for key, value in data.items():
-            # pylint: disable=protected-access
             csv_builder._reindex(
                 key,
                 value,
@@ -1573,11 +1590,37 @@ def _register_instance_repeat_columns(instance: Instance, register: MetaData) ->
                 split_select_multiples=False,
             )
 
-        register.extra_data = {
-            "merged_multiples": json.dumps(merged_multiples),
-            "split_multiples": json.dumps(split_multiples),
-        }
-        register.save()
+    def update_extra_data(register, merged_multiples, split_multiples):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE main_metadata
+                SET extra_data = jsonb_set(
+                    jsonb_set(
+                        COALESCE(extra_data, '{}'::jsonb),
+                        '{merged_multiples}',
+                        %s::jsonb,
+                        true
+                    ),
+                    '{split_multiples}',
+                    %s::jsonb,
+                    true
+                )
+                WHERE id = %s;
+                """,
+                [
+                    json.dumps(merged_multiples),
+                    json.dumps(split_multiples),
+                    register.pk,
+                ],
+            )
+
+    with transaction.atomic():
+        # Acquire a row-level lock to prevent race conditions
+        register = MetaData.objects.select_for_update().get(pk=register_pk)
+        merged_multiples, split_multiples = get_existing_columns(register)
+        process_and_update_columns(merged_multiples, split_multiples)
+        update_extra_data(register, merged_multiples, split_multiples)
 
 
 @transaction.atomic()
@@ -1589,7 +1632,7 @@ def register_instance_repeat_columns(instance: Instance) -> None:
     content_type = ContentType.objects.get_for_model(instance.xform)
 
     try:
-        metadata = MetaData.objects.get(
+        register = MetaData.objects.get(
             content_type=content_type,
             object_id=instance.xform.pk,
             data_type=EXPORT_COLUMNS_REGISTER,
@@ -1598,7 +1641,7 @@ def register_instance_repeat_columns(instance: Instance) -> None:
     except MetaData.DoesNotExist:
         return
 
-    _register_instance_repeat_columns(instance, metadata)
+    _register_instance_repeat_columns(instance, register.pk)
 
 
 def update_or_create_export_register(xform: XForm) -> tuple[MetaData, bool]:
@@ -1637,4 +1680,4 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs, chunksize=500):
-        _register_instance_repeat_columns(instance, register)
+        _register_instance_repeat_columns(instance, register.pk)
