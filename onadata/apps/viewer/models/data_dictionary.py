@@ -444,8 +444,8 @@ def create_or_update_export_register(sender, instance=None, created=False, **kwa
     """Create or update export columns register for the form"""
     # Avoid cyclic import by using importlib
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-    logger_tools = importlib.import_module("onadata.libs.utils.logger_tools")
-    logger_tools.update_or_create_export_register(instance)
+
+    MetaData.export_columns_register(instance)
 
     if not created:
         logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)
