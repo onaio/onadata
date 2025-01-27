@@ -1611,7 +1611,7 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
 
     :param xform: XForm object
     """
-    register = MetaData.export_columns_register(xform)
+    register = MetaData.update_or_create_export_register(xform)
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
     for instance in queryset_iterator(instance_qs, chunksize=500):

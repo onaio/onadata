@@ -584,7 +584,7 @@ class MetaData(models.Model):
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
-    def export_columns_register(content_object, data_value=None):
+    def update_or_create_export_register(content_object, data_value=None):
         """Update or create export columns register for XForm."""
         # Avoid cyclic import by using importlib
         csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
