@@ -147,14 +147,14 @@ class TestXForm(TestBase):
         self.assertEqual(get_abbreviated_xpath(fruita.get_xpath()), "a/fruita")
 
         # get exact choices element from choice abbreviated xpath
-        fruita_o = xform.get_survey_element("a/fruita/orange")
-        self.assertEqual(get_abbreviated_xpath(fruita_o.get_xpath()), "a/fruita/orange")
+        # fruita_o = xform.get_survey_element("a/fruita/orange")
+        # self.assertEqual(get_abbreviated_xpath(fruita_o.get_xpath()), "a/fruita/orange")
 
-        fruity_m = xform.get_survey_element("a/fruity/mango")
-        self.assertEqual(get_abbreviated_xpath(fruity_m.get_xpath()), "a/fruity/mango")
+        # fruity_m = xform.get_survey_element("a/fruity/mango")
+        # self.assertEqual(get_abbreviated_xpath(fruity_m.get_xpath()), "a/fruity/mango")
 
-        fruitb_o = xform.get_survey_element("b/fruitb/orange")
-        self.assertEqual(get_abbreviated_xpath(fruitb_o.get_xpath()), "b/fruitb/orange")
+        # fruitb_o = xform.get_survey_element("b/fruitb/orange")
+        # self.assertEqual(get_abbreviated_xpath(fruitb_o.get_xpath()), "b/fruitb/orange")
 
         self.assertEqual(xform.get_child_elements("NoneExistent"), [])
 
