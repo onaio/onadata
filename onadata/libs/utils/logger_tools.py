@@ -1558,6 +1558,7 @@ def _register_instance_repeat_columns(instance: Instance, register: MetaData) ->
 
         for key, value in data.items():
             # Reindex split multiples
+            # pylint: disable=protected-access
             csv_builder_module._reindex(
                 key,
                 value,
@@ -1568,6 +1569,7 @@ def _register_instance_repeat_columns(instance: Instance, register: MetaData) ->
                 split_select_multiples=True,
             )
             # Reindex merged multiples
+            # pylint: disable=protected-access
             csv_builder_module._reindex(
                 key,
                 value,
