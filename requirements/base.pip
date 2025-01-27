@@ -294,9 +294,9 @@ pytz==2024.2
     # via
     #   django-query-builder
     #   fleming
-pyxform==3.0.0
+pyxform @ git+https://github.com/onaio/pyxform.git@fix-option-parent
     # via
-    #   onadata
+    #   -r requirements/base.in
     #   pyfloip
 recaptcha-client==1.0.6
     # via onadata
