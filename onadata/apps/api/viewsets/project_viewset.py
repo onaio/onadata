@@ -74,7 +74,11 @@ class ProjectViewSet(
     """
 
     # pylint: disable=no-member
-    queryset = Project.objects.filter(deleted_at__isnull=True).select_related()
+    queryset = (
+        Project.objects.filter(deleted_at__isnull=True)
+        .order_by("-date_created")
+        .select_related()
+    )
     serializer_class = ProjectSerializer
     lookup_field = "pk"
     extra_lookup_fields = None
@@ -103,7 +107,7 @@ class ProjectViewSet(
         if self.request.method.upper() in ["GET", "OPTIONS"]:
             self.queryset = Project.prefetched.filter(
                 deleted_at__isnull=True, organization__is_active=True
-            )
+            ).order_by("-date_created")
 
         return super().get_queryset()
 

@@ -556,6 +556,149 @@ class TestProjectViewSet(TestAbstractViewSet):
             # But under Bob's account
             self.assertEqual(bob, project.organization)
 
+    def test_many_projects_are_returned_in_reverse_order_of_creation(self):
+        projects = [
+            {
+                "name": "HealthTrack",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "EduInsights",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "FoodSecure",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "WaterWatch",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "GenderEquity",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "RefugeeAid",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "ClimateResilience",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "HousingForAll",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "YouthEmpower",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+            {
+                "name": "DisasterResponse",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}",
+            },
+        ]
+
+        for project_data in projects:
+            self._project_create(project_data=project_data)
+
+        dates_created = [
+            {"year": 2019, "month": 7},
+            {"year": 2022, "month": 11},
+            {"year": 2016, "month": 3},
+            {"year": 2021, "month": 5},
+            {"year": 2018, "month": 9},
+            {"year": 2024, "month": 2},
+            {"year": 2017, "month": 12},
+            {"year": 2020, "month": 6},
+            {"year": 2015, "month": 8},
+            {"year": 2023, "month": 4},
+        ]
+
+        for date_created, project in zip(
+            dates_created,
+            Project.objects.filter(organization__username=self.user.username),
+        ):
+            new_date = datetime(
+                year=date_created["year"],
+                month=date_created["month"],
+                day=project.date_created.day,  # Preserve the original day
+                hour=project.date_created.hour,  # Preserve the original hour
+                minute=project.date_created.minute,  # Preserve the original minute
+                second=project.date_created.second,  # Preserve the original second
+            )
+            project.date_created = new_date
+            project.save()
+
+        # get all projects
+        request = self.factory.get(
+            "/",
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [
+                "2024-02",
+                "2023-04",
+                "2022-11",
+                "2021-05",
+                "2020-06",
+                "2019-07",
+                "2018-09",
+                "2017-12",
+                "2016-03",
+                "2015-08",
+            ],
+            [project["date_created"][:7] for project in response.data],
+        )
+
+        # get paginated projects(page 1)
+        request = self.factory.get(
+            "/?page=1&page_size=2",
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            ["2024-02", "2023-04"],
+            [project["date_created"][:7] for project in response.data],
+        )
+        self.assertEqual(
+            ["RefugeeAid", "DisasterResponse"],
+            [project["name"] for project in response.data],
+        )
+
+        # get paginated projects(page 4)
+        request = self.factory.get(
+            "/?page=4&page_size=2",
+            content_type="application/json",
+            **self.extra,
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.view(request)
+        self.assertEqual(
+            ["2018-09", "2017-12"],
+            [project["date_created"][:7] for project in response.data],
+        )
+        self.assertEqual(
+            ["GenderEquity", "ClimateResilience"],
+            [project["name"] for project in response.data],
+        )
+
+        # get paginated projects(page 6)
+        request = self.factory.get(
+            "/?page=6&page_size=2",
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 404)
+
     # pylint: disable=invalid-name
     def test_create_duplicate_project(self):
         """
