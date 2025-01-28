@@ -12,7 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
-from pyxform.question import Question
+from pyxform.question import Option, Question
 from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
 
@@ -85,9 +85,9 @@ def get_labels_from_columns(columns, data_dictionary, group_delimiter, language=
             if elem
             else col
         )
-        if elem is not None and elem.type == "":
+        if elem is not None and isinstance(elem, Option):
             label = group_delimiter.join([elem.parent.name, label])
-        if label == "":
+        if not label:
             label = elem.name
         labels.append(label)
 
@@ -109,7 +109,7 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
                 new_col = col.split(group_delimiter)[-1]
             else:
                 new_col = col
-        elif elem.type != "":
+        elif not isinstance(elem, Option):
             new_col = elem.name
         else:
             new_col = DEFAULT_GROUP_DELIMITER.join([elem.parent.name, elem.name])
@@ -327,14 +327,18 @@ class AbstractDataFrameBuilder:
         ]
         for e in select_multiple_elements:
             xpath = get_abbreviated_xpath(e.get_xpath())
-            choices = [
-                (
-                    get_abbreviated_xpath(c.get_xpath()),
-                    c.name,
-                    get_choice_label(c.label, data_dictionary, language),
-                )
-                for c in e.children
-            ]
+            choices = (
+                [
+                    (
+                        get_abbreviated_xpath(c.get_xpath()),
+                        c.name,
+                        get_choice_label(c.label, data_dictionary, language),
+                    )
+                    for c in e.children
+                ]
+                if e.children
+                else []
+            )
             is_choice_randomized = str_to_bool(
                 e.parameters and e.parameters.get("randomize")
             )
@@ -580,7 +584,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             item = OrderedDict()
 
             for elem in children:
-                if not question_types_to_exclude(elem.type):
+                if not (hasattr(elem, "type") and question_types_to_exclude(elem.type)):
                     abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
                     item[abbreviated_xpath] = repeat_value.get(
                         abbreviated_xpath, DEFAULT_NA_REP

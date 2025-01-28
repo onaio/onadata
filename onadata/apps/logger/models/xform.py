@@ -203,15 +203,8 @@ def check_version_set(survey):
     """
 
     # get the json and check for the version key
-    survey_json = survey.to_json_dict()
-    if not survey_json.get("version"):
-        # set utc time as the default version
-        survey_json["version"] = datetime.utcnow().strftime("%Y%m%d%H%M")
-        builder = SurveyElementBuilder()
-        if isinstance(survey_json, str):
-            survey = builder.create_survey_element_from_json(survey_json)
-        elif isinstance(survey_json, dict):
-            survey = builder.create_survey_element_from_dict(survey_json)
+    if survey.version == "":
+        survey.version = datetime.utcnow().strftime("%Y%m%d%H%M")
     return survey
 
 
@@ -413,7 +406,10 @@ class XFormMixin:
             field for field in self.get_survey_elements() if field.name == name_or_xpath
         ]
 
-        return fields[0] if fields else None
+        if fields:
+            return fields[0]
+
+        return None
 
     def get_child_elements(self, name_or_xpath, split_select_multiples=True):
         """Returns a list of survey elements children in a flat list.
@@ -430,9 +426,9 @@ class XFormMixin:
             results = []
             if elem:
                 xpath = get_abbreviated_xpath(elem.get_xpath())
-                if elem.type in group_and_select_multiples or (
-                    xpath == name_or_xpath and elem.type == "repeat"
-                ):
+                if (
+                    hasattr(elem, "type") and elem.type in group_and_select_multiples
+                ) or (xpath == name_or_xpath and elem.type == "repeat"):
                     for child in elem.children:
                         results += flatten(child)
                 else:
@@ -644,7 +640,28 @@ class XFormMixin:
             return re.sub(r"\[\d+\]", "", xpath)
 
         clean_xpath = remove_all_indices(abbreviated_xpath)
-        return self._survey_elements.get(clean_xpath)
+        element = self._survey_elements.get(clean_xpath)
+        if element is None:
+            # might be choices
+            parts = abbreviated_xpath.split("/")
+            parent_xpath = "/".join(parts[:-1])
+            choice_name = parts[-1]
+            parent = self.get_element(parent_xpath)
+            if parent and parent.type == MULTIPLE_SELECT_TYPE:
+                if not parent.children:
+                    choices = []
+                else:
+                    choices = [
+                        choice
+                        for choice in parent.children
+                        if choice.name == choice_name
+                    ]
+                if choices:
+                    element = choices[0]
+                    self._survey_elements[
+                        get_abbreviated_xpath(element.get_xpath())
+                    ] = element
+        return element
 
     def get_default_language(self):
         """Returns the default language"""
