@@ -58,17 +58,10 @@ def process_xlsform(xls, default_name):
     if xls.name.endswith("json"):
         return FloipSurvey(xls).survey.to_json_dict()
 
-    file_object = None
-
-    if xls.name.endswith("csv"):
-        if not isinstance(xls.name, InMemoryUploadedFile):
-            file_object = StringIO(xls.read().decode("utf-8"))
-
-    else:
-        # Create a copy of file. Ensures the file we are working with is
-        # not closed by pyxform else we'll get a
-        # "ValueError: seek of closed file"
-        file_object = BytesIO(xls.read())
+    # Create a copy of file. Ensures the file we are working with is
+    # not closed by pyxform else we'll get a
+    # "ValueError: seek of closed file"
+    file_object = BytesIO(xls.read())
 
     try:
         return parse_file_to_json(xls.name, file_object=file_object)

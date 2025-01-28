@@ -414,7 +414,7 @@ pytz==2024.2
     # via
     #   django-query-builder
     #   fleming
-pyxform @ git+https://github.com/onaio/pyxform.git@fix-option-parent
+pyxform @ git+https://github.com/onaio/pyxform.git@fix-osm-attribute-error
     # via
     #   -r requirements/base.in
     #   pyfloip

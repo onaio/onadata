@@ -437,7 +437,7 @@ class ExportBuilder:
         else:
             choices = [
                 get_choice_dict(
-                    get_abbreviated_xpath(c.get_xpath()),
+                    get_abbreviated_xpath("/".join([child.get_xpath(), c.name])),
                     get_choice_label(c.label, data_dicionary, language=self.language),
                 )
                 for c in child.children
@@ -653,7 +653,7 @@ class ExportBuilder:
             if osm_field and xform:
                 osm_columns = OsmData.get_tag_keys(
                     xform,
-                    osm_get_abbreviated_xpath(field.get_xpath()),
+                    get_abbreviated_xpath(osm_field.get_xpath()),
                     include_prefix=True,
                 )
             return osm_columns
@@ -1272,6 +1272,8 @@ class ExportBuilder:
                     return is_all_numeric(choices)
                 if element and isinstance(element, Option) and value_select_multiples:
                     return is_all_numeric([element.name])
+                if not element:
+                    return False
 
                 parent_xpath = "/".join(xpath.split("/")[:-1])
                 parent = data_dictionary.get_element(parent_xpath)
