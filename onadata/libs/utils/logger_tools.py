@@ -4,6 +4,7 @@
 logger_tools - Logger app utility functions.
 """
 
+import importlib
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ import re
 import sys
 import tempfile
 from builtins import str as text
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from hashlib import sha256
 from http.client import BadStatusLine
@@ -29,7 +31,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.files.storage import get_storage_class
-from django.db import DataError, IntegrityError, connection, transaction
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
 from django.http import (
@@ -109,7 +111,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     set_cache_with_lock,
 )
-from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER, METADATA_FIELDS
+from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1524,105 +1526,93 @@ def delete_xform_submissions(
     )
 
 
-def _get_instance_repeat_max(instance: Instance) -> dict[str, int]:
-    """Get the maximum number of occurrences for each repeat group
-
-    :param instance: Instance object
-    :return: Dictionary of repeat counts
-    """
-    repeat_max = {}
-    instance_json = instance.get_dict()
-
-    def _get_repeat_max(data):
-        for key, value in data.items():
-            if isinstance(value, list):
-                repeat_name = key.split("/")[-1]
-                repeat_max[repeat_name] = max(
-                    len(value), repeat_max.get(repeat_name, 0)
-                )
-
-                for item in value:
-                    if isinstance(item, dict):
-                        _get_repeat_max(item)
-
-    _get_repeat_max(instance_json)
-
-    return repeat_max
-
-
-def _update_export_repeat_register(instance: Instance, metadata: MetaData) -> None:
-    """Update the export repeat register:
+def _register_instance_repeat_columns(instance: Instance, register: MetaData) -> None:
+    """Add Instance repeat columns to the export columns register
 
     :param instance: Instance object
     :param metadata: MetaData object that stores the export repeat register
     """
-    repeat_max = _get_instance_repeat_max(instance)
+    # Avoid cyclic import by using importlib
+    csv_builder_module = importlib.import_module("onadata.libs.utils.csv_builder")
 
-    for repeat, incoming_max in repeat_max.items():
-        # Get the maximum between incoming max and the current max
-        # Done at database level to gurantee atomicity and
-        # consistency. Avoids race conditions if it were done at the
-        # application level
+    with transaction.atomic():
+        # We use select_for_update to acquire a row-level lock
+        # Only one process updates it at a time. This prevents race conditions
+        # and updates extra_data atomically
+        register = MetaData.objects.select_for_update().get(pk=register.pk)
+        merged_multiples = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        xform = instance.xform
+        csv_builder_module = csv_builder_module.CSVDataFrameBuilder(
+            xform=xform, username=xform.user.username, id_string=xform.id_string
+        )
+        data = instance.get_full_dict()
+        changes = {
+            "merged_multiples": merged_multiples,
+            "split_multiples": split_multiples,
+        }
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE main_metadata
-                SET extra_data = jsonb_set(
-                    COALESCE(extra_data, '{}'::jsonb),
-                    %s,
-                    GREATEST(
-                        COALESCE((extra_data->>%s)::int, 0),
-                        %s
-                    )::text::jsonb,
-                    true
-                )
-                WHERE id = %s
-                """,
-                [
-                    [repeat],
-                    repeat,
-                    incoming_max,
-                    metadata.pk,
-                ],
+        for key, value in data.items():
+            # Reindex split multiples
+            # pylint: disable=protected-access
+            csv_builder_module._reindex(
+                key,
+                value,
+                changes["split_multiples"],
+                data,
+                xform,
+                include_images=[],
+                split_select_multiples=True,
             )
+            # Reindex merged multiples
+            # pylint: disable=protected-access
+            csv_builder_module._reindex(
+                key,
+                value,
+                changes["merged_multiples"],
+                data,
+                xform,
+                include_images=[],
+                split_select_multiples=False,
+            )
+
+        register.extra_data = {key: json.dumps(value) for key, value in changes.items()}
+        register.save()
 
 
 @transaction.atomic()
-def register_instance_export_repeats(instance: Instance) -> None:
-    """Register an Instance's repeats for export
+def register_instance_repeat_columns(instance: Instance) -> None:
+    """Add an Instance repeat columns to the export columns register
 
     :param instance: Instance object
     """
     content_type = ContentType.objects.get_for_model(instance.xform)
 
     try:
-        metadata = MetaData.objects.get(
+        register = MetaData.objects.get(
             content_type=content_type,
             object_id=instance.xform.pk,
-            data_type=EXPORT_REPEAT_REGISTER,
+            data_type=EXPORT_COLUMNS_REGISTER,
         )
 
     except MetaData.DoesNotExist:
         return
 
-    _update_export_repeat_register(instance, metadata)
+    _register_instance_repeat_columns(instance, register)
 
 
 @transaction.atomic()
-def register_xform_export_repeats(xform: XForm) -> None:
-    """Register a XForm's Instances repeats for export
+def reconstruct_xform_export_register(xform: XForm) -> None:
+    """Reconstruct the export columns register for an XForm
 
     :param xform: XForm object
     """
-    content_type = ContentType.objects.get_for_model(xform)
-    metadata, _ = MetaData.objects.get_or_create(
-        content_type=content_type,
-        object_id=xform.pk,
-        data_type=EXPORT_REPEAT_REGISTER,
-        defaults={"data_value": ""},
-    )
+    register = MetaData.update_or_create_export_register(xform)
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
-    for instance in queryset_iterator(instance_qs):
-        _update_export_repeat_register(instance, metadata)
+    for instance in queryset_iterator(instance_qs, chunksize=500):
+        _register_instance_repeat_columns(instance, register)

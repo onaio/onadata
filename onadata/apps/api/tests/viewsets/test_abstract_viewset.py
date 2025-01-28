@@ -47,7 +47,7 @@ from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import create_export_repeat_register
+from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 
@@ -139,15 +139,15 @@ class TestAbstractViewSet(TestBase, TestCase):
         self.maxDiff = None
         # Disable signals
         post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+            sender=DataDictionary, dispatch_uid="create_or_update_export_register"
         )
 
     def tearDown(self):
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
-            dispatch_uid="create_export_repeat_register",
-            receiver=create_export_repeat_register,
+            dispatch_uid="create_or_update_export_register",
+            receiver=create_or_update_export_register,
         )
 
         TestCase.tearDown(self)

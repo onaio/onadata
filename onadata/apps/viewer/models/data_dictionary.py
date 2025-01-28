@@ -35,7 +35,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
-from onadata.libs.utils.common_tags import EXPORT_REPEAT_REGISTER
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -441,19 +440,19 @@ post_save.connect(
 )
 
 
-def create_export_repeat_register(sender, instance=None, created=False, **kwargs):
-    """Create export repeat register for the form"""
-    if created:
-        MetaData.objects.create(
-            content_type=ContentType.objects.get_for_model(instance),
-            object_id=instance.pk,
-            data_type=EXPORT_REPEAT_REGISTER,
-            data_value="",
-        )
+def create_or_update_export_register(sender, instance=None, created=False, **kwargs):
+    """Create or update export columns register for the form"""
+    # Avoid cyclic import by using importlib
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
+    MetaData.update_or_create_export_register(instance)
+
+    if not created:
+        logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)
 
 
 post_save.connect(
-    create_export_repeat_register,
+    create_or_update_export_register,
     sender=DataDictionary,
-    dispatch_uid="create_export_repeat_register",
+    dispatch_uid="create_or_update_export_register",
 )

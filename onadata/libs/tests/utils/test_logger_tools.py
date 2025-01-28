@@ -3,8 +3,10 @@
 Test logger_tools utility functions.
 """
 
+import json
 import os
 import re
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import BytesIO
 from unittest.mock import Mock, call, patch
@@ -44,8 +46,8 @@ from onadata.libs.utils.logger_tools import (
     generate_content_disposition_header,
     get_first_record,
     inc_elist_num_entities,
-    register_instance_export_repeats,
-    register_xform_export_repeats,
+    reconstruct_xform_export_register,
+    register_instance_repeat_columns,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1159,14 +1161,16 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
 
-class RegisterInstanceExportRepeatsTestCase(TestBase):
-    """Tests for method `register_instance_export_repeats`"""
+class RegisterInstanceRepeatColumnsTestCase(TestBase):
+    """Tests for method `register_instance_repeat_columns`"""
 
     def setUp(self):
         super().setUp()
 
         # Disable signals
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        post_save.disconnect(
+            sender=Instance, dispatch_uid="register_instance_repeat_columns"
+        )
 
         self.project = get_user_default_project(self.user)
         md = """
@@ -1216,105 +1220,196 @@ class RegisterInstanceExportRepeatsTestCase(TestBase):
             xml=self.xml, user=self.user, xform=self.xform
         )
         self.register = MetaData.objects.get(
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
         )
 
-    def test_repeat_register_not_found(self):
-        """Nothing happens if export repeat register is not found"""
-        self.register.delete()
-        register_instance_export_repeats(self.instance)
+    def test_columns_added(self):
+        """Incoming columns are added to the register"""
+        merged_multiples = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        # Before Instance repeat columns are added
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+        self.assertEqual(merged_multiples, expected_columns)
+        self.assertEqual(split_multiples, expected_columns)
 
-        exists = MetaData.objects.filter(data_type="export_repeat_register").exists()
+        register_instance_repeat_columns(self.instance)
+
+        # After Instance repeat columns are added
+        self.register.refresh_from_db()
+        merged_multiples = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(merged_multiples, expected_columns)
+        self.assertEqual(split_multiples, expected_columns)
+
+    def test_register_not_found(self):
+        """Nothing happens if export columns register is not found"""
+        self.register.delete()
+        register_instance_repeat_columns(self.instance)
+
+        exists = MetaData.objects.filter(data_type="export_columns_register").exists()
         self.assertFalse(exists)
 
-    def test_incoming_repeat_max_greater(self):
-        """Repeat count is incremented if incoming repeat count is greater"""
-        self.register.extra_data = {
-            "hospital_repeat": 1,
-            "child_repeat": 1,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
-
-    def test_incoming_repeat_max_less(self):
-        """Repeat count is unchanged if incoming repeat count is less"""
-        self.register.extra_data = {
-            "hospital_repeat": 3,
-            "child_repeat": 3,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-        # repeat counts remain unchanged
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 3)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 3)
-
-    def test_incoming_repeat_max_equal(self):
-        """Repeat count is unchanged if incoming repeat count is equal"""
-        self.register.extra_data = {
-            "hospital_repeat": 2,
-            "child_repeat": 2,
-        }
-        self.register.save()
-        register_instance_export_repeats(self.instance)
-
-        self.register.refresh_from_db()
-        # repeat counts remain unchanged
-        self.assertEqual(self.register.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(self.register.extra_data.get("child_repeat"), 2)
-
-    def test_no_repeats(self):
-        """No change in register if no repeats are found in the instance"""
+    def test_select_multiples(self):
+        """Columns for a form with select multiples are added"""
         md = """
         | survey |
-        |        | type         | name            | label               |
-        |        | text         | hospital        | Name of hospital    |
-        | settings|             |                 |                     |
-        |         | form_title  | form_id         |                     |
-        |         | Births      | births          |                     |
+        |        | type                     | name         | label        |
+        |        | text                     | name         | Name         |
+        |        | integer                  | age          | Age          |
+        |        | begin repeat             | browser_use  | Browser Use  |
+        |        | integer                  | year         | Year         |
+        |        | select_multiple browsers | browsers     | Browsers     |
+        |        | end repeat               |              |              |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
         """
         xform = self._publish_markdown(
-            md, self.user, self.project, id_string="no-repeats"
+            md, self.user, self.project, id_string="browser_use"
         )
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=xform.pk,
+            content_type=ContentType.objects.get_for_model(xform),
+        )
+        # Before Instance repeat columns are added
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        expected_columns = OrderedDict(
+            [
+                ("name", None),
+                ("age", None),
+                ("browser_use", []),
+                ("meta/instanceID", None),
+            ]
+        )
+
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
+
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
             '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
             f"<formhub><uuid>{xform.uuid}</uuid></formhub>"
-            "<hospital>Aga Khan</hospital>"
+            "<name>John Doe</name>"
+            "<age>25</age>"
+            "<browser_use>"
+            "<year>2021</year>"
+            "<browsers>firefox chrome</browsers>"
+            "</browser_use>"
             "<meta>"
-            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceID>uuid:cea7954a-60d5-4f40-b844-080733a74a34</instanceID>"
             "</meta>"
             "</data>"
         )
         instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
-        register = MetaData.objects.get(
-            content_type=ContentType.objects.get_for_model(xform),
-            object_id=self.xform.id,
-            data_type="export_repeat_register",
+
+        register_instance_repeat_columns(instance)
+
+        # After Instance repeat columns are added
+        register.refresh_from_db()
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
         )
 
-        register_instance_export_repeats(instance)
-        register.refresh_from_db()
+        self.assertEqual(
+            split_multiples_columns,
+            OrderedDict(
+                [
+                    ("name", None),
+                    ("age", None),
+                    (
+                        "browser_use",
+                        [
+                            "browser_use[1]/year",
+                            "browser_use[1]/browsers/firefox",
+                            "browser_use[1]/browsers/chrome",
+                            "browser_use[1]/browsers/ie",
+                            "browser_use[1]/browsers/safari",
+                        ],
+                    ),
+                    ("meta/instanceID", None),
+                ]
+            ),
+        )
+        self.assertEqual(
+            merged_multiples_columns,
+            OrderedDict(
+                [
+                    ("name", None),
+                    ("age", None),
+                    ("browser_use", ["browser_use[1]/year", "browser_use[1]/browsers"]),
+                    ("meta/instanceID", None),
+                ]
+            ),
+        )
 
-        self.assertEqual(register.extra_data, {})
 
-
-class RegisterXFormExportRepeatsTestCase(TestBase):
-    """Tests for method `register_xform_export_repeats`"""
+class ReconstructXFormExportRegisterTestCase(TestBase):
+    """Tests for method `reconstruct_xform_export_register`"""
 
     def setUp(self):
         super().setUp()
 
         # Disable signals
-        post_save.disconnect(sender=Instance, dispatch_uid="register_export_repeats")
+        post_save.disconnect(
+            sender=Instance, dispatch_uid="register_instance_repeat_columns"
+        )
 
         self.project = get_user_default_project(self.user)
         md = """
@@ -1364,17 +1459,91 @@ class RegisterXFormExportRepeatsTestCase(TestBase):
             xml=xml, user=self.user, xform=self.xform
         )
         self.register = MetaData.objects.get(
-            data_type="export_repeat_register",
+            data_type="export_columns_register",
             object_id=self.xform.pk,
             content_type=ContentType.objects.get_for_model(self.xform),
+        )
+        self.expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    ["hospital_repeat[1]/hospital", "hospital_repeat[2]/hospital"],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [
+                        "hospital_repeat[1]/child_repeat[1]/name",
+                        "hospital_repeat[1]/child_repeat[1]/birthweight",
+                        "hospital_repeat[1]/child_repeat[2]/name",
+                        "hospital_repeat[1]/child_repeat[2]/birthweight",
+                        "hospital_repeat[2]/child_repeat[1]/name",
+                        "hospital_repeat[2]/child_repeat[1]/birthweight",
+                    ],
+                ),
+                ("meta/instanceID", None),
+            ]
         )
 
     def test_register(self):
         """Repeats from all instances are registered"""
-        self.assertEqual(self.register.extra_data, {})
+        merged_multiples_columns = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+        # Before reconstructing export columns register
+        expected_columns = OrderedDict(
+            [
+                (
+                    "hospital_repeat",
+                    [],
+                ),
+                (
+                    "hospital_repeat/child_repeat",
+                    [],
+                ),
+                ("meta/instanceID", None),
+            ]
+        )
 
-        register_xform_export_repeats(self.xform)
+        self.assertEqual(merged_multiples_columns, expected_columns)
+        self.assertEqual(split_multiples_columns, expected_columns)
 
-        metadata = MetaData.objects.get(data_type="export_repeat_register")
-        self.assertEqual(metadata.extra_data.get("hospital_repeat"), 2)
-        self.assertEqual(metadata.extra_data.get("child_repeat"), 2)
+        reconstruct_xform_export_register(self.xform)
+
+        # After reconstructing register
+        self.register.refresh_from_db()
+        merged_multiples_columns = json.loads(
+            self.register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            self.register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+
+        self.assertEqual(merged_multiples_columns, self.expected_columns)
+        self.assertEqual(split_multiples_columns, self.expected_columns)
+
+    def test_register_not_found(self):
+        """Register is created if not found"""
+        self.register.delete()
+        reconstruct_xform_export_register(self.xform)
+
+        exists = MetaData.objects.filter(data_type="export_columns_register").exists()
+
+        self.assertTrue(exists)
+
+        register = MetaData.objects.get(
+            data_type="export_columns_register",
+            object_id=self.xform.pk,
+            content_type=ContentType.objects.get_for_model(self.xform),
+        )
+        merged_multiples_columns = json.loads(
+            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+        )
+        split_multiples_columns = json.loads(
+            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+        )
+
+        self.assertEqual(merged_multiples_columns, self.expected_columns)
+        self.assertEqual(split_multiples_columns, self.expected_columns)

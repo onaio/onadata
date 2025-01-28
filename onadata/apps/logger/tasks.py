@@ -17,8 +17,8 @@ from onadata.libs.utils.logger_tools import (
     commit_cached_elist_num_entities,
     dec_elist_num_entities,
     inc_elist_num_entities,
-    register_instance_export_repeats,
-    register_xform_export_repeats,
+    reconstruct_xform_export_register,
+    register_instance_repeat_columns,
     soft_delete_entities_bulk,
 )
 from onadata.libs.utils.project_utils import set_project_perms_to_object
@@ -116,8 +116,8 @@ def dec_elist_num_entities_async(elist_pk: int) -> None:
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def register_instance_export_repeats_async(instance_pk: int) -> None:
-    """Register export repeats asynchronously
+def register_instance_repeat_columns_async(instance_pk: int) -> None:
+    """Register Instance repeat columns asynchronously
 
     :param instance_pk: Primary key for Instance
     """
@@ -128,12 +128,12 @@ def register_instance_export_repeats_async(instance_pk: int) -> None:
         logger.exception(exc)
 
     else:
-        register_instance_export_repeats(instance)
+        register_instance_repeat_columns(instance)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def register_xform_export_repeats_async(xform_id: int) -> None:
-    """Register export repeats for an XForm asynchronously
+def reconstruct_xform_export_register_async(xform_id: int) -> None:
+    """Register a XForm's Instances export columns asynchronously
 
     :param xform_id: Primary key for XForm
     """
@@ -144,4 +144,4 @@ def register_xform_export_repeats_async(xform_id: int) -> None:
         logger.exception(exc)
 
     else:
-        register_xform_export_repeats(xform)
+        reconstruct_xform_export_register(xform)

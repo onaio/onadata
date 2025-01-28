@@ -6,9 +6,12 @@ MetaData model
 from __future__ import unicode_literals
 
 import hashlib
+import importlib
+import json
 import logging
 import mimetypes
 import os
+from collections import OrderedDict
 from contextlib import closing
 
 from django.conf import settings
@@ -30,6 +33,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
+    EXPORT_COLUMNS_REGISTER,
     GOOGLE_SHEET_DATA_TYPE,
     TEXTIT,
     TEXTIT_DETAILS,
@@ -96,13 +100,22 @@ def get_default_content_type():
     return content_object.id
 
 
-def unique_type_for_form(content_object, data_type, data_value=None, data_file=None):
+def unique_type_for_form(
+    content_object, data_type, data_value=None, data_file=None, extra_data=None
+):
     """
     Ensure that each metadata object has unique xform and data_type fields
 
     return the metadata object
     """
-    defaults = {"data_value": data_value} if data_value else {}
+    defaults = {}
+
+    if data_value:
+        defaults["data_value"] = data_value
+
+    if extra_data:
+        defaults["extra_data"] = extra_data
+
     content_type = ContentType.objects.get_for_model(content_object)
 
     if data_value is None and data_file is None:
@@ -111,7 +124,7 @@ def unique_type_for_form(content_object, data_type, data_value=None, data_file=N
             object_id=content_object.id, content_type=content_type, data_type=data_type
         ).first()
     else:
-        result, _created = MetaData.objects.update_or_create(
+        result, _ = MetaData.objects.update_or_create(
             object_id=content_object.id,
             content_type=content_type,
             data_type=data_type,
@@ -569,6 +582,27 @@ class MetaData(models.Model):
         """
         data_type = "imported_via_csv_by"
         return unique_type_for_form(content_object, data_type, data_value)
+
+    @staticmethod
+    def update_or_create_export_register(content_object, data_value=None):
+        """Update or create export columns register for XForm."""
+        # Avoid cyclic import by using importlib
+        csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
+        ordered_columns = OrderedDict()
+        # pylint: disable=protected-access
+        csv_builder.CSVDataFrameBuilder._build_ordered_columns(
+            content_object._get_survey(), ordered_columns
+        )
+        serialized_columns = json.dumps(ordered_columns)
+        data_type = EXPORT_COLUMNS_REGISTER
+        extra_data = {
+            "merged_multiples": serialized_columns,
+            "split_multiples": serialized_columns,
+        }
+        data_value = "" if data_value is None else data_value
+        return unique_type_for_form(
+            content_object, data_type, data_value=data_value, extra_data=extra_data
+        )
 
 
 # pylint: disable=unused-argument,invalid-name

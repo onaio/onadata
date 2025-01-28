@@ -4,8 +4,10 @@ Test CSVDataFrameBuilder
 """
 
 import csv
+import json
 import os
 from builtins import chr, open
+from collections import OrderedDict
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
@@ -21,7 +23,7 @@ from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import create_export_repeat_register
+from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.utils.common_tags import NA_REP
 from onadata.libs.utils.csv_builder import (
     AbstractDataFrameBuilder,
@@ -68,16 +70,24 @@ class TestCSVDataFrameBuilder(TestBase):
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
         # Disable signals
         post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_export_repeat_register"
+            sender=DataDictionary, dispatch_uid="create_or_update_export_register"
         )
+        # Patch and start the mock
+        self.patcher = patch(
+            "onadata.libs.utils.csv_builder.reconstruct_xform_export_register_async.delay",
+            autospec=True,
+        )
+        self.mock_register = self.patcher.start()
 
     def tearDown(self):
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
-            dispatch_uid="create_export_repeat_register",
-            receiver=create_export_repeat_register,
+            dispatch_uid="create_or_update_export_register",
+            receiver=create_or_update_export_register,
         )
+        # Stop the mock
+        self.patcher.stop()
 
         super().tearDown()
 
@@ -120,6 +130,83 @@ class TestCSVDataFrameBuilder(TestBase):
         # pylint: disable=attribute-defined-outside-init
         self.survey_name = "grouped_gps"
 
+    def _publish_select_multiples_grouped_repeating(self):
+        md = """
+        | survey |
+        |        | type                     | name         | label        |
+        |        | text                     | name         | Name         |
+        |        | integer                  | age          | Age          |
+        |        | begin repeat             | browser_use  | Browser Use  |
+        |        | integer                  | year         | Year         |
+        |        | select_multiple browsers | browsers     | Browsers     |
+        |        | end repeat               |              |              |
+
+        | choices |
+        |         | list name | name    | label             |
+        |         | browsers  | firefox | Firefox           |
+        |         | browsers  | chrome  | Chrome            |
+        |         | browsers  | ie      | Internet Explorer |
+        |         | browsers  | safari  | Safari            |
+        """
+        xform = self._publish_markdown(md, self.user, id_string="browser_use")
+        return xform
+
+    def _register_select_multiples_grouped_repeating(self, xform):
+        MetaData.objects.create(
+            content_type=ContentType.objects.get_for_model(xform),
+            object_id=xform.pk,
+            data_type="export_columns_register",
+            data_value="",
+            extra_data={
+                "merged_multiples": json.dumps(
+                    OrderedDict(
+                        [
+                            ("name", None),
+                            ("age", None),
+                            (
+                                "browser_use",
+                                ["browser_use[1]/year", "browser_use[1]/browsers"],
+                            ),
+                            ("meta/instanceID", None),
+                        ]
+                    )
+                ),
+                "split_multiples": json.dumps(
+                    OrderedDict(
+                        [
+                            ("name", None),
+                            ("age", None),
+                            (
+                                "browser_use",
+                                [
+                                    "browser_use[1]/year",
+                                    "browser_use[1]/browsers/firefox",
+                                    "browser_use[1]/browsers/chrome",
+                                    "browser_use[1]/browsers/ie",
+                                    "browser_use[1]/browsers/safari",
+                                ],
+                            ),
+                            ("meta/instanceID", None),
+                        ]
+                    )
+                ),
+            },
+        )
+        cursor = [
+            {
+                "name": "Tom",
+                "age": 23,
+                "browser_use": [
+                    {
+                        "browser_use/year": "2010",
+                        "browser_use/browsers": "firefox safari",
+                    },
+                ],
+            }
+        ]
+
+        return cursor
+
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False
@@ -129,8 +216,7 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         return [d for d in csv_df_builder._format_for_dataframe(cursor)]
 
-    @patch("onadata.libs.utils.csv_builder.register_xform_export_repeats_async.delay")
-    def test_csv_dataframe_export_to(self, mock_register_repeats):
+    def test_csv_dataframe_export_to(self):
         """
         Test CSVDataFrameBuilder.export_to().
         """
@@ -160,8 +246,6 @@ class TestCSVDataFrameBuilder(TestBase):
         with open(temp_file.name) as csv_file:
             self._test_csv_files(csv_file, csv_fixture_path)
         os.unlink(temp_file.name)
-        # Repeat register is created for future use
-        mock_register_repeats.assert_called()
 
     # pylint: disable=invalid-name
     def test_csv_columns_for_gps_within_groups(self):
@@ -2167,8 +2251,129 @@ class TestCSVDataFrameBuilder(TestBase):
             header = next(csv_reader)
             self.assertEqual(header, ["age", extra_col])
 
-    def test_registered_repeats(self):
-        """Registered repeats are used to generate export"""
+    def test_export_register_split_multiples(self):
+        """Export register works with split multiples"""
+        xform = self._publish_select_multiples_grouped_repeating()
+        cursor = self._register_select_multiples_grouped_repeating(xform)
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "age",
+            "browser_use[1]/year",
+            "browser_use[1]/browsers/firefox",
+            "browser_use[1]/browsers/chrome",
+            "browser_use[1]/browsers/ie",
+            "browser_use[1]/browsers/safari",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertCountEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Tom",
+            "23",
+            "2010",
+            "True",
+            "False",
+            "False",
+            "True",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertEqual(row, expected_row)
+        csv_file.close()
+
+    def test_export_register_merged_multiples(self):
+        """Export register works with merged multiples"""
+        xform = self._publish_select_multiples_grouped_repeating()
+        cursor = self._register_select_multiples_grouped_repeating(xform)
+        builder = CSVDataFrameBuilder(
+            self.user.username,
+            xform.id_string,
+            include_images=False,
+            split_select_multiples=False,
+        )
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        builder.export_to(temp_file.name, cursor)
+        csv_file = open(temp_file.name, "r")
+        csv_reader = csv.reader(csv_file)
+        header = next(csv_reader)
+        expected_header = [
+            "name",
+            "age",
+            "browser_use[1]/year",
+            "browser_use[1]/browsers",
+            "meta/instanceID",
+            "_id",
+            "_uuid",
+            "_submission_time",
+            "_date_modified",
+            "_tags",
+            "_notes",
+            "_version",
+            "_duration",
+            "_submitted_by",
+            "_total_media",
+            "_media_count",
+            "_media_all_received",
+        ]
+        self.assertCountEqual(header, expected_header)
+        row = next(csv_reader)
+        expected_row = [
+            "Tom",
+            "23",
+            "2010",
+            "firefox safari",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+            "n/a",
+        ]
+        self.assertCountEqual(row, expected_row)
+        csv_file.close()
+
+    def test_export_columns_register_missing(self):
+        """Export columns register not found"""
         md_xform = """
         | survey  |
         |         | type          | name            | label         |
@@ -2219,17 +2424,14 @@ class TestCSVDataFrameBuilder(TestBase):
             }
         ]
         content_type = ContentType.objects.get_for_model(xform)
-        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
-        MetaData.objects.create(
+        exists = MetaData.objects.filter(
             content_type=content_type,
             object_id=xform.pk,
-            data_type="export_repeat_register",
-            data_value="",
-            extra_data={
-                "hospital_repeat": 2,
-                "child_repeat": 2,
-            },
-        )
+            data_type="export_columns_register",
+        ).exists()
+        # Confirm register is not found
+        self.assertFalse(exists)
+
         builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
@@ -2252,9 +2454,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "hospital_repeat[2]/child_repeat[1]/name",
             "hospital_repeat[2]/child_repeat[1]/birthweight",
             "hospital_repeat[2]/child_repeat[1]/sex",
-            "hospital_repeat[2]/child_repeat[2]/name",
-            "hospital_repeat[2]/child_repeat[2]/birthweight",
-            "hospital_repeat[2]/child_repeat[2]/sex",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2296,115 +2495,8 @@ class TestCSVDataFrameBuilder(TestBase):
             "n/a",
             "n/a",
             "n/a",
-            "n/a",
-            "n/a",
-            "n/a",
         ]
         self.assertEqual(row, expected_row)
         csv_file.close()
-
-    def test_repeat_not_found_in_register(self):
-        """Repeat not found in register"""
-        md_xform = """
-        | survey  |
-        |         | type          | name            | label         |
-        |         | begin repeat  | hospital_repeat |               |
-        |         | text          | hospital        | Hospital Name |
-        |         | begin repeat  | child_repeat    |               |
-        |         | text          | name            | Child Name    |
-        |         | decimal       | birthweight     | Birth Weight  |
-        |         | select_one male_female | sex    | Child sex     |
-        |         | end repeat    |                 |               |
-        |         | end repeat    |                 |               |
-        | choices |               |                 |               |
-        |         | list name     | name            | label         |
-        |         | male_female   | male            | Male          |
-        |         | male_female   | female          | Female        |
-        """
-        self._publish_markdown(md_xform, self.user, id_string="nested_repeats")
-        xform = XForm.objects.get(user=self.user, id_string="nested_repeats")
-        cursor = [
-            {
-                "hospital_repeat": [
-                    {
-                        "hospital_repeat/hospital": "Aga Khan",
-                        "hospital_repeat/child_repeat": [
-                            {
-                                "hospital_repeat/child_repeat/sex": "male",
-                                "hospital_repeat/child_repeat/name": "Zakayo",
-                                "hospital_repeat/child_repeat/birthweight": 3.3,
-                            },
-                            {
-                                "hospital_repeat/child_repeat/sex": "female",
-                                "hospital_repeat/child_repeat/name": "Melania",
-                                "hospital_repeat/child_repeat/birthweight": 3.5,
-                            },
-                        ],
-                    },
-                    {
-                        "hospital_repeat/hospital": "Mama Lucy",
-                        "hospital_repeat/child_repeat": [
-                            {
-                                "hospital_repeat/child_repeat/sex": "female",
-                                "hospital_repeat/child_repeat/name": "Winnie",
-                                "hospital_repeat/child_repeat/birthweight": 3.1,
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-        content_type = ContentType.objects.get_for_model(xform)
-        # Simulate registered repeats (Repeats are normally registered from incoming submissions)
-        metadata = MetaData.objects.create(
-            content_type=content_type,
-            object_id=xform.pk,
-            data_type="export_repeat_register",
-            data_value="",
-            extra_data={
-                "hospital_repeat": 2,  # nested child_repeat not registered
-            },
-        )
-        builder = CSVDataFrameBuilder(
-            self.user.username,
-            xform.id_string,
-            include_images=False,
-        )
-        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        builder.export_to(temp_file.name, cursor)
-        csv_file = open(temp_file.name, "r")
-        csv_reader = csv.reader(csv_file)
-        header = next(csv_reader)
-        expected_header = [
-            "hospital_repeat[1]/hospital",
-            "hospital_repeat[2]/hospital",
-            "meta/instanceID",
-            "_id",
-            "_uuid",
-            "_submission_time",
-            "_date_modified",
-            "_tags",
-            "_notes",
-            "_version",
-            "_duration",
-            "_submitted_by",
-            "_total_media",
-            "_media_count",
-            "_media_all_received",
-        ]
-        self.assertCountEqual(header, expected_header)
-        # Parent repeat not registered
-        metadata.extra_data = {"child_repeat": 2}
-        metadata.save
-        builder = CSVDataFrameBuilder(
-            self.user.username,
-            xform.id_string,
-            include_images=False,
-        )
-        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        builder.export_to(temp_file.name, cursor)
-        csv_file = open(temp_file.name, "r")
-        csv_reader = csv.reader(csv_file)
-        header = next(csv_reader)
-        self.assertCountEqual(header, expected_header)
-        csv_file.close()
+        # Columns registered for future use
+        self.mock_register.assert_called_once_with(xform.pk)

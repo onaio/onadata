@@ -67,7 +67,7 @@ class TestFormMetadata(TestBase):
         else:
             self.doc = (
                 MetaData.objects.all()
-                .exclude(data_type="export_repeat_register")
+                .exclude(data_type="export_columns_register")
                 .reverse()[0]
             )
             self.doc_url = reverse(
