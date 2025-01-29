@@ -15,7 +15,7 @@ services:
     volumes:
       - ./:/srv/onadata
       - ../savreaderwriter:/srv/onadata/src/savreaderwriter
-      - ./onadata/apps/api/static/docs:/srv/onadata/onadata/apps/api/static/docs
+      - ./static/docs:/srv/onadata/onadata/apps/api/static/docs
       - ../pricing:/srv/onadata/src/pricing
       - ../ona-oidc:/srv/onadata/src/ona-oidc
     ports:
