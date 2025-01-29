@@ -19,8 +19,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one,
-)
+    get_form_submissions_grouped_by_select_one)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -103,11 +102,11 @@ def get_field_choices(field, xform):
     choices = xform.survey.get("choices")
 
     if isinstance(field, str):
-        choices = choices.get(field)
-    elif "name" in field and field.name in choices:
-        choices = choices.get(field.name)
-    elif "itemset" in field:
-        choices = choices.get(field.itemset)
+        return choices.get(field)
+    if hasattr(field, "name") and field.name in choices:
+        return choices.get(field.name)
+    if hasattr(field, "itemset"):
+        return choices.get(field.itemset)
 
     return choices
 
@@ -175,7 +174,7 @@ def _use_labels_from_field_name(field_name, field, data_type, data, choices=None
 
     if data_type == "categorized" and field_name != common_tags.SUBMITTED_BY:
         if data:
-            if field.children:
+            if hasattr(field, 'children'):
                 choices = field.children
 
             for item in data:
@@ -416,10 +415,9 @@ def _get_field_from_field_fn(field_str, xform, field_fn):
         field = common_tags.DURATION
     else:
         # use specified field to get summary
-        fields = [e for e in xform.survey_elements if field_fn(e) == field_str]
-        if len(fields) == 0:
+        field = xform.get_survey_element(field_str)
+        if not field:
             raise Http404(f"Field {field_str} does not not exist on the form")
-        field = fields[0]
     return field
 
 

@@ -2,22 +2,24 @@
 """
 OpenData tests.
 """
+import json
 import os
 import sys
-import json
 from re import search
-from django.test import RequestFactory
 from tempfile import NamedTemporaryFile
-from django.utils.dateparse import parse_datetime
+
+from django.test import RequestFactory
 from django.test.utils import override_settings
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models.open_data import get_or_create_opendata
+from django.utils.dateparse import parse_datetime
+
 from onadata.apps.api.viewsets.v2.tableau_viewset import (
     TableauViewSet,
-    unpack_select_multiple_data,
-    unpack_gps_data,
     clean_xform_headers,
+    unpack_gps_data,
+    unpack_select_multiple_data,
 )
+from onadata.apps.logger.models.open_data import get_or_create_opendata
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.renderers.renderers import pairing
 
 
