@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Functionality to transfer a project from one owner to another."""
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from onadata.apps.logger.models import Project, XForm, DataView, MergedXForm
+from onadata.apps.logger.models import DataView, MergedXForm, Project, XForm
 from onadata.apps.logger.models.project import (
     set_object_permissions as set_project_permissions,
 )
@@ -127,8 +128,8 @@ class Command(BaseCommand):
             project.created_by = to_user
             project.save()
 
+            set_project_permissions(Project, project, created=True)
             self.update_xform_with_new_user(project, to_user)
             self.update_merged_xform(project, to_user)
-            set_project_permissions(Project, project, created=True)
 
         self.stdout.write("Projects transferred successfully")
