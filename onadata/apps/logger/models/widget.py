@@ -5,10 +5,11 @@ Widget class module.
 
 from builtins import str as text
 
-from django.db.models import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
+from django.db.models import JSONField
+
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
@@ -88,8 +89,8 @@ class Widget(OrderedModel):
             field_type = "datetime"
             data_type = DATA_TYPE_MAP.get(field_type, "categorized")
         else:
-            field_type = field.type
-            data_type = DATA_TYPE_MAP.get(field.type, "categorized")
+            field_type = field.type if hasattr(field, "type") else ""
+            data_type = DATA_TYPE_MAP.get(field_type, "categorized")
             field_xpath = get_abbreviated_xpath(field.get_xpath())
             field_label = get_field_label(field)
 
