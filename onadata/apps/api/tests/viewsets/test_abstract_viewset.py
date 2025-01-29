@@ -632,7 +632,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         )
         response = view(request)
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(count + 1, Widget.objects.all().count())
 
         # pylint: disable=attribute-defined-outside-init
