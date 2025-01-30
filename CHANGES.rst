@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.12.0(2025-01-30)
+-------------------
+- Fix XForm permissions not applied after transferring project via management command
+  `PR #2770 <https://github.com/onaio/onadata/pull/2770>`
+  [@kelvin-muchiri]
+- Ensure projects are returned in the reverse order of creation
+  `PR #2768 <https://github.com/onaio/onadata/pull/2768>`
+  [@FrankApiyo]
+- Optimise CSV export by saving columns
+  `PR #2762 <https://github.com/onaio/onadata/pull/2762>`
+  [@kelvin-muchiri]
+
 v4.11.2(2025-01-22)
 -------------------
 - Fix exception Instance.DoesNotExist when registering Instance repeats
