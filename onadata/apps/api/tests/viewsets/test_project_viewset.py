@@ -623,7 +623,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             new_date = datetime(
                 year=date_created["year"],
                 month=date_created["month"],
-                day=project.date_created.day,  # Preserve the original day
+                day=1,
                 hour=project.date_created.hour,  # Preserve the original hour
                 minute=project.date_created.minute,  # Preserve the original minute
                 second=project.date_created.second,  # Preserve the original second
