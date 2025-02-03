@@ -6,27 +6,18 @@ Project Serializer module.
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
 from six import itervalues
 
-from onadata.apps.api.models.organization_profile import (
-    OrganizationProfile,
-    get_or_create_organization_owners_team,
-    get_organization_members_team,
-)
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.permissions import (
-    ManagerRole,
-    OwnerRole,
-    ReadOnlyRole,
-    get_role,
-    is_organization,
-)
+from onadata.libs.permissions import ManagerRole, OwnerRole, get_role, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -542,23 +533,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             set_owners_permission(owner, instance)
 
             if is_organization(owner.profile):
-                owners_team = get_or_create_organization_owners_team(owner.profile)
-                members_team = get_organization_members_team(owner.profile)
-                OwnerRole.add(owners_team, instance)
-                ReadOnlyRole.add(members_team, instance)
-                owners = owners_team.user_set.all()
-                # Owners are also members
-                members = members_team.user_set.exclude(
-                    username__in=[user.username for user in owners]
+                call_command(
+                    "transferproject",
+                    current_owner=instance.organization,
+                    new_owner=owner,
+                    project_id=instance.pk,
                 )
-                # Exclude new owner if in members
-                members = members.exclude(username=owner.username)
-
-                # Add permissions to all users in Owners and Members team
-                for owner in owners:
-                    OwnerRole.add(owner, instance)
-                for member in members:
-                    ReadOnlyRole.add(member, instance)
 
             # clear cache
             safe_delete(f"{PROJ_PERM_CACHE}{instance.pk}")

@@ -5,10 +5,12 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from onadata.apps.logger.models import DataView, MergedXForm, Project, XForm
-from onadata.apps.logger.models.project import (
-    set_object_permissions as set_project_permissions,
+from onadata.apps.api.models.organization_profile import (
+    get_or_create_organization_owners_team,
+    get_organization_members_team,
 )
+from onadata.apps.logger.models import MergedXForm, Project, XForm
+from onadata.libs.permissions import OwnerRole, ReadOnlyRole, is_organization
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
 
 
@@ -64,11 +66,8 @@ class Command(BaseCommand):
             self.errors.append(f"User {username} does not exist")
         return user
 
-    def update_xform_with_new_user(self, project, user):
-        """
-        Update XForm user update the DataViews and also set the permissions
-        for the xForm and the project.
-        """
+    def transfer_xform(self, project, user):
+        """Transfer XForm to the new owner."""
         xforms = XForm.objects.filter(
             project=project, deleted_at__isnull=True, downloadable=True
         )
@@ -76,22 +75,11 @@ class Command(BaseCommand):
             form.user = user
             form.created_by = user
             form.save()
-            self.update_data_views(form)
             set_project_perms_to_xform(form, project)
 
     @staticmethod
-    def update_data_views(form):
-        """Update DataView project for the XForm given."""
-        dataviews = DataView.objects.filter(
-            xform=form, project=form.project, deleted_at__isnull=True
-        )
-        for data_view in dataviews:
-            data_view.project = form.project
-            data_view.save()
-
-    @staticmethod
-    def update_merged_xform(project, user):
-        """Update ownership of MergedXforms."""
+    def transfer_merged_xform(project, user):
+        """Transfer MergedXForm to the new owner."""
         merged_xforms = MergedXForm.objects.filter(
             project=project, deleted_at__isnull=True
         )
@@ -101,11 +89,43 @@ class Command(BaseCommand):
             form.save()
             set_project_perms_to_xform(form, project)
 
+    @staticmethod
+    def transfer_project(project, to_user):
+        """Transfer Project to the new owner."""
+        project.organization = to_user
+        project.created_by = to_user
+        project.save()
+
+        owners_team = get_or_create_organization_owners_team(to_user.profile)
+        OwnerRole.add(owners_team, project)
+
+        members_team = get_organization_members_team(to_user.profile)
+        ReadOnlyRole.add(members_team, project)
+
+        owners = owners_team.user_set.all()
+
+        for owner in owners:
+            OwnerRole.add(owner, project)
+
+        # Owners are also members so we exclude them
+        members = members_team.user_set.exclude(
+            username__in=[user.username for user in owners]
+        )
+
+        for member in members:
+            ReadOnlyRole.add(member, project)
+
     @transaction.atomic()
     def handle(self, *args, **options):
         """Transfer projects from one user to another."""
-        from_user = self.get_user(options["current_owner"])
         to_user = self.get_user(options["new_owner"])
+        # You can only transfer projects to an organization account
+        if not is_organization(to_user.profile):
+            self.errors.append("New owner must be an organization")
+            self.stdout.write("".join(self.errors))
+            return
+
+        from_user = self.get_user(options["current_owner"])
         project_id = options.get("project_id")
         transfer_all_projects = options.get("all_projects")
 
@@ -124,12 +144,8 @@ class Command(BaseCommand):
             projects = Project.objects.filter(id=project_id, organization=from_user)
 
         for project in projects:
-            project.organization = to_user
-            project.created_by = to_user
-            project.save()
-
-            set_project_permissions(Project, project, created=True)
-            self.update_xform_with_new_user(project, to_user)
-            self.update_merged_xform(project, to_user)
+            self.transfer_project(project, to_user)
+            self.transfer_xform(project, to_user)
+            self.transfer_merged_xform(project, to_user)
 
         self.stdout.write("Projects transferred successfully")
