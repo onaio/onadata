@@ -28,7 +28,8 @@ RUN chown -R appuser:appuser /home/appuser/.pyenv
 USER appuser
 
 # hadolint ignore=DL3013
-RUN python -m pip install --no-cache-dir -U pip && \
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/base.pip && \
     python -m pip install --no-cache-dir -r requirements/s3.pip && \
     python -m pip install --no-cache-dir -r requirements/ses.pip && \
@@ -58,12 +59,12 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20241202 as runtime
+FROM debian:bookworm-20250113 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
-RUN echo "deb http://deb.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list \
+RUN echo "deb http://deb.debian.org/debian bookworm main non-free contrib" >> /etc/apt/sources.list \
     && apt-get update -q \
     && apt-get install -y --no-install-recommends locales netcat-traditional \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
