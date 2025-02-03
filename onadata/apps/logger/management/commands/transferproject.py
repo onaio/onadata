@@ -66,31 +66,29 @@ class Command(BaseCommand):
             self.errors.append(f"User {username} does not exist")
         return user
 
-    def transfer_xform(self, project, user):
+    def _transfer_xform(self, project, to_user):
         """Transfer XForm to the new owner."""
         xforms = XForm.objects.filter(
             project=project, deleted_at__isnull=True, downloadable=True
         )
         for form in xforms:
-            form.user = user
-            form.created_by = user
+            form.user = to_user
+            form.created_by = to_user
             form.save()
             set_project_perms_to_xform(form, project)
 
-    @staticmethod
-    def transfer_merged_xform(project, user):
+    def _transfer_merged_xform(self, project, to_user):
         """Transfer MergedXForm to the new owner."""
         merged_xforms = MergedXForm.objects.filter(
             project=project, deleted_at__isnull=True
         )
         for form in merged_xforms:
-            form.user = user
-            form.created_by = user
+            form.user = to_user
+            form.created_by = to_user
             form.save()
             set_project_perms_to_xform(form, project)
 
-    @staticmethod
-    def transfer_project(project, to_user):
+    def transfer_project(self, project, to_user):
         """Transfer Project to the new owner."""
         project.organization = to_user
         project.created_by = to_user
@@ -115,6 +113,9 @@ class Command(BaseCommand):
         for member in members:
             ReadOnlyRole.add(member, project)
 
+        self._transfer_xform(project, to_user)
+        self._transfer_merged_xform(project, to_user)
+
     @transaction.atomic()
     def handle(self, *args, **options):
         """Transfer projects from one user to another."""
@@ -129,10 +130,6 @@ class Command(BaseCommand):
         project_id = options.get("project_id")
         transfer_all_projects = options.get("all_projects")
 
-        if self.errors:
-            self.stdout.write("".join(self.errors))
-            return
-
         # No need to validate project ownership as they filtered
         # against current_owner
         projects = []
@@ -145,7 +142,5 @@ class Command(BaseCommand):
 
         for project in projects:
             self.transfer_project(project, to_user)
-            self.transfer_xform(project, to_user)
-            self.transfer_merged_xform(project, to_user)
 
         self.stdout.write("Projects transferred successfully")
