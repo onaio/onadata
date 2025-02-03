@@ -13,6 +13,7 @@ Default settings module.
 # settings.py)
 from onadata.settings.staging_example import *  # noqa pylint: disable=W0401,W0614
 
+# DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
