@@ -1295,9 +1295,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         )
         self.assertEqual(self.project.created_by, alice_profile.user)
         alice_project = self.project
+
         # Publish a form to Alice's project
         self._publish_xls_form_to_project()
         alice_xform = self.xform
+
         # Create organization owned by Bob
         self._login_user_and_profile({"username": bob.username, "email": bob.email})
         self._org_create()
@@ -1314,6 +1316,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
+
         # Add Jane to Bob's organization with dataentry role
         jane_data = {"username": "jane", "email": "janedoe@example.com"}
         jane_profile = self._create_user_profile(jane_data)
@@ -1323,7 +1326,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             "/", data=json.dumps(data), content_type="application/json", **self.extra
         )
         response = view(request, user=self.organization.user.username)
-
         self.assertEqual(response.status_code, 201)
         self.assertTrue(
             DataEntryRole.user_has_role(jane_profile.user, self.organization)
