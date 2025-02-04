@@ -76,7 +76,7 @@ ENV LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8
 
-# Install OnaData runtime dependencies (including OpenJDK from backports)
+# Install OnaData runtime dependencies
 RUN apt-get update -q && apt-get install -y --no-install-recommends \
     gdal-bin \
     git-core \
