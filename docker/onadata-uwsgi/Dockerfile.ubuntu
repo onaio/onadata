@@ -68,7 +68,7 @@ RUN echo "deb http://deb.debian.org/debian bookworm-backports main non-free cont
     && apt-get update -q \
     && apt-get install -y --no-install-recommends locales netcat-traditional \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
-    && dpkg-reconfigure --frontend=noninteractive locales
+    && dpkg-reconfigure locales
 
 # Set locale environment variables
 ENV LC_ALL=en_US.UTF-8 \
