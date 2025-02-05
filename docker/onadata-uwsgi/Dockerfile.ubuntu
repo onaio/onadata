@@ -58,36 +58,35 @@ USER appuser
 RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
-
 FROM debian:bookworm-20250113 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main non-free contrib" > /etc/apt/sources.list.d/bookworm-backports.list \
+RUN echo "deb http://deb.debian.org/debian bookworm main non-free contrib" > /etc/apt/sources.list \
+    && echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list \
     && apt-get update -q \
     && apt-get install -y --no-install-recommends locales netcat-traditional \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && dpkg-reconfigure locales
 
-# Set locale environment variables
-ENV LC_ALL=en_US.UTF-8 \
-    LC_CTYPE=en_US.UTF-8 \
-    LANG=en_US.UTF-8 \
-    LANGUAGE=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
 
 # Install OnaData runtime dependencies
-RUN apt-get update -q && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     gdal-bin \
     git-core \
-    -t bookworm-backports openjdk-11-jre-headless \
+    openjdk-11-jre-headless \
     libxml2-dev \
     libxslt1-dev \
+    && apt-get autoremove -y \
     && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app user and set permissions
-RUN useradd -G tty -m appuser \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -G tty -m appuser \
     && mkdir -p /srv/onadata \
     && chown -R appuser:appuser /srv/onadata
 
