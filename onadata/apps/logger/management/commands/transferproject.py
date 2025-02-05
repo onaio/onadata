@@ -93,11 +93,12 @@ class Command(BaseCommand):
         project.organization = to_user
         project.created_by = to_user
         project.save()
+        organization = to_user.profile.organizationprofile
 
-        owners_team = get_or_create_organization_owners_team(to_user.profile)
+        owners_team = get_or_create_organization_owners_team(organization)
         OwnerRole.add(owners_team, project)
 
-        members_team = get_organization_members_team(to_user.profile)
+        members_team = get_organization_members_team(organization)
         ReadOnlyRole.add(members_team, project)
 
         owners = owners_team.user_set.all()
@@ -119,14 +120,19 @@ class Command(BaseCommand):
     @transaction.atomic()
     def handle(self, *args, **options):
         """Transfer projects from one user to another."""
+        from_user = self.get_user(options["current_owner"])
         to_user = self.get_user(options["new_owner"])
+
+        if self.errors:
+            self.stdout.write("".join(self.errors))
+            return
+
         # You can only transfer projects to an organization account
         if not is_organization(to_user.profile):
             self.errors.append("New owner must be an organization")
             self.stdout.write("".join(self.errors))
             return
 
-        from_user = self.get_user(options["current_owner"])
         project_id = options.get("project_id")
         transfer_all_projects = options.get("all_projects")
 
