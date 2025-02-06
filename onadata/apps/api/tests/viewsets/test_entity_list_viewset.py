@@ -5,20 +5,23 @@ Tests for module onadata.apps.api.viewsets.entity_list_viewset
 import json
 import sys
 import uuid
-from datetime import datetime, timezone as dtz
-from unittest.mock import patch, MagicMock
+from datetime import datetime
+from datetime import timezone as tz
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
+from onadata.apps.logger.models import (Entity, EntityHistory, EntityList,
+                                        Project)
+from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
-from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -570,7 +573,7 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete EntityList works"""
-        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=timezone.utc)
+        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=tz.utc)
         mock_now.return_value = mocked_date
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -1236,7 +1239,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_updating_entity(self, mock_now):
         """Updating an Entity works"""
-        mock_date = datetime(2024, 6, 12, 12, 34, 0, tzinfo=timezone.utc)
+        mock_date = datetime(2024, 6, 12, 12, 34, 0, tzinfo=tz.utc)
         mock_now.return_value = mock_date
         data = {
             "label": "30cm mora",
@@ -1494,7 +1497,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
         self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 1)
-        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=tz.utc)
         mock_now.return_value = date
 
         with self.captureOnCommitCallbacks(execute=True):
@@ -1600,7 +1603,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_delete_bulk(self, mock_now):
         """Deleting Entities in bulk works"""
-        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=tz.utc)
         mock_now.return_value = date
         entity = Entity.objects.create(
             entity_list=self.entity_list,

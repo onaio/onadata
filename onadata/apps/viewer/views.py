@@ -5,7 +5,7 @@ data views.
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 from wsgiref.util import FileWrapper
@@ -14,18 +14,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage, storages
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-    HttpResponseNotFound,
-    HttpResponseRedirect,
-    JsonResponse,
-)
+from django.http import (HttpResponse, HttpResponseBadRequest,
+                         HttpResponseForbidden, HttpResponseNotFound,
+                         HttpResponseRedirect, JsonResponse)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -48,31 +42,22 @@ from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
-from onadata.libs.utils.export_tools import (
-    DEFAULT_GROUP_DELIMITER,
-    generate_export,
-    kml_export_data,
-    newest_export_for,
-    should_create_new_export,
-    str_to_bool,
-)
+from onadata.libs.utils.export_tools import (DEFAULT_GROUP_DELIMITER,
+                                             generate_export, kml_export_data,
+                                             newest_export_for,
+                                             should_create_new_export,
+                                             str_to_bool)
 from onadata.libs.utils.google import create_flow
-from onadata.libs.utils.image_tools import generate_media_download_url, image_url
+from onadata.libs.utils.image_tools import (generate_media_download_url,
+                                            image_url)
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
-    generate_content_disposition_header,
-    response_with_mimetype_and_name,
-)
-from onadata.libs.utils.user_auth import (
-    get_xform_and_perms,
-    has_permission,
-    helper_auth_helper,
-)
-from onadata.libs.utils.viewer_tools import (
-    create_attachments_zipfile,
-    export_def_from_filename,
-    get_form,
-)
+    generate_content_disposition_header, response_with_mimetype_and_name)
+from onadata.libs.utils.user_auth import (get_xform_and_perms, has_permission,
+                                          helper_auth_helper)
+from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
+                                             export_def_from_filename,
+                                             get_form)
 
 # pylint: disable=invalid-name
 User = get_user_model()

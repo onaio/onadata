@@ -7,6 +7,7 @@ import json
 import os
 from collections import OrderedDict
 from datetime import datetime
+from datetime import timezone as tz
 from operator import itemgetter
 from unittest.mock import MagicMock, Mock, patch
 
@@ -25,42 +26,25 @@ from six import iteritems
 
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
-    TestAbstractViewSet,
-    get_mocked_response_for_file,
-)
+    TestAbstractViewSet, get_mocked_response_for_file)
 from onadata.apps.api.tools import get_or_create_organization_owners_team
-from onadata.apps.api.viewsets.organization_profile_viewset import (
-    OrganizationProfileViewSet,
-)
+from onadata.apps.api.viewsets.organization_profile_viewset import \
+    OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import (
-    EntityList,
-    Project,
-    ProjectInvitation,
-    XForm,
-    XFormVersion,
-)
+from onadata.apps.logger.models import (EntityList, Project, ProjectInvitation,
+                                        XForm, XFormVersion)
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import (
-    ROLES_ORDERED,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-    DataEntryRole,
-    EditorMinorRole,
-    EditorRole,
-    ManagerRole,
-    OwnerRole,
-    ReadOnlyRole,
-    ReadOnlyRoleNoDownload,
-)
-from onadata.libs.serializers.project_serializer import (
-    BaseProjectSerializer,
-    ProjectSerializer,
-)
+from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
+                                      DataEntryOnlyRole, DataEntryRole,
+                                      EditorMinorRole, EditorRole, ManagerRole,
+                                      OwnerRole, ReadOnlyRole,
+                                      ReadOnlyRoleNoDownload)
+from onadata.libs.serializers.project_serializer import (BaseProjectSerializer,
+                                                         ProjectSerializer)
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -3598,7 +3582,7 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         )
         post_data = {"invitation_id": invitation.pk}
         request = self.factory.post("/", data=post_data, **self.extra)
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=tz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             response = self.view(request, pk=self.project.pk)
@@ -3701,7 +3685,7 @@ class ResendInvitationTestCase(TestAbstractViewSet):
             email="jandoe@example.com", role="editor"
         )
         post_data = {"invitation_id": invitation.pk}
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=tz.utc)
         request = self.factory.post("/", data=post_data, **self.extra)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
