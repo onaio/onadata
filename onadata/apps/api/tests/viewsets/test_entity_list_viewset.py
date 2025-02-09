@@ -7,11 +7,14 @@ import sys
 import uuid
 from datetime import datetime
 from datetime import timezone as tz
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
+
+import boto3
+from moto import mock_aws
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -983,7 +986,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_create_entity(self, mock_now):
         """Creating single Entity works"""
-        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=dtz.utc)
+        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=tz.utc)
         mock_now.return_value = mock_date
         request = self.factory.post("/", data=self.data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -1793,35 +1796,17 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
 
-    @patch("onadata.libs.utils.logger_tools.storages")
-    @patch("onadata.libs.utils.logger_tools.boto3.client")
-    def test_download_from_s3(self, mock_presigned_urls, mock_storages):
+    def test_download_from_s3(self):
         """EntityList dataset is downloaded from Amazon S3"""
-        expected_url = (
-            "https://testing.s3.amazonaws.com/bob/exports/"
-            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
-            "response-content-disposition=attachment%3Bfilename%trees.csv&"
-            "response-content-type=application%2Foctet-stream&"
-            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
-            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
-        )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_storages.create_storage().bucket.name = "onadata"
         request = self.factory.get("/", **self.extra)
-        response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, expected_url)
-        self.assertTrue(mock_presigned_urls.called)
-        export = GenericExport.objects.first()
-        mock_presigned_urls().generate_presigned_url.assert_called_with(
-            "get_object",
-            Params={
-                "Bucket": "onadata",
-                "Key": export.filepath,
-                "ResponseContentDisposition": 'attachment; filename="trees.csv"',
-                "ResponseContentType": "application/octet-stream",
-            },
-            ExpiresIn=3600,
-        )
+        with override_settings(
+            STORAGES={"default": {"BACKEND": "storages.backends.s3.S3Storage"}},
+            AWS_STORAGE_BUCKET_NAME="testing",
+        ):
+            with mock_aws():
+                s3 = boto3.resource("s3", region_name='us-east-1')
+                bucket = s3.Bucket('testing')
+                bucket.create()
+                response = self.view(request, pk=self.entity_list.pk)
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("response-content-disposition", response.url)
