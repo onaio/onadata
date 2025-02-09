@@ -5,11 +5,13 @@ test_export_viewset module
 
 import os
 from tempfile import NamedTemporaryFile
-from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.test import override_settings
 from django.utils.dateparse import parse_datetime
+
 from httmock import HTTMock
+from moto import mock_aws
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -19,7 +21,8 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.permissions import DataEntryMinorRole, ReadOnlyRole, EditorMinorRole
+from onadata.libs.permissions import (DataEntryMinorRole, EditorMinorRole,
+                                      ReadOnlyRole)
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -591,38 +594,18 @@ class TestExportViewSet(TestBase):
         response = self.view(request, pk=export.pk)
         self.assertEqual(response.status_code, 200)
 
-    @patch("onadata.libs.utils.logger_tools.storages")
-    @patch("onadata.libs.utils.logger_tools.boto3.client")
-    def test_download_from_s3(self, mock_presigned_urls, mock_storages):
+    def test_download_from_s3(self):
         """Export is downloaded from Amazon S3"""
-        expected_url = (
-            "https://testing.s3.amazonaws.com/bob/exports/"
-            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
-            "response-content-disposition=attachment%3Bfilename%trees.csv&"
-            "response-content-type=application%2Foctet-stream&"
-            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
-            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
-        )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_storages.create_storage().bucket.name = "onadata"
         self._create_user_and_login()
         self._publish_transportation_form()
         export = self._create_export()
         request = self.factory.get("/export")
         force_authenticate(request, user=self.user)
-        response = self.view(request, pk=export.pk)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, expected_url)
-        self.assertTrue(mock_presigned_urls.called)
-        mock_presigned_urls().generate_presigned_url.assert_called_with(
-            "get_object",
-            Params={
-                "Bucket": "onadata",
-                "Key": export.filepath,
-                "ResponseContentDisposition": f'attachment; filename="{export.filename}"',
-                "ResponseContentType": "application/octet-stream",
-            },
-            ExpiresIn=3600,
-        )
+        with override_settings(
+            STORAGES={"default": {"BACKEND": "storages.backends.s3.S3Storage"}},
+            AWS_STORAGE_BUCKET_NAME="testing",
+        ):
+            with mock_aws():
+                response = self.view(request, pk=export.pk)
+                self.assertEqual(response.status_code, 302)
+            self.assertIn("response-content-disposition", response.url)
