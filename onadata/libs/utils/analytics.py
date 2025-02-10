@@ -52,7 +52,7 @@ class TrackObjectEvent:  # pylint: disable=invalid-name,too-many-instance-attrib
     precise control of what is tracked utilize the track() function
     """
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
         self,
         user_field: str,

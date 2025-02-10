@@ -320,7 +320,7 @@ class DataView(models.Model):
                 for row in cursor.fetchall():
                     yield dict(zip(fields, [parse_json(row[0]).get(f) for f in fields]))
 
-    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,too-many-branches
     @classmethod
     def generate_query_string(
         cls,
@@ -412,7 +412,7 @@ class DataView(models.Model):
         )
 
     @classmethod
-    def query_data(  # pylint: disable=too-many-arguments
+    def query_data(  # pylint: disable=too-many-arguments, too-many-positional-arguments
         cls,
         data_view,
         start_index=None,
