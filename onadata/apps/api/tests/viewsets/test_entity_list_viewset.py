@@ -21,7 +21,6 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.logger.models import (Entity, EntityHistory, EntityList,
                                         Project)
-from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
