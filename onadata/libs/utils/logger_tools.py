@@ -135,7 +135,7 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     return versioned_xform
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     history = None
     instance = None

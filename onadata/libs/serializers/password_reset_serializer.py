@@ -47,7 +47,7 @@ class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
 default_token_generator = CustomPasswordResetTokenGenerator()
 
 
-# pylint: disable=unused-argument,too-many-arguments
+# pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments
 def get_password_reset_email(
     user,
     reset_url,
