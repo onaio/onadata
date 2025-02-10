@@ -158,7 +158,7 @@ def get_etag_hash_from_query(sql=None, params=None):
     return f"{datetime.datetime.utcnow()}"
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def _start_index_limit(sql, params, start_index, limit):
     if (start_index is not None and start_index < 0) or (
         limit is not None and limit < 0

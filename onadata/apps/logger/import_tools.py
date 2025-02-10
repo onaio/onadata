@@ -50,7 +50,7 @@ def django_file(path, field_name, content_type):
     )
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def import_instance(username, xform_path, photos, osm_files, status):
     """
     This callback is passed an instance of a XFormInstanceFS.

@@ -119,7 +119,7 @@ class DictOrganizer:
     # Every section will get its own table
     # I need to think of an easy way to flatten out a dictionary
     # parent name, index, table name, data
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def _build_obs_from_dict(
         self, dict_item, obs, table_name, parent_table_name, parent_index
     ):

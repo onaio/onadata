@@ -370,7 +370,7 @@ class TestAbstractViewSet(TestBase, TestCase):
                 # pylint: disable=attribute-defined-outside-init
                 self.form_data = response.data
 
-    # pylint: disable=too-many-arguments,too-many-locals,unused-argument
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(
         self,
         path,

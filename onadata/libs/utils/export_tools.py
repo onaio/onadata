@@ -483,7 +483,7 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def generate_attachments_zip_export(
     export_type, username, id_string, export_id=None, options=None, xform=None
 ):
@@ -599,7 +599,7 @@ def get_or_create_export_object(export_id, options, xform, export_type):
     return export
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def generate_kml_export(
     export_type, username, id_string, export_id=None, options=None, xform=None
 ):

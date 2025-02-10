@@ -107,7 +107,7 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     return val
 
 
-# pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+# pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,too-many-branches
 def dict_to_joined_export(
     data, index, indices, name, survey, row, host, media_xpaths=None
 ):
@@ -458,7 +458,7 @@ class ExportBuilder:
             self.__init__()  # pylint: disable=unnecessary-dunder-call
         data_dicionary = get_data_dictionary_from_survey(survey)
 
-        # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+        # pylint: disable=too-many-locals,too-many-branches,too-many-arguments, too-many-positional-arguments
         def build_sections(
             current_section,
             survey_element,
@@ -689,7 +689,7 @@ class ExportBuilder:
 
         return matches[0]
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     @classmethod
     def split_select_multiples(
         cls,

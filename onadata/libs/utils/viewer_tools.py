@@ -282,7 +282,7 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_form_url(
     request,
     username=None,

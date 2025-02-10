@@ -84,7 +84,7 @@ class AuditLog:
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments, too-many-positional-arguments
     @classmethod
     def query_data(
         cls,

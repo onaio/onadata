@@ -114,7 +114,7 @@ def _get_export_type(export_type):
     return EXPORT_EXT[export_type]
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-branches
 def custom_response_handler(  # noqa: C0901
     request,
     xform,

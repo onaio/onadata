@@ -225,7 +225,7 @@ def _use_labels_from_group_by_name(  # noqa C901
     return data
 
 
-# pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+# pylint: disable=too-many-locals,too-many-branches,too-many-arguments, too-many-positional-arguments
 def build_chart_data_for_field(  # noqa C901
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
@@ -446,7 +446,7 @@ def get_field_label(field, language_index=0):
     return field_label
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_chart_data_for_field(  # noqa C901
     field_name, xform, accepted_format, group_by, field_xpath=None, data_view=None
 ):
