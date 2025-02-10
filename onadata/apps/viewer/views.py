@@ -47,7 +47,7 @@ from onadata.libs.utils.export_tools import (DEFAULT_GROUP_DELIMITER,
                                              newest_export_for,
                                              should_create_new_export,
                                              str_to_bool)
-from onadata.libs.utils.google import create_flow
+from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.image_tools import (generate_media_download_url,
                                             image_url)
 from onadata.libs.utils.log import Actions, audit_log
