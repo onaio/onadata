@@ -9,21 +9,39 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('api', '0004_auto_20190125_0517'),
+        ("api", "0004_auto_20190125_0517"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='team',
+            name="team",
             options={},
         ),
         migrations.CreateModel(
-            name='ODKToken',
+            name="ODKToken",
             fields=[
-                ('key', models.CharField(max_length=150, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('1', 'Active'), ('2', 'Inactive')], default='1', max_length=1, verbose_name='Status')),
-                ('created', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='odk_token', to=settings.AUTH_USER_MODEL)),
+                (
+                    "key",
+                    models.CharField(max_length=150, primary_key=True, serialize=False),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("1", "Active"), ("2", "Inactive")],
+                        default="1",
+                        max_length=1,
+                        verbose_name="Status",
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="odk_token",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

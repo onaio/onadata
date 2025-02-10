@@ -303,7 +303,7 @@ def get_choice_label_value(key, value, data_dictionary, language=None):
     return label or value
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_value_or_attachment_uri(
     key,
     value,

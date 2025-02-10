@@ -118,7 +118,7 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
     return new_columns
 
 
-# pylint: disable=unused-argument,too-many-arguments,too-many-locals
+# pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments,too-many-locals
 def write_to_csv(
     path,
     rows,
@@ -213,7 +213,7 @@ class AbstractDataFrameBuilder:
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -364,7 +364,7 @@ class AbstractDataFrameBuilder:
 
         return dict(select_multiples)
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     @classmethod
     def _split_select_multiples(
         cls,
@@ -494,7 +494,7 @@ class AbstractDataFrameBuilder:
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     """CSV data frame builder"""
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -554,7 +554,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             else self.data_dictionary.get_media_survey_xpaths()
         )
 
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-branches,too-many-locals
     @classmethod
     def _reindex(
         cls,
