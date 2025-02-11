@@ -63,14 +63,16 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_user_anon(self):
-        """Test anonymous user can access user info"""
+        """Test anonymous user can access user info(except for list endpoint)"""
         request = self.factory.get("/")
 
-        # users list endpoint
+        # users list endpoint returns 401 for anonymous users
         view = UserViewSet.as_view({"get": "list"})
         response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.data])
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
         # user with username bob
         view = UserViewSet.as_view({"get": "retrieve"})
@@ -144,7 +146,7 @@ class TestUserViewSet(TestAbstractViewSet):
 
         view = UserViewSet.as_view({"get": "list"})
 
-        all_users_request = self.factory.get("/")
+        all_users_request = self.factory.get("/", **self.extra)
         all_users_response = view(all_users_request)
 
         self.assertEqual(all_users_response.status_code, 200)
@@ -152,7 +154,7 @@ class TestUserViewSet(TestAbstractViewSet):
             len([u for u in all_users_response.data if u["username"] == "denoinc"]), 1
         )
 
-        no_orgs_request = self.factory.get("/", data={"orgs": "false"})
+        no_orgs_request = self.factory.get("/", data={"orgs": "false"}, **self.extra)
         no_orgs_response = view(no_orgs_request)
 
         self.assertEqual(no_orgs_response.status_code, 200)

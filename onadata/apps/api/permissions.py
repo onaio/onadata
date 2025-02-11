@@ -392,8 +392,7 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
     def has_permission(self, request, view):
         if request.user.is_anonymous and view.action == "list":
-            if request.GET.get("search"):
-                raise exceptions.NotAuthenticated()
+            raise exceptions.NotAuthenticated()
 
         return super().has_permission(request, view)
 
