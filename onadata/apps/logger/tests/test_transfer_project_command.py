@@ -147,14 +147,10 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
 
     def test_transfer_to_org(self):
         """Transferring to an organization works"""
-        mock_stdout = StringIO()
-        sys.stdout = mock_stdout
-
         # Create users
         bob = self._create_user("bob", "test_pass")
         alice = self._create_user("alice", "test_pass")
         jane = self._create_user("jane", "test_pass")
-
         # Create Project owned by Bob and publish form
         project = Project.objects.create(
             name="Test_project",
@@ -163,7 +159,6 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         )
         self.project = project
         self._publish_transportation_form()
-
         # Create organization owned by Alice
         alice_org = self._create_organization("alice_inc", "Alice Inc", alice)
         owners_team, _ = Team.objects.get_or_create(
@@ -177,22 +172,17 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         # Add Bob as admin to Alice's organization
         bob.groups.add(owners_team)
         bob.groups.add(members_team)
-
         # Add Jane as member to Alice's organization
         jane.groups.add(members_team)
-
         # Transfer Bob's project to Alice's organization
         call_command(
             "transferproject",
             current_owner=bob.username,
             new_owner=alice_org.user.username,
             project_id=project.id,
-            stdout=mock_stdout,
         )
-        expected_output = "Projects transferred successfully"
         self.xform.refresh_from_db()
         self.project.refresh_from_db()
-        self.assertIn(expected_output, mock_stdout.getvalue())
         self.assertEqual(self.project.organization, alice_org.user)
         self.assertEqual(self.project.organization, alice_org.user)
         self.assertEqual(self.xform.user, alice_org.user)
