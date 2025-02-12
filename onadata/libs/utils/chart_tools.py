@@ -19,7 +19,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one)
+    get_form_submissions_grouped_by_select_one,
+)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -174,7 +175,7 @@ def _use_labels_from_field_name(field_name, field, data_type, data, choices=None
 
     if data_type == "categorized" and field_name != common_tags.SUBMITTED_BY:
         if data:
-            if hasattr(field, 'children'):
+            if hasattr(field, "children"):
                 choices = field.children
 
             for item in data:
@@ -225,11 +226,13 @@ def _use_labels_from_group_by_name(  # noqa C901
     return data
 
 
-# pylint: disable=too-many-locals,too-many-branches,too-many-arguments, too-many-positional-arguments
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def build_chart_data_for_field(  # noqa C901
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
     """Returns the chart data for a given field."""
+    # pylint: disable=too-many-locals,too-many-branches
+
     # check if its the special _submission_time META
     if isinstance(field, str):
         field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
@@ -405,7 +408,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def _get_field_from_field_fn(field_str, xform, field_fn):
+def _get_field_from_field_fn(field_str, xform):
     # check if its the special _submission_time META
     if field_str == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -423,14 +426,12 @@ def _get_field_from_field_fn(field_str, xform, field_fn):
 
 def get_field_from_field_name(field_name, xform):
     """Returns the field if the ``field_name`` is in the ``xform``."""
-    return _get_field_from_field_fn(field_name, xform, lambda x: x.name)
+    return _get_field_from_field_fn(field_name, xform)
 
 
 def get_field_from_field_xpath(field_xpath, xform):
     """Returns the field if the ``field_xpath`` is in the ``xform``."""
-    return _get_field_from_field_fn(
-        field_xpath, xform, lambda x: get_abbreviated_xpath(x.get_xpath())
-    )
+    return _get_field_from_field_fn(field_xpath, xform)
 
 
 def get_field_label(field, language_index=0):
@@ -454,6 +455,7 @@ def get_chart_data_for_field(  # noqa C901
     Get chart data for a given xlsform field.
     """
     data = {}
+    field = None
 
     if field_name:
         field = get_field_from_field_name(field_name, xform)

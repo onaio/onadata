@@ -165,6 +165,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         # Get the form
         if "content_object" in attrs:
             content_object = attrs.get("content_object")
+            xform = None
 
             if isinstance(content_object, XForm):
                 xform = content_object

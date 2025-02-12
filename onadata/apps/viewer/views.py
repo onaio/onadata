@@ -14,9 +14,14 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage, storages
-from django.http import (HttpResponse, HttpResponseBadRequest,
-                         HttpResponseForbidden, HttpResponseNotFound,
-                         HttpResponseRedirect, JsonResponse)
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseNotFound,
+    HttpResponseRedirect,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
@@ -42,22 +47,33 @@ from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
-from onadata.libs.utils.export_tools import (DEFAULT_GROUP_DELIMITER,
-                                             generate_export, kml_export_data,
-                                             newest_export_for,
-                                             should_create_new_export,
-                                             str_to_bool)
+from onadata.libs.utils.export_tools import (
+    DEFAULT_GROUP_DELIMITER,
+    generate_export,
+    kml_export_data,
+    newest_export_for,
+    should_create_new_export,
+    str_to_bool,
+)
 from onadata.libs.utils.google_tools import create_flow
-from onadata.libs.utils.image_tools import (generate_media_download_url,
-                                            image_url)
+from onadata.libs.utils.image_tools import generate_media_download_url, image_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
-    generate_content_disposition_header, response_with_mimetype_and_name)
-from onadata.libs.utils.user_auth import (get_xform_and_perms, has_permission,
-                                          helper_auth_helper)
-from onadata.libs.utils.viewer_tools import (create_attachments_zipfile,
-                                             export_def_from_filename,
-                                             get_form)
+    generate_content_disposition_header,
+    response_with_mimetype_and_name,
+)
+from onadata.libs.utils.user_auth import (
+    get_xform_and_perms,
+    has_permission,
+    helper_auth_helper,
+)
+from onadata.libs.utils.viewer_tools import (
+    create_attachments_zipfile,
+    export_def_from_filename,
+    get_form,
+)
+
+DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -261,6 +277,7 @@ def add_submission_with(request, username, id_string):
         url,
         data=payload,
         auth=(settings.ENKETO_API_TOKEN, ""),
+        timeout=DEFAULT_REQUEST_TIMEOUT,
         verify=getattr(settings, "VERIFY_SSL", True),
     )
 
@@ -432,27 +449,27 @@ def create_export(request, username, id_string, export_type):
         create_async_export(xform, export_type, query, force_xlsx, options)
     except ExportTypeError:
         return HttpResponseBadRequest(_(f"{export_type} is not a valid export type"))
-    else:
-        audit = {"xform": xform.id_string, "export_type": export_type}
-        id_string = xform.id_string
-        audit_log(
-            Actions.EXPORT_CREATED,
-            request.user,
-            owner,
-            _(f"Created {export_type.upper()} export on '{id_string}'."),
-            audit,
-            request,
+
+    audit = {"xform": xform.id_string, "export_type": export_type}
+    id_string = xform.id_string
+    audit_log(
+        Actions.EXPORT_CREATED,
+        request.user,
+        owner,
+        _(f"Created {export_type.upper()} export on '{id_string}'."),
+        audit,
+        request,
+    )
+    return HttpResponseRedirect(
+        reverse(
+            export_list,
+            kwargs={
+                "username": username,
+                "id_string": id_string,
+                "export_type": export_type,
+            },
         )
-        return HttpResponseRedirect(
-            reverse(
-                export_list,
-                kwargs={
-                    "username": username,
-                    "id_string": id_string,
-                    "export_type": export_type,
-                },
-            )
-        )
+    )
 
 
 def _get_google_credential(request):

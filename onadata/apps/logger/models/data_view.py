@@ -320,7 +320,8 @@ class DataView(models.Model):
                 for row in cursor.fetchall():
                     yield dict(zip(fields, [parse_json(row[0]).get(f) for f in fields]))
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,too-many-branches
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    # pylint: disable=too-many-locals,too-many-branches
     @classmethod
     def generate_query_string(
         cls,
@@ -333,7 +334,9 @@ class DataView(models.Model):
         filter_query=None,
     ):
         """Returns an SQL string based on the passed in parameters."""
-        additional_columns = [GEOLOCATION] if data_view.instances_with_geopoints else []
+        additional_columns = []
+        if data_view.instances_with_geopoints:
+            additional_columns = [GEOLOCATION]
 
         if has_attachments_fields(data_view):
             additional_columns += [ATTACHMENTS]

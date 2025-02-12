@@ -2,15 +2,17 @@
 ProjectInvitation class
 """
 
-from django.db import models
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
+from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
 from onadata.apps.logger.models.project import Project
 
 User = get_user_model()
 
 
+# pylint: disable=too-many-ancestors
 class ProjectInvitation(models.Model):
     """ProjectInvitation model class"""
 
