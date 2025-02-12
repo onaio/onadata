@@ -8,8 +8,10 @@ from django.core.management import call_command
 
 from six import StringIO
 
+from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import OwnerRole, ReadOnlyRole
 
 
 class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
@@ -142,6 +144,66 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         new_owner_forms = XForm.objects.filter(user=new_owner)
         self.assertEqual(0, bobs_forms.count())
         self.assertEqual(1, new_owner_forms.count())
+
+    def test_transfer_to_org(self):
+        """Transferring to an organization works"""
+        mock_stdout = StringIO()
+        sys.stdout = mock_stdout
+
+        # Create users
+        bob = self._create_user("bob", "test_pass")
+        alice = self._create_user("alice", "test_pass")
+        jane = self._create_user("jane", "test_pass")
+
+        # Create Project owned by Bob
+        project = Project.objects.create(
+            name="Test_project",
+            organization=bob,
+            created_by=bob,
+        )
+        self.project = project
+        self._publish_transportation_form()
+
+        # Create organization owned by Alice
+        alice_org = self._create_organization("alice_inc", "Alice Inc", alice)
+        owners_team, _ = Team.objects.get_or_create(
+            name=f"{alice_org.user.username}#Owners",
+            organization=alice_org.user,
+        )
+        members_team, _ = Team.objects.get_or_create(
+            name=f"{alice_org.user.username}#members",
+            organization=alice_org.user,
+        )
+        # Add Bob as admin in Alice's organization
+        bob.groups.add(owners_team)
+        bob.groups.add(members_team)
+
+        # Add Jane as member to Alice's organization
+        jane.groups.add(members_team)
+
+        # Transfer Bob's project to Alice's organization
+        call_command(
+            "transferproject",
+            current_owner=bob.username,
+            new_owner=alice_org.user.username,
+            project_id=project.id,
+            stdout=mock_stdout,
+        )
+        expected_output = "Projects transferred successfully"
+        self.assertIn(expected_output, mock_stdout.getvalue())
+        self.assertEqual(0, Project.objects.filter(organization=bob).count())
+        self.assertEqual(1, Project.objects.filter(organization=alice_org.user).count())
+
+        # Admins have owner privileges
+        self.assertTrue(OwnerRole.user_has_role(bob, project))
+        self.assertTrue(OwnerRole.user_has_role(bob, self.xform))
+        self.assertTrue(OwnerRole.user_has_role(alice, project))
+        self.assertTrue(OwnerRole.user_has_role(alice, self.xform))
+
+        # Non-admins have readonly privileges
+        self.assertFalse(OwnerRole.user_has_role(jane, project))
+        self.assertTrue(ReadOnlyRole.user_has_role(jane, project))
+        self.assertTrue(ReadOnlyRole.user_has_role(jane, self.xform))
 
 
 class TestUserValidation(TestBase):
