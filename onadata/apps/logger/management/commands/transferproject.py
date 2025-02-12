@@ -10,7 +10,7 @@ from onadata.apps.api.models.organization_profile import (
     get_organization_members_team,
 )
 from onadata.apps.logger.models import MergedXForm, Project, XForm
-from onadata.libs.permissions import OwnerRole, ReadOnlyRole, is_organization
+from onadata.libs.permissions import OwnerRole, ReadOnlyRole
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
 
 
@@ -124,12 +124,6 @@ class Command(BaseCommand):
         to_user = self.get_user(options["new_owner"])
 
         if self.errors:
-            self.stdout.write("".join(self.errors))
-            return
-
-        # You can only transfer projects to an organization account
-        if not is_organization(to_user.profile):
-            self.errors.append("New owner must be an organization")
             self.stdout.write("".join(self.errors))
             return
 
