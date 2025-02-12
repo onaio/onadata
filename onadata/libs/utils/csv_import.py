@@ -32,18 +32,25 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.celeryapp import app
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils import analytics
-from onadata.libs.utils.async_status import (FAILED, async_status,
-                                             celery_state_to_status)
-from onadata.libs.utils.common_tags import (EXCEL_TRUE, IMPORTED_VIA_CSV_BY,
-                                            INSTANCE_CREATE_EVENT,
-                                            INSTANCE_UPDATE_EVENT,
-                                            MULTIPLE_SELECT_TYPE, NA_REP, UUID,
-                                            XLS_DATE_FIELDS,
-                                            XLS_DATETIME_FIELDS)
+from onadata.libs.utils.async_status import FAILED, async_status, celery_state_to_status
+from onadata.libs.utils.common_tags import (
+    EXCEL_TRUE,
+    IMPORTED_VIA_CSV_BY,
+    INSTANCE_CREATE_EVENT,
+    INSTANCE_UPDATE_EVENT,
+    MULTIPLE_SELECT_TYPE,
+    NA_REP,
+    UUID,
+    XLS_DATE_FIELDS,
+    XLS_DATETIME_FIELDS,
+)
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
-from onadata.libs.utils.logger_tools import (OpenRosaResponse, dict2xml,
-                                             safe_create_instance)
+from onadata.libs.utils.logger_tools import (
+    OpenRosaResponse,
+    dict2xml,
+    safe_create_instance,
+)
 
 DEFAULT_UPDATE_BATCH = 100
 PROGRESS_BATCH_UPDATE = getattr(
@@ -244,7 +251,11 @@ def validate_csv_file(csv_file, xform):
     # the missing_col list
     for col in csv_headers:
         survey_element = xform.get_survey_element(col)
-        if survey_element and hasattr(survey_element, 'type') and survey_element.get("type") == MULTIPLE_SELECT_TYPE:
+        if (
+            survey_element
+            and hasattr(survey_element, "type")
+            and survey_element.get("type") == MULTIPLE_SELECT_TYPE
+        ):
             # remove from the missing list
             missing_col = [x for x in missing_col if not x.startswith(col)]
             mutliple_select_col.append(col)

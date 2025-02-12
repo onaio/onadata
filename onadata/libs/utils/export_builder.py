@@ -107,7 +107,8 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     return val
 
 
-# pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,too-many-branches
+# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+# pylint: disable=too-many-nested-blocks,too-many-branches
 def dict_to_joined_export(
     data, index, indices, name, survey, row, host, media_xpaths=None
 ):
@@ -122,7 +123,6 @@ def dict_to_joined_export(
     """
     output = {}
     media_xpaths = [] if media_xpaths is None else media_xpaths
-    # pylint: disable=too-many-nested-blocks
     if isinstance(data, dict):
         for key, val in iteritems(data):
             if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
@@ -458,7 +458,7 @@ class ExportBuilder:
             self.__init__()  # pylint: disable=unnecessary-dunder-call
         data_dicionary = get_data_dictionary_from_survey(survey)
 
-        # pylint: disable=too-many-locals,too-many-branches,too-many-arguments, too-many-positional-arguments
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
         def build_sections(
             current_section,
             survey_element,
@@ -472,7 +472,8 @@ class ExportBuilder:
             remove_group_name=False,
             language=None,
         ):
-            # pylint: disable=too-many-nested-blocks
+            # pylint: disable=too-many-nested-blocks,too-many-branches
+            # pylint: disable=too-many-locals
             for child in survey_element.children:
                 current_section_name = current_section["name"]
                 # if a section, recurs
@@ -1201,7 +1202,8 @@ class ExportBuilder:
         for question in choice_questions:
             if (
                 xpath_var_names
-                and get_abbreviated_xpath(question.get_xpath()) not in xpath_var_names  # noqa W503
+                and get_abbreviated_xpath(question.get_xpath())
+                not in xpath_var_names  # noqa W503
             ):
                 continue
             var_name = (
@@ -1267,17 +1269,17 @@ class ExportBuilder:
                     # If the choices are numeric in nature have the field type
                     # in spss be numeric
                     choices = list(all_value_labels[var_name])
-                    if len(choices) == 0:
-                        return False
-                    return is_all_numeric(choices)
+                    if len(choices) != 0:
+                        return is_all_numeric(choices)
+
                 if element and isinstance(element, Option) and value_select_multiples:
                     return is_all_numeric([element.name])
-                if not element:
-                    return False
 
-                parent_xpath = "/".join(xpath.split("/")[:-1])
-                parent = data_dictionary.get_element(parent_xpath)
-                return parent and parent.type == MULTIPLE_SELECT_TYPE
+                if element:
+                    parent_xpath = "/".join(xpath.split("/")[:-1])
+                    parent = data_dictionary.get_element(parent_xpath)
+                    return parent and parent.type == MULTIPLE_SELECT_TYPE
+
             return False
 
         value_select_multiples = self.VALUE_SELECT_MULTIPLES

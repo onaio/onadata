@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import Any, NoReturn
+from typing import Any
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -26,15 +26,22 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.core.exceptions import (MultipleObjectsReturned, PermissionDenied,
-                                    ValidationError)
+from django.core.exceptions import (
+    MultipleObjectsReturned,
+    PermissionDenied,
+    ValidationError,
+)
 from django.core.files.storage import storages
-from django.db import DataError, IntegrityError, connection, transaction
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
-from django.http import (HttpResponse, HttpResponseNotFound,
-                         HttpResponseRedirect, StreamingHttpResponse,
-                         UnreadablePostError)
+from django.http import (
+    HttpResponse,
+    HttpResponseNotFound,
+    HttpResponseRedirect,
+    StreamingHttpResponse,
+    UnreadablePostError,
+)
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError
@@ -51,39 +58,61 @@ from pyxform.validators.odk_validate import ODKValidateError
 from pyxform.xform2json import create_survey_element_from_xml
 from rest_framework.response import Response
 
-from onadata.apps.logger.models import (Attachment, Instance, RegistrationForm,
-                                        XForm, XFormVersion)
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    RegistrationForm,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.logger.models.entity import Entity
 from onadata.apps.logger.models.entity_list import EntityList
-from onadata.apps.logger.models.instance import (FormInactiveError,
-                                                 FormIsMergedDatasetError,
-                                                 InstanceHistory,
-                                                 get_id_string_from_xml_str)
+from onadata.apps.logger.models.instance import (
+    FormInactiveError,
+    FormIsMergedDatasetError,
+    InstanceHistory,
+    get_id_string_from_xml_str,
+)
 from onadata.apps.logger.models.xform import DuplicateUUIDError, XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
-    AttachmentNameError, DuplicateInstance, InstanceEmptyError,
-    InstanceEncryptionError, InstanceFormatError, InstanceInvalidUserError,
-    InstanceMultipleNodeError, NonUniqueFormIdError, clean_and_parse_xml,
-    get_deprecated_uuid_from_xml, get_entity_uuid_from_xml, get_meta_from_xml,
-    get_submission_date_from_xml, get_uuid_from_xml)
+    AttachmentNameError,
+    DuplicateInstance,
+    InstanceEmptyError,
+    InstanceEncryptionError,
+    InstanceFormatError,
+    InstanceInvalidUserError,
+    InstanceMultipleNodeError,
+    NonUniqueFormIdError,
+    clean_and_parse_xml,
+    get_deprecated_uuid_from_xml,
+    get_entity_uuid_from_xml,
+    get_meta_from_xml,
+    get_submission_date_from_xml,
+    get_uuid_from_xml,
+)
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.messaging.constants import (SUBMISSION_CREATED,
-                                              SUBMISSION_DELETED,
-                                              SUBMISSION_EDITED, XFORM)
+from onadata.apps.messaging.constants import (
+    SUBMISSION_CREATED,
+    SUBMISSION_DELETED,
+    SUBMISSION_EDITED,
+    XFORM,
+)
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
-from onadata.libs.utils.cache_tools import (ELIST_FAILOVER_REPORT_SENT,
-                                            ELIST_NUM_ENTITIES,
-                                            ELIST_NUM_ENTITIES_CREATED_AT,
-                                            ELIST_NUM_ENTITIES_IDS,
-                                            ELIST_NUM_ENTITIES_LOCK,
-                                            XFORM_SUBMISSIONS_DELETING,
-                                            safe_delete, set_cache_with_lock)
-from onadata.libs.utils.common_tags import (EXPORT_COLUMNS_REGISTER,
-                                            METADATA_FIELDS)
+from onadata.libs.utils.cache_tools import (
+    ELIST_FAILOVER_REPORT_SENT,
+    ELIST_NUM_ENTITIES,
+    ELIST_NUM_ENTITIES_CREATED_AT,
+    ELIST_NUM_ENTITIES_IDS,
+    ELIST_NUM_ENTITIES_LOCK,
+    XFORM_SUBMISSIONS_DELETING,
+    safe_delete,
+    set_cache_with_lock,
+)
+from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER, METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -368,7 +397,7 @@ def check_submission_permissions(request, xform):
         )
 
 
-def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
+def is_valid_encrypted_submission(xform_is_encrypted: bool, xml: bytes) -> bool:
     """
     Check that the submission is encrypted or unencrypted depending on the
     encryption status of an XForm.
@@ -390,14 +419,11 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     if encrypted_attrib == "yes" or encryption_elems_num > 1:
         if (
             not encryption_elems_num == 2 or not encrypted_attrib == "yes"
-        ) and xform.encrypted:
+        ) and xform_is_encrypted:
             raise InstanceFormatError(_("Encrypted submission incorrectly formatted."))
         submission_encrypted = True
 
-    if xform.encrypted and not submission_encrypted:
-        raise InstanceEncryptionError(
-            _("Unencrypted submissions are not allowed for encrypted forms.")
-        )
+    return submission_encrypted
 
 
 def update_attachment_tracking(instance):
@@ -523,7 +549,12 @@ def create_instance(
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
-    check_submission_encryption(xform, xml)
+    submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
+    if xform.encrypted and not submission_encrypted:
+        raise InstanceEncryptionError(
+            _("Unencrypted submissions are not allowed for encrypted forms.")
+        )
+
     checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
@@ -772,14 +803,14 @@ def get_storages_media_download_url(
     if isinstance(default_storage, type(s3_class)):
         try:
             url = generate_aws_media_url(file_path, content_disposition, expires_in)
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             logging.exception(error)
 
     # Check if the storage backend is Azure
     elif isinstance(default_storage, type(azure_class)):
         try:
             url = generate_media_url_with_sas(file_path, expires_in)
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             logging.error(error)
 
     return url
