@@ -19,8 +19,7 @@ class Command(BaseCommand):
         """Return results of given ``sql`` query."""
         cursor = connection.cursor()
         cursor.execute(sql)
-        for row in cursor.fetchall():
-            yield row
+        yield from cursor.fetchall()
 
     # pylint: disable=too-many-locals
     def handle(self, *args, **kwargs):

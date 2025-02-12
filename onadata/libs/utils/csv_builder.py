@@ -21,21 +21,41 @@ from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import (ATTACHMENTS, BAMBOO_DATASET_ID,
-                                            DATE_MODIFIED, DELETEDAT, DURATION,
-                                            EDITED, EXPORT_COLUMNS_REGISTER,
-                                            GEOLOCATION, ID,
-                                            MEDIA_ALL_RECEIVED, MEDIA_COUNT,
-                                            MULTIPLE_SELECT_TYPE, NA_REP,
-                                            NOTES, REVIEW_COMMENT, REVIEW_DATE,
-                                            REVIEW_STATUS, SELECT_BIND_TYPE,
-                                            STATUS, SUBMISSION_TIME,
-                                            SUBMITTED_BY, TAGS, TOTAL_MEDIA,
-                                            UUID, VERSION, XFORM_ID_STRING)
-from onadata.libs.utils.common_tools import (get_abbreviated_xpath,
-                                             get_choice_label,
-                                             get_value_or_attachment_uri,
-                                             str_to_bool, track_task_progress)
+from onadata.libs.utils.common_tags import (
+    ATTACHMENTS,
+    BAMBOO_DATASET_ID,
+    DATE_MODIFIED,
+    DELETEDAT,
+    DURATION,
+    EDITED,
+    EXPORT_COLUMNS_REGISTER,
+    GEOLOCATION,
+    ID,
+    MEDIA_ALL_RECEIVED,
+    MEDIA_COUNT,
+    MULTIPLE_SELECT_TYPE,
+    NA_REP,
+    NOTES,
+    REVIEW_COMMENT,
+    REVIEW_DATE,
+    REVIEW_STATUS,
+    SELECT_BIND_TYPE,
+    STATUS,
+    SUBMISSION_TIME,
+    SUBMITTED_BY,
+    TAGS,
+    TOTAL_MEDIA,
+    UUID,
+    VERSION,
+    XFORM_ID_STRING,
+)
+from onadata.libs.utils.common_tools import (
+    get_abbreviated_xpath,
+    get_choice_label,
+    get_value_or_attachment_uri,
+    str_to_bool,
+    track_task_progress,
+)
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -118,7 +138,7 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
     return new_columns
 
 
-# pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments,too-many-locals
+# pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
 def write_to_csv(
     path,
     rows,
@@ -136,6 +156,7 @@ def write_to_csv(
     language=None,
 ):
     """Writes ``rows`` to a file in CSV format."""
+    # pylint: disable=too-many-locals
     na_rep = getattr(settings, "NA_REP", NA_REP)
     encoding = "utf-8-sig" if win_excel_utf8 else "utf-8"
     with open(path, "wb") as csvfile:
@@ -413,7 +434,8 @@ class AbstractDataFrameBuilder:
                                 choice.replace("/" + name, "/" + label)
                                 if show_choice_labels
                                 else choice
-                            ): choice in selections
+                            ): choice
+                            in selections
                             for choice, name, label in choices
                         }
                     )
@@ -494,7 +516,7 @@ class AbstractDataFrameBuilder:
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     """CSV data frame builder"""
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -554,7 +576,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             else self.data_dictionary.get_media_survey_xpaths()
         )
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-branches,too-many-locals
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     @classmethod
     def _reindex(
         cls,
@@ -574,6 +596,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
+        # pylint: disable=too-many-branches,too-many-locals
 
         def get_ordered_repeat_value(xpath, repeat_value):
             """

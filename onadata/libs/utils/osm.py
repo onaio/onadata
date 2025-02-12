@@ -25,9 +25,11 @@ from onadata.libs.utils.common_tools import get_abbreviated_xpath
 def _get_xml_obj(xml):
     if not isinstance(xml, bytes):
         xml = xml.strip().encode()
+
+    # pylint: disable=c-extension-no-member
     try:
         return fromstring(xml)
-    except _etree.XMLSyntaxError as _etree_error:  # pylint: disable=c-extension-no-member
+    except _etree.XMLSyntaxError as _etree_error:
         if "Attribute action redefined" in str(_etree_error):
             xml = xml.replace(b'action="modify" ', b"")
 

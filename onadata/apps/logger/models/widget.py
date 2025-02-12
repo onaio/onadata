@@ -75,6 +75,7 @@ class Widget(OrderedModel):
         # get the columns needed
         column = widget.column
         group_by = widget.group_by if widget.group_by else None
+        xform = None
 
         if isinstance(widget.content_object, XForm):
             xform = widget.content_object

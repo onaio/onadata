@@ -23,6 +23,8 @@ from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADE
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 
+DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
+
 REQUIRE_AUTHENTICATION = "REQUIRE_ODK_AUTHENTICATION"
 
 # pylint: disable=invalid-name
@@ -84,14 +86,19 @@ class UserProfile(models.Model):
         return self.twitter
 
     def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
+        self,
+        *args,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
     ):
         # Override default save method to set settings configured require_auth
         # value
         if self.pk is None and hasattr(settings, REQUIRE_AUTHENTICATION):
             self.require_auth = getattr(settings, REQUIRE_AUTHENTICATION)
 
-        super().save(force_insert, force_update, using, update_fields)
+        super().save(*args, force_insert, force_update, using, update_fields)
 
     class Meta:
         app_label = "main"
@@ -144,6 +151,7 @@ def set_kpi_formbuilder_permissions(sender, instance=None, created=False, **kwar
             requests.post(
                 f"{kpi_formbuilder_url}/grant-default-model-level-perms",
                 headers=auth_header,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
             )
 
 

@@ -243,6 +243,7 @@ class XFormMixin:
             if model_node.parentNode.nodeName == "h:head"
         ]
         if len(model_nodes) != 1:
+            # pylint: disable=broad-exception-raised
             raise Exception("xml contains multiple model nodes")
 
         model_node = model_nodes[0]
@@ -255,6 +256,7 @@ class XFormMixin:
         ]
 
         if len(instance_nodes) != 1:
+            # pylint: disable=broad-exception-raised
             raise Exception(
                 "Multiple instance nodes without the id "
                 "attribute, can't tell which is the main one"
@@ -271,6 +273,7 @@ class XFormMixin:
         ]
 
         if len(survey_nodes) != 1:
+            # pylint: disable=broad-exception-raised
             raise Exception("Multiple survey nodes with the id '{self.id_string}'")
 
         survey_node = survey_nodes[0]
@@ -281,6 +284,7 @@ class XFormMixin:
         ]
 
         if len(formhub_nodes) > 1:
+            # pylint: disable=broad-exception-raised
             raise Exception("Multiple formhub nodes within main instance node")
         if len(formhub_nodes) == 1:
             formhub_node = formhub_nodes[0]
