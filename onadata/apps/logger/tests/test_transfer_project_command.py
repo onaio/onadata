@@ -155,7 +155,7 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         alice = self._create_user("alice", "test_pass")
         jane = self._create_user("jane", "test_pass")
 
-        # Create Project owned by Bob
+        # Create Project owned by Bob and publish form
         project = Project.objects.create(
             name="Test_project",
             organization=bob,
@@ -174,7 +174,7 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
             name=f"{alice_org.user.username}#members",
             organization=alice_org.user,
         )
-        # Add Bob as admin in Alice's organization
+        # Add Bob as admin to Alice's organization
         bob.groups.add(owners_team)
         bob.groups.add(members_team)
 
@@ -193,13 +193,11 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         self.assertIn(expected_output, mock_stdout.getvalue())
         self.assertEqual(0, Project.objects.filter(organization=bob).count())
         self.assertEqual(1, Project.objects.filter(organization=alice_org.user).count())
-
         # Admins have owner privileges
         self.assertTrue(OwnerRole.user_has_role(bob, project))
         self.assertTrue(OwnerRole.user_has_role(bob, self.xform))
         self.assertTrue(OwnerRole.user_has_role(alice, project))
         self.assertTrue(OwnerRole.user_has_role(alice, self.xform))
-
         # Non-admins have readonly privileges
         self.assertFalse(OwnerRole.user_has_role(jane, project))
         self.assertTrue(ReadOnlyRole.user_has_role(jane, project))
