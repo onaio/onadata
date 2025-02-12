@@ -97,7 +97,9 @@ class Command(BaseCommand):
 
         set_project_permissions(Project, project, created=True)
 
-        if hasattr(to_user.profile, "organizationprofile"):
+        if hasattr(to_user, "profile") and hasattr(
+            to_user.profile, "organizationprofile"
+        ):
             # Give readonly permission to members
             organization = to_user.profile.organizationprofile
             owners_team = Team.objects.get(
