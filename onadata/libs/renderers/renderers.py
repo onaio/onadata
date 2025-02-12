@@ -3,10 +3,10 @@
 Custom renderers for use with django rest_framework.
 """
 
-from datetime import timezone as tz
 import decimal
 import json
 import math
+from datetime import timezone as tz
 from io import BytesIO, StringIO
 from typing import Tuple
 
@@ -88,8 +88,7 @@ def floip_list(data):
     Yields FLOIP results data row from list data.
     """
     for item in data:
-        for i in floip_rows_list(item):
-            yield i
+        yield from floip_rows_list(item)
 
 
 def _pop_xml_attributes(xml_dictionary: dict) -> Tuple[dict, dict]:

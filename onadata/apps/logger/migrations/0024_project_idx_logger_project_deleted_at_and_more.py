@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     atomic = False
     dependencies = [
-        ('logger', '0023_populate_project_entity_list_perm'),
+        ("logger", "0023_populate_project_entity_list_perm"),
     ]
 
     operations = [
@@ -43,4 +43,3 @@ class Migration(migrations.Migration):
             ],
         )
     ]
-

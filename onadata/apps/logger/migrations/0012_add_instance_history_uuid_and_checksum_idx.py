@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('logger', '0011_add_xform_id_instance_id_idx'),
+        ("logger", "0011_add_xform_id_instance_id_idx"),
     ]
 
     operations = [
@@ -24,15 +24,15 @@ class Migration(migrations.Migration):
             ],
             state_operations=[
                 migrations.AddIndex(
-                    model_name='instancehistory',
+                    model_name="instancehistory",
                     index=models.Index(
-                        fields=['checksum'], name='logger_inst_hist_checksum_05f7bf_idx'
+                        fields=["checksum"], name="logger_inst_hist_checksum_05f7bf_idx"
                     ),
                 ),
                 migrations.AddIndex(
-                    model_name='instancehistory',
+                    model_name="instancehistory",
                     index=models.Index(
-                        fields=['uuid'], name='logger_inst_hist_uuid_f5ae42_idx'
+                        fields=["uuid"], name="logger_inst_hist_uuid_f5ae42_idx"
                     ),
                 ),
             ],

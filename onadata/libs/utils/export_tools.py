@@ -14,22 +14,20 @@ import sys
 from datetime import datetime, timedelta
 from typing import Iterator
 
-import six
-
-from django.http import HttpRequest
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db.models.query import QuerySet
+from django.http import HttpRequest
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+import six
 from json2xlsclient.client import Client
 from multidb.pinning import use_master
-
 from rest_framework import exceptions
 from six import iteritems
 from six.moves.urllib.parse import urlparse
@@ -41,11 +39,11 @@ except ImportError:
 
 from onadata.apps.logger.models import (
     Attachment,
+    Entity,
+    EntityList,
     Instance,
     OsmData,
     XForm,
-    EntityList,
-    Entity,
 )
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
@@ -55,8 +53,8 @@ from onadata.apps.viewer.models.export import (
     get_export_options_query_kwargs,
 )
 from onadata.apps.viewer.models.parsed_instance import (
-    query_data,
     query_count,
+    query_data,
     query_fields_data,
 )
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
@@ -72,7 +70,6 @@ from onadata.libs.utils.export_builder import ExportBuilder
 from onadata.libs.utils.model_tools import get_columns_with_hxl, queryset_iterator
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile, image_urls
-
 
 DEFAULT_GROUP_DELIMITER = "/"
 DEFAULT_INDEX_TAGS = ("[", "]")
@@ -208,7 +205,9 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
             dataview,
             count=True,
             sort=sort,
-        )[0].get("count")
+        )[
+            0
+        ].get("count")
     else:
         records = query_data(
             xform,
@@ -945,6 +944,7 @@ def generate_external_export(  # noqa C901
 
     records = _get_records(instances)
 
+    response = ""
     status_code = 0
 
     if records and server:

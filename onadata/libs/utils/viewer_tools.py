@@ -7,13 +7,13 @@ import sys
 import zipfile
 from json.decoder import JSONDecodeError
 from typing import Dict
-from defusedxml import minidom
 
 from django.conf import settings
 from django.core.files.storage import storages
 from django.utils.translation import gettext as _
 
 import requests
+from defusedxml import minidom
 from six.moves.urllib.parse import urljoin
 
 from onadata.libs.exceptions import EnketoError
@@ -107,8 +107,7 @@ def _path_value_pairs(node):
     else:
         # this is an internal node
         for child in node.childNodes:
-            for pair in _path_value_pairs(child):
-                yield pair
+            yield from _path_value_pairs(child)
 
 
 def _all_attributes(node):
@@ -117,8 +116,7 @@ def _all_attributes(node):
         for key in list(node.attributes):
             yield key, node.getAttribute(key)
     for child in node.childNodes:
-        for pair in _all_attributes(child):
-            yield pair
+        yield from _all_attributes(child)
 
 
 def export_def_from_filename(filename):

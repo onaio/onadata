@@ -17,6 +17,7 @@ def create_feature(instance, geo_field, fields):
     Create a geojson feature from a single instance
     """
     data = instance.json
+    geometry = None
 
     if geo_field not in data:
         # Return an empty feature
@@ -168,6 +169,7 @@ class GeoJsonListSerializer(GeoJsonSerializer):
             return super().to_representation(instance)
         geo_field = None
         fields = None
+        insts = None
 
         if "fields" in instance and instance.get("fields"):
             fields = instance.get("fields").split(",")

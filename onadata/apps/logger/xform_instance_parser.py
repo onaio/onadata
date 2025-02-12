@@ -6,14 +6,14 @@ XForm submission XML parser utility functions.
 import logging
 import re
 from xml.dom import Node
-from defusedxml import minidom
-
-import dateutil.parser
 
 from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 
-from onadata.libs.utils.common_tags import XFORM_ID_STRING, VERSION
+import dateutil.parser
+from defusedxml import minidom
+
+from onadata.libs.utils.common_tags import VERSION, XFORM_ID_STRING
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
@@ -247,8 +247,7 @@ def _flatten_dict(data_dict, prefix):
         new_prefix = prefix + [key]
 
         if isinstance(value, dict):
-            for pair in _flatten_dict(value, new_prefix):
-                yield pair
+            yield from _flatten_dict(value, new_prefix)
         elif isinstance(value, list):
             for i, item in enumerate(value):
                 item_prefix = list(new_prefix)  # make a copy
@@ -263,8 +262,7 @@ def _flatten_dict(data_dict, prefix):
                     item_prefix[-1] += f"[{str(i + 1)}]"
 
                 if isinstance(item, dict):
-                    for pair in _flatten_dict(item, item_prefix):
-                        yield pair
+                    yield from _flatten_dict(item, item_prefix)
                 else:
                     yield (item_prefix, item)
         else:
@@ -282,8 +280,7 @@ def _flatten_dict_nest_repeats(data_dict, prefix):
     for key, value in data_dict.items():
         new_prefix = prefix + [key]
         if isinstance(value, dict):
-            for pair in _flatten_dict_nest_repeats(value, new_prefix):
-                yield pair
+            yield from _flatten_dict_nest_repeats(value, new_prefix)
         elif isinstance(value, list):
             repeats = []
 
@@ -333,8 +330,7 @@ def _get_all_attributes(node):
             yield key, node.getAttribute(key), node.tagName
 
     for child in node.childNodes:
-        for result in _get_all_attributes(child):
-            yield result
+        yield from _get_all_attributes(child)
 
 
 class XFormInstanceParser:

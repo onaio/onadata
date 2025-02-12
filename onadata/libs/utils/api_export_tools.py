@@ -31,30 +31,43 @@ except ImportError:
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
-from onadata.libs.exceptions import (J2XException, NoRecordsFoundError,
-                                     NoRecordsPermission, ServiceUnavailable)
+from onadata.libs.exceptions import (
+    J2XException,
+    NoRecordsFoundError,
+    NoRecordsPermission,
+    ServiceUnavailable,
+)
 from onadata.libs.permissions import filter_queryset_xform_meta_perms_sql
 from onadata.libs.utils import log
-from onadata.libs.utils.async_status import (FAILED, PENDING, SUCCESSFUL,
-                                             async_status,
-                                             celery_state_to_status)
-from onadata.libs.utils.common_tags import (DATAVIEW_EXPORT,
-                                            GROUPNAME_REMOVED_FLAG, OSM,
-                                            SUBMISSION_TIME)
+from onadata.libs.utils.async_status import (
+    FAILED,
+    PENDING,
+    SUCCESSFUL,
+    async_status,
+    celery_state_to_status,
+)
+from onadata.libs.utils.common_tags import (
+    DATAVIEW_EXPORT,
+    GROUPNAME_REMOVED_FLAG,
+    OSM,
+    SUBMISSION_TIME,
+)
 from onadata.libs.utils.common_tools import report_exception
-from onadata.libs.utils.export_tools import (check_pending_export,
-                                             generate_attachments_zip_export,
-                                             generate_entity_list_export,
-                                             generate_export,
-                                             generate_external_export,
-                                             generate_geojson_export,
-                                             generate_kml_export,
-                                             generate_osm_export,
-                                             get_latest_generic_export,
-                                             get_query_params_from_metadata,
-                                             newest_export_for,
-                                             parse_request_export_options,
-                                             should_create_new_export)
+from onadata.libs.utils.export_tools import (
+    check_pending_export,
+    generate_attachments_zip_export,
+    generate_entity_list_export,
+    generate_export,
+    generate_external_export,
+    generate_geojson_export,
+    generate_kml_export,
+    generate_osm_export,
+    get_latest_generic_export,
+    get_query_params_from_metadata,
+    newest_export_for,
+    parse_request_export_options,
+    should_create_new_export,
+)
 from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
@@ -114,7 +127,8 @@ def _get_export_type(export_type):
     return EXPORT_EXT[export_type]
 
 
-# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals, too-many-branches
+# pylint: disable=too-many-arguments,too-many-positional-arguments
+# pylint: disable=too-many-locals,too-many-branches
 def custom_response_handler(  # noqa: C0901
     request,
     xform,

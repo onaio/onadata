@@ -27,7 +27,7 @@ def get_target_metadata(target_obj):
     Gets the metadata of a Target object
     """
     target_obj_type = target_obj._meta.model_name
-    metadata = dict(id=target_obj.pk)
+    metadata = {"id": target_obj.pk}
     if target_obj_type == PROJECT:
         metadata["name"] = target_obj.name
     elif target_obj_type == XFORM:
@@ -87,26 +87,29 @@ class MQTTBackend(BaseBackend):
     def __init__(self, options=None):
         super().__init__()
         if not options:
+            # pylint: disable=broad-exception-raised
             raise Exception("MQTT Backend expects configuration options.")
 
         self.host = options.get("HOST")
         if not self.host:
+            # pylint: disable=broad-exception-raised
             raise Exception("An MQTT host is required.")
         self.port = options.get("PORT")
         self.cert_info = None
         secure = options.get("SECURE", False)
         if secure:
             if options.get("CA_CERT_FILE") is None:
+                # pylint: disable=broad-exception-raised
                 raise Exception(
                     "The Certificate Authority certificate file is required."
                 )
-            self.cert_info = dict(
-                ca_certs=options.get("CA_CERT_FILE"),
-                certfile=options.get("CERT_FILE"),
-                keyfile=options.get("KEY_FILE"),
-                tls_version=ssl.PROTOCOL_TLSv1_2,
-                cert_reqs=ssl.CERT_NONE,
-            )
+            self.cert_info = {
+                "ca_certs": options.get("CA_CERT_FILE"),
+                "certfile": options.get("CERT_FILE"),
+                "keyfile": options.get("KEY_FILE"),
+                "tls_version": ssl.PROTOCOL_TLSv1_2,
+                "cert_reqs": ssl.CERT_NONE,
+            }
 
         self.qos = options.get("QOS", 0)
         self.retain = options.get("RETAIN", False)
