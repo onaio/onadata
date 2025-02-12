@@ -5,12 +5,13 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from onadata.apps.api.models.organization_profile import (
-    get_or_create_organization_owners_team,
-    get_organization_members_team,
-)
+from onadata.apps.api.models import Team
+from onadata.apps.api.models.organization_profile import get_organization_members_team
 from onadata.apps.logger.models import MergedXForm, Project, XForm
-from onadata.libs.permissions import OwnerRole, ReadOnlyRole
+from onadata.apps.logger.models.project import (
+    set_object_permissions as set_project_permissions,
+)
+from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
 
 
@@ -93,26 +94,26 @@ class Command(BaseCommand):
         project.organization = to_user
         project.created_by = to_user
         project.save()
-        organization = to_user.profile.organizationprofile
 
-        owners_team = get_or_create_organization_owners_team(organization)
-        OwnerRole.add(owners_team, project)
+        set_project_permissions(Project, project, created=True)
 
-        members_team = get_organization_members_team(organization)
-        ReadOnlyRole.add(members_team, project)
+        if hasattr(to_user.profile, "organizationprofile"):
+            # Give readonly permission to members
+            organization = to_user.profile.organizationprofile
+            owners_team = Team.objects.get(
+                name=f"{to_user.username}#{Team.OWNER_TEAM_NAME}", organization=to_user
+            )
+            members_team = get_organization_members_team(organization)
 
-        owners = owners_team.user_set.all()
+            ReadOnlyRole.add(members_team, project)
 
-        for owner in owners:
-            OwnerRole.add(owner, project)
+            # Owners are also members so we exclude them
+            members = members_team.user_set.exclude(
+                username__in=[user.username for user in owners_team.user_set.all()]
+            )
 
-        # Owners are also members so we exclude them
-        members = members_team.user_set.exclude(
-            username__in=[user.username for user in owners]
-        )
-
-        for member in members:
-            ReadOnlyRole.add(member, project)
+            for member in members:
+                ReadOnlyRole.add(member, project)
 
         self._transfer_xform(project, to_user)
         self._transfer_merged_xform(project, to_user)

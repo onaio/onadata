@@ -3,6 +3,7 @@
 import os
 import sys
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 
 from six import StringIO
@@ -12,55 +13,97 @@ from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
-    def setUp(self):
-        super().setUp()
-
-        self.from_user = self._create_user("bob", "test_pass")
-        self.alice = self._create_user("alice", "test_pass")
-        org = self._create_organization("alice_inc", "Alice Inc", self.alice)
-        self.to_user = org.user
-        Project.objects.bulk_create(
-            [
-                Project(
-                    name=f"Test_project_{i}",
-                    organization=self.from_user,
-                    created_by=self.from_user,
-                )
-                for i in range(1, 6)
-            ]
+    def test_successful_project_transfer(self):  # pylint: disable=C0103
+        """ "Test for a successful project transfer."""
+        user_model = get_user_model()
+        user_1_data = {
+            "username": "user1",
+            "email": "user1@test.com",
+            "password": "test_pass",
+        }
+        user_2_data = {
+            "username": "user2",
+            "email": "user2@test.com",
+            "password": "test_pass",
+        }
+        user1 = user_model.objects.create_user(**user_1_data)
+        user2 = user_model.objects.create_user(**user_2_data)
+        Project.objects.create(
+            name="Test_project_1", organization=user1, created_by=user1
         )
-
-    def test_transfer_all(self):  # pylint: disable=C0103
-        """Transfer all projects from one user to another."""
+        Project.objects.create(
+            name="Test_project_2", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_3", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_4", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_5", organization=user1, created_by=user1
+        )
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         call_command(
             "transferproject",
-            current_owner=self.from_user.username,
-            new_owner=self.to_user.username,
+            current_owner="user1",
+            new_owner="user2",
             all_projects=True,
             stdout=mock_stdout,
         )
         expected_output = "Projects transferred successfully"
         self.assertIn(expected_output, mock_stdout.getvalue())
-        self.assertEqual(0, Project.objects.filter(organization=self.from_user).count())
-        self.assertEqual(5, Project.objects.filter(organization=self.to_user).count())
+        self.assertEqual(0, Project.objects.filter(organization=user1).count())
+        self.assertEqual(5, Project.objects.filter(organization=user2).count())
 
-    def test_transfer_one(self):
-        """Transfer a single project from one user to another."""
+    def test_single_project_transfer(self):
+        """ "Test for a successful project transfer."""
+        user_model = get_user_model()
+        user_1_data = {
+            "username": "user1",
+            "email": "user1@test.com",
+            "password": "test_pass",
+        }
+        user_2_data = {
+            "username": "user2",
+            "email": "user2@test.com",
+            "password": "test_pass",
+        }
+        user1 = user_model.objects.create_user(**user_1_data)
+        user2 = user_model.objects.create_user(**user_2_data)
+        Project.objects.create(
+            name="Test_project_1", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_2", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_3", organization=user1, created_by=user1
+        )
+        Project.objects.create(
+            name="Test_project_4", organization=user1, created_by=user1
+        )
+
+        test_project = Project.objects.create(
+            name="Test_project_5", organization=user1, created_by=user1
+        )
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
-        target_project = Project.objects.filter(organization=self.from_user).first()
+        self.assertIsNotNone(test_project.id)
+
         call_command(
             "transferproject",
-            current_owner=self.from_user.username,
-            new_owner=self.to_user.username,
-            project_id=target_project.id,
+            current_owner="user1",
+            new_owner="user2",
+            project_id=test_project.id,
         )
         expected_output = "Projects transferred successfully"
         self.assertIn(expected_output, mock_stdout.getvalue())
-        self.assertEqual(4, Project.objects.filter(organization=self.from_user).count())
-        self.assertEqual(1, Project.objects.filter(organization=self.to_user).count())
+        self.assertEqual(4, Project.objects.filter(organization=user1).count())
+        self.assertEqual(1, Project.objects.filter(organization=user2).count())
+        test_project_refetched = Project.objects.get(id=test_project.id)
+        self.assertEqual(user2, test_project_refetched.organization)
 
     def test_xforms_are_transferred_as_well(self):  # pylint: disable=C0103
         """Test the transfer of ownership of the XForms."""
@@ -69,19 +112,34 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
             "../fixtures/tutorial/tutorial.xlsx",
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml",
+        )
 
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 201)
+
+        user_model = get_user_model()
+        user_data = {
+            "username": "user",
+            "email": "user@test.com",
+            "password": "test_pass",
+        }
+        new_owner = user_model.objects.create_user(**user_data)
         mock_stdout = StringIO()
         sys.stdout = mock_stdout
         call_command(
             "transferproject",
-            current_owner=self.from_user,
-            new_owner=self.to_user,
+            current_owner="bob",
+            new_owner="user",
             all_projects=True,
             stdout=mock_stdout,
         )
         self.assertIn("Projects transferred successfully\n", mock_stdout.getvalue())
-        bobs_forms = XForm.objects.filter(user=self.from_user)
-        new_owner_forms = XForm.objects.filter(user=self.to_user)
+        bob = user_model.objects.get(username="bob")
+        bobs_forms = XForm.objects.filter(user=bob)
+        new_owner_forms = XForm.objects.filter(user=new_owner)
         self.assertEqual(0, bobs_forms.count())
         self.assertEqual(1, new_owner_forms.count())
 
