@@ -190,9 +190,13 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
             stdout=mock_stdout,
         )
         expected_output = "Projects transferred successfully"
+        self.xform.refresh_from_db()
+        self.project.refresh_from_db()
         self.assertIn(expected_output, mock_stdout.getvalue())
-        self.assertEqual(0, Project.objects.filter(organization=bob).count())
-        self.assertEqual(1, Project.objects.filter(organization=alice_org.user).count())
+        self.assertEqual(self.project.organization, alice_org.user)
+        self.assertEqual(self.project.organization, alice_org.user)
+        self.assertEqual(self.xform.user, alice_org.user)
+        self.assertEqual(self.xform.created_by, alice_org.user)
         # Admins have owner privileges
         self.assertTrue(OwnerRole.user_has_role(bob, project))
         self.assertTrue(OwnerRole.user_has_role(bob, self.xform))
