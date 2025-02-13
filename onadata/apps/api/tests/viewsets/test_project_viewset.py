@@ -1296,11 +1296,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(self.project.created_by, alice_profile.user)
         alice_project = self.project
 
-        # create org owned by bob then make alice admin
+        # Publish a form to Alice's project
+        self._publish_xls_form_to_project()
+        alice_xform = self.xform
+
+        # Create organization owned by Bob
         self._login_user_and_profile({"username": bob.username, "email": bob.email})
         self._org_create()
         self.assertEqual(self.organization.created_by, bob)
-        org_url = f"http://testserver/api/v1/users/{self.organization.user.username}"
+
+        # Add Alice as admin to Bob's organization
         view = OrganizationProfileViewSet.as_view({"post": "members"})
         data = {"username": alice_profile.user.username, "role": OwnerRole.name}
         request = self.factory.post(
@@ -1312,6 +1317,20 @@ class TestProjectViewSet(TestAbstractViewSet):
         owners_team = get_or_create_organization_owners_team(self.organization)
         self.assertIn(alice_profile.user, owners_team.user_set.all())
 
+        # Add Jane to Bob's organization with dataentry role
+        jane_data = {"username": "jane", "email": "janedoe@example.com"}
+        jane_profile = self._create_user_profile(jane_data)
+        data = {"username": jane_profile.user.username, "role": DataEntryRole.name}
+        request = self.factory.post("/", data=data, **self.extra)
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = view(request, user=self.organization.user.username)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            DataEntryRole.user_has_role(jane_profile.user, self.organization)
+        )
+
         # Share project to bob as editor
         data = {"username": bob.username, "role": EditorRole.name}
         view = ProjectViewSet.as_view({"post": "share"})
@@ -1322,28 +1341,24 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
 
         # Transfer project to Bobs Organization
+        org_url = f"http://testserver/api/v1/users/{self.organization.user.username}"
         data = {"owner": org_url, "name": alice_project.name}
         view = ProjectViewSet.as_view({"patch": "partial_update"})
         request = self.factory.patch("/", data=data, **auth_credentials)
         response = view(request, pk=alice_project.pk)
         self.assertEqual(response.status_code, 200)
 
-        # Ensure all Admins have admin privileges to the project
-        # once transferred
-        view = ProjectViewSet.as_view({"get": "retrieve"})
-        request = self.factory.get("/", **self.extra)
-        response = view(request, pk=alice_project.pk)
-        self.assertEqual(response.status_code, 200)
-        project_users = response.data["users"]
+        # Admins have owner privileges to the transferred project
+        # and forms
+        self.assertTrue(OwnerRole.user_has_role(bob, alice_project))
+        self.assertTrue(OwnerRole.user_has_role(bob, alice_xform))
+        self.assertTrue(OwnerRole.user_has_role(alice_profile.user, alice_project))
+        self.assertTrue(OwnerRole.user_has_role(alice_profile.user, alice_xform))
 
-        org_owners = get_or_create_organization_owners_team(
-            self.organization
-        ).user_set.all()
-
-        for user in project_users:
-            owner = org_owners.filter(username=user["user"]).first()
-            if owner:
-                self.assertEqual(user["role"], OwnerRole.name)
+        # Non-admins have readonly privileges to the transferred project
+        # and forms
+        self.assertTrue(ReadOnlyRole.user_has_role(jane_profile.user, alice_project))
+        self.assertTrue(ReadOnlyRole.user_has_role(jane_profile.user, alice_xform))
 
     # pylint: disable=invalid-name
     @override_settings(ALLOW_PUBLIC_DATASETS=False)
