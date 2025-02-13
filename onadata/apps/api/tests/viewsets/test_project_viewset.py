@@ -26,25 +26,42 @@ from six import iteritems
 
 from onadata.apps.api import tools
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
-    TestAbstractViewSet, get_mocked_response_for_file)
+    TestAbstractViewSet,
+    get_mocked_response_for_file,
+)
 from onadata.apps.api.tools import get_or_create_organization_owners_team
-from onadata.apps.api.viewsets.organization_profile_viewset import \
-    OrganizationProfileViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import (
+    OrganizationProfileViewSet,
+)
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import (EntityList, Project, ProjectInvitation,
-                                        XForm, XFormVersion)
+from onadata.apps.logger.models import (
+    EntityList,
+    Project,
+    ProjectInvitation,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.main.models import MetaData
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import (ROLES_ORDERED, DataEntryMinorRole,
-                                      DataEntryOnlyRole, DataEntryRole,
-                                      EditorMinorRole, EditorRole, ManagerRole,
-                                      OwnerRole, ReadOnlyRole,
-                                      ReadOnlyRoleNoDownload)
-from onadata.libs.serializers.project_serializer import (BaseProjectSerializer,
-                                                         ProjectSerializer)
+from onadata.libs.permissions import (
+    ROLES_ORDERED,
+    DataEntryMinorRole,
+    DataEntryOnlyRole,
+    DataEntryRole,
+    EditorMinorRole,
+    EditorRole,
+    ManagerRole,
+    OwnerRole,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
+)
+from onadata.libs.serializers.project_serializer import (
+    BaseProjectSerializer,
+    ProjectSerializer,
+)
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -123,7 +140,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
 
-                mock_requests.get.assert_called_with(xls_url)
+                mock_requests.get.assert_called_with(xls_url, timeout=30)
                 xls_file.close()
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
