@@ -1,4 +1,4 @@
-FROM onaio/python-deps:3.10.14-20240820 AS base
+FROM onaio/python-deps:3.10.16-20250213 AS base
 
 ARG optional_packages
 
@@ -22,7 +22,7 @@ COPY ../../ /srv/onadata/
 WORKDIR /srv/onadata
 
 # hadolint ignore=DL3013
-RUN --mount=type=ssh if [ -n "$optional_packages" ]; then /home/appuser/.pyenv/versions/3.10.14/bin/pip install --no-cache-dir ${optional_packages} ; fi
+RUN --mount=type=ssh if [ -n "$optional_packages" ]; then /home/appuser/.pyenv/versions/3.10.16/bin/pip install --no-cache-dir ${optional_packages} ; fi
 RUN chown -R appuser:appuser /home/appuser/.pyenv
 
 USER appuser
@@ -33,7 +33,7 @@ RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/s3.pip && \
     python -m pip install --no-cache-dir -r requirements/ses.pip && \
     python -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python -m pip install --no-cache-dir pyyaml==6.0.1 uwsgitop==0.12 supervisor==4.2.5
+    python -m pip install --no-cache-dir pyyaml==6.0.2 uwsgitop==0.12 supervisor==4.2.5
 
 ARG INSTALL_DEV_DEPENDENCIES=false
 RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
@@ -43,7 +43,7 @@ RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
 FROM base AS docs
 
 ENV PYENV_ROOT="$HOME/.pyenv"
-ENV PATH=$PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PATH=$PYENV_ROOT/versions/3.10.16/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 COPY --from=base /home/appuser/.pyenv/ /home/appuser/.pyenv/
 COPY --from=base /srv/onadata/ /srv/onadata/
 
@@ -58,12 +58,15 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20250113 AS runtime
+FROM debian:bookworm-20250203 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
-RUN echo "deb http://deb.debian.org/debian bookworm main non-free contrib" >> /etc/apt/sources.list \
+RUN apt-get update -q \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && echo "deb http://deb.debian.org/debian bookworm main non-free contrib" >> /etc/apt/sources.list \
+    && echo "deb https://deb.debian.org/debian unstable main" >> /etc/apt/sources.list \
     && apt-get update -q \
     && apt-get install -y --no-install-recommends locales netcat-traditional \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
@@ -99,8 +102,8 @@ USER appuser
 WORKDIR /srv/onadata
 
 ENV HOME=/home/appuser
-ENV PYTHON_VERSION=3.10.14
+ENV PYTHON_VERSION=3.10.16
 ENV PYENV_ROOT="$HOME/.pyenv"
-ENV PATH=$PYENV_ROOT/versions/3.10.14/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PATH=$PYENV_ROOT/versions/3.10.16/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 CMD ["uwsgi", "--ini", "uwsgi.ini"]
