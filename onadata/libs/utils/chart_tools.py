@@ -19,8 +19,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one,
-)
+    get_form_submissions_grouped_by_select_one)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -101,13 +100,13 @@ def get_field_choices(field, xform):
     :return: Form field choices
     """
     choices = xform.survey.get("choices")
-
-    if isinstance(field, str):
-        return choices.get(field)
-    if hasattr(field, "name") and field.name in choices:
-        return choices.get(field.name)
-    if hasattr(field, "itemset"):
-        return choices.get(field.itemset)
+    if choices:
+        if isinstance(field, str):
+            return choices.get(field)
+        if hasattr(field, "name") and field.name in choices:
+            return choices.get(field.name)
+        if hasattr(field, "itemset"):
+            return choices.get(field.itemset)
 
     return choices
 
