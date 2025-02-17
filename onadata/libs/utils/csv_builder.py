@@ -357,7 +357,7 @@ class AbstractDataFrameBuilder:
                     )
                     for c in e.children
                 ]
-                if e.children
+                if hasattr(e, "children") and e.children
                 else []
             )
             is_choice_randomized = str_to_bool(

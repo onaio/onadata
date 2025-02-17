@@ -158,7 +158,7 @@ class TestExportBuilder(TestBase):
                         {
                             "childrens_survey_with_a_very_lo/cartoons/name": "Dexter's Lab",
                             "childrens_survey_with_a_very_lo/cartoons/why": "He thinks hes smart",
-                            "childrens_survey_with_a_very_lo/cartoons/characte" "rs": [
+                            "childrens_survey_with_a_very_lo/cartoons/characters": [
                                 {
                                     "childrens_survey_with_a_very_lo/cartoons/"
                                     "characters/name": "Dee Dee",

@@ -420,7 +420,11 @@ class ExportBuilder:
             child.parameters and child.parameters.get("randomize")
         )
         if (
-            (not child.children and child.choice_filter) or is_choice_randomized
+            (
+                (hasattr(child, "children") and not child.children)
+                and child.choice_filter
+            )
+            or is_choice_randomized
         ) and child.itemset:
             itemset = data_dicionary.survey.to_json_dict()["choices"].get(child.itemset)
             choices = (
@@ -435,12 +439,13 @@ class ExportBuilder:
                 else choices
             )
         else:
+            children = child.children if hasattr(child, "children") else []
             choices = [
                 get_choice_dict(
                     get_abbreviated_xpath("/".join([child.get_xpath(), c.name])),
                     get_choice_label(c.label, data_dicionary, language=self.language),
                 )
-                for c in child.children
+                for c in children
             ]
 
         return choices
