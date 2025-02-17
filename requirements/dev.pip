@@ -5,7 +5,7 @@
 #    pip-compile --output-file=requirements/dev.pip --strip-extras requirements/dev.in
 #
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 amqp==5.3.1
     # via kombu
 analytics-python==1.4.post1
@@ -80,7 +80,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
     # via celery
 codetiming==1.4.0
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 cryptography==44.0.0
     # via
     #   jwcrypto
@@ -139,7 +139,7 @@ django-csp==3.8
 django-debug-toolbar==5.0.1
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 django-extensions==3.2.3
     # via -r requirements/dev.in
 django-filter==24.1
@@ -151,7 +151,7 @@ django-guardian==2.4.0
     #   djangorestframework-guardian
     #   onadata
 django-multidb-router @ git+https://github.com/onaio/django-multidb-router.git@f711368180d58eef87eda54fadfd5f8355623d52
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 django-nose==1.4.7
     # via onadata
 django-oauth-toolkit==3.0.1
@@ -314,7 +314,7 @@ oauthlib==3.2.2
     #   django-oauth-toolkit
     #   requests-oauthlib
 ona-oidc @ git+https://github.com/onaio/ona-oidc.git@django-upgrade-5
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 openpyxl==3.1.3
     # via
     #   dataflows-tabulator
@@ -374,7 +374,7 @@ pyflakes==3.2.0
     #   flake8
     #   prospector
 pyfloip @ git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 pygments==2.19.1
     # via ipython
 pyjwt==2.10.1
@@ -418,18 +418,18 @@ python-dateutil==2.9.0.post0
     #   onadata
     #   tableschema
 python-digest @ git+https://github.com/onaio/python-digest.git@08267ca8afc1a52f91352ebb5385e8e6d074fc36
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 python-json2xlsclient @ git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce98da0331a9dd66a0
-    # via -r /home/ukanga/ona/onadata-api/requirements/base.in
+    # via -r requirements/base.in
 python-memcached==1.62
     # via onadata
 pytz==2024.2
     # via
     #   django-query-builder
     #   fleming
-pyxform @ git+https://github.com/onaio/pyxform.git@fix-option-parent
+pyxform @ git+https://github.com/onaio/pyxform.git@fix-osm-attribute-error
     # via
-    #   -r /home/ukanga/ona/onadata-api/requirements/base.in
+    #   -r requirements/base.in
     #   pyfloip
 pyyaml==6.0.2
     # via
