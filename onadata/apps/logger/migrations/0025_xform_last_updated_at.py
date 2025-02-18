@@ -3,12 +3,11 @@
 from __future__ import unicode_literals
 
 import datetime
+from datetime import timezone
 from django.db import migrations, models
-from django.utils.timezone import utc
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("logger", "0024_xform_has_hxl_support"),
     ]
@@ -19,7 +18,9 @@ class Migration(migrations.Migration):
             name="last_updated_at",
             field=models.DateTimeField(
                 auto_now=True,
-                default=datetime.datetime(2016, 8, 18, 12, 43, 30, 316792, tzinfo=utc),
+                default=datetime.datetime(
+                    2016, 8, 18, 12, 43, 30, 316792, tzinfo=timezone.utc
+                ),
             ),
             preserve_default=False,
         ),

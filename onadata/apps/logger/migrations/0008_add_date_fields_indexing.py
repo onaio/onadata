@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('logger', '0007_alter_projectinvitation_unique_together'),
+        ("logger", "0007_alter_projectinvitation_unique_together"),
     ]
 
     operations = [
@@ -15,15 +15,15 @@ class Migration(migrations.Migration):
             database_operations=[
                 # index the json date fields
                 migrations.RunSQL(
-                    sql='CREATE INDEX CONCURRENTLY "logger_inst_date_cr_json_42899d_idx" ON "logger_instance" ((json->>\'_date_created\')) WHERE (json->>\'_date_created\') IS NOT NULL;',
+                    sql="CREATE INDEX CONCURRENTLY \"logger_inst_date_cr_json_42899d_idx\" ON \"logger_instance\" ((json->>'_date_created')) WHERE (json->>'_date_created') IS NOT NULL;",
                     reverse_sql='DROP INDEX "logger_inst_date_cr_json_42899d_idx";',
                 ),
                 migrations.RunSQL(
-                    sql='CREATE INDEX CONCURRENTLY "logger_inst_date_mo_json_5a1bd3_idx" ON "logger_instance" ((json->>\'_date_modified\')) WHERE (json->>\'_date_modified\') IS NOT NULL;',
+                    sql="CREATE INDEX CONCURRENTLY \"logger_inst_date_mo_json_5a1bd3_idx\" ON \"logger_instance\" ((json->>'_date_modified')) WHERE (json->>'_date_modified') IS NOT NULL;",
                     reverse_sql='DROP INDEX "logger_inst_date_mo_json_5a1bd3_idx";',
                 ),
                 migrations.RunSQL(
-                    sql='CREATE INDEX CONCURRENTLY "logger_inst_deleted_at_json_da31a3_idx" ON "logger_instance" ((json->>\'_deleted_at\')) WHERE (json->>\'_deleted_at\') IS NOT NULL;',
+                    sql="CREATE INDEX CONCURRENTLY \"logger_inst_deleted_at_json_da31a3_idx\" ON \"logger_instance\" ((json->>'_deleted_at')) WHERE (json->>'_deleted_at') IS NOT NULL;",
                     reverse_sql='DROP INDEX "logger_inst_deleted_at_json_da31a3_idx";',
                 ),
                 # index model date fields

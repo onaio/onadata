@@ -2,26 +2,26 @@
 """
 Test usage process - form publishing and export.
 """
+
 import csv
 import fnmatch
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import md5
 from io import BytesIO
 from unittest.mock import patch
 from xml.dom import Node
-from defusedxml import minidom
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.test.testcases import SerializeMixin
 from django.urls import reverse
-from django.utils import timezone
 
 import openpyxl
 import requests
+from defusedxml import minidom
 from django_digest.test import Client as DigestClient
 from flaky import flaky
 from six import iteritems
@@ -157,8 +157,10 @@ class TestProcess(TestBase, SerializeMixin):
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
 
-                mock_requests.get.assert_called_with(xls_url)
-                mock_requests.head.assert_called_with(xls_url, allow_redirects=True)
+                mock_requests.get.assert_called_with(xls_url, timeout=30)
+                mock_requests.head.assert_called_with(
+                    xls_url, allow_redirects=True, timeout=30
+                )
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -202,7 +204,7 @@ class TestProcess(TestBase, SerializeMixin):
                 response = self.client.post(
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
-                mock_requests.get.assert_called_with(xls_url)
+                mock_requests.get.assert_called_with(xls_url, timeout=30)
 
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)

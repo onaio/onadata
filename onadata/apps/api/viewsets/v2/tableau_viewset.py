@@ -15,6 +15,7 @@ from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data import parse_int
+from onadata.libs.pagination import RawSQLQueryPageNumberPagination
 from onadata.libs.renderers.renderers import pairing
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
 from onadata.libs.utils.common_tags import (
@@ -24,8 +25,7 @@ from onadata.libs.utils.common_tags import (
     PARENT_TABLE,
     REPEAT_SELECT_TYPE,
 )
-from onadata.libs.pagination import RawSQLQueryPageNumberPagination
-
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 DEFAULT_TABLE_NAME = "data"
 GPS_PARTS = ["latitude", "longitude", "altitude", "precision"]
@@ -61,12 +61,15 @@ def process_tableau_data(
                     qstn_type = qstn.get("type")
                     qstn_name = qstn.get("name")
 
-                    prefix_parts = [
-                        question["name"]
-                        for question in qstn.get_lineage()
-                        if question["type"] == "group"
-                    ]
-                    prefix = "_".join(prefix_parts)
+                    prefix_parts = get_abbreviated_xpath(qstn.get_xpath()).split("/")
+                    parent_elem = xform.get_element("/".join(prefix_parts[:-1]))
+                    prefix = ""
+                    if (
+                        parent_elem
+                        and hasattr(parent_elem, "type")
+                        and parent_elem.type == "group"
+                    ):
+                        prefix = "_".join(prefix_parts[:-1])
 
                     if qstn_type == REPEAT_SELECT_TYPE:
                         repeat_data = process_tableau_data(

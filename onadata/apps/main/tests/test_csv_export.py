@@ -6,7 +6,7 @@ Test CSV Exports
 import csv
 import os
 
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.db.models.signals import post_save
 from django.utils.dateparse import parse_datetime
 
@@ -55,7 +55,7 @@ class TestCsvExport(TestBase):
         # test csv
 
         export = generate_export(Export.CSV_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".csv")
@@ -84,7 +84,7 @@ class TestCsvExport(TestBase):
         self.assertEqual(data_dictionary.xpaths(repeat_iterations=2), xpaths)
         # test csv
         export = generate_export(Export.CSV_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".csv")
@@ -113,7 +113,7 @@ class TestCsvExport(TestBase):
         # test csv
         self.options["id_string"] = "userone"
         export = generate_export(Export.CSV_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".csv")
@@ -137,7 +137,7 @@ class TestCsvExport(TestBase):
         # test csv
         self.options["remove_group_name"] = True
         export = generate_export(Export.CSV_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".csv")
@@ -156,7 +156,7 @@ class TestCsvExport(TestBase):
         path = os.path.join(self.fixture_dir, "repeat_w_note.xml")
         self._make_submission(path, forced_submission_time=self._submission_time)
         export = generate_export(Export.CSV_EXPORT, self.xform, None, self.options)
-        storage = get_storage_class()()
+        storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, ".csv")

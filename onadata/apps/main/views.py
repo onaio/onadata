@@ -3,6 +3,7 @@
 """
 Main views.
 """
+
 import json
 import os
 from datetime import datetime
@@ -14,7 +15,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.core.files.storage import default_storage, get_storage_class
+from django.core.files.storage import default_storage, storages
 from django.db import IntegrityError
 from django.http import (
     HttpResponse,
@@ -1038,7 +1039,7 @@ def download_metadata(request, username, id_string, data_id):
         file_path = data.data_file.name
         filename, extension = os.path.splitext(file_path.split("/")[-1])
         extension = extension.strip(".")
-        dfs = get_storage_class()()
+        dfs = storages["default"]
         if dfs.exists(file_path):
             audit = {"xform": xform.id_string}
             filename_w_extension = f"{filename}.{extension}"
@@ -1075,7 +1076,7 @@ def delete_metadata(request, username, id_string, data_id):
 
     owner = xform.user
     data = get_object_or_404(MetaData, pk=data_id)
-    dfs = get_storage_class()()
+    dfs = storages["default"]
     req_username = request.user.username
     if request.GET.get("del", False) and username == req_username:
         dfs.delete(data.data_file.name)
@@ -1123,7 +1124,7 @@ def download_media_data(request, username, id_string, data_id):
     )
     owner = xform.user
     data = get_object_or_404(MetaData, id=data_id)
-    dfs = get_storage_class()()
+    dfs = storages["default"]
     if request.GET.get("del", False):
         if username == request.user.username:
             # ensure filename is not an empty string

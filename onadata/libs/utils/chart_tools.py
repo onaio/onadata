@@ -2,6 +2,7 @@
 """
 Chart utility functions.
 """
+
 from __future__ import unicode_literals
 
 import re
@@ -18,9 +19,9 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one,
-)
+    get_form_submissions_grouped_by_select_one)
 from onadata.libs.utils import common_tags
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 # list of fields we can chart
 CHART_FIELDS = [
@@ -99,13 +100,13 @@ def get_field_choices(field, xform):
     :return: Form field choices
     """
     choices = xform.survey.get("choices")
-
-    if isinstance(field, str):
-        choices = choices.get(field)
-    elif "name" in field and field.name in choices:
-        choices = choices.get(field.name)
-    elif "itemset" in field:
-        choices = choices.get(field.itemset)
+    if choices:
+        if isinstance(field, str):
+            return choices.get(field)
+        if hasattr(field, "name") and field.name in choices:
+            return choices.get(field.name)
+        if hasattr(field, "itemset"):
+            return choices.get(field.itemset)
 
     return choices
 
@@ -173,7 +174,7 @@ def _use_labels_from_field_name(field_name, field, data_type, data, choices=None
 
     if data_type == "categorized" and field_name != common_tags.SUBMITTED_BY:
         if data:
-            if field.children:
+            if hasattr(field, "children"):
                 choices = field.children
 
             for item in data:
@@ -224,17 +225,19 @@ def _use_labels_from_group_by_name(  # noqa C901
     return data
 
 
-# pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def build_chart_data_for_field(  # noqa C901
     xform, field, language_index=0, choices=None, group_by=None, data_view=None
 ):
     """Returns the chart data for a given field."""
+    # pylint: disable=too-many-locals,too-many-branches
+
     # check if its the special _submission_time META
     if isinstance(field, str):
         field_label, field_xpath, field_type = FIELD_DATA_MAP.get(field)
     else:
         field_label = get_field_label(field, language_index)
-        field_xpath = field.get_abbreviated_xpath()
+        field_xpath = get_abbreviated_xpath(field.get_xpath())
         field_type = field.type
 
     data_type = DATA_TYPE_MAP.get(field_type, "categorized")
@@ -242,14 +245,15 @@ def build_chart_data_for_field(  # noqa C901
 
     if group_by and isinstance(group_by, list):
         group_by_name = [
-            g.get_abbreviated_xpath() if not isinstance(g, str) else g for g in group_by
+            get_abbreviated_xpath(g.get_xpath()) if not isinstance(g, str) else g
+            for g in group_by
         ]
         result = get_form_submissions_aggregated_by_select_one(
             xform, field_xpath, field_name, group_by_name, data_view
         )
     elif group_by:
         group_by_name = (
-            group_by.get_abbreviated_xpath()
+            get_abbreviated_xpath(group_by.get_xpath())
             if not isinstance(group_by, str)
             else group_by
         )
@@ -308,7 +312,7 @@ def build_chart_data_for_field(  # noqa C901
             group_by_data_type = DATA_TYPE_MAP.get(a_group.type, "categorized")
             grp_choices = get_field_choices(a_group, xform)
             result = _use_labels_from_group_by_name(
-                a_group.get_abbreviated_xpath(),
+                get_abbreviated_xpath(a_group.get_xpath()),
                 a_group,
                 group_by_data_type,
                 result,
@@ -403,7 +407,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def _get_field_from_field_fn(field_str, xform, field_fn):
+def _get_field_from_field_fn(field_str, xform):
     # check if its the special _submission_time META
     if field_str == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -413,23 +417,20 @@ def _get_field_from_field_fn(field_str, xform, field_fn):
         field = common_tags.DURATION
     else:
         # use specified field to get summary
-        fields = [e for e in xform.survey_elements if field_fn(e) == field_str]
-        if len(fields) == 0:
+        field = xform.get_survey_element(field_str)
+        if not field:
             raise Http404(f"Field {field_str} does not not exist on the form")
-        field = fields[0]
     return field
 
 
 def get_field_from_field_name(field_name, xform):
     """Returns the field if the ``field_name`` is in the ``xform``."""
-    return _get_field_from_field_fn(field_name, xform, lambda x: x.name)
+    return _get_field_from_field_fn(field_name, xform)
 
 
 def get_field_from_field_xpath(field_xpath, xform):
     """Returns the field if the ``field_xpath`` is in the ``xform``."""
-    return _get_field_from_field_fn(
-        field_xpath, xform, lambda x: x.get_abbreviated_xpath()
-    )
+    return _get_field_from_field_fn(field_xpath, xform)
 
 
 def get_field_label(field, language_index=0):
@@ -445,7 +446,7 @@ def get_field_label(field, language_index=0):
     return field_label
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_chart_data_for_field(  # noqa C901
     field_name, xform, accepted_format, group_by, field_xpath=None, data_view=None
 ):
@@ -453,6 +454,7 @@ def get_chart_data_for_field(  # noqa C901
     Get chart data for a given xlsform field.
     """
     data = {}
+    field = None
 
     if field_name:
         field = get_field_from_field_name(field_name, xform)

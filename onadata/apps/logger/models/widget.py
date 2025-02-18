@@ -2,12 +2,14 @@
 """
 Widget class module.
 """
+
 from builtins import str as text
 
-from django.db.models import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
+from django.db.models import JSONField
+
 from ordered_model.models import OrderedModel
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
@@ -24,7 +26,7 @@ from onadata.libs.utils.chart_tools import (
     get_field_label,
 )
 from onadata.libs.utils.common_tags import NUMERIC_LIST, SELECT_ONE, SUBMISSION_TIME
-from onadata.libs.utils.common_tools import get_uuid
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 
 
 class Widget(OrderedModel):
@@ -61,7 +63,6 @@ class Widget(OrderedModel):
         app_label = "logger"
 
     def save(self, *args, **kwargs):
-
         if not self.key:
             self.key = get_uuid()
 
@@ -74,6 +75,7 @@ class Widget(OrderedModel):
         # get the columns needed
         column = widget.column
         group_by = widget.group_by if widget.group_by else None
+        xform = None
 
         if isinstance(widget.content_object, XForm):
             xform = widget.content_object
@@ -88,9 +90,9 @@ class Widget(OrderedModel):
             field_type = "datetime"
             data_type = DATA_TYPE_MAP.get(field_type, "categorized")
         else:
-            field_type = field.type
-            data_type = DATA_TYPE_MAP.get(field.type, "categorized")
-            field_xpath = field.get_abbreviated_xpath()
+            field_type = field.type if hasattr(field, "type") else ""
+            data_type = DATA_TYPE_MAP.get(field_type, "categorized")
+            field_xpath = get_abbreviated_xpath(field.get_xpath())
             field_label = get_field_label(field)
 
         columns = [

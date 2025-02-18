@@ -370,7 +370,7 @@ class TestAbstractViewSet(TestBase, TestCase):
                 # pylint: disable=attribute-defined-outside-init
                 self.form_data = response.data
 
-    # pylint: disable=too-many-arguments,too-many-locals,unused-argument
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(
         self,
         path,
@@ -632,7 +632,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         )
         response = view(request)
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(count + 1, Widget.objects.all().count())
 
         # pylint: disable=attribute-defined-outside-init

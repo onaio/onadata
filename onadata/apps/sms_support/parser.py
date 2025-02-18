@@ -48,7 +48,8 @@ class SMSCastingError(ValueError):
 
 
 # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-def parse_sms_text(xform, identity, sms_text):  # noqa C901
+# pylint: disable=too-many-return-statements
+def parse_sms_text(xform, identity, sms_text):
     """Parses an SMS text to return XForm specific answers, media, notes."""
 
     json_survey = xform.json_dict()
@@ -71,7 +72,6 @@ def parse_sms_text(xform, identity, sms_text):  # noqa C901
         group_id, group_text = [s.strip() for s in group.split(None, 1)]
         groups.update({group_id: [s.strip() for s in group_text.split(None)]})
 
-    # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches
     def cast_sms_value(value, question, medias=None):
         """Check data type of value and return cleaned version"""
 
@@ -239,6 +239,7 @@ def parse_sms_text(xform, identity, sms_text):  # noqa C901
             # contain medias questions (and medias are disabled)
             sidx = idx - step_back
 
+            answer = ""
             if question_type in META_FIELDS:
                 # some question are not to be fed by users
                 real_value = get_meta_value(xlsf_type=question_type, identity=identity)
