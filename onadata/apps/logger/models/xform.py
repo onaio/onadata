@@ -9,6 +9,8 @@ import json
 import os
 import re
 from datetime import datetime
+from io import BytesIO
+from pathlib import Path
 from xml.dom import Node
 
 from django.conf import settings
@@ -27,8 +29,15 @@ from django.utils.translation import gettext_lazy
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
+from pyxform.errors import PyXFormError
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
+from pyxform.xls2json import workbook_to_json
+from pyxform.xls2json_backends import (
+    SupportedFileTypes,
+    definition_to_dict,
+    get_definition_data,
+)
 from six import iteritems
 from taggit.managers import TaggableManager
 
@@ -80,6 +89,34 @@ User = get_user_model()
 def cmp(x, y):
     """Returns the difference on the comparison of ``x`` and ``y``."""
     return (x > y) - (x < y)
+
+
+def get_survey_from_file_object(
+    file_object, name=None, id_string=None, title=None, version=None
+):
+    """Returns a PyXForm object from an XLSForm file object."""
+    xlsform_file_object = BytesIO(file_object.read())
+    xlsform_file_object.name = file_object.name
+    file_path = Path(file_object.name)
+    file_type = SupportedFileTypes(file_path.suffix)
+    fallback_form_name = file_path.stem
+    xlsform_json = workbook_to_json(
+        workbook_dict=definition_to_dict(
+            definition=get_definition_data(xlsform_file_object), file_type=file_type
+        ),
+        form_name=name,
+        fallback_form_name=fallback_form_name,
+    )
+    if version and version != xlsform_json.get("version"):
+        xlsform_json["version"] = version
+
+    if title and title != xlsform_json.get("title"):
+        xlsform_json["title"] = title
+
+    if id_string and id_string != xlsform_json.get("id_string"):
+        xlsform_json["id_string"] = id_string
+
+    return SurveyElementBuilder().create_survey_element_from_dict(xlsform_json)
 
 
 def question_types_to_exclude(_type):
@@ -371,6 +408,25 @@ class XFormMixin:
 
         return id_string
 
+    def get_survey_from_xlsform(self):
+        """Returns the PyXForm Survey object by re-reading the XLSForm"""
+        if not self.xls:
+            return self.get_survey()
+
+        if hasattr(self, "_survey_from_xlsform"):
+            return self._survey_from_xlsform
+
+        survey = get_survey_from_file_object(
+            self.xls,
+            name=self.json["name"],
+            id_string=self.id_string,
+            title=self.title,
+            version=self.version,
+        )
+        self._survey_from_xlsform = survey
+
+        return survey
+
     def _get_survey(self):
         try:
             builder = SurveyElementBuilder()
@@ -380,6 +436,14 @@ class XFormMixin:
                 return builder.create_survey_element_from_dict(self.json)
         except ValueError:
             pass
+        except PyXFormError as e:
+            if (
+                "Arguments 'itemset' and 'list_name' must not both be None or empty"
+                in str(e)
+                and self.xls
+            ):
+                return self.get_survey_from_xlsform()
+            raise
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
 
