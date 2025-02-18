@@ -6,7 +6,7 @@ DataDictionary model.
 import importlib
 import json
 import os
-from io import BytesIO, StringIO
+from io import BytesIO
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -21,20 +21,18 @@ from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
-from pyxform.xls2json import parse_file_to_json
 from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
 from onadata.apps.logger.models.registration_form import RegistrationForm
-from onadata.apps.logger.models.xform import XForm, check_version_set, check_xform_uuid
+from onadata.apps.logger.models.xform import (XForm, check_version_set,
+                                              check_xform_uuid,
+                                              get_survey_from_file_object)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.cache_tools import (
-    PROJ_BASE_FORMS_CACHE,
-    PROJ_FORMS_CACHE,
-    safe_delete,
-)
+from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
+                                            PROJ_FORMS_CACHE, safe_delete)
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -57,23 +55,7 @@ def process_xlsform(xls, default_name):
     # FLOW Results package is a JSON file.
     if xls.name.endswith("json"):
         return FloipSurvey(xls).survey.to_json_dict()
-
-    # Create a copy of file. Ensures the file we are working with is
-    # not closed by pyxform else we'll get a
-    # "ValueError: seek of closed file"
-    file_object = BytesIO(xls.read())
-
-    try:
-        return parse_file_to_json(xls.name, file_object=file_object)
-    except csv.Error as error:
-        if is_newline_error(error):
-            xls.seek(0)
-            file_object = StringIO("\n".join(xls.read().splitlines()))
-
-            return parse_file_to_json(
-                xls.name, default_name=default_name, file_object=file_object
-            )
-        raise error
+    return get_survey_from_file_object(xls, name=default_name).to_json_dict()
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -217,9 +199,8 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (  # noqa
-            set_project_perms_to_xform_async,
-        )
+        from onadata.libs.utils.project_utils import \
+            set_project_perms_to_xform_async  # noqa
 
         try:
             transaction.on_commit(
@@ -229,9 +210,8 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (  # noqa
-                set_project_perms_to_xform,
-            )
+            from onadata.libs.utils.project_utils import \
+                set_project_perms_to_xform  # noqa
 
             set_project_perms_to_xform(xform, instance.project)
 
