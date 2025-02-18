@@ -9,6 +9,7 @@ import json
 import os
 import re
 from datetime import datetime
+from io import BytesIO
 from xml.dom import Node
 
 from django.conf import settings
@@ -27,8 +28,11 @@ from django.utils.translation import gettext_lazy
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
+from pyxform.errors import PyXFormError
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
+from pyxform.xls2json import workbook_to_json
+from pyxform.xls2json_backends import definition_to_dict, get_definition_data
 from six import iteritems
 from taggit.managers import TaggableManager
 
@@ -371,6 +375,33 @@ class XFormMixin:
 
         return id_string
 
+    def get_survey_from_xlsform(self):
+        """Returns the PyXForm Survey object by re-reading the XLSForm"""
+        if not self.xls:
+            return self.get_survey()
+
+        if hasattr(self, "_survey_from_xlsform"):
+            return self._survey_from_xlsform
+
+        xlsform = BytesIO(self.xls.read())
+        xlsform.name = self.xls.name
+        xlsform_json = workbook_to_json(
+            workbook_dict=definition_to_dict(definition=get_definition_data(xlsform)),
+            form_name=self.json["name"],
+        )
+        if self.version:
+            xlsform_json["version"] = self.version
+
+        if self.title:
+            xlsform_json["title"] = self.title
+
+        xlsform_json["id_string"] = self.id_string
+
+        survey = SurveyElementBuilder().create_survey_element_from_dict(xlsform_json)
+        self._survey_from_xlsform = survey
+
+        return survey
+
     def _get_survey(self):
         try:
             builder = SurveyElementBuilder()
@@ -380,6 +411,14 @@ class XFormMixin:
                 return builder.create_survey_element_from_dict(self.json)
         except ValueError:
             pass
+        except PyXFormError as e:
+            if (
+                "Arguments 'itemset' and 'list_name' must not both be None or empty"
+                in str(e)
+                and self.xls
+            ):
+                return self.get_survey_from_xlsform()
+            raise
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
 
