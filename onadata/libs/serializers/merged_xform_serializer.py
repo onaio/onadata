@@ -68,7 +68,8 @@ def get_merged_xform_survey(xforms):
 
     xform_sets = [_get_fields_set(xform) for xform in xforms]
 
-    merged_xform_dict = xforms[0].json_dict()
+    xform_dicts = [xform.get_survey_from_xlsform().to_json_dict() for xform in xforms]
+    merged_xform_dict = xform_dicts[0]
     children = merged_xform_dict.pop("children")
     merged_xform_dict["children"] = []
 
@@ -81,7 +82,6 @@ def get_merged_xform_survey(xforms):
         del merged_xform_dict["_xpath"]
 
     is_empty = True
-    xform_dicts = [xform.json_dict() for xform in xforms]
     for child in merged_xform_dict["children"]:
         if child["name"] != "meta" and is_empty:
             is_empty = False
