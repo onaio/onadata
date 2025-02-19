@@ -281,10 +281,12 @@ def get_choice_label_value(key, value, data_dictionary, language=None):
 
     def _get_choice_label_value(lookup):
         _label = None
-        for choice in data_dictionary.get_survey_element(key).children:
-            if choice.name == lookup:
-                _label = get_choice_label(choice.label, data_dictionary, language)
-                break
+        element = data_dictionary.get_survey_element(key)
+        if element and element.choices is not None:
+            for choice in element.choices.options:
+                if choice.name == lookup:
+                    _label = get_choice_label(choice.label, data_dictionary, language)
+                    break
 
         return _label
 
