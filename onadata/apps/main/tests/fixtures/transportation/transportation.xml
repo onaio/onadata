@@ -247,7 +247,7 @@
         </group>
       </group>
     </group>
-    <upload mediatype="image/*" ref="/data/image1">
+    <upload ref="/data/image1" mediatype="image/*">
       <label>Photo</label>
     </upload>
   </h:body>

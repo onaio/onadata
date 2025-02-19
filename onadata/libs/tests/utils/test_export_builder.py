@@ -1013,6 +1013,7 @@ class TestExportBuilder(TestBase):
             temp_dir = tempfile.mkdtemp()
             with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
                 zip_file.extractall(temp_dir)
+            pass
         # check that the children's file (which has the unicode header) exists
         self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
         # check file's contents

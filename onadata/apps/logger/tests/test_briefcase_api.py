@@ -182,10 +182,10 @@ class TestBriefcaseAPI(TestBase):
             )
             with open(submission_list_path, encoding="utf-8") as f:
                 expected_submission_list = f.read()
-                last_expected_submission_list = (
-                    expected_submission_list
-                ) = expected_submission_list.replace(
-                    "{{resumptionCursor}}", "%s" % last_index
+                last_expected_submission_list = expected_submission_list = (
+                    expected_submission_list.replace(
+                        "{{resumptionCursor}}", "%s" % last_index
+                    )
                 )
                 self.assertEqual(
                     response.content.decode("utf-8"), expected_submission_list

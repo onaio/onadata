@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+# n -*- coding: utf-8 -*-
 """
 Test MergedXFormSerializer
 """
 import copy
+
 from rest_framework import serializers
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -77,7 +78,7 @@ GROUP_B_MD = """
 |        | end group         |        |       |            |
 |        | begin group       | other  | Other |            |
 |        | begin group       | person | Person |           |
-|        | integer           | age    | Age   |            |
+|        | integer           | bage    | Age   |            |
 |        | select one gender | gender | Sex   |            |
 |        | end group         |        |       |            |
 |        | end group         |        |       |            |
@@ -98,8 +99,8 @@ GROUP_C_MD = """
 |        | end group         |        |       |            |
 |        | begin group       | other  | Other |            |
 |        | begin group       | person | Person |           |
-|        | integer           | age    | Age   |            |
-|        | select one gender | gender | Sex   | ${age} > 5 |
+|        | integer           | cage    | Age   |            |
+|        | select one gender | gender | Sex   | ${cage} > 5 |
 |        | end group         |        |       |            |
 |        | end group         |        |       |            |
 
@@ -201,7 +202,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         xform3 = self._publish_markdown(MD, self.user, id_string="c")
         expected = {
             "name": "data",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "sms_keyword": "a",
             "default_language": "default",
             "id_string": "a",
@@ -221,8 +222,8 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     "itemset": "gender",
                     "list_name": "gender",
                     "children": [
-                        {"name": "male", "label": "Male"},
                         {"name": "female", "label": "Female"},
+                        {"name": "male", "label": "Male"},
                     ],
                 },
                 {
@@ -269,7 +270,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         expected = {
             "name": "data",
             "type": "survey",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "id_string": "a",
             "sms_keyword": "a",
             "default_language": "default",
@@ -355,7 +356,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         expected = {
             "name": "data",
             "type": "survey",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "id_string": "a",
             "sms_keyword": "a",
             "default_language": "default",
@@ -464,7 +465,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "type": "survey",
             "name": "data",
             "sms_keyword": "a",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
         }  # yapf: disable
 
         self.assertEqual(survey.to_json_dict(), expected)

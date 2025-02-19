@@ -19,20 +19,25 @@ import openpyxl
 import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
-from pyxform.builder import create_survey_element_from_dict
 from pyxform.utils import has_external_choices
 from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
 from onadata.apps.logger.models.registration_form import RegistrationForm
-from onadata.apps.logger.models.xform import (XForm, check_version_set,
-                                              check_xform_uuid,
-                                              get_survey_from_file_object)
+from onadata.apps.logger.models.xform import (
+    XForm,
+    check_version_set,
+    check_xform_uuid,
+    get_survey_from_file_object,
+)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.cache_tools import (PROJ_BASE_FORMS_CACHE,
-                                            PROJ_FORMS_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import (
+    PROJ_BASE_FORMS_CACHE,
+    PROJ_FORMS_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -48,14 +53,21 @@ def is_newline_error(error):
     return newline_error == str(error)
 
 
-def process_xlsform(xls, default_name):
+def process_xlsform_survey(xls, default_name):
     """
-    Process XLSForm file and return the survey dictionary for the XLSForm.
+    Process XLSForm file and return the PyXForm Survey for the XLSForm.
     """
     # FLOW Results package is a JSON file.
     if xls.name.endswith("json"):
         return FloipSurvey(xls).survey.to_json_dict()
-    return get_survey_from_file_object(xls, name=default_name).to_json_dict()
+    return get_survey_from_file_object(xls, name=default_name)
+
+
+def process_xlsform(xls, default_name):
+    """
+    Process XLSForm file and return the survey dictionary for the XLSForm.
+    """
+    return process_xlsform_survey(xls, default_name).to_json_dict()
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -123,10 +135,10 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
 
         if self.xls and not skip_xls_read:
             default_name = None if not self.pk else self.survey.xml_instance().tagName
-            survey_dict = process_xlsform(self.xls, default_name)
+            survey = process_xlsform_survey(self.xls, default_name)
+            survey_dict = survey.to_json_dict()
             if has_external_choices(survey_dict):
                 self.has_external_choices = True
-            survey = create_survey_element_from_dict(survey_dict)
             survey = check_version_set(survey)
             if get_columns_with_hxl(survey.get("children")):
                 self.has_hxl_support = True
@@ -199,8 +211,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import \
-            set_project_perms_to_xform_async  # noqa
+        from onadata.libs.utils.project_utils import (
+            set_project_perms_to_xform_async,
+        )  # noqa
 
         try:
             transaction.on_commit(
@@ -210,8 +223,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import \
-                set_project_perms_to_xform  # noqa
+            from onadata.libs.utils.project_utils import (
+                set_project_perms_to_xform,
+            )  # noqa
 
             set_project_perms_to_xform(xform, instance.project)
 

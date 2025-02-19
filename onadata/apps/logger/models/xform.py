@@ -249,9 +249,9 @@ def _expand_select_all_that_apply(item, key, elem):
     """Split's a select multiple into individual keys"""
     if elem and elem.bind.get("type") == "string" and elem.type == MULTIPLE_SELECT_TYPE:
         options_selected = item[key].split()
-        for child in elem.children:
-            new_key = get_abbreviated_xpath(child.get_xpath())
-            item[new_key] = child.name in options_selected
+        for option in elem.choices.options:
+            new_key = get_abbreviated_xpath(elem.get_xpath() + option.get_xpath())
+            item[new_key] = option.name in options_selected
 
         del item[key]
 
@@ -436,12 +436,12 @@ class XFormMixin:
                 return builder.create_survey_element_from_dict(self.json)
         except ValueError:
             pass
-        except PyXFormError as e:
+        except (PyXFormError, KeyError) as e:
             if (
                 "Arguments 'itemset' and 'list_name' must not both be None or empty"
                 in str(e)
-                and self.xls
-            ):
+                or "itemset" in str(e)
+            ) and self.xls:
                 return self.get_survey_from_xlsform()
             raise
 
@@ -479,24 +479,20 @@ class XFormMixin:
 
         return None
 
-    def get_child_elements(self, name_or_xpath, split_select_multiples=True):
+    def get_child_elements(self, name_or_xpath):
         """Returns a list of survey elements children in a flat list.
-        If the element is a group or multiple select the child elements are
-        appended to the list. If the name_or_xpath is a repeat we iterate
-        through the child elements as well.
+        If the element is a group the child elements are appended to the list.
+        If the name_or_xpath is a repeat we iterate through the child elements.
         """
-        group_and_select_multiples = ["group"]
-        if split_select_multiples:
-            group_and_select_multiples += ["select all that apply"]
 
         def flatten(elem, items=None):
             items = [] if items is None else items
             results = []
             if elem:
                 xpath = get_abbreviated_xpath(elem.get_xpath())
-                if (
-                    hasattr(elem, "type") and elem.type in group_and_select_multiples
-                ) or (xpath == name_or_xpath and elem.type == "repeat"):
+                if (hasattr(elem, "type") and elem.type == "group") or (
+                    xpath == name_or_xpath and elem.type == "repeat"
+                ):
                     for child in elem.children:
                         results += flatten(child)
                 else:
@@ -599,9 +595,8 @@ class XFormMixin:
         result = [] if result is None else result
         path = "/".join([prefix, str(survey_element.name)])
 
-        if (
-            not isinstance(survey_element, Question)
-            and survey_element.children is not None
+        if not isinstance(survey_element, Question) and (
+            hasattr(survey_element, "children") and survey_element.children is not None
         ):
             # add xpaths to result for each child
             indices = (
@@ -609,8 +604,11 @@ class XFormMixin:
                 if not isinstance(survey_element, RepeatingSection)
                 else [f"[{(i + 1)}]" for i in range(repeat_iterations)]
             )
+            children = (
+                survey_element.children if hasattr(survey_element, "children") else []
+            )
             for i in indices:
-                for e in survey_element.children:
+                for e in children:
                     self.xpaths(path + i, e, result, repeat_iterations)
 
         if isinstance(survey_element, Question):
@@ -626,7 +624,7 @@ class XFormMixin:
             and survey_element.type == MULTIPLE_SELECT_TYPE
         ):
             result.pop()
-            for child in survey_element.children:
+            for child in survey_element.choices.options:
                 result.append("/".join([path, child.name]))
         elif (
             hasattr(survey_element, "bind")
@@ -715,19 +713,21 @@ class XFormMixin:
             parent_xpath = "/".join(parts[:-1])
             choice_name = parts[-1]
             parent = self.get_element(parent_xpath)
-            if parent and parent.type == MULTIPLE_SELECT_TYPE:
-                if not parent.children:
-                    choices = []
-                else:
-                    choices = [
-                        choice
-                        for choice in parent.children
-                        if choice.name == choice_name
-                    ]
+            if (
+                parent
+                and hasattr(parent, "type")
+                and parent.type == MULTIPLE_SELECT_TYPE
+                and parent.choices is not None
+            ):
+                choices = [
+                    choice
+                    for choice in parent.choices.options
+                    if choice.name == choice_name
+                ]
                 if choices:
                     element = choices[0]
                     self._survey_elements[
-                        get_abbreviated_xpath(element.get_xpath())
+                        get_abbreviated_xpath(parent.get_xpath() + element.get_xpath())
                     ] = element
         return element
 

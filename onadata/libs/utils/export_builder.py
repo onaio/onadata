@@ -372,13 +372,17 @@ class ExportBuilder:
                 if elem is None:
                     pass
                 elif isinstance(elem, Option):
-                    title = "/".join([elem.parent.name, elem.name])
+                    parent = data_dictionary.get_survey_element(
+                        field_delimiter.join(
+                            abbreviated_xpath.split(field_delimiter)[:-1]
+                        )
+                    )
+                    title = field_delimiter.join([parent.name, elem.name])
                 else:
                     title = elem.name
 
-        if field_delimiter != "/":
+        if field_delimiter != "/" and "/" in title:
             title = field_delimiter.join(title.split("/"))
-
         return title
 
     def get_choice_label_from_dict(self, label):
@@ -439,13 +443,12 @@ class ExportBuilder:
                 else choices
             )
         else:
-            children = child.children if hasattr(child, "children") else []
             choices = [
                 get_choice_dict(
                     get_abbreviated_xpath("/".join([child.get_xpath(), c.name])),
                     get_choice_label(c.label, data_dicionary, language=self.language),
                 )
-                for c in children
+                for c in child.choices.options
             ]
 
         return choices
@@ -1282,8 +1285,9 @@ class ExportBuilder:
 
                 if element:
                     parent_xpath = "/".join(xpath.split("/")[:-1])
-                    parent = data_dictionary.get_element(parent_xpath)
-                    return parent and parent.type == MULTIPLE_SELECT_TYPE
+                    if parent_xpath:
+                        parent = data_dictionary.get_element(parent_xpath)
+                        return parent and parent.type == MULTIPLE_SELECT_TYPE
 
             return False
 

@@ -23,10 +23,7 @@ from onadata.apps.api.permissions import OpenDataViewSetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.open_data import OpenData
-from onadata.apps.logger.models.xform import (
-    XForm,
-    question_types_to_exclude,
-)
+from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.data import parse_int
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -104,7 +101,7 @@ def process_tableau_data(data, xform):  # noqa C901
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
         """
-        children = xform.get_child_elements(key, split_select_multiples=False)
+        children = xform.get_child_elements(key)
         item_list = OrderedDict()
         data = {}
 
