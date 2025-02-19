@@ -12,6 +12,7 @@ from django.db.utils import DataError
 from django.http import Http404
 
 import six
+from pyxform import MultipleChoiceQuestion
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
@@ -19,7 +20,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import (
     get_form_submissions_aggregated_by_select_one,
     get_form_submissions_grouped_by_field,
-    get_form_submissions_grouped_by_select_one)
+    get_form_submissions_grouped_by_select_one,
+)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -106,7 +108,7 @@ def get_field_choices(field, xform):
         if hasattr(field, "name") and field.name in choices:
             return choices.get(field.name)
         if hasattr(field, "itemset"):
-            return choices.get(field.itemset)
+            return choices.get(field.itemset).options
 
     return choices
 
@@ -174,8 +176,12 @@ def _use_labels_from_field_name(field_name, field, data_type, data, choices=None
 
     if data_type == "categorized" and field_name != common_tags.SUBMITTED_BY:
         if data:
-            if hasattr(field, "children"):
-                choices = field.children
+            if (
+                not choices
+                and isinstance(field, MultipleChoiceQuestion)
+                and field.choices
+            ):
+                choices = field.choices.options
 
             for item in data:
                 if truncated_name in item:
@@ -199,8 +205,11 @@ def _use_labels_from_group_by_name(  # noqa C901
 
     if data_type == "categorized":
         if data:
-            if field.children:
+            choices = []
+            if hasattr(field, "children") and field.children:
                 choices = field.children
+            if isinstance(field, MultipleChoiceQuestion) and field.choices:
+                choices = field.choices.options
 
             for item in data:
                 if "items" in item:

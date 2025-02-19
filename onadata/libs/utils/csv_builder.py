@@ -12,6 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
+from pyxform import MultipleChoiceQuestion
 from pyxform.question import Option, Question
 from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
@@ -106,7 +107,8 @@ def get_labels_from_columns(columns, data_dictionary, group_delimiter, language=
             else col
         )
         if elem is not None and isinstance(elem, Option):
-            label = group_delimiter.join([elem.parent.name, label])
+            parent = data_dictionary.get_survey_element("/".join(col.split("/")[:-1]))
+            label = group_delimiter.join([parent.name, label])
         if not label:
             label = elem.name
         labels.append(label)
@@ -132,7 +134,8 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
         elif not isinstance(elem, Option):
             new_col = elem.name
         else:
-            new_col = DEFAULT_GROUP_DELIMITER.join([elem.parent.name, elem.name])
+            parent = data_dictionary.get_survey_element("/".join(col.split("/")[:-1]))
+            new_col = DEFAULT_GROUP_DELIMITER.join([parent.name, elem.name])
         new_columns.append(new_col)
 
     return new_columns
@@ -348,18 +351,15 @@ class AbstractDataFrameBuilder:
         ]
         for e in select_multiple_elements:
             xpath = get_abbreviated_xpath(e.get_xpath())
-            choices = (
-                [
-                    (
-                        get_abbreviated_xpath(c.get_xpath()),
-                        c.name,
-                        get_choice_label(c.label, data_dictionary, language),
-                    )
-                    for c in e.children
-                ]
-                if hasattr(e, "children") and e.children
-                else []
-            )
+            options = e.choices.options if e.choices else []
+            choices = [
+                (
+                    xpath + c.get_xpath(),
+                    c.name,
+                    get_choice_label(c.label, data_dictionary, language),
+                )
+                for c in options
+            ]
             is_choice_randomized = str_to_bool(
                 e.parameters and e.parameters.get("randomize")
             )
@@ -603,15 +603,28 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             Return OrderedDict of repeats in the order in which they appear in
             the XForm.
             """
-            children = data_dictionary.get_child_elements(xpath, split_select_multiples)
+            children = data_dictionary.get_child_elements(xpath)
             item = OrderedDict()
 
             for elem in children:
                 if not (hasattr(elem, "type") and question_types_to_exclude(elem.type)):
-                    abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
-                    item[abbreviated_xpath] = repeat_value.get(
-                        abbreviated_xpath, DEFAULT_NA_REP
-                    )
+                    if (
+                        isinstance(elem, MultipleChoiceQuestion)
+                        and split_select_multiples
+                        and elem.choices
+                    ):
+                        for choice in elem.choices.options:
+                            abbreviated_xpath = get_abbreviated_xpath(
+                                elem.get_xpath() + choice.get_xpath()
+                            )
+                            item[abbreviated_xpath] = repeat_value.get(
+                                abbreviated_xpath, DEFAULT_NA_REP
+                            )
+                    else:
+                        abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
+                        item[abbreviated_xpath] = repeat_value.get(
+                            abbreviated_xpath, DEFAULT_NA_REP
+                        )
 
             return item
 
