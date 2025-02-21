@@ -132,8 +132,8 @@ def unique_type_for_form(
         )
 
         # Force Django to recognize changes to extra_data by ensuring it always updates
-        # During update, Django skips updating extra_data since it thinks the value hasn't
-        # changed
+        # During update, Django skips updating extra_data since it thinks the value
+        # hasn't changed
         if not metadata_created and extra_data:
             result.extra_data = extra_data
             result.save()
