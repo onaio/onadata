@@ -84,7 +84,7 @@ def process_tableau_data(
                     elif qstn_type == MULTIPLE_SELECT_TYPE:
                         picked_choices = value.split(" ")
                         choice_names = [
-                            question["name"] for question in qstn["children"]
+                            question["name"] for question in qstn.choices.options
                         ]
                         list_name = qstn.get("list_name")
                         select_multiple_data = unpack_select_multiple_data(
