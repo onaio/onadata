@@ -506,7 +506,9 @@ class XFormMixin:
 
     def get_choice_label(self, field, choice_value, lang="English"):
         """Returns a choice's label for the given ``field`` and ``choice_value``."""
-        choices = [choice for choice in field.children if choice.name == choice_value]
+        choices = [
+            choice for choice in field.choices.options if choice.name == choice_value
+        ]
         if choices:
             choice = choices[0]
             label = choice.label
