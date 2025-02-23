@@ -11,6 +11,7 @@ from django.contrib.gis.db import models
 from django.db.models import JSONField
 
 from ordered_model.models import OrderedModel
+from pyxform.question import Option
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 from querybuilder.query import Query
 
@@ -93,6 +94,13 @@ class Widget(OrderedModel):
             field_type = field.type if hasattr(field, "type") else ""
             data_type = DATA_TYPE_MAP.get(field_type, "categorized")
             field_xpath = get_abbreviated_xpath(field.get_xpath())
+            if isinstance(field, Option):
+                parent = get_field_from_field_xpath(
+                    "/".join(column.split("/")[:-1]), xform
+                )
+                field_xpath = get_abbreviated_xpath(
+                    parent.get_xpath() + field.get_xpath()
+                )
             field_label = get_field_label(field)
 
         columns = [

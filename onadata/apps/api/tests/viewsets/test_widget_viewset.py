@@ -2,22 +2,20 @@
 """
 Test /widgets API endpoint implementation.
 """
-import os
 import json
+import os
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
-from onadata.apps.logger.models.widget import Widget
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
-from onadata.libs.permissions import ReadOnlyRole
-from onadata.libs.permissions import DataEntryOnlyRole
-from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import get_or_create_organization_owners_team
 from onadata.apps.api.viewsets.organization_profile_viewset import (
     OrganizationProfileViewSet,
 )
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
+from onadata.apps.logger.models.widget import Widget
+from onadata.libs.permissions import DataEntryOnlyRole, OwnerRole, ReadOnlyRole
 
 
 # pylint: disable=too-many-public-methods
