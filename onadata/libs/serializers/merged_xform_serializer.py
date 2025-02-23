@@ -90,7 +90,7 @@ def get_merged_xform_survey(xforms):
             del child["bind"]
 
         # merge select one and select multiple options
-        if "children" in child and child["type"] in SELECTS:
+        if child["type"] in SELECTS:
             children = []
             for xform_dict in xform_dicts:
                 element_list = _list_with_name(child["name"], xform_dict["children"])
@@ -99,6 +99,7 @@ def get_merged_xform_survey(xforms):
             # remove duplicates
             set_of_jsons = {json.dumps(d, sort_keys=True) for d in children}
             child["children"] = [json.loads(t) for t in set_of_jsons]
+            merged_xform_dict["choices"][child["itemset"]] = child["children"]
 
     if is_empty:
         raise serializers.ValidationError(_("No matching fields in xforms."))

@@ -106,7 +106,7 @@ def get_field_choices(field, xform):
         if isinstance(field, str):
             return choices.get(field)
         if hasattr(field, "name") and field.name in choices:
-            return choices.get(field.name)
+            return choices.get(field.name).options
         if hasattr(field, "itemset"):
             return choices.get(field.itemset).options
 
