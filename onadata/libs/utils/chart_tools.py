@@ -206,8 +206,6 @@ def _use_labels_from_group_by_name(  # noqa C901
     if data_type == "categorized":
         if data:
             choices = []
-            if hasattr(field, "children") and field.children:
-                choices = field.children
             if isinstance(field, MultipleChoiceQuestion) and field.choices:
                 choices = field.choices.options
 
