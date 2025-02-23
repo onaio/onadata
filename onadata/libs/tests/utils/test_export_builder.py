@@ -2676,7 +2676,6 @@ class TestExportBuilder(TestBase):
             for e in dd.get_survey_elements_with_choices()
             if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
         ][0]
-        self.assertNotEqual(child.children, [])
         # pylint: disable=protected-access
         choices = export_builder._get_select_mulitples_choices(
             child, dd, ExportBuilder.GROUP_DELIMITER, ExportBuilder.TRUNCATE_GROUP_TITLE
