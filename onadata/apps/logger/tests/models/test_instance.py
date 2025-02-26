@@ -6,38 +6,27 @@ Test Instance model.
 import json
 import os
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.http.request import HttpRequest
 from django.test import override_settings
-from django.utils.timezone import utc
 
 from django_digest.test import DigestAuth
 
-from onadata.apps.logger.models import (
-    Entity,
-    EntityList,
-    Instance,
-    RegistrationForm,
-    SubmissionReview,
-    XForm,
-)
-from onadata.apps.logger.models.instance import (
-    get_id_string_from_xml_str,
-    numeric_checker,
-)
+from onadata.apps.logger.models import (Entity, EntityList, Instance,
+                                        RegistrationForm, SubmissionReview,
+                                        XForm)
+from onadata.apps.logger.models.instance import (get_id_string_from_xml_str,
+                                                 numeric_checker)
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.parsed_instance import (
-    ParsedInstance,
-    query_data,
-    query_fields_data,
-)
-from onadata.libs.serializers.submission_review_serializer import (
-    SubmissionReviewSerializer,
-)
+from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
+                                                        query_data,
+                                                        query_fields_data)
+from onadata.libs.serializers.submission_review_serializer import \
+    SubmissionReviewSerializer
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -80,7 +69,7 @@ class TestInstance(TestBase):
 
     def test_updates_json_date_modified_on_save(self):
         """_date_modified in `json` field is updated on save"""
-        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=utc)
+        old_mocked_now = datetime(2023, 9, 21, 8, 27, 0, tzinfo=timezone.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=old_mocked_now)):
             self._publish_transportation_form_and_submit_instance()
@@ -92,7 +81,7 @@ class TestInstance(TestBase):
         )
 
         # After saving the date_modified in json should update
-        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=utc)
+        mocked_now = datetime(2023, 9, 21, 9, 3, 0, tzinfo=timezone.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             instance.save()
@@ -108,7 +97,7 @@ class TestInstance(TestBase):
 
     @patch("django.utils.timezone.now")
     def test_json_stores_user_attribute(self, mock_time):
-        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self._publish_transportation_form()
 
         # make account require phone auth
@@ -254,7 +243,7 @@ class TestInstance(TestBase):
 
     def test_query_filter_by_datetime_field(self):
         self._publish_transportation_form()
-        now = datetime(2014, 1, 1, tzinfo=utc)
+        now = datetime(2014, 1, 1, tzinfo=timezone.utc)
         times = [
             now,
             now + timedelta(seconds=1),

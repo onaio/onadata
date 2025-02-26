@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_delete
@@ -29,7 +29,10 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
+from onadata.apps.logger.models.xform import (
+    XFORM_TITLE_LENGTH,
+    XForm,
+)
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
@@ -77,14 +80,14 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID,
     XFORM_ID_STRING,
 )
-from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, report_exception
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
 
 # pylint: disable=invalid-name
 User = get_user_model()
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 def get_attachment_url(attachment, suffix=None):
@@ -123,7 +126,7 @@ def _get_attachments_from_instance(instance):
 def _get_tag_or_element_type_xpath(xform, tag):
     elems = xform.get_survey_elements_of_type(tag)
 
-    return elems[0].get_abbreviated_xpath() if elems else tag
+    return get_abbreviated_xpath(elems[0].get_xpath()) if elems else tag
 
 
 class FormInactiveError(Exception):

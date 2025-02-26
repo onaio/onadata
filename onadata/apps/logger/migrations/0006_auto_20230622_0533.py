@@ -9,18 +9,30 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('logger', '0005_projectinvitation'),
+        ("logger", "0005_projectinvitation"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='projectinvitation',
-            name='accepted_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='project_invitations_accepted', to=settings.AUTH_USER_MODEL),
+            model_name="projectinvitation",
+            name="accepted_by",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="project_invitations_accepted",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='projectinvitation',
-            name='invited_by',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='project_invitations_created', to=settings.AUTH_USER_MODEL),
+            model_name="projectinvitation",
+            name="invited_by",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="project_invitations_created",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

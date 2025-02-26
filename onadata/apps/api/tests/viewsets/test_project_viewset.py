@@ -7,6 +7,7 @@ import json
 import os
 from collections import OrderedDict
 from datetime import datetime
+from datetime import timezone as tz
 from operator import itemgetter
 from unittest.mock import MagicMock, Mock, patch
 
@@ -139,7 +140,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
 
-                mock_requests.get.assert_called_with(xls_url)
+                mock_requests.get.assert_called_with(xls_url, timeout=30)
                 xls_file.close()
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -3598,7 +3599,7 @@ class RevokeInvitationTestCase(TestAbstractViewSet):
         )
         post_data = {"invitation_id": invitation.pk}
         request = self.factory.post("/", data=post_data, **self.extra)
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=tz.utc)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):
             response = self.view(request, pk=self.project.pk)
@@ -3701,7 +3702,7 @@ class ResendInvitationTestCase(TestAbstractViewSet):
             email="jandoe@example.com", role="editor"
         )
         post_data = {"invitation_id": invitation.pk}
-        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2023, 5, 25, 10, 51, 0, tzinfo=tz.utc)
         request = self.factory.post("/", data=post_data, **self.extra)
 
         with patch("django.utils.timezone.now", Mock(return_value=mocked_now)):

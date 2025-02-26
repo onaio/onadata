@@ -8,6 +8,7 @@ import os
 import re
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from datetime import timezone as tz
 from io import BytesIO
 from unittest.mock import Mock, call, patch
 
@@ -24,32 +25,20 @@ from django.utils import timezone
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import (
-    Entity,
-    EntityList,
-    Instance,
-    RegistrationForm,
-    SurveyType,
-    XForm,
-)
+from onadata.apps.logger.models import (Entity, EntityList, Instance,
+                                        RegistrationForm, SurveyType, XForm)
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
-from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
+from onadata.libs.utils.common_tags import (MEDIA_ALL_RECEIVED, MEDIA_COUNT,
+                                            TOTAL_MEDIA)
 from onadata.libs.utils.logger_tools import (
-    commit_cached_elist_num_entities,
-    create_entity_from_instance,
-    create_instance,
-    dec_elist_num_entities,
-    delete_xform_submissions,
-    generate_content_disposition_header,
-    get_first_record,
-    inc_elist_num_entities,
-    reconstruct_xform_export_register,
-    register_instance_repeat_columns,
-    safe_create_instance,
-)
+    commit_cached_elist_num_entities, create_entity_from_instance,
+    create_instance, dec_elist_num_entities, delete_xform_submissions,
+    generate_content_disposition_header, get_first_record,
+    inc_elist_num_entities, reconstruct_xform_export_register,
+    register_instance_repeat_columns, safe_create_instance)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -844,7 +833,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
     @patch("django.utils.timezone.now")
     def test_cache_unlocked(self, mock_now):
         """Cache counter is incremented if cache is unlocked"""
-        mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
 
         self.assertIsNone(cache.get(self.counter_key))
@@ -890,7 +879,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         Clean up should be done periodically such as in a background task
         """
-        mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=timezone.utc)
+        mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
         inc_elist_num_entities(self.entity_list.pk)
 

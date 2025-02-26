@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('logger', '0010_auto_20230921_0346'),
+        ("logger", "0010_auto_20230921_0346"),
     ]
 
     operations = [
@@ -22,7 +22,8 @@ class Migration(migrations.Migration):
                 migrations.AddIndex(
                     model_name="instance",
                     index=models.Index(
-                        fields=["xform_id", "id"], name="logger_instance_id_xform_id_index"
+                        fields=["xform_id", "id"],
+                        name="logger_instance_id_xform_id_index",
                     ),
                 ),
             ],

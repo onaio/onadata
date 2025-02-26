@@ -7,10 +7,6 @@ import os
 import sys
 from datetime import datetime
 
-from google.auth.transport.requests import Request
-from google.auth.exceptions import RefreshError
-from google.oauth2.credentials import Credentials  # noqa
-
 from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -19,6 +15,9 @@ from django.utils.translation import gettext as _
 import six
 from celery.backends.rpc import BacklogLimitExceeded
 from celery.result import AsyncResult
+from google.auth.exceptions import RefreshError
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials  # noqa
 from kombu.exceptions import OperationalError
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -56,8 +55,6 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.export_tools import (
     check_pending_export,
-    get_latest_generic_export,
-    get_query_params_from_metadata,
     generate_attachments_zip_export,
     generate_entity_list_export,
     generate_export,
@@ -65,15 +62,16 @@ from onadata.libs.utils.export_tools import (
     generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
+    get_latest_generic_export,
+    get_query_params_from_metadata,
     newest_export_for,
     parse_request_export_options,
     should_create_new_export,
 )
-from onadata.libs.utils.google import create_flow
+from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
-
 
 # Supported external exports
 EXTERNAL_EXPORT_TYPES = ["xlsx"]
@@ -129,7 +127,8 @@ def _get_export_type(export_type):
     return EXPORT_EXT[export_type]
 
 
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+# pylint: disable=too-many-arguments,too-many-positional-arguments
+# pylint: disable=too-many-locals,too-many-branches
 def custom_response_handler(  # noqa: C0901
     request,
     xform,

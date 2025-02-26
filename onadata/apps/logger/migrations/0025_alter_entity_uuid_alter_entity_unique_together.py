@@ -7,17 +7,17 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('logger', '0024_project_idx_logger_project_deleted_at_and_more'),
+        ("logger", "0024_project_idx_logger_project_deleted_at_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='entity',
-            name='uuid',
+            model_name="entity",
+            name="uuid",
             field=models.UUIDField(db_index=True, default=uuid.uuid4),
         ),
         migrations.AlterUniqueTogether(
-            name='entity',
-            unique_together={('entity_list', 'uuid')},
+            name="entity",
+            unique_together={("entity_list", "uuid")},
         ),
     ]

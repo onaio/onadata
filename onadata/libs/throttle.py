@@ -16,7 +16,7 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
         if request.user and request.user.is_authenticated:
             return super().get_cache_key(request, view)
 
-        return f'throttle_{self.scope}_{request.path}_{self.get_ident(request)}'
+        return f"throttle_{self.scope}_{request.path}_{self.get_ident(request)}"
 
 
 class RequestHeaderThrottle(SimpleRateThrottle):
