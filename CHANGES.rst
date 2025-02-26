@@ -3,6 +3,24 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.13.0(2025-02-25)
+-------------------
+- Fix  Package 'openjdk-11-jre-headless' has no installation candidate
+  `PR #2776 <https://github.com/onaio/onadata/pull/2776>`
+  [@kelvin-muchiri]
+- Ensure only authenticated users can list users
+  `PR #2778 <https://github.com/onaio/onadata/pull/2778>`
+  [@FrankApiyo]
+- Fix form permissions not updated when project is transferred
+  `PR #2775 <https://github.com/onaio/onadata/pull/2775>`
+  [@kelvin-muchiri]
+- Security Updates
+  `PR #2773 <https://github.com/onaio/onadata/pull/2773>`
+  [@kelvin-muchiri]
+- Add debian bookworm unstable to include newer glibc
+  `PR #2781 <https://github.com/onaio/onadata/pull/2781>`
+  [@ukanga]
+
 v4.12.0(2025-01-30)
 -------------------
 - Fix XForm permissions not applied after transferring project via management command
