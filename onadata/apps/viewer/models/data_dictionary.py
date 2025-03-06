@@ -448,13 +448,14 @@ def create_or_update_export_register(sender, instance=None, created=False, **kwa
     # Avoid cyclic import by using importlib
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
-    register = MetaData.update_or_create_export_register(instance)
-
-    # TODO: Remove after testing
-    logger.error(f"Create or update ============> {register.extra_data}")
+    MetaData.update_or_create_export_register(instance)
 
     if not created:
-        logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)
+        transaction.on_commit(
+            lambda: logger_tasks.reconstruct_xform_export_register_async.delay(
+                instance.pk
+            )
+        )
 
 
 post_save.connect(
