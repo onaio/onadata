@@ -1611,10 +1611,16 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
 
     :param xform: XForm object
     """
+    # TODO: Remove after testing
+    register = MetaData.objects.get(
+        content_type=ContentType.objects.get_for_model(xform), object_id=xform.pk
+    )
+    logging.error(f"Reconstruct before ================> {register.extra_data}")
+
     register = MetaData.update_or_create_export_register(xform)
 
     # TODO: Remove after testing
-    logging.error(f"Reconstruct================> {register.extra_data}")
+    logging.error(f"Reconstruct after ================> {register.extra_data}")
 
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
