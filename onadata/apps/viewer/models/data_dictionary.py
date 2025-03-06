@@ -5,7 +5,6 @@ DataDictionary model.
 
 import importlib
 import json
-import logging
 import os
 from io import BytesIO, StringIO
 
@@ -37,8 +36,6 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
 )
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
-
-logger = logging.getLogger(__name__)
 
 
 def is_newline_error(error):
