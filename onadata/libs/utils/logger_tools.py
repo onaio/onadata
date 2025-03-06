@@ -1613,7 +1613,9 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     """
     # TODO: Remove after testing
     register = MetaData.objects.get(
-        content_type=ContentType.objects.get_for_model(xform), object_id=xform.pk
+        content_type=ContentType.objects.get_for_model(xform),
+        object_id=xform.pk,
+        data_type="export_columns_register",
     )
     logging.error(f"Reconstruct before ================> {register.extra_data}")
 
