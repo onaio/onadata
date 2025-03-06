@@ -5,6 +5,7 @@ DataDictionary model.
 
 import importlib
 import json
+import logging
 import os
 from io import BytesIO, StringIO
 
@@ -36,6 +37,8 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
 )
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
+
+logger = logging.getLogger(__name__)
 
 
 def is_newline_error(error):
@@ -447,7 +450,8 @@ def create_or_update_export_register(sender, instance=None, created=False, **kwa
 
     register = MetaData.update_or_create_export_register(instance)
 
-    print("Create or update ============>", register.extra_data)
+    # TODO: Remove after testing
+    logger.error(f"Create or update ============> {register.extra_data}")
 
     if not created:
         logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)

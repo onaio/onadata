@@ -1614,7 +1614,7 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     register = MetaData.update_or_create_export_register(xform)
 
     # TODO: Remove after testing
-    print("Reconstruct================>", register.extra_data)
+    logging.error(f"Reconstruct================> {register.extra_data}")
 
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
 
