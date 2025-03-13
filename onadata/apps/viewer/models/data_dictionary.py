@@ -448,7 +448,11 @@ def create_or_update_export_register(sender, instance=None, created=False, **kwa
     MetaData.update_or_create_export_register(instance)
 
     if not created:
-        logger_tasks.reconstruct_xform_export_register_async.delay(instance.pk)
+        transaction.on_commit(
+            lambda: logger_tasks.reconstruct_xform_export_register_async.delay(
+                instance.pk
+            )
+        )
 
 
 post_save.connect(

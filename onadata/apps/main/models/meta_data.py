@@ -124,12 +124,19 @@ def unique_type_for_form(
             object_id=content_object.id, content_type=content_type, data_type=data_type
         ).first()
     else:
-        result, _ = MetaData.objects.update_or_create(
+        result, metadata_created = MetaData.objects.update_or_create(
             object_id=content_object.id,
             content_type=content_type,
             data_type=data_type,
             defaults=defaults,
         )
+
+        # Force Django to recognize changes to extra_data by ensuring it always updates
+        # During update, Django skips updating extra_data since it thinks the value
+        # hasn't changed
+        if not metadata_created and extra_data:
+            result.extra_data = extra_data
+            result.save()
 
     if data_file:
         if result.data_value is None or result.data_value == "":

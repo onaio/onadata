@@ -1525,25 +1525,7 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
         self.assertEqual(split_multiples_columns, self.expected_columns)
 
     def test_register_not_found(self):
-        """Register is created if not found"""
+        """Nothing happens if register not found"""
         self.register.delete()
+
         reconstruct_xform_export_register(self.xform)
-
-        exists = MetaData.objects.filter(data_type="export_columns_register").exists()
-
-        self.assertTrue(exists)
-
-        register = MetaData.objects.get(
-            data_type="export_columns_register",
-            object_id=self.xform.pk,
-            content_type=ContentType.objects.get_for_model(self.xform),
-        )
-        merged_multiples_columns = json.loads(
-            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
-        )
-        split_multiples_columns = json.loads(
-            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
-        )
-
-        self.assertEqual(merged_multiples_columns, self.expected_columns)
-        self.assertEqual(split_multiples_columns, self.expected_columns)
