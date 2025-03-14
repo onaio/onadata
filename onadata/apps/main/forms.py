@@ -62,6 +62,7 @@ VALID_XLSFORM_CONTENT_TYPES = [
 
 VALID_FILE_EXTENSIONS = [".xlsx", ".csv"]
 
+DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -411,7 +412,11 @@ class QuickConverter(
                 name, extension = os.path.splitext(cleaned_xls_file)
 
                 if extension not in VALID_FILE_EXTENSIONS and name:
-                    response = requests.head(cleaned_url, allow_redirects=True)
+                    response = requests.head(
+                        cleaned_url,
+                        allow_redirects=True,
+                        timeout=DEFAULT_REQUEST_TIMEOUT,
+                    )
                     if (
                         response.headers.get("content-type")
                         in VALID_XLSFORM_CONTENT_TYPES
@@ -420,7 +425,7 @@ class QuickConverter(
                         cleaned_xls_file = get_filename(response)
 
                 cleaned_xls_file = upload_to(None, cleaned_xls_file, user.username)
-                response = requests.get(cleaned_url)
+                response = requests.get(cleaned_url, timeout=DEFAULT_REQUEST_TIMEOUT)
                 if response.status_code < 400:
                     xls_data = ContentFile(response.content)
                     cleaned_xls_file = default_storage.save(cleaned_xls_file, xls_data)

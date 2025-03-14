@@ -17,13 +17,14 @@ from rest_framework import serializers
 from onadata.apps.logger.models import MergedXForm, XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE, SELECT_ONE
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 SELECTS = [SELECT_ONE, MULTIPLE_SELECT_TYPE]
 
 
 def _get_fields_set(xform):
     return [
-        (element.get_abbreviated_xpath(), element.type)
+        (get_abbreviated_xpath(element.get_xpath()), element.type)
         for element in xform.survey_elements
         if element.type not in ["", "survey"]
     ]
@@ -67,7 +68,8 @@ def get_merged_xform_survey(xforms):
 
     xform_sets = [_get_fields_set(xform) for xform in xforms]
 
-    merged_xform_dict = xforms[0].json_dict()
+    xform_dicts = [xform.get_survey_from_xlsform().to_json_dict() for xform in xforms]
+    merged_xform_dict = xform_dicts[0]
     children = merged_xform_dict.pop("children")
     merged_xform_dict["children"] = []
 
@@ -80,7 +82,6 @@ def get_merged_xform_survey(xforms):
         del merged_xform_dict["_xpath"]
 
     is_empty = True
-    xform_dicts = [xform.json_dict() for xform in xforms]
     for child in merged_xform_dict["children"]:
         if child["name"] != "meta" and is_empty:
             is_empty = False
@@ -89,7 +90,7 @@ def get_merged_xform_survey(xforms):
             del child["bind"]
 
         # merge select one and select multiple options
-        if "children" in child and child["type"] in SELECTS:
+        if child["type"] in SELECTS:
             children = []
             for xform_dict in xform_dicts:
                 element_list = _list_with_name(child["name"], xform_dict["children"])
@@ -98,6 +99,7 @@ def get_merged_xform_survey(xforms):
             # remove duplicates
             set_of_jsons = {json.dumps(d, sort_keys=True) for d in children}
             child["children"] = [json.loads(t) for t in set_of_jsons]
+            merged_xform_dict["choices"][child["itemset"]] = child["children"]
 
     if is_empty:
         raise serializers.ValidationError(_("No matching fields in xforms."))

@@ -17,7 +17,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
-from pyxform.question import Question
+from pyxform.question import Option, Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter  # pylint: disable=no-name-in-module
 from six import iteritems
@@ -57,6 +57,7 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID_STRING,
 )
 from onadata.libs.utils.common_tools import (
+    get_abbreviated_xpath,
     get_choice_label,
     get_choice_label_value,
     get_value_or_attachment_uri,
@@ -106,7 +107,8 @@ def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     return val
 
 
-# pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
+# pylint: disable=too-many-nested-blocks,too-many-branches
 def dict_to_joined_export(
     data, index, indices, name, survey, row, host, media_xpaths=None
 ):
@@ -121,7 +123,6 @@ def dict_to_joined_export(
     """
     output = {}
     media_xpaths = [] if media_xpaths is None else media_xpaths
-    # pylint: disable=too-many-nested-blocks
     if isinstance(data, dict):
         for key, val in iteritems(data):
             if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
@@ -370,14 +371,18 @@ class ExportBuilder:
                 # incase abbreviated_xpath is a choices xpath
                 if elem is None:
                     pass
-                elif elem.type == "":
-                    title = "/".join([elem.parent.name, elem.name])
+                elif isinstance(elem, Option):
+                    parent = data_dictionary.get_survey_element(
+                        field_delimiter.join(
+                            abbreviated_xpath.split(field_delimiter)[:-1]
+                        )
+                    )
+                    title = field_delimiter.join([parent.name, elem.name])
                 else:
                     title = elem.name
 
-        if field_delimiter != "/":
+        if field_delimiter != "/" and "/" in title:
             title = field_delimiter.join(title.split("/"))
-
         return title
 
     def get_choice_label_from_dict(self, label):
@@ -419,13 +424,17 @@ class ExportBuilder:
             child.parameters and child.parameters.get("randomize")
         )
         if (
-            (not child.children and child.choice_filter) or is_choice_randomized
+            (
+                (hasattr(child, "children") and not child.children)
+                and child.choice_filter
+            )
+            or is_choice_randomized
         ) and child.itemset:
             itemset = data_dicionary.survey.to_json_dict()["choices"].get(child.itemset)
             choices = (
                 [
                     get_choice_dict(
-                        "/".join([child.get_abbreviated_xpath(), i["name"]]),
+                        "/".join([get_abbreviated_xpath(child.get_xpath()), i["name"]]),
                         self.get_choice_label_from_dict(i["label"]),
                     )
                     for i in itemset
@@ -436,10 +445,10 @@ class ExportBuilder:
         else:
             choices = [
                 get_choice_dict(
-                    c.get_abbreviated_xpath(),
+                    get_abbreviated_xpath("/".join([child.get_xpath(), c.name])),
                     get_choice_label(c.label, data_dicionary, language=self.language),
                 )
-                for c in child.children
+                for c in child.choices.options
             ]
 
         return choices
@@ -457,7 +466,7 @@ class ExportBuilder:
             self.__init__()  # pylint: disable=unnecessary-dunder-call
         data_dicionary = get_data_dictionary_from_survey(survey)
 
-        # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+        # pylint: disable=too-many-arguments,too-many-positional-arguments
         def build_sections(
             current_section,
             survey_element,
@@ -471,7 +480,8 @@ class ExportBuilder:
             remove_group_name=False,
             language=None,
         ):
-            # pylint: disable=too-many-nested-blocks
+            # pylint: disable=too-many-nested-blocks,too-many-branches
+            # pylint: disable=too-many-locals
             for child in survey_element.children:
                 current_section_name = current_section["name"]
                 # if a section, recurs
@@ -480,7 +490,7 @@ class ExportBuilder:
                     if isinstance(child, RepeatingSection):
                         # section_name in recursive call changes
                         section = {
-                            "name": child.get_abbreviated_xpath(),
+                            "name": get_abbreviated_xpath(child.get_xpath()),
                             "elements": [],
                         }
                         self.sections.append(section)
@@ -518,9 +528,9 @@ class ExportBuilder:
                 ):
                     # add to survey_sections
                     if isinstance(child, Question):
-                        child_xpath = child.get_abbreviated_xpath()
+                        child_xpath = get_abbreviated_xpath(child.get_xpath())
                         _title = ExportBuilder.format_field_title(
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             field_delimiter,
                             data_dicionary,
                             remove_group_name,
@@ -568,16 +578,16 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             select_multiples,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             choices,
                         )
 
                     # split gps fields within this section
                     if child.bind.get("type") == GEOPOINT_BIND_TYPE:
                         # add columns for geopoint components
-                        parent_xpath = child.get_abbreviated_xpath()
+                        parent_xpath = get_abbreviated_xpath(child.get_xpath())
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
-                            child.get_abbreviated_xpath()
+                            get_abbreviated_xpath(child.get_xpath())
                         )
                         for xpath in xpaths:
                             _title = ExportBuilder.format_field_title(
@@ -599,7 +609,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             gps_fields,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             xpaths,
                         )
 
@@ -624,7 +634,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             osm_fields,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             xpaths,
                         )
                     if (
@@ -634,7 +644,7 @@ class ExportBuilder:
                         _append_xpaths_to_section(
                             current_section_name,
                             select_ones,
-                            child.get_abbreviated_xpath(),
+                            get_abbreviated_xpath(child.get_xpath()),
                             [],
                         )
 
@@ -651,7 +661,9 @@ class ExportBuilder:
             osm_columns = []
             if osm_field and xform:
                 osm_columns = OsmData.get_tag_keys(
-                    xform, osm_field.get_abbreviated_xpath(), include_prefix=True
+                    xform,
+                    get_abbreviated_xpath(osm_field.get_xpath()),
+                    include_prefix=True,
                 )
             return osm_columns
 
@@ -686,7 +698,7 @@ class ExportBuilder:
 
         return matches[0]
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     @classmethod
     def split_select_multiples(
         cls,
@@ -1198,11 +1210,12 @@ class ExportBuilder:
         for question in choice_questions:
             if (
                 xpath_var_names
-                and question.get_abbreviated_xpath() not in xpath_var_names  # noqa W503
+                and get_abbreviated_xpath(question.get_xpath())
+                not in xpath_var_names  # noqa W503
             ):
                 continue
             var_name = (
-                xpath_var_names.get(question.get_abbreviated_xpath())
+                xpath_var_names.get(get_abbreviated_xpath(question.get_xpath()))
                 if xpath_var_names
                 else question["name"]
             )
@@ -1255,20 +1268,27 @@ class ExportBuilder:
                 # check if it is a choice part of multiple choice
                 # type is likely empty string, split multi select is binary
                 element = data_dictionary.get_element(xpath)
-                if element and element.type == SELECT_ONE:
+                if (
+                    element
+                    and not isinstance(element, Option)
+                    and element.type == SELECT_ONE
+                ):
                     # Determine if all select1 choices are numeric in nature.
                     # If the choices are numeric in nature have the field type
                     # in spss be numeric
                     choices = list(all_value_labels[var_name])
-                    if len(choices) == 0:
-                        return False
-                    return is_all_numeric(choices)
-                if element and element.type == "" and value_select_multiples:
+                    if len(choices) != 0:
+                        return is_all_numeric(choices)
+
+                if element and isinstance(element, Option) and value_select_multiples:
                     return is_all_numeric([element.name])
 
-                parent_xpath = "/".join(xpath.split("/")[:-1])
-                parent = data_dictionary.get_element(parent_xpath)
-                return parent and parent.type == MULTIPLE_SELECT_TYPE
+                if element:
+                    parent_xpath = "/".join(xpath.split("/")[:-1])
+                    if parent_xpath:
+                        parent = data_dictionary.get_element(parent_xpath)
+                        return parent and parent.type == MULTIPLE_SELECT_TYPE
+
             return False
 
         value_select_multiples = self.VALUE_SELECT_MULTIPLES
