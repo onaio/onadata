@@ -4,6 +4,7 @@ Image utility functions module.
 """
 
 from tempfile import NamedTemporaryFile
+from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
@@ -13,11 +14,11 @@ from django.http import HttpResponse, HttpResponseRedirect
 
 from PIL import Image
 
-from onadata.libs.utils.viewer_tools import get_path
 from onadata.libs.utils.logger_tools import (
     generate_media_url_with_sas,
     get_storages_media_download_url,
 )
+from onadata.libs.utils.viewer_tools import get_path
 
 
 def flat(*nums):
@@ -35,7 +36,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
     Azure storage objects.
     """
     file_path = obj.media_file.name
-    filename = file_path.split("/")[-1]
+    filename = quote(file_path.split("/")[-1])
     # The filename is enclosed in quotes because it ensures that special characters,
     # spaces, or punctuation in the filename are correctly interpreted by browsers
     # and clients. This is particularly important for filenames that may contain
