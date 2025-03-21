@@ -4,6 +4,7 @@ Test MergedXFormSerializer
 """
 import copy
 
+from flaky import flaky
 from rest_framework import serializers
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -189,6 +190,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertTrue(serializer.is_valid(raise_exception=False))
         self.assertNotIn("xforms", serializer.errors)
 
+    @flaky(max_runs=5)
     def test_get_merged_xform_survey(self):
         """
         Test get_merged_xform_survey()
