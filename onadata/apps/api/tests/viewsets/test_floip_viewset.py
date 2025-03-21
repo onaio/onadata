@@ -243,7 +243,7 @@ class TestFloipViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response["Content-Type"], "application/vnd.api+json")
             self.assertIn(
-                "The name '1448506769745_42' " "contains an invalid character '1'",
+                "The name '1448506769745_42' contains an invalid character '1'",
                 response.data["text"],
             )
 
