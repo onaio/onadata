@@ -248,14 +248,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
 
         survey = get_merged_xform_survey([xform1, xform2])
         survey_dict = survey.to_json_dict()
-
-        # this field seems to change 50% of the time
-        expected2 = copy.deepcopy(expected)
-        expected2["children"][1]["children"] = [
-            {"name": "female", "label": "Female"},
-            {"name": "male", "label": "Male"},
-        ]
-        self.assertTrue(survey_dict == expected or survey_dict == expected2)
+        self.assertDictEqual(survey_dict, expected)
 
         # no matching fields
         with self.assertRaises(serializers.ValidationError):
