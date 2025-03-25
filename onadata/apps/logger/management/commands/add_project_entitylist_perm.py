@@ -2,9 +2,9 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
-from onadata.apps.logger.models import Project
 from guardian.shortcuts import assign_perm
 from multidb.pinning import use_master
+from onadata.apps.logger.models import Project
 
 
 class Command(BaseCommand):
@@ -29,7 +29,6 @@ class Command(BaseCommand):
 
             project_qs = Project.objects.filter(deleted_at__isnull=True)
             eta = project_qs.count()
-            User = get_user_model()
 
             for project in project_qs.iterator(chunk_size=200):
                 project_user_obj_perm_qs = (
@@ -44,7 +43,7 @@ class Command(BaseCommand):
                 )
 
                 for user_obj_perm in project_user_obj_perm_qs.iterator(chunk_size=100):
-                    user = User.objects.get(id=user_obj_perm.user_id)
+                    user = get_user_model().objects.get(id=user_obj_perm.user_id)
                     assign_perm(perm_codename, user, project)
 
                 for group_obj_perm in project_group_obj_perm_qs.iterator(
