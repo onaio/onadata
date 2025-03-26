@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v4.14.0(2025-03-26)
+-------------------
+- Fix new columns not showing in CSV after replacing form
+  `PR #2779 <https://github.com/onaio/onadata/pull/2779>`
+  [@kelvin-muchiri]
+- Add a new mgt command that applies entitylist perms
+  `PR #2785 <https://github.com/onaio/onadata/pull/2785>`
+  [@FrankApiyo]
+
 v4.13.0(2025-02-25)
 -------------------
 - Fix  Package 'openjdk-11-jre-headless' has no installation candidate
