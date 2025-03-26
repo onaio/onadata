@@ -351,7 +351,7 @@ class TableauViewSet(OpenDataViewSet):
         return ret
 
     @action(methods=["GET"], detail=True)
-    def schema(self, request, **kwargs):
+    def open_data_schema(self, request, **kwargs):
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
         if isinstance(self.object.content_object, XForm):
