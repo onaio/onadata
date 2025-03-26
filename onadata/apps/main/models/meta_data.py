@@ -46,6 +46,8 @@ INSTANCE_MODEL_NAME = "instance"
 PROJECT_MODEL_NAME = "project"
 XFORM_MODEL_NAME = "xform"
 
+DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
+
 
 def is_valid_url(uri):
     """
@@ -164,7 +166,9 @@ def create_media(media):
         filename = media.data_value.split("/")[-1]
         data_file = NamedTemporaryFile()
         content_type = mimetypes.guess_type(filename)
-        with closing(requests.get(media.data_value, stream=True)) as resp:
+        with closing(
+            requests.get(media.data_value, stream=True, timeout=DEFAULT_REQUEST_TIMEOUT)
+        ) as resp:
             # pylint: disable=no-member
             for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
                 if chunk:
@@ -263,7 +267,7 @@ class MetaData(models.Model):
             try:
                 self.data_file.seek(os.SEEK_SET)
             except IOError:
-                return ""
+                pass
             else:
                 file_hash = hashlib.new(
                     "md5", self.data_file.read(), usedforsecurity=False

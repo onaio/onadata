@@ -91,60 +91,51 @@ class MessageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"target_type": _("Unknown target type")}
             ) from exc  # yapf: disable
-        else:
-            try:
-                target_object = content_type.get_object_for_this_type(pk=target_id)
-            except content_type.model_class().DoesNotExist as exc:
-                raise serializers.ValidationError(
-                    {"target_id": _("target_id not found")}
-                ) from exc  # yapf: disable
-            else:
-                # check if request.user has permission to the target_object
-                permission = (
-                    f"{target_object._meta.app_label}."
-                    f"change_{target_object._meta.model_name}"
-                )
-                if (
-                    not request.user.has_perm(permission, target_object)
-                    and verb == MESSAGE
-                ):
-                    message = (
-                        _(
-                            "You do not have permission to add messages "
-                            "to target_id %s."
-                        )
-                        % target_object
-                    )
-                    raise exceptions.PermissionDenied(detail=message)
-                results = action.send(
-                    request.user,
-                    verb=verb,
-                    target=target_object,
-                    description=validated_data.get("description"),
-                )
+        try:
+            target_object = content_type.get_object_for_this_type(pk=target_id)
+        except content_type.model_class().DoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"target_id": _("target_id not found")}
+            ) from exc  # yapf: disable
+        # check if request.user has permission to the target_object
+        permission = (
+            f"{target_object._meta.app_label}."
+            f"change_{target_object._meta.model_name}"
+        )
+        if not request.user.has_perm(permission, target_object) and verb == MESSAGE:
+            message = (
+                _("You do not have permission to add messages to target_id %s.")
+                % target_object
+            )
+            raise exceptions.PermissionDenied(detail=message)
+        results = action.send(
+            request.user,
+            verb=verb,
+            target=target_object,
+            description=validated_data.get("description"),
+        )
 
-                # results will be a list of tuples with the first item in the
-                # tuple being the signal handler function and the second
-                # being the object.  We want to get the object of the first
-                # element in the list whose function is `action_handler`
+        # results will be a list of tuples with the first item in the
+        # tuple being the signal handler function and the second
+        # being the object.  We want to get the object of the first
+        # element in the list whose function is `action_handler`
 
-                try:
-                    # pylint: disable=comparison-with-callable
-                    instance = [
-                        instance
-                        for (receiver, instance) in results
-                        if receiver.__module__ == action_handler.__module__
-                        and receiver.__name__ == action_handler.__name__
-                    ]
-                    instance = instance[0]
-                except IndexError as exc:
-                    report_exception("(debug) index error", exc, sys.exc_info())
-                    # if you get here it means we have no instances
-                    raise serializers.ValidationError(
-                        "Message not created. Please retry."
-                    ) from exc
-                else:
-                    return instance
+        try:
+            # pylint: disable=comparison-with-callable
+            instance = [
+                instance
+                for (receiver, instance) in results
+                if receiver.__module__ == action_handler.__module__
+                and receiver.__name__ == action_handler.__name__
+            ]
+            instance = instance[0]
+        except IndexError as exc:
+            report_exception("(debug) index error", exc, sys.exc_info())
+            # if you get here it means we have no instances
+            raise serializers.ValidationError(
+                "Message not created. Please retry."
+            ) from exc
+        return instance
 
 
 def send_message(

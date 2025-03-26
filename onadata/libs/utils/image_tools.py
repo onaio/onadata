@@ -2,21 +2,23 @@
 """
 Image utility functions module.
 """
+
 from tempfile import NamedTemporaryFile
+from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.http import HttpResponse, HttpResponseRedirect
 
 from PIL import Image
 
-from onadata.libs.utils.viewer_tools import get_path
 from onadata.libs.utils.logger_tools import (
     generate_media_url_with_sas,
     get_storages_media_download_url,
 )
+from onadata.libs.utils.viewer_tools import get_path
 
 
 def flat(*nums):
@@ -34,7 +36,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
     Azure storage objects.
     """
     file_path = obj.media_file.name
-    filename = file_path.split("/")[-1]
+    filename = quote(file_path.split("/")[-1])
     # The filename is enclosed in quotes because it ensures that special characters,
     # spaces, or punctuation in the filename are correctly interpreted by browsers
     # and clients. This is particularly important for filenames that may contain
@@ -73,7 +75,7 @@ def get_dimensions(size, longest_side):
 
 def _save_thumbnails(image, filename, size, suffix, extension):
     with NamedTemporaryFile(suffix=f".{extension}") as temp_file:
-        default_storage = get_storage_class()()
+        default_storage = storages["default"]
 
         try:
             # Ensure conversion to float in operations
@@ -89,7 +91,7 @@ def _save_thumbnails(image, filename, size, suffix, extension):
 
 def resize(filename, extension):
     """Resize an image into multiple sizes."""
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
 
     try:
         with default_storage.open(filename) as image_file:
@@ -110,7 +112,7 @@ def resize(filename, extension):
 
 def resize_local_env(filename, extension):
     """Resize images in a local environment."""
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     path = default_storage.path(filename)
     image = Image.open(path)
     conf = settings.THUMB_CONF
@@ -127,10 +129,12 @@ def resize_local_env(filename, extension):
 
 def is_azure_storage():
     """Checks if azure storage is in use"""
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     azure = None
     try:
-        azure = get_storage_class("storages.backends.azure_storage.AzureStorage")()
+        azure = storages.create_storage(
+            {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+        )
     except ModuleNotFoundError:
         pass
     return isinstance(default_storage, type(azure))
@@ -145,8 +149,10 @@ def image_url(attachment, suffix):
     if suffix == "original":
         return url
 
-    default_storage = get_storage_class()()
-    file_storage = get_storage_class("django.core.files.storage.FileSystemStorage")()
+    default_storage = storages["default"]
+    file_storage = storages.create_storage(
+        {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+    )
 
     if suffix in settings.THUMB_CONF:
         size = settings.THUMB_CONF[suffix]["suffix"]

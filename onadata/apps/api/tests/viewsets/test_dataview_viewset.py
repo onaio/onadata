@@ -4,14 +4,13 @@
 import csv
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.test.utils import override_settings
-from django.utils.timezone import utc
 
 from flaky import flaky
 from openpyxl import load_workbook
@@ -1908,7 +1907,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         """
         self._create_dataview()
         self._publish_xls_form_to_project()
-        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        start_date = datetime(2014, 9, 12, tzinfo=timezone.utc)
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
@@ -1971,7 +1970,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         """
         self._create_dataview()
         self._publish_xls_form_to_project()
-        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        start_date = datetime(2014, 9, 12, tzinfo=timezone.utc)
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (
@@ -2015,7 +2014,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         """
         self._create_dataview()
         self._publish_xls_form_to_project()
-        start_date = datetime(2014, 9, 12, tzinfo=utc)
+        start_date = datetime(2014, 9, 12, tzinfo=timezone.utc)
         first_datetime = start_date.strftime(MONGO_STRFTIME)
         second_datetime = start_date + timedelta(days=1, hours=20)
         query_str = (

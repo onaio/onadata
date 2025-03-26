@@ -2,6 +2,7 @@
 """
 Model utility functions.
 """
+
 from onadata.libs.utils.common_tools import get_uuid
 
 
@@ -14,7 +15,7 @@ def set_uuid(obj):
 
 
 def queryset_iterator(queryset, chunksize=100):
-    '''
+    """
     Iterate over a Django Queryset.
 
     This method loads a maximum of chunksize (default: 100) rows in
@@ -23,22 +24,21 @@ def queryset_iterator(queryset, chunksize=100):
     not preload all the classes.
 
     See https://docs.djangoproject.com/en/2.1/ref/models/querysets/#iterator
-    '''
+    """
 
     return queryset.iterator(chunk_size=chunksize)
 
 
 def get_columns_with_hxl(survey_elements):
-    '''
+    """
     Returns a dictionary whose keys are xform field names and values are
     `instance::hxl` values set on the xform
     :param include_hxl - boolean value
     :param survey_elements - survey elements of an xform
     return dictionary or None
-    '''
+    """
     return survey_elements and {
-        se.get('name'): val.get('hxl')
+        se.name: se.instance["hxl"]
         for se in survey_elements
-        for key, val in se.items()
-        if key == 'instance' and val and 'hxl' in val
+        if se.instance and "hxl" in se.instance
     }

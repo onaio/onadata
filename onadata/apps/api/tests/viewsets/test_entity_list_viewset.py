@@ -5,20 +5,25 @@ Tests for module onadata.apps.api.viewsets.entity_list_viewset
 import json
 import sys
 import uuid
-from datetime import datetime, timezone as dtz
-from unittest.mock import patch, MagicMock
+from datetime import datetime
+from datetime import timezone as tz
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 
+import boto3
+from moto import mock_aws
+
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
+from onadata.apps.logger.models import (Entity, EntityHistory, EntityList,
+                                        Project)
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
-from onadata.apps.viewer.models.export import GenericExport
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -570,7 +575,7 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_delete(self, mock_now):
         """Delete EntityList works"""
-        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=timezone.utc)
+        mocked_date = datetime(2024, 6, 25, 11, 11, 0, tzinfo=tz.utc)
         mock_now.return_value = mocked_date
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -658,16 +663,18 @@ class GetEntitiesListTestCase(TestAbstractViewSet):
         # Create Entity for trees EntityList
         self.entity_list = EntityList.objects.get(name="trees")
         OwnerRole.add(self.user, self.entity_list)
-        Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "geometry": "-1.286905 36.772845 0 0",
-                "species": "purpleheart",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        ),
+        (
+            Entity.objects.create(
+                entity_list=self.entity_list,
+                json={
+                    "geometry": "-1.286905 36.772845 0 0",
+                    "species": "purpleheart",
+                    "circumference_cm": 300,
+                    "label": "300cm purpleheart",
+                },
+                uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+            ),
+        )
         Entity.objects.create(
             entity_list=self.entity_list,
             json={
@@ -978,7 +985,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_create_entity(self, mock_now):
         """Creating single Entity works"""
-        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=dtz.utc)
+        mock_date = datetime(2024, 8, 26, 14, 40, 0, tzinfo=tz.utc)
         mock_now.return_value = mock_date
         request = self.factory.post("/", data=self.data, format="json", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
@@ -1234,7 +1241,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_updating_entity(self, mock_now):
         """Updating an Entity works"""
-        mock_date = datetime(2024, 6, 12, 12, 34, 0, tzinfo=timezone.utc)
+        mock_date = datetime(2024, 6, 12, 12, 34, 0, tzinfo=tz.utc)
         mock_now.return_value = mock_date
         data = {
             "label": "30cm mora",
@@ -1492,7 +1499,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
         """Delete Entity works"""
         self.entity_list.refresh_from_db()
         self.assertEqual(cache.get(f"elist-num-entities-{self.entity_list.pk}"), 1)
-        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=tz.utc)
         mock_now.return_value = date
 
         with self.captureOnCommitCallbacks(execute=True):
@@ -1598,7 +1605,7 @@ class DeleteEntityTestCase(TestAbstractViewSet):
     @patch("django.utils.timezone.now")
     def test_delete_bulk(self, mock_now):
         """Deleting Entities in bulk works"""
-        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=timezone.utc)
+        date = datetime(2024, 6, 11, 14, 9, 0, tzinfo=tz.utc)
         mock_now.return_value = date
         entity = Entity.objects.create(
             entity_list=self.entity_list,
@@ -1788,35 +1795,17 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 404)
 
-    @patch("onadata.libs.utils.logger_tools.get_storage_class")
-    @patch("onadata.libs.utils.logger_tools.boto3.client")
-    def test_download_from_s3(self, mock_presigned_urls, mock_get_storage_class):
+    def test_download_from_s3(self):
         """EntityList dataset is downloaded from Amazon S3"""
-        expected_url = (
-            "https://testing.s3.amazonaws.com/bob/exports/"
-            "trees/csv/trees_2024_06_21_07_47_24_026998.csv?"
-            "response-content-disposition=attachment%3Bfilename%trees.csv&"
-            "response-content-type=application%2Foctet-stream&"
-            "AWSAccessKeyId=AKIAJ3XYHHBIJDL7GY7A"
-            "&Signature=aGhiK%2BLFVeWm%2Fmg3S5zc05g8%3D&Expires=1615554960"
-        )
-        mock_presigned_urls().generate_presigned_url = MagicMock(
-            return_value=expected_url
-        )
-        mock_get_storage_class()().bucket.name = "onadata"
         request = self.factory.get("/", **self.extra)
-        response = self.view(request, pk=self.entity_list.pk)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, expected_url)
-        self.assertTrue(mock_presigned_urls.called)
-        export = GenericExport.objects.first()
-        mock_presigned_urls().generate_presigned_url.assert_called_with(
-            "get_object",
-            Params={
-                "Bucket": "onadata",
-                "Key": export.filepath,
-                "ResponseContentDisposition": 'attachment; filename="trees.csv"',
-                "ResponseContentType": "application/octet-stream",
-            },
-            ExpiresIn=3600,
-        )
+        with override_settings(
+            STORAGES={"default": {"BACKEND": "storages.backends.s3.S3Storage"}},
+            AWS_STORAGE_BUCKET_NAME="testing",
+        ):
+            with mock_aws():
+                s3 = boto3.resource("s3", region_name='us-east-1')
+                bucket = s3.Bucket('testing')
+                bucket.create()
+                response = self.view(request, pk=self.entity_list.pk)
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("response-content-disposition", response.url)

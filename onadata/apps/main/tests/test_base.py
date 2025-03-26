@@ -242,7 +242,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             path = self._fixture_path("gps", "instances", survey + ".xml")
             self._make_submission(path)
 
-    # pylint: disable=too-many-arguments,too-many-locals,unused-argument
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(
         self,
         path,

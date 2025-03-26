@@ -8,17 +8,18 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0002_auto_20151014_0909'),
+        ("api", "0002_auto_20151014_0909"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='organizationprofile',
+            name="organizationprofile",
             options={
-                'permissions':
-                (('can_add_project', 'Can add a project to an organization'),
-                 ('can_add_xform',
-                  'Can add/upload an xform to an organization'),
-                 ('view_organizationprofile', 'Can view organization profile'))
-            }, ),
+                "permissions": (
+                    ("can_add_project", "Can add a project to an organization"),
+                    ("can_add_xform", "Can add/upload an xform to an organization"),
+                    ("view_organizationprofile", "Can view organization profile"),
+                )
+            },
+        ),
     ]

@@ -2,6 +2,7 @@
 """
 The /dataview API endpoint implementation.
 """
+
 from django.db.models.signals import post_delete, post_save
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import gettext as _
@@ -29,6 +30,7 @@ from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.utils import common_tags
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     export_async_export_response,
@@ -44,10 +46,7 @@ from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
-from onadata.libs.utils.export_tools import (
-    str_to_bool,
-    parse_request_export_options
-)
+from onadata.libs.utils.export_tools import str_to_bool, parse_request_export_options
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -86,15 +85,9 @@ def get_filter_kwargs(filters):
     if filters:
         for f in filters:
             value = f"{f['value']}"
-            column = f['column']
-            filter_kwargs = {
-                get_field_lookup(column, f['filter']):
-                value
-            }
-            kwargs = {
-                **kwargs,
-                **filter_kwargs
-            }
+            column = f["column"]
+            filter_kwargs = {get_field_lookup(column, f["filter"]): value}
+            kwargs = {**kwargs, **filter_kwargs}
     return kwargs
 
 
@@ -112,9 +105,7 @@ def get_dataview_instances(dataview):
     Get all instances that belong to ths dataview
     """
     return apply_filters(
-        dataview.xform.instances.filter(
-            deleted_at__isnull=True
-        ), dataview.query
+        dataview.xform.instances.filter(deleted_at__isnull=True), dataview.query
     )
 
 
@@ -196,15 +187,13 @@ class DataViewViewSet(
             return Response(serializer.data)
 
         if export_type == "geojson":
-            page = self.paginate_queryset(
-                get_dataview_instances(self.object)
-            )
+            page = self.paginate_queryset(get_dataview_instances(self.object))
 
             serializer = self.get_serializer(page, many=True)
-            geojson_content_type = 'application/geo+json'
+            geojson_content_type = "application/geo+json"
             return Response(
-                serializer.data,
-                headers={'Content-Type': geojson_content_type})
+                serializer.data, headers={"Content-Type": geojson_content_type}
+            )
 
         return custom_response_handler(
             request, self.object.xform, query, export_type, dataview=self.object
@@ -288,13 +277,15 @@ class DataViewViewSet(
         if field_name:
             field = get_field_from_field_name(field_name, xform)
             field_xpath = (
-                field_name if isinstance(field, str) else field.get_abbreviated_xpath()
+                field_name
+                if isinstance(field, str)
+                else get_abbreviated_xpath(field.get_xpath())
             )
 
         if (
-            field_xpath and
-            field_xpath not in dataview.columns and
             field_xpath
+            and field_xpath not in dataview.columns
+            and field_xpath
             not in [
                 common_tags.SUBMISSION_TIME,
                 common_tags.SUBMITTED_BY,
@@ -316,7 +307,7 @@ class DataViewViewSet(
         data = serializer.data
         data["fields"] = {}
         for field in xform.survey_elements:
-            field_xpath = field.get_abbreviated_xpath()
+            field_xpath = get_abbreviated_xpath(field.get_xpath())
             if field_xpath in dataview.columns:
                 url = reverse(
                     "dataviews-charts",

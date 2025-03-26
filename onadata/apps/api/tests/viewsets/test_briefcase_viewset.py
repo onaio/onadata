@@ -8,7 +8,7 @@ import shutil
 from unittest.mock import patch
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -25,7 +25,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance, XForm
 
 NUM_INSTANCES = 4
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 def ordered_instances(xform):

@@ -3,11 +3,11 @@
 Audit model
 """
 import json
-import six
 
-from django.db import models
-from django.db import connection
+from django.db import connection, models
 from django.utils.translation import gettext as _
+
+import six
 
 DEFAULT_LIMIT = 1000
 
@@ -50,6 +50,7 @@ class AuditLog:
         """
         Returns an iterator of all records.
         """
+
         # cursor seems to stringify dicts
         # added workaround to parse stringified dicts to json
         def parse_json(data):
@@ -84,7 +85,8 @@ class AuditLog:
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+    # pylint: disable=too-many-locals,too-many-branches
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     @classmethod
     def query_data(
         cls,
@@ -109,6 +111,7 @@ class AuditLog:
 
         where_params = []
         sql_where = ""
+        where = []
         if query and isinstance(query, six.string_types):
             query = json.loads(query)
             or_where = []

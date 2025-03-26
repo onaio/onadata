@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -423,7 +423,7 @@ def download_xlsform(request, username, id_string):
         return HttpResponseForbidden("Not shared.")
 
     file_path = xform.xls.name
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
 
     if file_path != "" and default_storage.exists(file_path):
         audit = {"xform": xform.id_string}
@@ -535,9 +535,9 @@ def toggle_downloadable(request, username, id_string):
         _("Made form '%(id_string)s' %(downloadable)s.")
         % {
             "id_string": xform.id_string,
-            "downloadable": _("downloadable")
-            if xform.downloadable
-            else _("un-downloadable"),
+            "downloadable": (
+                _("downloadable") if xform.downloadable else _("un-downloadable")
+            ),
         },
         audit,
         request,
@@ -771,6 +771,7 @@ def form_upload(request, username):
         return response
     xform_def = request.FILES.get("form_def_file", None)
     content = ""
+    status = 400
     if isinstance(xform_def, File):
         do_form_upload = PublishXForm(xform_def, form_user)
         xform = publish_form(do_form_upload.publish_xform)
