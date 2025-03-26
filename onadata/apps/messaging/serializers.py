@@ -147,12 +147,14 @@ class MessageSerializer(serializers.ModelSerializer):
                     return instance
 
 
+# pylint: disable=too-many-arguments
 def send_message(
     instance_id: Union[list, int],
     target_id: int,
     target_type: str,
     user: User,
     message_verb: str,
+    custom_message: dict = None
 ):
     """
     Send a message.
@@ -182,12 +184,21 @@ def send_message(
             ids = instance_id
             while len(ids) > 0:
                 data["message"] = json.dumps({"id": ids[:message_id_limit]})
+                if custom_message:
+                    message_dict = json.loads(data["message"])
+                    message_dict.update(custom_message)
+                    data["message"] = json.dumps(message_dict)
                 message = MessageSerializer(data=data, context={"request": request})
                 del ids[:message_id_limit]
                 if message.is_valid():
                     message.save()
         else:
             data["message"] = json.dumps({"id": instance_id})
+            if custom_message:
+                # update default message dict with extra fields
+                message_dict = json.loads(data["message"])
+                message_dict.update(custom_message)
+                data["message"] = json.dumps(message_dict)
             message = MessageSerializer(data=data, context={"request": request})
             if message.is_valid():
                 message.save()

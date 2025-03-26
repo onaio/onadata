@@ -60,7 +60,10 @@ from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.views import delete_xform
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
-from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.constants import (
+    FORM_UPDATED, XFORM, PROJECT, FORM_DELETED, FORM_CREATED,
+    FORM_RENAMED, FORM_ACTIVE
+)
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES_ORDERED,
@@ -1915,7 +1918,8 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.content.decode("utf-8"), error_msg)
 
-    def test_partial_update(self):
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_partial_update(self, mock_send_message):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"patch": "partial_update"})
@@ -1939,6 +1943,38 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.patch("/", data=data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
+
+            # send messages upon form update
+            self.assertTrue(mock_send_message.called)
+
+            # check calls to send_message triggered by patch request
+            mock_calls = mock_send_message.call_args_list
+            args, kwargs = mock_calls[0]
+            # test form rename message
+            message_kwargs = {
+                "instance_id": self.xform.id,
+                "target_id": self.xform.id,
+                "target_type": XFORM,
+                "user": self.xform.user,
+                "message_verb": FORM_RENAMED,
+                "custom_message": {
+                    "old_title": "transportation_2011_07_25",
+                    "new_title": "Hello & World!"
+                }
+            }
+            self.assertEqual(kwargs, message_kwargs)
+
+            # test form status message
+            args, kwargs = mock_calls[1]
+            message_kwargs = {
+                "instance_id": self.xform.id,
+                "target_id": self.xform.id,
+                "target_type": XFORM,
+                "user": self.xform.user,
+                "message_verb": FORM_ACTIVE,
+            }
+            self.assertEqual(kwargs, message_kwargs)
+
             xform_old_hash = self.xform.hash
             self.xform.refresh_from_db()
             self.assertTrue(self.xform.downloadable)
@@ -2074,7 +2110,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 cache.get(f"{PROJ_FORMS_CACHE}{self.project.pk}"), cleared_cache_content
             )
 
-    def test_form_delete(self):
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    def test_form_delete(self, mock_send_message):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
 
@@ -2094,6 +2131,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             formid = self.xform.pk
             request = self.factory.delete("/", **self.extra)
             response = view(request, pk=formid)
+
+            # send message upon form deletion
+            self.assertTrue(mock_send_message.called)
+            mock_send_message.assert_called_with(
+                instance_id=self.xform.id,
+                target_id=self.xform.project.pk,
+                target_type=PROJECT,
+                user=request.user,
+                message_verb=FORM_DELETED
+            )
+
             self.assertEqual(response.data, None)
             self.assertEqual(response.status_code, 204)
 
@@ -3624,8 +3672,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.data.get("detail"), error_message)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     @patch("onadata.apps.api.tasks.get_async_status")
-    def test_delete_xform_async(self, mock_get_status):
+    def test_delete_xform_async(self, mock_get_status, mock_send_msg):
         with HTTMock(enketo_mock):
             mock_get_status.return_value = {"job_status": "PENDING"}
             self._publish_xls_form_to_project()
@@ -3653,6 +3702,16 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertTrue(mock_get_status.called)
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response.data, {"job_status": "PENDING"})
+
+            # send message upon form deletion
+            self.assertTrue(mock_send_msg.called)
+            mock_send_msg.assert_called_with(
+                instance_id=self.xform.id,
+                target_id=self.xform.project.pk,
+                target_type=XFORM,
+                user=request.user,
+                message_verb=FORM_DELETED
+            )
 
             xform = XForm.objects.get(pk=formid)
 

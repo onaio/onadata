@@ -52,7 +52,17 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.constants import (
+    FORM_UPDATED,
+    EXPORT_CREATED,
+    XFORM,
+    FORM_DELETED,
+    FORM_CREATED,
+    PROJECT,
+    FORM_ACTIVE,
+    FORM_INACTIVE,
+    FORM_RENAMED
+)
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
@@ -83,7 +93,7 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import json_stream, str_to_bool
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
     submission_xls_to_csv,
@@ -229,7 +239,7 @@ def parse_webform_return_url(return_url, request):
     return None
 
 
-# pylint: disable=too-many-ancestors
+# pylint: disable=too-many-ancestors, too-many-lines
 class XFormViewSet(
     AnonymousUserPublicFormsMixin,
     CacheControlMixin,
@@ -346,6 +356,15 @@ class XFormViewSet(
             serializer = XFormCreateSerializer(survey, context={"request": request})
             headers = self.get_success_headers(serializer.data)
 
+            # send form creation notification
+            send_message(
+                instance_id=survey.id,
+                target_id=survey.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_CREATED,
+            )
+
             return Response(
                 serializer.data, status=status.HTTP_201_CREATED, headers=headers
             )
@@ -389,18 +408,23 @@ class XFormViewSet(
                 )
             else:
                 xls_file_path = request.FILES.get("xls_file").temporary_file_path()
-
-            resp.update(
-                {
-                    "job_uuid": tasks.publish_xlsform_async.delay(
-                        request.user.id,
-                        request.POST,
-                        owner.id,
-                        {"name": fname, "path": xls_file_path},
-                    ).task_id
-                }
+            survey = tasks.publish_xlsform_async.delay(
+                request.user.id,
+                request.POST,
+                owner.id,
+                {"name": fname, "path": xls_file_path},
             )
+            resp.update({"job_uuid": survey.task_id})
             resp_code = status.HTTP_202_ACCEPTED
+
+            # send form creation notification
+            send_message(
+                instance_id=survey.id,
+                target_id=survey.id,
+                target_type=XFORM,
+                user=request.user or owner,
+                message_verb=FORM_CREATED,
+            )
 
         return Response(data=resp, status=resp_code, headers=headers)
 
@@ -817,6 +841,33 @@ class XFormViewSet(
             return _try_update_xlsform(request, self.object, owner)
 
         try:
+            # send notification for each form activity
+            if request.POST.get("title"):
+                # send form update notification
+                send_message(
+                    instance_id=self.object.pk,
+                    target_id=self.object.pk,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=FORM_RENAMED,
+                    custom_message={
+                        "old_title": self.object.title,
+                        "new_title": request.POST.get("title"),
+                    },
+                )
+            if request.POST.get("downloadable"):
+                downloadable = request.POST.get("downloadable")
+                message_verb = (
+                    FORM_ACTIVE if str_to_bool(downloadable) else FORM_INACTIVE
+                )
+                # send form status notification
+                send_message(
+                    instance_id=self.object.pk,
+                    target_id=self.object.pk,
+                    target_type=XFORM,
+                    user=request.user or owner,
+                    message_verb=message_verb,
+                )
             return super().partial_update(request, *args, **kwargs)
         except XLSFormError as e:
             raise ParseError(str(e)) from e
@@ -837,6 +888,15 @@ class XFormViewSet(
             safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
             resp_code = status.HTTP_202_ACCEPTED
 
+            # send form deletion notification to project target
+            send_message(
+                instance_id=xform.id,
+                target_id=xform.project.id,
+                target_type=XFORM,
+                user=request.user,
+                message_verb=FORM_DELETED,
+            )
+
         elif request.method == "GET":
             job_uuid = request.query_params.get("job_uuid")
             resp = tasks.get_async_status(job_uuid)
@@ -851,6 +911,15 @@ class XFormViewSet(
         xform = self.get_object()
         user = request.user
         xform.soft_delete(user=user)
+
+        # send form deletion notification to project target
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.project.pk,
+            target_type=PROJECT,
+            user=user,
+            message_verb=FORM_DELETED,
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -940,6 +1009,14 @@ class XFormViewSet(
 
         # pylint: disable=attribute-defined-outside-init
         self.etag_data = f"{timezone.now()}"
+
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=request.user,
+            message_verb=EXPORT_CREATED,
+        )
 
         return Response(
             data=resp,
