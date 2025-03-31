@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0006_auto_20191025_0730'),
+        ("api", "0006_auto_20191025_0730"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='odktoken',
-            name='expires',
+            model_name="odktoken",
+            name="expires",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

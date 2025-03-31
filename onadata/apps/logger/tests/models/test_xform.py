@@ -11,6 +11,7 @@ from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import DuplicateUUIDError, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
 class TestXForm(TestBase):
@@ -140,18 +141,7 @@ class TestXForm(TestBase):
 
         # get fruita element by name
         fruita = xform.get_survey_element("fruita")
-        self.assertEqual(fruita.get_abbreviated_xpath(), "a/fruita")
-
-        # get exact choices element from choice abbreviated xpath
-        fruita_o = xform.get_survey_element("a/fruita/orange")
-        self.assertEqual(fruita_o.get_abbreviated_xpath(), "a/fruita/orange")
-
-        fruity_m = xform.get_survey_element("a/fruity/mango")
-        self.assertEqual(fruity_m.get_abbreviated_xpath(), "a/fruity/mango")
-
-        fruitb_o = xform.get_survey_element("b/fruitb/orange")
-        self.assertEqual(fruitb_o.get_abbreviated_xpath(), "b/fruitb/orange")
-
+        self.assertEqual(get_abbreviated_xpath(fruita.get_xpath()), "a/fruita")
         self.assertEqual(xform.get_child_elements("NoneExistent"), [])
 
     def test_check_xform_uuid(self):

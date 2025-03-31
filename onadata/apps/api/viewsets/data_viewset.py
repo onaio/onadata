@@ -655,7 +655,7 @@ class DataViewSet(
             self.get_object(), self.request.user, query
         )
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def set_object_list(self, query, fields, sort, start, limit, is_public_request):
         """
         Set the submission instances queryset.
@@ -791,7 +791,7 @@ class DataViewSet(
         query_param_keys = self.request.query_params
         return any(k in query_param_keys for k in pagination_keys)
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         self.set_object_list(query, fields, sort, start, limit, is_public_request)
         should_paginate = self._should_paginate()

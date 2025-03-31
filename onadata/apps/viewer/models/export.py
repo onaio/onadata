@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.db import models
 from django.db.models import JSONField
 from django.db.models.signals import post_delete
@@ -26,7 +26,7 @@ def export_delete_callback(sender, **kwargs):
     Delete export file when an export object is deleted.
     """
     export = kwargs["instance"]
-    storage = get_storage_class()()
+    storage = storages["default"]
     if export.filepath and storage.exists(export.filepath):
         storage.delete(export.filepath)
 
@@ -206,7 +206,7 @@ class ExportBaseModel(models.Model):
         exist.
         """
         if self.filepath:
-            default_storage = get_storage_class()()
+            default_storage = storages["default"]
             try:
                 return default_storage.path(self.filepath)
             except NotImplementedError:

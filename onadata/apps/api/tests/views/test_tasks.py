@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from celery import current_app
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.test import override_settings
 from django.utils import timezone
 
@@ -68,7 +68,7 @@ class TestAPITasks(TestBase):
         # check attachments count
         self.assertEqual(Attachment.objects.all().count(), 1)
         # check if attachment file exists in file system
-        default_storage = get_storage_class()()
+        default_storage = storages["default"]
         self.assertTrue(
             default_storage.exists(self.attachment.media_file.name)
         )

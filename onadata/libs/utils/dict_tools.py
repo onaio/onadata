@@ -19,14 +19,12 @@ def get_values_matching_key(doc, key):
             for doc_item in doc.items():
                 value = doc_item[1]
                 if isinstance(value, dict):
-                    for item in _get_values(value, key):
-                        yield item
+                    yield from _get_values(value, key)
                 elif isinstance(value, list):
                     for item_i in value:
                         if isinstance(item_i, (dict, list)):
                             try:
-                                for item_j in _get_values(item_i, key):
-                                    yield item_j
+                                yield from _get_values(item_i, key)
                             except StopIteration:
                                 continue
                         elif item_i == key:

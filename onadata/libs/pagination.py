@@ -85,7 +85,7 @@ class CountOverridablePaginator(Paginator):
     Allows overriding the count especially in the event it may be expensive request.
     """
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
         self,
         object_list,

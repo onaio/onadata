@@ -2,9 +2,10 @@
 """
 create_image_thumbnails - creates thumbnails for all form images and stores them.
 """
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -62,12 +63,12 @@ class Command(BaseCommand):
                     f"Error: Form with id_string {id_string} does not exist"
                 ) from error
             attachments_qs = attachments_qs.filter(instance__xform=xform)
-        file_storage = get_storage_class(
-            "django.core.files.storage.FileSystemStorage"
-        )()
+        file_storage = storages.create_storage(
+            {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+        )
         for att in queryset_iterator(attachments_qs):
             filename = att.media_file.name
-            default_storage = get_storage_class()()
+            default_storage = storages["default"]
             full_path = get_path(filename, settings.THUMB_CONF["small"]["suffix"])
             if options.get("force") is not None:
                 for suffix in ["small", "medium", "large"]:

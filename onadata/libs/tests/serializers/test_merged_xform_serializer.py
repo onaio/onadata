@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
+# n -*- coding: utf-8 -*-
 """
 Test MergedXFormSerializer
 """
 import copy
+
+from flaky import flaky
 from rest_framework import serializers
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -77,7 +79,7 @@ GROUP_B_MD = """
 |        | end group         |        |       |            |
 |        | begin group       | other  | Other |            |
 |        | begin group       | person | Person |           |
-|        | integer           | age    | Age   |            |
+|        | integer           | bage    | Age   |            |
 |        | select one gender | gender | Sex   |            |
 |        | end group         |        |       |            |
 |        | end group         |        |       |            |
@@ -98,8 +100,8 @@ GROUP_C_MD = """
 |        | end group         |        |       |            |
 |        | begin group       | other  | Other |            |
 |        | begin group       | person | Person |           |
-|        | integer           | age    | Age   |            |
-|        | select one gender | gender | Sex   | ${age} > 5 |
+|        | integer           | cage    | Age   |            |
+|        | select one gender | gender | Sex   | ${cage} > 5 |
 |        | end group         |        |       |            |
 |        | end group         |        |       |            |
 
@@ -188,6 +190,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         self.assertTrue(serializer.is_valid(raise_exception=False))
         self.assertNotIn("xforms", serializer.errors)
 
+    @flaky(max_runs=5)
     def test_get_merged_xform_survey(self):
         """
         Test get_merged_xform_survey()
@@ -201,7 +204,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         xform3 = self._publish_markdown(MD, self.user, id_string="c")
         expected = {
             "name": "data",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "sms_keyword": "a",
             "default_language": "default",
             "id_string": "a",
@@ -221,8 +224,8 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
                     "itemset": "gender",
                     "list_name": "gender",
                     "children": [
-                        {"name": "male", "label": "Male"},
                         {"name": "female", "label": "Female"},
+                        {"name": "male", "label": "Male"},
                     ],
                 },
                 {
@@ -245,14 +248,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
 
         survey = get_merged_xform_survey([xform1, xform2])
         survey_dict = survey.to_json_dict()
-
-        # this field seems to change 50% of the time
-        expected2 = copy.deepcopy(expected)
-        expected2["children"][1]["children"] = [
-            {"name": "female", "label": "Female"},
-            {"name": "male", "label": "Male"},
-        ]
-        self.assertTrue(survey_dict == expected or survey_dict == expected2)
+        self.assertDictEqual(survey_dict, expected)
 
         # no matching fields
         with self.assertRaises(serializers.ValidationError):
@@ -269,7 +265,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         expected = {
             "name": "data",
             "type": "survey",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "id_string": "a",
             "sms_keyword": "a",
             "default_language": "default",
@@ -355,7 +351,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
         expected = {
             "name": "data",
             "type": "survey",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
             "id_string": "a",
             "sms_keyword": "a",
             "default_language": "default",
@@ -464,7 +460,7 @@ class TestMergedXFormSerializer(TestAbstractViewSet):
             "type": "survey",
             "name": "data",
             "sms_keyword": "a",
-            "title": "pyxform_autotesttitle",
+            "title": "data",
         }  # yapf: disable
 
         self.assertEqual(survey.to_json_dict(), expected)

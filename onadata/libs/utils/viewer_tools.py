@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """Utility functions for data views."""
+
 import json
 import os
 import sys
 import zipfile
 from json.decoder import JSONDecodeError
 from typing import Dict
-from defusedxml import minidom
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.utils.translation import gettext as _
 
 import requests
+from defusedxml import minidom
 from six.moves.urllib.parse import urljoin
 
 from onadata.libs.exceptions import EnketoError
@@ -44,7 +45,7 @@ def image_urls(instance):
     arguments:
     instance -- Instance submission object.
     """
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     urls = []
     suffix = settings.THUMB_CONF["medium"]["suffix"]
     for attachment in instance.attachments.all():
@@ -106,8 +107,7 @@ def _path_value_pairs(node):
     else:
         # this is an internal node
         for child in node.childNodes:
-            for pair in _path_value_pairs(child):
-                yield pair
+            yield from _path_value_pairs(child)
 
 
 def _all_attributes(node):
@@ -116,8 +116,7 @@ def _all_attributes(node):
         for key in list(node.attributes):
             yield key, node.getAttribute(key)
     for child in node.childNodes:
-        for pair in _all_attributes(child):
-            yield pair
+        yield from _all_attributes(child)
 
 
 def export_def_from_filename(filename):
@@ -241,7 +240,7 @@ def create_attachments_zipfile(attachments, zip_file):
         zip_file, "w", zipfile.ZIP_DEFLATED, allowZip64=True
     ) as z_file:
         for attachment in attachments:
-            default_storage = get_storage_class()()
+            default_storage = storages["default"]
             filename = attachment.media_file.name
 
             if default_storage.exists(filename):
@@ -281,7 +280,7 @@ def get_form(kwargs):
     raise Http404("XForm does not exist.")
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_form_url(
     request,
     username=None,

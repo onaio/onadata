@@ -124,7 +124,7 @@ def import_submission_for_form(request, username, id_string):
     )
 
 
-# pylint: disable=unused-argument,too-many-arguments
+# pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments
 def process_message_for_textit(
     username, sms_identity, sms_text, sms_time, id_string, payload=None
 ):

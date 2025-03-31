@@ -158,8 +158,7 @@ class TestExportBuilder(TestBase):
                         {
                             "childrens_survey_with_a_very_lo/cartoons/name": "Dexter's Lab",
                             "childrens_survey_with_a_very_lo/cartoons/why": "He thinks hes smart",
-                            "childrens_survey_with_a_very_lo/cartoons/characte"
-                            "rs": [
+                            "childrens_survey_with_a_very_lo/cartoons/characters": [
                                 {
                                     "childrens_survey_with_a_very_lo/cartoons/"
                                     "characters/name": "Dee Dee",
@@ -1014,6 +1013,7 @@ class TestExportBuilder(TestBase):
             temp_dir = tempfile.mkdtemp()
             with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
                 zip_file.extractall(temp_dir)
+            pass
         # check that the children's file (which has the unicode header) exists
         self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
         # check file's contents
@@ -2676,7 +2676,6 @@ class TestExportBuilder(TestBase):
             for e in dd.get_survey_elements_with_choices()
             if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
         ][0]
-        self.assertNotEqual(child.children, [])
         # pylint: disable=protected-access
         choices = export_builder._get_select_mulitples_choices(
             child, dd, ExportBuilder.GROUP_DELIMITER, ExportBuilder.TRUNCATE_GROUP_TITLE

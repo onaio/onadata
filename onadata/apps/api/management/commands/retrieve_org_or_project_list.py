@@ -70,8 +70,7 @@ class Command(BaseCommand):
                         raise CommandError(
                             f'Invalid project ID input "{project_id}"'
                         ) from exc
-                    else:
-                        result[project.name] = get_project_users(project)
+                    result[project.name] = get_project_users(project)
 
             if organization_ids:
                 organization_ids = organization_ids.split(",")
@@ -87,8 +86,7 @@ class Command(BaseCommand):
                         raise CommandError(
                             f'Invalid organization ID input "{org_id}"'
                         ) from exc
-                    else:
-                        result[org.name] = get_organization_members(org)
+                    result[org.name] = get_organization_members(org)
         else:
             # Retrieve all Project & Organization members & organizations
             for project in Project.objects.filter(deleted_at__isnull=True):

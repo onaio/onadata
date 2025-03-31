@@ -2436,6 +2436,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             xform.id_string,
             include_images=False,
+            split_select_multiples=False,
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         builder.export_to(temp_file.name, cursor)

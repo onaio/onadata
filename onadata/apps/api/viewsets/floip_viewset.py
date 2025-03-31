@@ -31,7 +31,7 @@ class FlowResultsJSONRenderer(JSONRenderer):
     Render JSON API format with uuid.
     """
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     @classmethod
     def build_json_resource_obj(
         cls,

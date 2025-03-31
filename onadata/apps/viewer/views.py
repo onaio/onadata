@@ -3,8 +3,9 @@
 """
 data views.
 """
+
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 from wsgiref.util import FileWrapper
@@ -12,7 +13,7 @@ from wsgiref.util import FileWrapper
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import FileSystemStorage, get_storage_class
+from django.core.files.storage import FileSystemStorage, storages
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -24,7 +25,6 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import loader
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -46,7 +46,7 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
-from onadata.libs.utils.common_tools import get_uuid
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 from onadata.libs.utils.export_tools import (
     DEFAULT_GROUP_DELIMITER,
     generate_export,
@@ -55,7 +55,7 @@ from onadata.libs.utils.export_tools import (
     should_create_new_export,
     str_to_bool,
 )
-from onadata.libs.utils.google import create_flow
+from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.image_tools import generate_media_download_url, image_url
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
@@ -72,6 +72,8 @@ from onadata.libs.utils.viewer_tools import (
     export_def_from_filename,
     get_form,
 )
+
+DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -237,7 +239,7 @@ def add_submission_with(request, username, id_string):
             user__username__iexact=username, id_string__iexact=id_string
         )
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in data_dictionary.get_survey_elements()
             if e.bind.get("type") == "geopoint"
         ]
@@ -275,6 +277,7 @@ def add_submission_with(request, username, id_string):
         url,
         data=payload,
         auth=(settings.ENKETO_API_TOKEN, ""),
+        timeout=DEFAULT_REQUEST_TIMEOUT,
         verify=getattr(settings, "VERIFY_SSL", True),
     )
 
@@ -446,27 +449,27 @@ def create_export(request, username, id_string, export_type):
         create_async_export(xform, export_type, query, force_xlsx, options)
     except ExportTypeError:
         return HttpResponseBadRequest(_(f"{export_type} is not a valid export type"))
-    else:
-        audit = {"xform": xform.id_string, "export_type": export_type}
-        id_string = xform.id_string
-        audit_log(
-            Actions.EXPORT_CREATED,
-            request.user,
-            owner,
-            _(f"Created {export_type.upper()} export on '{id_string}'."),
-            audit,
-            request,
+
+    audit = {"xform": xform.id_string, "export_type": export_type}
+    id_string = xform.id_string
+    audit_log(
+        Actions.EXPORT_CREATED,
+        request.user,
+        owner,
+        _(f"Created {export_type.upper()} export on '{id_string}'."),
+        audit,
+        request,
+    )
+    return HttpResponseRedirect(
+        reverse(
+            export_list,
+            kwargs={
+                "username": username,
+                "id_string": id_string,
+                "export_type": export_type,
+            },
         )
-        return HttpResponseRedirect(
-            reverse(
-                export_list,
-                kwargs={
-                    "username": username,
-                    "id_string": id_string,
-                    "export_type": export_type,
-                },
-            )
-        )
+    )
 
 
 def _get_google_credential(request):
@@ -640,7 +643,7 @@ def export_download(request, username, id_string, export_type, filename):
     if request.GET.get("raw"):
         id_string = None
 
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     if not isinstance(default_storage, FileSystemStorage):
         return HttpResponseRedirect(default_storage.url(export.filepath))
     basename = os.path.splitext(export.filename)[0]

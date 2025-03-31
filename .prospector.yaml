@@ -4,6 +4,13 @@ test-warnings: false
 autodetect: true
 member-warnings: false
 max-line-length: 88
+ignore-paths:
+  - onadata/apps/logger/migrations
+  - onadata/apps/main/migrations
+  - onadata/apps/restservice/migrations
+  - onadata/apps/viewer/migrations
+  - onadata/settings
+  - onadata/preset
 
 pycodestyle:
   disable:

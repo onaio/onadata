@@ -22,7 +22,7 @@ class TextItService:
     with all properties for TextIt or RapidPro like services.
     """
 
-    # pylint: disable=too-many-arguments,invalid-name
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,invalid-name
     def __init__(
         self,
         xform,

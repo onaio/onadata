@@ -124,7 +124,7 @@ class AuditLogHandler(logging.Handler):
         return getattr(mod, names[-1])
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def audit_log(
     action, request_user, account_user, message, audit, request, level=logging.DEBUG
 ):

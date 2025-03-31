@@ -7,7 +7,7 @@ from base64 import b64encode
 from elaphe import barcode
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def generate_qrcode(message):
     """Generate a QRCode, settings options and output."""
     stream = None

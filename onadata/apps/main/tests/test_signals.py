@@ -1,10 +1,9 @@
 """Tests for onadata.apps.main.signals module"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 
 from onadata.apps.logger.models import Project, ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase

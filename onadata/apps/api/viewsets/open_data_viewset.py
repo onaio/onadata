@@ -2,6 +2,7 @@
 """
 The /api/v1/open-data implementation.
 """
+
 import json
 import re
 from collections import OrderedDict
@@ -38,7 +39,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     REPEAT_SELECT_TYPE,
 )
-from onadata.libs.utils.common_tools import json_stream
+from onadata.libs.utils.common_tools import get_abbreviated_xpath, json_stream
 from onadata.libs.utils.logger_tools import remove_metadata_fields
 
 BaseViewset = get_baseviewset_class()
@@ -87,7 +88,7 @@ def process_tableau_data(data, xform):  # noqa C901
         elif isinstance(value, list):
             try:
                 for item in value:
-                    for (nested_key, nested_val) in item.items():
+                    for nested_key, nested_val in item.items():
                         xpath = get_xpath(key, nested_key, index)
                         data_dict[xpath] = nested_val
             except AttributeError:
@@ -100,19 +101,19 @@ def process_tableau_data(data, xform):  # noqa C901
         Return Ordered Dict of repeats in the order in which they appear in
         the XForm.
         """
-        children = xform.get_child_elements(key, split_select_multiples=False)
+        children = xform.get_child_elements(key)
         item_list = OrderedDict()
         data = {}
 
         for elem in children:
             if not question_types_to_exclude(elem.type):
-                new_xpath = elem.get_abbreviated_xpath()
+                new_xpath = get_abbreviated_xpath(elem.get_xpath())
                 item_list[new_xpath] = item.get(new_xpath, DEFAULT_NA_REP)
                 # Loop through repeat data and flatten it
                 # given the key "children/details" and nested_key/
                 # abbreviated xpath "children/details/immunization/polio_1",
                 # generate ["children", index, "immunization/polio_1"]
-                for (nested_key, nested_val) in item_list.items():
+                for nested_key, nested_val in item_list.items():
                     qstn_type = xform.get_element(nested_key).type
                     xpaths = get_xpath(key, nested_key, index)
                     if qstn_type == MULTIPLE_SELECT_TYPE:
@@ -131,7 +132,7 @@ def process_tableau_data(data, xform):  # noqa C901
         for row in data:
             diff = set(tableau_headers).difference(set(row))
             flat_dict = dict.fromkeys(diff, None)
-            for (key, value) in row.items():
+            for key, value in row.items():
                 if isinstance(value, list) and key not in [
                     ATTACHMENTS,
                     NOTES,

@@ -46,7 +46,7 @@ jobs:
           pip install -r requirements/azure.pip
 
       - name: Install linting tools
-        run: pip install prospector==1.7.7 pylint==2.14.5
+        run: pip install prospector==1.14.1 pylint==3.3.4
 
       - name: Run Prospector
         run: prospector -X -s veryhigh onadata
@@ -119,6 +119,10 @@ jobs:
     name: Trivy Security Checks
     runs-on: ubuntu-22.04
     steps:
+      - name: Check if repository is public
+        id: check_visibility
+        run: echo "IS_PUBLIC_REPO=$(if [ ${{ github.event.repository.private }} = false ]; then echo true; else echo false; fi)" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -163,13 +167,13 @@ jobs:
 
       - name: Upload vulnerability scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
 
       - name: Run Trivy vulnerability for Slack summary
         uses: aquasecurity/trivy-action@master
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           format: json
@@ -177,7 +181,7 @@ jobs:
           output: "trivy_results.json"
 
       - name: Create summary of trivy issues
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
           summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
           if [ -z $summary ]
@@ -188,7 +192,7 @@ jobs:
 
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.23.0
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           payload: |
             {

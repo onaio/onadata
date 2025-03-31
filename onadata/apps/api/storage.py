@@ -70,10 +70,9 @@ class ODKTokenAccountStorage(AccountStorage):
         except ODKToken.DoesNotExist:
             _l.error("User %s has no active ODK Token", username)
             return None
-        else:
-            if timezone.now() > token.expires:
-                token.status = ODKToken.INACTIVE
-                token.save()
-                return None
+        if timezone.now() > token.expires:
+            token.status = ODKToken.INACTIVE
+            token.save()
+            return None
 
-            return partial_digest[0]
+        return partial_digest[0]

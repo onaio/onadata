@@ -12,7 +12,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
-from pyxform.question import Question
+from pyxform import MultipleChoiceQuestion
+from pyxform.question import Option, Question
 from pyxform.section import GroupedSection, RepeatingSection, Section
 from six import iteritems
 
@@ -50,6 +51,7 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID_STRING,
 )
 from onadata.libs.utils.common_tools import (
+    get_abbreviated_xpath,
     get_choice_label,
     get_value_or_attachment_uri,
     str_to_bool,
@@ -104,9 +106,10 @@ def get_labels_from_columns(columns, data_dictionary, group_delimiter, language=
             if elem
             else col
         )
-        if elem is not None and elem.type == "":
-            label = group_delimiter.join([elem.parent.name, label])
-        if label == "":
+        if elem is not None and isinstance(elem, Option):
+            parent = data_dictionary.get_survey_element("/".join(col.split("/")[:-1]))
+            label = group_delimiter.join([parent.name, label])
+        if not label:
             label = elem.name
         labels.append(label)
 
@@ -128,16 +131,17 @@ def get_column_names_only(columns, data_dictionary, group_delimiter):
                 new_col = col.split(group_delimiter)[-1]
             else:
                 new_col = col
-        elif elem.type != "":
+        elif not isinstance(elem, Option):
             new_col = elem.name
         else:
-            new_col = DEFAULT_GROUP_DELIMITER.join([elem.parent.name, elem.name])
+            parent = data_dictionary.get_survey_element("/".join(col.split("/")[:-1]))
+            new_col = DEFAULT_GROUP_DELIMITER.join([parent.name, elem.name])
         new_columns.append(new_col)
 
     return new_columns
 
 
-# pylint: disable=unused-argument,too-many-arguments,too-many-locals
+# pylint: disable=unused-argument,too-many-arguments,too-many-positional-arguments
 def write_to_csv(
     path,
     rows,
@@ -155,6 +159,7 @@ def write_to_csv(
     language=None,
 ):
     """Writes ``rows`` to a file in CSV format."""
+    # pylint: disable=too-many-locals
     na_rep = getattr(settings, "NA_REP", NA_REP)
     encoding = "utf-8-sig" if win_excel_utf8 else "utf-8"
     with open(path, "wb") as csvfile:
@@ -232,7 +237,7 @@ class AbstractDataFrameBuilder:
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -331,7 +336,7 @@ class AbstractDataFrameBuilder:
     @classmethod
     def _fields_to_select(cls, data_dictionary):
         return [
-            c.get_abbreviated_xpath()
+            get_abbreviated_xpath(c.get_xpath())
             for c in data_dictionary.get_survey_elements()
             if isinstance(c, Question)
         ]
@@ -345,14 +350,15 @@ class AbstractDataFrameBuilder:
             if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
         ]
         for e in select_multiple_elements:
-            xpath = e.get_abbreviated_xpath()
+            xpath = get_abbreviated_xpath(e.get_xpath())
+            options = e.choices.options if e.choices else []
             choices = [
                 (
-                    c.get_abbreviated_xpath(),
+                    xpath + c.get_xpath(),
                     c.name,
                     get_choice_label(c.label, data_dictionary, language),
                 )
-                for c in e.children
+                for c in options
             ]
             is_choice_randomized = str_to_bool(
                 e.parameters and e.parameters.get("randomize")
@@ -379,7 +385,7 @@ class AbstractDataFrameBuilder:
 
         return dict(select_multiples)
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     @classmethod
     def _split_select_multiples(
         cls,
@@ -465,9 +471,11 @@ class AbstractDataFrameBuilder:
     @classmethod
     def _collect_gps_fields(cls, data_dictionary):
         return [
-            e.get_abbreviated_xpath()
+            get_abbreviated_xpath(e.get_xpath())
             for e in data_dictionary.get_survey_elements()
-            if e.bind.get("type") == "geopoint"
+            if hasattr(e, "bind")
+            and e.bind is not None
+            and e.bind.get("type") == "geopoint"
         ]
 
     @classmethod
@@ -508,7 +516,7 @@ class AbstractDataFrameBuilder:
 class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     """CSV data frame builder"""
 
-    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     def __init__(
         self,
         username,
@@ -568,7 +576,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             else self.data_dictionary.get_media_survey_xpaths()
         )
 
-    # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     @classmethod
     def _reindex(
         cls,
@@ -588,21 +596,35 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
+        # pylint: disable=too-many-branches,too-many-locals
 
         def get_ordered_repeat_value(xpath, repeat_value):
             """
             Return OrderedDict of repeats in the order in which they appear in
             the XForm.
             """
-            children = data_dictionary.get_child_elements(xpath, split_select_multiples)
+            children = data_dictionary.get_child_elements(xpath)
             item = OrderedDict()
 
             for elem in children:
-                if not question_types_to_exclude(elem.type):
-                    abbreviated_xpath = elem.get_abbreviated_xpath()
-                    item[abbreviated_xpath] = repeat_value.get(
-                        abbreviated_xpath, DEFAULT_NA_REP
-                    )
+                if not (hasattr(elem, "type") and question_types_to_exclude(elem.type)):
+                    if (
+                        isinstance(elem, MultipleChoiceQuestion)
+                        and split_select_multiples
+                        and elem.choices
+                    ):
+                        for choice in elem.choices.options:
+                            abbreviated_xpath = get_abbreviated_xpath(
+                                elem.get_xpath() + choice.get_xpath()
+                            )
+                            item[abbreviated_xpath] = repeat_value.get(
+                                abbreviated_xpath, DEFAULT_NA_REP
+                            )
+                    else:
+                        abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
+                        item[abbreviated_xpath] = repeat_value.get(
+                            abbreviated_xpath, DEFAULT_NA_REP
+                        )
 
             return item
 
@@ -734,7 +756,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     child_is_repeating = True
 
                 if isinstance(child, RepeatingSection):
-                    ordered_columns[child.get_abbreviated_xpath()] = []
+                    ordered_columns[get_abbreviated_xpath(child.get_xpath())] = []
 
                 cls._build_ordered_columns(child, ordered_columns, child_is_repeating)
             elif (
@@ -746,7 +768,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # so we dont add it to our list of columns,
                 # the repeating columns list will be
                 # generated when we reindex
-                ordered_columns[child.get_abbreviated_xpath()] = None
+                ordered_columns[get_abbreviated_xpath(child.get_xpath())] = None
 
     def _add_ordered_columns_for_select_multiples(self):
         """Add ordered columns for select multiples"""
@@ -901,7 +923,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
                 for field in self.data_dictionary.get_survey_elements_of_type("osm"):
                     columns += OsmData.get_tag_keys(
-                        self.xform, field.get_abbreviated_xpath(), include_prefix=True
+                        self.xform,
+                        get_abbreviated_xpath(field.get_xpath()),
+                        include_prefix=True,
                     )
 
             columns_with_hxl = self.include_hxl and get_columns_with_hxl(

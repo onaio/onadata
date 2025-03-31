@@ -2,7 +2,7 @@ import os
 import shutil
 
 import requests
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.test.testcases import SerializeMixin
 from httmock import urlmatch, HTTMock
 
@@ -10,7 +10,7 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.image_tools import resize
 
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 @urlmatch(netloc=r'(.*\.)?localhost:8000$', path='/media/test.jpg')

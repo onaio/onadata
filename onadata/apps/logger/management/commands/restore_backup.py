@@ -7,7 +7,8 @@ import sys
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from onadata.libs.utils.backup_tools import restore_backup_from_zip
 
@@ -39,8 +40,8 @@ class Command(BaseCommand):
             input_file = args[1]
         except IndexError as e:
             raise CommandError(_("You must provide the path to restore from.")) from e
-        else:
-            input_file = os.path.realpath(input_file)
+
+        input_file = os.path.realpath(input_file)
 
         num_instances, num_restored = restore_backup_from_zip(input_file, username)
         sys.stdout.write(f"Restored {num_restored} of {num_instances } submissions\n")

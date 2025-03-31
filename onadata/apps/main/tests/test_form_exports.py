@@ -2,19 +2,22 @@
 """
 Tests exports
 """
+
 import csv
 import os
 import tempfile
 import time
+from datetime import timezone as tz
+from io import BytesIO
 
 from django.urls import reverse
 from django.utils import timezone
-from io import BytesIO
+
 import openpyxl
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.views import zip_export, kml_export, export_download
+from onadata.apps.viewer.views import export_download, kml_export, zip_export
 from onadata.libs.utils.common_tools import get_response_content
 from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.user_auth import http_auth_string
@@ -69,9 +72,7 @@ class TestFormExports(TestBase):
         """
         time.sleep(1)
         # 1 survey exists before this time
-        start_time = (
-            timezone.now().astimezone(timezone.utc).strftime("%y_%m_%d_%H_%M_%S")
-        )
+        start_time = timezone.now().astimezone(tz.utc).strftime("%y_%m_%d_%H_%M_%S")
         time.sleep(1)
         s = self.surveys[1]
         self._make_submission(
@@ -86,7 +87,7 @@ class TestFormExports(TestBase):
         )
         time.sleep(1)
         # 2 surveys exist before this time
-        end_time = timezone.now().astimezone(timezone.utc).strftime("%y_%m_%d_%H_%M_%S")
+        end_time = timezone.now().astimezone(tz.utc).strftime("%y_%m_%d_%H_%M_%S")
         time.sleep(1)
         # 3 surveys exist in total
         s = self.surveys[2]

@@ -14,9 +14,10 @@ import tempfile
 from builtins import str as text
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import Any, NoReturn
+from typing import Any
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -30,7 +31,7 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.db import DataError, IntegrityError, transaction
 from django.db.models import F, Q
 from django.db.models.query import QuerySet
@@ -163,7 +164,7 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     return versioned_xform
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     history = None
     instance = None
@@ -396,7 +397,7 @@ def check_submission_permissions(request, xform):
         )
 
 
-def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
+def is_valid_encrypted_submission(xform_is_encrypted: bool, xml: bytes) -> bool:
     """
     Check that the submission is encrypted or unencrypted depending on the
     encryption status of an XForm.
@@ -418,14 +419,11 @@ def check_submission_encryption(xform: XForm, xml: bytes) -> NoReturn:
     if encrypted_attrib == "yes" or encryption_elems_num > 1:
         if (
             not encryption_elems_num == 2 or not encrypted_attrib == "yes"
-        ) and xform.encrypted:
+        ) and xform_is_encrypted:
             raise InstanceFormatError(_("Encrypted submission incorrectly formatted."))
         submission_encrypted = True
 
-    if xform.encrypted and not submission_encrypted:
-        raise InstanceEncryptionError(
-            _("Unencrypted submissions are not allowed for encrypted forms.")
-        )
+    return submission_encrypted
 
 
 def update_attachment_tracking(instance):
@@ -504,9 +502,7 @@ def save_submission(
     if date_created_override:
         if not timezone.is_aware(date_created_override):
             # default to utc?
-            date_created_override = timezone.make_aware(
-                date_created_override, timezone.utc
-            )
+            date_created_override = timezone.make_aware(date_created_override, tz.utc)
         instance.date_created = date_created_override
         instance.save()
 
@@ -553,7 +549,12 @@ def create_instance(
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
-    check_submission_encryption(xform, xml)
+    submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
+    if xform.encrypted and not submission_encrypted:
+        raise InstanceEncryptionError(
+            _("Unencrypted submissions are not allowed for encrypted forms.")
+        )
+
     checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
@@ -716,7 +717,9 @@ def generate_aws_media_url(
     file_path: str, content_disposition: str, expiration: int = 3600
 ):
     """Generate S3 URL."""
-    s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+    s3_class = storages.create_storage(
+        {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+    )
     bucket_name = s3_class.bucket.name
     aws_endpoint_url = getattr(settings, "AWS_S3_ENDPOINT_URL", None)
     s3_config = Config(
@@ -779,18 +782,20 @@ def get_storages_media_download_url(
     """
     s3_class = None
     azure_class = None
-    default_storage = get_storage_class()()
+    default_storage = storages["default"]
     url = None
 
     try:
-        s3_class = get_storage_class("storages.backends.s3boto3.S3Boto3Storage")()
+        s3_class = storages.create_storage(
+            {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+        )
     except ModuleNotFoundError:
         pass
 
     try:
-        azure_class = get_storage_class(
-            "storages.backends.azure_storage.AzureStorage"
-        )()
+        azure_class = storages.create_storage(
+            {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+        )
     except ModuleNotFoundError:
         pass
 
@@ -798,14 +803,14 @@ def get_storages_media_download_url(
     if isinstance(default_storage, type(s3_class)):
         try:
             url = generate_aws_media_url(file_path, content_disposition, expires_in)
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             logging.exception(error)
 
     # Check if the storage backend is Azure
     elif isinstance(default_storage, type(azure_class)):
         try:
             url = generate_media_url_with_sas(file_path, expires_in)
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-exception-caught
             logging.error(error)
 
     return url
@@ -846,7 +851,7 @@ def response_with_mimetype_and_name(
                 return HttpResponseRedirect(download_url)
 
             try:
-                default_storage = get_storage_class()()
+                default_storage = storages["default"]
                 wrapper = FileWrapper(default_storage.open(file_path))
                 response = StreamingHttpResponse(wrapper, content_type=mimetype)
                 response["Content-Length"] = default_storage.size(file_path)

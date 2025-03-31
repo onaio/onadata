@@ -4,13 +4,13 @@ Widget serializer
 """
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
-from django.urls import resolve, get_script_prefix, Resolver404
+from django.urls import Resolver404, get_script_prefix, resolve
 from django.utils.translation import gettext as _
-from six.moves.urllib.parse import urlparse
 
 from guardian.shortcuts import get_users_with_perms
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from six.moves.urllib.parse import urlparse
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
@@ -96,6 +96,9 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
         return data
 
+    def use_pk_only_optimization(self):
+        return False
+
 
 class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     """
@@ -162,6 +165,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
         # Get the form
         if "content_object" in attrs:
             content_object = attrs.get("content_object")
+            xform = None
 
             if isinstance(content_object, XForm):
                 xform = content_object

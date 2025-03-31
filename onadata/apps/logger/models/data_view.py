@@ -37,6 +37,7 @@ from onadata.libs.utils.common_tags import (
     NOTES,
     SUBMISSION_TIME,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 SUPPORTED_FILTERS = ["=", ">", "<", ">=", "<=", "<>", "!="]
 ATTACHMENT_TYPES = ["photo", "audio", "video"]
@@ -58,7 +59,7 @@ def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=Non
 
 def get_name_from_survey_element(element):
     """Returns the abbreviated xpath of a given ``SurveyElement``."""
-    return element.get_abbreviated_xpath()
+    return get_abbreviated_xpath(element.get_xpath())
 
 
 def append_where_list(comp, t_list, json_str):
@@ -319,7 +320,8 @@ class DataView(models.Model):
                 for row in cursor.fetchall():
                     yield dict(zip(fields, [parse_json(row[0]).get(f) for f in fields]))
 
-    # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    # pylint: disable=too-many-locals,too-many-branches
     @classmethod
     def generate_query_string(
         cls,
@@ -332,7 +334,9 @@ class DataView(models.Model):
         filter_query=None,
     ):
         """Returns an SQL string based on the passed in parameters."""
-        additional_columns = [GEOLOCATION] if data_view.instances_with_geopoints else []
+        additional_columns = []
+        if data_view.instances_with_geopoints:
+            additional_columns = [GEOLOCATION]
 
         if has_attachments_fields(data_view):
             additional_columns += [ATTACHMENTS]
@@ -411,7 +415,7 @@ class DataView(models.Model):
         )
 
     @classmethod
-    def query_data(  # pylint: disable=too-many-arguments
+    def query_data(  # pylint: disable=too-many-arguments, too-many-positional-arguments
         cls,
         data_view,
         start_index=None,

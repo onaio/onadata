@@ -251,7 +251,11 @@ def validate_csv_file(csv_file, xform):
     # the missing_col list
     for col in csv_headers:
         survey_element = xform.get_survey_element(col)
-        if survey_element and survey_element.get("type") == MULTIPLE_SELECT_TYPE:
+        if (
+            survey_element
+            and hasattr(survey_element, "type")
+            and survey_element.get("type") == MULTIPLE_SELECT_TYPE
+        ):
             # remove from the missing list
             missing_col = [x for x in missing_col if not x.startswith(col)]
             mutliple_select_col.append(col)

@@ -2,6 +2,7 @@
 """
 Common helper functions
 """
+
 from __future__ import unicode_literals
 
 import math
@@ -280,10 +281,12 @@ def get_choice_label_value(key, value, data_dictionary, language=None):
 
     def _get_choice_label_value(lookup):
         _label = None
-        for choice in data_dictionary.get_survey_element(key).children:
-            if choice.name == lookup:
-                _label = get_choice_label(choice.label, data_dictionary, language)
-                break
+        element = data_dictionary.get_survey_element(key)
+        if element and element.choices is not None:
+            for choice in element.choices.options:
+                if choice.name == lookup:
+                    _label = get_choice_label(choice.label, data_dictionary, language)
+                    break
 
         return _label
 
@@ -302,7 +305,7 @@ def get_choice_label_value(key, value, data_dictionary, language=None):
     return label or value
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def get_value_or_attachment_uri(
     key,
     value,
@@ -362,3 +365,11 @@ def track_task_progress(additions, total=None):
             current_task.update_state(state="PROGRESS", meta=meta)
         except AttributeError:
             pass
+
+
+def get_abbreviated_xpath(xpath):
+    """Returns the abbreviated xpath without the root node
+
+    For example "/data/image1" results in "image1".
+    """
+    return "/".join(xpath.split("/")[2:])

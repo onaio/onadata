@@ -47,6 +47,7 @@ from onadata.libs.utils.common_tags import (
     VERSION,
     XFORM_ID,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _is_invalid_for_mongo
 
@@ -98,7 +99,7 @@ def get_name_from_survey_element(element):
     """
     Returns the abbreviated xpath of an element.
     """
-    return element.get_abbreviated_xpath()
+    return get_abbreviated_xpath(element.get_xpath())
 
 
 def _parse_sort_fields(fields):
@@ -157,7 +158,7 @@ def get_etag_hash_from_query(sql=None, params=None):
     return f"{datetime.datetime.utcnow()}"
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 def _start_index_limit(sql, params, start_index, limit):
     if (start_index is not None and start_index < 0) or (
         limit is not None and limit < 0

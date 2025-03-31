@@ -8,7 +8,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.core.files.storage import get_storage_class
+from django.core.files.storage import storages
 from django.core.files.uploadedfile import UploadedFile
 from django.test import RequestFactory
 from django.urls import reverse
@@ -27,7 +27,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import download_media_data, profile
 from onadata.libs.utils.briefcase_client import BriefcaseClient
 
-storage = get_storage_class()()
+storage = storages["default"]
 
 
 def form_list(request, context):
