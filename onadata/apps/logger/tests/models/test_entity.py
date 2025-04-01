@@ -1,8 +1,8 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
 import uuid
-import pytz
 from datetime import datetime
+from datetime import timezone as tz
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError
@@ -25,7 +25,7 @@ class EntityTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=tz.utc)
         self.project = get_user_default_project(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 
@@ -130,7 +130,7 @@ class EntityHistoryTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=tz.utc)
         self.xform = self._publish_registration_form(self.user)
         self.entity_list = EntityList.objects.first()
         self.entity = Entity.objects.create(entity_list=self.entity_list)
