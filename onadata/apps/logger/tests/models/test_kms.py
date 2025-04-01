@@ -31,7 +31,7 @@ class KMSKeyTestCase(TestBase):
         """We can create a KMSKey."""
         mock_now.return_value = self.mocked_now
         next_rotation_at = self.mocked_now + timedelta(days=2)
-        last_rotation_at = self.mocked_now - timedelta(days=2)
+        rotated_at = self.mocked_now - timedelta(days=2)
 
         kms_key = KMSKey.objects.create(
             key_id="1234",
@@ -39,7 +39,7 @@ class KMSKeyTestCase(TestBase):
             public_key="Fake public key",
             provider=KMSKey.KMSProvider.AWS,
             next_rotation_at=next_rotation_at,
-            last_rotation_at=last_rotation_at,
+            rotated_at=rotated_at,
             is_active=True,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -50,7 +50,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.description, "Key-2025-04-01")
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
         self.assertEqual(kms_key.next_rotation_at, next_rotation_at)
-        self.assertEqual(kms_key.last_rotation_at, last_rotation_at)
+        self.assertEqual(kms_key.rotated_at, rotated_at)
         self.assertTrue(kms_key.is_active)
         self.assertEqual(kms_key.object_id, self.org.id)
         self.assertEqual(kms_key.content_type, self.content_type)
@@ -67,7 +67,7 @@ class KMSKeyTestCase(TestBase):
 
         self.assertIsNone(kms_key.description)
         self.assertIsNone(kms_key.next_rotation_at)
-        self.assertIsNone(kms_key.last_rotation_at)
+        self.assertIsNone(kms_key.rotated_at)
         self.assertTrue(kms_key.is_active)
 
     def test_key_id_provider_unique(self):
@@ -169,25 +169,35 @@ class XFormKeyTestCase(TestBase):
             object_id=self.org.id,
         )
         self._publish_transportation_form()
+        self.version = "202502131337"
 
     def test_creation(self):
         """We can created XFormKey."""
-        xform_key = XFormKey.objects.create(xform=self.xform, kms_key=self.kms_key)
+        xform_key = XFormKey.objects.create(
+            xform=self.xform, kms_key=self.kms_key, version=self.version
+        )
 
         self.assertEqual(xform_key.kms_key, self.kms_key)
         self.assertEqual(xform_key.xform, self.xform)
+        self.assertEqual(xform_key.version, self.version)
 
-    def test_xform_kms_key_unique(self):
+    def test_xform_kms_key_version_unique(self):
         """xform, kms_key are unique together."""
-        XFormKey.objects.create(xform=self.xform, kms_key=self.kms_key)
+        XFormKey.objects.create(
+            xform=self.xform, kms_key=self.kms_key, version=self.version
+        )
 
         # Duplicate
         with self.assertRaises(IntegrityError):
-            XFormKey.objects.create(xform=self.xform, kms_key=self.kms_key)
+            XFormKey.objects.create(
+                xform=self.xform, kms_key=self.kms_key, version=self.version
+            )
 
     def test_related_names(self):
         """Related names are set."""
-        XFormKey.objects.create(xform=self.xform, kms_key=self.kms_key)
+        XFormKey.objects.create(
+            xform=self.xform, kms_key=self.kms_key, version=self.version
+        )
 
         self.assertEqual(self.kms_key.xforms.all().count(), 1)
         self.assertEqual(self.xform.kms_keys.all().count(), 1)
