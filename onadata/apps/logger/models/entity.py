@@ -2,8 +2,8 @@
 Entity model
 """
 
-import uuid
 import importlib
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
@@ -18,7 +18,7 @@ User = get_user_model()
 
 
 class Entity(BaseModel):
-    """An entity created by a registration form"""
+    """A Entity created by a RegistrationForm"""
 
     entity_list = models.ForeignKey(
         EntityList,
