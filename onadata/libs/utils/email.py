@@ -2,14 +2,15 @@
 """
 Email utility functions.
 """
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.http import HttpRequest
-from django.utils.html import strip_tags
 from django.template.loader import render_to_string
-from six.moves.urllib.parse import urlencode
+from django.utils.html import strip_tags
+
 from rest_framework.reverse import reverse
-from onadata.apps.logger.models import ProjectInvitation
+from six.moves.urllib.parse import urlencode
 
 
 def get_verification_url(redirect_url, request, verification_key):
@@ -115,7 +116,7 @@ class ProjectInvitationEmail:
     A class to send a project invitation email
     """
 
-    def __init__(self, invitation: ProjectInvitation, url: str) -> None:
+    def __init__(self, invitation, url: str) -> None:
         super().__init__()
 
         self.invitation = invitation
