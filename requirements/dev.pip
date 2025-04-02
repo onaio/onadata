@@ -368,8 +368,6 @@ pycodestyle==2.13.0
     #   prospector
 pycparser==2.22
     # via cffi
-pycryptodome==3.22.0
-    # via valigetta
 pydocstyle==6.3.0
     # via prospector
 pyflakes==3.3.2
@@ -552,8 +550,6 @@ urllib3==2.3.0
     #   sentry-sdk
 uwsgi==2.0.28
     # via onadata
-valigetta @ git+ssh://git@github.com/onaio/valigetta.git@cfd97f4
-    # via -r requirements/base.in
 vine==5.1.0
     # via
     #   amqp
