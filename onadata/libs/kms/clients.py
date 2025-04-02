@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from valigetta.kms import AWSKMSClient as ValigettaAWSClient
 
@@ -71,10 +72,14 @@ class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
         """
         metadata = super().create_key(description)
         key_id = metadata["KeyId"]
-        der_public_key = super().get_public_key(key_id)
-        public_key = load_der_public_key(der_public_key)
+        der_encoded_public_key = super().get_public_key(key_id)
+        public_key_obj = load_der_public_key(der_encoded_public_key)
+        pem_encoded_public_key = public_key_obj.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode("utf-8")
 
         return {
             "key_id": key_id,
-            "public_key": public_key,
+            "public_key": pem_encoded_public_key.strip(),
         }
