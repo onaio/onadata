@@ -7,13 +7,30 @@ from datetime import timezone as tz
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-
-from valigetta.kms import AWSKMSClient
+from django.core.exceptions import ImproperlyConfigured
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
+from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.utils.model_tools import queryset_iterator
+
+KMS_CLIENTS = {"AWS": AWSKMSClient}
+
+
+def get_kms_provider():
+    return getattr(settings, "KMS_PROVIDER", "AWS")
+
+
+def get_kms_client():
+    """Retrieve the appropriate KMS client based on settings."""
+    kms_provider = get_kms_provider()
+    kms_client_cls = KMS_CLIENTS.get(kms_provider)
+
+    if not kms_client_cls:
+        raise ImproperlyConfigured(f"Unsupported KMS provider: {kms_provider}")
+
+    return kms_client_cls()
 
 
 def create_key(org: OrganizationProfile) -> KMSKey:
@@ -22,28 +39,26 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     :param org: Organization that owns the key
     :return: KMSKey
     """
-    client = AWSKMSClient(
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_KMS_REGION_NAME,
-    )
+    kms_client = get_kms_client()
     now = datetime.now(tz=tz.utc)
     description = f"Key-{now.strftime('%Y-%m-%d')}"
-    metadata = client.create_key(description=description)
-    client.key_id = metadata["KeyId"]
-    public_key = client.get_public_key().decode("utf-8")
+    metadata = kms_client.create_key(description=description)
     next_rotation_at = None
 
     if hasattr(settings.KMS_ROTATION_DURATION):
         next_rotation_at = now + settings.KMS_ROTATION_DURATION
 
     content_type = ContentType.objects.get_for_model(org)
+    provider_choice_map = {
+        "AWS": KMSKey.KMSProvider.AWS,
+    }
+    provider = provider_choice_map.get(get_kms_provider().upper())
 
     return KMSKey.objects.create(
-        key_id=metadata["KeyId"],
+        key_id=metadata["key_id"],
         description=description,
-        public_key=public_key,
-        provider=KMSKey.KMSProvider.AWS,
+        public_key=metadata["public_key"],
+        provider=provider,
         next_rotation_at=next_rotation_at,
         content_type=content_type,
         object_id=org.pk,
@@ -56,7 +71,7 @@ def rotate_key(kms_key: KMSKey) -> KMSKey:
     :param kms_key: KMSKey
     :return: New KMSKey
     """
-    # AWS KMS does not allow rotation of asymmetric keys,
+    # Rotation of asymmetric keys is not allowed
     # so we create a new key
     new_key = create_key(kms_key.content_object)
 
@@ -87,12 +102,7 @@ def disable_key(kms_key: KMSKey) -> None:
 
     :param kms_key: KMSKey
     """
-    client = AWSKMSClient(
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_KMS_REGION_NAME,
-    )
-    client.key_id = kms_key.key_id
-    client.disable_key()
+    kms_client = get_kms_client()
+    kms_client.disable_key(kms_key.key_id)
     kms_key.is_active = False
     kms_key.save()
