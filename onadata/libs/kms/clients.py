@@ -72,7 +72,7 @@ class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
         """
         metadata = super().create_key(description)
         key_id = metadata["KeyId"]
-        der_encoded_public_key = super().get_public_key(key_id)
+        der_encoded_public_key = self.get_public_key(key_id)
         public_key_obj = load_der_public_key(der_encoded_public_key)
         pem_encoded_public_key = public_key_obj.public_bytes(
             encoding=serialization.Encoding.PEM,
