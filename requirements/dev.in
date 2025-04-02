@@ -11,6 +11,7 @@ pre-commit
 prospector>=1.10.3
 pylint
 pylint-django
+moto
 requests_mock
 tblib
 yapf
