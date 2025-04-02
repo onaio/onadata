@@ -33,6 +33,23 @@ def get_kms_client():
     return kms_client_cls()
 
 
+def clean_public_key(value):
+    """
+    Strips public key comments and spaces from a public key ``value``.
+    """
+    if value.startswith("-----BEGIN PUBLIC KEY-----") and value.endswith(
+        "-----END PUBLIC KEY-----"
+    ):
+        return (
+            value.replace("-----BEGIN PUBLIC KEY-----", "")
+            .replace("-----END PUBLIC KEY-----", "")
+            .replace(" ", "")
+            .rstrip()
+        )
+
+    return value
+
+
 def create_key(org: OrganizationProfile) -> KMSKey:
     """Create KMS key.
 
@@ -59,7 +76,7 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     return KMSKey.objects.create(
         key_id=metadata["key_id"],
         description=description,
-        public_key=metadata["public_key"],
+        public_key=clean_public_key(metadata["public_key"]),
         provider=provider,
         next_rotation_at=next_rotation_at,
         content_type=content_type,
