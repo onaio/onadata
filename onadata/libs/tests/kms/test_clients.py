@@ -49,3 +49,8 @@ class AWSKMSClientTestBase(TestBase):
 
         self.assertIn("key_id", metadata)
         self.assertIn("public_key", metadata)
+        self.assertTrue(isinstance(metadata["public_key"], str))
+        self.assertTrue(
+            metadata["public_key"].startswith("-----BEGIN PUBLIC KEY-----")
+            and metadata["public_key"].endswith("-----END PUBLIC KEY-----")
+        )
