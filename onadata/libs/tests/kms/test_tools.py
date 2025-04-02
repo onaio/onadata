@@ -89,6 +89,8 @@ class CreateKeyTestCase(TestBase):
         self.assertIsNotNone(kms_key.public_key)
         self.assertIsNone(kms_key.rotated_at)
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
+        self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
+        self.assertNotIn("-----END PUBLIC KEY-----", kms_key.public_key)
 
     @override_settings(KMS_ROTATION_DURATION=timedelta(days=365))
     @patch("django.utils.timezone.now")
