@@ -174,15 +174,19 @@ class XFormKeyTestCase(TestBase):
     def test_creation(self):
         """We can created XFormKey."""
         xform_key = XFormKey.objects.create(
-            xform=self.xform, kms_key=self.kms_key, version=self.version
+            xform=self.xform,
+            kms_key=self.kms_key,
+            version=self.version,
+            encrypted_by=self.user,
         )
 
         self.assertEqual(xform_key.kms_key, self.kms_key)
         self.assertEqual(xform_key.xform, self.xform)
         self.assertEqual(xform_key.version, self.version)
+        self.assertEqual(xform_key.encrypted_by, self.user)
 
     def test_xform_kms_key_version_unique(self):
-        """xform, kms_key are unique together."""
+        """xform, kms_key and version are unique together."""
         XFormKey.objects.create(
             xform=self.xform, kms_key=self.kms_key, version=self.version
         )
@@ -201,3 +205,13 @@ class XFormKeyTestCase(TestBase):
 
         self.assertEqual(self.kms_key.xforms.all().count(), 1)
         self.assertEqual(self.xform.kms_keys.all().count(), 1)
+
+    def test_defaults(self):
+        """Default values for optional fields are correct."""
+        xform_key = XFormKey.objects.create(
+            xform=self.xform,
+            kms_key=self.kms_key,
+            version=self.version,
+        )
+
+        self.assertIsNone(xform_key.encrypted_by)
