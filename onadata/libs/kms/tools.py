@@ -124,5 +124,5 @@ def disable_key(kms_key: KMSKey) -> None:
     """
     kms_client = get_kms_client()
     kms_client.disable_key(kms_key.key_id)
-    kms_key.is_active = False
-    kms_key.save()
+    kms_key.disabled_at = timezone.now()
+    kms_key.save(update_fields=["disabled_at"])
