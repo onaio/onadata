@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ("provider", models.IntegerField(choices=[(1, "AWS")])),
                 ("next_rotation_at", models.DateTimeField(blank=True, null=True)),
                 ("rotated_at", models.DateTimeField(blank=True, null=True)),
-                ("is_active", models.BooleanField(default=True)),
+                ("disabled_at", models.DateTimeField(blank=True, null=True)),
                 ("object_id", models.PositiveIntegerField(blank=True, null=True)),
                 (
                     "content_type",

@@ -32,6 +32,7 @@ class KMSKeyTestCase(TestBase):
         mock_now.return_value = self.mocked_now
         next_rotation_at = self.mocked_now + timedelta(days=2)
         rotated_at = self.mocked_now - timedelta(days=2)
+        disabled_at = self.mocked_now
 
         kms_key = KMSKey.objects.create(
             key_id="1234",
@@ -40,7 +41,7 @@ class KMSKeyTestCase(TestBase):
             provider=KMSKey.KMSProvider.AWS,
             next_rotation_at=next_rotation_at,
             rotated_at=rotated_at,
-            is_active=True,
+            disabled_at=disabled_at,
             content_type=self.content_type,
             object_id=self.org.id,
         )
@@ -51,7 +52,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
         self.assertEqual(kms_key.next_rotation_at, next_rotation_at)
         self.assertEqual(kms_key.rotated_at, rotated_at)
-        self.assertTrue(kms_key.is_active)
+        self.assertEqual(kms_key.disabled_at, disabled_at)
         self.assertEqual(kms_key.object_id, self.org.id)
         self.assertEqual(kms_key.content_type, self.content_type)
 
@@ -68,7 +69,7 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.description)
         self.assertIsNone(kms_key.next_rotation_at)
         self.assertIsNone(kms_key.rotated_at)
-        self.assertTrue(kms_key.is_active)
+        self.assertIsNone(kms_key.disabled_at)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""
