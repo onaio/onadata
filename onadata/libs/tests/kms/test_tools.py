@@ -88,7 +88,9 @@ class CreateKeyTestCase(TestBase):
         self.assertEqual(kms_key.object_id, self.org.pk)
         self.assertIsNotNone(kms_key.key_id)
         self.assertIsNotNone(kms_key.public_key)
-        self.assertIsNone(kms_key.rotated_at)
+        self.assertIsNone(kms_key.disabled_at)
+        self.assertIsNone(kms_key.disabled_by)
+        self.assertIsNone(kms_key.expiry_date)
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
         # Public PEM-encoded key is saved without the header and footer
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
@@ -96,13 +98,13 @@ class CreateKeyTestCase(TestBase):
 
     @override_settings(KMS_ROTATION_DURATION=timedelta(days=365))
     @patch("django.utils.timezone.now")
-    def test_rotation_date(self, mock_now):
-        """Rotation date is set if duration available."""
+    def test_expiry_date(self, mock_now):
+        """Expiry date is set if rotation duration available."""
         mocked_now = datetime(2025, 4, 2, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
         kms_key = create_key(self.org)
 
-        self.assertEqual(kms_key.next_rotation_at, mocked_now + timedelta(days=365))
+        self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
 
     @patch("django.utils.timezone.now")
     def test_duplicate_description(self, mock_now):
@@ -173,19 +175,14 @@ class RotateKeyTestCase(TestBase):
         # New key is created since rotation of asymmetric is not
         # allowed
         self.assertEqual(KMSKey.objects.all().count(), 2)
-        self.assertEqual(new_key.description, "Key-2025-04-03")
+        self.assertEqual(new_key.description, "Key-2025-04-03-v2")
         self.assertEqual(new_key.content_type, self.content_type)
         self.assertEqual(new_key.object_id, self.org.pk)
         self.assertIsNotNone(new_key.key_id)
         self.assertIsNotNone(new_key.public_key)
-        self.assertIsNone(new_key.rotated_at)
         self.assertEqual(new_key.provider, KMSKey.KMSProvider.AWS)
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", new_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", new_key.public_key)
-
-        # Old key is rotated
-        self.assertEqual(self.kms_key.rotated_at, mocked_now)
-        self.assertIsNone(self.kms_key.disabled_at)
 
         # Forms using old key are updated to use new key
         json_dict = self.xform.json_dict()
@@ -204,21 +201,6 @@ class RotateKeyTestCase(TestBase):
             ).exists()
         )
 
-    @patch.object(AWSKMSClient, "disable_key")
-    @patch("django.utils.timezone.now")
-    def test_rotate_and_disable(self, mock_now, mock_aws_disable):
-        """A key can be disabled during rotation."""
-        mocked_now = datetime(2025, 4, 3, tzinfo=tz.utc)
-        mock_now.return_value = mocked_now
-
-        rotate_key(self.kms_key, disable=True)
-
-        self.kms_key.refresh_from_db()
-
-        self.assertEqual(self.kms_key.disabled_at, mocked_now)
-
-        mock_aws_disable.assert_called_once_with("fake-key-id")
-
 
 @mock_aws
 @override_settings(
@@ -227,6 +209,7 @@ class RotateKeyTestCase(TestBase):
     AWS_SECRET_ACCESS_KEY="fake-secret",
     AWS_KMS_REGION_NAME="us-east-1",
 )
+@patch.object(AWSKMSClient, "disable_key")
 class DisableKeyTestCase(TestBase):
     """Tests for disable_key."""
 
@@ -247,16 +230,25 @@ class DisableKeyTestCase(TestBase):
         )
 
     @patch("django.utils.timezone.now")
-    @patch.object(AWSKMSClient, "disable_key")
-    def test_disable(self, mock_aws_disable, mock_now):
+    def test_disable(self, mock_now, mock_aws_disable):
         """KMSKey is disabled."""
         mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
 
-        disable_key(self.kms_key)
+        disable_key(kms_key=self.kms_key, disabled_by=self.user)
 
         mock_aws_disable.assert_called_once_with("fake-key-id")
 
         self.kms_key.refresh_from_db()
 
         self.assertEqual(self.kms_key.disabled_at, mocked_now)
+        self.assertEqual(self.kms_key.disabled_by, self.user)
+
+    def test_disabled_by_optional(self, mock_aws_disable):
+        """disabled_by is optional."""
+        disable_key(self.kms_key)
+
+        self.kms_key.refresh_from_db()
+
+        self.assertIsNotNone(self.kms_key.disabled_at)
+        self.assertIsNone(self.kms_key.disabled_by)
