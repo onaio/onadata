@@ -11,9 +11,10 @@ from django.test import override_settings
 from moto import mock_aws
 
 from onadata.apps.logger.models.kms import KMSKey
+from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.kms.clients import AWSKMSClient
-from onadata.libs.kms.tools import create_key, get_kms_client
+from onadata.libs.kms.tools import create_key, get_kms_client, rotate_key
 
 
 class GetKMSClientTestCase(TestBase):
@@ -102,3 +103,77 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.next_rotation_at, mocked_now + timedelta(days=365))
+
+
+@mock_aws
+@override_settings(
+    KMS_PROVIDER="AWS",
+    AWS_ACCESS_KEY_ID="fake-id",
+    AWS_SECRET_ACCESS_KEY="fake-secret",
+    AWS_KMS_REGION_NAME="us-east-1",
+)
+class RotateKeyTestCase(TestBase):
+    """Tests for rotate_key"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        self._publish_transportation_form()
+        self.xform.kms_keys.create(
+            kms_key=self.kms_key,
+            version=self.xform.version,
+        )
+
+    @patch("django.utils.timezone.now")
+    def test_rotate(self, mock_now):
+        """KMS key is rotated."""
+        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+        new_key = rotate_key(self.kms_key)
+        self.kms_key.refresh_from_db()
+        self.xform.refresh_from_db()
+
+        # New key is created since rotation of asymmetric is not
+        # allowed
+        self.assertEqual(KMSKey.objects.all().count(), 2)
+        self.assertEqual(new_key.description, "Key-2025-04-03")
+        self.assertEqual(new_key.content_type, self.content_type)
+        self.assertEqual(new_key.object_id, self.org.pk)
+        self.assertIsNotNone(new_key.key_id)
+        self.assertIsNotNone(new_key.public_key)
+        self.assertIsNone(new_key.rotated_at)
+        self.assertEqual(new_key.provider, KMSKey.KMSProvider.AWS)
+        self.assertNotIn("-----BEGIN PUBLIC KEY-----", new_key.public_key)
+        self.assertNotIn("-----END PUBLIC KEY-----", new_key.public_key)
+
+        # Old key is rotated
+        self.assertEqual(self.kms_key.rotated_at, mocked_now)
+
+        # Forms using old key are updated to use new key
+        json_dict = self.xform.json_dict()
+        json_dict["public_key"] = new_key.public_key
+        json_dict["version"] = "202504031220"
+        survey = create_survey_element_from_dict(json_dict)
+
+        self.assertEqual(self.xform.version, "202504031220")
+        self.assertEqual(self.xform.json, survey.to_json_dict())
+        self.assertEqual(self.xform.xml, survey.to_xml())
+        self.assertEqual(self.xform.public_key, new_key.public_key)
+        self.assertTrue(
+            self.xform.kms_keys.filter(
+                kms_key=new_key,
+                version="202504031220",
+            ).exists()
+        )
