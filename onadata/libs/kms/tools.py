@@ -84,10 +84,11 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     )
 
 
-def rotate_key(kms_key: KMSKey) -> KMSKey:
+def rotate_key(kms_key: KMSKey, disable=False) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey
+    :param disable: Whether to disable old key
     :return: New KMSKey
     """
     # Rotation of asymmetric keys is not allowed
@@ -113,6 +114,9 @@ def rotate_key(kms_key: KMSKey) -> KMSKey:
         xform.public_key = new_key.public_key
         xform.save(update_fields=["json", "xml", "version", "xml", "public_key"])
         xform.kms_keys.create(version=new_version, kms_key=new_key)
+
+    if disable:
+        disable_key(kms_key)
 
     return new_key
 
