@@ -98,10 +98,11 @@ def rotate_key(kms_key: KMSKey) -> KMSKey:
     kms_key.save(update_fields=["rotated_at"])
 
     # Update forms using the old key to use the new key
-    xform_qs = kms_key.xforms.all()
+    xform_key_qs = kms_key.xforms.all()
 
-    for xform in queryset_iterator(xform_qs):
+    for xform_key in queryset_iterator(xform_key_qs):
         new_version = timezone.now().strftime("%Y%m%d%H%M")
+        xform = xform_key.xform
         json_dict = xform.json_dict()
         json_dict["public_key"] = new_key.public_key
         json_dict["version"] = new_version
