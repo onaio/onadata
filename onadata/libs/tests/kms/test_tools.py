@@ -14,7 +14,7 @@ from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.kms.clients import AWSKMSClient
-from onadata.libs.kms.tools import create_key, get_kms_client, rotate_key
+from onadata.libs.kms.tools import create_key, disable_key, get_kms_client, rotate_key
 
 
 class GetKMSClientTestCase(TestBase):
@@ -177,3 +177,45 @@ class RotateKeyTestCase(TestBase):
                 version="202504031220",
             ).exists()
         )
+
+
+@mock_aws
+@override_settings(
+    KMS_PROVIDER="AWS",
+    AWS_ACCESS_KEY_ID="fake-id",
+    AWS_SECRET_ACCESS_KEY="fake-secret",
+    AWS_KMS_REGION_NAME="us-east-1",
+)
+class DisableKeyTestCase(TestBase):
+    """Tests for disable_key."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+    @patch("django.utils.timezone.now")
+    @patch.object(AWSKMSClient, "disable_key")
+    def test_disable(self, mock_aws_disable, mock_now):
+        """KMSKey is disabled."""
+        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        disable_key(self.kms_key)
+
+        mock_aws_disable.assert_called_once_with("fake-key-id")
+
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(self.kms_key.disabled_at, mocked_now)
