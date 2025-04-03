@@ -94,7 +94,7 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     )
 
 
-def rotate_key(kms_key: KMSKey) -> KMSKey:
+def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey
@@ -117,7 +117,9 @@ def rotate_key(kms_key: KMSKey) -> KMSKey:
         xform.version = new_version
         xform.public_key = new_key.public_key
         xform.save(update_fields=["json", "xml", "version", "xml", "public_key"])
-        xform.kms_keys.create(version=new_version, kms_key=new_key)
+        xform.kms_keys.create(
+            version=new_version, kms_key=new_key, encrypted_by=rotated_by
+        )
 
     return new_key
 

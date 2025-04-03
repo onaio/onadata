@@ -168,7 +168,9 @@ class RotateKeyTestCase(TestBase):
         """KMS key is rotated."""
         mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
-        new_key = rotate_key(self.kms_key)
+
+        new_key = rotate_key(kms_key=self.kms_key, rotated_by=self.user)
+
         self.kms_key.refresh_from_db()
         self.xform.refresh_from_db()
 
@@ -196,10 +198,21 @@ class RotateKeyTestCase(TestBase):
         self.assertEqual(self.xform.public_key, new_key.public_key)
         self.assertTrue(
             self.xform.kms_keys.filter(
-                kms_key=new_key,
-                version="202504031220",
+                kms_key=new_key, version="202504031220", encrypted_by=self.user
             ).exists()
         )
+
+    @patch("django.utils.timezone.now")
+    def test_rotated_by_optional(self, mock_now):
+        """rotated_by is optional"""
+        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        new_key = rotate_key(self.kms_key)
+
+        xform_key = self.xform.kms_keys.get(kms_key=new_key, version="202504031220")
+
+        self.assertIsNone(xform_key.encrypted_by)
 
 
 @mock_aws
