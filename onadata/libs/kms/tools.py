@@ -59,6 +59,17 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     kms_client = get_kms_client()
     now = timezone.now()
     description = f"Key-{now.strftime('%Y-%m-%d')}"
+    content_type = ContentType.objects.get_for_model(org)
+    duplicate_desc = KMSKey.objects.filter(
+        content_type=content_type,
+        object_id=org.pk,
+        description__startswith=description,
+    )
+
+    if duplicate_desc.exists():
+        suffix = f"-v{duplicate_desc.count() + 1}"
+        description += suffix
+
     metadata = kms_client.create_key(description=description)
     next_rotation_at = None
 
@@ -67,7 +78,6 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     ):
         next_rotation_at = now + settings.KMS_ROTATION_DURATION
 
-    content_type = ContentType.objects.get_for_model(org)
     provider_choice_map = {
         "AWS": KMSKey.KMSProvider.AWS,
     }
