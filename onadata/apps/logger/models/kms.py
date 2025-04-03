@@ -45,6 +45,7 @@ class XFormKey(BaseModel):
     xform = models.ForeignKey(XForm, on_delete=models.CASCADE, related_name="kms_keys")
     kms_key = models.ForeignKey(KMSKey, on_delete=models.CASCADE, related_name="xforms")
     version = models.CharField(max_length=255, help_text=_("XForm version"))
+    encrypted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
