@@ -71,12 +71,12 @@ def create_key(org: OrganizationProfile) -> KMSKey:
         description += suffix
 
     metadata = kms_client.create_key(description=description)
-    next_rotation_at = None
+    expiry_date = None
 
     if hasattr(settings, "KMS_ROTATION_DURATION") and isinstance(
         settings.KMS_ROTATION_DURATION, timedelta
     ):
-        next_rotation_at = now + settings.KMS_ROTATION_DURATION
+        expiry_date = now + settings.KMS_ROTATION_DURATION
 
     provider_choice_map = {
         "AWS": KMSKey.KMSProvider.AWS,
@@ -88,25 +88,19 @@ def create_key(org: OrganizationProfile) -> KMSKey:
         description=description,
         public_key=clean_public_key(metadata["public_key"]),
         provider=provider,
-        next_rotation_at=next_rotation_at,
+        expiry_date=expiry_date,
         content_type=content_type,
         object_id=org.pk,
     )
 
 
-def rotate_key(kms_key: KMSKey, disable=False) -> KMSKey:
+def rotate_key(kms_key: KMSKey) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey
-    :param disable: Whether to disable old key
     :return: New KMSKey
     """
-    # Rotation of asymmetric keys is not allowed
-    # so we create a new key
     new_key = create_key(kms_key.content_object)
-
-    kms_key.rotated_at = timezone.now()
-    kms_key.save(update_fields=["rotated_at"])
 
     # Update forms using the old key to use the new key
     xform_key_qs = kms_key.xforms.all()
@@ -125,18 +119,17 @@ def rotate_key(kms_key: KMSKey, disable=False) -> KMSKey:
         xform.save(update_fields=["json", "xml", "version", "xml", "public_key"])
         xform.kms_keys.create(version=new_version, kms_key=new_key)
 
-    if disable:
-        disable_key(kms_key)
-
     return new_key
 
 
-def disable_key(kms_key: KMSKey) -> None:
+def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     """Disable KMS key.
 
     :param kms_key: KMSKey
+    :parem disabled_by: User disabling the key
     """
     kms_client = get_kms_client()
     kms_client.disable_key(kms_key.key_id)
     kms_key.disabled_at = timezone.now()
-    kms_key.save(update_fields=["disabled_at"])
+    kms_key.disabled_by = disabled_by
+    kms_key.save(update_fields=["disabled_at", "disabled_by"])
