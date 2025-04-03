@@ -160,6 +160,7 @@ class RotateKeyTestCase(TestBase):
 
         # Old key is rotated
         self.assertEqual(self.kms_key.rotated_at, mocked_now)
+        self.assertIsNone(self.kms_key.disabled_at)
 
         # Forms using old key are updated to use new key
         json_dict = self.xform.json_dict()
@@ -177,6 +178,21 @@ class RotateKeyTestCase(TestBase):
                 version="202504031220",
             ).exists()
         )
+
+    @patch.object(AWSKMSClient, "disable_key")
+    @patch("django.utils.timezone.now")
+    def test_rotate_and_disable(self, mock_now, mock_aws_disable):
+        """A key can be disabled during rotation."""
+        mocked_now = datetime(2025, 4, 3, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        rotate_key(self.kms_key, disable=True)
+
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(self.kms_key.disabled_at, mocked_now)
+
+        mock_aws_disable.assert_called_once_with("fake-key-id")
 
 
 @mock_aws
