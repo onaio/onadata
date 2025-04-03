@@ -104,6 +104,31 @@ class CreateKeyTestCase(TestBase):
 
         self.assertEqual(kms_key.next_rotation_at, mocked_now + timedelta(days=365))
 
+    @patch("django.utils.timezone.now")
+    def test_duplicate_description(self, mock_now):
+        """Duplicate description is appended a suffix."""
+        mock_now.return_value = datetime(2025, 4, 2, tzinfo=tz.utc)
+
+        # Simulate existing description for the same organization
+        KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-02",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+        # Duplicate 1
+        kms_key = create_key(self.org)
+
+        self.assertEqual(kms_key.description, "Key-2025-04-02-v2")
+
+        # Duplicate 2
+        kms_key = create_key(self.org)
+
+        self.assertEqual(kms_key.description, "Key-2025-04-02-v3")
+
 
 @mock_aws
 @override_settings(
