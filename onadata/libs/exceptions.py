@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Custom Expecting classes."""
+
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework.exceptions import APIException, ParseError
@@ -41,3 +42,9 @@ class InavlidDateFormat(ParseError):
     """Raise when request query has invalid date."""
 
     default_detail = _("Invalid date format.")
+
+
+class EncryptionError(Exception):
+    """Raised when XForm encryption fails."""
+
+    pass
