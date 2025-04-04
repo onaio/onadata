@@ -12,7 +12,9 @@ from django.utils import timezone
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
+from onadata.libs.permissions import is_organization
 from onadata.libs.utils.model_tools import queryset_iterator
 
 KMS_CLIENTS = {"AWS": AWSKMSClient}
@@ -94,6 +96,34 @@ def create_key(org: OrganizationProfile) -> KMSKey:
     )
 
 
+def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
+    """Disable KMS key.
+
+    :param kms_key: KMSKey
+    :parem disabled_by: User disabling the key
+    """
+    kms_client = get_kms_client()
+    kms_client.disable_key(kms_key.key_id)
+    kms_key.disabled_at = timezone.now()
+    kms_key.disabled_by = disabled_by
+    kms_key.save(update_fields=["disabled_at", "disabled_by"])
+
+
+def _encrypt_xform(xform, kms_key, new_version=None, encrypted_by=None):
+    version = new_version or xform.version
+    json_dict = xform.json_dict()
+    json_dict["public_key"] = kms_key.public_key
+    json_dict["version"] = version
+    survey = create_survey_element_from_dict(json_dict)
+    xform.json = survey.to_json_dict()
+    xform.xml = survey.to_xml()
+    xform.version = version
+    xform.public_key = kms_key.public_key
+    xform.encrypted = True
+    xform.save()
+    xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
+
+
 def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """Rotate KMS key.
 
@@ -106,32 +136,39 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     xform_key_qs = kms_key.xforms.all()
 
     for xform_key in queryset_iterator(xform_key_qs):
-        new_version = timezone.now().strftime("%Y%m%d%H%M")
-        xform = xform_key.xform
-        json_dict = xform.json_dict()
-        json_dict["public_key"] = new_key.public_key
-        json_dict["version"] = new_version
-        survey = create_survey_element_from_dict(json_dict)
-        xform.json = survey.to_json_dict()
-        xform.xml = survey.to_xml()
-        xform.version = new_version
-        xform.public_key = new_key.public_key
-        xform.save(update_fields=["json", "xml", "version", "xml", "public_key"])
-        xform.kms_keys.create(
-            version=new_version, kms_key=new_key, encrypted_by=rotated_by
+        new_xform_version = timezone.now().strftime("%Y%m%d%H%M")
+
+        _encrypt_xform(
+            xform=xform_key.xform,
+            kms_key=new_key,
+            new_version=new_xform_version,
+            encrypted_by=rotated_by,
         )
 
     return new_key
 
 
-def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
-    """Disable KMS key.
+def encrypt_xform(xform, encrypted_by=None) -> None:
+    """Encrypt unencrypted XForm
 
-    :param kms_key: KMSKey
-    :parem disabled_by: User disabling the key
+    :param xform: Unencrypted XForm
+    :param encrypted_by: User encrypting the form
     """
-    kms_client = get_kms_client()
-    kms_client.disable_key(kms_key.key_id)
-    kms_key.disabled_at = timezone.now()
-    kms_key.disabled_by = disabled_by
-    kms_key.save(update_fields=["disabled_at", "disabled_by"])
+    if xform.encrypted:
+        return
+
+    if not is_organization(xform.user.profile):
+        raise EncryptionError("XForm owner is not an organization user")
+
+    org = xform.user.profile.organizationprofile
+    content_type = ContentType.objects.get_for_model(OrganizationProfile)
+    kms_key_qs = KMSKey.objects.filter(
+        object_id=org.pk, content_type=content_type, disabled_at__isnull=True
+    ).order_by("-date_created")
+
+    if not kms_key_qs:
+        raise EncryptionError("KMSKey not found")
+
+    kms_key = kms_key_qs.first()
+
+    _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
