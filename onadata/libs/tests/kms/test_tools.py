@@ -7,14 +7,22 @@ from unittest.mock import patch
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
+from django.utils import timezone
 
 from moto import mock_aws
 
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
-from onadata.libs.kms.tools import create_key, disable_key, get_kms_client, rotate_key
+from onadata.libs.kms.tools import (
+    create_key,
+    disable_key,
+    encrypt_xform,
+    get_kms_client,
+    rotate_key,
+)
 
 
 class GetKMSClientTestCase(TestBase):
@@ -196,6 +204,7 @@ class RotateKeyTestCase(TestBase):
         self.assertEqual(self.xform.json, survey.to_json_dict())
         self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertEqual(self.xform.public_key, new_key.public_key)
+        self.assertTrue(self.xform.encrypted)
         self.assertTrue(
             self.xform.kms_keys.filter(
                 kms_key=new_key, version="202504031220", encrypted_by=self.user
@@ -265,3 +274,97 @@ class DisableKeyTestCase(TestBase):
 
         self.assertIsNotNone(self.kms_key.disabled_at)
         self.assertIsNone(self.kms_key.disabled_by)
+
+
+class EncryptXFormTestCase(TestBase):
+    """Test encrypt_xform works."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        self._publish_transportation_form()
+        # Transfer xform to organization
+        self.xform.user = self.org.user
+        self.xform.save()
+
+    def test_encrypt_xform(self):
+        """Unencrypted XForm is encrypted."""
+        self.assertFalse(self.xform.encrypted)
+
+        encrypt_xform(xform=self.xform, encrypted_by=self.user)
+
+        self.xform.refresh_from_db()
+
+        self.assertTrue(self.xform.encrypted)
+        json_dict = self.xform.json_dict()
+        json_dict["public_key"] = self.kms_key.public_key
+        survey = create_survey_element_from_dict(json_dict)
+
+        self.assertEqual(self.xform.json, survey.to_json_dict())
+        self.assertEqual(self.xform.xml, survey.to_xml())
+        self.assertEqual(self.xform.public_key, self.kms_key.public_key)
+        self.assertTrue(self.xform.encrypted)
+        self.assertTrue(
+            self.xform.kms_keys.filter(
+                kms_key=self.kms_key, version=self.xform.version, encrypted_by=self.user
+            ).exists()
+        )
+
+    def test_kms_key_not_found(self):
+        """No KMSKey found for an organization."""
+        self.kms_key.delete()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            encrypt_xform(xform=self.xform, encrypted_by=self.user)
+
+        self.assertEqual(str(exc_info.exception), "KMSKey not found")
+
+        # KMSKey exists but disabled
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            disabled_at=timezone.now(),
+        )
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            encrypt_xform(xform=self.xform, encrypted_by=self.user)
+
+        self.assertEqual(str(exc_info.exception), "KMSKey not found")
+
+    def test_owner_is_org(self):
+        """XForm owner must be an organization user."""
+        self.xform.user = self.user
+        self.xform.save()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            encrypt_xform(xform=self.xform, encrypted_by=self.user)
+
+        self.assertEqual(
+            str(exc_info.exception), "XForm owner is not an organization user"
+        )
+
+    def test_encrypted_by_optional(self):
+        """encrypted_by is optional."""
+        encrypt_xform(self.xform)
+
+        xform_key = self.xform.kms_keys.get(
+            kms_key=self.kms_key, version=self.xform.version
+        )
+
+        self.assertIsNone(xform_key.encrypted_by)
