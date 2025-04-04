@@ -1607,13 +1607,13 @@ def register_instance_repeat_columns(instance: Instance) -> None:
     except MetaData.DoesNotExist:
         return
 
-    original_columns = _load_register_columns(register)
-    updated_columns = copy.deepcopy(original_columns)
+    old_columns = _load_register_columns(register)
+    new_columns = copy.deepcopy(old_columns)
 
-    _update_register_columns(instance=instance, columns=updated_columns)
+    _update_register_columns(instance=instance, columns=new_columns)
 
-    if original_columns != updated_columns:
-        _save_register_columns(register=register, columns=updated_columns)
+    if old_columns != new_columns:
+        _save_register_columns(register=register, columns=new_columns)
 
 
 @transaction.atomic()
