@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from onadata.apps.logger.models.xform import XForm
@@ -39,6 +40,11 @@ class KMSKey(BaseModel):
 
     def __str__(self):
         return self.key_id
+
+    @property
+    def is_expired(self):
+        """Returns True if key is expired, False otherwise."""
+        return timezone.now() > self.expiry_date
 
 
 class XFormKey(BaseModel):
