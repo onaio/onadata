@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import DataError, IntegrityError
+from django.utils import timezone
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models.kms import KMSKey, XFormKey
@@ -149,6 +150,25 @@ class KMSKeyTestCase(TestBase):
         )
 
         self.assertEqual(len(kms_key.description), 255)
+
+    def test_is_expired(self):
+        """is_expired property works"""
+        kms_key = KMSKey.objects.create(
+            key_id="1234",
+            public_key="Fake public key",
+            provider=KMSKey.KMSProvider.AWS,
+            content_type=self.content_type,
+            object_id=self.org.id,
+            expiry_date=timezone.now() - timedelta(days=1),
+        )
+
+        self.assertTrue(kms_key.is_expired)
+
+        kms_key.expiry_date = timezone.now() + timedelta(days=1)
+        kms_key.save()
+        kms_key.refresh_from_db()
+
+        self.assertFalse(kms_key.is_expired)
 
 
 class XFormKeyTestCase(TestBase):
