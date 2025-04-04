@@ -157,10 +157,12 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     if xform.encrypted:
         return
 
-    if not is_organization(xform.user.profile):
+    user_profile = xform.user.profile
+
+    if not is_organization(user_profile):
         raise EncryptionError("XForm owner is not an organization user")
 
-    org = xform.user.profile.organizationprofile
+    org = user_profile.organizationprofile
     content_type = ContentType.objects.get_for_model(OrganizationProfile)
     kms_key_qs = KMSKey.objects.filter(
         object_id=org.pk, content_type=content_type, disabled_at__isnull=True
