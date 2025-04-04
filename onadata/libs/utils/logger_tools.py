@@ -4,6 +4,7 @@
 logger_tools - Logger app utility functions.
 """
 
+import copy
 import importlib
 import json
 import logging
@@ -1606,10 +1607,13 @@ def register_instance_repeat_columns(instance: Instance) -> None:
     except MetaData.DoesNotExist:
         return
 
-    columns = _load_register_columns(register)
+    original_columns = _load_register_columns(register)
+    updated_columns = copy.deepcopy(original_columns)
 
-    _update_register_columns(instance=instance, columns=columns)
-    _save_register_columns(register=register, columns=columns)
+    _update_register_columns(instance=instance, columns=updated_columns)
+
+    if original_columns != updated_columns:
+        _save_register_columns(register=register, columns=updated_columns)
 
 
 @transaction.atomic()
