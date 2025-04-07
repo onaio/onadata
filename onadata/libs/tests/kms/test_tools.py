@@ -491,10 +491,7 @@ class DecryptSubmissionTestCase(TestBase):
         return response["CiphertextBlob"]
 
     def _get_encrypted_signature(self, key_id, enc_aes_key, dec_submission, dec_media):
-        def compute_digest(message):
-            return md5(message.encode("utf-8")).digest()
-
-        def compute_file_md5_hash(file):
+        def compute_file_md5(file):
             file.seek(0)
             return md5(file.read()).hexdigest().zfill(32)
 
@@ -506,16 +503,16 @@ class DecryptSubmissionTestCase(TestBase):
         ]
         # Add media files
         for media_name, media_file in dec_media.items():
-            file_md5_hash = compute_file_md5_hash(media_file)
+            file_md5_hash = compute_file_md5(media_file)
             signature_parts.append(f"{media_name}::{file_md5_hash}")
 
         # Add submission file
-        file_md5_hash = compute_file_md5_hash(dec_submission)
+        file_md5_hash = compute_file_md5(dec_submission)
         signature_parts.append(f"submission.xml::{file_md5_hash}")
         # Construct final signature string
         signature_data = "\n".join(signature_parts) + "\n"
         # Compute MD5 digest before encrypting
-        signature_md5_digest = compute_digest(signature_data)
+        signature_md5_digest = md5(signature_data.encode("utf-8")).digest()
         # Encrypt MD5 digest
         return self._encrypt(key_id=key_id, plain_text=signature_md5_digest)
 
@@ -524,6 +521,9 @@ class DecryptSubmissionTestCase(TestBase):
         cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
 
         return BytesIO(cipher_aes.encrypt(data))
+
+    def _compute_file_sha256(self, buffer):
+        return sha256(buffer.getvalue()).hexdigest()
 
     def test_decrypt_submission(self):
         """Decrypt submission is successful."""
@@ -553,8 +553,8 @@ class DecryptSubmissionTestCase(TestBase):
             original_file = self.dec_media["sunset.png"]
 
             self.assertEqual(
-                sha256(buffer.getvalue()).hexdigest(),
-                sha256(original_file.getvalue()).hexdigest(),
+                self._compute_file_sha256(buffer),
+                self._compute_file_sha256(original_file),
             )
             self.assertEqual(att_qs[3].file_size, len(original_file.getbuffer()))
 
@@ -567,8 +567,8 @@ class DecryptSubmissionTestCase(TestBase):
             original_file = self.dec_media["forest.mp4"]
 
             self.assertEqual(
-                sha256(buffer.getvalue()).hexdigest(),
-                sha256(original_file.getvalue()).hexdigest(),
+                self._compute_file_sha256(buffer),
+                self._compute_file_sha256(original_file),
             )
             self.assertEqual(att_qs[4].file_size, len(original_file.getbuffer()))
 
