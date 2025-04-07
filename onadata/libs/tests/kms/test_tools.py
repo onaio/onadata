@@ -547,24 +547,30 @@ class DecryptSubmissionTestCase(TestBase):
         self.assertEqual(att_qs[3].name, "sunset.png")
         self.assertEqual(att_qs[3].extension, "png")
         self.assertEqual(att_qs[3].mimetype, "image/png")
-        with att_qs[3].media_file.open("rb") as f:
-            file = BytesIO(f.read())
+
+        with att_qs[3].media_file.open("rb") as dec_file:
+            buffer = BytesIO(dec_file.read())
+            original_file = self.dec_media["sunset.png"]
+
             self.assertEqual(
-                sha256(file.getvalue()).hexdigest(),
-                sha256(self.dec_media["sunset.png"].getvalue()).hexdigest(),
+                sha256(buffer.getvalue()).hexdigest(),
+                sha256(original_file.getvalue()).hexdigest(),
             )
-            self.assertEqual(att_qs[3].file_size, len(file.getbuffer()))
+            self.assertEqual(att_qs[3].file_size, len(original_file.getbuffer()))
 
         self.assertEqual(att_qs[4].name, "forest.mp4")
         self.assertEqual(att_qs[4].extension, "mp4")
         self.assertEqual(att_qs[4].mimetype, "video/mp4")
-        with att_qs[4].media_file.open("rb") as f:
-            file = BytesIO(f.read())
+
+        with att_qs[4].media_file.open("rb") as dec_file:
+            buffer = BytesIO(dec_file.read())
+            original_file = self.dec_media["forest.mp4"]
+
             self.assertEqual(
-                sha256(file.getvalue()).hexdigest(),
-                sha256(self.dec_media["forest.mp4"].getvalue()).hexdigest(),
+                sha256(buffer.getvalue()).hexdigest(),
+                sha256(original_file.getvalue()).hexdigest(),
             )
-            self.assertEqual(att_qs[4].file_size, len(file.getbuffer()))
+            self.assertEqual(att_qs[4].file_size, len(original_file.getbuffer()))
 
         # Encrypted media files are soft deleted
         self.assertIsNotNone(att_qs[1].deleted_at)
