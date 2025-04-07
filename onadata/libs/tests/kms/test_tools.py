@@ -25,7 +25,7 @@ from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     create_key,
-    decrypt_submission,
+    decrypt_instance,
     disable_key,
     encrypt_xform,
     get_kms_client,
@@ -385,8 +385,8 @@ class EncryptXFormTestCase(TestBase):
     AWS_SECRET_ACCESS_KEY="fake-secret",
     AWS_KMS_REGION_NAME="us-east-1",
 )
-class DecryptSubmissionTestCase(TestBase):
-    """Tests for decrypt_submission."""
+class DecryptInstanceTestCase(TestBase):
+    """Tests for decrypt_instance."""
 
     def setUp(self):
         super().setUp()
@@ -527,7 +527,7 @@ class DecryptSubmissionTestCase(TestBase):
 
     def test_decrypt_submission(self):
         """Decrypt submission is successful."""
-        decrypt_submission(self.instance.pk)
+        decrypt_instance(self.instance)
 
         self.instance.refresh_from_db()
 

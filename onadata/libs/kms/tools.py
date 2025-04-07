@@ -189,12 +189,11 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
 
 
 @transaction.atomic()
-def decrypt_submission(pk: int):
+def decrypt_instance(instance: Instance):
     """Decrypt encrypted Instance
 
-    :param pk: Instance's primary key
+    :param instance: Instance to be decrypted
     """
-    instance = Instance.objects.get(pk=pk)
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
 
     # Check if submission is already decrypted
@@ -257,7 +256,7 @@ def decrypt_submission(pk: int):
             instance.save()
 
         else:
-            # Save decryped media file
+            # Save decrypted media file
             media_file = File(decrypted_file, name=original_name)
             mimetype, _ = mimetypes.guess_type(original_name)
             _, extension = os.path.splitext(original_name)
