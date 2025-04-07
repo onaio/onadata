@@ -1,8 +1,12 @@
+from io import BytesIO
+from typing import Iterable, Iterator, Tuple
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_der_public_key
+from valigetta.decryptor import decrypt_submission as vgetta_decrypt_submission
 from valigetta.kms import AWSKMSClient as ValigettaAWSClient
 
 
@@ -83,3 +87,18 @@ class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
             "key_id": key_id,
             "public_key": pem_encoded_public_key.strip(),
         }
+
+    def decrypt_submission(
+        self,
+        key_id: str,
+        submission_xml: BytesIO,
+        enc_files: Iterable[Tuple[str, BytesIO]],
+    ) -> Iterator[Tuple[str, BytesIO]]:
+        """Decrypt encrypted submission"""
+
+        yield from vgetta_decrypt_submission(
+            kms_client=self,
+            key_id=key_id,
+            submission_xml=submission_xml,
+            enc_files=enc_files,
+        )
