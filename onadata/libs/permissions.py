@@ -2,6 +2,7 @@
 """
 Permissions module.
 """
+
 import json
 from collections import defaultdict
 
@@ -224,6 +225,54 @@ class DataEntryMinorRole(Role):
     }
 
 
+class CanViewRole(Role):
+    """
+    Can-View Role class - user can view data and has read access permissions
+                            to all the data including data submitted by others.
+    """
+
+    name = "can-view"
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_VIEW_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_EXPORT_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
+    }
+
+
+class CanViewMinorRole(Role):
+    """
+    Can-View Role class - User can not export data but has can-view
+                            permissions
+    """
+
+    name = "can-view-minor"
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
+    }
+
+
 class DataEntryRole(Role):
     """
     Data-Entry Role class - user can submit data and has readonly permissions
@@ -434,6 +483,8 @@ class OwnerRole(Role):
 
 
 ROLES_ORDERED = [
+    CanViewMinorRole,
+    CanViewRole,
     ReadOnlyRoleNoDownload,
     ReadOnlyRole,
     DataEntryOnlyRole,
@@ -569,7 +620,9 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
 
 # pylint: disable=invalid-name
 def get_object_users_with_permissions(
-    obj, username=False, with_group_users=False  # pylint: disable=invalid-name
+    obj,
+    username=False,
+    with_group_users=False,  # pylint: disable=invalid-name
 ):
     """
     Returns users, roles and permissions for an object.
