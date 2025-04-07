@@ -1,0 +1,135 @@
+2025-04-07 13:26:56,622 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start pulling form and submissions
+2025-04-07 13:26:56,626 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start downloading form
+2025-04-07 13:26:57,259 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Form downloaded
+2025-04-07 13:26:57,263 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start getting submission IDs
+2025-04-07 13:26:58,326 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Got all the submission IDs
+2025-04-07 13:26:58,335 [ForkJoinPool-4-worker-1] INFO  o.o.briefcase.util.FileSystemUtils - Creating database directory /home/ona/ODK-briefcase/ODK Briefcase Storage/forms/Colourful_Choices Enc/info.hsqldb
+2025-04-07 13:26:58,905 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start downloading submission 1 of 1
+2025-04-07 13:26:59,997 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Submission 1 of 1 downloaded
+2025-04-07 13:26:59,999 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start downloading attachment 1 of 2 of submission 1 of 1
+2025-04-07 13:26:59,999 [ForkJoinPool-4-worker-2] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Start downloading attachment 2 of 2 of submission 1 of 1
+2025-04-07 13:27:00,940 [ForkJoinPool-4-worker-2] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Attachment 2 of 2 of submission 1 of 1 downloaded
+2025-04-07 13:27:01,628 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Attachment 1 of 2 of submission 1 of 1 downloaded
+2025-04-07 13:27:01,685 [ForkJoinPool-4-worker-1] INFO  o.o.b.p.a.PullFromAggregateTracker - Pull Colourful_Choices Enc - Success
+2025-04-07 13:27:01,736 [AWT-EventQueue-0] INFO  XFormParser - Reading XML and parsing with kXML2 finished in 0.358 ms
+2025-04-07 13:27:01,737 [AWT-EventQueue-0] INFO  XFormParser - Consolidating text finished in 0.902 ms
+2025-04-07 13:27:01,737 [AWT-EventQueue-0] INFO  XFormParser - Parsing form...
+2025-04-07 13:27:01,737 [AWT-EventQueue-0] INFO  XFormParser - Title: "Colourful_Choices Enc"
+2025-04-07 13:27:01,738 [AWT-EventQueue-0] WARN  XFormParser - XForm Parse Warning: Warning: 1 Unrecognized attributes found in Element [model] and will be ignored: [xforms-version]
+    Problem found at nodeset: /html/head/model
+    With element <model xforms-version="1.0.0"><submission base64RsaPublicKey="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4kJ63ZOFva4rD0acTN4V I4+6HDqIxw7pr0AgUCiqU3dHEIHBZFrHei5Vs6C5E/SJmlSX7BWc6VawrQR1lIoJ s3wZ5A/gxYYOQIzMi70vQSrKtHVVoZtDtoZkchafklxe8iRMSoOu32cQxRYCCfZq MQdOK2CWDvGqzmiJXcCMTdEtCnDC+zp+UA9pgpmW6kqTAgso77UO3hibOv7aMT1Q S62O6ibIMX9/RKQpaJF8uYJPua/DwIWhtDFZUYr77lJRNXzU+ljDksqjYF+CcMW4 nmAqVIlxuyv20X/u3qdfaFPs2pkDZGkre97DixBJJCBDPbCiFoM66KBt1N3rieyO KwIDAQAB"/>
+
+2025-04-07 13:27:01,751 [AWT-EventQueue-0] INFO  XFormParser - Creating FormDef from parsed XML finished in 13.573 ms
+2025-04-07 13:27:01,751 [AWT-EventQueue-0] INFO  XFormParser - Reading XML and parsing with kXML2 finished in 0.146 ms
+2025-04-07 13:27:01,751 [AWT-EventQueue-0] INFO  XFormParser - Consolidating text finished in 0.042 ms
+2025-04-07 13:27:01,751 [AWT-EventQueue-0] INFO  XFormParser - Parsing form...
+2025-04-07 13:27:01,751 [AWT-EventQueue-0] INFO  XFormParser - Title: "Encrypted Form"
+2025-04-07 13:27:01,752 [AWT-EventQueue-0] WARN  XFormParser - XForm Parse Warning: Warning: 1 Unrecognized attributes found in Element [bind] and will be ignored: [length]
+    Problem found at nodeset: /html/head/model/bind
+    With element <bind nodeset="/data/base64EncryptedKey" type="string" length="2048"/>
+
+2025-04-07 13:27:01,752 [AWT-EventQueue-0] WARN  XFormParser - XForm Parse Warning: Warning: 1 Unrecognized attributes found in Element [bind] and will be ignored: [length]
+    Problem found at nodeset: /html/head/model/bind
+    With element <bind nodeset="/data/base64EncryptedElementSignature" type="string" length="2048"/>
+
+2025-04-07 13:27:01,753 [AWT-EventQueue-0] INFO  XFormParser - Creating FormDef from parsed XML finished in 1.265 ms
+2025-04-07 13:27:01,760 [AWT-EventQueue-0] INFO  XFormParser - Reading XML and parsing with kXML2 finished in 1.117 ms
+2025-04-07 13:27:01,761 [AWT-EventQueue-0] INFO  XFormParser - Consolidating text finished in 1.085 ms
+2025-04-07 13:27:01,761 [AWT-EventQueue-0] INFO  XFormParser - Parsing form...
+2025-04-07 13:27:01,761 [AWT-EventQueue-0] INFO  XFormParser - Title: "PM Standard Intake Form MMR (11-02-2025)"
+2025-04-07 13:27:01,761 [AWT-EventQueue-0] WARN  XFormParser - XForm Parse Warning: Warning: 1 Unrecognized attributes found in Element [model] and will be ignored: [xforms-version]
+    Problem found at nodeset: /html/head/model
+    With element <model xforms-version="1.0.0"><submission base64RsaPublicKey="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApdVbm9W0+WOreCyTbd/6 jLjSlpT033bzcxOgEhrdHoNhTykFVrnUshhrofoOb3D1TVvwquvDN04qxMFkPimS 6DWHyAYF3o5XkiZD4q/aKE6Dxsi+My8DGswpNg1XpnsF5TtWws/MNtr9UYiypgCd PTfJ90iOFAam5A4KumPg/GFpI7QplR8CGQg0u8pXv+UVMsb95BjMVbc5ZcMN++GS 7Tl2uMLaE9HGo7vug4AeaCO4Bc4569rrJr5MaFTUeQGCWwBhHCACdRnYOaR2Dd8+ CT8iednEqFfGrLJ1Uz4+A6sy/GcuYQhFiZKWhq/IjEZZ29j+550p8K0ijPIqN4MR RwIDAQAB"/>
+
+2025-04-07 13:27:02,461 [AWT-EventQueue-0] WARN  o.o.briefcase.util.FormCache - Can't parse form file
+org.opendatakit.briefcase.util.BadFormDefinition: org.opendatakit.aggregate.exception.ODKIncompleteSubmissionData: Javarosa failed to construct a FormDef. Is this an XForm definition?
+	at org.opendatakit.briefcase.model.BriefcaseFormDefinition.<init>(BriefcaseFormDefinition.java:297)
+	at org.opendatakit.briefcase.util.FormCache.lambda$update$1(FormCache.java:123)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:175)
+	at java.util.Iterator.forEachRemaining(Iterator.java:116)
+	at java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1801)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:482)
+	at java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:472)
+	at java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:485)
+	at org.opendatakit.briefcase.util.FormCache.lambda$update$2(FormCache.java:117)
+	at java.util.Optional.ifPresent(Optional.java:159)
+	at org.opendatakit.briefcase.util.FormCache.update(FormCache.java:113)
+	at org.opendatakit.briefcase.util.FormCache.onPullSuccess(FormCache.java:150)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.bushe.swing.event.annotation.BaseProxySubscriber.onEvent(BaseProxySubscriber.java:69)
+	at org.bushe.swing.event.ThreadSafeEventService.publish(ThreadSafeEventService.java:971)
+	at org.bushe.swing.event.SwingEventService.access$001(SwingEventService.java:31)
+	at org.bushe.swing.event.SwingEventService$1.run(SwingEventService.java:88)
+	at java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:311)
+	at java.awt.EventQueue.dispatchEventImpl(EventQueue.java:758)
+	at java.awt.EventQueue.access$500(EventQueue.java:97)
+	at java.awt.EventQueue$3.run(EventQueue.java:709)
+	at java.awt.EventQueue$3.run(EventQueue.java:703)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:74)
+	at java.awt.EventQueue.dispatchEvent(EventQueue.java:728)
+	at java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:205)
+	at java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:116)
+	at java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:105)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:93)
+	at java.awt.EventDispatchThread.run(EventDispatchThread.java:82)
+Caused by: org.opendatakit.aggregate.exception.ODKIncompleteSubmissionData: Javarosa failed to construct a FormDef. Is this an XForm definition?
+	at org.opendatakit.aggregate.parser.BaseFormParserForJavaRosa.<init>(BaseFormParserForJavaRosa.java:363)
+	at org.opendatakit.briefcase.util.JavaRosaParserWrapper.<init>(JavaRosaParserWrapper.java:15)
+	at org.opendatakit.briefcase.model.BriefcaseFormDefinition.<init>(BriefcaseFormDefinition.java:294)
+	... 37 common frames omitted
+Caused by: org.javarosa.xform.parse.XFormParseException: <value> node for itemset doesn't exist! [instance(Categories_MMR)/root/item/ID]
+	at org.javarosa.xform.parse.FormInstanceParser.verifyItemsetBindings(FormInstanceParser.java:348)
+	at org.javarosa.xform.parse.FormInstanceParser.verifyBindings(FormInstanceParser.java:177)
+	at org.javarosa.xform.parse.FormInstanceParser.parseInstance(FormInstanceParser.java:84)
+	at org.javarosa.xform.parse.XFormParser.parseDoc(XFormParser.java:523)
+	at org.javarosa.xform.parse.XFormParser.parse(XFormParser.java:388)
+	at org.javarosa.xform.parse.XFormParser.parse(XFormParser.java:372)
+	at org.opendatakit.aggregate.parser.BaseFormParserForJavaRosa.<init>(BaseFormParserForJavaRosa.java:361)
+	... 39 common frames omitted
+2025-04-07 13:27:55,102 [ForkJoinPool-5-worker-1] ERROR o.o.briefcase.reused.job.JobsRunner - Error running Job
+org.opendatakit.briefcase.model.CryptoException: javax.crypto.BadPaddingException: data hash wrong
+	at org.opendatakit.briefcase.export.CipherFactory.from(CipherFactory.java:83)
+	at org.opendatakit.briefcase.reused.OptionalProduct$OptionalProduct3$Some.map(OptionalProduct.java:192)
+	at org.opendatakit.briefcase.export.SubmissionParser.lambda$parseSubmission$5(SubmissionParser.java:139)
+	at java.util.Optional.flatMap(Optional.java:241)
+	at org.opendatakit.briefcase.export.SubmissionParser.parseSubmission(SubmissionParser.java:130)
+	at org.opendatakit.briefcase.export.ExportTools.lambda$getValidSubmissions$0(ExportTools.java:30)
+	at java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:193)
+	at java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1384)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:482)
+	at java.util.stream.ForEachOps$ForEachTask.compute(ForEachOps.java:290)
+	at java.util.concurrent.CountedCompleter.exec(CountedCompleter.java:731)
+	at java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:289)
+	at java.util.concurrent.ForkJoinTask.doInvoke(ForkJoinTask.java:401)
+	at java.util.concurrent.ForkJoinTask.invoke(ForkJoinTask.java:734)
+	at java.util.stream.ForEachOps$ForEachOp.evaluateParallel(ForEachOps.java:159)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateParallel(ForEachOps.java:173)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:233)
+	at java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:485)
+	at java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:563)
+	at org.opendatakit.briefcase.export.ExportToCsv.export(ExportToCsv.java:110)
+	at org.opendatakit.briefcase.export.ExportToCsv.export(ExportToCsv.java:62)
+	at org.opendatakit.briefcase.ui.export.ExportPanel.lambda$export$7(ExportPanel.java:216)
+	at org.opendatakit.briefcase.reused.job.Job.lambda$run$0(Job.java:54)
+	at org.opendatakit.briefcase.reused.job.Job.lambda$thenRun$7(Job.java:123)
+	at org.opendatakit.briefcase.reused.job.Job.lambda$thenRun$7(Job.java:122)
+	at org.opendatakit.briefcase.reused.job.JobsRunner.lambda$launchAsync$1(JobsRunner.java:65)
+	at java.util.concurrent.ForkJoinTask$AdaptedRunnableAction.exec(ForkJoinTask.java:1386)
+	at java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:289)
+	at java.util.concurrent.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1056)
+	at java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1692)
+	at java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:175)
+Caused by: javax.crypto.BadPaddingException: data hash wrong
+	at org.bouncycastle.jce.provider.JCERSACipher.engineDoFinal(Unknown Source)
+	at javax.crypto.Cipher.doFinal(Cipher.java:2168)
+	at org.opendatakit.briefcase.export.CipherFactory.from(CipherFactory.java:80)
+	... 30 common frames omitted

@@ -47,4 +47,6 @@ class InavlidDateFormat(ParseError):
 class EncryptionError(Exception):
     """Raised when XForm encryption fails."""
 
-    pass
+
+class DecryptionError(Exception):
+    """Raised when XForm decryption fails."""
