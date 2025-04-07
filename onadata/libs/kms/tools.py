@@ -134,6 +134,7 @@ def _encrypt_xform(xform, kms_key, new_version=None, encrypted_by=None):
     xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
+@transaction.atomic()
 def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """Rotate KMS key.
 
@@ -158,6 +159,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     return new_key
 
 
+@transaction.atomic()
 def encrypt_xform(xform, encrypted_by=None) -> None:
     """Encrypt unencrypted XForm
 
@@ -247,7 +249,7 @@ def decrypt_submission(pk: int):
 
     for original_name, decrypted_file in decrypted_files:
         if original_name.lower() == "submission.xml":
-            # Replace submission
+            # Replace submission with decrypted submission
             xml = decrypted_file.getvalue()
 
             instance.xml = xml.decode("utf-8")
@@ -255,7 +257,7 @@ def decrypt_submission(pk: int):
             instance.save()
 
         else:
-            # Save media file
+            # Save decryped media file
             media_file = File(decrypted_file, name=original_name)
             mimetype, _ = mimetypes.guess_type(original_name)
             _, extension = os.path.splitext(original_name)
