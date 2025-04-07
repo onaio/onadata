@@ -2,17 +2,27 @@
 Key management utility functions
 """
 
+import mimetypes
+import os
+import xml.etree.ElementTree as ET
 from datetime import timedelta
+from hashlib import sha256
+from io import BytesIO
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files.base import File
+from django.db import transaction
 from django.utils import timezone
 
+from valigetta.decryptor import extract_encrypted_submission_file_name
+from valigetta.exceptions import InvalidSubmission
+
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.logger.models import KMSKey
+from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
-from onadata.libs.exceptions import EncryptionError
+from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -174,3 +184,92 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     kms_key = kms_key_qs.first()
 
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
+
+
+@transaction.atomic()
+def decrypt_submission(pk: int):
+    """Decrypt encrypted Instance
+
+    :param pk: Instance's primary key
+    """
+    instance = Instance.objects.get(pk=pk)
+    submission_xml = BytesIO(instance.xml.encode("utf-8"))
+
+    # Check if submission is already decrypted
+    try:
+        tree = ET.fromstring(submission_xml.read())
+        extract_encrypted_submission_file_name(tree)
+
+    except (ET.ParseError, InvalidSubmission) as exc:
+        raise DecryptionError(exc)
+
+    kms_client = get_kms_client()
+
+    # Get the key that encrypted the submission
+    try:
+        xms_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
+
+    except XFormKey.DoesNotExist as exc:
+        raise DecryptionError(exc)
+
+    # Decrypt submission files
+    attachment_qs = instance.attachments.all()
+
+    def get_encrypted_files():
+        enc_files = []
+
+        for attachment in queryset_iterator(attachment_qs):
+            name = attachment.name or attachment.media_file.name.split("/")[-1]
+
+            with attachment.media_file.open("rb") as file:
+                file_data = file.read()
+
+            enc_files.append((name, BytesIO(file_data)))
+
+        return enc_files
+
+    decrypted_files = kms_client.decrypt_submission(
+        key_id=xms_key.kms_key.key_id,
+        submission_xml=submission_xml,
+        enc_files=get_encrypted_files(),
+    )
+
+    # Replace encrypted submission with decrypted submission
+    # Save history before replacement
+    history = InstanceHistory(
+        checksum=instance.checksum,
+        xml=instance.xml,
+        xform_instance=instance,
+        uuid=instance.uuid,
+        geom=instance.geom,
+        submission_date=instance.last_edited or instance.date_created,
+    )
+
+    for original_name, decrypted_file in decrypted_files:
+        if original_name.lower() == "submission.xml":
+            # Replace submission
+            xml = decrypted_file.getvalue()
+
+            instance.xml = xml.decode("utf-8")
+            instance.checksum = sha256(xml).hexdigest()
+            instance.save()
+
+        else:
+            # Save media file
+            media_file = File(decrypted_file, name=original_name)
+            mimetype, _ = mimetypes.guess_type(original_name)
+            _, extension = os.path.splitext(original_name)
+
+            instance.attachments.create(
+                xform=instance.xform,
+                media_file=media_file,
+                name=original_name,
+                mimetype=mimetype or "application/octet-stream",
+                extension=extension.lstrip("."),
+                file_size=len(decrypted_file.getbuffer()),
+            )
+
+    # Commit history after saving decrypted files
+    history.save()
+    # Soft delete encrypted attachments
+    attachment_qs.update(deleted_at=timezone.now())

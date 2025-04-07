@@ -1,23 +1,31 @@
 """Tests for onadata.libs.kms.kms_tools"""
 
+import base64
 from datetime import datetime, timedelta
 from datetime import timezone as tz
+from hashlib import md5, sha256
+from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files.base import File
 from django.test import override_settings
 from django.utils import timezone
 
+import boto3
+from Crypto.Cipher import AES
 from moto import mock_aws
+from valigetta.decryptor import _get_submission_iv
 
-from onadata.apps.logger.models.kms import KMSKey
+from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     create_key,
+    decrypt_submission,
     disable_key,
     encrypt_xform,
     get_kms_client,
@@ -368,3 +376,208 @@ class EncryptXFormTestCase(TestBase):
         )
 
         self.assertIsNone(xform_key.encrypted_by)
+
+
+@mock_aws
+@override_settings(
+    KMS_PROVIDER="AWS",
+    AWS_ACCESS_KEY_ID="fake-id",
+    AWS_SECRET_ACCESS_KEY="fake-secret",
+    AWS_KMS_REGION_NAME="us-east-1",
+)
+class DecryptSubmissionTestCase(TestBase):
+    """Tests for decrypt_submission."""
+
+    def setUp(self):
+        super().setUp()
+        self.instance_version = "202502131337"
+        self.instance_uuid = "uuid:a10ead67-7415-47da-b823-0947ab8a8ef0"
+        self.form_id = "test_valigetta"
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.dec_submission_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
+            id="{self.form_id}" version="{self.instance_version}">
+            <formhub>
+                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+            </formhub>
+            <sunset>sunset.png</sunset>
+            <forest>forest.mp4</forest>
+            <meta>
+                <instanceID>{self.instance_uuid}</instanceID>
+            </meta>
+        </data>
+        """.strip()
+        self.dec_submission_file = BytesIO(self.dec_submission_xml.encode("utf-8"))
+        self.dec_media = {
+            "sunset.png": BytesIO(b"Fake PNG image data"),
+            "forest.mp4": BytesIO(b"Fake MP4 video data"),
+        }
+        dec_aes_key = b"0123456789abcdef0123456789abcdef"
+        kms_key = create_key(self.org)
+        enc_aes_key = self._encrypt(key_id=kms_key.key_id, plain_text=dec_aes_key)
+        enc_signature = self._get_encrypted_signature(
+            key_id=kms_key.key_id,
+            enc_aes_key=enc_aes_key,
+            dec_media=self.dec_media,
+            dec_submission=self.dec_submission_file,
+        )
+        enc_key_b64 = base64.b64encode(enc_aes_key).decode("utf-8")
+        enc_signature_b64 = base64.b64encode(enc_signature).decode("utf-8")
+
+        self.metadata_xml = f"""
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="{self.form_id}" version="{self.instance_version}">
+            <base64EncryptedKey>{enc_key_b64}</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>{self.instance_uuid}</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>{enc_signature_b64}</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        self.metadata_xml_file = BytesIO(self.metadata_xml.encode("utf-8"))
+
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        self.xform = self._publish_markdown(md, self.user, id_string="nature")
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        self.instance = Instance.objects.create(
+            xform=self.xform,
+            xml=self.metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+            checksum=sha256(self.metadata_xml_file.getvalue()).hexdigest(),
+        )
+        dec_files = [
+            ("submission.xml", self.dec_submission_file),
+            ("sunset.png", self.dec_media["sunset.png"]),
+            ("forest.mp4", self.dec_media["forest.mp4"]),
+        ]
+        attachments = []
+
+        for index, (name, file) in enumerate(dec_files):
+            enc_file_name = f"{name}.enc"
+            enc_file = self._encrypt_file(dec_aes_key, index, file.getvalue())
+            attachment = Attachment(
+                instance=self.instance,
+                xform=self.xform,
+                media_file=File(enc_file, name=enc_file_name),
+                mimetype="application/octet-stream",
+                extension="enc",
+                file_size=len(file.getbuffer()),
+                name=enc_file_name,
+            )
+            attachments.append(attachment)
+
+        Attachment.objects.bulk_create(attachments)
+
+        self.xform.kms_keys.create(version="202502131337", kms_key=kms_key)
+
+    def _encrypt(self, key_id, plain_text):
+        boto3_kms_client = boto3.client("kms", region_name="us-east-1")
+
+        response = boto3_kms_client.encrypt(KeyId=key_id, Plaintext=plain_text)
+        return response["CiphertextBlob"]
+
+    def _get_encrypted_signature(self, key_id, enc_aes_key, dec_submission, dec_media):
+        def compute_digest(message):
+            return md5(message.encode("utf-8")).digest()
+
+        def compute_file_md5_hash(file):
+            file.seek(0)
+            return md5(file.read()).hexdigest().zfill(32)
+
+        signature_parts = [
+            self.form_id,
+            self.instance_version,
+            base64.b64encode(enc_aes_key).decode("utf-8"),
+            self.instance_uuid,
+        ]
+        # Add media files
+        for media_name, media_file in dec_media.items():
+            file_md5_hash = compute_file_md5_hash(media_file)
+            signature_parts.append(f"{media_name}::{file_md5_hash}")
+
+        # Add submission file
+        file_md5_hash = compute_file_md5_hash(dec_submission)
+        signature_parts.append(f"submission.xml::{file_md5_hash}")
+        # Construct final signature string
+        signature_data = "\n".join(signature_parts) + "\n"
+        # Compute MD5 digest before encrypting
+        signature_md5_digest = compute_digest(signature_data)
+        # Encrypt MD5 digest
+        return self._encrypt(key_id=key_id, plain_text=signature_md5_digest)
+
+    def _encrypt_file(self, dec_aes_key, index, data):
+        iv = _get_submission_iv(self.instance_uuid, dec_aes_key, index=index)
+        cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
+
+        return BytesIO(cipher_aes.encrypt(data))
+
+    def test_decrypt_submission(self):
+        """Decrypt submission is successful."""
+        decrypt_submission(self.instance.pk)
+
+        self.instance.refresh_from_db()
+
+        # Submission replaced
+        self.assertEqual(self.instance.xml, self.dec_submission_xml)
+        self.assertEqual(
+            self.instance.checksum,
+            sha256(self.dec_submission_file.getvalue()).hexdigest(),
+        )
+
+        # Decrypted media files are saved
+        att_qs = Attachment.objects.filter(
+            xform=self.xform, instance=self.instance
+        ).order_by("pk")
+
+        self.assertEqual(att_qs.count(), 5)
+        self.assertEqual(att_qs[3].name, "sunset.png")
+        self.assertEqual(att_qs[3].extension, "png")
+        self.assertEqual(att_qs[3].mimetype, "image/png")
+        with att_qs[3].media_file.open("rb") as f:
+            file = BytesIO(f.read())
+            self.assertEqual(
+                sha256(file.getvalue()).hexdigest(),
+                sha256(self.dec_media["sunset.png"].getvalue()).hexdigest(),
+            )
+            self.assertEqual(att_qs[3].file_size, len(file.getbuffer()))
+
+        self.assertEqual(att_qs[4].name, "forest.mp4")
+        self.assertEqual(att_qs[4].extension, "mp4")
+        self.assertEqual(att_qs[4].mimetype, "video/mp4")
+        with att_qs[4].media_file.open("rb") as f:
+            file = BytesIO(f.read())
+            self.assertEqual(
+                sha256(file.getvalue()).hexdigest(),
+                sha256(self.dec_media["forest.mp4"].getvalue()).hexdigest(),
+            )
+            self.assertEqual(att_qs[4].file_size, len(file.getbuffer()))
+
+        # Encrypted media files are soft deleted
+        self.assertIsNotNone(att_qs[1].deleted_at)
+        self.assertIsNotNone(att_qs[2].deleted_at)
+
+        # Old submission is stored in history
+        history_qs = self.instance.submission_history.all()
+
+        self.assertEqual(history_qs.count(), 1)
+
+        history = history_qs.first()
+
+        self.assertEqual(history.xml, self.metadata_xml)
+        self.assertEqual(
+            history.checksum, sha256(self.metadata_xml_file.getvalue()).hexdigest()
+        )
