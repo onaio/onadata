@@ -245,9 +245,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if data_type == XFORM_META_PERMS:
             perms = value.split("|")
-            if len(perms) != 2 or not set(perms).issubset(set(ROLES)):
+            if len(perms) != 3 or not set(perms).issubset(set(ROLES)):
                 raise serializers.ValidationError(
-                    _("Format 'role'|'role' or Invalid role")
+                    _("Format 'role'|'role'|'role' or Invalid role")
                 )
 
         return attrs
