@@ -2,6 +2,8 @@
 """
 OrganizationProfile module.
 """
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -154,6 +156,14 @@ def _post_save_create_owner_team(sender, instance, created, **kwargs):
         create_owner_team_and_assign_permissions(instance)
 
 
+def _post_save_create_key(sender, instance, created, **kwargs):
+    """Create KMSKey for organization."""
+    from onadata.libs.kms.tools import create_key
+
+    if created and getattr(settings, "KMS_AUTO_CREATE_KEY", False):
+        create_key(instance)
+
+
 class OrganizationProfile(UserProfile):
     """Organization: Extends the user profile for organization specific info
 
@@ -215,6 +225,12 @@ post_delete.connect(
     org_profile_post_delete_callback,
     sender=OrganizationProfile,
     dispatch_uid="org_profile_post_delete_callback",
+)
+
+post_save.connect(
+    _post_save_create_key,
+    sender=OrganizationProfile,
+    dispatch_uid="create_org_kms_key",
 )
 
 
