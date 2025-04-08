@@ -93,19 +93,20 @@ class ShareProject:
                         meta_perm = meta_perms[0].data_value.split("|")
 
                         if len(meta_perm) > 1:
-                            if role in [EditorRole, EditorMinorRole]:
-                                role = ROLES.get(meta_perm[0])
+                            role_to_index = {
+                                EditorRole: 0,
+                                EditorMinorRole: 0,
+                                DataEntryRole: 1,
+                                DataEntryMinorRole: 1,
+                                DataEntryOnlyRole: 1,
+                                ReadOnlyRole: 2,
+                                ReadOnlyRoleNoDownload: 2,
+                            }
 
-                            elif role in [
-                                DataEntryRole,
-                                DataEntryMinorRole,
-                                DataEntryOnlyRole,
-                            ]:
-                                role = ROLES.get(meta_perm[1])
-                            elif role in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
-                                role = ROLES.get(meta_perm[2])
-
-                    role.add(self.user, xform)
+                            index = role_to_index.get(role)
+                            if index is not None and len(meta_perm) > index:
+                                role = ROLES.get(meta_perm[index])
+                                role.add(self.user, xform)
 
                     # Set MergedXForm permissions if XForm is also a MergedXForm
                     if hasattr(xform, "mergedxform"):
