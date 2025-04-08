@@ -2,6 +2,7 @@
 """
 XForm model serialization.
 """
+
 import hashlib
 import logging
 import os

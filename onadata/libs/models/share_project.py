@@ -2,11 +2,14 @@
 """
 ShareProject model - facilitate sharing of a project to a user.
 """
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from onadata.libs.permissions import (
     ROLES,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -99,6 +102,9 @@ class ShareProject:
                                 DataEntryOnlyRole,
                             ]:
                                 role = ROLES.get(meta_perm[1])
+                            elif role in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
+                                role = ROLES.get(meta_perm[2])
+
                     role.add(self.user, xform)
 
                     # Set MergedXForm permissions if XForm is also a MergedXForm
