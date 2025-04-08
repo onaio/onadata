@@ -6,27 +6,27 @@
 #
 asgiref==3.8.1
     # via django
-azure-core==1.32.0
+azure-core==1.33.0
     # via
     #   azure-storage-blob
     #   django-storages
-azure-storage-blob==12.24.0
+azure-storage-blob==12.25.1
     # via django-storages
-certifi==2024.12.14
+certifi==2025.1.31
     # via requests
 cffi==1.17.1
     # via cryptography
 charset-normalizer==3.4.1
     # via requests
-cryptography==44.0.0
+cryptography==44.0.2
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==5.1.5
+django==5.1.8
     # via
     #   -r requirements/azure.in
     #   django-storages
-django-storages==1.14.4
+django-storages==1.14.6
     # via -r requirements/azure.in
 idna==3.10
     # via requests
@@ -40,7 +40,7 @@ six==1.17.0
     # via azure-core
 sqlparse==0.5.3
     # via django
-typing-extensions==4.12.2
+typing-extensions==4.13.1
     # via
     #   asgiref
     #   azure-core

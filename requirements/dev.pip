@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=requirements/dev.pip --strip-extras requirements/dev.in
 #
+
+    # via -r requirements/base.in
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
     # via -r requirements/base.in
 amqp==5.3.1
@@ -16,17 +18,16 @@ asgiref==3.8.1
     # via
     #   django
     #   django-cors-headers
-astroid==3.3.8
+astroid==3.3.9
     # via
     #   pylint
     #   pylint-celery
-    #   pylint-flask
     #   requirements-detector
 asttokens==3.0.0
     # via stack-data
 async-timeout==5.0.1
     # via redis
-attrs==24.3.0
+attrs==25.3.0
     # via
     #   jsonlines
     #   jsonschema
@@ -35,22 +36,22 @@ backoff==1.10.0
     # via analytics-python
 billiard==4.2.1
     # via celery
-boto3==1.36.2
+boto3==1.37.29
     # via
     #   dataflows-tabulator
     #   moto
-botocore==1.36.2
+botocore==1.37.29
     # via
     #   boto3
     #   moto
     #   s3transfer
 cached-property==2.0.1
     # via tableschema
-cachetools==5.5.0
+cachetools==5.5.2
     # via google-auth
-celery==5.4.0
+celery==5.5.1
     # via onadata
-certifi==2024.12.14
+certifi==2025.1.31
     # via
     #   requests
     #   sentry-sdk
@@ -81,7 +82,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==44.0.0
+cryptography==44.0.2
     # via
     #   jwcrypto
     #   moto
@@ -93,7 +94,7 @@ dataflows-tabulator==1.54.3
     #   tableschema
 datapackage==1.15.4
     # via pyfloip
-decorator==5.1.1
+decorator==5.2.1
     # via
     #   ipdb
     #   ipython
@@ -102,7 +103,7 @@ defusedxml==0.7.1
     #   djangorestframework-xml
     #   onadata
     #   pyxform
-deprecated==1.2.15
+deprecated==1.2.18
     # via onadata
 dict2xml==1.7.6
     # via onadata
@@ -110,7 +111,7 @@ dill==0.3.9
     # via pylint
 distlib==0.3.9
     # via virtualenv
-django==5.1.5
+django==5.1.8
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -132,15 +133,15 @@ django==5.1.5
     #   onadata
 django-activity-stream==2.0.0
     # via onadata
-django-cors-headers==4.6.0
+django-cors-headers==4.7.0
     # via onadata
-django-csp==3.8
+django-csp==4.0
     # via onadata
-django-debug-toolbar==5.0.1
+django-debug-toolbar==5.1.0
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
-django-extensions==3.2.3
+django-extensions==4.0
     # via -r requirements/dev.in
 django-filter==24.1
     # via
@@ -204,11 +205,11 @@ et-xmlfile==2.0.0
     # via openpyxl
 exceptiongroup==1.2.2
     # via ipython
-executing==2.1.0
+executing==2.2.0
     # via stack-data
-filelock==3.16.1
+filelock==3.18.0
     # via virtualenv
-flake8==7.1.1
+flake8==7.2.0
     # via flake8-polyfill
 flake8-polyfill==1.0.2
     # via pep8-naming
@@ -224,7 +225,7 @@ gitdb==4.0.12
     # via gitpython
 gitpython==3.1.44
     # via prospector
-google-auth==2.37.0
+google-auth==2.38.0
     # via
     #   google-auth-oauthlib
     #   onadata
@@ -238,7 +239,7 @@ httmock==1.4.0
     # via -r requirements/dev.in
 httplib2==0.22.0
     # via onadata
-identify==2.6.5
+identify==2.6.9
     # via pre-commit
 idna==3.10
     # via requests
@@ -248,17 +249,17 @@ inflection==0.5.1
     # via djangorestframework-jsonapi
 ipdb==0.13.13
     # via -r requirements/dev.in
-ipython==8.31.0
+ipython==8.35.0
     # via ipdb
 isodate==0.7.2
     # via tableschema
-isort==5.13.2
+isort==6.0.1
     # via
     #   -r requirements/dev.in
     #   pylint
 jedi==0.19.2
     # via ipython
-jinja2==3.1.5
+jinja2==3.1.6
     # via moto
 jmespath==1.0.1
     # via
@@ -266,7 +267,7 @@ jmespath==1.0.1
     #   botocore
 jsonlines==4.0.0
     # via dataflows-tabulator
-jsonpickle==4.0.1
+jsonpickle==4.0.5
     # via onadata
 jsonpointer==3.0.0
     # via datapackage
@@ -278,11 +279,11 @@ jsonschema-specifications==2024.10.1
     # via jsonschema
 jwcrypto==1.5.6
     # via django-oauth-toolkit
-kombu==5.4.2
+kombu==5.5.2
     # via celery
 linear-tsv==1.1.0
     # via dataflows-tabulator
-lxml==5.3.0
+lxml==5.3.2
     # via onadata
 markdown==3.7
     # via onadata
@@ -301,19 +302,19 @@ modilabs-python-utils==0.1.5
     # via onadata
 monotonic==1.6
     # via analytics-python
-moto==5.0.28
+moto==5.1.3
     # via -r requirements/dev.in
 nodeenv==1.9.1
     # via pre-commit
 nose==1.3.7
     # via django-nose
-numpy==2.2.2
+numpy==2.2.4
     # via onadata
 oauthlib==3.2.2
     # via
     #   django-oauth-toolkit
     #   requests-oauthlib
-ona-oidc @ git+https://github.com/onaio/ona-oidc.git@django-upgrade-5
+ona-oidc @ git+https://github.com/onaio/ona-oidc.git@v2.0.0
     # via -r requirements/base.in
 openpyxl==3.1.3
     # via
@@ -322,6 +323,7 @@ openpyxl==3.1.3
     #   pyxform
 packaging==24.2
     # via
+    #   django-csp
     #   prospector
     #   requirements-detector
 paho-mqtt==2.1.0
@@ -336,18 +338,18 @@ pillow==11.1.0
     # via
     #   elaphe3
     #   onadata
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via
     #   pylint
     #   virtualenv
     #   yapf
-pre-commit==4.0.1
+pre-commit==4.2.0
     # via -r requirements/dev.in
-prompt-toolkit==3.0.49
+prompt-toolkit==3.0.50
     # via
     #   click-repl
     #   ipython
-prospector==1.13.3
+prospector==1.16.1
     # via -r requirements/dev.in
 psycopg2-binary==2.9.10
     # via onadata
@@ -359,9 +361,9 @@ pyasn1==0.6.1
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.4.1
+pyasn1-modules==0.4.2
     # via google-auth
-pycodestyle==2.12.1
+pycodestyle==2.13.0
     # via
     #   flake8
     #   prospector
@@ -369,7 +371,7 @@ pycparser==2.22
     # via cffi
 pydocstyle==6.3.0
     # via prospector
-pyflakes==3.2.0
+pyflakes==3.3.2
     # via
     #   flake8
     #   prospector
@@ -383,13 +385,12 @@ pyjwt==2.10.1
     #   onadata
 pylibmc==1.6.3
     # via onadata
-pylint==3.3.3
+pylint==3.3.6
     # via
     #   -r requirements/dev.in
     #   prospector
     #   pylint-celery
     #   pylint-django
-    #   pylint-flask
     #   pylint-plugin-utils
 pylint-celery==0.3
     # via prospector
@@ -397,16 +398,13 @@ pylint-django==2.6.1
     # via
     #   -r requirements/dev.in
     #   prospector
-pylint-flask==0.6
-    # via prospector
 pylint-plugin-utils==0.8.2
     # via
     #   pylint-celery
     #   pylint-django
-    #   pylint-flask
-pymongo==4.10.1
+pymongo==4.12.0
     # via onadata
-pyparsing==3.2.1
+pyparsing==3.2.3
     # via httplib2
 python-dateutil==2.9.0.post0
     # via
@@ -423,7 +421,7 @@ python-json2xlsclient @ git+https://github.com/onaio/python-json2xlsclient.git@6
     # via -r requirements/base.in
 python-memcached==1.62
     # via onadata
-pytz==2024.2
+pytz==2025.2
     # via
     #   django-query-builder
     #   fleming
@@ -442,7 +440,7 @@ redis==5.2.1
     # via
     #   django-redis
     #   onadata
-referencing==0.36.1
+referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
@@ -467,25 +465,25 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 requirements-detector==1.3.2
     # via prospector
-responses==0.25.6
+responses==0.25.7
     # via moto
 rfc3986==2.0.0
     # via tableschema
-rpds-py==0.22.3
+rpds-py==0.24.0
     # via
     #   jsonschema
     #   referencing
 rsa==4.9
     # via google-auth
-s3transfer==0.11.1
+s3transfer==0.11.4
     # via boto3
-semver==3.0.2
+semver==3.0.4
     # via requirements-detector
-sentry-sdk==2.20.0
+sentry-sdk==2.25.1
     # via onadata
 setoptconf-tmp==0.3.1
     # via prospector
-simplejson==3.19.3
+simplejson==3.20.1
     # via onadata
 six==1.17.0
     # via
@@ -500,7 +498,7 @@ smmap==5.0.2
     # via gitdb
 snowballstemmer==2.2.0
     # via pydocstyle
-sqlalchemy==2.0.37
+sqlalchemy==2.0.40
     # via dataflows-tabulator
 sqlparse==0.5.3
     # via
@@ -510,7 +508,7 @@ stack-data==0.6.3
     # via ipython
 tableschema==1.21.0
     # via datapackage
-tblib==3.0.0
+tblib==3.1.0
     # via -r requirements/dev.in
 toml==0.10.2
     # via
@@ -527,7 +525,7 @@ traitlets==5.14.3
     # via
     #   ipython
     #   matplotlib-inline
-typing-extensions==4.12.2
+typing-extensions==4.13.1
     # via
     #   asgiref
     #   astroid
@@ -535,10 +533,8 @@ typing-extensions==4.12.2
     #   jwcrypto
     #   referencing
     #   sqlalchemy
-tzdata==2024.2
-    # via
-    #   celery
-    #   kombu
+tzdata==2025.2
+    # via kombu
 ujson==5.10.0
     # via onadata
 unicodecsv==0.14.1
@@ -560,7 +556,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.29.1
+virtualenv==20.30.0
     # via pre-commit
 wcwidth==0.2.13
     # via prompt-toolkit

@@ -6,9 +6,9 @@
 #
 alabaster==1.0.0
     # via sphinx
-babel==2.16.0
+babel==2.17.0
     # via sphinx
-certifi==2024.12.14
+certifi==2025.1.31
     # via requests
 charset-normalizer==3.4.1
     # via requests
@@ -18,7 +18,7 @@ idna==3.10
     # via requests
 imagesize==1.4.1
     # via sphinx
-jinja2==3.1.5
+jinja2==3.1.6
     # via sphinx
 markupsafe==3.0.2
     # via jinja2
