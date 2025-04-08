@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.0.0 (2025-04-08)
+-------------------
+- Django upgrade to version 5.x.x * 
+  `PR #2777 <https://github.com/onaio/onadata/pull/2777>`
+  [@ukanga]
+
 v4.14.0(2025-03-26)
 -------------------
 - Fix new columns not showing in CSV after replacing form
