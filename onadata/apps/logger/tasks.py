@@ -12,6 +12,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
+from onadata.libs.kms.tools import decrypt_instance
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.logger_tools import (
     commit_cached_elist_num_entities,
@@ -145,3 +146,19 @@ def reconstruct_xform_export_register_async(xform_id: int) -> None:
 
     else:
         reconstruct_xform_export_register(xform)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def decrypt_instance_async(instance_id: int):
+    """Decrypt encrypted Instance asynchronously.
+
+    :param instance_id: Primary key for Instance
+    """
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        decrypt_instance(instance)
