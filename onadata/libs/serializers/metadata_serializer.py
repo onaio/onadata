@@ -255,7 +255,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             if len(perms) != 3 or not set(perms).issubset(set(ROLES)):
                 raise serializers.ValidationError(
                     _(
-                        "Format 'editor role'|'dataentry role'|'readonly role' or Invalid role"
+                        "Format must be: "
+                        "'editor role' | 'dataentry role' | 'readonly role', "
+                        "or an invalid role was provided."
                     )
                 )
 
