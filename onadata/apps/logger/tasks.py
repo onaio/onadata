@@ -15,6 +15,7 @@ from onadata.apps.logger.models.instance import (
     update_xform_submission_count,
 )
 from onadata.celeryapp import app
+from onadata.libs.kms.tools import decrypt_instance
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.entities_utils import (
     commit_cached_elist_num_entities,
@@ -196,8 +197,25 @@ def update_project_date_modified_async(instance_id):
     """Update a Project's date_modified asynchronously"""
     try:
         instance = Instance.objects.get(pk=instance_id)
+
     except Instance.DoesNotExist as exc:
         logger.exception(exc)
 
     else:
         update_project_date_modified(instance)
+
+
+@app.task(base=AutoRetryTask)
+def decrypt_instance_async(instance_id: int):
+    """Decrypt encrypted Instance asynchronously.
+
+    :param instance_id: Primary key for Instance
+    """
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        decrypt_instance(instance)
