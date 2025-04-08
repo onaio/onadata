@@ -2,6 +2,7 @@
 Key management utility functions
 """
 
+import logging
 import mimetypes
 import os
 import xml.etree.ElementTree as ET
@@ -22,10 +23,12 @@ from valigetta.exceptions import InvalidSubmission
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
-from onadata.libs.exceptions import DecryptionError, EncryptionError
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.model_tools import queryset_iterator
+
+logger = logging.getLogger(__name__)
 
 KMS_CLIENTS = {"AWS": AWSKMSClient}
 
@@ -196,23 +199,20 @@ def decrypt_instance(instance: Instance):
     """
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
 
-    # Check if submission is already decrypted
+    # Check if submission is unencrypted
     try:
         tree = ET.fromstring(submission_xml.read())
         extract_encrypted_submission_file_name(tree)
 
-    except (ET.ParseError, InvalidSubmission) as exc:
-        raise DecryptionError(exc)
+    except InvalidSubmission as exc:
+        logger.exception(exc)
+
+        return
 
     kms_client = get_kms_client()
 
     # Get the key that encrypted the submission
-    try:
-        xms_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
-
-    except XFormKey.DoesNotExist as exc:
-        raise DecryptionError(exc)
-
+    xms_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
     # Decrypt submission files
     attachment_qs = instance.attachments.all()
 
