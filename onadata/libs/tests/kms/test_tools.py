@@ -588,12 +588,16 @@ class DecryptInstanceTestCase(TestBase):
             history.checksum, sha256(self.metadata_xml_file.getvalue()).hexdigest()
         )
 
-    @patch("onadata.libs.kms.tools.logger.exception")
-    def test_unencrypted_submission(self, mock_logger):
-        """Submission should be encrypted."""
+    def test_unencrypted_submission(self):
+        """No changes made to unencrypted submission."""
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.order_by("-date_created").first()
+        old_xml = instance.xml
+        old_date_modified = instance.date_modified
 
         decrypt_instance(instance)
 
-        mock_logger.assert_called_once()
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.xml, old_xml)
+        self.assertEqual(instance.date_modified, old_date_modified)
