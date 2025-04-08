@@ -21,8 +21,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.permissions import (DataEntryMinorRole, EditorMinorRole,
-                                      ReadOnlyRole)
+from onadata.libs.permissions import DataEntryMinorRole, EditorMinorRole, ReadOnlyRole
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -328,7 +327,7 @@ class TestExportViewSet(TestBase):
             alice = self._create_user("alice", "alice", True)
 
             MetaData.xform_meta_permission(
-                self.xform, data_value="editor|dataentry-minor"
+                self.xform, data_value="editor|dataentry-minor|readonly-no-download"
             )
 
             DataEntryMinorRole.add(alice, self.xform)
@@ -392,7 +391,7 @@ class TestExportViewSet(TestBase):
             alice = self._create_user("alice", "alice", True)
 
             MetaData.xform_meta_permission(
-                self.xform, data_value="editor|dataentry-minor"
+                self.xform, data_value="editor|dataentry-minor|readonly-no-download"
             )
 
             DataEntryMinorRole.add(alice, self.xform)
@@ -460,7 +459,7 @@ class TestExportViewSet(TestBase):
             alice = self._create_user("alice", "alice", True)
 
             MetaData.xform_meta_permission(
-                self.xform, data_value="editor|dataentry-minor"
+                self.xform, data_value="editor|dataentry-minor|readonly-no-download"
             )
 
             ReadOnlyRole.add(alice, self.xform)
@@ -578,7 +577,7 @@ class TestExportViewSet(TestBase):
         # Form permissions are ignored when downloading Export;
         # When public editors & anonymous users should be able to
         # download all exports
-        data_value = "editor-minor|dataentry-minor"
+        data_value = "editor-minor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
         self.xform.shared = True
         self.xform.shared_data = True

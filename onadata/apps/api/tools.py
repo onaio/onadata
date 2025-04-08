@@ -32,42 +32,66 @@ from six import iteritems
 from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import (
-    OrganizationProfile, add_user_to_team,
-    get_or_create_organization_owners_team, get_organization_members_team)
+    OrganizationProfile,
+    add_user_to_team,
+    get_or_create_organization_owners_team,
+    get_organization_members_team,
+)
 from onadata.apps.api.models.team import Team
-from onadata.apps.logger.models import (DataView, EntityList, Instance,
-                                        Project, XForm)
+from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
-from onadata.libs.permissions import (ROLES, ROLES_ORDERED, DataEntryMinorRole,
-                                      DataEntryOnlyRole, DataEntryRole,
-                                      EditorMinorRole, EditorRole, ManagerRole,
-                                      OwnerRole, get_role, get_role_in_org,
-                                      get_team_project_default_permissions,
-                                      is_organization)
+from onadata.libs.permissions import (
+    ROLES,
+    ROLES_ORDERED,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
+    DataEntryMinorRole,
+    DataEntryOnlyRole,
+    DataEntryRole,
+    EditorMinorRole,
+    EditorRole,
+    ManagerRole,
+    OwnerRole,
+    get_role,
+    get_role_in_org,
+    get_team_project_default_permissions,
+    is_organization,
+)
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
-    custom_response_handler, get_entity_list_export_response,
-    get_metadata_format)
-from onadata.libs.utils.cache_tools import (ORG_PROFILE_CACHE,
-                                            PROJ_BASE_FORMS_CACHE,
-                                            PROJ_FORMS_CACHE,
-                                            PROJ_NUM_DATASET_CACHE,
-                                            PROJ_OWNER_CACHE,
-                                            PROJ_SUB_DATE_CACHE,
-                                            XFORM_LIST_CACHE,
-                                            reset_project_cache, safe_delete)
+    custom_response_handler,
+    get_entity_list_export_response,
+    get_metadata_format,
+)
+from onadata.libs.utils.cache_tools import (
+    ORG_PROFILE_CACHE,
+    PROJ_BASE_FORMS_CACHE,
+    PROJ_FORMS_CACHE,
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_OWNER_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    XFORM_LIST_CACHE,
+    reset_project_cache,
+    safe_delete,
+)
 from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
-from onadata.libs.utils.logger_tools import (publish_form,
-                                             response_with_mimetype_and_name)
+from onadata.libs.utils.logger_tools import (
+    publish_form,
+    response_with_mimetype_and_name,
+)
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.project_utils import (set_project_perms_to_xform,
-                                              set_project_perms_to_xform_async)
-from onadata.libs.utils.user_auth import (check_and_set_form_by_id,
-                                          check_and_set_form_by_id_string)
+from onadata.libs.utils.project_utils import (
+    set_project_perms_to_xform,
+    set_project_perms_to_xform_async,
+)
+from onadata.libs.utils.user_auth import (
+    check_and_set_form_by_id,
+    check_and_set_form_by_id_string,
+)
 
 DECIMAL_PRECISION = 2
 
@@ -788,6 +812,9 @@ def update_role_by_meta_xform_perms(xform):
     dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
     dataentry_role = {role.name: role for role in dataentry_role_list}
 
+    readonly_role_list = [ReadOnlyRoleNoDownload, ReadOnlyRole]
+    readonly_role = {role.name: role for role in readonly_role_list}
+
     if metadata:
         meta_perms = metadata.data_value.split("|")
 
@@ -802,6 +829,10 @@ def update_role_by_meta_xform_perms(xform):
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
+                role.add(user, xform)
+
+            if role in readonly_role:
+                role = ROLES.get(meta_perms[2])
                 role.add(user, xform)
 
 
