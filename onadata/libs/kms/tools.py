@@ -191,26 +191,35 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
+def is_instance_encrypted(instance):
+    """Return True if instance is encrypted
+
+    :param instance: Instance
+    """
+
+    submission_xml = BytesIO(instance.xml.encode("utf-8"))
+
+    try:
+        tree = ET.fromstring(submission_xml.read())
+        extract_encrypted_submission_file_name(tree)
+
+    except InvalidSubmission:
+        return False
+
+    return True
+
+
 @transaction.atomic()
 def decrypt_instance(instance: Instance):
     """Decrypt encrypted Instance
 
     :param instance: Instance to be decrypted
     """
-    submission_xml = BytesIO(instance.xml.encode("utf-8"))
-
-    # Check if submission is unencrypted
-    try:
-        tree = ET.fromstring(submission_xml.read())
-        extract_encrypted_submission_file_name(tree)
-
-    except InvalidSubmission as exc:
-        logger.exception(exc)
-
+    if not is_instance_encrypted(instance):
         return
 
+    submission_xml = BytesIO(instance.xml.encode("utf-8"))
     kms_client = get_kms_client()
-
     # Get the key that encrypted the submission
     xms_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
     # Decrypt submission files
