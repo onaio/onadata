@@ -2673,6 +2673,11 @@ class TestProjectViewSet(TestAbstractViewSet):
                     DataEntryRole.user_has_role(alice_profile.user, self.xform)
                 )
 
+            elif role_class in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
+                self.assertTrue(
+                    ReadOnlyRoleNoDownload.user_has_role(alice_profile.user, self.xform)
+                )
+
             else:
                 self.assertTrue(
                     role_class.user_has_role(alice_profile.user, self.xform)
