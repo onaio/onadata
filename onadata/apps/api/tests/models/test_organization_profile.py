@@ -53,10 +53,10 @@ class TestOrganizationProfile(TestBase):
         profile.save()
         profile_id = profile.pk
         count = OrganizationProfile.objects.all().count()
-        cache.set("{}{}".format(IS_ORG, profile_id), True)
+        cache.set(f"{IS_ORG}{profile_id}", True)
 
         profile.delete()
-        safe_delete("{}{}".format(IS_ORG, profile_id))
+        safe_delete(f"{IS_ORG}{profile_id}")
         self.assertIsNone(cache.get("{}{}".format(IS_ORG, profile_id)))
         self.assertEqual(count - 1, OrganizationProfile.objects.all().count())
 
