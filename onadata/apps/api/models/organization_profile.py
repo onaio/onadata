@@ -158,6 +158,7 @@ def _post_save_create_owner_team(sender, instance, created, **kwargs):
 
 def _post_save_create_key(sender, instance, created, **kwargs):
     """Create KMSKey for organization."""
+    # pylint: disable=import-outside-toplevel
     from onadata.libs.kms.tools import create_key
 
     if created and getattr(settings, "KMS_AUTO_CREATE_KEY", False):

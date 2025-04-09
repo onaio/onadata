@@ -57,7 +57,7 @@ class TestOrganizationProfile(TestBase):
 
         profile.delete()
         safe_delete(f"{IS_ORG}{profile_id}")
-        self.assertIsNone(cache.get("{}{}".format(IS_ORG, profile_id)))
+        self.assertIsNone(cache.get(f"{IS_ORG}{profile_id}"))
         self.assertEqual(count - 1, OrganizationProfile.objects.all().count())
 
     @override_settings(ORG_ON_CREATE_IS_ACTIVE=False)
