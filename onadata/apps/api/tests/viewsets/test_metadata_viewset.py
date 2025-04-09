@@ -542,8 +542,11 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEqual(response.status_code, 400)
-        error = "Format 'editor role'|'dataentry role'|'readonly role' or Invalid role"
-        self.assertEqual(response.data, {"non_field_errors": [error]})
+        error_line_1 = "Format must be: 'editor role' | 'dataentry role' | "
+        error_line_2 = "'readonly role', or an invalid role was provided."
+        self.assertEqual(
+            response.data, {"non_field_errors": [error_line_1 + error_line_2]}
+        )
 
     def test_role_update_xform_meta_perms(self):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
