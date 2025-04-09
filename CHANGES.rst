@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.0.2 (2025-04-09)
+-------------------
+- Update ona-oidc to v2.0.1 
+  `PR #2777 <https://github.com/onaio/onadata/pull/2794>`
+  [@ukanga]
+
 v5.0.1 (2025-04-09)
 -------------------
 - Pin Django version to < 5.2 
