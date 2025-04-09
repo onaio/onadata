@@ -254,7 +254,7 @@ Example
 ::
 
 
-        curl -X POST -F 'data_type=xform_meta_perms' -F 'xform=320' -F 'data_value="editor-minor|dataentryonly"' https://api.ona.io/api/v1/metadata.json
+        curl -X POST -F 'data_type=xform_meta_perms' -F 'xform=320' -F 'data_value="editor-minor|dataentryonly|readonly-no-download"' https://api.ona.io/api/v1/metadata.json
 
 ::
 

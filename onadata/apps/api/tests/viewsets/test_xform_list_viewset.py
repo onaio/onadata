@@ -2,6 +2,7 @@
 """
 Test XFormListViewSet module.
 """
+
 import os
 from builtins import open
 from hashlib import md5
@@ -596,7 +597,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             content = response.render().content.decode("utf-8")
             self.assertEqual(content, form_list_xml % data)
             download_url = (
-                "<downloadUrl>http://testserver/%s/" "forms/%s/form.xml</downloadUrl>"
+                "<downloadUrl>http://testserver/%s/forms/%s/form.xml</downloadUrl>"
             ) % (self.user.username, self.xform.id)
             # check that bob's form exists in alice's formList
             self.assertTrue(download_url in content)
@@ -1070,7 +1071,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(req.status_code, 200)
 
         # enable meta perms
-        data_value = "editor-minor|dataentry"
+        data_value = "editor-minor|dataentry|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         req = client.get(url)
@@ -1131,7 +1132,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         content = response.render().content.decode("utf-8")
         manifest_url = (
-            "<manifestUrl>http://testserver/%s/xformsManifest" "/%s</manifestUrl>"
+            "<manifestUrl>http://testserver/%s/xformsManifest/%s</manifestUrl>"
         ) % (self.user.username, self.xform.id)
         self.assertTrue(manifest_url in content)
 
