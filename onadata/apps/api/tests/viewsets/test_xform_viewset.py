@@ -5487,6 +5487,23 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 400)
         self.assertIn("Encryption failed due to missing key", str(response.data))
 
+        # Already encrypted form is not encrypted again
+        mock_encrypt_xform.reset_mock()
+        mock_encrypt_xform.side_effect = None
+        self.xform.public_key = "fake-public-key"
+        self.xform.save()
+        self.xform.refresh_from_db()
+
+        self.assertTrue(self.xform.encrypted)
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        mock_encrypt_xform.assert_not_called()
+
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
     """Tests for exporting form data asynchronously"""
