@@ -27,6 +27,13 @@ from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.fields.project_related_field import ProjectRelatedField
 from onadata.libs.serializers.fields.xform_related_field import XFormRelatedField
 from onadata.libs.utils.api_export_tools import get_metadata_format
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    XFORM_DATA_VERSIONS,
+    XFORM_METADATA_CACHE,
+    XFORM_PERMISSIONS_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.common_tags import (
     IMPORTED_VIA_CSV_BY,
     SUBMISSION_REVIEW,
@@ -245,9 +252,13 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if data_type == XFORM_META_PERMS:
             perms = value.split("|")
-            if len(perms) != 2 or not set(perms).issubset(set(ROLES)):
+            if len(perms) != 3 or not set(perms).issubset(set(ROLES)):
                 raise serializers.ValidationError(
-                    _("Format 'role'|'role' or Invalid role")
+                    _(
+                        "Format must be: "
+                        "'editor role' | 'dataentry role' | 'readonly role', "
+                        "or an invalid role was provided."
+                    )
                 )
 
         return attrs
@@ -326,6 +337,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         instance = super().update(instance, validated_data)
 
         if instance.data_type == XFORM_META_PERMS:
-            update_role_by_meta_xform_perms(instance.content_object)
+            xform = instance.content_object
+            update_role_by_meta_xform_perms(xform)
+            safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+            safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
+            safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+            safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
 
         return instance

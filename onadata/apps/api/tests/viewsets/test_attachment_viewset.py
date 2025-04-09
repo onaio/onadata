@@ -451,7 +451,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         user_dave = self._create_user_profile({"username": "dave"}).user
         # Enable meta perms
-        data_value = "editor-minor|dataentry-minor"
+        data_value = "editor-minor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         ShareXForm(self.xform, user_dave.username, EditorRole.name)

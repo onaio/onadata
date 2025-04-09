@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
+# -*- cmding: utf-8 -*-
 """
 Custom rest_framework Router - MultiLookupRouter.
 """
+
 from django.contrib import admin
 from django.urls import re_path
 
