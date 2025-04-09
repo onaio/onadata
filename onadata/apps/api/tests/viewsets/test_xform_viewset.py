@@ -580,9 +580,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
             response = self.view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
-            error_msg = (
-                "Title shouldn't have any invalid xml characters " "('>' '&' '<')"
-            )
+            error_msg = "Title shouldn't have any invalid xml characters ('>' '&' '<')"
             self.assertEqual(response.data.get("text"), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
@@ -2615,7 +2613,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertIn("info", response.data)
             self.assertEqual(
                 response.data.get("info"),
-                "Additional column(s) excluded from the upload:" " '_additional'.",
+                "Additional column(s) excluded from the upload: '_additional'.",
             )
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -2690,9 +2688,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertEqual(response.data.get("progress"), 10)
                 self.assertEqual(response.data.get("total"), 100)
 
-    @patch(
-        ("onadata.apps.api.viewsets.xform_viewset." "get_async_csv_submission_status")
-    )
+    @patch(("onadata.apps.api.viewsets.xform_viewset.get_async_csv_submission_status"))
     def test_csv_import_status_check_invalid_returned_value(
         self, mock_submission_status
     ):
@@ -3525,8 +3521,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     ):
         error_message = {
             "error": (
-                "Service temporarily unavailable, please try to "
-                "publish the form again"
+                "Service temporarily unavailable, please try to publish the form again"
             )
         }
         mock_get_status.return_value = error_message
@@ -4913,7 +4908,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             view = XFormViewSet.as_view({"post": "share"})
             formid = self.xform.pk
 
-            data_value = "editor-minor|dataentry"
+            data_value = "editor-minor|dataentry|readonly-no-download"
 
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
@@ -4970,7 +4965,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             alice_data = {"username": "alice", "email": "alice@localhost.com"}
             alice_profile = self._create_user_profile(alice_data)
 
-            data_value = "editor|dataentry-minor"
+            data_value = "editor|dataentry-minor|readonly-no-download"
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
             DataEntryMinorRole.add(alice_profile.user, self.xform)
