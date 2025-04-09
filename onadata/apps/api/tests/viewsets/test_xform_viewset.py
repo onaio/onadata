@@ -62,6 +62,7 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
@@ -5458,6 +5459,33 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             }
         ]
         self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+
+    @patch("onadata.libs.serializers.xform_serializer.encrypt_xform")
+    def test_enable_kms_encryption(self, mock_encrypt_xform):
+        """Enabling KMS encryption works."""
+        self._publish_transportation_form()
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        mock_encrypt_xform.assert_called_once_with(self.xform, encrypted_by=self.user)
+
+        # Encryption error messages are captured
+        mock_encrypt_xform.side_effect = EncryptionError(
+            "Encryption failed due to missing key."
+        )
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Encryption failed due to missing key", str(response.data))
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
