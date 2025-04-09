@@ -89,6 +89,7 @@ class ShareProject:
                 for xform in queryset_iterator(xform_qs):
                     # check if there is xform meta perms set
                     meta_perms = xform.metadata_set.filter(data_type="xform_meta_perms")
+
                     if meta_perms:
                         meta_perm = meta_perms[0].data_value.split("|")
 
@@ -106,7 +107,7 @@ class ShareProject:
                             index = role_to_index.get(role)
                             if index is not None and len(meta_perm) > index:
                                 role = ROLES.get(meta_perm[index])
-                                role.add(self.user, xform)
+                    role.add(self.user, xform)
 
                     # Set MergedXForm permissions if XForm is also a MergedXForm
                     if hasattr(xform, "mergedxform"):
