@@ -1,6 +1,4 @@
-"""
-Key management models
-"""
+"""Key management models"""
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -16,6 +14,9 @@ User = get_user_model()
 
 
 class KMSKey(BaseModel):
+    """Model for managed keys"""
+
+    # pylint: disable=too-many-ancestors
     class KMSProvider(models.IntegerChoices):
         AWS = 1, _("AWS")
 
