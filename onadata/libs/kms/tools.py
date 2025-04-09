@@ -175,7 +175,7 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     user_profile = xform.user.profile
 
     if not is_organization(user_profile):
-        raise EncryptionError("XForm owner is not an organization user")
+        raise EncryptionError("XForm owner is not an organization user.")
 
     org = user_profile.organizationprofile
     content_type = ContentType.objects.get_for_model(OrganizationProfile)
@@ -184,7 +184,7 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     ).order_by("-date_created")
 
     if not kms_key_qs:
-        raise EncryptionError("KMSKey not found")
+        raise EncryptionError("No encryption key found for the organization.")
 
     kms_key = kms_key_qs.first()
 
