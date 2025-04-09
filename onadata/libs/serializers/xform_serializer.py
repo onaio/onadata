@@ -600,7 +600,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                         {"enable_kms_encryption": f"{exc}"}
                     )
 
-        return instance
+            return instance
 
 
 # pylint: disable=abstract-method
