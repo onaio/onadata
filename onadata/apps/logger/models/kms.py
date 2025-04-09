@@ -14,10 +14,12 @@ User = get_user_model()
 
 
 class KMSKey(BaseModel):
-    """Model for managed keys"""
+    """Managed encryption keys."""
 
     # pylint: disable=too-many-ancestors
     class KMSProvider(models.IntegerChoices):
+        """Managed keys service providers"""
+
         AWS = 1, _("AWS")
 
     key_id = models.CharField(max_length=255)
@@ -49,6 +51,8 @@ class KMSKey(BaseModel):
 
 
 class XFormKey(BaseModel):
+    """Forms encrypted using managed keys."""
+
     xform = models.ForeignKey(XForm, on_delete=models.CASCADE, related_name="kms_keys")
     kms_key = models.ForeignKey(KMSKey, on_delete=models.CASCADE, related_name="xforms")
     version = models.CharField(max_length=255, help_text=_("XForm version"))
