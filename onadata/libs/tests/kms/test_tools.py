@@ -337,7 +337,9 @@ class EncryptXFormTestCase(TestBase):
         with self.assertRaises(EncryptionError) as exc_info:
             encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
-        self.assertEqual(str(exc_info.exception), "KMSKey not found")
+        self.assertEqual(
+            str(exc_info.exception), "No encryption key found for the organization."
+        )
 
         # KMSKey exists but disabled
         self.kms_key = KMSKey.objects.create(
@@ -364,7 +366,7 @@ class EncryptXFormTestCase(TestBase):
             encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
         self.assertEqual(
-            str(exc_info.exception), "XForm owner is not an organization user"
+            str(exc_info.exception), "XForm owner is not an organization user."
         )
 
     def test_encrypted_by_optional(self):

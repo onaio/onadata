@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db import transaction
 from django.db.models import Count
 from django.utils.translation import gettext as _
 
@@ -31,8 +32,8 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.exceptions import EnketoError
-from onadata.libs.kms.tools import clean_public_key
+from onadata.libs.exceptions import EncryptionError, EnketoError
+from onadata.libs.kms.tools import clean_public_key, encrypt_xform
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
@@ -461,6 +462,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source="shared")
     public_data = serializers.BooleanField(source="shared_data")
     public_key = serializers.CharField(required=False)
+    enable_kms_encryption = serializers.BooleanField(required=False, write_only=True)
     require_auth = serializers.BooleanField()
     submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
@@ -582,6 +584,23 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                 cache.set(f"{XFORM_DATA_VERSIONS}{obj.pk}", list(versions))
 
         return versions
+
+    def update(self, instance, validated_data):
+        enable_kms_encryption = validated_data.pop("enable_kms_encryption", False)
+
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+
+            if enable_kms_encryption and not instance.encrypted:
+                try:
+                    encrypt_xform(instance, encrypted_by=self.context["request"].user)
+
+                except EncryptionError as exc:
+                    raise serializers.ValidationError(
+                        {"enable_kms_encryption": f"{exc}"}
+                    )
+
+        return instance
 
 
 # pylint: disable=abstract-method
