@@ -51,7 +51,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
-          pip install wheel
+          pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
@@ -131,6 +131,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
+          pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
