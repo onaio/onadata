@@ -64,6 +64,8 @@ from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES_ORDERED,
+    ReadOnlyRoleNoDownload,
+    ReadOnlyRole,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -71,7 +73,6 @@ from onadata.libs.permissions import (
     EditorRole,
     ManagerRole,
     OwnerRole,
-    ReadOnlyRole,
 )
 from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
@@ -4931,6 +4932,15 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 ]:
                     self.assertTrue(
                         DataEntryRole.user_has_role(alice_profile.user, self.xform)
+                    )
+                elif role_class in [
+                    ReadOnlyRole,
+                    ReadOnlyRoleNoDownload,
+                ]:
+                    self.assertTrue(
+                        ReadOnlyRoleNoDownload.user_has_role(
+                            alice_profile.user, self.xform
+                        )
                     )
 
                 else:

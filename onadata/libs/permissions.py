@@ -166,7 +166,11 @@ class ReadOnlyRoleNoDownload(Role):
     class_to_permissions = {
         MergedXForm: [CAN_VIEW_MERGED_XFORM],
         Project: [CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
-        XForm: [CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
     }
 
 
@@ -181,7 +185,12 @@ class ReadOnlyRole(Role):
         MergedXForm: [CAN_VIEW_MERGED_XFORM],
         OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
         Project: [CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
-        XForm: [CAN_EXPORT_XFORM, CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+        XForm: [
+            CAN_EXPORT_XFORM,
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
     }
 
 
