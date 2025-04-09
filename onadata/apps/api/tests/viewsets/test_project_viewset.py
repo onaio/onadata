@@ -1285,7 +1285,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
-        alice_url = f'http://testserver/api/v1/users/{alice_data["username"]}'
+        alice_url = f"http://testserver/api/v1/users/{alice_data['username']}"
         self._project_create(
             {
                 "name": "test project",
@@ -2643,7 +2643,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         projectid = self.project.pk
 
-        data_value = "editor-minor|dataentry"
+        data_value = "editor-minor|dataentry|readonly-no-download"
 
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
