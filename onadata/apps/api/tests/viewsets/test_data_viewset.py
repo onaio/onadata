@@ -60,6 +60,7 @@ from onadata.libs.permissions import (
     EditorRole,
     ManagerRole,
     ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
@@ -451,7 +452,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        self._assign_user_role(user_alice, ReadOnlyRole)
+        self._assign_user_role(user_alice, ReadOnlyRoleNoDownload)
 
         request = self.factory.get("/", **alices_extra)
         response = view(request, pk=formid)
