@@ -126,8 +126,8 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     kms_key.save(update_fields=["disabled_at", "disabled_by"])
 
 
-def _encrypt_xform(xform, kms_key, new_version=None, encrypted_by=None):
-    version = new_version or xform.version
+def _encrypt_xform(xform, kms_key, encrypted_by=None):
+    version = timezone.now().strftime("%Y%m%d%H%M")
 
     json_dict = xform.json_dict()
     json_dict["public_key"] = kms_key.public_key
@@ -157,14 +157,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     xform_key_qs = kms_key.xforms.all()
 
     for xform_key in queryset_iterator(xform_key_qs):
-        new_xform_version = timezone.now().strftime("%Y%m%d%H%M")
-
-        _encrypt_xform(
-            xform=xform_key.xform,
-            kms_key=new_key,
-            new_version=new_xform_version,
-            encrypted_by=rotated_by,
-        )
+        _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
 
     return new_key
 
