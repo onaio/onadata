@@ -650,7 +650,7 @@ class DisableXFormEncryptionTestCase(TestBase):
     def test_encryption_disabled(self):
         """Disabling XForm encryption works"""
         # Encrypt XForm
-        self._encrypt_xform(self.xform)
+        self._encrypt_xform(self.xform, self.kms_key)
 
         with patch("django.utils.timezone.now") as mock_now:
             mocked_now = datetime(2025, 4, 10, 10, 38, tzinfo=tz.utc)
@@ -682,7 +682,7 @@ class DisableXFormEncryptionTestCase(TestBase):
     def test_should_have_zero_submissions(self):
         """XForm should have zero submissions."""
         # Encrypt XForm
-        self._encrypt_xform(self.xform)
+        self._encrypt_xform(self.xform, self.kms_key)
 
         self.xform.num_of_submissions = 90
         self.xform.save()
@@ -716,7 +716,7 @@ class DisableXFormEncryptionTestCase(TestBase):
     def test_disabled_by_optional(self):
         """disabled_by is optional."""
         # Encrypt XForm
-        self._encrypt_xform(self.xform)
+        self._encrypt_xform(self.xform, self.kms_key)
 
         with patch("django.utils.timezone.now") as mock_now:
             mocked_now = datetime(2025, 4, 10, 10, 38, tzinfo=tz.utc)
