@@ -50,6 +50,7 @@ jobs:
       - name: Install Pip requirements
         env:
           GIT_SSH_COMMAND: "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
           pip install wheel
@@ -133,6 +134,7 @@ jobs:
       - name: Install Pip requirements
         env:
           GIT_SSH_COMMAND: "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
           pip install -r requirements/base.pip
