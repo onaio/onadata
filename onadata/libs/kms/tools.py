@@ -172,6 +172,9 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     if xform.encrypted:
         return
 
+    if not xform.num_of_submissions:
+        raise EncryptionError("XForm already has submissions.")
+
     user_profile = xform.user.profile
 
     if not is_organization(user_profile):
