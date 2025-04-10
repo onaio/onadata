@@ -5504,6 +5504,48 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         mock_encrypt_xform.assert_not_called()
 
+    @patch("onadata.libs.serializers.xform_serializer.disable_xform_encryption")
+    def test_disable_kms_encryption(self, mock_disable_enc):
+        """Disabling KMS encryption works."""
+        self._publish_transportation_form()
+        self.xform.public_key = "fake-public-key"
+        self.xform.save()
+
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        mock_disable_enc.assert_called_once_with(self.xform, disabled_by=self.user)
+
+        # Encryption error messages are captured
+        mock_disable_enc.side_effect = EncryptionError("XForm already has submissions.")
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("XForm already has submissions", str(response.data))
+
+        # Unencrypted form is ignored
+        mock_disable_enc.reset_mock()
+        mock_disable_enc.side_effect = None
+        self.xform.delete()
+        self._publish_transportation_form()
+
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        mock_disable_enc.assert_not_called()
+
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
     """Tests for exporting form data asynchronously"""
