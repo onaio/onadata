@@ -67,18 +67,9 @@ jobs:
       fail-fast: false
       matrix:
         test_path:
-          - [
-              "Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
-              "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
-          - [
-              "Django Unit Tests API",
-              "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
-          - [
-              "Django Unit Tests Logger",
-              "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+          - [" Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)", "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4"]
+          - ["Django Unit Tests API", "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4"]
+          - ["Django Unit Tests Logger", "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4"]
     name: "${{ matrix.test_path[0] }}"
     runs-on: ubuntu-22.04
     needs: static-analysis
