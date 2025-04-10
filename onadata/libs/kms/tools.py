@@ -26,6 +26,7 @@ from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
+from onadata.libs.utils.logger_tools import create_xform_version
 from onadata.libs.utils.model_tools import queryset_iterator
 
 logger = logging.getLogger(__name__)
@@ -50,19 +51,22 @@ def get_kms_client():
 
 def clean_public_key(value):
     """
-    Strips public key comments and spaces from a public key ``value``.
+    Strips public key headers, footers, spaces, and newlines.
     """
-    if value.startswith("-----BEGIN PUBLIC KEY-----") and value.endswith(
-        "-----END PUBLIC KEY-----"
-    ):
+    header = "-----BEGIN PUBLIC KEY-----"
+    footer = "-----END PUBLIC KEY-----"
+
+    if value.startswith(header) and value.endswith(footer):
         return (
-            value.replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
+            value.replace(header, "")
+            .replace(footer, "")
             .replace(" ", "")
-            .rstrip()
+            .replace("\n", "")
+            .replace("\r", "")
+            .strip()
         )
 
-    return value
+    return value.strip()
 
 
 def create_key(org: OrganizationProfile) -> KMSKey:
@@ -124,10 +128,13 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
 
 def _encrypt_xform(xform, kms_key, new_version=None, encrypted_by=None):
     version = new_version or xform.version
+
     json_dict = xform.json_dict()
     json_dict["public_key"] = kms_key.public_key
     json_dict["version"] = version
+
     survey = create_survey_element_from_dict(json_dict)
+
     xform.json = survey.to_json_dict()
     xform.xml = survey.to_xml()
     xform.version = version
@@ -172,7 +179,7 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     if xform.encrypted:
         return
 
-    if not xform.num_of_submissions:
+    if xform.num_of_submissions:
         raise EncryptionError("XForm already has submissions.")
 
     user_profile = xform.user.profile
@@ -286,3 +293,41 @@ def decrypt_instance(instance: Instance):
     history.save()
     # Soft delete encrypted attachments
     attachment_qs.update(deleted_at=timezone.now())
+
+
+@transaction.atomic()
+def disable_xform_encryption(xform, disabled_by=None):
+    """Disable encryption on encrypted XForm
+
+    :param xform: XForm to disable encryption
+    :param disabled_by: User disabling encryption
+    """
+    if not xform.encrypted:
+        return
+
+    if xform.num_of_submissions:
+        raise EncryptionError("XForm already has submissions.")
+
+    xform_key_qs = xform.kms_keys.filter(version=xform.version)
+
+    # XForm should be encrypted using managed keys
+    if not xform_key_qs.exists():
+        raise EncryptionError("XForm encryption is not via managed keys.")
+
+    new_version = timezone.now().strftime("%Y%m%d%H%M")
+
+    json_dict = xform.json_dict()
+    json_dict["version"] = new_version
+    del json_dict["public_key"]
+
+    survey = create_survey_element_from_dict(json_dict)
+
+    xform.json = survey.to_json_dict()
+    xform.xml = survey.to_xml()
+    xform.version = new_version
+    xform.public_key = None
+    xform.encrypted = False
+    xform.save()
+
+    # Create record of this version
+    create_xform_version(xform=xform, user=disabled_by)
