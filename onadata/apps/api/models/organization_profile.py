@@ -3,6 +3,8 @@
 OrganizationProfile module.
 """
 
+import importlib
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -158,11 +160,11 @@ def _post_save_create_owner_team(sender, instance, created, **kwargs):
 
 def _post_save_create_key(sender, instance, created, **kwargs):
     """Create KMSKey for organization."""
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.kms.tools import create_key
+    # Avoid cyclic dependency
+    kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
     if created and getattr(settings, "KMS_AUTO_CREATE_KEY", False):
-        create_key(instance)
+        kms_tools.create_key(instance)
 
 
 class OrganizationProfile(UserProfile):
