@@ -45,11 +45,9 @@ jobs:
           ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
           mkdir -p ~/.ssh
           ssh-keyscan github.com > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
 
       - name: Install Pip requirements
         env:
-          GIT_SSH_COMMAND: "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
@@ -133,7 +131,6 @@ jobs:
 
       - name: Install Pip requirements
         env:
-          GIT_SSH_COMMAND: "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
