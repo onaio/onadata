@@ -307,8 +307,12 @@ class EncryptXFormTestCase(TestBase):
         self.xform.user = self.org.user
         self.xform.save()
 
-    def test_encrypt_xform(self):
+    @patch("django.utils.timezone.now")
+    def test_encrypt_xform(self, mock_now):
         """Unencrypted XForm is encrypted."""
+        mocked_now = datetime(2025, 4, 10, 12, 27, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
         self.assertFalse(self.xform.encrypted)
 
         encrypt_xform(xform=self.xform, encrypted_by=self.user)
@@ -318,16 +322,19 @@ class EncryptXFormTestCase(TestBase):
         survey = create_survey_element_from_dict(json_dict)
 
         self.assertEqual(json_dict.get("public_key"), "fake-pub-key")
+        self.assertEqual(json_dict.get("version"), "202504101227")
 
         self.assertTrue(self.xform.encrypted)
         self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertEqual(self.xform.public_key, self.kms_key.public_key)
         self.assertTrue(self.xform.encrypted)
-        self.assertTrue(
-            self.xform.kms_keys.filter(
-                kms_key=self.kms_key, version=self.xform.version, encrypted_by=self.user
-            ).exists()
+        self.assertEqual(self.xform.version, "202504101227")
+
+        xform_kms_key_qs = self.xform.kms_keys.filter(
+            kms_key=self.kms_key, version=self.xform.version, encrypted_by=self.user
         )
+
+        self.assertTrue(xform_kms_key_qs.exists())
 
     def test_kms_key_not_found(self):
         """No KMSKey found for an organization."""
