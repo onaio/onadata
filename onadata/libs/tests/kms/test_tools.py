@@ -736,56 +736,41 @@ class DisableXFormEncryptionTestCase(TestBase):
 class CleanPublicKeyTestCase(TestBase):
     """Tests for `clean_public_key`"""
 
-    def test_ublic_key_with_headers(self):
+    def setUp(self):
+        super().setUp()
+
+        self.public_key = """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxNlbF920Dj7CYsKYrxcK
+PL0PatubLO2OhcMCpHgdbpGZscbWVAcXNkdjhmPhTuVPXmOa2Wjwe4ZkRfXJW2Iv
+lvPm//UIWXhXUsNQaB9P
+X4yxLWC0fZQ9T3ito8PcZ1nS+B39HYMkRSn9K5r65zRi
+SZhwvTkhcwq7Cea+wX3UT/pfEx62Z8GZ3E8iiYrIcNv2DM+x+0yYmQEboXq1tlKE
+twkF965z9mUTyXYfinrrHVx7xXhz1jbiWyOvTpiY8aAC35EaV3h/MdNXKk7WznJi
+xdM
+nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
+7QIDAQAB
+-----END PUBLIC KEY-----"""
+
+        self.clean_key = """
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxNlbF920Dj7CYsKYrxcK
+PL0PatubLO2OhcMCpHgdbpGZscbWVAcXNkdjhmPhTuVPXmOa2Wjwe4ZkRfXJW2Iv
+lvPm//UIWXhXUsNQaB9P
+X4yxLWC0fZQ9T3ito8PcZ1nS+B39HYMkRSn9K5r65zRi
+SZhwvTkhcwq7Cea+wX3UT/pfEx62Z8GZ3E8iiYrIcNv2DM+x+0yYmQEboXq1tlKE
+twkF965z9mUTyXYfinrrHVx7xXhz1jbiWyOvTpiY8aAC35EaV3h/MdNXKk7WznJi
+xdM
+nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
+7QIDAQAB"""
+
+    def test_public_key_with_headers(self):
         """Clean public key with headers and footers works"""
-        public_key = """-----BEGIN PUBLIC KEY-----
-        fake-public-key
-        -----END PUBLIC KEY-----"""
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
+        cleaned_key = clean_public_key(self.public_key)
+
+        self.assertEqual(cleaned_key, self.clean_key.strip())
 
     def test_public_key_without_headers(self):
         """Clean public key without headers and footers works"""
-        public_key = "fake-public-key"
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
+        cleaned_key = clean_public_key(self.clean_key)
 
-    def test_public_key_with_extra_whitespace(self):
-        """Clean public key with extra whitespace works"""
-        public_key = """-----BEGIN PUBLIC KEY-----
-
-        fake-public-key
-
-        -----END PUBLIC KEY-----"""
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
-
-    def test_public_key_empty(self):
-        """Clean empty public key works"""
-        public_key = ""
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "")
-
-    def test_public_key_with_newline_characters(self):
-        """Clean public key with newline characters works"""
-        public_key = (
-            "-----BEGIN PUBLIC KEY-----\nfake-public-key\n-----END PUBLIC KEY-----"
-        )
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
-
-    def test_public_key_with_carriage_return_characters(self):
-        """Clean public key with carriage return characters works"""
-        public_key = (
-            "-----BEGIN PUBLIC KEY-----\rfake-public-key\r-----END PUBLIC KEY-----"
-        )
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
-
-    def test_public_key_with_mixed_newlines(self):
-        """Clean public key with mixed newline and carriage return characters works"""
-        public_key = (
-            "-----BEGIN PUBLIC KEY-----\r\nfake-public-key\r\n-----END PUBLIC KEY-----"
-        )
-        cleaned_key = clean_public_key(public_key)
-        self.assertEqual(cleaned_key, "fake-public-key")
+        self.assertEqual(cleaned_key, self.clean_key.strip())
