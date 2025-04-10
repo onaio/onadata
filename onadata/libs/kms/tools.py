@@ -5,10 +5,10 @@ Key management utility functions
 import logging
 import mimetypes
 import os
-import xml.etree.ElementTree as ET
 from datetime import timedelta
 from hashlib import sha256
 from io import BytesIO
+from xml.etree import ElementTree
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -203,7 +203,7 @@ def is_instance_encrypted(instance):
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
 
     try:
-        tree = ET.fromstring(submission_xml.read())
+        tree = ElementTree.fromstring(submission_xml.read())
         extract_encrypted_submission_file_name(tree)
 
     except InvalidSubmission:
