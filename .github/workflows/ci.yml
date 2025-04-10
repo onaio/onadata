@@ -37,6 +37,15 @@ jobs:
       - name: Install APT requirements
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
+
       - name: Install Pip requirements
         run: |
           pip install -U pip
@@ -114,6 +123,15 @@ jobs:
 
       - name: Install APT requirements
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
 
       - name: Install Pip requirements
         run: |
