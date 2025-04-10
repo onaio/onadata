@@ -648,3 +648,22 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         latest_form = XForm.objects.all().order_by("-pk").first()
 
         return latest_form
+
+    def _encrypt_xform(self, xform, kms_key, encrypted_by=None):
+        version = timezone.now().strftime("%Y%m%d%H%M")
+
+        json_dict = xform.json_dict()
+        json_dict["public_key"] = kms_key.public_key
+        json_dict["version"] = version
+
+        survey = create_survey_element_from_dict(json_dict)
+
+        xform.json = survey.to_json_dict()
+        xform.xml = survey.to_xml()
+        xform.version = version
+        xform.public_key = kms_key.public_key
+        xform.encrypted = True
+        xform.save()
+        xform.kms_keys.create(
+            version=version, kms_key=kms_key, encrypted_by=encrypted_by
+        )
