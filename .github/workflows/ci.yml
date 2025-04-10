@@ -68,7 +68,7 @@ jobs:
       matrix:
         test_path:
           - [
-              " Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
+              "Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
               "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
             ]
           - [
