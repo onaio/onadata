@@ -177,6 +177,10 @@ jobs:
             onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           cache-from: type=registry,ref=onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           cache-to: type=inline
+          ssh: |
+            default=/tmp/ssh-agent.sock
+          build-args: |
+            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
