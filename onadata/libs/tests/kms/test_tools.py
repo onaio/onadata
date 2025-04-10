@@ -24,6 +24,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
+    clean_public_key,
     create_key,
     decrypt_instance,
     disable_key,
@@ -730,3 +731,61 @@ class DisableXFormEncryptionTestCase(TestBase):
         version = xform_version_qs.first()
 
         self.assertIsNone(version.created_by)
+
+
+class CleanPublicKeyTestCase(TestBase):
+    """Tests for `clean_public_key`"""
+
+    def test_ublic_key_with_headers(self):
+        """Clean public key with headers and footers works"""
+        public_key = """-----BEGIN PUBLIC KEY-----
+        fake-public-key
+        -----END PUBLIC KEY-----"""
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
+
+    def test_public_key_without_headers(self):
+        """Clean public key without headers and footers works"""
+        public_key = "fake-public-key"
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
+
+    def test_public_key_with_extra_whitespace(self):
+        """Clean public key with extra whitespace works"""
+        public_key = """-----BEGIN PUBLIC KEY-----
+
+        fake-public-key
+
+        -----END PUBLIC KEY-----"""
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
+
+    def test_public_key_empty(self):
+        """Clean empty public key works"""
+        public_key = ""
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "")
+
+    def test_public_key_with_newline_characters(self):
+        """Clean public key with newline characters works"""
+        public_key = (
+            "-----BEGIN PUBLIC KEY-----\nfake-public-key\n-----END PUBLIC KEY-----"
+        )
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
+
+    def test_public_key_with_carriage_return_characters(self):
+        """Clean public key with carriage return characters works"""
+        public_key = (
+            "-----BEGIN PUBLIC KEY-----\rfake-public-key\r-----END PUBLIC KEY-----"
+        )
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
+
+    def test_public_key_with_mixed_newlines(self):
+        """Clean public key with mixed newline and carriage return characters works"""
+        public_key = (
+            "-----BEGIN PUBLIC KEY-----\r\nfake-public-key\r\n-----END PUBLIC KEY-----"
+        )
+        cleaned_key = clean_public_key(public_key)
+        self.assertEqual(cleaned_key, "fake-public-key")
