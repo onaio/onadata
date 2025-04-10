@@ -2313,6 +2313,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "public": False,
             "public_data": False,
             "public_key": "",
+            "enable_kms_encryption": False,
             "require_auth": False,
             "description": "",
             "downloadable": False,
@@ -2327,6 +2328,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "hash": "",
             "is_instance_json_regenerated": False,
         }
+
         self.assertEqual(data, XFormSerializer(None).data)
 
     def test_external_export(self):
