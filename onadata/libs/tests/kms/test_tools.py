@@ -355,7 +355,9 @@ class EncryptXFormTestCase(TestBase):
         with self.assertRaises(EncryptionError) as exc_info:
             encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
-        self.assertEqual(str(exc_info.exception), "KMSKey not found")
+        self.assertEqual(
+            str(exc_info.exception), "No encryption key found for the organization."
+        )
 
     def test_owner_is_org(self):
         """XForm owner must be an organization user."""
@@ -378,6 +380,16 @@ class EncryptXFormTestCase(TestBase):
         )
 
         self.assertIsNone(xform_key.encrypted_by)
+
+    def test_should_have_zero_submissions(self):
+        """XForm should have zero submissions."""
+        self.xform.num_of_submissions = 0
+        self.xform.save()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            encrypt_xform(xform=self.xform, encrypted_by=self.user)
+
+        self.assertEqual(str(exc_info.exception), "XForm already has submissions.")
 
 
 @mock_aws
