@@ -103,6 +103,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "adopt"
+          java-version: "8"
+
       - name: Setup SSH Agent and add Github to known hosts
         env:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
@@ -142,12 +148,6 @@ jobs:
       - name: Run tests
         run: |
           ${{ matrix.test_path[1] }}
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "adopt"
-          java-version: "8"
 
   security-check:
     name: Trivy Security Checks
