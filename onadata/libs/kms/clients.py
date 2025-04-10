@@ -23,21 +23,19 @@ def setting(name, default=None):
     return getattr(settings, name, default)
 
 
+# pylint: disable=too-few-public-methods
 class BaseKMSClient:
-    def __init__(self, **settings):
+    def __init__(self, **custom_settings):
         default_settings = self.get_default_settings()
 
         for name, value in default_settings.items():
             if not hasattr(self, name):
                 setattr(self, name, value)
 
-        for name, value in settings.items():
+        for name, value in custom_settings.items():
             if name not in default_settings:
                 raise ImproperlyConfigured(
-                    "Invalid setting '{}' for {}".format(
-                        name,
-                        self.__class__.__name__,
-                    )
+                    f"Invalid setting '{name}' for {self.__class__.__name__}"
                 )
             setattr(self, name, value)
 
@@ -46,8 +44,8 @@ class BaseKMSClient:
 
 
 class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
-    def __init__(self, **settings):
-        BaseKMSClient.__init__(self, **settings)
+    def __init__(self, **custom_settings):
+        BaseKMSClient.__init__(self, **custom_settings)
         ValigettaAWSClient.__init__(
             self,
             aws_access_key_id=self.aws_access_key_id,
@@ -66,7 +64,7 @@ class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
             "region_name": setting("AWS_KMS_REGION_NAME"),
         }
 
-    def create_key(self, description: str) -> dict[str, str]:
+    def create_key(self, description: str | None = None) -> dict[str, str]:
         """Creates a KMS key in AWS.
 
         :param description: Key description
