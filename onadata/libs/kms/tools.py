@@ -56,17 +56,12 @@ def clean_public_key(value):
     header = "-----BEGIN PUBLIC KEY-----"
     footer = "-----END PUBLIC KEY-----"
 
-    if value.startswith(header) and value.endswith(footer):
-        return (
-            value.replace(header, "")
-            .replace(footer, "")
-            .replace(" ", "")
-            .replace("\n", "")
-            .replace("\r", "")
-            .strip()
-        )
+    value = value.strip()
 
-    return value.strip()
+    if value.startswith(header) and value.endswith(footer):
+        return value.replace(header, "").replace(footer, "").replace(" ", "").strip()
+
+    return value
 
 
 def create_key(org: OrganizationProfile) -> KMSKey:
