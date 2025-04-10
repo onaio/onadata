@@ -27,6 +27,7 @@ from onadata.libs.kms.tools import (
     create_key,
     decrypt_instance,
     disable_key,
+    disable_xform_encryption,
     encrypt_xform,
     get_kms_client,
     rotate_key,
@@ -204,15 +205,14 @@ class RotateKeyTestCase(TestBase):
 
         # Forms using old key are updated to use new key
         json_dict = self.xform.json_dict()
-        json_dict["public_key"] = new_key.public_key
-        json_dict["version"] = "202504031220"
         survey = create_survey_element_from_dict(json_dict)
 
+        self.assertEqual(json_dict.get("public_key"), new_key.public_key)
+        self.assertEqual(json_dict.get("version"), "202504031220")
         self.assertEqual(self.xform.version, "202504031220")
-        self.assertEqual(self.xform.json, survey.to_json_dict())
-        self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertEqual(self.xform.public_key, new_key.public_key)
         self.assertTrue(self.xform.encrypted)
+        self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertTrue(
             self.xform.kms_keys.filter(
                 kms_key=new_key, version="202504031220", encrypted_by=self.user
@@ -314,13 +314,12 @@ class EncryptXFormTestCase(TestBase):
         encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
         self.xform.refresh_from_db()
-
-        self.assertTrue(self.xform.encrypted)
         json_dict = self.xform.json_dict()
-        json_dict["public_key"] = self.kms_key.public_key
         survey = create_survey_element_from_dict(json_dict)
 
-        self.assertEqual(self.xform.json, survey.to_json_dict())
+        self.assertEqual(json_dict.get("public_key"), "fake-pub-key")
+
+        self.assertTrue(self.xform.encrypted)
         self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertEqual(self.xform.public_key, self.kms_key.public_key)
         self.assertTrue(self.xform.encrypted)
@@ -383,7 +382,7 @@ class EncryptXFormTestCase(TestBase):
 
     def test_should_have_zero_submissions(self):
         """XForm should have zero submissions."""
-        self.xform.num_of_submissions = 0
+        self.xform.num_of_submissions = 90
         self.xform.save()
 
         with self.assertRaises(EncryptionError) as exc_info:
@@ -615,3 +614,112 @@ class DecryptInstanceTestCase(TestBase):
 
         self.assertEqual(instance.xml, old_xml)
         self.assertEqual(instance.date_modified, old_date_modified)
+
+
+class DisableXFormEncryptionTestCase(TestBase):
+    """Tetss for `disable_xform_encryption`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        self._publish_transportation_form()
+        # Transfer xform to organization
+        self.xform.user = self.org.user
+        self.xform.save()
+
+    def test_encryption_disabled(self):
+        """Disabling XForm encryption works"""
+        # Encrypt XForm
+        encrypt_xform(self.xform)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mocked_now = datetime(2025, 4, 10, 10, 38, tzinfo=tz.utc)
+            mock_now.return_value = mocked_now
+
+            disable_xform_encryption(self.xform, disabled_by=self.user)
+
+        self.xform.refresh_from_db()
+        json_dict = self.xform.json_dict()
+        survey = create_survey_element_from_dict(json_dict)
+
+        self.assertIsNone(json_dict.get("public_key"))
+        self.assertEqual(json_dict.get("version"), "202504101038")
+        self.assertFalse(self.xform.encrypted)
+        self.assertIsNone(self.xform.public_key)
+        self.assertEqual(self.xform.version, "202504101038")
+        self.assertEqual(self.xform.xml, survey.to_xml())
+
+        # New version is recorded
+        xform_version_qs = self.xform.versions.filter(version="202504101038")
+
+        self.assertTrue(xform_version_qs.exists())
+
+        version = xform_version_qs.first()
+
+        self.assertEqual(version.xml, self.xform.xml)
+        self.assertEqual(version.created_by, self.user)
+
+    def test_should_have_zero_submissions(self):
+        """XForm should have zero submissions."""
+        # Encrypt XForm
+        encrypt_xform(self.xform)
+
+        self.xform.num_of_submissions = 90
+        self.xform.save()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            disable_xform_encryption(self.xform, disabled_by=self.user)
+
+        self.assertEqual(str(exc_info.exception), "XForm already has submissions.")
+
+    def test_should_be_encrypted(self):
+        """Unencrypted XForm is ignored."""
+        old_version = self.xform.version
+        disable_xform_encryption(self.xform, disabled_by=self.user)
+
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.version, old_version)
+
+    def test_non_kms_encryption(self):
+        """XForm not encrypted via managed keys rejected."""
+        self.xform.public_key = "fake-public-key"
+        self.xform.save()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            disable_xform_encryption(self.xform, disabled_by=self.user)
+
+        self.assertEqual(
+            str(exc_info.exception), "XForm encryption is not via managed keys."
+        )
+
+    def test_disabled_by_optional(self):
+        """disabled_by is optional."""
+        # Encrypt XForm
+        encrypt_xform(self.xform)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mocked_now = datetime(2025, 4, 10, 10, 38, tzinfo=tz.utc)
+            mock_now.return_value = mocked_now
+
+            disable_xform_encryption(self.xform)
+
+        xform_version_qs = self.xform.versions.filter(version="202504101038")
+
+        self.assertTrue(xform_version_qs.exists())
+
+        version = xform_version_qs.first()
+
+        self.assertIsNone(version.created_by)
