@@ -110,7 +110,6 @@ jobs:
           ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
           mkdir -p ~/.ssh
           ssh-keyscan github.com > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
 
       - name: Setup python
         uses: actions/setup-python@v5
@@ -157,6 +156,15 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
 
       - name: Update apt sources
         run: sudo apt-get update
