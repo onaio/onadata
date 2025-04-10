@@ -1985,7 +1985,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.patch("/", data=data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data["public_key"], clean_public_key)
+            self.assertEqual(response.data["public_key"], clean_public_key.strip())
             self.assertTrue(response.data["encrypted"])
 
     def test_partial_update_anon(self):
