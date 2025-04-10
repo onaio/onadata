@@ -33,7 +33,11 @@ from onadata.apps.logger.models import (
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError, EnketoError
-from onadata.libs.kms.tools import clean_public_key, encrypt_xform
+from onadata.libs.kms.tools import (
+    clean_public_key,
+    disable_xform_encryption,
+    encrypt_xform,
+)
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
@@ -586,7 +590,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         return versions
 
     def update(self, instance, validated_data):
-        enable_kms_encryption = validated_data.pop("enable_kms_encryption", False)
+        enable_kms_encryption = validated_data.pop("enable_kms_encryption", None)
 
         with transaction.atomic():
             instance = super().update(instance, validated_data)
@@ -594,6 +598,21 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             if enable_kms_encryption and not instance.encrypted:
                 try:
                     encrypt_xform(instance, encrypted_by=self.context["request"].user)
+
+                except EncryptionError as exc:
+                    raise serializers.ValidationError(
+                        {"enable_kms_encryption": f"{exc}"}
+                    )
+
+            elif (
+                enable_kms_encryption is not None
+                and not enable_kms_encryption
+                and instance.encrypted
+            ):
+                try:
+                    disable_xform_encryption(
+                        instance, disabled_by=self.context["request"].user
+                    )
 
                 except EncryptionError as exc:
                     raise serializers.ValidationError(
