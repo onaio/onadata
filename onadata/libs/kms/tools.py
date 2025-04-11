@@ -252,6 +252,7 @@ def decrypt_instance(instance: Instance):
         geom=instance.geom,
         submission_date=instance.last_edited or instance.date_created,
     )
+    decrypted_attachment_ids = []
 
     for original_name, decrypted_file in decrypted_files:
         if original_name.lower() == "submission.xml":
@@ -267,8 +268,7 @@ def decrypt_instance(instance: Instance):
             media_file = File(decrypted_file, name=original_name)
             mimetype, _ = mimetypes.guess_type(original_name)
             _, extension = os.path.splitext(original_name)
-
-            instance.attachments.create(
+            attachment = instance.attachments.create(
                 xform=instance.xform,
                 media_file=media_file,
                 name=original_name,
@@ -276,11 +276,13 @@ def decrypt_instance(instance: Instance):
                 extension=extension.lstrip("."),
                 file_size=len(decrypted_file.getbuffer()),
             )
-
+            decrypted_attachment_ids.append(attachment.id)
     # Commit history after saving decrypted files
     history.save()
     # Soft delete encrypted attachments
-    attachment_qs.update(deleted_at=timezone.now())
+    attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
+        deleted_at=timezone.now()
+    )
 
 
 @transaction.atomic()
