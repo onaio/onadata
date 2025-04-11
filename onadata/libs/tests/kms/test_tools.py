@@ -594,9 +594,10 @@ class DecryptInstanceTestCase(TestBase):
             self.assertEqual(att_qs[4].file_size, len(original_file.getbuffer()))
 
         # Encrypted media files are soft deleted
+        self.assertEqual(att_qs.filter(deleted_at__isnull=False).count(), 3)
+        self.assertIsNotNone(att_qs[0].deleted_at)
         self.assertIsNotNone(att_qs[1].deleted_at)
         self.assertIsNotNone(att_qs[2].deleted_at)
-
         # Old submission is stored in history
         history_qs = self.instance.submission_history.all()
 
