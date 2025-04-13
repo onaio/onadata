@@ -230,7 +230,7 @@ def decrypt_instance(instance: Instance):
             name = attachment.name or attachment.media_file.name.split("/")[-1]
 
             with attachment.media_file.open("rb") as file:
-                enc_files[name] = file.read()
+                enc_files[name] = BytesIO(file.read())
 
         return enc_files
 
