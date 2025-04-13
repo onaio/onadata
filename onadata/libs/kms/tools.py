@@ -224,15 +224,13 @@ def decrypt_instance(instance: Instance):
     attachment_qs = instance.attachments.all()
 
     def get_encrypted_files():
-        enc_files = []
+        enc_files = {}
 
         for attachment in queryset_iterator(attachment_qs):
             name = attachment.name or attachment.media_file.name.split("/")[-1]
 
             with attachment.media_file.open("rb") as file:
-                file_data = file.read()
-
-            enc_files.append((name, BytesIO(file_data)))
+                enc_files[name] = file.read()
 
         return enc_files
 
