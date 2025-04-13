@@ -481,13 +481,13 @@ class DecryptInstanceTestCase(TestBase):
             checksum=sha256(self.metadata_xml_file.getvalue()).hexdigest(),
         )
         dec_files = [
-            ("submission.xml", self.dec_submission_file),
             ("sunset.png", self.dec_media["sunset.png"]),
             ("forest.mp4", self.dec_media["forest.mp4"]),
+            ("submission.xml", self.dec_submission_file),
         ]
         attachments = []
 
-        for index, (name, file) in enumerate(dec_files):
+        for index, (name, file) in enumerate(dec_files, start=1):
             enc_file_name = f"{name}.enc"
             enc_file = self._encrypt_file(dec_aes_key, index, file.getvalue())
             attachment = Attachment(
@@ -537,8 +537,8 @@ class DecryptInstanceTestCase(TestBase):
         # Encrypt MD5 digest
         return self._encrypt(key_id=key_id, plain_text=signature_md5_digest)
 
-    def _encrypt_file(self, dec_aes_key, index, data):
-        iv = _get_submission_iv(self.instance_uuid, dec_aes_key, index=index)
+    def _encrypt_file(self, dec_aes_key, iv_counter, data):
+        iv = _get_submission_iv(self.instance_uuid, dec_aes_key, iv_counter=iv_counter)
         cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
 
         return BytesIO(cipher_aes.encrypt(data))
