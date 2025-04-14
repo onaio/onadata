@@ -542,8 +542,9 @@ class DecryptInstanceTestCase(TestBase):
     def _encrypt_file(self, dec_aes_key, iv_counter, data):
         iv = _get_submission_iv(self.instance_uuid, dec_aes_key, iv_counter=iv_counter)
         cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
+        padded_data = pad(data, AES.block_size)
 
-        return BytesIO(pad(cipher_aes.encrypt(data), AES.block_size))
+        return BytesIO(cipher_aes.encrypt(padded_data))
 
     def _compute_file_sha256(self, buffer):
         return sha256(buffer.getvalue()).hexdigest()
