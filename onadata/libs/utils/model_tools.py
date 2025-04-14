@@ -40,5 +40,5 @@ def get_columns_with_hxl(survey_elements):
     return survey_elements and {
         se.name: se.instance["hxl"]
         for se in survey_elements
-        if se.instance and "hxl" in se.instance
+        if hasattr(se, "instance") and getattr(se, "instance") and "hxl" in se.instance
     }

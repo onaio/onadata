@@ -48,6 +48,7 @@ from onadata.libs.utils.export_tools import (
     generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
+    get_columns_with_hxl,
     get_query_params_from_metadata,
     get_repeat_index_tags,
     kml_export_data,
@@ -1242,3 +1243,8 @@ class GenerateExportTestCase(TestAbstractViewSet):
                 "300",
             ]
             self.assertCountEqual(rows[0], expected_row)
+
+    def test_get_columns_with_hxl_w_entity_forms(self):
+        """Test that get_columns_with_hxl() function on a form with entities."""
+        xform = self._publish_registration_form(self.user)
+        self.assertEqual(get_columns_with_hxl(xform.survey_elements), {})
