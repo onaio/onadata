@@ -5202,13 +5202,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "form_versions": [],
             "data_views": [],
             "xls_available": False,
-            "is_kms_encrypted": False,
             "contributes_entities_to": {
                 "id": entity_list.pk,
                 "name": "trees",
                 "is_active": True,
             },
             "consumes_entities_from": [],
+            "is_kms_encrypted": False,
             "description": "",
             "downloadable": True,
             "allows_sms": False,
@@ -5270,13 +5270,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "last_submission_time": None,
                 "data_views": [],
                 "xls_available": False,
-                "is_kms_encrypted": False,
                 "contributes_entities_to": {
                     "id": entity_list.pk,
                     "name": "trees",
                     "is_active": True,
                 },
                 "consumes_entities_from": [],
+                "is_kms_encrypted": False,
                 "description": "",
                 "downloadable": True,
                 "allows_sms": False,
@@ -5360,7 +5360,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "form_versions": [],
             "data_views": [],
             "xls_available": False,
-            "is_kms_encrypted": False,
             "contributes_entities_to": None,
             "consumes_entities_from": [
                 {
@@ -5369,6 +5368,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     "is_active": True,
                 }
             ],
+            "is_kms_encrypted": False,
             "description": "",
             "downloadable": True,
             "allows_sms": False,
@@ -5432,7 +5432,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "last_submission_time": None,
                 "data_views": [],
                 "xls_available": False,
-                "is_kms_encrypted": False,
                 "contributes_entities_to": None,
                 "consumes_entities_from": [
                     {
@@ -5441,6 +5440,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                         "is_active": True,
                     }
                 ],
+                "is_kms_encrypted": False,
                 "description": "",
                 "downloadable": True,
                 "allows_sms": False,
