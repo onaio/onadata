@@ -34,8 +34,6 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.kms.tools import encrypt_xform
-from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -454,13 +452,18 @@ post_save.connect(
 
 def auto_encrypt_xform(sender, instance, created, **kwargs):
     """Automatically encrypt published XForm using managed keys."""
+    # Avoid cyclic import by using importlib
+    kms_tools = importlib.import_module("onadata.libs.kms.tools")
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.permissions import is_organization
+
     if (
         created
         and not instance.encrypted
         and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
         and is_organization(instance.user.profile)
     ):
-        encrypt_xform(instance.pk, encrypted_by=instance.created_by)
+        kms_tools.encrypt_xform(instance.pk, encrypted_by=instance.created_by)
 
 
 post_save.connect(
