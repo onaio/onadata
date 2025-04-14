@@ -427,6 +427,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
+            "is_kms_encrypted",
         )
         exclude = (
             "json",

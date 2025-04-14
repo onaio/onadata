@@ -330,6 +330,7 @@ class EncryptXFormTestCase(TestBase):
         self.assertEqual(self.xform.public_key, self.kms_key.public_key)
         self.assertTrue(self.xform.encrypted)
         self.assertEqual(self.xform.version, "202504101227")
+        self.assertTrue(self.xform.is_kms_encrypted)
 
         xform_kms_key_qs = self.xform.kms_keys.filter(
             kms_key=self.kms_key, version=self.xform.version, encrypted_by=self.user

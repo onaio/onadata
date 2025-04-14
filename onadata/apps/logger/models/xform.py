@@ -1369,6 +1369,11 @@ class XForm(XFormMixin, BaseModel):
         """Returns a queryset of public forms i.e. shared = True"""
         return cls.objects.filter(shared=True)
 
+    @property
+    def is_kms_encrypted(self):
+        """Return True if XForm is encrypted using managed keys."""
+        return self.kms_keys.filter(version=self.version).exists()
+
 
 # pylint: disable=unused-argument
 def update_profile_num_submissions(sender, instance, **kwargs):
