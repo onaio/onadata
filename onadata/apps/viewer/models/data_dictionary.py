@@ -8,6 +8,7 @@ import json
 import os
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
@@ -33,6 +34,8 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.kms.tools import encrypt_xform
+from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
@@ -211,9 +214,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (
+        from onadata.libs.utils.project_utils import (  # noqa
             set_project_perms_to_xform_async,
-        )  # noqa
+        )
 
         try:
             transaction.on_commit(
@@ -223,9 +226,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (
+            from onadata.libs.utils.project_utils import (  # noqa
                 set_project_perms_to_xform,
-            )  # noqa
+            )
 
             set_project_perms_to_xform(xform, instance.project)
 
@@ -446,4 +449,22 @@ post_save.connect(
     create_or_update_export_register,
     sender=DataDictionary,
     dispatch_uid="create_or_update_export_register",
+)
+
+
+def auto_encrypt_xform(sender, instance, created, **kwargs):
+    """Automatically encrypt published XForm using managed keys."""
+    if (
+        created
+        and not instance.encrypted
+        and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
+        and is_organization(instance.user.profile)
+    ):
+        encrypt_xform(instance.pk, encrypted_by=instance.created_by)
+
+
+post_save.connect(
+    auto_encrypt_xform,
+    sender=DataDictionary,
+    dispatch_uid="auto_encrypt_xform",
 )
