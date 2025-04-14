@@ -374,6 +374,9 @@ class XFormMixin:
             )
         )
 
+    def get_is_kms_encrypted(self, obj):
+        return obj.is_kms_encrypted
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     """XForm base serializer."""
@@ -413,6 +416,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     xls_available = serializers.SerializerMethodField()
     contributes_entities_to = serializers.SerializerMethodField()
     consumes_entities_from = serializers.SerializerMethodField()
+    is_kms_encrypted = serializers.SerializerMethodField()
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:
@@ -427,7 +431,6 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
-            "is_kms_encrypted",
         )
         exclude = (
             "json",
@@ -486,6 +489,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     xls_available = serializers.SerializerMethodField()
     contributes_entities_to = serializers.SerializerMethodField()
     consumes_entities_from = serializers.SerializerMethodField()
+    is_kms_encrypted = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -499,7 +503,6 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
-            "is_kms_encrypted",
         )
         exclude = (
             "json",
