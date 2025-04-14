@@ -463,7 +463,7 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
         and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
         and is_organization(instance.user.profile)
     ):
-        kms_tools.encrypt_xform(instance.pk, encrypted_by=instance.created_by)
+        kms_tools.encrypt_xform(instance, encrypted_by=instance.created_by)
 
 
 post_save.connect(
