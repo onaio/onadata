@@ -3,10 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.0.3 (2025-04-15)
+-------------------
+- fix: Ensure survey element has the "instance" attribute
+  `PR #2796 <https://github.com/onaio/onadata/pull/2796>`
+  [@ukanga]
+
 v5.0.2 (2025-04-09)
 -------------------
 - Update ona-oidc to v2.0.1 
-  `PR #2777 <https://github.com/onaio/onadata/pull/2794>`
+  `PR #2794 <https://github.com/onaio/onadata/pull/2794>`
   [@ukanga]
 
 v5.0.1 (2025-04-09)
