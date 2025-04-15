@@ -18,6 +18,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
+from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
@@ -618,16 +619,20 @@ class DecryptInstanceTestCase(TestBase):
         )
 
     def test_unencrypted_submission(self):
-        """No changes made to unencrypted submission."""
+        """Unencrypted Instance is rejected."""
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.order_by("-date_created").first()
         old_xml = instance.xml
         old_date_modified = instance.date_modified
 
-        decrypt_instance(instance)
+        with self.assertRaises(InvalidSubmission) as exc_info:
+            decrypt_instance(instance)
+
+        self.assertEqual(str(exc_info.exception), "Instance is not encrypted.")
 
         instance.refresh_from_db()
 
+        # No update was made to Instance
         self.assertEqual(instance.xml, old_xml)
         self.assertEqual(instance.date_modified, old_date_modified)
 

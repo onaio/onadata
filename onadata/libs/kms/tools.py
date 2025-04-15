@@ -17,7 +17,6 @@ from django.core.files.base import File
 from django.db import transaction
 from django.utils import timezone
 
-from valigetta.decryptor import extract_encrypted_submission_file_name
 from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
@@ -196,17 +195,15 @@ def is_instance_encrypted(instance):
 
     :param instance: Instance
     """
-
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
 
     try:
         tree = ElementTree.fromstring(submission_xml.read())
-        extract_encrypted_submission_file_name(tree)
 
     except InvalidSubmission:
         return False
 
-    return True
+    return tree.attrib.get("encrypted") == "yes"
 
 
 # pylint: disable=too-many-locals
@@ -217,7 +214,7 @@ def decrypt_instance(instance: Instance):
     :param instance: Instance to be decrypted
     """
     if not is_instance_encrypted(instance):
-        return
+        raise InvalidSubmission("Instance is not encrypted.")
 
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
     kms_client = get_kms_client()
