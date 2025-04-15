@@ -1398,8 +1398,8 @@ class TestInstance(TestBase):
         self.assertEqual(merged_multiples_columns, expected_columns)
         self.assertEqual(split_multiples_columns, expected_columns)
 
-    @patch("onadata.apps.logger.signals.decrypt_instance_async.delay")
-    def test_decrypt_instance(self, mock_dec_async):
+    @patch("onadata.apps.logger.tasks.decrypt_instance")
+    def test_decrypt_instance(self, mock_dec):
         """Instance is decrypted."""
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
@@ -1432,10 +1432,10 @@ class TestInstance(TestBase):
                 user=self.user,
                 survey_type=survey_type,
             )
-            mock_dec_async.assert_called_once_with(instance.pk)
+            mock_dec.assert_called_once_with(instance)
 
         # Auto-decrypt is disabled
-        mock_dec_async.reset_mock()
+        mock_dec.reset_mock()
         instance.delete()
 
         with override_settings(KMS_AUTO_DECRYPT_INSTANCE=False):
@@ -1445,10 +1445,10 @@ class TestInstance(TestBase):
                 user=self.user,
                 survey_type=survey_type,
             )
-            mock_dec_async.assert_not_called()
+            mock_dec.assert_not_called()
 
         # Auto-decrypt config is missing
-        mock_dec_async.reset_mock()
+        mock_dec.reset_mock()
         instance.delete()
         instance = Instance.objects.create(
             xform=xform,
@@ -1456,12 +1456,12 @@ class TestInstance(TestBase):
             user=self.user,
             survey_type=survey_type,
         )
-        mock_dec_async.assert_not_called()
+        mock_dec.assert_not_called()
 
         # Unencrypted submission
-        mock_dec_async.reset_mock()
+        mock_dec.reset_mock()
 
         with override_settings(KMS_AUTO_DECRYPT_INSTANCE=True):
             self._publish_transportation_form_and_submit_instance()
 
-            mock_dec_async.assert_not_called()
+            mock_dec.assert_not_called()
