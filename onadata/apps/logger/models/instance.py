@@ -893,13 +893,12 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
     """Decrypt Instance if encrypted."""
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.kms.tools import is_instance_encrypted
+    kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
     if (
         created
         and getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
-        and is_instance_encrypted(instance)
+        and kms_tools.is_instance_encrypted(instance)
     ):
         transaction.on_commit(
             lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
