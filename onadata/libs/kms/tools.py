@@ -137,6 +137,8 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     xform.encrypted = True
     xform.save()
     xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
+    # Create a XFormVersion of new version
+    create_xform_version(xform, encrypted_by)
 
 
 @transaction.atomic()
@@ -148,7 +150,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """
     new_key = create_key(kms_key.content_object)
 
-    # Update forms using the old key to use the new key
+    # Update XForms using the old key to use the new key
     xform_key_qs = kms_key.xforms.all()
 
     for xform_key in queryset_iterator(xform_key_qs):
@@ -318,5 +320,5 @@ def disable_xform_encryption(xform, disabled_by=None):
     xform.encrypted = False
     xform.save()
 
-    # Create record of this version
-    create_xform_version(xform=xform, user=disabled_by)
+    # Create XFormVersion of new version
+    create_xform_version(xform, disabled_by)
