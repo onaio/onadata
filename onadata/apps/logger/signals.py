@@ -3,25 +3,20 @@
 logger signals module
 """
 
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from multidb.pinning import use_master
-
 from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.tasks import (
     dec_elist_num_entities_async,
-    decrypt_instance_async,
     inc_elist_num_entities_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.kms.tools import is_instance_encrypted
 from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
 
 
@@ -111,15 +106,3 @@ def delete_entity_list_metadata(sender, instance, **kwargs):
         data_type="media",
         data_value=f"entity_list {instance.pk} {entity_list_name}",
     ).delete()
-
-
-@use_master
-@receiver(post_save, sender=Instance, dispatch_uid="decrypt_instance")
-def decrypt_instance(sender, instance, created=False, **kwargs):
-    """Decrypt Instance if encrypted."""
-    if (
-        created
-        and getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
-        and is_instance_encrypted(instance)
-    ):
-        transaction.on_commit(lambda: decrypt_instance_async.delay(instance.pk))
