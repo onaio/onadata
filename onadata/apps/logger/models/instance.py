@@ -855,6 +855,21 @@ def register_instance_repeat_columns(sender, instance, created=False, **kwargs):
     )
 
 
+@use_master
+def decrypt_instance(sender, instance, created=False, **kwargs):
+    """Decrypt Instance if encrypted."""
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.tasks import decrypt_instance_async
+    from onadata.libs.kms.tools import is_instance_encrypted
+
+    if (
+        created
+        and getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
+        and is_instance_encrypted(instance)
+    ):
+        transaction.on_commit(lambda: decrypt_instance_async.delay(instance.pk))
+
+
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
 )
@@ -894,6 +909,8 @@ pre_save.connect(
     sender=Instance,
     dispatch_uid="soft_delete_attachments_on_soft_delete",
 )
+
+post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_instance")
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):
