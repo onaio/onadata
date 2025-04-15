@@ -220,6 +220,8 @@ class RotateKeyTestCase(TestBase):
                 kms_key=new_key, version="202504031220", encrypted_by=self.user
             ).exists()
         )
+        # A XFormVersion of the new version is created
+        self.assertTrue(self.xform.versions.filter(version="202504031220").exists())
 
     @patch("django.utils.timezone.now")
     def test_rotated_by_optional(self, mock_now):
@@ -338,6 +340,8 @@ class EncryptXFormTestCase(TestBase):
         )
 
         self.assertTrue(xform_kms_key_qs.exists())
+        # A XFormVersion of the new version is created
+        self.assertTrue(self.xform.versions.filter(version="202504101227").exists())
 
     def test_kms_key_not_found(self):
         """No KMSKey found for an organization."""
