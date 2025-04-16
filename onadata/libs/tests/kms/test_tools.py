@@ -6,6 +6,7 @@ from datetime import timezone as tz
 from hashlib import md5, sha256
 from io import BytesIO
 from unittest.mock import patch
+from xml.etree.ElementTree import ParseError
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
@@ -33,6 +34,7 @@ from onadata.libs.kms.tools import (
     disable_xform_encryption,
     encrypt_xform,
     get_kms_client,
+    is_instance_encrypted,
     rotate_key,
 )
 
@@ -787,3 +789,56 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         cleaned_key = clean_public_key(self.clean_key)
 
         self.assertEqual(cleaned_key, self.clean_key.strip())
+
+
+class IsInstanceEncryptedTestCase(TestBase):
+    """Tests for `is_instance_encrypted`"""
+
+    def test_encrypted_instance(self):
+        """Returns True if Instance is encrypted."""
+        metadata_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        xform = self._publish_markdown(md, self.user, id_string="nature")
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+        )
+        self.assertTrue(is_instance_encrypted(instance))
+
+    def test_unencrypted_instance(self):
+        """Returns False if Instance unencrypted."""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.order_by("-pk").first()
+
+        self.assertFalse(is_instance_encrypted(instance))
+
+    def test_invalid_xml(self):
+        """Returns False if XML invalid."""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.order_by("-pk").first()
+
+        # Mock ElementTree.fromstring to throw ParseError
+        with patch("xml.etree.ElementTree.fromstring", side_effect=ParseError):
+            self.assertFalse(is_instance_encrypted(instance))
