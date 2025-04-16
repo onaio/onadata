@@ -37,6 +37,35 @@ def _get_kms_provider():
     return getattr(settings, "KMS_PROVIDER", "AWS")
 
 
+def _get_kms_rotation_duration():
+    rotation_duration = getattr(settings, "KMS_ROTATION_DURATION", None)
+
+    if isinstance(rotation_duration, timedelta):
+        return rotation_duration
+
+    elif rotation_duration:
+        logger.error(
+            "KMS_ROTATION_DURATION is set to an invalid value: %s", rotation_duration
+        )
+
+    return None
+
+
+def _get_kms_grace_period_duration():
+    grace_period_duration = getattr(settings, "KMS_GRACE_PERIOD_DURATION", None)
+
+    if isinstance(grace_period_duration, timedelta):
+        return grace_period_duration
+
+    elif grace_period_duration:
+        logger.error(
+            "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
+            grace_period_duration,
+        )
+
+    return None
+
+
 def get_kms_client():
     """Retrieve the appropriate KMS client based on settings."""
     kms_provider = _get_kms_provider()
@@ -85,28 +114,16 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         description += suffix
 
     metadata = kms_client.create_key(description=description)
+    rotation_duration = _get_kms_rotation_duration()
+    grace_period_duration = _get_kms_grace_period_duration()
     expiry_date = None
     grace_end_date = None
 
-    if hasattr(settings, "KMS_ROTATION_DURATION"):
-        if isinstance(settings.KMS_ROTATION_DURATION, timedelta):
-            expiry_date = now + settings.KMS_ROTATION_DURATION
+    if rotation_duration:
+        expiry_date = now + rotation_duration
 
-        else:
-            logger.error(
-                "KMS_ROTATION_DURATION is set to an invalid value: %s",
-                settings.KMS_ROTATION_DURATION,
-            )
-
-    if hasattr(settings, "KMS_GRACE_PERIOD_DURATION") and expiry_date:
-        if isinstance(settings.KMS_GRACE_PERIOD_DURATION, timedelta):
-            grace_end_date = expiry_date + settings.KMS_GRACE_PERIOD_DURATION
-
-        else:
-            logger.error(
-                "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
-                settings.KMS_GRACE_PERIOD_DURATION,
-            )
+    if grace_period_duration and expiry_date:
+        grace_end_date = expiry_date + grace_period_duration
 
     provider_choice_map = {
         "AWS": KMSKey.KMSProvider.AWS,
@@ -178,21 +195,13 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
 
     if manual:
         # Expire the old key
-        now = timezone.now()
-        kms_key.expiry_date = now
+        kms_key.expiry_date = timezone.now()
         kms_key.grace_end_date = None
 
-        if hasattr(settings, "KMS_GRACE_PERIOD_DURATION"):
-            if isinstance(settings.KMS_GRACE_PERIOD_DURATION, timedelta):
-                kms_key.grace_end_date = (
-                    kms_key.expiry_date + settings.KMS_GRACE_PERIOD_DURATION
-                )
+        grace_period_duration = _get_kms_grace_period_duration()
 
-            else:
-                logger.error(
-                    "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
-                    settings.KMS_GRACE_PERIOD_DURATION,
-                )
+        if grace_period_duration:
+            kms_key.grace_end_date = kms_key.expiry_date + grace_period_duration
 
         kms_key.save(update_fields=["expiry_date", "grace_end_date"])
 
@@ -236,10 +245,8 @@ def is_instance_encrypted(instance: Instance) -> bool:
 
     :param instance: Instance
     """
-    submission_xml = BytesIO(instance.xml.encode("utf-8"))
-
     try:
-        tree = ElementTree.fromstring(submission_xml.read())
+        tree = ElementTree.fromstring(instance.xml)
 
     except ElementTree.ParseError:
         return False
