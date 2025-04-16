@@ -796,7 +796,7 @@ class IsInstanceEncryptedTestCase(TestBase):
 
     def test_encrypted_instance(self):
         """Returns True if Instance is encrypted."""
-        metadata_xml = """
+        manifest_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
             <base64EncryptedKey>fake0key</base64EncryptedKey>
@@ -821,7 +821,7 @@ class IsInstanceEncryptedTestCase(TestBase):
         survey_type = SurveyType.objects.create(slug="slug-foo")
         instance = Instance.objects.create(
             xform=xform,
-            xml=metadata_xml,
+            xml=manifest_xml,
             user=self.user,
             survey_type=survey_type,
         )
