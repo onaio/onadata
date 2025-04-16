@@ -86,11 +86,27 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     metadata = kms_client.create_key(description=description)
     expiry_date = None
+    grace_end_date = None
 
-    if hasattr(settings, "KMS_ROTATION_DURATION") and isinstance(
-        settings.KMS_ROTATION_DURATION, timedelta
-    ):
-        expiry_date = now + settings.KMS_ROTATION_DURATION
+    if hasattr(settings, "KMS_ROTATION_DURATION"):
+        if isinstance(settings.KMS_ROTATION_DURATION, timedelta):
+            expiry_date = now + settings.KMS_ROTATION_DURATION
+
+        else:
+            logger.error(
+                "KMS_ROTATION_DURATION is set to an invalid value: %s",
+                settings.KMS_ROTATION_DURATION,
+            )
+
+    if hasattr(settings, "KMS_GRACE_PERIOD_DURATION") and expiry_date:
+        if isinstance(settings.KMS_GRACE_PERIOD_DURATION, timedelta):
+            grace_end_date = expiry_date + settings.KMS_GRACE_PERIOD_DURATION
+
+        else:
+            logger.error(
+                "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
+                settings.KMS_GRACE_PERIOD_DURATION,
+            )
 
     provider_choice_map = {
         "AWS": KMSKey.KMSProvider.AWS,
@@ -103,6 +119,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         public_key=clean_public_key(metadata["public_key"]),
         provider=provider,
         expiry_date=expiry_date,
+        grace_end_date=grace_end_date,
         content_type=content_type,
         object_id=org.pk,
         created_by=created_by,
