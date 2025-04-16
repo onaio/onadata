@@ -102,7 +102,7 @@ class CreateKeyTestCase(TestBase):
     def test_create_key(self, mock_now):
         """KMSKey is created."""
         mock_now.return_value = datetime(2025, 4, 2, tzinfo=tz.utc)
-        kms_key = create_key(self.org)
+        kms_key = create_key(self.org, created_by=self.user)
 
         self.assertEqual(KMSKey.objects.count(), 1)
         self.assertEqual(kms_key.description, "Key-2025-04-02")
@@ -114,6 +114,7 @@ class CreateKeyTestCase(TestBase):
         self.assertIsNone(kms_key.disabled_by)
         self.assertIsNone(kms_key.expiry_date)
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
+        self.assertEqual(kms_key.created_by, self.user)
         # Public PEM-encoded key is saved without the header and footer
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", kms_key.public_key)
@@ -152,6 +153,12 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.description, "Key-2025-04-02-v3")
+
+    def test_created_by_optional(self):
+        """created_by is optional."""
+        kms_key = create_key(self.org)
+
+        self.assertIsNone(kms_key.created_by)
 
 
 @mock_aws

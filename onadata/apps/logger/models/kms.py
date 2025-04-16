@@ -32,6 +32,9 @@ class KMSKey(BaseModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")
+    created_by = models.ForeignKey(
+        User, null=True, on_delete=models.SET_NULL, related_name="keys_created"
+    )
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
