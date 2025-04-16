@@ -68,7 +68,7 @@ class KMSKey(BaseModel):
 
 
 class XFormKey(BaseModel):
-    """Forms encrypted using managed keys."""
+    """XForms encrypted using managed keys."""
 
     xform = models.ForeignKey(XForm, on_delete=models.CASCADE, related_name="kms_keys")
     kms_key = models.ForeignKey(KMSKey, on_delete=models.CASCADE, related_name="xforms")
