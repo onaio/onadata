@@ -176,6 +176,10 @@ class CreateKeyTestCase(TestBase):
 
         # KMSKey is still created
         self.assertEqual(KMSKey.objects.count(), 1)
+        kms_key = KMSKey.objects.first()
+
+        self.assertIsNone(kms_key.expiry_date)
+        self.assertIsNone(kms_key.grace_end_date)
 
         mock_logger.assert_called_once_with(
             "KMS_ROTATION_DURATION is set to an invalid value: %s",
@@ -193,6 +197,10 @@ class CreateKeyTestCase(TestBase):
 
         # KMSKey is still created
         self.assertEqual(KMSKey.objects.count(), 1)
+        kms_key = KMSKey.objects.first()
+
+        self.assertIsNotNone(kms_key.expiry_date)
+        self.assertIsNone(kms_key.grace_end_date)
 
         mock_logger.assert_called_once_with(
             "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
