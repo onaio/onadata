@@ -22,6 +22,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.utils.model_tools import queryset_iterator
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -46,7 +47,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
-    active_kms_key = serializers.SerializerMethodField()
+    active_kms_keys = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
@@ -160,22 +161,34 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return owners_list + members_list
 
-    def get_active_kms_key(self, obj):
-        """Get the active KMSKey for organization."""
+    def get_active_kms_keys(self, obj):
+        """Get the active KMSKeys for organization."""
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
         kms_key_qs = KMSKey.objects.filter(
             content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
         )
 
         if not kms_key_qs.exists():
-            return None
+            return []
 
-        active_key = kms_key_qs.order_by("-date_created").first()
+        kms_key_qs = kms_key_qs.order_by("-expiry_date")
+        active_keys = []
 
-        return {
-            "description": active_key.description,
-            "date_created": active_key.date_created.isoformat(),
-            "expiry_date": (
-                active_key.expiry_date.isoformat() if active_key.expiry_date else None
-            ),
-        }
+        for key in queryset_iterator(kms_key_qs):
+            active_keys.append(
+                {
+                    "description": key.description,
+                    "date_created": key.date_created.isoformat(),
+                    "is_expired": key.is_expired,
+                    "expiry_date": (
+                        key.expiry_date.isoformat() if key.expiry_date else None
+                    ),
+                    "grace_period_end_date": (
+                        key.grace_period_end_date.isoformat()
+                        if key.grace_period_end_date
+                        else None
+                    ),
+                }
+            )
+
+        return active_keys
