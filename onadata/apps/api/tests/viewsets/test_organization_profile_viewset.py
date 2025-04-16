@@ -5,6 +5,7 @@ Test /orgs API endpoint implementation.
 
 import json
 from builtins import str as text
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth.models import AnonymousUser, User
@@ -1306,6 +1307,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type=content_type,
             object_id=valigetta_org.pk,
             provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() + timedelta(days=365),
         )
         view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
 
@@ -1320,6 +1322,18 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data["active_kms_key"]["date_created"],
             valigetta_key.date_created.isoformat(),
         )
+        self.assertEqual(
+            response.data["active_kms_key"]["expiry_date"],
+            valigetta_key.expiry_date.isoformat(),
+        )
+        # Expiry date is None
+        cache.clear()
+        valigetta_key.expiry_date = None
+        valigetta_key.save()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["active_kms_key"]["expiry_date"])
 
         # No active KMSKey is found
         cache.clear()
