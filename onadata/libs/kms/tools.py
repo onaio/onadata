@@ -63,10 +63,11 @@ def clean_public_key(value):
     return value
 
 
-def create_key(org: OrganizationProfile) -> KMSKey:
+def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
 
     :param org: Organization that owns the key
+    :param created_by: User creating the key
     :return: KMSKey
     """
     kms_client = get_kms_client()
@@ -104,6 +105,7 @@ def create_key(org: OrganizationProfile) -> KMSKey:
         expiry_date=expiry_date,
         content_type=content_type,
         object_id=org.pk,
+        created_by=created_by,
     )
 
 
