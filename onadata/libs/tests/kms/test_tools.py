@@ -225,6 +225,7 @@ class RotateKeyTestCase(TestBase):
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         self.content_type = ContentType.objects.get_for_model(self.org)
+        now = timezone.now()
         self.kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
             description="Key-2025-04-03",
@@ -232,7 +233,8 @@ class RotateKeyTestCase(TestBase):
             content_type=self.content_type,
             object_id=self.org.pk,
             provider=KMSKey.KMSProvider.AWS,
-            expiry_date=timezone.now() + timedelta(days=365),
+            expiry_date=now + timedelta(days=365),
+            grace_end_date=now + timedelta(days=365) + timedelta(days=30),
         )
         self._publish_transportation_form()
         self.xform.kms_keys.create(
@@ -248,11 +250,7 @@ class RotateKeyTestCase(TestBase):
 
         new_key = rotate_key(kms_key=self.kms_key, rotated_by=self.user)
 
-        self.kms_key.refresh_from_db()
         self.xform.refresh_from_db()
-
-        # Old key is expired
-        self.assertEqual(self.kms_key.expiry_date, mocked_now)
 
         # New key is created since rotation of asymmetric is not
         # allowed
@@ -297,6 +295,43 @@ class RotateKeyTestCase(TestBase):
 
         self.assertIsNone(xform_key.encrypted_by)
         self.assertIsNone(new_key.created_by)
+
+    @patch("django.utils.timezone.now")
+    def test_manual_rotation(self, mock_now):
+        """Manual rotation is handled."""
+        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        with override_settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=30)):
+            rotate_key(self.kms_key, manual=True)
+
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(self.kms_key.expiry_date, mocked_now)
+        self.assertEqual(
+            self.kms_key.grace_end_date,
+            mocked_now + timedelta(days=30),
+        )
+
+    @patch("django.utils.timezone.now")
+    @patch("onadata.libs.kms.tools.logger.error")
+    def test_invalid_grace_period_duration(self, mock_logger, mock_now):
+        """Invalid grace period duration is handled."""
+        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        with override_settings(KMS_GRACE_PERIOD_DURATION="invalid"):
+            rotate_key(self.kms_key, manual=True)
+
+        mock_logger.assert_called_once_with(
+            "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
+            "invalid",
+        )
+
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(self.kms_key.expiry_date, mocked_now)
+        self.assertIsNone(self.kms_key.grace_end_date)
 
 
 @mock_aws
