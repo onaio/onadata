@@ -4,6 +4,7 @@ Organization Serializer
 """
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
@@ -16,6 +17,7 @@ from onadata.apps.api.tools import (
     get_organization_members,
     get_organization_owners,
 )
+from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import get_role_in_org
@@ -44,6 +46,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
+    active_kms_key = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
@@ -156,3 +159,20 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = _create_user_list(owners)
 
         return owners_list + members_list
+
+    def get_active_kms_key(self, obj):
+        """Get the active KMSKey for organization."""
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        kms_key_qs = KMSKey.objects.filter(
+            content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
+        )
+
+        if not kms_key_qs.exists():
+            return None
+
+        active_key = kms_key_qs.order_by("-date_created").first()
+
+        return {
+            "description": active_key.description,
+            "date_created": active_key.date_created.isoformat(),
+        }
