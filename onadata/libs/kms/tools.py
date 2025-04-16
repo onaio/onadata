@@ -146,7 +146,8 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
 def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """Rotate KMS key.
 
-    :param kms_key: KMSKey
+    :param kms_key: KMSKey to be rotated
+    :param rotated_by: User rotating the key
     :return: New KMSKey
     """
     new_key = create_key(kms_key.content_object, created_by=rotated_by)
@@ -196,7 +197,7 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
-def is_instance_encrypted(instance):
+def is_instance_encrypted(instance: Instance) -> bool:
     """Return True if instance is encrypted
 
     :param instance: Instance
@@ -214,7 +215,7 @@ def is_instance_encrypted(instance):
 
 # pylint: disable=too-many-locals
 @transaction.atomic()
-def decrypt_instance(instance: Instance):
+def decrypt_instance(instance: Instance) -> None:
     """Decrypt encrypted Instance
 
     :param instance: Instance to be decrypted
@@ -290,7 +291,7 @@ def decrypt_instance(instance: Instance):
 
 
 @transaction.atomic()
-def disable_xform_encryption(xform, disabled_by=None):
+def disable_xform_encryption(xform, disabled_by=None) -> None:
     """Disable encryption on encrypted XForm
 
     :param xform: XForm to disable encryption
