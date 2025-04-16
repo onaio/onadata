@@ -200,7 +200,7 @@ def is_instance_encrypted(instance):
     try:
         tree = ElementTree.fromstring(submission_xml.read())
 
-    except InvalidSubmission:
+    except ElementTree.ParseError:
         return False
 
     return tree.attrib.get("encrypted") == "yes"
