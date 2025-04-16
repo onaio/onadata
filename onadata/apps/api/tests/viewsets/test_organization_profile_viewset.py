@@ -7,9 +7,11 @@ import json
 from builtins import str as text
 from unittest.mock import patch
 
-from django.contrib.auth.models import AnonymousUser, User, timezone
+from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.test.utils import override_settings
+from django.utils import timezone
 
 from guardian.shortcuts import get_perms
 from rest_framework import status
@@ -29,6 +31,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import (
 )
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.libs.permissions import DataEntryRole, OwnerRole
@@ -1288,3 +1291,70 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # Ensure permissions are removed
         self.assertFalse(OwnerRole.user_has_role(dave, org))
         self.assertFalse(OwnerRole.user_has_role(dave, org.userprofile_ptr))
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_managed_key(self):
+        """Active managed key is returned."""
+        valigetta_org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        valigetta_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=valigetta_org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["active_kms_key"]["description"], "Key-2025-04-03"
+        )
+        self.assertEqual(
+            response.data["active_kms_key"]["date_created"],
+            valigetta_key.date_created.isoformat(),
+        )
+
+        # No active KMSKey is found
+        cache.clear()
+        valigetta_key.disabled_at = timezone.now()
+        valigetta_key.save()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["active_kms_key"])
+
+        # No KMSKey found at all
+        cache.clear()
+        KMSKey.objects.all().delete()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["active_kms_key"])
+
+        # KMSKey exists but belong to other organizations
+        cache.clear()
+        mars_org = self._create_organization(
+            username="mars", name="Mars Inc", created_by=self.user
+        )
+        KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=mars_org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["active_kms_key"])
