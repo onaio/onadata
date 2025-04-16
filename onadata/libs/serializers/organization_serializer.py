@@ -175,4 +175,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         return {
             "description": active_key.description,
             "date_created": active_key.date_created.isoformat(),
+            "expiry_date": (
+                active_key.expiry_date.isoformat() if active_key.expiry_date else None
+            ),
         }
