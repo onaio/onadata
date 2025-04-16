@@ -44,6 +44,7 @@ class KMSKeyTestCase(TestBase):
             content_type=self.content_type,
             object_id=self.org.id,
             disabled_by=self.user,
+            created_by=self.user,
         )
 
         self.assertEqual(f"{kms_key}", "1234")
@@ -55,6 +56,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.object_id, self.org.id)
         self.assertEqual(kms_key.content_type, self.content_type)
         self.assertEqual(kms_key.disabled_by, self.user)
+        self.assertEqual(kms_key.created_by, self.user)
 
     def test_default_values(self):
         """Default values for optional fields are correct."""
@@ -70,6 +72,7 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.expiry_date)
         self.assertIsNone(kms_key.disabled_at)
         self.assertIsNone(kms_key.disabled_by)
+        self.assertIsNone(kms_key.created_by)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""
