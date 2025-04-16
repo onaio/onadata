@@ -185,6 +185,7 @@ class RotateKeyTestCase(TestBase):
             content_type=self.content_type,
             object_id=self.org.pk,
             provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() + timedelta(days=365),
         )
         self._publish_transportation_form()
         self.xform.kms_keys.create(
@@ -202,6 +203,9 @@ class RotateKeyTestCase(TestBase):
 
         self.kms_key.refresh_from_db()
         self.xform.refresh_from_db()
+
+        # Old key is expired
+        self.assertEqual(self.kms_key.expiry_date, mocked_now)
 
         # New key is created since rotation of asymmetric is not
         # allowed

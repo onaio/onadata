@@ -157,6 +157,10 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     for xform_key in queryset_iterator(xform_key_qs):
         _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
 
+    # Expire the old key
+    kms_key.expiry_date = timezone.now()
+    kms_key.save(update_fields=["expiry_date"])
+
     return new_key
 
 
