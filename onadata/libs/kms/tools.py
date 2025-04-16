@@ -160,11 +160,12 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
 
 
 @transaction.atomic()
-def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
+def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey to be rotated
     :param rotated_by: User rotating the key
+    :param manual: Whether the rotation is manual or automatic
     :return: New KMSKey
     """
     new_key = create_key(kms_key.content_object, created_by=rotated_by)
@@ -175,9 +176,25 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     for xform_key in queryset_iterator(xform_key_qs):
         _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
 
-    # Expire the old key
-    kms_key.expiry_date = timezone.now()
-    kms_key.save(update_fields=["expiry_date"])
+    if manual:
+        # Expire the old key
+        now = timezone.now()
+        kms_key.expiry_date = now
+        kms_key.grace_end_date = None
+
+        if hasattr(settings, "KMS_GRACE_PERIOD_DURATION"):
+            if isinstance(settings.KMS_GRACE_PERIOD_DURATION, timedelta):
+                kms_key.grace_end_date = (
+                    kms_key.expiry_date + settings.KMS_GRACE_PERIOD_DURATION
+                )
+
+            else:
+                logger.error(
+                    "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
+                    settings.KMS_GRACE_PERIOD_DURATION,
+                )
+
+        kms_key.save(update_fields=["expiry_date", "grace_end_date"])
 
     return new_key
 
