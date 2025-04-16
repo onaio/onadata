@@ -183,10 +183,8 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                     "expiry_date": (
                         key.expiry_date.isoformat() if key.expiry_date else None
                     ),
-                    "grace_period_end_date": (
-                        key.grace_period_end_date.isoformat()
-                        if key.grace_period_end_date
-                        else None
+                    "grace_end_date": (
+                        key.grace_end_date.isoformat() if key.grace_end_date else None
                     ),
                 }
             )

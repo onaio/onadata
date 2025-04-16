@@ -1,6 +1,5 @@
 """Key management models"""
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -28,6 +27,7 @@ class KMSKey(BaseModel):
     public_key = models.TextField()
     provider = models.IntegerField(choices=KMSProvider.choices)
     expiry_date = models.DateTimeField(null=True, blank=True)
+    grace_end_date = models.DateTimeField(null=True, blank=True)
     disabled_at = models.DateTimeField(null=True, blank=True)
     disabled_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -55,16 +55,6 @@ class KMSKey(BaseModel):
             return False
 
         return timezone.now() > self.expiry_date
-
-    @property
-    def grace_period_end_date(self):
-        """Returns the grace period end date for the key."""
-        grace_period_duration = getattr(settings, "KMS_GRACE_PERIOD_DURATION", None)
-
-        if not self.is_expired or grace_period_duration is None:
-            return None
-
-        return self.expiry_date + grace_period_duration
 
 
 class XFormKey(BaseModel):

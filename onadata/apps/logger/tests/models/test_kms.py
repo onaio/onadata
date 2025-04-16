@@ -32,6 +32,7 @@ class KMSKeyTestCase(TestBase):
         """We can create a KMSKey."""
         mock_now.return_value = self.mocked_now
         expiry_date = self.mocked_now + timedelta(days=2)
+        grace_end_date = self.mocked_now + timedelta(days=1)
         disabled_at = self.mocked_now
 
         kms_key = KMSKey.objects.create(
@@ -40,6 +41,7 @@ class KMSKeyTestCase(TestBase):
             public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=expiry_date,
+            grace_end_date=grace_end_date,
             disabled_at=disabled_at,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -57,6 +59,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.content_type, self.content_type)
         self.assertEqual(kms_key.disabled_by, self.user)
         self.assertEqual(kms_key.created_by, self.user)
+        self.assertEqual(kms_key.grace_end_date, grace_end_date)
 
     def test_default_values(self):
         """Default values for optional fields are correct."""
@@ -73,6 +76,7 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.disabled_at)
         self.assertIsNone(kms_key.disabled_by)
         self.assertIsNone(kms_key.created_by)
+        self.assertIsNone(kms_key.grace_end_date)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""
@@ -180,51 +184,6 @@ class KMSKeyTestCase(TestBase):
         kms_key.refresh_from_db()
 
         self.assertFalse(kms_key.is_expired)
-
-    def test_grace_period_end_date(self):
-        """grace_period_end_date property works"""
-        kms_key = KMSKey.objects.create(
-            key_id="1234",
-            public_key="fake-pub-key",
-            provider=KMSKey.KMSProvider.AWS,
-            content_type=self.content_type,
-            object_id=self.org.id,
-        )
-
-        # expiry_date is None
-        self.assertIsNone(kms_key.grace_period_end_date)
-
-        # expiry_date is in the past but grace period duration is not set
-        kms_key.expiry_date = timezone.now() - timedelta(days=1)
-        kms_key.save()
-        kms_key.refresh_from_db()
-
-        self.assertIsNone(kms_key.grace_period_end_date)
-
-        # expiry date is in the future and grace period duration is not set
-        kms_key.expiry_date = timezone.now() + timedelta(days=1)
-        kms_key.save()
-        kms_key.refresh_from_db()
-
-        self.assertIsNone(kms_key.grace_period_end_date)
-
-        # expiry_date is in the past and grace period duration is set
-        with self.settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=1)):
-            kms_key.expiry_date = timezone.now() - timedelta(days=1)
-            kms_key.save()
-            kms_key.refresh_from_db()
-
-            self.assertEqual(
-                kms_key.grace_period_end_date, kms_key.expiry_date + timedelta(days=1)
-            )
-
-        # expiry date is in the future and grace period duration is set
-        with self.settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=1)):
-            kms_key.expiry_date = timezone.now() + timedelta(days=1)
-            kms_key.save()
-            kms_key.refresh_from_db()
-
-            self.assertIsNone(kms_key.grace_period_end_date)
 
 
 class XFormKeyTestCase(TestBase):
