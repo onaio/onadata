@@ -37,7 +37,7 @@ class KMSKeyTestCase(TestBase):
         kms_key = KMSKey.objects.create(
             key_id="1234",
             description="Key-2025-04-01",
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=expiry_date,
             disabled_at=disabled_at,
@@ -62,7 +62,7 @@ class KMSKeyTestCase(TestBase):
         """Default values for optional fields are correct."""
         kms_key = KMSKey.objects.create(
             key_id="1234",
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -78,7 +78,7 @@ class KMSKeyTestCase(TestBase):
         """key_id, provider are unique together."""
         KMSKey.objects.create(
             key_id="1234",
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -88,7 +88,7 @@ class KMSKeyTestCase(TestBase):
         with self.assertRaises(IntegrityError):
             KMSKey.objects.create(
                 key_id="1234",
-                public_key="Fake public key",
+                public_key="fake-pub-key",
                 provider=KMSKey.KMSProvider.AWS,
                 content_type=self.content_type,
                 object_id=self.org.id,
@@ -104,7 +104,7 @@ class KMSKeyTestCase(TestBase):
         with self.assertRaises(DataError):
             KMSKey.objects.create(
                 key_id=key_id,
-                public_key="Fake public key",
+                public_key="fake-pub-key",
                 provider=KMSKey.KMSProvider.AWS,
                 content_type=self.content_type,
                 object_id=self.org.id,
@@ -115,7 +115,7 @@ class KMSKeyTestCase(TestBase):
 
         kms_key = KMSKey.objects.create(
             key_id=key_id,
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -134,7 +134,7 @@ class KMSKeyTestCase(TestBase):
             KMSKey.objects.create(
                 key_id="1234",
                 description=desc,
-                public_key="Fake public key",
+                public_key="fake-pub-key",
                 provider=KMSKey.KMSProvider.AWS,
                 content_type=self.content_type,
                 object_id=self.org.id,
@@ -146,7 +146,7 @@ class KMSKeyTestCase(TestBase):
         kms_key = KMSKey.objects.create(
             key_id="1234",
             description=desc,
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
@@ -158,20 +158,73 @@ class KMSKeyTestCase(TestBase):
         """is_expired property works"""
         kms_key = KMSKey.objects.create(
             key_id="1234",
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
-            expiry_date=timezone.now() - timedelta(days=1),
         )
+
+        # expiry_date is None
+        self.assertFalse(kms_key.is_expired)
+
+        # expiry_date is in the past
+        kms_key.expiry_date = timezone.now() - timedelta(days=1)
+        kms_key.save()
+        kms_key.refresh_from_db()
 
         self.assertTrue(kms_key.is_expired)
 
+        # expiry_date is in the future
         kms_key.expiry_date = timezone.now() + timedelta(days=1)
         kms_key.save()
         kms_key.refresh_from_db()
 
         self.assertFalse(kms_key.is_expired)
+
+    def test_grace_period_end_date(self):
+        """grace_period_end_date property works"""
+        kms_key = KMSKey.objects.create(
+            key_id="1234",
+            public_key="fake-pub-key",
+            provider=KMSKey.KMSProvider.AWS,
+            content_type=self.content_type,
+            object_id=self.org.id,
+        )
+
+        # expiry_date is None
+        self.assertIsNone(kms_key.grace_period_end_date)
+
+        # expiry_date is in the past but grace period duration is not set
+        kms_key.expiry_date = timezone.now() - timedelta(days=1)
+        kms_key.save()
+        kms_key.refresh_from_db()
+
+        self.assertIsNone(kms_key.grace_period_end_date)
+
+        # expiry date is in the future and grace period duration is not set
+        kms_key.expiry_date = timezone.now() + timedelta(days=1)
+        kms_key.save()
+        kms_key.refresh_from_db()
+
+        self.assertIsNone(kms_key.grace_period_end_date)
+
+        # expiry_date is in the past and grace period duration is set
+        with self.settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=1)):
+            kms_key.expiry_date = timezone.now() - timedelta(days=1)
+            kms_key.save()
+            kms_key.refresh_from_db()
+
+            self.assertEqual(
+                kms_key.grace_period_end_date, kms_key.expiry_date + timedelta(days=1)
+            )
+
+        # expiry date is in the future and grace period duration is set
+        with self.settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=1)):
+            kms_key.expiry_date = timezone.now() + timedelta(days=1)
+            kms_key.save()
+            kms_key.refresh_from_db()
+
+            self.assertIsNone(kms_key.grace_period_end_date)
 
 
 class XFormKeyTestCase(TestBase):
@@ -186,7 +239,7 @@ class XFormKeyTestCase(TestBase):
         self.content_type = ContentType.objects.get_for_model(OrganizationProfile)
         self.kms_key = KMSKey.objects.create(
             key_id="1234",
-            public_key="Fake public key",
+            public_key="fake-pub-key",
             provider=KMSKey.KMSProvider.AWS,
             content_type=self.content_type,
             object_id=self.org.id,
