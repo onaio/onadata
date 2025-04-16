@@ -212,6 +212,7 @@ class RotateKeyTestCase(TestBase):
         self.assertIsNotNone(new_key.key_id)
         self.assertIsNotNone(new_key.public_key)
         self.assertEqual(new_key.provider, KMSKey.KMSProvider.AWS)
+        self.assertEqual(new_key.created_by, self.user)
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", new_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", new_key.public_key)
 
@@ -244,6 +245,7 @@ class RotateKeyTestCase(TestBase):
         xform_key = self.xform.kms_keys.get(kms_key=new_key, version="202504031220")
 
         self.assertIsNone(xform_key.encrypted_by)
+        self.assertIsNone(new_key.created_by)
 
 
 @mock_aws
