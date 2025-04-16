@@ -113,13 +113,17 @@ class CreateKeyTestCase(TestBase):
         self.assertIsNone(kms_key.disabled_at)
         self.assertIsNone(kms_key.disabled_by)
         self.assertIsNone(kms_key.expiry_date)
+        self.assertIsNone(kms_key.grace_end_date)
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
         self.assertEqual(kms_key.created_by, self.user)
         # Public PEM-encoded key is saved without the header and footer
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", kms_key.public_key)
 
-    @override_settings(KMS_ROTATION_DURATION=timedelta(days=365))
+    @override_settings(
+        KMS_ROTATION_DURATION=timedelta(days=365),
+        KMS_GRACE_PERIOD_DURATION=timedelta(days=30),
+    )
     @patch("django.utils.timezone.now")
     def test_expiry_date(self, mock_now):
         """Expiry date is set if rotation duration available."""
@@ -128,6 +132,10 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
+        self.assertEqual(
+            kms_key.grace_end_date,
+            mocked_now + timedelta(days=365) + timedelta(days=30),
+        )
 
     @patch("django.utils.timezone.now")
     def test_duplicate_description(self, mock_now):
@@ -159,6 +167,37 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertIsNone(kms_key.created_by)
+
+    @patch("onadata.libs.kms.tools.logger.error")
+    def test_invalid_rotation_duration(self, mock_logger):
+        """Invalid rotation duration is handled."""
+        with override_settings(KMS_ROTATION_DURATION="invalid"):
+            create_key(self.org)
+
+        # KMSKey is still created
+        self.assertEqual(KMSKey.objects.count(), 1)
+
+        mock_logger.assert_called_once_with(
+            "KMS_ROTATION_DURATION is set to an invalid value: %s",
+            "invalid",
+        )
+
+    @patch("onadata.libs.kms.tools.logger.error")
+    def test_invalid_grace_period_duration(self, mock_logger):
+        """Invalid grace period duration is handled."""
+        with override_settings(
+            KMS_GRACE_PERIOD_DURATION="invalid",
+            KMS_ROTATION_DURATION=timedelta(days=365),
+        ):
+            create_key(self.org)
+
+        # KMSKey is still created
+        self.assertEqual(KMSKey.objects.count(), 1)
+
+        mock_logger.assert_called_once_with(
+            "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
+            "invalid",
+        )
 
 
 @mock_aws
