@@ -149,7 +149,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     :param kms_key: KMSKey
     :return: New KMSKey
     """
-    new_key = create_key(kms_key.content_object)
+    new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
     # Update XForms using the old key to use the new key
     xform_key_qs = kms_key.xforms.all()
