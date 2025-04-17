@@ -120,22 +120,31 @@ class CreateKeyTestCase(TestBase):
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", kms_key.public_key)
 
-    @override_settings(
-        KMS_ROTATION_DURATION=timedelta(days=365),
-        KMS_GRACE_PERIOD_DURATION=timedelta(days=30),
-    )
+    @override_settings(KMS_ROTATION_DURATION=timedelta(days=365))
     @patch("django.utils.timezone.now")
     def test_expiry_date(self, mock_now):
         """Expiry date is set if rotation duration available."""
         mocked_now = datetime(2025, 4, 2, tzinfo=tz.utc)
         mock_now.return_value = mocked_now
+
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
+        # Default grace period duration is 30 days
         self.assertEqual(
             kms_key.grace_end_date,
             mocked_now + timedelta(days=365) + timedelta(days=30),
         )
+
+        # With grace period duration
+        with override_settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=15)):
+            kms_key = create_key(self.org)
+
+            self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
+            self.assertEqual(
+                kms_key.grace_end_date,
+                mocked_now + timedelta(days=365) + timedelta(days=15),
+            )
 
     @patch("django.utils.timezone.now")
     def test_duplicate_description(self, mock_now):
