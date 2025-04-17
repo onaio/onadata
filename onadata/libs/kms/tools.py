@@ -43,7 +43,7 @@ def _get_kms_rotation_duration():
     if isinstance(rotation_duration, timedelta):
         return rotation_duration
 
-    elif rotation_duration:
+    if rotation_duration:
         logger.error(
             "KMS_ROTATION_DURATION is set to an invalid value: %s", rotation_duration
         )
@@ -59,7 +59,7 @@ def _get_kms_grace_period_duration():
     if isinstance(grace_period_duration, timedelta):
         return grace_period_duration
 
-    elif grace_period_duration:
+    if grace_period_duration:
         logger.error(
             "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
             grace_period_duration,
