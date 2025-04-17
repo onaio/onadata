@@ -43,6 +43,8 @@ class KMSKey(BaseModel):
         indexes = [
             models.Index(fields=["content_type", "object_id"]),
             models.Index(fields=["disabled_at"]),
+            models.Index(fields=["expiry_date"]),
+            models.Index(fields=["grace_end_date"]),
         ]
 
     def __str__(self):
