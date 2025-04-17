@@ -52,7 +52,9 @@ def _get_kms_rotation_duration():
 
 
 def _get_kms_grace_period_duration():
-    grace_period_duration = getattr(settings, "KMS_GRACE_PERIOD_DURATION", None)
+    grace_period_duration = getattr(
+        settings, "KMS_GRACE_PERIOD_DURATION", timedelta(days=30)
+    )
 
     if isinstance(grace_period_duration, timedelta):
         return grace_period_duration
