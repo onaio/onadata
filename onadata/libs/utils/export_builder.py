@@ -442,7 +442,7 @@ class ExportBuilder:
                 if itemset
                 else choices
             )
-        else:
+        elif child.choices and hasattr(child.choices, "options"):
             choices = [
                 get_choice_dict(
                     get_abbreviated_xpath("/".join([child.get_xpath(), c.name])),

@@ -2723,8 +2723,41 @@ class TestExportBuilder(TestBase):
             CSVDataFrameBuilder._collect_select_multiples(dd), select_multiples
         )
 
+    def test_select_multiple_from_file_choices(self):
+        md_xform = """
+        | survey  |
+        |         | type                                 | name  | label  |
+        |         | text                                 | name  | Name   |
+        |         | integer                              | age   | Age    |
+        |         | select_multiple_from_file fruits.csv | fruit | Fruit  |
+        |         |                                      |       |        |
+        | choices | list name                            | name  | label  |
+        |         | fruits                               | 1     | Mango  |
+        |         | fruits                               | 2     | Orange |
+        |         | fruits                               | 3     | Apple  |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {"name": "data"})
+        dd = DataDictionary()
+        # pylint: disable=protected-access
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.SHOW_CHOICE_LABELS = True
+        export_builder.SPLIT_SELECT_MULTIPLES = True
+        export_builder.set_survey(survey)
+        child = [
+            e
+            for e in dd.get_survey_elements_with_choices()
+            if e.bind.get("type") == SELECT_BIND_TYPE and e.type == MULTIPLE_SELECT_TYPE
+        ][0]
+        # pylint: disable=protected-access
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER, ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+        self.assertEqual(choices, [])
+
     # pylint: disable=invalid-name
     def test_select_multiples_choices_with_choice_filter(self):
+        """Test select multiples from file choices."""
         survey = create_survey_from_xls(
             _logger_fixture_path("choice_filter.xlsx"), default_name="choice_filter"
         )
