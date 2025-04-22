@@ -434,6 +434,7 @@ class EncryptXFormTestCase(TestBase):
         mock_now.return_value = mocked_now
 
         self.assertFalse(self.xform.encrypted)
+        old_hash = self.xform.hash
 
         encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
@@ -450,6 +451,8 @@ class EncryptXFormTestCase(TestBase):
         self.assertTrue(self.xform.encrypted)
         self.assertEqual(self.xform.version, "202504101227")
         self.assertTrue(self.xform.is_kms_encrypted)
+        # Hash should be updated
+        self.assertNotEqual(self.xform.hash, old_hash)
 
         xform_kms_key_qs = self.xform.kms_keys.filter(
             kms_key=self.kms_key, version=self.xform.version, encrypted_by=self.user

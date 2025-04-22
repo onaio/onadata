@@ -172,6 +172,7 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     xform.version = version
     xform.public_key = kms_key.public_key
     xform.encrypted = True
+    xform.hash = xform.get_hash()
     xform.save()
     xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
     # Create a XFormVersion of new version
