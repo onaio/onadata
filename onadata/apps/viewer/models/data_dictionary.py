@@ -465,7 +465,10 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
     ):
         # seems the super is not called, have to get xform from here
         xform = XForm.objects.get(pk=instance.pk)
-        kms_tools.encrypt_xform(xform, encrypted_by=instance.created_by)
+
+        transaction.on_commit(
+            lambda: kms_tools.encrypt_xform(xform, encrypted_by=instance.created_by)
+        )
 
 
 post_save.connect(
