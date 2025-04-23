@@ -485,3 +485,21 @@ class DataDictionaryTestCase(TestBase):
 
             self.assertTrue(xform.encrypted)
             self.assertFalse(xform.is_kms_encrypted)
+
+        # Initial XForm version is updated when XForm is encrypted
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        |         | text        | age            | Age        |
+        | settings|             |                |            |
+        |         | form_title  | form_id        | version    |
+        |         | Students    | students       | 202504221539|
+        """
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, org.user, id_string="f")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertTrue(xform.is_kms_encrypted)
+            self.assertNotEqual(xform.version, "202504221539")
