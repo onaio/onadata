@@ -20,6 +20,7 @@ from django.utils import timezone
 from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.tools import invalidate_xform_list_cache
 from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import EncryptionError
@@ -177,6 +178,8 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
     # Create a XFormVersion of new version
     create_xform_version(xform, encrypted_by)
+    # Invalidate cache for formList endpoint
+    invalidate_xform_list_cache(xform)
 
 
 @transaction.atomic()
@@ -366,7 +369,10 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     xform.version = new_version
     xform.public_key = None
     xform.encrypted = False
+    xform.hash = xform.get_hash()
     xform.save()
 
     # Create XFormVersion of new version
     create_xform_version(xform, disabled_by)
+    # Invalidate cache for formList endpoint
+    invalidate_xform_list_cache(xform)
