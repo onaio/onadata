@@ -2,6 +2,7 @@
 Key management utility functions
 """
 
+import importlib
 import logging
 import mimetypes
 import os
@@ -20,7 +21,6 @@ from django.utils import timezone
 from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.tools import invalidate_xform_list_cache
 from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import EncryptionError
@@ -179,7 +179,8 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     # Create a XFormVersion of new version
     create_xform_version(xform, encrypted_by)
     # Invalidate cache for formList endpoint
-    invalidate_xform_list_cache(xform)
+    api_tools = importlib.import_module("onadata.apps.api.tools")
+    api_tools.invalidate_xform_list_cache(xform)
 
 
 @transaction.atomic()
@@ -375,4 +376,5 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     # Create XFormVersion of new version
     create_xform_version(xform, disabled_by)
     # Invalidate cache for formList endpoint
-    invalidate_xform_list_cache(xform)
+    api_tools = importlib.import_module("onadata.apps.api.tools")
+    api_tools.invalidate_xform_list_cache(xform)
