@@ -351,6 +351,15 @@ class RotateKeyTestCase(TestBase):
         self.assertEqual(self.kms_key.expiry_date, mocked_now)
         self.assertIsNone(self.kms_key.grace_end_date)
 
+    @patch("onadata.libs.kms.tools.invalidate_xform_list_cache")
+    def test_xform_list_cache_invalidated(self, mock_invalidate_cache, mock_create_key):
+        """FormList endpoint cache is invalidated."""
+        mock_create_key.return_value = self.create_mock_key()
+
+        rotate_key(self.kms_key)
+
+        mock_invalidate_cache.assert_called_once_with(self.xform)
+
 
 @mock_aws
 @override_settings(
@@ -522,6 +531,13 @@ class EncryptXFormTestCase(TestBase):
             encrypt_xform(xform=self.xform, encrypted_by=self.user)
 
         self.assertEqual(str(exc_info.exception), "XForm already has submissions.")
+
+    @patch("onadata.libs.kms.tools.invalidate_xform_list_cache")
+    def test_xform_list_cache_invalidated(self, mock_invalidate):
+        """FormList endpoint cache is invalidated."""
+        encrypt_xform(self.xform, encrypted_by=self.user)
+
+        mock_invalidate.assert_called_once_with(self.xform)
 
 
 @mock_aws
@@ -783,6 +799,8 @@ class DisableXFormEncryptionTestCase(TestBase):
         # Encrypt XForm
         self._encrypt_xform(self.xform, self.kms_key)
 
+        old_hash = self.xform.hash
+
         with patch("django.utils.timezone.now") as mock_now:
             mocked_now = datetime(2025, 4, 10, 10, 38, tzinfo=tz.utc)
             mock_now.return_value = mocked_now
@@ -799,6 +817,7 @@ class DisableXFormEncryptionTestCase(TestBase):
         self.assertIsNone(self.xform.public_key)
         self.assertEqual(self.xform.version, "202504101038")
         self.assertEqual(self.xform.xml, survey.to_xml())
+        self.assertNotEqual(self.xform.hash, old_hash)
 
         # New version is recorded
         xform_version_qs = self.xform.versions.filter(version="202504101038")
@@ -862,6 +881,16 @@ class DisableXFormEncryptionTestCase(TestBase):
         version = xform_version_qs.first()
 
         self.assertIsNone(version.created_by)
+
+    @patch("onadata.libs.kms.tools.invalidate_xform_list_cache")
+    def test_xform_list_cache_invalidated(self, mock_invalidate_cache):
+        """FormList endpoint cache is invalidated."""
+        # Encrypt XForm
+        self._encrypt_xform(self.xform, self.kms_key)
+
+        disable_xform_encryption(self.xform)
+
+        mock_invalidate_cache.assert_called_once_with(self.xform)
 
 
 class CleanPublicKeyTestCase(TestBase):
