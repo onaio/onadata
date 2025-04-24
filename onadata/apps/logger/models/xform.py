@@ -20,7 +20,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Sum
-from django.db.models.signals import post_delete, pre_save
+from django.db.models.signals import post_delete, pre_save, post_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import conditional_escape
@@ -1413,6 +1413,27 @@ def save_project(sender, instance=None, created=False, **kwargs):
 
 
 pre_save.connect(save_project, sender=XForm, dispatch_uid="save_project_xform")
+
+
+def _create_meta_perms(sender, instance, created, **kwargs):
+    metadata = instance.metadata_set.all().filter(data_type="xform_meta_perms").first()
+    if instance.deleted_by is None and metadata is None:
+        from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+
+        serializer = MetaDataSerializer(
+            data={
+                "data_type": "xform_meta_perms",
+                "data_value": "editor-minor|dataentry-only|readonly-no-download",
+                "xform": instance.pk,
+            }
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+
+post_save.connect(
+    _create_meta_perms, sender=XForm, dispatch_uid="create_xform_meta_permissions"
+)
 
 
 # pylint: disable=unused-argument
