@@ -195,7 +195,10 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
     kms_key.refresh_from_db()
 
     if kms_key.disabled_at:
-        raise EncryptionError("Cannot rotate a disabled key.")
+        raise EncryptionError("Key is disabled.")
+
+    if kms_key.rotated_at:
+        raise EncryptionError("Key already rotated.")
 
     new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
@@ -204,6 +207,10 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
 
     for xform_key in queryset_iterator(xform_key_qs):
         _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
+
+    kms_key.rotated_at = timezone.now()
+    kms_key.rotated_by = rotated_by
+    kms_key.save(update_fields=["rotated_at", "rotated_by"])
 
     if manual:
         # Expire the old key
