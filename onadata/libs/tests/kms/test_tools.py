@@ -362,6 +362,19 @@ class RotateKeyTestCase(TestBase):
 
         mock_api_tools.invalidate_xform_list_cache.assert_called_once_with(self.xform)
 
+    def test_disabled_key(self, mock_create_key):
+        """Rotating an already disabled key is not allowed."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+        mock_create_key.return_value = self.create_mock_key()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            rotate_key(kms_key=self.kms_key, rotated_by=self.user)
+
+        mock_create_key.assert_not_called()
+
+        self.assertEqual(str(exc_info.exception), "Cannot rotate a disabled key.")
+
 
 @mock_aws
 @override_settings(
