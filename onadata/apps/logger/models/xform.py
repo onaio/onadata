@@ -1423,7 +1423,7 @@ def _create_meta_perms(sender, instance, created, **kwargs):
         serializer = MetaDataSerializer(
             data={
                 "data_type": "xform_meta_perms",
-                "data_value": "editor-minor|dataentry-only|readonly-no-download",
+                "data_value": "editor-no-download|dataentry-only|readonly-no-download",
                 "xform": instance.pk,
             }
         )

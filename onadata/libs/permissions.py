@@ -261,6 +261,33 @@ class DataEntryRole(Role):
     }
 
 
+class EditorNoDownload(Role):
+    """
+    Editor-Minor Role class - user can submit data, read and edit only the data
+                              they submitted but will not be able to export data.
+    """
+
+    name = "editor-no-download"
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT,
+            CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS,
+            CAN_CHANGE_XFORM,
+            CAN_DELETE_SUBMISSION,
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_DATA,
+        ],
+    }
+
+
 class EditorMinorRole(Role):
     """
     Editor-Minor Role class - user can submit data, read and edit only the data
