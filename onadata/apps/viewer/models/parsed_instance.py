@@ -198,7 +198,7 @@ def exclude_deleting_submissions_clause(xform_id: int) -> tuple[str, list[int]]:
 
 
 # pylint: disable=too-many-locals
-def build_sql_where(xform, query, start=None, end=None):
+def build_sql_where(xform, query, start=None, end=None, is_encrypted=None):
     """Build SQL WHERE clause"""
     known_integers = [
         get_name_from_survey_element(e)
@@ -224,9 +224,14 @@ def build_sql_where(xform, query, start=None, end=None):
     if isinstance(start, datetime.datetime):
         sql_where += " AND date_created >= %s"
         where_params += [start.isoformat()]
+
     if isinstance(end, datetime.datetime):
         sql_where += " AND date_created <= %s"
         where_params += [end.isoformat()]
+
+    if isinstance(is_encrypted, bool):
+        sql_where += " AND is_encrypted = %s"
+        where_params += [is_encrypted]
 
     exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)
 
@@ -261,7 +266,8 @@ def get_sql_with_params(
     end=None,
     start_index=None,
     limit=None,
-    json_only: bool = True,
+    json_only=True,
+    is_encrypted=None,
 ):
     """Returns the SQL and related parameters"""
     sort = _get_sort_fields(sort)
@@ -286,7 +292,7 @@ def get_sql_with_params(
         else:
             sql = "SELECT id,json,xml FROM logger_instance"
 
-    sql_where, params = build_sql_where(xform, query, start, end)
+    sql_where, params = build_sql_where(xform, query, start, end, is_encrypted)
     sql += f" {sql_where}"
 
     # apply sorting
@@ -351,6 +357,7 @@ def query_fields_data(
     end=None,
     start_index=None,
     limit=None,
+    is_encrypted=None,
 ):
     """Query the submissions table and return json fields data"""
     sql, params = get_sql_with_params(
@@ -362,6 +369,7 @@ def query_fields_data(
         end=end,
         start_index=start_index,
         limit=limit,
+        is_encrypted=is_encrypted,
     )
 
     if isinstance(fields, six.string_types):
@@ -379,6 +387,7 @@ def query_data(
     start_index=None,
     limit=None,
     json_only: bool = True,
+    is_encrypted=None,
 ):
     """Query the submissions table and returns the results"""
     sql, params = get_sql_with_params(
@@ -390,6 +399,7 @@ def query_data(
         start_index=start_index,
         limit=limit,
         json_only=json_only,
+        is_encrypted=is_encrypted,
     )
 
     instances = Instance.objects.raw(sql, params)

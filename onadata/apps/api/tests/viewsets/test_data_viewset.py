@@ -3884,6 +3884,49 @@ class TestDataViewSet(SerializeMixin, TestBase):
             False,
         )
 
+    def test_is_encrypted_query_param(self):
+        """`is_encrypted` query param works."""
+        self._make_submissions()
+
+        # Mark the last as encrypted
+        instance = Instance.objects.order_by("-pk").first()
+        instance.is_encrypted = True
+        instance.save()
+        instance.refresh_from_db()
+
+        self.assertTrue(instance.is_encrypted)
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data={"is_encrypted": False}, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        request = self.factory.get("/", data={"is_encrypted": True}, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        # Works with raw SQL query
+        request = self.factory.get(
+            "/",
+            data={"sort": '{"_submission_time":1}', "is_encrypted": True},
+            **self.extra,
+        )
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        data = {"fields": '["_id", "age", "net_worth", "imei"]', "is_encrypted": True}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
 
 class TestOSM(TestAbstractViewSet):
     """
