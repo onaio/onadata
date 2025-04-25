@@ -79,7 +79,11 @@ from onadata.libs.utils.common_tags import (
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath, report_exception
 from onadata.libs.utils.dict_tools import get_values_matching_key
-from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+from onadata.libs.utils.model_tools import (
+    queryset_iterator,
+    set_uuid,
+    update_fields_directly,
+)
 from onadata.libs.utils.timing import calculate_duration
 
 # pylint: disable=invalid-name
@@ -357,11 +361,7 @@ def save_full_json(instance: "Instance", include_related=True):
     Args:
         include_related (bool): Whether to include related objects
     """
-    # Queryset.update ensures the model's save is not called and
-    # the pre_save and post_save signals aren't sent
-    Instance.objects.filter(pk=instance.pk).update(
-        json=instance.get_full_dict(include_related)
-    )
+    update_fields_directly(instance, json=instance.get_full_dict(include_related))
 
 
 @app.task(bind=True, max_retries=3)
@@ -694,6 +694,7 @@ class Instance(models.Model, InstanceBaseClass):
     checksum = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     # Keep track of submission reviews, only query reviews if True
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
+    is_encrypted = models.BooleanField(default=False)
 
     tags = TaggableManager()
 
@@ -905,6 +906,16 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
         )
 
 
+@use_master
+def set_is_encrypted(sender, instance, created=False, **kwargs):
+    """Set is_encrypted to True if Instance is encrypted"""
+    # Avoid cyclic dependency errors
+    kms_tools = importlib.import_module("onadata.libs.kms.tools")
+
+    if kms_tools.is_instance_encrypted(instance) and not instance.is_encrypted:
+        update_fields_directly(instance, is_encrypted=True)
+
+
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
 )
@@ -928,6 +939,8 @@ post_save.connect(
 )
 
 post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_instance")
+
+post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):

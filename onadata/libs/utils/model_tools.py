@@ -42,3 +42,14 @@ def get_columns_with_hxl(survey_elements):
         for se in survey_elements
         if hasattr(se, "instance") and getattr(se, "instance") and "hxl" in se.instance
     }
+
+
+def update_fields_directly(instance, **fields):
+    """
+    Update field(s) on a model instance using QuerySet.update()
+    to avoid calling save() and triggering signals.
+    """
+    if not fields:
+        raise ValueError("At least one field must be provided to update.")
+
+    instance.__class__.objects.filter(pk=instance.pk).update(**fields)
