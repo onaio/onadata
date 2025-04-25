@@ -53,6 +53,7 @@ class KMSKey(BaseModel):
             models.Index(fields=["disabled_at"]),
             models.Index(fields=["expiry_date"]),
             models.Index(fields=["grace_end_date"]),
+            models.Index(fields=["rotated_at"]),
         ]
 
     def __str__(self):
