@@ -1400,7 +1400,7 @@ class TestInstance(TestBase):
 
     @patch("onadata.apps.logger.tasks.decrypt_instance")
     def test_decrypt_instance(self, mock_dec):
-        """Instance is decrypted."""
+        """Encrypted Instance using managed keys is decrypted."""
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
@@ -1465,3 +1465,45 @@ class TestInstance(TestBase):
             self._publish_transportation_form_and_submit_instance()
 
             mock_dec.assert_not_called()
+
+    def test_set_is_encrypted(self):
+        """is_encrypted is set to True for encrypted Instance."""
+        metadata_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        xform = self._publish_markdown(md, self.user, id_string="nature")
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+        )
+        instance.refresh_from_db()
+
+        self.assertTrue(instance.is_encrypted)
+
+        # Unencrypted Instance value is false
+        self._publish_transportation_form_and_submit_instance()
+
+        instance = Instance.objects.order_by("-pk").first()
+
+        self.assertFalse(instance.is_encrypted)
