@@ -626,6 +626,7 @@ class DecryptInstanceTestCase(TestBase):
             survey_type=survey_type,
             checksum=sha256(self.metadata_xml_file.getvalue()).hexdigest(),
         )
+        self.instance.refresh_from_db()
         dec_files = [
             ("sunset.png", self.dec_media["sunset.png"]),
             ("forest.mp4", self.dec_media["forest.mp4"]),
@@ -695,6 +696,8 @@ class DecryptInstanceTestCase(TestBase):
 
     def test_decrypt_submission(self):
         """Decrypt submission is successful."""
+        self.assertTrue(self.instance.is_encrypted)
+
         decrypt_instance(self.instance)
 
         self.instance.refresh_from_db()
@@ -705,6 +708,7 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.checksum,
             sha256(self.dec_submission_file.getvalue()).hexdigest(),
         )
+        self.assertFalse(self.instance.is_encrypted)
 
         # Decrypted media files are saved
         att_qs = Attachment.objects.filter(
