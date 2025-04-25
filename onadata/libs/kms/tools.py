@@ -184,14 +184,14 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
 
 
 @transaction.atomic()
-def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
+def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey to be rotated
     :param rotated_by: User rotating the key
-    :param manual: Whether the rotation is manual or automatic
     :return: New KMSKey
     """
+    # Refresh the key from the database to get the latest state
     kms_key.refresh_from_db()
 
     if kms_key.disabled_at:
@@ -212,8 +212,8 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
     kms_key.rotated_by = rotated_by
     kms_key.save(update_fields=["rotated_at", "rotated_by"])
 
-    if manual:
-        # Expire the old key
+    if kms_key.expiry_date > timezone.now():
+        # This is pre-mature rotation, force expiry
         kms_key.expiry_date = timezone.now()
         kms_key.grace_end_date = None
 
