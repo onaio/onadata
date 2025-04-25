@@ -30,6 +30,14 @@ class KMSKey(BaseModel):
     grace_end_date = models.DateTimeField(null=True, blank=True)
     disabled_at = models.DateTimeField(null=True, blank=True)
     disabled_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    rotated_at = models.DateTimeField(null=True, blank=True)
+    rotated_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        related_name="keys_rotated",
+        on_delete=models.SET_NULL,
+    )
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")

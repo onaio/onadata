@@ -34,6 +34,7 @@ class KMSKeyTestCase(TestBase):
         expiry_date = self.mocked_now + timedelta(days=2)
         grace_end_date = self.mocked_now + timedelta(days=1)
         disabled_at = self.mocked_now
+        rotated_at = self.mocked_now
 
         kms_key = KMSKey.objects.create(
             key_id="1234",
@@ -47,6 +48,8 @@ class KMSKeyTestCase(TestBase):
             object_id=self.org.id,
             disabled_by=self.user,
             created_by=self.user,
+            rotated_at=rotated_at,
+            rotated_by=self.user,
         )
 
         self.assertEqual(f"{kms_key}", "1234")
@@ -60,6 +63,8 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.disabled_by, self.user)
         self.assertEqual(kms_key.created_by, self.user)
         self.assertEqual(kms_key.grace_end_date, grace_end_date)
+        self.assertEqual(kms_key.rotated_at, rotated_at)
+        self.assertEqual(kms_key.rotated_by, self.user)
 
     def test_default_values(self):
         """Default values for optional fields are correct."""
@@ -77,6 +82,8 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.disabled_by)
         self.assertIsNone(kms_key.created_by)
         self.assertIsNone(kms_key.grace_end_date)
+        self.assertIsNone(kms_key.rotated_at)
+        self.assertIsNone(kms_key.rotated_by)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""
