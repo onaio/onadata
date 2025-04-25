@@ -689,7 +689,7 @@ Query submissions collected within specific dates or edited within specific date
 ::
 
     curl -X GET https://api.ona.io/api/v1/data/22845?query={"$or": [{"_submission_time":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}, {"_last_edited":{"$gte": "2020-01-01", "$lte": "2020-08-31"}}]}
-    
+
 
 All Filters Options
 
@@ -940,6 +940,20 @@ Example
 ::
 
       curl -X GET https://api.ona.io/api/v1/data/22845?tags=monthly
+
+Query submitted data of a specific form based on encryption status
+------------------------------------------------------------------
+
+Filter submissions using the is_encrypted field.
+
+Use `true` or `1` to get encrypted submissions only, `false` or `0` to get unencrypted submissions only.
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?is_encrypted=true
+
 
 Tag a submission data point
 ----------------------------
