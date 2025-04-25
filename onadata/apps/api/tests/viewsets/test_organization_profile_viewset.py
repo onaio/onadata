@@ -35,6 +35,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.permissions import ROLES, DataEntryRole, OwnerRole
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
@@ -1505,3 +1506,13 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key already rotated", str(response.data["key_id"]))
+
+    def test_rotation_errors_captured(self, mock_rotate_key):
+        """Rotation errors are captured."""
+        mock_rotate_key.side_effect = EncryptionError("Key is disabled.")
+
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key is disabled", str(response.data["key_id"]))
