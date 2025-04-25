@@ -946,7 +946,7 @@ Query submitted data of a specific form based on encryption status
 
 Filter submissions using the is_encrypted field.
 
-Use `true` or `1` to get encrypted submissions only, `false` or `0` to get unencrypted submissions only.
+Use ``true`` or ``1`` to get encrypted submissions only, ``false`` or ``0`` to get unencrypted submissions only.
 
 Example
 ^^^^^^^^^
