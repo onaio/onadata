@@ -226,10 +226,17 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
                 "Key does not exist.", code="does_not_exist"
             )
 
-        if self.kms_key.disabled_at or self.kms_key.is_expired:
+        if self.kms_key.disabled_at:
             raise serializers.ValidationError("Key is inactive.")
+
+        if self.kms_key.rotated_at:
+            raise serializers.ValidationError("Key already rotated.")
 
         return value
 
     def save(self, **kwargs):
-        rotate_key(self.kms_key, rotated_by=self.context["request"].user)
+        rotate_key(
+            self.kms_key,
+            rotated_by=self.context["request"].user,
+            manual=True,
+        )
