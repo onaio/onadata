@@ -628,7 +628,7 @@ class DataViewSet(
         if export_type == Attachment.OSM:
             if request.GET:
                 self.set_object_list(
-                    query, fields, sort, start, limit, is_public_request
+                    query, fields, sort, start, limit, is_public_request, is_encrypted
                 )
                 kwargs = {"instance__in": self.object_list}
             osm_list = OsmData.objects.filter(**kwargs).order_by("instance")
