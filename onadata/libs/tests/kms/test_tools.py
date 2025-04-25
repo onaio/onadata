@@ -291,6 +291,11 @@ class RotateKeyTestCase(TestBase):
         )
         # A XFormVersion of the new version is created
         self.assertTrue(self.xform.versions.filter(version="202504031220").exists())
+        # Old key is marked as rotated
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(self.kms_key.rotated_at, mocked_now)
+        self.assertEqual(self.kms_key.rotated_by, self.user)
 
     @patch("django.utils.timezone.now")
     def test_rotated_by_optional(self, mock_now, mock_create_key):
@@ -309,6 +314,9 @@ class RotateKeyTestCase(TestBase):
             self.kms_key.content_object,
             created_by=None,
         )
+        self.kms_key.refresh_from_db()
+
+        self.assertIsNone(self.kms_key.rotated_by)
 
     @patch("django.utils.timezone.now")
     def test_manual_rotation(self, mock_now, mock_create_key):
@@ -373,7 +381,20 @@ class RotateKeyTestCase(TestBase):
 
         mock_create_key.assert_not_called()
 
-        self.assertEqual(str(exc_info.exception), "Cannot rotate a disabled key.")
+        self.assertEqual(str(exc_info.exception), "Key is disabled.")
+
+    def test_already_rotated_key(self, mock_create_key):
+        """Rotating an already rotated key is not allowed."""
+        self.kms_key.rotated_at = timezone.now()
+        self.kms_key.save()
+        mock_create_key.return_value = self.create_mock_key()
+
+        with self.assertRaises(EncryptionError) as exc_info:
+            rotate_key(self.kms_key, rotated_by=self.user)
+
+        mock_create_key.assert_not_called()
+
+        self.assertEqual(str(exc_info.exception), "Key already rotated.")
 
 
 @mock_aws

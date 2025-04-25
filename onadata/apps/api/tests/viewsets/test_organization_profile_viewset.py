@@ -1448,7 +1448,9 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
 
-        mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
+        mock_rotate_key.assert_called_once_with(
+            self.kms_key, rotated_by=self.user, manual=True
+        )
 
     def test_authentication_required(self, mock_rotate_key):
         """Authenticattion is required."""
@@ -1493,13 +1495,13 @@ class RotateKeyTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key is inactive", str(response.data["key_id"]))
 
-    def test_expired_key(self, mock_rotate_key):
-        """Rotation for expired key is not allowed."""
-        self.kms_key.expiry_date = timezone.now()
+    def test_already_rotated_key(self, mock_rotate_key):
+        """Rotation for already rotated key is not allowed."""
+        self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
 
         request = self.factory.post("/", data=self.data, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Key is inactive", str(response.data["key_id"]))
+        self.assertIn("Key already rotated", str(response.data["key_id"]))
