@@ -20,6 +20,7 @@ from onadata.apps.api.tools import (
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -235,8 +236,11 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
         return value
 
     def save(self, **kwargs):
-        rotate_key(
-            self.kms_key,
-            rotated_by=self.context["request"].user,
-            manual=True,
-        )
+        try:
+            rotate_key(
+                self.kms_key,
+                rotated_by=self.context["request"].user,
+                manual=True,
+            )
+        except EncryptionError as exc:
+            raise serializers.ValidationError({"key_id": f"{exc}"})
