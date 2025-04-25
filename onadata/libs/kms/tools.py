@@ -314,6 +314,7 @@ def decrypt_instance(instance: Instance) -> None:
 
             instance.xml = xml.decode("utf-8")
             instance.checksum = sha256(xml).hexdigest()
+            instance.is_encrypted = False
             instance.save()
 
         else:
