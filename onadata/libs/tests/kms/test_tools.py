@@ -130,21 +130,6 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
-        # Default grace period duration is 30 days
-        self.assertEqual(
-            kms_key.grace_end_date,
-            mocked_now + timedelta(days=365) + timedelta(days=30),
-        )
-
-        # With grace period duration
-        with override_settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=15)):
-            kms_key = create_key(self.org)
-
-            self.assertEqual(kms_key.expiry_date, mocked_now + timedelta(days=365))
-            self.assertEqual(
-                kms_key.grace_end_date,
-                mocked_now + timedelta(days=365) + timedelta(days=15),
-            )
 
     @patch("django.utils.timezone.now")
     def test_duplicate_description(self, mock_now):
@@ -195,27 +180,6 @@ class CreateKeyTestCase(TestBase):
             "invalid",
         )
 
-    @patch("onadata.libs.kms.tools.logger.error")
-    def test_invalid_grace_period_duration(self, mock_logger):
-        """Invalid grace period duration is handled."""
-        with override_settings(
-            KMS_GRACE_PERIOD_DURATION="invalid",
-            KMS_ROTATION_DURATION=timedelta(days=365),
-        ):
-            create_key(self.org)
-
-        # KMSKey is still created
-        self.assertEqual(KMSKey.objects.count(), 1)
-        kms_key = KMSKey.objects.first()
-
-        self.assertIsNotNone(kms_key.expiry_date)
-        self.assertIsNone(kms_key.grace_end_date)
-
-        mock_logger.assert_called_once_with(
-            "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
-            "invalid",
-        )
-
 
 @patch("onadata.libs.kms.tools.create_key")
 class RotateKeyTestCase(TestBase):
@@ -229,8 +193,6 @@ class RotateKeyTestCase(TestBase):
         )
         self.content_type = ContentType.objects.get_for_model(self.org)
         self.mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
-        expiry_date = self.mocked_now - timedelta(days=30)
-        grace_end_date = expiry_date + timedelta(days=60)
         self.kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
             description="Key-2025-04-03",
@@ -238,8 +200,7 @@ class RotateKeyTestCase(TestBase):
             content_type=self.content_type,
             object_id=self.org.pk,
             provider=KMSKey.KMSProvider.AWS,
-            expiry_date=expiry_date,
-            grace_end_date=grace_end_date,
+            expiry_date=self.mocked_now - timedelta(hours=2),
         )
         self._publish_transportation_form()
         self.xform.kms_keys.create(
@@ -344,13 +305,9 @@ class RotateKeyTestCase(TestBase):
     def test_invalid_grace_period_duration(
         self, mock_logger, mock_now, mock_create_key
     ):
-        """Invalid grace period duration is handled."""
+        """Default grace period duration is used if duration is invalid."""
         mock_now.return_value = self.mocked_now
         mock_create_key.return_value = self.create_mock_key()
-        # Set the expiry date into the future
-        self.kms_key.expiry_date = self.mocked_now + timedelta(days=30)
-        self.kms_key.grace_end_date = self.kms_key.expiry_date + timedelta(days=60)
-        self.kms_key.save()
 
         with override_settings(KMS_GRACE_PERIOD_DURATION="invalid"):
             rotate_key(self.kms_key)
@@ -362,8 +319,25 @@ class RotateKeyTestCase(TestBase):
 
         self.kms_key.refresh_from_db()
 
-        self.assertEqual(self.kms_key.expiry_date, self.mocked_now)
-        self.assertIsNone(self.kms_key.grace_end_date)
+        # Default grace period duration is 30 days
+        self.assertEqual(
+            self.kms_key.grace_end_date,
+            self.kms_key.expiry_date + timedelta(days=30),
+        )
+
+    def test_grace_duration_missing(self, mock_create_key):
+        """Default grace duration is used if duration is missing."""
+        mock_create_key.return_value = self.create_mock_key()
+
+        with override_settings(KMS_GRACE_PERIOD_DURATION=None):
+            rotate_key(self.kms_key)
+
+        self.kms_key.refresh_from_db()
+
+        self.assertEqual(
+            self.kms_key.grace_end_date,
+            self.kms_key.expiry_date + timedelta(days=30),
+        )
 
     @patch("onadata.libs.kms.tools.importlib.import_module")
     def test_xform_list_cache_invalidated(self, mock_import_module, mock_create_key):

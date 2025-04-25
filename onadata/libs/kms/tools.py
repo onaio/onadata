@@ -53,8 +53,9 @@ def _get_kms_rotation_duration():
 
 
 def _get_kms_grace_period_duration():
+    default_grace_period_duration = timedelta(days=30)
     grace_period_duration = getattr(
-        settings, "KMS_GRACE_PERIOD_DURATION", timedelta(days=30)
+        settings, "KMS_GRACE_PERIOD_DURATION", default_grace_period_duration
     )
 
     if isinstance(grace_period_duration, timedelta):
@@ -66,7 +67,7 @@ def _get_kms_grace_period_duration():
             grace_period_duration,
         )
 
-    return None
+    return default_grace_period_duration
 
 
 def get_kms_client():
@@ -118,15 +119,10 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     metadata = kms_client.create_key(description=description)
     rotation_duration = _get_kms_rotation_duration()
-    grace_period_duration = _get_kms_grace_period_duration()
     expiry_date = None
-    grace_end_date = None
 
     if rotation_duration:
         expiry_date = now + rotation_duration
-
-    if grace_period_duration and expiry_date:
-        grace_end_date = expiry_date + grace_period_duration
 
     provider_choice_map = {
         "AWS": KMSKey.KMSProvider.AWS,
@@ -139,7 +135,6 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         public_key=clean_public_key(metadata["public_key"]),
         provider=provider,
         expiry_date=expiry_date,
-        grace_end_date=grace_end_date,
         content_type=content_type,
         object_id=org.pk,
         created_by=created_by,
@@ -208,21 +203,16 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
     for xform_key in queryset_iterator(xform_key_qs):
         _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
 
-    kms_key.rotated_at = timezone.now()
-    kms_key.rotated_by = rotated_by
-    kms_key.save(update_fields=["rotated_at", "rotated_by"])
-
     if kms_key.expiry_date > timezone.now():
         # This is pre-mature rotation, force expiry
         kms_key.expiry_date = timezone.now()
-        kms_key.grace_end_date = None
 
-        grace_period_duration = _get_kms_grace_period_duration()
-
-        if grace_period_duration:
-            kms_key.grace_end_date = kms_key.expiry_date + grace_period_duration
-
-        kms_key.save(update_fields=["expiry_date", "grace_end_date"])
+    kms_key.rotated_at = timezone.now()
+    kms_key.rotated_by = rotated_by
+    kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
+    kms_key.save(
+        update_fields=["expiry_date", "grace_end_date", "rotated_at", "rotated_by"]
+    )
 
     return new_key
 
