@@ -228,7 +228,9 @@ class RotateKeyTestCase(TestBase):
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         self.content_type = ContentType.objects.get_for_model(self.org)
-        now = timezone.now()
+        self.mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
+        expiry_date = self.mocked_now - timedelta(days=30)
+        grace_end_date = expiry_date + timedelta(days=60)
         self.kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
             description="Key-2025-04-03",
@@ -236,8 +238,8 @@ class RotateKeyTestCase(TestBase):
             content_type=self.content_type,
             object_id=self.org.pk,
             provider=KMSKey.KMSProvider.AWS,
-            expiry_date=now + timedelta(days=365),
-            grace_end_date=now + timedelta(days=365) + timedelta(days=30),
+            expiry_date=expiry_date,
+            grace_end_date=grace_end_date,
         )
         self._publish_transportation_form()
         self.xform.kms_keys.create(
@@ -259,8 +261,7 @@ class RotateKeyTestCase(TestBase):
     @patch("django.utils.timezone.now")
     def test_rotate(self, mock_now, mock_create_key):
         """KMS key is rotated."""
-        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
-        mock_now.return_value = mocked_now
+        mock_now.return_value = self.mocked_now
         mock_create_key.return_value = new_key = self.create_mock_key()
 
         rotate_key(kms_key=self.kms_key, rotated_by=self.user)
@@ -294,14 +295,13 @@ class RotateKeyTestCase(TestBase):
         # Old key is marked as rotated
         self.kms_key.refresh_from_db()
 
-        self.assertEqual(self.kms_key.rotated_at, mocked_now)
+        self.assertEqual(self.kms_key.rotated_at, self.mocked_now)
         self.assertEqual(self.kms_key.rotated_by, self.user)
 
     @patch("django.utils.timezone.now")
     def test_rotated_by_optional(self, mock_now, mock_create_key):
         """rotated_by is optional"""
-        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
-        mock_now.return_value = mocked_now
+        mock_now.return_value = self.mocked_now
         mock_create_key.return_value = new_key = self.create_mock_key()
 
         rotate_key(self.kms_key)
@@ -311,29 +311,32 @@ class RotateKeyTestCase(TestBase):
         self.assertIsNone(xform_key.encrypted_by)
 
         mock_create_key.assert_called_once_with(
-            self.kms_key.content_object,
-            created_by=None,
+            self.kms_key.content_object, created_by=None
         )
         self.kms_key.refresh_from_db()
 
         self.assertIsNone(self.kms_key.rotated_by)
 
     @patch("django.utils.timezone.now")
-    def test_manual_rotation(self, mock_now, mock_create_key):
-        """Manual rotation is handled."""
-        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
-        mock_now.return_value = mocked_now
+    def test_pre_mature_rotation(self, mock_now, mock_create_key):
+        """Expiry date is set to the current date if it is in the future."""
+        mock_now.return_value = self.mocked_now
         mock_create_key.return_value = self.create_mock_key()
+        # Set the expiry date into the future
+        self.kms_key.expiry_date = self.mocked_now + timedelta(days=30)
+        self.kms_key.grace_end_date = self.kms_key.expiry_date + timedelta(days=60)
+        self.kms_key.save()
 
-        with override_settings(KMS_GRACE_PERIOD_DURATION=timedelta(days=30)):
-            rotate_key(self.kms_key, manual=True)
+        grace_period_duration = timedelta(days=30)
+
+        with override_settings(KMS_GRACE_PERIOD_DURATION=grace_period_duration):
+            rotate_key(self.kms_key)
 
         self.kms_key.refresh_from_db()
 
-        self.assertEqual(self.kms_key.expiry_date, mocked_now)
+        self.assertEqual(self.kms_key.expiry_date, self.mocked_now)
         self.assertEqual(
-            self.kms_key.grace_end_date,
-            mocked_now + timedelta(days=30),
+            self.kms_key.grace_end_date, self.mocked_now + grace_period_duration
         )
 
     @patch("django.utils.timezone.now")
@@ -342,12 +345,15 @@ class RotateKeyTestCase(TestBase):
         self, mock_logger, mock_now, mock_create_key
     ):
         """Invalid grace period duration is handled."""
-        mocked_now = datetime(2025, 4, 3, 12, 20, tzinfo=tz.utc)
-        mock_now.return_value = mocked_now
+        mock_now.return_value = self.mocked_now
         mock_create_key.return_value = self.create_mock_key()
+        # Set the expiry date into the future
+        self.kms_key.expiry_date = self.mocked_now + timedelta(days=30)
+        self.kms_key.grace_end_date = self.kms_key.expiry_date + timedelta(days=60)
+        self.kms_key.save()
 
         with override_settings(KMS_GRACE_PERIOD_DURATION="invalid"):
-            rotate_key(self.kms_key, manual=True)
+            rotate_key(self.kms_key)
 
         mock_logger.assert_called_once_with(
             "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
@@ -356,7 +362,7 @@ class RotateKeyTestCase(TestBase):
 
         self.kms_key.refresh_from_db()
 
-        self.assertEqual(self.kms_key.expiry_date, mocked_now)
+        self.assertEqual(self.kms_key.expiry_date, self.mocked_now)
         self.assertIsNone(self.kms_key.grace_end_date)
 
     @patch("onadata.libs.kms.tools.importlib.import_module")
@@ -372,9 +378,10 @@ class RotateKeyTestCase(TestBase):
 
     def test_disabled_key(self, mock_create_key):
         """Rotating an already disabled key is not allowed."""
+        mock_create_key.return_value = self.create_mock_key()
+
         self.kms_key.disabled_at = timezone.now()
         self.kms_key.save()
-        mock_create_key.return_value = self.create_mock_key()
 
         with self.assertRaises(EncryptionError) as exc_info:
             rotate_key(kms_key=self.kms_key, rotated_by=self.user)
@@ -385,9 +392,10 @@ class RotateKeyTestCase(TestBase):
 
     def test_already_rotated_key(self, mock_create_key):
         """Rotating an already rotated key is not allowed."""
+        mock_create_key.return_value = self.create_mock_key()
+
         self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
-        mock_create_key.return_value = self.create_mock_key()
 
         with self.assertRaises(EncryptionError) as exc_info:
             rotate_key(self.kms_key, rotated_by=self.user)

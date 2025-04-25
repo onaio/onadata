@@ -237,10 +237,6 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         try:
-            rotate_key(
-                self.kms_key,
-                rotated_by=self.context["request"].user,
-                manual=True,
-            )
+            rotate_key(self.kms_key, rotated_by=self.context["request"].user)
         except EncryptionError as exc:
             raise serializers.ValidationError({"key_id": f"{exc}"})
