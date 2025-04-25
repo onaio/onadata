@@ -4,6 +4,7 @@ The /api/v1/orgs API implementation
 
 List, Retrieve, Update, Create/Register Organizations.
 """
+
 import json
 
 from django.conf import settings
@@ -29,7 +30,10 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberSerializer,
 )
-from onadata.libs.serializers.organization_serializer import OrganizationSerializer
+from onadata.libs.serializers.organization_serializer import (
+    OrganizationSerializer,
+    RotateOrganizationKeySerializer,
+)
 from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
 
@@ -62,6 +66,13 @@ class OrganizationProfileViewSet(
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
+
+    def get_serializer_class(self):
+        """Override `get_serializer_class` method"""
+        if self.action == "rotate_key":
+            return RotateOrganizationKeySerializer
+
+        return super().get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
@@ -128,3 +139,19 @@ class OrganizationProfileViewSet(
         )
 
         return Response(status=resp_status, data=serializer.data)
+
+    @action(methods=["POST"], detail=True)
+    def rotate_key(self, request, *args, **kwargs):
+        """Manually rotate KMS key."""
+        organization = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={
+                **self.get_serializer_context(),
+                "organization": organization,
+            },
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(status=status.HTTP_200_OK)
