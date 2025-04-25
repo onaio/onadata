@@ -35,7 +35,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import DataEntryRole, OwnerRole
+from onadata.libs.permissions import ROLES, DataEntryRole, OwnerRole
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
@@ -1419,3 +1419,87 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["inactive_kms_keys"]), 0)
+
+
+@patch("onadata.libs.serializers.organization_serializer.rotate_key")
+class RotateKeyTestCase(TestAbstractViewSet):
+    """Tests for rotating KMS key"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = OrganizationProfileViewSet.as_view({"post": "rotate_key"})
+        self._org_create()
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-25",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        self.data = {"key_id": self.kms_key.key_id}
+
+    def test_rotate_key(self, mock_rotate_key):
+        """Manually rotating a key works."""
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+
+        mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
+
+    def test_authentication_required(self, mock_rotate_key):
+        """Authenticattion is required."""
+        request = self.factory.post("/", data=self.data)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_only_admins_allowed(self, mock_rotate_key):
+        """Only org admins can rotate key."""
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        for role in ROLES:
+            role_cls = ROLES.get(role)
+            role_cls.add(self.user, self.organization)
+            request = self.factory.post("/", data=self.data, **self.extra)
+            response = self.view(request, user="denoinc")
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+
+            else:
+                self.assertNotEqual(response.status_code, 200)
+
+    def test_invalid_key(self, mock_rotate_key):
+        """Invalid key id is handled."""
+        request = self.factory.post("/", data={"key_id": "invalid_key"}, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key does not exist", str(response.data["key_id"]))
+
+    def test_disabled_key(self, mock_rotate_key):
+        """Rotatation for disabled key is not allowed."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key is inactive", str(response.data["key_id"]))
+
+    def test_expired_key(self, mock_rotate_key):
+        """Rotation for expired key is not allowed."""
+        self.kms_key.expiry_date = timezone.now()
+        self.kms_key.save()
+
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Key is inactive", str(response.data["key_id"]))

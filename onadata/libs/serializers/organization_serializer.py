@@ -20,6 +20,7 @@ from onadata.apps.api.tools import (
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -194,10 +195,41 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         try:
             # Get the latest key created
-            kms_key_qs = KMSKey.objects.filter(
+            kms_key = KMSKey.objects.filter(
                 content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
             ).latest("date_created")
         except KMSKey.DoesNotExist:
             return None
 
-        return self._get_kms_key_data(kms_key_qs)
+        return self._get_kms_key_data(kms_key)
+
+
+class RotateOrganizationKeySerializer(serializers.Serializer):
+    """Serializer for manual key rotation."""
+
+    user = serializers.HyperlinkedRelatedField(
+        view_name="user-detail", lookup_field="username", read_only=True
+    )
+    key_id = serializers.CharField()
+
+    def validate_key_id(self, value):
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        organization = self.context["organization"]
+
+        try:
+            self.kms_key = KMSKey.objects.get(
+                key_id=value, content_type=content_type, object_id=organization.pk
+            )
+
+        except KMSKey.DoesNotExist:
+            raise serializers.ValidationError(
+                "Key does not exist.", code="does_not_exist"
+            )
+
+        if self.kms_key.disabled_at or self.kms_key.is_expired:
+            raise serializers.ValidationError("Key is inactive.")
+
+        return value
+
+    def save(self, **kwargs):
+        rotate_key(self.kms_key, rotated_by=self.context["request"].user)
