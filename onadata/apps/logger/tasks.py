@@ -1,4 +1,6 @@
-"""Asynchronous tasks for the logger app"""
+"""
+Asynchronous tasks for the logger app
+"""
 
 import logging
 
