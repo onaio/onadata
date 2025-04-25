@@ -192,6 +192,11 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, manual=False) -> KMSKey:
     :param manual: Whether the rotation is manual or automatic
     :return: New KMSKey
     """
+    kms_key.refresh_from_db()
+
+    if kms_key.disabled_at:
+        raise EncryptionError("Cannot rotate a disabled key.")
+
     new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
     # Update XForms using the old key to use the new key
