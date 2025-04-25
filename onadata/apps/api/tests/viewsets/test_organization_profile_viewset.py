@@ -1449,9 +1449,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
 
-        mock_rotate_key.assert_called_once_with(
-            self.kms_key, rotated_by=self.user, manual=True
-        )
+        mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
 
     def test_authentication_required(self, mock_rotate_key):
         """Authenticattion is required."""
