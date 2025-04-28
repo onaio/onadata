@@ -1443,7 +1443,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
             object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
         )
-        self.data = {"key_id": self.kms_key.key_id}
+        self.data = {"key_id": self.kms_key.key_id, "rotation_reason": "Test rotation"}
 
     def test_rotate_key(self, mock_rotate_key):
         """Manually rotating a key works."""
@@ -1461,7 +1461,11 @@ class RotateKeyTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {"key_id": "new-key"})
 
-        mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
+        mock_rotate_key.assert_called_once_with(
+            self.kms_key,
+            rotated_by=self.user,
+            rotation_reason=self.data["rotation_reason"],
+        )
 
     def test_authentication_required(self, mock_rotate_key):
         """Authenticattion is required."""
@@ -1540,4 +1544,18 @@ class RotateKeyTestCase(TestAbstractViewSet):
             target_type="kmskey",
             user=self.user,
             message_verb="kmskey_rotated",
+        )
+
+    def test_rotation_reason_optional(self, mock_rotate_key):
+        """Rotation reason is optional."""
+        request = self.factory.post(
+            "/", data={"key_id": self.kms_key.key_id}, **self.extra
+        )
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        mock_rotate_key.assert_called_once_with(
+            self.kms_key,
+            rotated_by=self.user,
+            rotation_reason=None,
         )
