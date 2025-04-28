@@ -167,6 +167,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     def _get_kms_key_data(self, key):
         """Get the KMSKey data."""
         return {
+            "key_id": key.key_id,
             "description": key.description,
             "date_created": key.date_created.isoformat(),
             "is_expired": key.is_expired,
