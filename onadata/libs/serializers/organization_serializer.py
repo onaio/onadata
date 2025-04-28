@@ -225,14 +225,14 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
 
         except KMSKey.DoesNotExist:
             raise serializers.ValidationError(
-                "Key does not exist.", code="does_not_exist"
+                _("Key does not exist."), code="does_not_exist"
             )
 
         if self.kms_key.disabled_at:
-            raise serializers.ValidationError("Key is inactive.")
+            raise serializers.ValidationError(_("Key is inactive."))
 
         if self.kms_key.rotated_at:
-            raise serializers.ValidationError("Key already rotated.")
+            raise serializers.ValidationError(_("Key already rotated."))
 
         return value
 
