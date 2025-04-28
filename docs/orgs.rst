@@ -290,6 +290,7 @@ Example
       curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key \
       -d '{
             "key_id": "40d5289c-6141-4903-94d7-305a3873c8fb",
+            "rotation_reason": "Automatic rotation failed"
          }'
 
 
