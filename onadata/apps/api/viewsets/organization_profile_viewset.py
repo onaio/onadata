@@ -19,6 +19,8 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
+from onadata.apps.messaging.constants import KMS_KEY_ROTATED, ORGANIZATION
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
     OrganizationsSharedWithUserFilter,
@@ -153,5 +155,13 @@ class OrganizationProfileViewSet(
         )
         serializer.is_valid(raise_exception=True)
         new_key = serializer.save()
+        # Capture audit log
+        send_message(
+            instance_id=organization.id,
+            target_id=organization.id,
+            target_type=ORGANIZATION,
+            user=request.user,
+            message_verb=KMS_KEY_ROTATED,
+        )
 
         return Response({"key_id": new_key.key_id}, status=status.HTTP_200_OK)

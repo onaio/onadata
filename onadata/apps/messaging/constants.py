@@ -9,17 +9,19 @@ from builtins import str as text
 
 from django.utils.translation import gettext as _
 
-XFORM = text('xform')
-PROJECT = text('project')
-USER = text('user')
+XFORM = text("xform")
+PROJECT = text("project")
+USER = text("user")
+ORGANIZATION = text("organizationprofile")
 
 APP_LABEL_MAPPING = {
-    XFORM: 'logger',
-    PROJECT: 'logger',
-    USER: 'auth',
+    XFORM: "logger",
+    PROJECT: "logger",
+    USER: "auth",
+    ORGANIZATION: "api",
 }
 
-MESSAGE = 'message'
+MESSAGE = "message"
 UNKNOWN_TARGET = _("Unknown target.")
 SUBMISSION_CREATED = "submission_created"
 SUBMISSION_EDITED = "submission_edited"
@@ -27,12 +29,18 @@ SUBMISSION_DELETED = "submission_deleted"
 SUBMISSION_REVIEWED = "submission_reviewed"
 FORM_UPDATED = "form_updated"
 MESSAGE_VERBS = [
-    MESSAGE, SUBMISSION_REVIEWED, SUBMISSION_CREATED, SUBMISSION_EDITED,
-    SUBMISSION_DELETED, FORM_UPDATED]
+    MESSAGE,
+    SUBMISSION_REVIEWED,
+    SUBMISSION_CREATED,
+    SUBMISSION_EDITED,
+    SUBMISSION_DELETED,
+    FORM_UPDATED,
+]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",
     SUBMISSION_EDITED: "submission/edited",
     SUBMISSION_DELETED: "submission/deleted",
     SUBMISSION_REVIEWED: "submission/reviewed",
-    FORM_UPDATED: "form/updated"
+    FORM_UPDATED: "form/updated",
 }
+KMS_KEY_ROTATED = "kms_key_rotated"
