@@ -47,7 +47,8 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
-    active_kms_keys = serializers.SerializerMethodField()
+    active_kms_key = serializers.SerializerMethodField()
+    inactive_kms_keys = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
@@ -161,32 +162,42 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return owners_list + members_list
 
-    def get_active_kms_keys(self, obj):
-        """Get the active KMSKeys for organization."""
+    def _get_kms_key_data(self, key):
+        """Get the KMSKey data."""
+        return {
+            "description": key.description,
+            "date_created": key.date_created.isoformat(),
+            "is_expired": key.is_expired,
+            "expiry_date": key.expiry_date.isoformat() if key.expiry_date else None,
+            "grace_end_date": (
+                key.grace_end_date.isoformat() if key.grace_end_date else None
+            ),
+        }
+
+    def get_inactive_kms_keys(self, obj):
+        """Get the inactive KMSKeys for organization."""
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        # All keys except the latest one
         kms_key_qs = KMSKey.objects.filter(
             content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
-        )
-
-        if not kms_key_qs.exists():
-            return []
-
-        kms_key_qs = kms_key_qs.order_by("-expiry_date")
-        active_keys = []
+        ).order_by("-date_created")[1:]
+        inactive_keys = []
 
         for key in queryset_iterator(kms_key_qs):
-            active_keys.append(
-                {
-                    "description": key.description,
-                    "date_created": key.date_created.isoformat(),
-                    "is_expired": key.is_expired,
-                    "expiry_date": (
-                        key.expiry_date.isoformat() if key.expiry_date else None
-                    ),
-                    "grace_end_date": (
-                        key.grace_end_date.isoformat() if key.grace_end_date else None
-                    ),
-                }
-            )
+            inactive_keys.append(self._get_kms_key_data(key))
 
-        return active_keys
+        return inactive_keys
+
+    def get_active_kms_key(self, obj):
+        """Get the active KMSKey for organization."""
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+
+        try:
+            # Get the latest key created
+            kms_key_qs = KMSKey.objects.filter(
+                content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
+            ).latest("date_created")
+        except KMSKey.DoesNotExist:
+            return None
+
+        return self._get_kms_key_data(kms_key_qs)
