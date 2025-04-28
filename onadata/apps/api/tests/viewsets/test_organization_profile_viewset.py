@@ -1526,3 +1526,18 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key is disabled", str(response.data["key_id"]))
+
+    @patch("onadata.apps.api.viewsets.organization_profile_viewset.send_message")
+    def test_audit_log_capture(self, mock_send_message, mock_rotate_key):
+        """Audit log is captured."""
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        mock_send_message.assert_called_once_with(
+            instance_id=self.organization.id,
+            target_id=self.organization.id,
+            target_type="organizationprofile",
+            user=self.user,
+            message_verb="kms_key_rotated",
+        )
