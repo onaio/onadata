@@ -274,3 +274,26 @@ Response
 ::
 
       []
+
+Rotate a KMS key manually
+-------------------------
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/rotate-key</pre>
+
+Example
+^^^^^^^
+
+::
+
+      curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key
+
+Response
+^^^^^^^^
+
+::
+
+      {
+          "message": "KMS key rotated successfully"
+      }

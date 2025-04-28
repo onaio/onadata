@@ -1448,6 +1448,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {"message": "KMS key rotated successfully"})
 
         mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
 
