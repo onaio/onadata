@@ -225,7 +225,11 @@ class RotateKeyTestCase(TestBase):
         mock_now.return_value = self.mocked_now
         mock_create_key.return_value = new_key = self.create_mock_key()
 
-        rotate_key(kms_key=self.kms_key, rotated_by=self.user)
+        rotate_key(
+            kms_key=self.kms_key,
+            rotated_by=self.user,
+            rotation_reason="Test rotation",
+        )
 
         self.xform.refresh_from_db()
 
@@ -238,10 +242,8 @@ class RotateKeyTestCase(TestBase):
         # Forms using old key are updated to use new key
         json_dict = self.xform.json_dict()
         survey = create_survey_element_from_dict(json_dict)
-
         self.assertEqual(json_dict.get("public_key"), new_key.public_key)
         self.assertEqual(json_dict.get("version"), "202504031220")
-
         self.assertEqual(self.xform.version, "202504031220")
         self.assertEqual(self.xform.public_key, new_key.public_key)
         self.assertTrue(self.xform.encrypted)
@@ -255,9 +257,9 @@ class RotateKeyTestCase(TestBase):
         self.assertTrue(self.xform.versions.filter(version="202504031220").exists())
         # Old key is marked as rotated
         self.kms_key.refresh_from_db()
-
         self.assertEqual(self.kms_key.rotated_at, self.mocked_now)
         self.assertEqual(self.kms_key.rotated_by, self.user)
+        self.assertEqual(self.kms_key.rotation_reason, "Test rotation")
 
     @patch("django.utils.timezone.now")
     def test_rotated_by_optional(self, mock_now, mock_create_key):
@@ -277,6 +279,16 @@ class RotateKeyTestCase(TestBase):
         self.kms_key.refresh_from_db()
 
         self.assertIsNone(self.kms_key.rotated_by)
+
+    def test_rotation_reason_optional(self, mock_create_key):
+        """rotation_reason is optional"""
+        mock_create_key.return_value = self.create_mock_key()
+
+        rotate_key(self.kms_key)
+
+        self.kms_key.refresh_from_db()
+
+        self.assertIsNone(self.kms_key.rotation_reason)
 
     @patch("django.utils.timezone.now")
     def test_pre_mature_rotation(self, mock_now, mock_create_key):
