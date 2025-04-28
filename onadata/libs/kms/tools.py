@@ -179,11 +179,12 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
 
 
 @transaction.atomic()
-def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
+def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey:
     """Rotate KMS key.
 
     :param kms_key: KMSKey to be rotated
     :param rotated_by: User rotating the key
+    :param rotation_reason: Reason for rotation
     :return: New KMSKey
     """
     # Refresh the key from the database to get the latest state
@@ -209,9 +210,16 @@ def rotate_key(kms_key: KMSKey, rotated_by=None) -> KMSKey:
 
     kms_key.rotated_at = timezone.now()
     kms_key.rotated_by = rotated_by
+    kms_key.rotation_reason = rotation_reason
     kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
     kms_key.save(
-        update_fields=["expiry_date", "grace_end_date", "rotated_at", "rotated_by"]
+        update_fields=[
+            "expiry_date",
+            "grace_end_date",
+            "rotated_at",
+            "rotated_by",
+            "rotation_reason",
+        ]
     )
 
     return new_key
