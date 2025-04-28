@@ -152,8 +152,6 @@ class OrganizationProfileViewSet(
             },
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        new_key = serializer.save()
 
-        return Response(
-            {"message": "KMS key rotated successfully"}, status=status.HTTP_200_OK
-        )
+        return Response({"key_id": new_key.key_id}, status=status.HTTP_200_OK)
