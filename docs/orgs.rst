@@ -287,7 +287,11 @@ Example
 
 ::
 
-      curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key
+      curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key \
+      -d '{
+            "key_id": "40d5289c-6141-4903-94d7-305a3873c8fb",
+         }'
+
 
 Response
 ^^^^^^^^
@@ -295,5 +299,5 @@ Response
 ::
 
       {
-          "message": "KMS key rotated successfully"
+          "key_id": "5b1fe709-abe9-4a69-8782-f493ebb85c69"
       }
