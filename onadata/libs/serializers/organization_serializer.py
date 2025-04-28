@@ -213,6 +213,7 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
         view_name="user-detail", lookup_field="username", read_only=True
     )
     key_id = serializers.CharField()
+    rotation_reason = serializers.CharField(required=False)
 
     def validate_key_id(self, value):
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
@@ -238,6 +239,10 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         try:
-            return rotate_key(self.kms_key, rotated_by=self.context["request"].user)
+            return rotate_key(
+                self.kms_key,
+                rotated_by=self.context["request"].user,
+                rotation_reason=self.validated_data.get("rotation_reason"),
+            )
         except EncryptionError as exc:
             raise serializers.ValidationError({"key_id": f"{exc}"})

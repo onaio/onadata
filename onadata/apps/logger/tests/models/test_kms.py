@@ -35,6 +35,7 @@ class KMSKeyTestCase(TestBase):
         grace_end_date = self.mocked_now + timedelta(days=1)
         disabled_at = self.mocked_now
         rotated_at = self.mocked_now
+        rotation_reason = "Test rotation"
 
         kms_key = KMSKey.objects.create(
             key_id="1234",
@@ -50,6 +51,7 @@ class KMSKeyTestCase(TestBase):
             created_by=self.user,
             rotated_at=rotated_at,
             rotated_by=self.user,
+            rotation_reason=rotation_reason,
         )
 
         self.assertEqual(f"{kms_key}", "1234")
@@ -65,6 +67,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.grace_end_date, grace_end_date)
         self.assertEqual(kms_key.rotated_at, rotated_at)
         self.assertEqual(kms_key.rotated_by, self.user)
+        self.assertEqual(kms_key.rotation_reason, rotation_reason)
 
     def test_default_values(self):
         """Default values for optional fields are correct."""
@@ -84,6 +87,7 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.grace_end_date)
         self.assertIsNone(kms_key.rotated_at)
         self.assertIsNone(kms_key.rotated_by)
+        self.assertIsNone(kms_key.rotation_reason)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""
@@ -164,6 +168,35 @@ class KMSKeyTestCase(TestBase):
         )
 
         self.assertEqual(len(kms_key.description), 255)
+
+    def test_rotation_reason_max_length(self):
+        """rotation_reason maximum length is 255."""
+        rotation_reason = "1" * 256
+
+        # 256 characters fails
+        self.assertEqual(len(rotation_reason), 256)
+
+        with self.assertRaises(DataError):
+            KMSKey.objects.create(
+                key_id="1234",
+                rotation_reason=rotation_reason,
+                provider=KMSKey.KMSProvider.AWS,
+                content_type=self.content_type,
+                object_id=self.org.id,
+            )
+
+        # 255 characters succeeds
+        rotation_reason = rotation_reason[:-1]
+
+        kms_key = KMSKey.objects.create(
+            key_id="1234",
+            rotation_reason=rotation_reason,
+            provider=KMSKey.KMSProvider.AWS,
+            content_type=self.content_type,
+            object_id=self.org.id,
+        )
+
+        self.assertEqual(len(kms_key.rotation_reason), 255)
 
     def test_is_expired(self):
         """is_expired property works"""
