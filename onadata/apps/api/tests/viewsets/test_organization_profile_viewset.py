@@ -1434,12 +1434,12 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.view = OrganizationProfileViewSet.as_view({"post": "rotate_key"})
         self._org_create()
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        self.content_type = ContentType.objects.get_for_model(OrganizationProfile)
         self.kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
             description="Key-2025-04-25",
             public_key="fake-pub-key",
-            content_type=content_type,
+            content_type=self.content_type,
             object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
         )
@@ -1447,11 +1447,19 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
     def test_rotate_key(self, mock_rotate_key):
         """Manually rotating a key works."""
+        mock_rotate_key.return_value = KMSKey.objects.create(
+            key_id="new-key",
+            description="Key-2025-04-25",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.organization.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
         request = self.factory.post("/", data=self.data, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"message": "KMS key rotated successfully"})
+        self.assertEqual(response.data, {"key_id": "new-key"})
 
         mock_rotate_key.assert_called_once_with(self.kms_key, rotated_by=self.user)
 
