@@ -1294,17 +1294,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertFalse(OwnerRole.user_has_role(dave, org.userprofile_ptr))
 
     @override_settings(TIME_ZONE="UTC")
-    def test_active_kms_keys(self):
-        """Active managed keys are returned."""
+    def test_active_kms_key(self):
+        """Active KMS key is returned."""
         valigetta_org = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
-        mars_org = self._create_organization(
-            username="mars", name="Mars Inc", created_by=self.user
-        )
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
         view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
-
         valigetta_active_key = KMSKey.objects.create(
             key_id="active-key",
             description="Active Key",
@@ -1315,6 +1311,41 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             expiry_date=timezone.now() + timedelta(days=365),
             grace_end_date=timezone.now() + timedelta(days=395),
         )
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["active_kms_key"]["description"],
+            valigetta_active_key.description,
+        )
+        self.assertEqual(
+            response.data["active_kms_key"]["date_created"],
+            valigetta_active_key.date_created.isoformat(),
+        )
+        self.assertEqual(
+            response.data["active_kms_key"]["expiry_date"],
+            valigetta_active_key.expiry_date.isoformat(),
+        )
+        self.assertEqual(
+            response.data["active_kms_key"]["grace_end_date"],
+            valigetta_active_key.grace_end_date.isoformat(),
+        )
+        self.assertFalse(response.data["active_kms_key"]["is_expired"])
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_inactive_kms_keys(self):
+        """Inactive KMS keys are returned."""
+        valigetta_org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        mars_org = self._create_organization(
+            username="mars", name="Mars Inc", created_by=self.user
+        )
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        # Should not be returned since it is expired
         valigetta_expired_key = KMSKey.objects.create(
             key_id="expired-key",
             description="Expired Key",
@@ -1325,6 +1356,18 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             expiry_date=timezone.now() - timedelta(days=2),
             grace_end_date=timezone.now() - timedelta(days=1),
         )
+        # Active key should not be returned
+        KMSKey.objects.create(
+            key_id="active-key",
+            description="Active Key",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=valigetta_org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() + timedelta(days=365),
+            grace_end_date=timezone.now() + timedelta(days=395),
+        )
+        # Should not be returned since it is disabled
         KMSKey.objects.create(
             key_id="disabled-key",
             description="Disabled Key",
@@ -1333,16 +1376,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             object_id=valigetta_org.pk,
             provider=KMSKey.KMSProvider.AWS,
             disabled_at=timezone.now(),
-        )
-        valigetta_expiry_none = KMSKey.objects.create(
-            key_id="expiry-none",
-            description="Expiry None Key",
-            public_key="fake-pub-key",
-            content_type=content_type,
-            object_id=valigetta_org.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            expiry_date=None,
-            grace_end_date=None,
         )
         # Should not be returned since it belongs to another organization
         KMSKey.objects.create(
@@ -1360,61 +1393,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user="valigetta")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["active_kms_keys"]), 3)
-
+        self.assertEqual(len(response.data["inactive_kms_keys"]), 1)
         self.assertEqual(
-            response.data["active_kms_keys"][0]["description"],
-            valigetta_expiry_none.description,
-        )
-        self.assertEqual(
-            response.data["active_kms_keys"][0]["date_created"],
-            valigetta_expiry_none.date_created.isoformat(),
-        )
-        self.assertIsNone(response.data["active_kms_keys"][0]["expiry_date"])
-        self.assertIsNone(response.data["active_kms_keys"][0]["grace_end_date"])
-        self.assertFalse(response.data["active_kms_keys"][0]["is_expired"])
-
-        self.assertEqual(
-            response.data["active_kms_keys"][1]["description"],
-            valigetta_active_key.description,
-        )
-        self.assertEqual(
-            response.data["active_kms_keys"][1]["date_created"],
-            valigetta_active_key.date_created.isoformat(),
-        )
-        self.assertEqual(
-            response.data["active_kms_keys"][1]["expiry_date"],
-            valigetta_active_key.expiry_date.isoformat(),
-        )
-        self.assertEqual(
-            response.data["active_kms_keys"][1]["grace_end_date"],
-            valigetta_active_key.grace_end_date.isoformat(),
-        )
-        self.assertFalse(response.data["active_kms_keys"][1]["is_expired"])
-
-        self.assertEqual(
-            response.data["active_kms_keys"][2]["description"],
+            response.data["inactive_kms_keys"][0]["description"],
             valigetta_expired_key.description,
         )
         self.assertEqual(
-            response.data["active_kms_keys"][2]["date_created"],
+            response.data["inactive_kms_keys"][0]["date_created"],
             valigetta_expired_key.date_created.isoformat(),
         )
         self.assertEqual(
-            response.data["active_kms_keys"][2]["expiry_date"],
+            response.data["inactive_kms_keys"][0]["expiry_date"],
             valigetta_expired_key.expiry_date.isoformat(),
         )
         self.assertEqual(
-            response.data["active_kms_keys"][2]["grace_end_date"],
+            response.data["inactive_kms_keys"][0]["grace_end_date"],
             valigetta_expired_key.grace_end_date.isoformat(),
         )
-        self.assertTrue(response.data["active_kms_keys"][2]["is_expired"])
-
-        # No active keys found
+        self.assertTrue(response.data["inactive_kms_keys"][0]["is_expired"])
+        # No inactive keys found
         cache.clear()
         KMSKey.objects.filter(object_id=valigetta_org.pk).delete()
         request = self.factory.get("/", **self.extra)
         response = view(request, user="valigetta")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["active_kms_keys"]), 0)
+        self.assertEqual(len(response.data["inactive_kms_keys"]), 0)
