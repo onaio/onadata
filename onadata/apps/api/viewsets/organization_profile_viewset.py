@@ -8,6 +8,7 @@ List, Retrieve, Update, Create/Register Organizations.
 import json
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils.module_loading import import_string
 
@@ -19,7 +20,8 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
-from onadata.apps.messaging.constants import KMS_KEY_ROTATED, ORGANIZATION
+from onadata.apps.logger.models import KMSKey
+from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
@@ -154,12 +156,18 @@ class OrganizationProfileViewSet(
             },
         )
         serializer.is_valid(raise_exception=True)
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        old_key = KMSKey.objects.get(
+            object_id=organization.id,
+            content_type=content_type,
+            key_id=serializer.validated_data["key_id"],
+        )
         new_key = serializer.save()
         # Capture audit log
         send_message(
-            instance_id=organization.id,
-            target_id=organization.id,
-            target_type=ORGANIZATION,
+            instance_id=old_key.id,
+            target_id=old_key.id,
+            target_type=KMS_KEY,
             user=request.user,
             message_verb=KMS_KEY_ROTATED,
         )

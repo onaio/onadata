@@ -12,13 +12,13 @@ from django.utils.translation import gettext as _
 XFORM = text("xform")
 PROJECT = text("project")
 USER = text("user")
-ORGANIZATION = text("organizationprofile")
+KMS_KEY = text("kmskey")
 
 APP_LABEL_MAPPING = {
     XFORM: "logger",
     PROJECT: "logger",
     USER: "auth",
-    ORGANIZATION: "api",
+    KMS_KEY: "logger",
 }
 
 MESSAGE = "message"
