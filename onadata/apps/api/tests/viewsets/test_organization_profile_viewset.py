@@ -1318,6 +1318,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
+            response.data["active_kms_key"]["key_id"], valigetta_active_key.key_id
+        )
+        self.assertEqual(
             response.data["active_kms_key"]["description"],
             valigetta_active_key.description,
         )
