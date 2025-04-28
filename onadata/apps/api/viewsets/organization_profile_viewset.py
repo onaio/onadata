@@ -140,7 +140,7 @@ class OrganizationProfileViewSet(
 
         return Response(status=resp_status, data=serializer.data)
 
-    @action(methods=["POST"], detail=True)
+    @action(methods=["POST"], detail=True, url_path="rotate-key")
     def rotate_key(self, request, *args, **kwargs):
         """Manually rotate KMS key."""
         organization = self.get_object()
@@ -154,4 +154,6 @@ class OrganizationProfileViewSet(
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(
+            {"message": "KMS key rotated successfully"}, status=status.HTTP_200_OK
+        )
