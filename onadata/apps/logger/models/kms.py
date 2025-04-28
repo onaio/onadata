@@ -38,6 +38,7 @@ class KMSKey(BaseModel):
         related_name="keys_rotated",
         on_delete=models.SET_NULL,
     )
+    rotation_reason = models.CharField(null=True, blank=True, max_length=255)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey("content_type", "object_id")
