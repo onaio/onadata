@@ -1539,5 +1539,5 @@ class RotateKeyTestCase(TestAbstractViewSet):
             target_id=self.organization.id,
             target_type="organizationprofile",
             user=self.user,
-            message_verb="kms_key_rotated",
+            message_verb="kmskey_rotated",
         )

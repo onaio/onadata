@@ -28,6 +28,7 @@ SUBMISSION_EDITED = "submission_edited"
 SUBMISSION_DELETED = "submission_deleted"
 SUBMISSION_REVIEWED = "submission_reviewed"
 FORM_UPDATED = "form_updated"
+KMS_KEY_ROTATED = "kmskey_rotated"
 MESSAGE_VERBS = [
     MESSAGE,
     SUBMISSION_REVIEWED,
@@ -35,6 +36,7 @@ MESSAGE_VERBS = [
     SUBMISSION_EDITED,
     SUBMISSION_DELETED,
     FORM_UPDATED,
+    KMS_KEY_ROTATED,
 ]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",
@@ -42,5 +44,5 @@ VERB_TOPIC_DICT = {
     SUBMISSION_DELETED: "submission/deleted",
     SUBMISSION_REVIEWED: "submission/reviewed",
     FORM_UPDATED: "form/updated",
+    KMS_KEY_ROTATED: "kmskey/rotated",
 }
-KMS_KEY_ROTATED = "kms_key_rotated"
