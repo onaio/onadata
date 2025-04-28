@@ -1535,9 +1535,9 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         mock_send_message.assert_called_once_with(
-            instance_id=self.organization.id,
-            target_id=self.organization.id,
-            target_type="organizationprofile",
+            instance_id=self.kms_key.id,
+            target_id=self.kms_key.id,
+            target_type="kmskey",
             user=self.user,
             message_verb="kmskey_rotated",
         )
