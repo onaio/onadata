@@ -24,7 +24,6 @@ from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.utils.model_tools import queryset_iterator
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -186,12 +185,8 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         kms_key_qs = KMSKey.objects.filter(
             content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
         ).order_by("-date_created")[1:]
-        inactive_keys = []
 
-        for key in queryset_iterator(kms_key_qs):
-            inactive_keys.append(KMSKeyInlineSerializer(key).data)
-
-        return inactive_keys
+        return KMSKeyInlineSerializer(kms_key_qs, many=True).data
 
     def get_active_kms_key(self, obj):
         """Get the active KMSKey for organization."""
