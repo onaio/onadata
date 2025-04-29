@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import md5, sha256
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import call, patch
 from xml.etree.ElementTree import ParseError
 
 from django.contrib.contenttypes.models import ContentType
@@ -39,6 +39,7 @@ from onadata.libs.kms.tools import (
     is_instance_encrypted,
     rotate_key,
     send_key_rotation_notification,
+    triger_key_rotation,
 )
 
 
@@ -1164,3 +1165,67 @@ class SendKeyRotationNotificationTestCase(TestBase):
 
         send_key_rotation_notification()
         mock_send_mass_mail.assert_not_called()
+
+
+@patch("onadata.libs.kms.tools.rotate_key")
+class TriggerKeyRotationTestCase(TestBase):
+    """Test `triger_key_rotation`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.user.email = "bob@example.com"
+        self.user.save()
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() - timedelta(days=1),
+        )
+        self.kms_key_2 = KMSKey.objects.create(
+            key_id="fake-key-id-2",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key-2",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() - timedelta(days=1),
+        )
+
+    def test_key_rotation_is_triggered(self, mock_rotate_key):
+        """Key rotation is triggered."""
+        triger_key_rotation()
+
+        calls = [call(self.kms_key), call(self.kms_key_2)]
+        mock_rotate_key.assert_has_calls(calls)
+
+    def test_unexpired_key_is_not_rotated(self, mock_rotate_key):
+        """Unexpired key is not rotated."""
+        self.kms_key.expiry_date = timezone.now() + timedelta(days=1)
+        self.kms_key.save()
+
+        triger_key_rotation()
+        mock_rotate_key.assert_called_once_with(self.kms_key_2)
+
+    def test_rotated_key_is_not_rotated_again(self, mock_rotate_key):
+        """Rotated key is not rotated again."""
+        self.kms_key.rotated_at = timezone.now()
+        self.kms_key.save()
+
+        triger_key_rotation()
+        mock_rotate_key.assert_called_once_with(self.kms_key_2)
+
+    def test_disabled_key_is_not_rotated(self, mock_rotate_key):
+        """Disabled key is not rotated."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        triger_key_rotation()
+        mock_rotate_key.assert_called_once_with(self.kms_key_2)
