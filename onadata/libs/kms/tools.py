@@ -452,7 +452,7 @@ def send_key_rotation_notification():
         send_mass_mail(tuple(mass_mail_data))
 
 
-def triger_key_rotation():
+def rotate_expired_keys():
     """Check if any keys are due for rotation and trigger rotation."""
     kms_key_qs = KMSKey.objects.filter(
         expiry_date__lte=timezone.now(),
