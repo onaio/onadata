@@ -211,8 +211,7 @@ class DataEntryOnlyRole(Role):
 
 class DataEntryMinorRole(Role):
     """
-    Data-Entry minor Role class - user can submit and  has readonly access to
-                                  data they submitted.
+    User can submit and  has readonly access to data they submitted.
     """
 
     name = "dataentry-minor"
@@ -236,8 +235,8 @@ class DataEntryMinorRole(Role):
 
 class DataEntryRole(Role):
     """
-    Data-Entry Role class - user can submit data and has readonly permissions
-                            to all the data including data submitted by others.
+    User can submit data and has readonly permissions to all
+    the data including data submitted by others.
     """
 
     name = "dataentry"
@@ -263,8 +262,8 @@ class DataEntryRole(Role):
 
 class EditorNoDownload(Role):
     """
-    Editor-Minor Role class - user can submit data, read and edit only the data
-                              they submitted but will not be able to export data.
+    User can submit data, read and edit only the data they submitted
+    but will not be able to export data.
     """
 
     name = "editor-no-download"
@@ -290,8 +289,7 @@ class EditorNoDownload(Role):
 
 class EditorMinorRole(Role):
     """
-    Editor-Minor Role class - user can submit data, read and edit only the data
-                              they submitted.
+    User can submit data, read and edit only the data they submitted.
     """
 
     name = "editor-minor"
@@ -318,7 +316,7 @@ class EditorMinorRole(Role):
 
 class EditorRole(Role):
     """
-    Editor Role class - user can submit, read and edit any submitted data.
+    User can submit, read and edit any submitted data.
     """
 
     name = "editor"
@@ -347,8 +345,8 @@ class EditorRole(Role):
 
 class ManagerRole(Role):
     """
-    Manager Role class - user can add,delete,edit forms and data as well as
-                         control access to data, forms and projects.
+    User can add,delete,edit forms and data as well as
+    control access to data, forms and projects.
     """
 
     name = "manager"
