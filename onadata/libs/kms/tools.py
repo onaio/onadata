@@ -408,7 +408,7 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
 
 
 def send_key_rotation_notification():
-    """Send notification to organization admins."""
+    """Send notification to organization admins that key rotation is scheduled."""
     notification_duration = _get_kms_rotation_notification_duration()
     target_date = (timezone.now() + notification_duration).date()
     kms_key_qs = KMSKey.objects.filter(
