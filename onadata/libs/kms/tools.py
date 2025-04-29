@@ -16,16 +16,20 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.db import transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.tools import get_organization_owners
 from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
+from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -39,35 +43,47 @@ def _get_kms_provider():
 
 
 def _get_kms_rotation_duration():
-    rotation_duration = getattr(settings, "KMS_ROTATION_DURATION", None)
+    duration = getattr(settings, "KMS_ROTATION_DURATION", None)
 
-    if isinstance(rotation_duration, timedelta):
-        return rotation_duration
+    if isinstance(duration, timedelta):
+        return duration
 
-    if rotation_duration:
-        logger.error(
-            "KMS_ROTATION_DURATION is set to an invalid value: %s", rotation_duration
-        )
+    if duration:
+        logger.error("KMS_ROTATION_DURATION is set to an invalid value: %s", duration)
 
     return None
 
 
 def _get_kms_grace_period_duration():
-    default_grace_period_duration = timedelta(days=30)
-    grace_period_duration = getattr(
-        settings, "KMS_GRACE_PERIOD_DURATION", default_grace_period_duration
-    )
+    default_duration = timedelta(days=30)
+    duration = getattr(settings, "KMS_GRACE_PERIOD_DURATION", default_duration)
 
-    if isinstance(grace_period_duration, timedelta):
-        return grace_period_duration
+    if isinstance(duration, timedelta):
+        return duration
 
-    if grace_period_duration:
+    if duration:
         logger.error(
             "KMS_GRACE_PERIOD_DURATION is set to an invalid value: %s",
-            grace_period_duration,
+            duration,
         )
 
-    return default_grace_period_duration
+    return default_duration
+
+
+def _get_kms_rotation_notification_duration():
+    default_duration = timedelta(weeks=2)
+    duration = getattr(settings, "KMS_ROTATION_NOTIFICATION_DURATION", default_duration)
+
+    if isinstance(duration, timedelta):
+        return duration
+
+    if duration:
+        logger.error(
+            "KMS_ROTATION_NOTIFICATION_DURATION is set to an invalid value: %s",
+            duration,
+        )
+
+    return default_duration
 
 
 def get_kms_client():
@@ -389,3 +405,59 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     # Invalidate cache for formList endpoint
     api_tools = importlib.import_module("onadata.apps.api.tools")
     api_tools.invalidate_xform_list_cache(xform)
+
+
+def send_key_rotation_notification():
+    """Send notification to organization admins."""
+    notification_duration = _get_kms_rotation_notification_duration()
+    target_date = (timezone.now() + notification_duration).date()
+    kms_key_qs = KMSKey.objects.filter(
+        expiry_date__gte=target_date,
+        disabled_at__isnull=True,
+        rotated_at__isnull=True,
+    )
+    mass_mail_data = []
+
+    for kms_key in queryset_iterator(kms_key_qs):
+        organization = kms_key.content_object
+        recipient_list = [
+            owner.email for owner in get_organization_owners(organization)
+        ]
+
+        if not recipient_list:
+            continue
+
+        mail_subject = f"Key Rotation for Organization: {organization.name}"
+        grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
+        message = render_to_string(
+            "organization/key_rotation_notification.html",
+            {
+                "organization_name": organization.name,
+                "rotation_date": friendly_date(kms_key.expiry_date),
+                "grace_end_date": friendly_date(grace_end_date),
+                "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+            },
+        )
+        mass_mail_data.append(
+            (
+                mail_subject,
+                strip_tags(message),
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                recipient_list,
+            )
+        )
+
+    if mass_mail_data:
+        send_mass_mail(tuple(mass_mail_data))
+
+
+def triger_key_rotation():
+    """Check if any keys are due for rotation and trigger rotation."""
+    kms_key_qs = KMSKey.objects.filter(
+        expiry_date__lte=timezone.now(),
+        disabled_at__isnull=True,
+        rotated_at__isnull=True,
+    )
+    for kms_key in queryset_iterator(kms_key_qs):
+        rotate_key(kms_key)
