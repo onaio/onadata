@@ -447,6 +447,15 @@ class DisableKeyTestCase(TestBase):
         self.assertIsNotNone(self.kms_key.disabled_at)
         self.assertIsNone(self.kms_key.disabled_by)
 
+    def test_already_disabled(self, mock_aws_disable):
+        """Already disabled key is not disabled again."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        disable_key(self.kms_key)
+
+        mock_aws_disable.assert_not_called()
+
 
 class EncryptXFormTestCase(TestBase):
     """Test encrypt_xform works."""
