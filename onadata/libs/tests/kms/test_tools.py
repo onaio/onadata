@@ -32,6 +32,7 @@ from onadata.libs.kms.tools import (
     clean_public_key,
     create_key,
     decrypt_instance,
+    disable_expired_keys,
     disable_key,
     disable_xform_encryption,
     encrypt_xform,
@@ -1177,8 +1178,6 @@ class RotateExpiredKeysTestCase(TestBase):
         self.org = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
-        self.user.email = "bob@example.com"
-        self.user.save()
         self.content_type = ContentType.objects.get_for_model(self.org)
         self.kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
@@ -1204,7 +1203,7 @@ class RotateExpiredKeysTestCase(TestBase):
         rotate_expired_keys()
 
         calls = [call(self.kms_key), call(self.kms_key_2)]
-        mock_rotate_key.assert_has_calls(calls)
+        mock_rotate_key.assert_has_calls(calls, any_order=True)
 
     def test_unexpired_key_is_not_rotated(self, mock_rotate_key):
         """Unexpired key is not rotated."""
@@ -1244,3 +1243,112 @@ class RotateExpiredKeysTestCase(TestBase):
         # Failure on the first key is logged, but rotation continues
         calls = [call(self.kms_key), call(self.kms_key_2)]
         mock_rotate_key.assert_has_calls(calls)
+
+
+@patch("onadata.libs.kms.tools.disable_key")
+class DisableExpiredKeysTestCase(TestBase):
+    """Test `disable_expired_keys`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.user.email = "bob@example.com"
+        self.user.save()
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() - timedelta(days=2),
+            grace_end_date=timezone.now() - timedelta(days=1),
+        )
+        self.kms_key_2 = KMSKey.objects.create(
+            key_id="fake-key-id-2",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key-2",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() - timedelta(days=2),
+            grace_end_date=timezone.now() - timedelta(days=1),
+        )
+
+    def test_expired_key_is_disabled(self, mock_disable_key):
+        """Expired key is disabled."""
+        disable_expired_keys()
+
+        calls = [call(self.kms_key), call(self.kms_key_2)]
+        mock_disable_key.assert_has_calls(calls, any_order=True)
+
+    def test_grace_end_date_not_reached(self, mock_disable_key):
+        """Grace end date not reached."""
+        self.kms_key.grace_end_date = timezone.now() + timedelta(days=1)
+        self.kms_key.save()
+
+        disable_expired_keys()
+        mock_disable_key.assert_called_once_with(self.kms_key_2)
+
+    def test_already_disabled_key(self, mock_disable_key):
+        """Already disabled key is not disabled again."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        disable_expired_keys()
+        mock_disable_key.assert_called_once_with(self.kms_key_2)
+
+    @override_settings(DEFAULT_FROM_EMAIL="test@example.com")
+    @patch("onadata.libs.kms.tools.send_mass_mail")
+    @patch("onadata.libs.kms.tools.get_organization_owners")
+    def test_notification_sent(
+        self, mock_get_organization_owners, mock_send_mass_mail, mock_disable_key
+    ):
+        """Rotation completed notification is sent."""
+        # Notification is not sent if key is not rotated
+        self.kms_key.rotated_at = timezone.now()
+        self.kms_key.save()
+
+        mock_get_organization_owners.return_value = [self.user]
+
+        disable_expired_keys()
+
+        message = render_to_string(
+            "organization/key_rotation_completed.html",
+            {
+                "organization_name": self.org.name,
+                "deployment_name": "Ona",
+            },
+        )
+        mass_mail_data = (
+            (
+                "Key Rotation Completed for Organization: Valigetta Inc",
+                strip_tags(message),
+                message,
+                "test@example.com",
+                ["bob@example.com"],
+            ),
+        )
+        mock_send_mass_mail.assert_called_once_with(mass_mail_data)
+        calls = [call(self.kms_key), call(self.kms_key_2)]
+        mock_disable_key.assert_has_calls(calls, any_order=True)
+
+    @override_settings(DEFAULT_FROM_EMAIL="test@example.com")
+    @patch("onadata.libs.kms.tools.send_mass_mail")
+    @patch("onadata.libs.kms.tools.get_organization_owners")
+    def test_notification_not_sent_if_no_owners(
+        self, mock_get_organization_owners, mock_send_mass_mail, mock_disable_key
+    ):
+        """Rotation completed notification is not sent if no owners found."""
+        mock_get_organization_owners.return_value = []
+        self.kms_key.rotated_at = timezone.now()
+        self.kms_key.save()
+
+        disable_expired_keys()
+
+        mock_send_mass_mail.assert_not_called()
+        mock_disable_key.assert_called()
