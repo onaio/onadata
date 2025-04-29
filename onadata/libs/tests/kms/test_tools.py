@@ -11,8 +11,10 @@ from xml.etree.ElementTree import ParseError
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
+from django.template.loader import render_to_string
 from django.test import override_settings
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 import boto3
 from Crypto.Cipher import AES
@@ -36,6 +38,7 @@ from onadata.libs.kms.tools import (
     get_kms_client,
     is_instance_encrypted,
     rotate_key,
+    send_key_rotation_notification,
 )
 
 
@@ -1027,3 +1030,121 @@ class IsInstanceEncryptedTestCase(TestBase):
         # Mock ElementTree.fromstring to throw ParseError
         with patch("xml.etree.ElementTree.fromstring", side_effect=ParseError):
             self.assertFalse(is_instance_encrypted(instance))
+
+
+@override_settings(
+    KMS_GRACE_PERIOD_DURATION=timedelta(days=30),
+    DEFAULT_FROM_EMAIL="test@example.com",
+)
+@patch("onadata.libs.kms.tools.send_mass_mail")
+class SendKeyRotationNotificationTestCase(TestBase):
+    """Tests for `send_key_rotation_notification`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.user.email = "bob@example.com"
+        self.user.save()
+        self.content_type = ContentType.objects.get_for_model(self.org)
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=timezone.now() + timedelta(weeks=2),
+        )
+        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+        self.html_message = render_to_string(
+            "organization/key_rotation_notification.html",
+            {
+                "organization_name": self.org.name,
+                "rotation_date": self.friendly_date(self.kms_key.expiry_date),
+                "grace_end_date": self.friendly_date(
+                    self.kms_key.expiry_date + timedelta(days=30)
+                ),
+                "deployment_name": "Ona",
+            },
+        )
+
+    @override_settings(KMS_ROTATION_NOTIFICATION_DURATION=timedelta(weeks=2))
+    @patch("onadata.libs.kms.tools.get_organization_owners")
+    def test_send_key_rotation_notification(
+        self, mock_get_organization_owners, mock_send_mass_mail
+    ):
+        """Send key rotation notification works"""
+        alice = self._create_user("alice", "alice", False)
+        alice.email = "alice@example.com"
+        alice.save()
+
+        mock_get_organization_owners.return_value = [self.user, alice]
+
+        send_key_rotation_notification()
+
+        mass_mail_data = (
+            (
+                "Key Rotation for Organization: Valigetta Inc",
+                strip_tags(self.html_message),
+                self.html_message,
+                "test@example.com",
+                ["bob@example.com", "alice@example.com"],
+            ),
+        )
+
+        mock_send_mass_mail.assert_called_once_with(mass_mail_data)
+
+    @patch("onadata.libs.kms.tools.get_organization_owners")
+    def test_no_organization_owners(
+        self, mock_get_organization_owners, mock_send_mass_mail
+    ):
+        """Notification is not sent if no organization owners found."""
+        mock_get_organization_owners.return_value = []
+
+        send_key_rotation_notification()
+
+        mock_send_mass_mail.assert_not_called()
+
+    def test_no_keys_to_notify(self, mock_send_mass_mail):
+        """Notification is not sent if no keys to notify."""
+        self.kms_key.expiry_date = timezone.now() - timedelta(days=1)
+        self.kms_key.save()
+
+        send_key_rotation_notification()
+        mock_send_mass_mail.assert_not_called()
+
+    def test_default_notification_duration(self, mock_send_mass_mail):
+        """Default notification duration is 2 weeks."""
+        send_key_rotation_notification()
+
+        mock_send_mass_mail.assert_called_once()
+
+    def test_custom_deployment_name(self, mock_send_mass_mail):
+        """Custom deployment name is used."""
+        with override_settings(DEPLOYMENT_NAME="ToolBox"):
+            send_key_rotation_notification()
+
+        html_message = render_to_string(
+            "organization/key_rotation_notification.html",
+            {
+                "organization_name": self.org.name,
+                "rotation_date": self.friendly_date(self.kms_key.expiry_date),
+                "grace_end_date": self.friendly_date(
+                    self.kms_key.expiry_date + timedelta(days=30)
+                ),
+                "deployment_name": "ToolBox",
+            },
+        )
+        mass_mail_data = (
+            (
+                "Key Rotation for Organization: Valigetta Inc",
+                strip_tags(html_message),
+                html_message,
+                "test@example.com",
+                ["bob@example.com"],
+            ),
+        )
+        mock_send_mass_mail.assert_called_once_with(mass_mail_data)
