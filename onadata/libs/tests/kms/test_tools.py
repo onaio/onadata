@@ -1231,8 +1231,8 @@ class RotateExpiredKeysTestCase(TestBase):
         mock_rotate_key.assert_called_once_with(self.kms_key_2)
 
     @patch("onadata.libs.kms.tools.logger.exception")
-    def test_key_rotation_fails(self, mock_logger_exception, mock_rotate_key):
-        """Key rotation fails."""
+    def test_rotation_failure_is_logged(self, mock_logger_exception, mock_rotate_key):
+        """Key rotation failure is logged."""
         # Rotate key fails only on the first key
         mock_rotate_key.side_effect = [EncryptionError, None]
 
