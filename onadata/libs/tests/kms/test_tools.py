@@ -1352,3 +1352,18 @@ class DisableExpiredKeysTestCase(TestBase):
 
         mock_send_mass_mail.assert_not_called()
         mock_disable_key.assert_called()
+
+    @patch("onadata.libs.kms.tools.logger.exception")
+    def test_key_disable_failure_logged(self, mock_logger_exception, mock_disable_key):
+        """Key disable failure is logged."""
+        # Set the second key as disabled
+        self.kms_key_2.disabled_at = timezone.now()
+        self.kms_key_2.save()
+
+        mock_disable_key.side_effect = Exception("Key disable failed")
+
+        disable_expired_keys()
+
+        mock_logger_exception.assert_called_once_with(
+            "Key disable failed for key %s", self.kms_key.key_id
+        )
