@@ -75,6 +75,9 @@ from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_LIST_CACHE,
+    XFORM_DATA_VERSIONS,
+    XFORM_METADATA_CACHE,
+    XFORM_PERMISSIONS_CACHE,
     reset_project_cache,
     safe_delete,
 )
@@ -804,6 +807,11 @@ def update_role_by_meta_xform_perms(xform):
     """
     Updates users role in a xform based on meta permissions set on the form.
     """
+    safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+    safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
+    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
+
     # load meta xform perms
     metadata = MetaData.xform_meta_permission(xform)
     editor_role_list = [EditorRole, EditorMinorRole]
