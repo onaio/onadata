@@ -35,6 +35,7 @@ from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberSerializer,
 )
 from onadata.libs.serializers.organization_serializer import (
+    KMSKeyInlineSerializer,
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
 )
@@ -171,5 +172,5 @@ class OrganizationProfileViewSet(
             user=request.user,
             message_verb=KMS_KEY_ROTATED,
         )
-
-        return Response({"key_id": new_key.key_id}, status=status.HTTP_200_OK)
+        data = KMSKeyInlineSerializer(new_key).data
+        return Response(data, status=status.HTTP_200_OK)

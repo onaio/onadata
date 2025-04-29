@@ -1326,15 +1326,15 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         self.assertEqual(
             response.data["active_kms_key"]["date_created"],
-            valigetta_active_key.date_created.isoformat(),
+            valigetta_active_key.date_created.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["expiry_date"],
-            valigetta_active_key.expiry_date.isoformat(),
+            valigetta_active_key.expiry_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["grace_end_date"],
-            valigetta_active_key.grace_end_date.isoformat(),
+            valigetta_active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertFalse(response.data["active_kms_key"]["is_expired"])
 
@@ -1404,15 +1404,15 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
         self.assertEqual(
             response.data["inactive_kms_keys"][0]["date_created"],
-            valigetta_expired_key.date_created.isoformat(),
+            valigetta_expired_key.date_created.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["inactive_kms_keys"][0]["expiry_date"],
-            valigetta_expired_key.expiry_date.isoformat(),
+            valigetta_expired_key.expiry_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["inactive_kms_keys"][0]["grace_end_date"],
-            valigetta_expired_key.grace_end_date.isoformat(),
+            valigetta_expired_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertTrue(response.data["inactive_kms_keys"][0]["is_expired"])
         # No inactive keys found
@@ -1445,9 +1445,10 @@ class RotateKeyTestCase(TestAbstractViewSet):
         )
         self.data = {"key_id": self.kms_key.key_id, "rotation_reason": "Test rotation"}
 
+    @override_settings(TIME_ZONE="UTC")
     def test_rotate_key(self, mock_rotate_key):
         """Manually rotating a key works."""
-        mock_rotate_key.return_value = KMSKey.objects.create(
+        mock_rotate_key.return_value = new_key = KMSKey.objects.create(
             key_id="new-key",
             description="Key-2025-04-25",
             public_key="fake-pub-key",
@@ -1459,7 +1460,15 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"key_id": "new-key"})
+        self.assertEqual(response.data["key_id"], "new-key")
+        self.assertEqual(response.data["description"], "Key-2025-04-25")
+        self.assertEqual(
+            response.data["date_created"],
+            new_key.date_created.isoformat().replace("+00:00", "Z"),
+        )
+        self.assertFalse(response.data["is_expired"])
+        self.assertIsNone(response.data["expiry_date"])
+        self.assertIsNone(response.data["grace_end_date"])
 
         mock_rotate_key.assert_called_once_with(
             self.kms_key,
