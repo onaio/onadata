@@ -30,6 +30,21 @@ from onadata.libs.utils.model_tools import queryset_iterator
 User = get_user_model()
 
 
+class KMSKeyInlineSerializer(serializers.ModelSerializer):
+    """Serializer for KMSKey model."""
+
+    class Meta:
+        model = KMSKey
+        fields = (
+            "key_id",
+            "description",
+            "date_created",
+            "is_expired",
+            "expiry_date",
+            "grace_end_date",
+        )
+
+
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     """
     Organization profile serializer
@@ -164,19 +179,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return owners_list + members_list
 
-    def _get_kms_key_data(self, key):
-        """Get the KMSKey data."""
-        return {
-            "key_id": key.key_id,
-            "description": key.description,
-            "date_created": key.date_created.isoformat(),
-            "is_expired": key.is_expired,
-            "expiry_date": key.expiry_date.isoformat() if key.expiry_date else None,
-            "grace_end_date": (
-                key.grace_end_date.isoformat() if key.grace_end_date else None
-            ),
-        }
-
     def get_inactive_kms_keys(self, obj):
         """Get the inactive KMSKeys for organization."""
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
@@ -187,7 +189,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         inactive_keys = []
 
         for key in queryset_iterator(kms_key_qs):
-            inactive_keys.append(self._get_kms_key_data(key))
+            inactive_keys.append(KMSKeyInlineSerializer(key).data)
 
         return inactive_keys
 
@@ -203,7 +205,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         except KMSKey.DoesNotExist:
             return None
 
-        return self._get_kms_key_data(kms_key)
+        return KMSKeyInlineSerializer(kms_key).data
 
 
 class RotateOrganizationKeySerializer(serializers.Serializer):
