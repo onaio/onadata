@@ -19,6 +19,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
+from django.utils.translation import gettext as _
 
 from valigetta.exceptions import InvalidSubmission
 
@@ -427,7 +428,7 @@ def send_key_rotation_notification():
         if not recipient_list:
             continue
 
-        mail_subject = f"Key Rotation for Organization: {organization.name}"
+        mail_subject = _(f"Key Rotation for Organization: {organization.name}")
         grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
         message = render_to_string(
             "organization/key_rotation_notification.html",
@@ -453,14 +454,63 @@ def send_key_rotation_notification():
 
 
 def rotate_expired_keys():
-    """Check if any keys are due for rotation and trigger rotation."""
+    """Rotate expired keys."""
     kms_key_qs = KMSKey.objects.filter(
         expiry_date__lte=timezone.now(),
         disabled_at__isnull=True,
         rotated_at__isnull=True,
     )
+
     for kms_key in queryset_iterator(kms_key_qs):
         try:
             rotate_key(kms_key)
         except EncryptionError:
             logger.exception("Key rotation failed for key %s", kms_key.key_id)
+
+
+def disable_expired_keys():
+    """Disable expired keys whose grace period has expired."""
+    now = timezone.now()
+    kms_key_qs = KMSKey.objects.filter(
+        expiry_date__lte=now,
+        grace_end_date__lte=now,
+        disabled_at__isnull=True,
+    )
+    mass_mail_data = []
+
+    for kms_key in queryset_iterator(kms_key_qs):
+        disable_key(kms_key)
+
+        if not kms_key.rotated_at:
+            continue
+        # Send notification to organization admins
+        organization = kms_key.content_object
+        recipient_list = [
+            owner.email for owner in get_organization_owners(organization)
+        ]
+
+        if not recipient_list:
+            continue
+
+        mail_subject = _(
+            f"Key Rotation Completed for Organization: {organization.name}"
+        )
+        message = render_to_string(
+            "organization/key_rotation_completed.html",
+            {
+                "organization_name": organization.name,
+                "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+            },
+        )
+        mass_mail_data.append(
+            (
+                mail_subject,
+                strip_tags(message),
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                recipient_list,
+            )
+        )
+
+    if mass_mail_data:
+        send_mass_mail(tuple(mass_mail_data))
