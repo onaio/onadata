@@ -1,0 +1,14 @@
+{% load i18n %}{% blocktranslate %}
+<p>Hello,</p>
+<p>
+  The grace period for key rotation for organization {{organization_name}} has
+  ended.
+</p>
+<p>
+  The old key is no longer active and submissions encrypted with it will not be
+  decrypted.
+</p>
+
+<p>Thank you,</p>
+<p>The {{deployment_name}} Team</p>
+{% endblocktranslate %}
