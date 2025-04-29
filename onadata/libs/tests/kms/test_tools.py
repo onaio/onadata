@@ -1148,3 +1148,19 @@ class SendKeyRotationNotificationTestCase(TestBase):
             ),
         )
         mock_send_mass_mail.assert_called_once_with(mass_mail_data)
+
+    def test_rotated_key_is_ignored(self, mock_send_mass_mail):
+        """Already rotated key is ignored."""
+        self.kms_key.rotated_at = timezone.now()
+        self.kms_key.save()
+
+        send_key_rotation_notification()
+        mock_send_mass_mail.assert_not_called()
+
+    def test_disabled_key_is_ignored(self, mock_send_mass_mail):
+        """Disabled key is ignored."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        send_key_rotation_notification()
+        mock_send_mass_mail.assert_not_called()
