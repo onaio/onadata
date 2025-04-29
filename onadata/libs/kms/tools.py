@@ -460,4 +460,7 @@ def triger_key_rotation():
         rotated_at__isnull=True,
     )
     for kms_key in queryset_iterator(kms_key_qs):
-        rotate_key(kms_key)
+        try:
+            rotate_key(kms_key)
+        except EncryptionError:
+            logger.exception("Key rotation failed for key %s", kms_key.key_id)
