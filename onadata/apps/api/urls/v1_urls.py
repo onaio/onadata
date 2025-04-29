@@ -1,4 +1,4 @@
-# -*- cmding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Custom rest_framework Router - MultiLookupRouter.
 """
