@@ -207,9 +207,6 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     :param rotation_reason: Reason for rotation
     :return: New KMSKey
     """
-    # Refresh the key from the database to get the latest state
-    kms_key.refresh_from_db()
-
     if kms_key.disabled_at:
         raise EncryptionError("Key is disabled.")
 
