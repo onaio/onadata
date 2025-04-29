@@ -1229,3 +1229,18 @@ class TriggerKeyRotationTestCase(TestBase):
 
         triger_key_rotation()
         mock_rotate_key.assert_called_once_with(self.kms_key_2)
+
+    @patch("onadata.libs.kms.tools.logger.exception")
+    def test_key_rotation_fails(self, mock_logger_exception, mock_rotate_key):
+        """Key rotation fails."""
+        # Rotate key fails only on the first key
+        mock_rotate_key.side_effect = [EncryptionError, None]
+
+        triger_key_rotation()
+
+        mock_logger_exception.assert_called_once_with(
+            "Key rotation failed for key %s", self.kms_key.key_id
+        )
+        # Failure on the first key is logged, but rotation continues
+        calls = [call(self.kms_key), call(self.kms_key_2)]
+        mock_rotate_key.assert_has_calls(calls)
