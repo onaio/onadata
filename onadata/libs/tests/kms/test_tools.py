@@ -37,9 +37,9 @@ from onadata.libs.kms.tools import (
     encrypt_xform,
     get_kms_client,
     is_instance_encrypted,
+    rotate_expired_keys,
     rotate_key,
     send_key_rotation_notification,
-    triger_key_rotation,
 )
 
 
@@ -1168,8 +1168,8 @@ class SendKeyRotationNotificationTestCase(TestBase):
 
 
 @patch("onadata.libs.kms.tools.rotate_key")
-class TriggerKeyRotationTestCase(TestBase):
-    """Test `triger_key_rotation`"""
+class RotateExpiredKeysTestCase(TestBase):
+    """Test `rotate_expired_keys`"""
 
     def setUp(self):
         super().setUp()
@@ -1201,7 +1201,7 @@ class TriggerKeyRotationTestCase(TestBase):
 
     def test_key_rotation_is_triggered(self, mock_rotate_key):
         """Key rotation is triggered."""
-        triger_key_rotation()
+        rotate_expired_keys()
 
         calls = [call(self.kms_key), call(self.kms_key_2)]
         mock_rotate_key.assert_has_calls(calls)
@@ -1211,7 +1211,7 @@ class TriggerKeyRotationTestCase(TestBase):
         self.kms_key.expiry_date = timezone.now() + timedelta(days=1)
         self.kms_key.save()
 
-        triger_key_rotation()
+        rotate_expired_keys()
         mock_rotate_key.assert_called_once_with(self.kms_key_2)
 
     def test_rotated_key_is_not_rotated_again(self, mock_rotate_key):
@@ -1219,7 +1219,7 @@ class TriggerKeyRotationTestCase(TestBase):
         self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
 
-        triger_key_rotation()
+        rotate_expired_keys()
         mock_rotate_key.assert_called_once_with(self.kms_key_2)
 
     def test_disabled_key_is_not_rotated(self, mock_rotate_key):
@@ -1227,7 +1227,7 @@ class TriggerKeyRotationTestCase(TestBase):
         self.kms_key.disabled_at = timezone.now()
         self.kms_key.save()
 
-        triger_key_rotation()
+        rotate_expired_keys()
         mock_rotate_key.assert_called_once_with(self.kms_key_2)
 
     @patch("onadata.libs.kms.tools.logger.exception")
@@ -1236,7 +1236,7 @@ class TriggerKeyRotationTestCase(TestBase):
         # Rotate key fails only on the first key
         mock_rotate_key.side_effect = [EncryptionError, None]
 
-        triger_key_rotation()
+        rotate_expired_keys()
 
         mock_logger_exception.assert_called_once_with(
             "Key rotation failed for key %s", self.kms_key.key_id
