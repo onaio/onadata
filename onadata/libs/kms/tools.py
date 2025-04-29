@@ -164,6 +164,9 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     :param kms_key: KMSKey
     :parem disabled_by: User disabling the key
     """
+    if kms_key.disabled_at:
+        return
+
     kms_client = get_kms_client()
     kms_client.disable_key(kms_key.key_id)
     kms_key.disabled_at = timezone.now()
