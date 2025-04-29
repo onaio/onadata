@@ -479,10 +479,15 @@ def disable_expired_keys():
     mass_mail_data = []
 
     for kms_key in queryset_iterator(kms_key_qs):
-        disable_key(kms_key)
+        try:
+            disable_key(kms_key)
+        except Exception:
+            logger.exception("Key disable failed for key %s", kms_key.key_id)
+            continue
 
         if not kms_key.rotated_at:
             continue
+
         # Send notification to organization admins
         organization = kms_key.content_object
         recipient_list = [
