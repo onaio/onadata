@@ -71,16 +71,16 @@ def _get_kms_grace_period_duration():
     return default_duration
 
 
-def _get_kms_rotation_notification_duration():
+def _get_kms_rotation_reminder_duration():
     default_duration = timedelta(weeks=2)
-    duration = getattr(settings, "KMS_ROTATION_NOTIFICATION_DURATION", default_duration)
+    duration = getattr(settings, "KMS_ROTATION_REMINDER_DURATION", default_duration)
 
     if isinstance(duration, timedelta):
         return duration
 
     if duration:
         logger.error(
-            "KMS_ROTATION_NOTIFICATION_DURATION is set to an invalid value: %s",
+            "KMS_ROTATION_REMINDER_DURATION is set to an invalid value: %s",
             duration,
         )
 
@@ -408,9 +408,9 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     api_tools.invalidate_xform_list_cache(xform)
 
 
-def send_key_rotation_notification():
-    """Send notification to organization admins that key rotation is scheduled."""
-    notification_duration = _get_kms_rotation_notification_duration()
+def send_key_rotation_reminder():
+    """Send email to organization admins that key rotation is scheduled."""
+    notification_duration = _get_kms_rotation_reminder_duration()
     target_date = (timezone.now() + notification_duration).date()
     kms_key_qs = KMSKey.objects.filter(
         expiry_date__gte=target_date,
@@ -431,7 +431,7 @@ def send_key_rotation_notification():
         mail_subject = _(f"Key Rotation for Organization: {organization.name}")
         grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
         message = render_to_string(
-            "organization/key_rotation_notification.html",
+            "organization/key_rotation_reminder.html",
             {
                 "organization_name": organization.name,
                 "rotation_date": friendly_date(kms_key.expiry_date),
