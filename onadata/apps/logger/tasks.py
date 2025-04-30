@@ -12,7 +12,11 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
-from onadata.libs.kms.tools import decrypt_instance
+from onadata.libs.kms.tools import (
+    decrypt_instance,
+    disable_expired_keys,
+    rotate_expired_keys,
+)
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.logger_tools import (
     commit_cached_elist_num_entities,
@@ -162,3 +166,15 @@ def decrypt_instance_async(instance_id: int):
 
     else:
         decrypt_instance(instance)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def rotate_expired_keys_async():
+    """Rotate expired keys asynchronously."""
+    rotate_expired_keys()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def disable_expired_keys_async():
+    """Disable expired keys asynchronously."""
+    disable_expired_keys()
