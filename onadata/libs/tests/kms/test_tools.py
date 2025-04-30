@@ -40,7 +40,7 @@ from onadata.libs.kms.tools import (
     is_instance_encrypted,
     rotate_expired_keys,
     rotate_key,
-    send_key_rotation_notification,
+    send_key_rotation_reminder,
 )
 
 
@@ -1049,7 +1049,7 @@ class IsInstanceEncryptedTestCase(TestBase):
 )
 @patch("onadata.libs.kms.tools.send_mass_mail")
 class SendKeyRotationNotificationTestCase(TestBase):
-    """Tests for `send_key_rotation_notification`"""
+    """Tests for `send_key_rotation_reminder`"""
 
     def setUp(self):
         super().setUp()
@@ -1071,7 +1071,7 @@ class SendKeyRotationNotificationTestCase(TestBase):
         )
         self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
         self.html_message = render_to_string(
-            "organization/key_rotation_notification.html",
+            "organization/key_rotation_reminder.html",
             {
                 "organization_name": self.org.name,
                 "rotation_date": self.friendly_date(self.kms_key.expiry_date),
@@ -1082,9 +1082,9 @@ class SendKeyRotationNotificationTestCase(TestBase):
             },
         )
 
-    @override_settings(KMS_ROTATION_NOTIFICATION_DURATION=timedelta(weeks=2))
+    @override_settings(KMS_ROTATION_REMINDER_DURATION=timedelta(weeks=2))
     @patch("onadata.libs.kms.tools.get_organization_owners")
-    def test_send_key_rotation_notification(
+    def test_send_key_rotation_reminder(
         self, mock_get_organization_owners, mock_send_mass_mail
     ):
         """Send key rotation notification works"""
@@ -1094,7 +1094,7 @@ class SendKeyRotationNotificationTestCase(TestBase):
 
         mock_get_organization_owners.return_value = [self.user, alice]
 
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
 
         mass_mail_data = (
             (
@@ -1115,7 +1115,7 @@ class SendKeyRotationNotificationTestCase(TestBase):
         """Notification is not sent if no organization owners found."""
         mock_get_organization_owners.return_value = []
 
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
 
         mock_send_mass_mail.assert_not_called()
 
@@ -1124,22 +1124,22 @@ class SendKeyRotationNotificationTestCase(TestBase):
         self.kms_key.expiry_date = timezone.now() - timedelta(days=1)
         self.kms_key.save()
 
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
         mock_send_mass_mail.assert_not_called()
 
     def test_default_notification_duration(self, mock_send_mass_mail):
         """Default notification duration is 2 weeks."""
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
 
         mock_send_mass_mail.assert_called_once()
 
     def test_custom_deployment_name(self, mock_send_mass_mail):
         """Custom deployment name is used."""
         with override_settings(DEPLOYMENT_NAME="ToolBox"):
-            send_key_rotation_notification()
+            send_key_rotation_reminder()
 
         html_message = render_to_string(
-            "organization/key_rotation_notification.html",
+            "organization/key_rotation_reminder.html",
             {
                 "organization_name": self.org.name,
                 "rotation_date": self.friendly_date(self.kms_key.expiry_date),
@@ -1165,7 +1165,7 @@ class SendKeyRotationNotificationTestCase(TestBase):
         self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
 
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
         mock_send_mass_mail.assert_not_called()
 
     def test_disabled_key_is_ignored(self, mock_send_mass_mail):
@@ -1173,7 +1173,7 @@ class SendKeyRotationNotificationTestCase(TestBase):
         self.kms_key.disabled_at = timezone.now()
         self.kms_key.save()
 
-        send_key_rotation_notification()
+        send_key_rotation_reminder()
         mock_send_mass_mail.assert_not_called()
 
 
