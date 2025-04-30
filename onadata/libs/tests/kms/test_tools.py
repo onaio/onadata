@@ -1048,7 +1048,7 @@ class IsInstanceEncryptedTestCase(TestBase):
     DEFAULT_FROM_EMAIL="test@example.com",
 )
 @patch("onadata.libs.kms.tools.send_mass_mail")
-class SendKeyRotationNotificationTestCase(TestBase):
+class SendKeyRotationReminderTestCase(TestBase):
     """Tests for `send_key_rotation_reminder`"""
 
     def setUp(self):
