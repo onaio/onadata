@@ -13,8 +13,10 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
+    disable_expired_keys_async,
     reconstruct_xform_export_register_async,
     register_instance_repeat_columns_async,
+    rotate_expired_keys_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
@@ -250,3 +252,71 @@ class ReconstructXFormExportRegisterAsyncTestCase(TestBase):
         reconstruct_xform_export_register_async.delay(sys.maxsize)
         mock_register.assert_not_called()
         mock_logger.assert_called_once()
+
+
+@patch("onadata.apps.logger.tasks.rotate_expired_keys")
+class RotateExpiredKeysAsyncTestCase(TestBase):
+    """Tests for rotate_expired_keys_async"""
+
+    def test_rotate_expired_keys(self, mock_rotate):
+        """Rotate expired keys"""
+        rotate_expired_keys_async.delay()
+        mock_rotate.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_rotate):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_rotate.side_effect = ConnectionError
+        rotate_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_rotate):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_rotate.side_effect = DatabaseError
+        rotate_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+
+@patch("onadata.apps.logger.tasks.disable_expired_keys")
+class DisableExpiredKeysAsyncTestCase(TestBase):
+    """Tests for disable_expired_keys_async"""
+
+    def test_disable_expired_keys(self, mock_disable):
+        """Disable expired keys"""
+        disable_expired_keys_async.delay()
+        mock_disable.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_disable):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_disable.side_effect = ConnectionError
+        disable_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_disable):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_disable.side_effect = DatabaseError
+        disable_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
