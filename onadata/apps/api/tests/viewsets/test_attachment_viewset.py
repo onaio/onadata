@@ -36,7 +36,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
     @flaky(max_runs=10)
     def test_retrieve_view(self):
-        self._submit_transport_instance_w_attachment()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
 
         pk = self.attachment.pk
 
