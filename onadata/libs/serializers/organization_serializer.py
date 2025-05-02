@@ -221,10 +221,10 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
                 key_id=value, content_type=content_type, object_id=organization.pk
             )
 
-        except KMSKey.DoesNotExist:
+        except KMSKey.DoesNotExist as exc:
             raise serializers.ValidationError(
                 _("Key does not exist."), code="does_not_exist"
-            )
+            ) from exc
 
         if self.kms_key.disabled_at:
             raise serializers.ValidationError(_("Key is inactive."))
