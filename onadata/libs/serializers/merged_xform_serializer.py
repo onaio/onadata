@@ -99,6 +99,8 @@ def get_merged_xform_survey(xforms):
             # remove duplicates
             set_of_jsons = {json.dumps(d, sort_keys=True) for d in children}
             child["children"] = [json.loads(t) for t in set_of_jsons]
+            if child["children"]:
+                child["children"].sort(key=lambda x: x["name"])
             merged_xform_dict["choices"][child["itemset"]] = child["children"]
 
     if is_empty:
