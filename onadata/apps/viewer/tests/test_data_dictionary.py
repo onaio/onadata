@@ -424,7 +424,7 @@ class DataDictionaryTestCase(TestBase):
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         content_type = ContentType.objects.get_for_model(org)
-        KMSKey.objects.create(
+        kms_key = KMSKey.objects.create(
             key_id="fake-key-id",
             description="Key-2025-04-03",
             public_key="fake-pub-key",
@@ -503,3 +503,12 @@ class DataDictionaryTestCase(TestBase):
             self.assertTrue(xform.encrypted)
             self.assertTrue(xform.is_kms_encrypted)
             self.assertNotEqual(xform.version, "202504221539")
+
+        # XForm is not encrypted if KMSKey missing
+        kms_key.delete()
+
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, org.user, id_string="g")
+            xform.refresh_from_db()
+
+            self.assertFalse(xform.encrypted)
