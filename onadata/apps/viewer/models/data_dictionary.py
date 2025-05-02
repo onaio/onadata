@@ -25,6 +25,7 @@ from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.xform import (
     XForm,
@@ -463,12 +464,21 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
         and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
         and is_organization(instance.user.profile)
     ):
-        # seems the super is not called, have to get xform from here
-        xform = XForm.objects.get(pk=instance.pk)
-
-        transaction.on_commit(
-            lambda: kms_tools.encrypt_xform(xform, encrypted_by=instance.created_by)
+        organization = instance.user.profile.organizationprofile
+        content_type = ContentType.objects.get_for_model(organization)
+        kms_key_qs = KMSKey.objects.filter(
+            object_id=organization.pk,
+            content_type=content_type,
+            disabled_at__isnull=True,
         )
+
+        if kms_key_qs.exists():
+            # seems the super is not called, have to get xform from here
+            xform = XForm.objects.get(pk=instance.pk)
+
+            transaction.on_commit(
+                lambda: kms_tools.encrypt_xform(xform, encrypted_by=instance.created_by)
+            )
 
 
 post_save.connect(
