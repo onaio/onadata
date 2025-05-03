@@ -489,7 +489,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         survey_at=0,
         media_file=None,
         forced_submission_time=None,
-        delete_existing_attachments=None,
+        delete_existing_attachments=True,
     ):
         s = self.surveys[survey_at]
         if not media_file:

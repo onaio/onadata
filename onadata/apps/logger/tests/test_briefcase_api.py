@@ -195,7 +195,7 @@ class TestBriefcaseAPI(TestBase):
     def test_view_downloadSubmission(self):
         self._publish_xml_form()
         self.maxDiff = None
-        self._submit_transport_instance_w_attachment()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
         instanceId = "5b2cc313-fc09-437e-8149-fcd32f695d41"
         instance = Instance.objects.get(uuid=instanceId)
         formId = (

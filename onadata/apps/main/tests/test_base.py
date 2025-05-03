@@ -10,6 +10,7 @@ import csv
 import os
 import re
 import socket
+import subprocess
 import warnings
 from io import StringIO
 from tempfile import NamedTemporaryFile
@@ -198,9 +199,18 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             )
         )
 
-    def _submit_transport_instance_w_attachment(self, survey_at=0):
+    def _submit_transport_instance_w_attachment(
+        self, survey_at=0, delete_existing_attachments=False
+    ):
         s = self.surveys[survey_at]
         media_file = "1335783522563.jpg"
+        if delete_existing_attachments:
+            try:
+                cmd = f"rm {settings.MEDIA_ROOT}*/attachments/*/{media_file}"
+                subprocess.run(cmd, shell=True, check=True)
+            except subprocess.CalledProcessError:
+                pass
+
         self._make_submission_w_attachment(
             os.path.join(
                 self.this_directory,
