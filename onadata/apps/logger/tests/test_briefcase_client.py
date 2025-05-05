@@ -2,6 +2,7 @@
 """
 Test Briefcase client
 """
+
 import os.path
 import shutil
 from io import BytesIO
@@ -70,9 +71,9 @@ def form_media(request, context):
     )
     ids = list(Instance.objects.values_list("id", flat=True))
     xids = list(XForm.objects.values_list("id", flat=True))
-    assert (
-        response.status_code == 200
-    ), f"{data_id} - {response.content} {response.status_code} -{ids} {xids} {path}"
+    assert response.status_code == 200, (
+        f"{data_id} - {response.content} {response.status_code} -{ids} {xids} {path}"
+    )
     return get_streaming_content(response)
 
 
@@ -137,7 +138,7 @@ class TestBriefcaseClient(TestBase):
     def setUp(self):
         TestBase.setUp(self)
         self._publish_transportation_form()
-        self._submit_transport_instance_w_attachment()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
         src = os.path.join(
             self.this_directory, "fixtures", "transportation", "screenshot.png"
         )

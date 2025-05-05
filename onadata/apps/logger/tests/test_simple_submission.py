@@ -35,14 +35,24 @@ class TestSimpleSubmission(TestCase):
         xform.mark_start_time_boolean()
         xform.save()
 
-    def _submit_at_hour(self, hour):
+    def _submit_with_specific_uuid(self, uuid):
         st_xml = (
-            "<?xml version='1.0' ?><start_time_form id=\"start_time_for"
-            'm"><start_time>2012-01-11T%d:00:00.000+00</start_time>'
-            "</start_time_form>" % hour
+            '<data xmlns:jr="http://openrosa.org/javarosa" '
+            'xmlns:orx="http://openrosa.org/xforms"'
+            ' id="start_time_form" version="202504251410">'
+            "<start>2025-04-25T17:11:39.745+03:00</start>"
+            "<end>2025-04-25T17:11:42.897+03:00</end>"
+            "<Name>Frankline</Name>"
+            "<meta>"
+            "<instanceID>uuid:"
+            f"{str(uuid)}"
+            "</instanceID>"
+            "</meta>"
+            "</data>"
         )
         try:
             create_instance(self.user.username, TempFileProxy(st_xml), [])
+
         except DuplicateInstance:
             pass
 
@@ -101,19 +111,21 @@ class TestSimpleSubmission(TestCase):
         # a simple "yes" submission *SHOULD* increment the survey count
         self.assertEqual(2, self.xform1.instances.count())
 
-    def test_start_time_submissions(self):
+    def test_similar_uuid_submissions(self):
         """This test checks to make sure that instances
-        *with start_time available* are marked as duplicates when the XML is a
-        direct match.
+        with the same UUID are marked as duplicates.
         """
+        import uuid
+
         self.assertEqual(0, self.xform2.instances.count())
-        self._submit_at_hour(11)
+        uuid_1 = uuid.uuid4()
+        self._submit_with_specific_uuid(uuid_1)
         self.assertEqual(1, self.xform2.instances.count())
-        self._submit_at_hour(12)
+        self._submit_with_specific_uuid(uuid.uuid4())
         self.assertEqual(2, self.xform2.instances.count())
-        # an instance from 11 AM already exists in the database, so it
-        # *SHOULD NOT* increment the survey count.
-        self._submit_at_hour(11)
+
+        # instance with `uuid_1` already exists
+        self._submit_with_specific_uuid(uuid_1)
         self.assertEqual(2, self.xform2.instances.count())
 
     def test_corrupted_submission(self):

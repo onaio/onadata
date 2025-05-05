@@ -33,7 +33,7 @@ from django.core.exceptions import (
 )
 from django.core.files.storage import storages
 from django.db import DataError, IntegrityError, transaction
-from django.db.models import F, Q
+from django.db.models import F
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
@@ -558,9 +558,7 @@ def create_instance(
     checksum = sha256(xml).hexdigest()
 
     new_uuid = get_uuid_from_xml(xml)
-    filtered_instances = get_filtered_instances(
-        Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk
-    )
+    filtered_instances = get_filtered_instances(uuid=new_uuid, xform_id=xform.pk)
     existing_instance = get_first_record(filtered_instances.only("id"))
     if existing_instance and (new_uuid or existing_instance.xform.has_start_time):
         # ensure we have saved the extra attachments
@@ -615,9 +613,7 @@ def create_instance(
             )
     except IntegrityError:
         instance = get_first_record(
-            Instance.objects.filter(
-                Q(checksum=checksum) | Q(uuid=new_uuid), xform_id=xform.pk
-            )
+            Instance.objects.filter(uuid=new_uuid, xform_id=xform.pk)
         )
 
         if instance:

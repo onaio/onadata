@@ -6,6 +6,7 @@ Test base class for API viewset tests.
 import json
 import os
 import re
+import subprocess
 import warnings
 from tempfile import NamedTemporaryFile
 
@@ -90,11 +91,10 @@ def get_mocked_response_for_file(file_object, filename, status_code=200):
     mock_response.status_code = status_code
     mock_response.headers = {
         "content-type": (
-            "application/vnd.openxmlformats-" "officedocument.spreadsheetml.sheet"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
         "Content-Disposition": (
-            'attachment; filename="transportation.'
-            f"xlsx\"; filename*=UTF-8''{filename}"
+            f"attachment; filename=\"transportation.xlsx\"; filename*=UTF-8''{filename}"
         ),
     }
     # pylint: disable=protected-access
@@ -485,7 +485,11 @@ class TestAbstractViewSet(TestBase, TestCase):
         self.assertEqual(xform.user.profile.num_of_submissions, xform_post_count)
 
     def _submit_transport_instance_w_attachment(
-        self, survey_at=0, media_file=None, forced_submission_time=None
+        self,
+        survey_at=0,
+        media_file=None,
+        forced_submission_time=None,
+        delete_existing_attachments=True,
     ):
         s = self.surveys[survey_at]
         if not media_file:
@@ -498,6 +502,14 @@ class TestAbstractViewSet(TestBase, TestCase):
             s,
             media_file,
         )
+        if delete_existing_attachments:
+            try:
+                media_file_name = media_file.split(".")[0]
+                cmd = f"rm {settings.MEDIA_ROOT}{self.profile_data['username']}/attachments/*/{media_file_name}*"
+                subprocess.run(cmd, shell=True, check=True)
+            except subprocess.CalledProcessError:
+                pass
+
         with open(path, "rb") as f:
             self._make_submission(
                 os.path.join(
