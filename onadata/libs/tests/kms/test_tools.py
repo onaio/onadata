@@ -252,6 +252,7 @@ class RotateKeyTestCase(TestBase):
         self.assertEqual(self.xform.version, "202504031220")
         self.assertEqual(self.xform.public_key, new_key.public_key)
         self.assertTrue(self.xform.encrypted)
+        self.assertTrue(self.xform.is_kms_encrypted)
         self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertTrue(
             self.xform.kms_keys.filter(
@@ -529,6 +530,7 @@ class EncryptXFormTestCase(TestBase):
         self.assertEqual(self.xform.xml, survey.to_xml())
         self.assertEqual(self.xform.public_key, self.kms_key.public_key)
         self.assertTrue(self.xform.encrypted)
+        self.assertTrue(self.xform.is_kms_encrypted)
         self.assertEqual(self.xform.version, "202504101227")
         self.assertTrue(self.xform.is_kms_encrypted)
         # Hash should be updated
@@ -892,6 +894,7 @@ class DisableXFormEncryptionTestCase(TestBase):
         self.assertIsNone(json_dict.get("public_key"))
         self.assertEqual(json_dict.get("version"), "202504101038")
         self.assertFalse(self.xform.encrypted)
+        self.assertFalse(self.xform.is_kms_encrypted)
         self.assertIsNone(self.xform.public_key)
         self.assertEqual(self.xform.version, "202504101038")
         self.assertEqual(self.xform.xml, survey.to_xml())
