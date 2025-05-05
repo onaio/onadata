@@ -4,6 +4,7 @@
 logger_tools - Logger app utility functions.
 """
 
+import copy
 import importlib
 import json
 import logging
@@ -1527,62 +1528,71 @@ def delete_xform_submissions(
     )
 
 
-def _register_instance_repeat_columns(instance: Instance, register: MetaData) -> None:
-    """Add Instance repeat columns to the export columns register
+def _load_register_columns(register):
+    merged_multiples = json.loads(
+        register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
+    )
+    split_multiples = json.loads(
+        register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
+    )
 
-    :param instance: Instance object
-    :param metadata: MetaData object that stores the export repeat register
-    """
+    return {
+        "merged_multiples": merged_multiples,
+        "split_multiples": split_multiples,
+    }
+
+
+def _update_register_columns(instance, columns):
     # Avoid cyclic import by using importlib
     csv_builder_module = importlib.import_module("onadata.libs.utils.csv_builder")
 
-    with transaction.atomic():
-        # We use select_for_update to acquire a row-level lock
-        # Only one process updates it at a time. This prevents race conditions
-        # and updates extra_data atomically
-        register = MetaData.objects.select_for_update().get(pk=register.pk)
-        merged_multiples = json.loads(
-            register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
-        )
-        split_multiples = json.loads(
-            register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
-        )
-        xform = instance.xform
-        csv_builder_module = csv_builder_module.CSVDataFrameBuilder(
-            xform=xform, username=xform.user.username, id_string=xform.id_string
-        )
-        data = instance.get_full_dict()
-        changes = {
-            "merged_multiples": merged_multiples,
-            "split_multiples": split_multiples,
-        }
+    xform = instance.xform
+    csv_builder_module = csv_builder_module.CSVDataFrameBuilder(
+        xform=xform, username=xform.user.username, id_string=xform.id_string
+    )
+    data = instance.get_full_dict()
 
-        for key, value in data.items():
-            # Reindex split multiples
-            # pylint: disable=protected-access
-            csv_builder_module._reindex(
-                key,
-                value,
-                changes["split_multiples"],
-                data,
-                xform,
-                include_images=[],
-                split_select_multiples=True,
-            )
-            # Reindex merged multiples
-            # pylint: disable=protected-access
-            csv_builder_module._reindex(
-                key,
-                value,
-                changes["merged_multiples"],
-                data,
-                xform,
-                include_images=[],
-                split_select_multiples=False,
-            )
+    for key, value in data.items():
+        # Reindex split multiples
+        # pylint: disable=protected-access
+        csv_builder_module._reindex(
+            key,
+            value,
+            columns["split_multiples"],
+            data,
+            xform,
+            include_images=[],
+            split_select_multiples=True,
+        )
+        # Reindex merged multiples
+        # pylint: disable=protected-access
+        csv_builder_module._reindex(
+            key,
+            value,
+            columns["merged_multiples"],
+            data,
+            xform,
+            include_images=[],
+            split_select_multiples=False,
+        )
 
-        register.extra_data = {key: json.dumps(value) for key, value in changes.items()}
-        register.save()
+
+def _get_locked_register(xform):
+    content_type = ContentType.objects.get_for_model(xform)
+
+    # We use select_for_update to acquire a row-level lock
+    # Only one process updates it at a time. This prevents race conditions
+    # and updates extra_data atomically
+    return MetaData.objects.select_for_update().get(
+        content_type=content_type,
+        object_id=xform.pk,
+        data_type=EXPORT_COLUMNS_REGISTER,
+    )
+
+
+def _save_register_columns(register, columns):
+    register.extra_data = {key: json.dumps(value) for key, value in columns.items()}
+    register.save()
 
 
 @transaction.atomic()
@@ -1591,19 +1601,19 @@ def register_instance_repeat_columns(instance: Instance) -> None:
 
     :param instance: Instance object
     """
-    content_type = ContentType.objects.get_for_model(instance.xform)
-
     try:
-        register = MetaData.objects.get(
-            content_type=content_type,
-            object_id=instance.xform.pk,
-            data_type=EXPORT_COLUMNS_REGISTER,
-        )
+        register = _get_locked_register(instance.xform)
 
     except MetaData.DoesNotExist:
         return
 
-    _register_instance_repeat_columns(instance, register)
+    old_columns = _load_register_columns(register)
+    new_columns = copy.deepcopy(old_columns)
+
+    _update_register_columns(instance=instance, columns=new_columns)
+
+    if old_columns != new_columns:
+        _save_register_columns(register=register, columns=new_columns)
 
 
 @transaction.atomic()
@@ -1613,16 +1623,15 @@ def reconstruct_xform_export_register(xform: XForm) -> None:
     :param xform: XForm object
     """
     try:
-        register = MetaData.objects.get(
-            content_type=ContentType.objects.get_for_model(xform),
-            object_id=xform.pk,
-            data_type=EXPORT_COLUMNS_REGISTER,
-        )
+        register = _get_locked_register(xform)
 
     except MetaData.DoesNotExist:
         return
 
     instance_qs = xform.instances.filter(deleted_at__isnull=True)
+    columns = _load_register_columns(register)
 
     for instance in queryset_iterator(instance_qs, chunksize=500):
-        _register_instance_repeat_columns(instance, register)
+        _update_register_columns(instance, columns)
+
+    _save_register_columns(register=register, columns=columns)
