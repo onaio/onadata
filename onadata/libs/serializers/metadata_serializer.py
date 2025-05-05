@@ -96,6 +96,12 @@ def get_linked_object(parts):
     return None
 
 
+def create_xform_meta_permissions(data_value, xform):
+    metadata = MetaData.xform_meta_permission(xform, data_value=data_value)
+    update_role_by_meta_xform_perms(xform)
+    return metadata
+
+
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     """
     MetaData HyperlinkedModelSerializer
@@ -294,10 +300,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         try:
             if data_type == XFORM_META_PERMS:
-                metadata = MetaData.xform_meta_permission(
-                    content_object, data_value=data_value
-                )
-                update_role_by_meta_xform_perms(content_object)
+                metadata = create_xform_meta_permissions(data_value, content_object)
 
             elif data_type == SUBMISSION_REVIEW:
                 # ensure only one submission_review metadata exists per form

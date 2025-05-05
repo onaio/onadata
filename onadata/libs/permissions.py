@@ -474,6 +474,7 @@ ROLES_ORDERED = [
     DataEntryOnlyRole,
     DataEntryMinorRole,
     DataEntryRole,
+    EditorNoDownload,
     EditorMinorRole,
     EditorRole,
     ManagerRole,
