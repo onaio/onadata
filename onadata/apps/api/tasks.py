@@ -91,7 +91,7 @@ def delete_xform_async(xform_id, user_id):
 def delete_user_async():
     """Delete inactive user accounts"""
     users = User.objects.filter(
-        active=False, username__contains="deleted-at", email__contains="deleted-at"
+        is_active=False, username__contains="deleted-at", email__contains="deleted-at"
     )
     for user in users:
         user.delete()
@@ -142,10 +142,9 @@ def delete_inactive_submissions():
             instance.delete()
 
 
+# pylint: disable=invalid-name
 @app.task()
-def send_project_invitation_email_async(
-    invitation_id: str, url: str
-):  # pylint: disable=invalid-name
+def send_project_invitation_email_async(invitation_id: str, url: str):
     """Sends project invitation email asynchronously"""
     try:
         invitation = ProjectInvitation.objects.get(id=invitation_id)
