@@ -1419,17 +1419,13 @@ pre_save.connect(save_project, sender=XForm, dispatch_uid="save_project_xform")
 def _create_meta_perms(sender, instance, created, **kwargs):
     metadata = instance.metadata_set.filter(data_type="xform_meta_perms").first()
     if metadata is None:
-        from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
-
-        serializer = MetaDataSerializer(
-            data={
-                "data_type": "xform_meta_perms",
-                "data_value": "editor-no-download|dataentry-only|readonly-no-download",
-                "xform": instance.pk,
-            }
+        from onadata.libs.serializers.metadata_serializer import (
+            create_xform_meta_permissions,
         )
-        if serializer.is_valid():
-            serializer.save()
+
+        create_xform_meta_permissions(
+            "editor-no-download|dataentry-only|readonly-no-download", instance
+        )
 
 
 post_save.connect(
