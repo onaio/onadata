@@ -1014,6 +1014,7 @@ class XForm(XFormMixin, BaseModel):
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
     is_instance_json_regenerated = models.BooleanField(default=False)
+    is_kms_encrypted = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:
@@ -1369,11 +1370,6 @@ class XForm(XFormMixin, BaseModel):
     def public_forms(cls):
         """Returns a queryset of public forms i.e. shared = True"""
         return cls.objects.filter(shared=True)
-
-    @property
-    def is_kms_encrypted(self):
-        """Return True if XForm is encrypted using managed keys."""
-        return self.kms_keys.filter(version=self.version).exists()
 
 
 # pylint: disable=unused-argument
