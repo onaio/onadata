@@ -60,6 +60,7 @@ from onadata.libs.permissions import (
     EditorRole,
     ManagerRole,
     ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
@@ -359,7 +360,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         profile.save()
 
         # Enable meta perms
-        data_value = "editor-minor|dataentry-minor"
+        data_value = "editor-minor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         self._assign_user_role(user_alice, DataEntryOnlyRole)
@@ -441,7 +442,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 2)
 
         # change meta perms
-        data_value = "editor|dataentry-minor"
+        data_value = "editor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         self._assign_user_role(user_alice, EditorRole)
@@ -451,7 +452,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        self._assign_user_role(user_alice, ReadOnlyRole)
+        self._assign_user_role(user_alice, ReadOnlyRoleNoDownload)
 
         request = self.factory.get("/", **alices_extra)
         response = view(request, pk=formid)
@@ -483,7 +484,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         self.assertTrue(EditorRole.user_has_role(user_alice, self.xform))
         self._assign_user_role(user_alice, EditorMinorRole)
-        MetaData.xform_meta_permission(self.xform, data_value="editor-minor|dataentry")
+        MetaData.xform_meta_permission(
+            self.xform, data_value="editor-minor|dataentry|readonly-no-download"
+        )
 
         self.assertFalse(EditorRole.user_has_role(user_alice, self.xform))
 
@@ -505,7 +508,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         profile.save()
 
         # Enable meta perms
-        data_value = "editor-minor|dataentry-minor"
+        data_value = "editor-minor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         DataEntryOnlyRole.add(user_alice, self.xform)
@@ -676,7 +679,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "double quotes: line 1 column 2 (char 1)"
         )
 
-        request = self.factory.get("/", data={"sort": "{" ":}"}, **self.extra)
+        request = self.factory.get("/", data={"sort": "{:}"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get("detail"), error_message)
@@ -686,7 +689,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get("detail"), error_message)
 
-        request = self.factory.get("/", data={"sort": "{" ":" "}"}, **self.extra)
+        request = self.factory.get("/", data={"sort": "{:}"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get("detail"), error_message)
@@ -1099,7 +1102,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 4)
 
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)
-        query_str = '{"_submission_time": {"$gte": "%s"},' ' "_submitted_by": "%s"}' % (
+        query_str = '{"_submission_time": {"$gte": "%s"}, "_submitted_by": "%s"}' % (
             submission_time,
             "bob",
         )
@@ -1146,7 +1149,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 4)
 
         submission_time = instance.date_created.strftime(MONGO_STRFTIME)
-        query_str = '{"_submission_time": {"$gte": "%s"},' ' "_submitted_by": "%s"}' % (
+        query_str = '{"_submission_time": {"$gte": "%s"}, "_submitted_by": "%s"}' % (
             submission_time,
             "bob",
         )
@@ -2692,7 +2695,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.xform.refresh_from_db()
         self.assertFalse(self.xform.instances_with_geopoints)
 
-    @patch("onadata.apps.api.viewsets.data_viewset" ".DataViewSet.paginate_queryset")
+    @patch("onadata.apps.api.viewsets.data_viewset.DataViewSet.paginate_queryset")
     def test_retry_on_operational_error(self, mock_paginate_queryset):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
@@ -3417,7 +3420,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        query_str = '{"$or": [{"_review_status":"3"}' ', {"_review_status": null }]}'
+        query_str = '{"$or": [{"_review_status":"3"}, {"_review_status": null }]}'
         request = self.factory.get("/?query=%s" % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
@@ -3616,8 +3619,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<?xml version="1.0" encoding="utf-8"?>\n'
             f'<submission-batch serverTime="{server_time}">'  # noqa
             f'<submission-item bambooDatasetId="" dateCreated="{instance.date_created.isoformat()}" duration="" edited="{edited}" formVersion="{instance.version}"'  # noqa
-            f' lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{ instance.media_count }" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
-            f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="{ instance.total_media }">'  # noqa
+            f' lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{instance.media_count}" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
+            f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="{instance.total_media}">'  # noqa
             f'<transportation id="{instance.xform.id_string}" version="{instance.version}">'  # noqa
             "<transport>"
             "<available_transportation_types_to_referral_facility>none</available_transportation_types_to_referral_facility>"  # noqa
@@ -3628,7 +3631,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "</transportation>"
             "<linked-resources>"
             "<attachments>"
-            f"<id>{attachment.id}</id><name>1335783522563.jpg</name><xform>{instance.xform.id}</xform><filename>{ attachment.media_file.name }</filename><instance>{ instance.id }</instance><mimetype>image/jpeg</mimetype><download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }</download_url><small_download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }&amp;suffix=small</small_download_url><medium_download_url>/api/v1/files/{attachment.id}?filename={ attachment.media_file.name }&amp;suffix=medium</medium_download_url></attachments>"  # noqa
+            f"<id>{attachment.id}</id><name>1335783522563.jpg</name><xform>{instance.xform.id}</xform><filename>{attachment.media_file.name}</filename><instance>{instance.id}</instance><mimetype>image/jpeg</mimetype><download_url>/api/v1/files/{attachment.id}?filename={attachment.media_file.name}</download_url><small_download_url>/api/v1/files/{attachment.id}?filename={attachment.media_file.name}&amp;suffix=small</small_download_url><medium_download_url>/api/v1/files/{attachment.id}?filename={attachment.media_file.name}&amp;suffix=medium</medium_download_url></attachments>"  # noqa
             "</linked-resources>"
             "</submission-item>"
             "</submission-batch>"

@@ -2,6 +2,7 @@
 """
 Tests the MediaViewSet.
 """
+
 # pylint: disable=too-many-lines
 import os
 from unittest.mock import patch
@@ -89,7 +90,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
 
         # Enable meta perms
         new_user = self._create_user("new_user", "new_user")
-        data_value = "editor-minor|dataentry-minor"
+        data_value = "editor-minor|dataentry-minor|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         instance = ShareXForm(self.xform, new_user.username, EditorRole.name)
