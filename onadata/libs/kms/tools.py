@@ -231,10 +231,8 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     for xform in queryset_iterator(xform_qs):
         _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
 
-    if kms_key.expiry_date > timezone.now():
-        # This is pre-mature rotation, force expiry
-        kms_key.expiry_date = timezone.now()
-
+    # If the rotation is pre-mature, force expiry
+    kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
     kms_key.rotated_at = timezone.now()
     kms_key.rotated_by = rotated_by
     kms_key.rotation_reason = rotation_reason
