@@ -22,7 +22,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
-from onadata.libs.permissions import get_role_in_org
+from onadata.libs.permissions import ManagerRole, OwnerRole, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
@@ -84,6 +84,16 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             if isinstance(self.instance, QuerySet) or not is_permitted or not request:
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
+
+    def to_representation(self, instance):
+        """Override `to_representation`."""
+        data = super().to_representation(instance)
+
+        if not self._is_admin_or_manager(self.context["request"].user, instance):
+            data.pop("active_kms_key")
+            data.pop("inactive_kms_keys")
+
+        return data
 
     def update(self, instance, validated_data):
         """Update organization profile properties."""
@@ -177,6 +187,11 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = _create_user_list(owners)
 
         return owners_list + members_list
+
+    def _is_admin_or_manager(self, user, obj):
+        return OwnerRole.user_has_role(user, obj) or ManagerRole.user_has_role(
+            user, obj
+        )
 
     def get_inactive_kms_keys(self, obj):
         """Get the inactive KMSKeys for organization."""

@@ -1297,65 +1297,83 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     @override_settings(TIME_ZONE="UTC")
     def test_active_kms_key(self):
         """Active KMS key is returned."""
-        valigetta_org = self._create_organization(
+        self.organization = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
-        valigetta_active_key = KMSKey.objects.create(
+        self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        active_key = KMSKey.objects.create(
             key_id="active-key",
             description="Active Key",
             public_key="fake-pub-key",
             content_type=content_type,
-            object_id=valigetta_org.pk,
+            object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=timezone.now() + timedelta(days=365),
             grace_end_date=timezone.now() + timedelta(days=395),
         )
+        # Make user owner
+        OwnerRole.add(self.user, self.organization)
 
         request = self.factory.get("/", **self.extra)
-        response = view(request, user="valigetta")
+        response = self.view(request, user=self.organization.user.username)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data["active_kms_key"]["key_id"], valigetta_active_key.key_id
-        )
+        self.assertEqual(response.data["active_kms_key"]["key_id"], active_key.key_id)
         self.assertEqual(
             response.data["active_kms_key"]["description"],
-            valigetta_active_key.description,
+            active_key.description,
         )
         self.assertEqual(
             response.data["active_kms_key"]["date_created"],
-            valigetta_active_key.date_created.isoformat().replace("+00:00", "Z"),
+            active_key.date_created.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["expiry_date"],
-            valigetta_active_key.expiry_date.isoformat().replace("+00:00", "Z"),
+            active_key.expiry_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["grace_end_date"],
-            valigetta_active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
+            active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertFalse(response.data["active_kms_key"]["is_expired"])
+
+        # Only admins can see the active KMS key
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        for role in ROLES:
+            role_cls = ROLES.get(role)
+            role_cls.add(self.user, self.organization)
+            request = self.factory.get("/", **self.extra)
+            response = self.view(request, user=self.organization.user.username)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("active_kms_key", response.data)
+
+            else:
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("active_kms_key", response.data)
 
     @override_settings(TIME_ZONE="UTC")
     def test_inactive_kms_keys(self):
         """Inactive KMS keys are returned."""
-        valigetta_org = self._create_organization(
+        self.organization = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         mars_org = self._create_organization(
             username="mars", name="Mars Inc", created_by=self.user
         )
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
         # Should not be returned since it is expired
         valigetta_expired_key = KMSKey.objects.create(
             key_id="expired-key",
             description="Expired Key",
             public_key="fake-pub-key",
             content_type=content_type,
-            object_id=valigetta_org.pk,
+            object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=timezone.now() - timedelta(days=2),
             grace_end_date=timezone.now() - timedelta(days=1),
@@ -1366,7 +1384,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             description="Active Key",
             public_key="fake-pub-key",
             content_type=content_type,
-            object_id=valigetta_org.pk,
+            object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=timezone.now() + timedelta(days=365),
             grace_end_date=timezone.now() + timedelta(days=395),
@@ -1377,7 +1395,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             description="Disabled Key",
             public_key="fake-pub-key",
             content_type=content_type,
-            object_id=valigetta_org.pk,
+            object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
             disabled_at=timezone.now(),
         )
@@ -1394,7 +1412,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         # Active keys are returned
         request = self.factory.get("/", **self.extra)
-        response = view(request, user="valigetta")
+        response = self.view(request, user=self.organization.user.username)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["inactive_kms_keys"]), 1)
@@ -1415,14 +1433,40 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             valigetta_expired_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertTrue(response.data["inactive_kms_keys"][0]["is_expired"])
-        # No inactive keys found
-        cache.clear()
-        KMSKey.objects.filter(object_id=valigetta_org.pk).delete()
+
+        # Only admins can see inactive keys
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        for role in ROLES:
+            role_cls = ROLES.get(role)
+            role_cls.add(self.user, self.organization)
+            request = self.factory.get("/", **self.extra)
+            response = self.view(request, user=self.organization.user.username)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("inactive_kms_keys", response.data)
+
+            else:
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("inactive_kms_keys", response.data)
+
+    def test_no_kms_keys(self):
+        """No KMS keys found."""
+        self.organization = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        # Make user owner
+        OwnerRole.add(self.user, self.organization)
+
         request = self.factory.get("/", **self.extra)
-        response = view(request, user="valigetta")
+        response = self.view(request, user=self.organization.user.username)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["inactive_kms_keys"]), 0)
+        self.assertIsNone(response.data["active_kms_key"])
 
 
 @patch("onadata.libs.serializers.organization_serializer.rotate_key")
