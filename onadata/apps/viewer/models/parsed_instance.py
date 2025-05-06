@@ -148,7 +148,7 @@ def get_etag_hash_from_query(sql=None, params=None):
         from_index = sql.find("FROM ")
         sql = (
             "SELECT md5(string_agg(date_modified::text, ''))"
-            " FROM (SELECT date_modified " + sql[from_index:] + ") AS A"
+            " FROM (SELECT logger_instance.date_modified " + sql[from_index:] + ") AS A"
         )
         etag_hash = [i for i in _query_iterator(sql, params=params) if i is not None]
 
@@ -194,7 +194,7 @@ def exclude_deleting_submissions_clause(xform_id: int) -> tuple[str, list[int]]:
         return ("", [])
 
     placeholders = ", ".join(["%s"] * len(instance_ids))
-    return (f"id NOT IN ({placeholders})", instance_ids)
+    return (f"logger_instance.id NOT IN ({placeholders})", instance_ids)
 
 
 # pylint: disable=too-many-locals
@@ -216,22 +216,32 @@ def build_sql_where(xform, query, start=None, end=None, is_encrypted=None):
     else:
         where, where_params = get_where_clause(query, known_integers)
 
-    sql_where = "WHERE xform_id in %s AND deleted_at IS NULL"
+    sql_where = (
+        "WHERE logger_instance.xform_id in %s AND logger_instance.deleted_at IS NULL"
+    )
 
     if where_params:
         sql_where += " AND " + " AND ".join(where)
 
     if isinstance(start, datetime.datetime):
-        sql_where += " AND date_created >= %s"
+        sql_where += " AND logger_instance.date_created >= %s"
         where_params += [start.isoformat()]
 
     if isinstance(end, datetime.datetime):
-        sql_where += " AND date_created <= %s"
+        sql_where += " AND logger_instance.date_created <= %s"
         where_params += [end.isoformat()]
 
     if isinstance(is_encrypted, bool):
-        sql_where += " AND is_encrypted = %s"
+        sql_where += " AND logger_instance.is_encrypted = %s"
         where_params += [is_encrypted]
+
+    else:
+        # By default exclude submissions encrypted using managed keys
+        # which are pending decryption
+        sql_where += (
+            " AND NOT (logger_instance.is_encrypted = TRUE"
+            " AND logger_xform.is_kms_encrypted = TRUE)"
+        )
 
     exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)
 
@@ -277,20 +287,29 @@ def get_sql_with_params(
         fields = json.loads(fields)
 
     if fields:
-        field_list = ["json->%s" for _i in fields]
+        field_list = ["logger_instance.json->%s" for _i in fields]
         sql = f"SELECT {','.join(field_list)} FROM logger_instance"
 
     else:
         if json_only:
             # pylint: disable=protected-access
             if sort and ParsedInstance._has_json_fields(sort):
-                sql = "SELECT json FROM logger_instance"
+                sql = "SELECT logger_instance.json FROM logger_instance"
 
             else:
-                sql = "SELECT id,json FROM logger_instance"
+                sql = (
+                    "SELECT logger_instance.id, logger_instance.json"
+                    " FROM logger_instance"
+                )
 
         else:
-            sql = "SELECT id,json,xml FROM logger_instance"
+            sql = (
+                "SELECT logger_instance.id, logger_instance.json,"
+                " logger_instance.xml FROM logger_instance"
+            )
+
+    if not isinstance(is_encrypted, bool):
+        sql += " JOIN logger_xform ON logger_instance.xform_id = logger_xform.id"
 
     sql_where, params = build_sql_where(xform, query, start, end, is_encrypted)
     sql += f" {sql_where}"
@@ -314,9 +333,9 @@ def get_sql_with_params(
                     sort_field = sort_field.removeprefix("-")
                     # It's safe to use string interpolation since this
                     # is a column and not a value
-                    sql += f" {sort_field} DESC"
+                    sql += f" logger_instance.{sort_field} DESC"
                 else:
-                    sql += f" {sort_field} ASC"
+                    sql += f" logger_instance.{sort_field} ASC"
 
                 if index != len(sort) - 1:
                     sql += ","
@@ -331,6 +350,7 @@ def query_count(
     query=None,
     date_created_gte=None,
     date_created_lte=None,
+    is_encrypted=None,
 ):
     """Count number of instances matching query"""
     sql_where, params = build_sql_where(
@@ -338,8 +358,14 @@ def query_count(
         query,
         date_created_gte,
         date_created_lte,
+        is_encrypted=is_encrypted,
     )
-    sql = f"SELECT COUNT(id) FROM logger_instance {sql_where}"  # nosec
+    sql = "SELECT COUNT(logger_instance.id) FROM logger_instance"
+
+    if not isinstance(is_encrypted, bool):
+        sql += " JOIN logger_xform ON logger_instance.xform_id = logger_xform.id"
+
+    sql += f" {sql_where}"  # nosec
 
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
