@@ -31,10 +31,12 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.permissions import ManagerRole, OwnerRole
 from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberSerializer,
 )
 from onadata.libs.serializers.organization_serializer import (
+    AdminOrganizationSerializer,
     KMSKeyInlineSerializer,
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
@@ -83,11 +85,22 @@ class OrganizationProfileViewSet(
         """Get organization from cache or db"""
         cache_key = get_org_profile_cache_key(request.user, self.get_object())
         cached_org = cache.get(cache_key)
+
         if cached_org:
             return Response(cached_org)
-        response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data)
-        return response
+
+        is_admin = OwnerRole.user_has_role(
+            request.user, self.get_object()
+        ) or ManagerRole.user_has_role(request.user, self.get_object())
+        serializer_class = (
+            AdminOrganizationSerializer if is_admin else self.get_serializer_class()
+        )
+        serializer = serializer_class(
+            self.get_object(), context=self.get_serializer_context()
+        )
+        data = serializer.data
+        cache.set(cache_key, data)
+        return Response(data)
 
     def create(self, request, *args, **kwargs):
         """Create and cache organization"""
