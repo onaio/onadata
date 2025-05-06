@@ -218,6 +218,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         return KMSKeyInlineSerializer(kms_key).data
 
 
+# pylint: disable=abstract-method
 class RotateOrganizationKeySerializer(serializers.Serializer):
     """Serializer for manual key rotation."""
 
@@ -232,6 +233,7 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
         organization = self.context["organization"]
 
         try:
+            # pylint: disable=attribute-defined-outside-init
             self.kms_key = KMSKey.objects.get(
                 key_id=value, content_type=content_type, object_id=organization.pk
             )
