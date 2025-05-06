@@ -489,7 +489,7 @@ def disable_expired_keys():
     for kms_key in queryset_iterator(kms_key_qs):
         try:
             disable_key(kms_key)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.exception("Key disable failed for key %s", kms_key.key_id)
             continue
 
