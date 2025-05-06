@@ -3939,7 +3939,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         instance.save()
 
         # Mark the form as KMS encrypted
-        self.xform.is_kms_encrypted = True
+        self.xform.is_managed = True
         self.xform.save()
         self.xform.refresh_from_db()
 

@@ -1014,7 +1014,7 @@ class XForm(XFormMixin, BaseModel):
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
     is_instance_json_regenerated = models.BooleanField(default=False)
-    is_kms_encrypted = models.BooleanField(default=False)
+    is_managed = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:

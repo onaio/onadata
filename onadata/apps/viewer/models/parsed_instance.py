@@ -240,7 +240,7 @@ def build_sql_where(xform, query, start=None, end=None, is_encrypted=None):
         # which are pending decryption
         sql_where += (
             " AND NOT (logger_instance.is_encrypted = TRUE"
-            " AND logger_xform.is_kms_encrypted = TRUE)"
+            " AND logger_xform.is_managed = TRUE)"
         )
 
     exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)

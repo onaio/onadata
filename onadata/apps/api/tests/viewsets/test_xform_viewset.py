@@ -65,8 +65,6 @@ from onadata.apps.viewer.models import Export
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.permissions import (
     ROLES_ORDERED,
-    ReadOnlyRoleNoDownload,
-    ReadOnlyRole,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -74,6 +72,8 @@ from onadata.libs.permissions import (
     EditorRole,
     ManagerRole,
     OwnerRole,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
@@ -5339,7 +5339,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self._publish_transportation_form()
         self.xform.public_key = "fake-public-key"
         self.xform.encrypted = True
-        self.xform.is_kms_encrypted = True
+        self.xform.is_managed = True
         self.xform.save()
 
         self.view = XFormViewSet.as_view({"get": "retrieve"})
@@ -5347,7 +5347,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = self.view(request, pk=self.xform.id)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["is_kms_encrypted"])
+        self.assertTrue(response.data["is_managed"])
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

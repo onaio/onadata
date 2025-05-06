@@ -593,7 +593,7 @@ class DataViewSet(
             else:
                 self.object_list = self.object_list.exclude(
                     is_encrypted=True,
-                    xform__is_kms_encrypted=True,
+                    xform__is_managed=True,
                 )
 
             # Enable ordering for XForms with Submissions that are less
