@@ -474,6 +474,7 @@ class DataViewSet(
         xform: XForm,
         current_page: Union[int, str],
         current_page_size: Union[int, str] = SUBMISSION_RETRIEVAL_THRESHOLD,
+        is_encrypted=None,
     ):
         """
         Sets the self.headers value for the viewset
@@ -483,7 +484,7 @@ class DataViewSet(
         base_url = url.split("?")[0]
         if query:
             query = self._parse_query(query)
-            num_of_records = query_count(xform, query=query)
+            num_of_records = query_count(xform, query=query, is_encrypted=is_encrypted)
         else:
             num_of_records = xform.num_of_submissions
         next_page_url = None
@@ -588,6 +589,12 @@ class DataViewSet(
 
             if is_encrypted is not None:
                 self.object_list = self.object_list.filter(is_encrypted=is_encrypted)
+
+            else:
+                self.object_list = self.object_list.exclude(
+                    is_encrypted=True,
+                    xform__is_kms_encrypted=True,
+                )
 
             # Enable ordering for XForms with Submissions that are less
             # than the SUBMISSION_RETRIEVAL_THRESHOLD
@@ -835,6 +842,7 @@ class DataViewSet(
                 self.get_object(),
                 current_page=current_page,
                 current_page_size=current_page_size,
+                is_encrypted=is_encrypted,
             )
 
         if not isinstance(self.object_list, types.GeneratorType) and should_paginate:
