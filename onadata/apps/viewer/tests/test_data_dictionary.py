@@ -447,7 +447,7 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
-            self.assertTrue(xform.is_kms_encrypted)
+            self.assertTrue(xform.is_managed)
 
         # XForm is not encrypted if config disabled
         with override_settings(KMS_AUTO_ENCRYPT_XFORM=False):
@@ -484,7 +484,7 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
-            self.assertFalse(xform.is_kms_encrypted)
+            self.assertFalse(xform.is_managed)
 
         # Initial XForm version is updated when XForm is encrypted
         md = """
@@ -501,7 +501,7 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
-            self.assertTrue(xform.is_kms_encrypted)
+            self.assertTrue(xform.is_managed)
             self.assertNotEqual(xform.version, "202504221539")
 
         # XForm is not encrypted if KMSKey missing
