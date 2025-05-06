@@ -555,60 +555,60 @@ class TestDataViewSet(SerializeMixin, TestBase):
         formid = self.xform.pk
 
         # no page param no pagination
-        # request = self.factory.get("/", **self.extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 4)
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
-        # request = self.factory.get(
-        #     "/", data={"page": "1", "page_size": 2}, **self.extra
-        # )
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 2)
+        request = self.factory.get(
+            "/", data={"page": "1", "page_size": 2}, **self.extra
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
-        # # Link pagination headers are present and work as intended
-        # self.assertIn("Link", response)
-        # self.assertEqual(
-        #     response["Link"], '<http://testserver/?page=2&page_size=2>; rel="next"'
-        # )
+        # Link pagination headers are present and work as intended
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], '<http://testserver/?page=2&page_size=2>; rel="next"'
+        )
 
-        # request = self.factory.get("/", data={"page": 2, "page_size": 1}, **self.extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertIn("Link", response)
-        # self.assertEqual(
-        #     response["Link"],
-        #     (
-        #         '<http://testserver/?page=1&page_size=1>; rel="prev", '
-        #         '<http://testserver/?page=3&page_size=1>; rel="next", '
-        #         '<http://testserver/?page=4&page_size=1>; rel="last", '
-        #         '<http://testserver/?page=1&page_size=1>; rel="first"'
-        #     ),
-        # )
+        request = self.factory.get("/", data={"page": 2, "page_size": 1}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"],
+            (
+                '<http://testserver/?page=1&page_size=1>; rel="prev", '
+                '<http://testserver/?page=3&page_size=1>; rel="next", '
+                '<http://testserver/?page=4&page_size=1>; rel="last", '
+                '<http://testserver/?page=1&page_size=1>; rel="first"'
+            ),
+        )
 
-        # request = self.factory.get("/", data={"page_size": "3"}, **self.extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 3)
+        request = self.factory.get("/", data={"page_size": "3"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
 
-        # request = self.factory.get(
-        #     "/", data={"page": "1", "page_size": "2"}, **self.extra
-        # )
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 2)
+        request = self.factory.get(
+            "/", data={"page": "1", "page_size": "2"}, **self.extra
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
-        # # invalid page returns a 404
-        # request = self.factory.get("/", data={"page": "invalid"}, **self.extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 404)
+        # invalid page returns a 404
+        request = self.factory.get("/", data={"page": "invalid"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 404)
 
-        # # invalid page size is ignored
-        # request = self.factory.get("/", data={"page_size": "invalid"}, **self.extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 4)
+        # invalid page size is ignored
+        request = self.factory.get("/", data={"page_size": "invalid"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
         # Pagination works with "query" query parameter
         request = self.factory.get(
@@ -622,46 +622,46 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         self.assertEqual(len(response.data), 1)
         # Pagination works with "sort" query parametr
-        # instances = self.xform.instances.all().order_by("-date_modified")
-        # self.assertEqual(instances.count(), 4)
-        # request = self.factory.get(
-        #     "/",
-        #     data={"page": "1", "page_size": "2", "sort": '{"date_modified":-1}'},
-        #     **self.extra,
-        # )
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertIn("Link", response)
-        # self.assertEqual(
-        #     response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
-        # )
-        # self.assertEqual(len(response.data), 2)
-        # self.assertEqual(response.data[0]["_id"], instances[0].pk)
+        instances = self.xform.instances.all().order_by("-date_modified")
+        self.assertEqual(instances.count(), 4)
+        request = self.factory.get(
+            "/",
+            data={"page": "1", "page_size": "2", "sort": '{"date_modified":-1}'},
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=2>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
         # Pagination works with multiple query params
-        # instances = (
-        #     self.xform.instances.all()
-        #     .order_by("-date_modified")
-        #     .extra(where=["json::text ~* cast(%s as text)"], params=["ambulance"])
-        # )
-        # self.assertEqual(instances.count(), 2)
-        # request = self.factory.get(
-        #     "/",
-        #     data={
-        #         "page": "1",
-        #         "page_size": "1",
-        #         "sort": '{"date_modified":-1}',
-        #         "query": "ambulance",
-        #     },
-        #     **self.extra,
-        # )
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertIn("Link", response)
-        # self.assertEqual(
-        #     response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
-        # )
-        # self.assertEqual(len(response.data), 1)
-        # self.assertEqual(response.data[0]["_id"], instances[0].pk)
+        instances = (
+            self.xform.instances.all()
+            .order_by("-date_modified")
+            .extra(where=["json::text ~* cast(%s as text)"], params=["ambulance"])
+        )
+        self.assertEqual(instances.count(), 2)
+        request = self.factory.get(
+            "/",
+            data={
+                "page": "1",
+                "page_size": "1",
+                "sort": '{"date_modified":-1}',
+                "query": "ambulance",
+            },
+            **self.extra,
+        )
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Link", response)
+        self.assertEqual(
+            response["Link"], ('<http://testserver/?page=2&page_size=1>; rel="next"')
+        )
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["_id"], instances[0].pk)
 
     def test_sort_query_param_with_invalid_values(self):
         self._make_submissions()
