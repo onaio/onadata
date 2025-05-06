@@ -25,7 +25,13 @@ from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import get_organization_owners
-from onadata.apps.logger.models import Instance, InstanceHistory, KMSKey, XFormKey
+from onadata.apps.logger.models import (
+    Instance,
+    InstanceHistory,
+    KMSKey,
+    XForm,
+    XFormKey,
+)
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
@@ -216,10 +222,12 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
     # Update XForms using the old key to use the new key
-    xform_key_qs = kms_key.xforms.all()
+    xform_qs = XForm.objects.filter(
+        pk__in=kms_key.xforms.values_list("xform_id", flat=True).distinct()
+    )
 
-    for xform_key in queryset_iterator(xform_key_qs):
-        _encrypt_xform(xform=xform_key.xform, kms_key=new_key, encrypted_by=rotated_by)
+    for xform in queryset_iterator(xform_qs):
+        _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
 
     if kms_key.expiry_date > timezone.now():
         # This is pre-mature rotation, force expiry
