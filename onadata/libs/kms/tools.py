@@ -165,6 +165,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     )
 
 
+@transaction.atomic()
 def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     """Disable KMS key.
 
