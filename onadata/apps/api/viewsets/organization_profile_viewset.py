@@ -83,20 +83,21 @@ class OrganizationProfileViewSet(
 
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        organization = self.get_object()
+        cache_key = get_org_profile_cache_key(request.user, organization)
         cached_org = cache.get(cache_key)
 
         if cached_org:
             return Response(cached_org)
 
         is_admin = OwnerRole.user_has_role(
-            request.user, self.get_object()
-        ) or ManagerRole.user_has_role(request.user, self.get_object())
+            request.user, organization
+        ) or ManagerRole.user_has_role(request.user, organization)
         serializer_class = (
             AdminOrganizationSerializer if is_admin else self.get_serializer_class()
         )
         serializer = serializer_class(
-            self.get_object(), context=self.get_serializer_context()
+            organization, context=self.get_serializer_context()
         )
         data = serializer.data
         cache.set(cache_key, data)
