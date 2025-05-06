@@ -119,6 +119,7 @@ def clean_public_key(value):
     return value
 
 
+@transaction.atomic()
 def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
 
