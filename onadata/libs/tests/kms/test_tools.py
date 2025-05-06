@@ -395,6 +395,33 @@ class RotateKeyTestCase(TestBase):
 
         self.assertEqual(str(exc_info.exception), "Key already rotated.")
 
+    @patch("onadata.libs.kms.tools.create_xform_version")
+    def test_within_transaction(self, mock_create_xform_version, mock_create_key):
+        """In case of an error, the transaction is rolled back.
+
+        The key is not rotated.
+        """
+
+        def create_mock_key():
+            def _mock(*args, **kwargs):
+                return self.create_mock_key()
+
+            return _mock
+
+        mock_create_key.side_effect = create_mock_key()
+        mock_create_xform_version.side_effect = Exception("Mocked exception")
+
+        with self.assertRaises(Exception):
+            rotate_key(self.kms_key)
+
+        # No new key is created
+        self.assertEqual(KMSKey.objects.count(), 1)
+        # Old key is not rotated
+        self.kms_key.refresh_from_db()
+        self.assertFalse(self.kms_key.rotated_at)
+        # Forms are still encrypted with the old key
+        self.assertEqual(self.xform.kms_keys.all().count(), 1)
+
 
 @mock_aws
 @override_settings(
