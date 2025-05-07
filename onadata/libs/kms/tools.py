@@ -118,6 +118,15 @@ def clean_public_key(value):
     return value
 
 
+def _invalidate_organization_cache(org: OrganizationProfile):
+    """Invalidate organization cache.
+
+    :param org: Organization
+    """
+    api_tools = importlib.import_module("onadata.apps.api.tools")
+    api_tools.invalidate_organization_cache(org.name)
+
+
 @transaction.atomic()
 def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
@@ -151,8 +160,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         "AWS": KMSKey.KMSProvider.AWS,
     }
     provider = provider_choice_map.get(_get_kms_provider().upper())
-
-    return KMSKey.objects.create(
+    kms_key = KMSKey.objects.create(
         key_id=metadata["key_id"],
         description=description,
         public_key=clean_public_key(metadata["public_key"]),
@@ -162,6 +170,10 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         object_id=org.pk,
         created_by=created_by,
     )
+    # Invalidate cache for organization profile endpoint
+    _invalidate_organization_cache(org)
+
+    return kms_key
 
 
 @transaction.atomic()
@@ -169,7 +181,7 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     """Disable KMS key.
 
     :param kms_key: KMSKey
-    :parem disabled_by: User disabling the key
+    :param disabled_by: User disabling the key
     """
     if kms_key.disabled_at:
         return
@@ -179,6 +191,9 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     kms_key.disabled_at = timezone.now()
     kms_key.disabled_by = disabled_by
     kms_key.save(update_fields=["disabled_at", "disabled_by"])
+
+    # Invalidate cache for organization profile endpoint
+    _invalidate_organization_cache(kms_key.content_object)
 
 
 def _invalidate_xform_list_cache(xform: XForm):
@@ -253,6 +268,9 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
             "rotation_reason",
         ]
     )
+
+    # Invalidate cache for organization profile endpoint
+    _invalidate_organization_cache(kms_key.content_object)
 
     return new_key
 
