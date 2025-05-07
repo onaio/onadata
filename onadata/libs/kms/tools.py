@@ -127,6 +127,7 @@ def _invalidate_organization_cache(org: OrganizationProfile):
     api_tools.invalidate_organization_cache(org.name)
 
 
+@transaction.atomic()
 def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
 
@@ -134,49 +135,53 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     :param created_by: User creating the key
     :return: KMSKey
     """
-    with transaction.atomic():
-        kms_client = get_kms_client()
-        now = timezone.now()
-        description = f"Key-{now.strftime('%Y-%m-%d')}"
-        content_type = ContentType.objects.get_for_model(org)
-        duplicate_desc = KMSKey.objects.filter(
-            content_type=content_type,
-            object_id=org.pk,
-            description__startswith=description,
-        )
+    kms_client = get_kms_client()
+    now = timezone.now()
+    description = f"Key-{now.strftime('%Y-%m-%d')}"
+    content_type = ContentType.objects.get_for_model(org)
+    duplicate_desc = KMSKey.objects.filter(
+        content_type=content_type,
+        object_id=org.pk,
+        description__startswith=description,
+    )
 
-        if duplicate_desc.exists():
-            suffix = f"-v{duplicate_desc.count() + 1}"
-            description += suffix
+    if duplicate_desc.exists():
+        suffix = f"-v{duplicate_desc.count() + 1}"
+        description += suffix
 
-        metadata = kms_client.create_key(description=description)
-        rotation_duration = _get_kms_rotation_duration()
-        expiry_date = None
+    metadata = kms_client.create_key(description=description)
+    rotation_duration = _get_kms_rotation_duration()
+    expiry_date = None
 
-        if rotation_duration:
-            expiry_date = now + rotation_duration
+    if rotation_duration:
+        expiry_date = now + rotation_duration
 
-        provider_choice_map = {
-            "AWS": KMSKey.KMSProvider.AWS,
-        }
-        provider = provider_choice_map.get(_get_kms_provider().upper())
-        kms_key = KMSKey.objects.create(
-            key_id=metadata["key_id"],
-            description=description,
-            public_key=clean_public_key(metadata["public_key"]),
-            provider=provider,
-            expiry_date=expiry_date,
-            content_type=content_type,
-            object_id=org.pk,
-            created_by=created_by,
-        )
+    provider_choice_map = {
+        "AWS": KMSKey.KMSProvider.AWS,
+    }
+    provider = provider_choice_map.get(_get_kms_provider().upper())
+    kms_key = KMSKey.objects.create(
+        key_id=metadata["key_id"],
+        description=description,
+        public_key=clean_public_key(metadata["public_key"]),
+        provider=provider,
+        expiry_date=expiry_date,
+        content_type=content_type,
+        object_id=org.pk,
+        created_by=created_by,
+    )
 
-    # Invalidate cache for organization profile endpoint
-    _invalidate_organization_cache(org)
+    try:
+        # Invalidate cache for organization profile endpoint
+        _invalidate_organization_cache(org)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Catch exception to avoid transaction rollback
+        logger.exception(exc)
 
     return kms_key
 
 
+@transaction.atomic()
 def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     """Disable KMS key.
 
@@ -186,15 +191,18 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     if kms_key.disabled_at:
         return
 
-    with transaction.atomic():
-        kms_client = get_kms_client()
-        kms_client.disable_key(kms_key.key_id)
-        kms_key.disabled_at = timezone.now()
-        kms_key.disabled_by = disabled_by
-        kms_key.save(update_fields=["disabled_at", "disabled_by"])
+    kms_client = get_kms_client()
+    kms_client.disable_key(kms_key.key_id)
+    kms_key.disabled_at = timezone.now()
+    kms_key.disabled_by = disabled_by
+    kms_key.save(update_fields=["disabled_at", "disabled_by"])
 
-    # Invalidate cache for organization profile endpoint
-    _invalidate_organization_cache(kms_key.content_object)
+    try:
+        # Invalidate cache for organization profile endpoint
+        _invalidate_organization_cache(kms_key.content_object)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Catch exception to avoid transaction rollback
+        logger.exception(exc)
 
 
 def _invalidate_xform_list_cache(xform: XForm):
@@ -230,6 +238,7 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
         # Invalidate cache for formList endpoint
         _invalidate_xform_list_cache(xform)
     except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Catch exception to avoid transaction rollback
         logger.exception(exc)
 
 
@@ -404,6 +413,7 @@ def decrypt_instance(instance: Instance) -> None:
     )
 
 
+@transaction.atomic()
 def disable_xform_encryption(xform, disabled_by=None) -> None:
     """Disable encryption on encrypted XForm
 
@@ -416,33 +426,36 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     if xform.num_of_submissions:
         raise EncryptionError("XForm already has submissions.")
 
-    with transaction.atomic():
-        xform_key_qs = xform.kms_keys.filter(version=xform.version)
+    xform_key_qs = xform.kms_keys.filter(version=xform.version)
 
-        # XForm should be encrypted using managed keys
-        if not xform_key_qs.exists():
-            raise EncryptionError("XForm encryption is not via managed keys.")
+    # XForm should be encrypted using managed keys
+    if not xform_key_qs.exists():
+        raise EncryptionError("XForm encryption is not via managed keys.")
 
-        new_version = timezone.now().strftime("%Y%m%d%H%M")
+    new_version = timezone.now().strftime("%Y%m%d%H%M")
 
-        json_dict = xform.json_dict()
-        json_dict["version"] = new_version
-        del json_dict["public_key"]
+    json_dict = xform.json_dict()
+    json_dict["version"] = new_version
+    del json_dict["public_key"]
 
-        survey = create_survey_element_from_dict(json_dict)
+    survey = create_survey_element_from_dict(json_dict)
 
-        xform.json = survey.to_json_dict()
-        xform.xml = survey.to_xml()
-        xform.version = new_version
-        xform.public_key = None
-        xform.encrypted = False
-        xform.hash = xform.get_hash()
-        xform.save()
+    xform.json = survey.to_json_dict()
+    xform.xml = survey.to_xml()
+    xform.version = new_version
+    xform.public_key = None
+    xform.encrypted = False
+    xform.hash = xform.get_hash()
+    xform.save()
 
-    # Create XFormVersion of new version
-    create_xform_version(xform, disabled_by)
-    # Invalidate cache for formList endpoint
-    _invalidate_xform_list_cache(xform)
+    try:
+        # Create XFormVersion of new version
+        create_xform_version(xform, disabled_by)
+        # Invalidate cache for formList endpoint
+        _invalidate_xform_list_cache(xform)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Catch exceptions to avoid transaction rollback
+        logger.exception(exc)
 
 
 def _get_org_owners_emails(organization: OrganizationProfile) -> list[str]:
