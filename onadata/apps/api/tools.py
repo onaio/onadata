@@ -47,8 +47,6 @@ from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
-    ReadOnlyRole,
-    ReadOnlyRoleNoDownload,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -56,12 +54,13 @@ from onadata.libs.permissions import (
     EditorRole,
     ManagerRole,
     OwnerRole,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
     get_role,
     get_role_in_org,
     get_team_project_default_permissions,
     is_organization,
 )
-from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     get_entity_list_export_response,
@@ -74,8 +73,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
-    XFORM_LIST_CACHE,
     XFORM_DATA_VERSIONS,
+    XFORM_LIST_CACHE,
     XFORM_METADATA_CACHE,
     XFORM_PERMISSIONS_CACHE,
     reset_project_cache,
@@ -422,6 +421,7 @@ def publish_project_xform(request, project):
     """
     Publish XLSForm to a project given a request.
     """
+    from onadata.libs.serializers.project_serializer import ProjectSerializer
 
     def set_form():
         """
