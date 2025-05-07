@@ -185,12 +185,12 @@ class CreateKeyTestCase(TestBase):
             "invalid",
         )
 
-    @patch("onadata.libs.kms.tools.invalidate_organization_cache")
+    @patch("onadata.libs.kms.tools._invalidate_organization_cache")
     def test_org_cache_invalidated(self, mock_invalidate_cache):
         """Organization cache is invalidated when a key is created."""
         create_key(self.org)
 
-        mock_invalidate_cache.assert_called_once_with(self.org.name)
+        mock_invalidate_cache.assert_called_once_with(self.org)
 
 
 @patch("onadata.libs.kms.tools.create_key")
@@ -429,14 +429,14 @@ class RotateKeyTestCase(TestBase):
         # Forms are still encrypted with the old key
         self.assertEqual(self.xform.kms_keys.all().count(), 1)
 
-    @patch("onadata.libs.kms.tools.invalidate_organization_cache")
+    @patch("onadata.libs.kms.tools._invalidate_organization_cache")
     def test_org_cache_invalidated(self, mock_invalidate_cache, mock_create_key):
         """Organization cache is invalidated when a key is created."""
         mock_create_key.return_value = self.create_mock_key()
 
         rotate_key(self.kms_key)
 
-        mock_invalidate_cache.assert_called_once_with(self.org.name)
+        mock_invalidate_cache.assert_called_once_with(self.org)
 
 
 @mock_aws
@@ -499,12 +499,12 @@ class DisableKeyTestCase(TestBase):
 
         mock_aws_disable.assert_not_called()
 
-    @patch("onadata.libs.kms.tools.invalidate_organization_cache")
+    @patch("onadata.libs.kms.tools._invalidate_organization_cache")
     def test_org_cache_invalidated(self, mock_invalidate_cache, mock_aws_disable):
         """Organization cache is invalidated when a key is disabled."""
         disable_key(self.kms_key)
 
-        mock_invalidate_cache.assert_called_once_with(self.org.name)
+        mock_invalidate_cache.assert_called_once_with(self.org)
 
 
 class EncryptXFormTestCase(TestBase):
