@@ -181,6 +181,15 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     kms_key.save(update_fields=["disabled_at", "disabled_by"])
 
 
+def _invalidate_xform_list_cache(xform: XForm):
+    """Invalidate XForm list cache.
+
+    :param xform: XForm
+    """
+    api_tools = importlib.import_module("onadata.apps.api.tools")
+    api_tools.invalidate_xform_list_cache(xform)
+
+
 def _encrypt_xform(xform, kms_key, encrypted_by=None):
     version = timezone.now().strftime("%Y%m%d%H%M")
 
@@ -201,8 +210,7 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     # Create a XFormVersion of new version
     create_xform_version(xform, encrypted_by)
     # Invalidate cache for formList endpoint
-    api_tools = importlib.import_module("onadata.apps.api.tools")
-    api_tools.invalidate_xform_list_cache(xform)
+    _invalidate_xform_list_cache(xform)
 
 
 @transaction.atomic()
@@ -411,8 +419,7 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     # Create XFormVersion of new version
     create_xform_version(xform, disabled_by)
     # Invalidate cache for formList endpoint
-    api_tools = importlib.import_module("onadata.apps.api.tools")
-    api_tools.invalidate_xform_list_cache(xform)
+    _invalidate_xform_list_cache(xform)
 
 
 def _get_org_owners_emails(organization: OrganizationProfile) -> list[str]:
