@@ -72,8 +72,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
-    active_kms_key = serializers.SerializerMethodField()
-    inactive_kms_keys = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
@@ -186,6 +184,13 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = _create_user_list(owners)
 
         return owners_list + members_list
+
+
+class AdminOrganizationSerializer(OrganizationSerializer):
+    """Serializer for organization profile with admin permissions."""
+
+    active_kms_key = serializers.SerializerMethodField()
+    inactive_kms_keys = serializers.SerializerMethodField()
 
     def get_inactive_kms_keys(self, obj):
         """Get the inactive KMSKeys for organization."""
