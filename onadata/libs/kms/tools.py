@@ -210,6 +210,7 @@ def _invalidate_xform_list_cache(xform: XForm):
 
     :param xform: XForm
     """
+    # Avoid circular import
     api_tools = importlib.import_module("onadata.apps.api.tools")
     api_tools.invalidate_xform_list_cache(xform)
 
