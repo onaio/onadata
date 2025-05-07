@@ -242,6 +242,7 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
         logger.exception(exc)
 
 
+@transaction.atomic()
 def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey:
     """Rotate KMS key.
 
@@ -256,35 +257,38 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     if kms_key.rotated_at:
         raise EncryptionError("Key already rotated.")
 
-    with transaction.atomic():
-        new_key = create_key(kms_key.content_object, created_by=rotated_by)
+    new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
-        # Update XForms using the old key to use the new key
-        xform_qs = XForm.objects.filter(
-            pk__in=kms_key.xforms.values_list("xform_id", flat=True).distinct()
-        )
+    # Update XForms using the old key to use the new key
+    xform_qs = XForm.objects.filter(
+        pk__in=kms_key.xforms.values_list("xform_id", flat=True).distinct()
+    )
 
-        for xform in queryset_iterator(xform_qs):
-            _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
+    for xform in queryset_iterator(xform_qs):
+        _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
 
-        # If the rotation is pre-mature, force expiry
-        kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
-        kms_key.rotated_at = timezone.now()
-        kms_key.rotated_by = rotated_by
-        kms_key.rotation_reason = rotation_reason
-        kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
-        kms_key.save(
-            update_fields=[
-                "expiry_date",
-                "grace_end_date",
-                "rotated_at",
-                "rotated_by",
-                "rotation_reason",
-            ]
-        )
+    # If the rotation is pre-mature, force expiry
+    kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
+    kms_key.rotated_at = timezone.now()
+    kms_key.rotated_by = rotated_by
+    kms_key.rotation_reason = rotation_reason
+    kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
+    kms_key.save(
+        update_fields=[
+            "expiry_date",
+            "grace_end_date",
+            "rotated_at",
+            "rotated_by",
+            "rotation_reason",
+        ]
+    )
 
-    # Invalidate cache for organization profile endpoint
-    _invalidate_organization_cache(kms_key.content_object)
+    try:
+        # Invalidate cache for organization profile endpoint
+        _invalidate_organization_cache(kms_key.content_object)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Catch exception to avoid transaction rollback
+        logger.exception(exc)
 
     return new_key
 
