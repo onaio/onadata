@@ -223,10 +223,14 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     xform.hash = xform.get_hash()
     xform.save()
     xform.kms_keys.create(version=version, kms_key=kms_key, encrypted_by=encrypted_by)
-    # Create a XFormVersion of new version
-    create_xform_version(xform, encrypted_by)
-    # Invalidate cache for formList endpoint
-    _invalidate_xform_list_cache(xform)
+
+    try:
+        # Create a XFormVersion of new version
+        create_xform_version(xform, encrypted_by)
+        # Invalidate cache for formList endpoint
+        _invalidate_xform_list_cache(xform)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.exception(exc)
 
 
 def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey:
