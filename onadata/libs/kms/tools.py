@@ -24,7 +24,6 @@ from django.utils.translation import gettext as _
 from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.tools import get_organization_owners
 from onadata.apps.logger.models import (
     Instance,
     InstanceHistory,
@@ -416,6 +415,15 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     api_tools.invalidate_xform_list_cache(xform)
 
 
+def _get_org_owners_emails(organization: OrganizationProfile) -> list[str]:
+    """Get organization owners emails
+
+    :param organization: Organization
+    """
+    api_tools = importlib.import_module("onadata.apps.api.tools")
+    return [owner.email for owner in api_tools.get_organization_owners(organization)]
+
+
 def send_key_rotation_reminder():
     """Send email to organization admins that key rotation is scheduled."""
     notification_duration = _get_kms_rotation_reminder_duration()
@@ -429,9 +437,7 @@ def send_key_rotation_reminder():
 
     for kms_key in queryset_iterator(kms_key_qs):
         organization = kms_key.content_object
-        recipient_list = [
-            owner.email for owner in get_organization_owners(organization)
-        ]
+        recipient_list = _get_org_owners_emails(organization)
 
         if not recipient_list:
             continue
@@ -498,9 +504,7 @@ def disable_expired_keys():
 
         # Send notification to organization admins
         organization = kms_key.content_object
-        recipient_list = [
-            owner.email for owner in get_organization_owners(organization)
-        ]
+        recipient_list = _get_org_owners_emails(organization)
 
         if not recipient_list:
             continue
