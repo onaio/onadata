@@ -1110,16 +1110,16 @@ class SendKeyRotationReminderTestCase(TestBase):
         )
 
     @override_settings(KMS_ROTATION_REMINDER_DURATION=timedelta(weeks=2))
-    @patch("onadata.libs.kms.tools.get_organization_owners")
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
     def test_send_key_rotation_reminder(
-        self, mock_get_organization_owners, mock_send_mass_mail
+        self, mock_get_org_owners_emails, mock_send_mass_mail
     ):
         """Send key rotation notification works"""
         alice = self._create_user("alice", "alice", False)
         alice.email = "alice@example.com"
         alice.save()
 
-        mock_get_organization_owners.return_value = [self.user, alice]
+        mock_get_org_owners_emails.return_value = [self.user.email, alice.email]
 
         send_key_rotation_reminder()
 
@@ -1135,12 +1135,12 @@ class SendKeyRotationReminderTestCase(TestBase):
 
         mock_send_mass_mail.assert_called_once_with(mass_mail_data)
 
-    @patch("onadata.libs.kms.tools.get_organization_owners")
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
     def test_no_organization_owners(
-        self, mock_get_organization_owners, mock_send_mass_mail
+        self, mock_get_org_owners_emails, mock_send_mass_mail
     ):
         """Notification is not sent if no organization owners found."""
-        mock_get_organization_owners.return_value = []
+        mock_get_org_owners_emails.return_value = []
 
         send_key_rotation_reminder()
 
@@ -1340,16 +1340,16 @@ class DisableExpiredKeysTestCase(TestBase):
 
     @override_settings(DEFAULT_FROM_EMAIL="test@example.com")
     @patch("onadata.libs.kms.tools.send_mass_mail")
-    @patch("onadata.libs.kms.tools.get_organization_owners")
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
     def test_notification_sent(
-        self, mock_get_organization_owners, mock_send_mass_mail, mock_disable_key
+        self, mock_get_org_owners_emails, mock_send_mass_mail, mock_disable_key
     ):
         """Rotation completed notification is sent."""
         # Notification is not sent if key is not rotated
         self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
 
-        mock_get_organization_owners.return_value = [self.user]
+        mock_get_org_owners_emails.return_value = [self.user.email]
 
         disable_expired_keys()
 
@@ -1375,12 +1375,12 @@ class DisableExpiredKeysTestCase(TestBase):
 
     @override_settings(DEFAULT_FROM_EMAIL="test@example.com")
     @patch("onadata.libs.kms.tools.send_mass_mail")
-    @patch("onadata.libs.kms.tools.get_organization_owners")
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
     def test_notification_not_sent_if_no_owners(
-        self, mock_get_organization_owners, mock_send_mass_mail, mock_disable_key
+        self, mock_get_org_owners_emails, mock_send_mass_mail, mock_disable_key
     ):
         """Rotation completed notification is not sent if no owners found."""
-        mock_get_organization_owners.return_value = []
+        mock_get_org_owners_emails.return_value = []
         self.kms_key.rotated_at = timezone.now()
         self.kms_key.save()
 
