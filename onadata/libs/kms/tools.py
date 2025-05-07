@@ -127,7 +127,6 @@ def _invalidate_organization_cache(org: OrganizationProfile):
     api_tools.invalidate_organization_cache(org.name)
 
 
-@transaction.atomic()
 def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
 
@@ -135,48 +134,49 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     :param created_by: User creating the key
     :return: KMSKey
     """
-    kms_client = get_kms_client()
-    now = timezone.now()
-    description = f"Key-{now.strftime('%Y-%m-%d')}"
-    content_type = ContentType.objects.get_for_model(org)
-    duplicate_desc = KMSKey.objects.filter(
-        content_type=content_type,
-        object_id=org.pk,
-        description__startswith=description,
-    )
+    with transaction.atomic():
+        kms_client = get_kms_client()
+        now = timezone.now()
+        description = f"Key-{now.strftime('%Y-%m-%d')}"
+        content_type = ContentType.objects.get_for_model(org)
+        duplicate_desc = KMSKey.objects.filter(
+            content_type=content_type,
+            object_id=org.pk,
+            description__startswith=description,
+        )
 
-    if duplicate_desc.exists():
-        suffix = f"-v{duplicate_desc.count() + 1}"
-        description += suffix
+        if duplicate_desc.exists():
+            suffix = f"-v{duplicate_desc.count() + 1}"
+            description += suffix
 
-    metadata = kms_client.create_key(description=description)
-    rotation_duration = _get_kms_rotation_duration()
-    expiry_date = None
+        metadata = kms_client.create_key(description=description)
+        rotation_duration = _get_kms_rotation_duration()
+        expiry_date = None
 
-    if rotation_duration:
-        expiry_date = now + rotation_duration
+        if rotation_duration:
+            expiry_date = now + rotation_duration
 
-    provider_choice_map = {
-        "AWS": KMSKey.KMSProvider.AWS,
-    }
-    provider = provider_choice_map.get(_get_kms_provider().upper())
-    kms_key = KMSKey.objects.create(
-        key_id=metadata["key_id"],
-        description=description,
-        public_key=clean_public_key(metadata["public_key"]),
-        provider=provider,
-        expiry_date=expiry_date,
-        content_type=content_type,
-        object_id=org.pk,
-        created_by=created_by,
-    )
+        provider_choice_map = {
+            "AWS": KMSKey.KMSProvider.AWS,
+        }
+        provider = provider_choice_map.get(_get_kms_provider().upper())
+        kms_key = KMSKey.objects.create(
+            key_id=metadata["key_id"],
+            description=description,
+            public_key=clean_public_key(metadata["public_key"]),
+            provider=provider,
+            expiry_date=expiry_date,
+            content_type=content_type,
+            object_id=org.pk,
+            created_by=created_by,
+        )
+
     # Invalidate cache for organization profile endpoint
     _invalidate_organization_cache(org)
 
     return kms_key
 
 
-@transaction.atomic()
 def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     """Disable KMS key.
 
@@ -186,11 +186,12 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     if kms_key.disabled_at:
         return
 
-    kms_client = get_kms_client()
-    kms_client.disable_key(kms_key.key_id)
-    kms_key.disabled_at = timezone.now()
-    kms_key.disabled_by = disabled_by
-    kms_key.save(update_fields=["disabled_at", "disabled_by"])
+    with transaction.atomic():
+        kms_client = get_kms_client()
+        kms_client.disable_key(kms_key.key_id)
+        kms_key.disabled_at = timezone.now()
+        kms_key.disabled_by = disabled_by
+        kms_key.save(update_fields=["disabled_at", "disabled_by"])
 
     # Invalidate cache for organization profile endpoint
     _invalidate_organization_cache(kms_key.content_object)
@@ -228,7 +229,6 @@ def _encrypt_xform(xform, kms_key, encrypted_by=None):
     _invalidate_xform_list_cache(xform)
 
 
-@transaction.atomic()
 def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey:
     """Rotate KMS key.
 
@@ -243,31 +243,32 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     if kms_key.rotated_at:
         raise EncryptionError("Key already rotated.")
 
-    new_key = create_key(kms_key.content_object, created_by=rotated_by)
+    with transaction.atomic():
+        new_key = create_key(kms_key.content_object, created_by=rotated_by)
 
-    # Update XForms using the old key to use the new key
-    xform_qs = XForm.objects.filter(
-        pk__in=kms_key.xforms.values_list("xform_id", flat=True).distinct()
-    )
+        # Update XForms using the old key to use the new key
+        xform_qs = XForm.objects.filter(
+            pk__in=kms_key.xforms.values_list("xform_id", flat=True).distinct()
+        )
 
-    for xform in queryset_iterator(xform_qs):
-        _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
+        for xform in queryset_iterator(xform_qs):
+            _encrypt_xform(xform=xform, kms_key=new_key, encrypted_by=rotated_by)
 
-    # If the rotation is pre-mature, force expiry
-    kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
-    kms_key.rotated_at = timezone.now()
-    kms_key.rotated_by = rotated_by
-    kms_key.rotation_reason = rotation_reason
-    kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
-    kms_key.save(
-        update_fields=[
-            "expiry_date",
-            "grace_end_date",
-            "rotated_at",
-            "rotated_by",
-            "rotation_reason",
-        ]
-    )
+        # If the rotation is pre-mature, force expiry
+        kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
+        kms_key.rotated_at = timezone.now()
+        kms_key.rotated_by = rotated_by
+        kms_key.rotation_reason = rotation_reason
+        kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
+        kms_key.save(
+            update_fields=[
+                "expiry_date",
+                "grace_end_date",
+                "rotated_at",
+                "rotated_by",
+                "rotation_reason",
+            ]
+        )
 
     # Invalidate cache for organization profile endpoint
     _invalidate_organization_cache(kms_key.content_object)
@@ -399,7 +400,6 @@ def decrypt_instance(instance: Instance) -> None:
     )
 
 
-@transaction.atomic()
 def disable_xform_encryption(xform, disabled_by=None) -> None:
     """Disable encryption on encrypted XForm
 
@@ -412,27 +412,28 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
     if xform.num_of_submissions:
         raise EncryptionError("XForm already has submissions.")
 
-    xform_key_qs = xform.kms_keys.filter(version=xform.version)
+    with transaction.atomic():
+        xform_key_qs = xform.kms_keys.filter(version=xform.version)
 
-    # XForm should be encrypted using managed keys
-    if not xform_key_qs.exists():
-        raise EncryptionError("XForm encryption is not via managed keys.")
+        # XForm should be encrypted using managed keys
+        if not xform_key_qs.exists():
+            raise EncryptionError("XForm encryption is not via managed keys.")
 
-    new_version = timezone.now().strftime("%Y%m%d%H%M")
+        new_version = timezone.now().strftime("%Y%m%d%H%M")
 
-    json_dict = xform.json_dict()
-    json_dict["version"] = new_version
-    del json_dict["public_key"]
+        json_dict = xform.json_dict()
+        json_dict["version"] = new_version
+        del json_dict["public_key"]
 
-    survey = create_survey_element_from_dict(json_dict)
+        survey = create_survey_element_from_dict(json_dict)
 
-    xform.json = survey.to_json_dict()
-    xform.xml = survey.to_xml()
-    xform.version = new_version
-    xform.public_key = None
-    xform.encrypted = False
-    xform.hash = xform.get_hash()
-    xform.save()
+        xform.json = survey.to_json_dict()
+        xform.xml = survey.to_xml()
+        xform.version = new_version
+        xform.public_key = None
+        xform.encrypted = False
+        xform.hash = xform.get_hash()
+        xform.save()
 
     # Create XFormVersion of new version
     create_xform_version(xform, disabled_by)
