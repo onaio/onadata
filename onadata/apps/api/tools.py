@@ -61,11 +61,6 @@ from onadata.libs.permissions import (
     get_team_project_default_permissions,
     is_organization,
 )
-from onadata.libs.utils.api_export_tools import (
-    custom_response_handler,
-    get_entity_list_export_response,
-    get_metadata_format,
-)
 from onadata.libs.utils.cache_tools import (
     ORG_PROFILE_CACHE,
     PROJ_BASE_FORMS_CACHE,
@@ -583,6 +578,11 @@ def get_media_file_response(metadata, request=None):
     HttpResponseRedirect 302 incase the metadata represents a url.
     HttpResponseNotFound 404 if the metadata file cannot be found.
     """
+    from onadata.libs.utils.api_export_tools import (
+        custom_response_handler,
+        get_entity_list_export_response,
+        get_metadata_format,
+    )
 
     def get_data_value_objects(value):
         """
