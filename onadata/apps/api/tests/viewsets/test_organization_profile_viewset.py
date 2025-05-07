@@ -1297,46 +1297,56 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     @override_settings(TIME_ZONE="UTC")
     def test_active_kms_key(self):
         """Active KMS key is returned."""
-        valigetta_org = self._create_organization(
+        self.organization = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
-        valigetta_active_key = KMSKey.objects.create(
+        self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+        active_key = KMSKey.objects.create(
             key_id="active-key",
             description="Active Key",
             public_key="fake-pub-key",
             content_type=content_type,
-            object_id=valigetta_org.pk,
+            object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=timezone.now() + timedelta(days=365),
             grace_end_date=timezone.now() + timedelta(days=395),
         )
 
         request = self.factory.get("/", **self.extra)
-        response = view(request, user="valigetta")
+        response = self.view(request, user="valigetta")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data["active_kms_key"]["key_id"], valigetta_active_key.key_id
-        )
+        self.assertEqual(response.data["active_kms_key"]["key_id"], active_key.key_id)
         self.assertEqual(
             response.data["active_kms_key"]["description"],
-            valigetta_active_key.description,
+            active_key.description,
         )
         self.assertEqual(
             response.data["active_kms_key"]["date_created"],
-            valigetta_active_key.date_created.isoformat().replace("+00:00", "Z"),
+            active_key.date_created.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["expiry_date"],
-            valigetta_active_key.expiry_date.isoformat().replace("+00:00", "Z"),
+            active_key.expiry_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
             response.data["active_kms_key"]["grace_end_date"],
-            valigetta_active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
+            active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertFalse(response.data["active_kms_key"]["is_expired"])
+        self.assertTrue(response.data["active_kms_key"]["is_automatic"])
+
+        # is_automatic is False is key created manually
+        active_key.created_by = self.user
+        active_key.save()
+
+        cache.clear()
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["active_kms_key"]["is_automatic"])
 
     @override_settings(TIME_ZONE="UTC")
     def test_inactive_kms_keys(self):
