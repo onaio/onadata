@@ -32,6 +32,14 @@ User = get_user_model()
 class KMSKeyInlineSerializer(serializers.ModelSerializer):
     """Serializer for KMSKey model."""
 
+    is_automatic = serializers.SerializerMethodField()
+
+    def get_is_automatic(self, obj):
+        if obj.created_by is None:
+            return True
+
+        return False
+
     class Meta:
         model = KMSKey
         fields = (
@@ -41,6 +49,7 @@ class KMSKeyInlineSerializer(serializers.ModelSerializer):
             "is_expired",
             "expiry_date",
             "grace_end_date",
+            "is_automatic",
         )
 
 
