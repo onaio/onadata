@@ -61,6 +61,12 @@ from onadata.libs.permissions import (
     get_team_project_default_permissions,
     is_organization,
 )
+from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.utils.api_export_tools import (
+    custom_response_handler,
+    get_entity_list_export_response,
+    get_metadata_format,
+)
 from onadata.libs.utils.cache_tools import (
     ORG_PROFILE_CACHE,
     PROJ_BASE_FORMS_CACHE,
@@ -416,7 +422,6 @@ def publish_project_xform(request, project):
     """
     Publish XLSForm to a project given a request.
     """
-    from onadata.libs.serializers.project_serializer import ProjectSerializer
 
     def set_form():
         """
@@ -578,11 +583,6 @@ def get_media_file_response(metadata, request=None):
     HttpResponseRedirect 302 incase the metadata represents a url.
     HttpResponseNotFound 404 if the metadata file cannot be found.
     """
-    from onadata.libs.utils.api_export_tools import (
-        custom_response_handler,
-        get_entity_list_export_response,
-        get_metadata_format,
-    )
 
     def get_data_value_objects(value):
         """
