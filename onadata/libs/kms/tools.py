@@ -123,6 +123,7 @@ def _invalidate_organization_cache(org: OrganizationProfile):
 
     :param org: Organization
     """
+    # Avoid circular import
     api_tools = importlib.import_module("onadata.apps.api.tools")
     api_tools.invalidate_organization_cache(org.name)
 
