@@ -573,26 +573,9 @@ class EncryptXFormTestCase(TestBase):
         self.assertTrue(self.xform.versions.filter(version="202504101227").exists())
 
     def test_kms_key_not_found(self):
-        """No KMSKey found for an organization."""
-        self.kms_key.delete()
-
-        with self.assertRaises(EncryptionError) as exc_info:
-            encrypt_xform(xform=self.xform, encrypted_by=self.user)
-
-        self.assertEqual(
-            str(exc_info.exception), "No encryption key found for the organization."
-        )
-
-        # KMSKey exists but disabled
-        self.kms_key = KMSKey.objects.create(
-            key_id="fake-key-id",
-            description="Key-2025-04-03",
-            public_key="fake-pub-key",
-            content_type=self.content_type,
-            object_id=self.org.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            disabled_at=timezone.now(),
-        )
+        """No active KMSKey found for an organization."""
+        self.kms_key.is_active = False
+        self.kms_key.save()
 
         with self.assertRaises(EncryptionError) as exc_info:
             encrypt_xform(xform=self.xform, encrypted_by=self.user)

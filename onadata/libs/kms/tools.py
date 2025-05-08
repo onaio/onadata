@@ -321,10 +321,10 @@ def encrypt_xform(xform, encrypted_by=None) -> None:
     org = user_profile.organizationprofile
     content_type = ContentType.objects.get_for_model(OrganizationProfile)
     kms_key_qs = KMSKey.objects.filter(
-        object_id=org.pk, content_type=content_type, disabled_at__isnull=True
-    ).order_by("-date_created")
+        object_id=org.pk, content_type=content_type, is_active=True
+    )
 
-    if not kms_key_qs:
+    if not kms_key_qs.exists():
         raise EncryptionError("No encryption key found for the organization.")
 
     kms_key = kms_key_qs.first()
