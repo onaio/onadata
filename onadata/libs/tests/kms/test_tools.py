@@ -121,6 +121,7 @@ class CreateKeyTestCase(TestBase):
         self.assertIsNone(kms_key.grace_end_date)
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.AWS)
         self.assertEqual(kms_key.created_by, self.user)
+        self.assertTrue(kms_key.is_active)
         # Public PEM-encoded key is saved without the header and footer
         self.assertNotIn("-----BEGIN PUBLIC KEY-----", kms_key.public_key)
         self.assertNotIn("-----END PUBLIC KEY-----", kms_key.public_key)
@@ -273,6 +274,7 @@ class RotateKeyTestCase(TestBase):
         self.assertEqual(self.kms_key.rotated_at, self.mocked_now)
         self.assertEqual(self.kms_key.rotated_by, self.user)
         self.assertEqual(self.kms_key.rotation_reason, "Test rotation")
+        self.assertFalse(self.kms_key.is_active)
 
     @patch("django.utils.timezone.now")
     def test_rotated_by_optional(self, mock_now, mock_create_key):
@@ -403,12 +405,12 @@ class RotateKeyTestCase(TestBase):
 
         self.assertEqual(str(exc_info.exception), "Key already rotated.")
 
+    @patch("onadata.libs.kms.tools.logger.exception")
     @patch("onadata.libs.kms.tools.create_xform_version")
-    def test_within_transaction(self, mock_create_xform_version, mock_create_key):
-        """In case of an error, the transaction is rolled back.
-
-        The key is not rotated.
-        """
+    def test_create_xform_version_error(
+        self, mock_create_xform_version, mock_logger, mock_create_key
+    ):
+        """Transaction is not rolled back if create_xform_version fails."""
 
         def create_mock_key():
             def _mock(*args, **kwargs):
@@ -419,16 +421,17 @@ class RotateKeyTestCase(TestBase):
         mock_create_key.side_effect = create_mock_key()
         mock_create_xform_version.side_effect = Exception("Mocked exception")
 
-        with self.assertRaises(Exception):
-            rotate_key(self.kms_key)
+        rotate_key(self.kms_key)
 
         # No new key is created
-        self.assertEqual(KMSKey.objects.count(), 1)
-        # Old key is not rotated
+        self.assertEqual(KMSKey.objects.count(), 2)
+        # Old key is rotated
         self.kms_key.refresh_from_db()
-        self.assertFalse(self.kms_key.rotated_at)
-        # Forms are still encrypted with the old key
-        self.assertEqual(self.xform.kms_keys.all().count(), 1)
+        self.assertTrue(self.kms_key.rotated_at)
+        # Forms are encrypted with the new key
+        self.assertEqual(self.xform.kms_keys.all().count(), 2)
+        mock_logger.assert_called_once()
+        self.assertEqual(str(mock_logger.call_args[0][0]), "Mocked exception")
 
     @patch("onadata.libs.kms.tools._invalidate_organization_cache")
     def test_org_cache_invalidated(self, mock_invalidate_cache, mock_create_key):
@@ -481,6 +484,7 @@ class DisableKeyTestCase(TestBase):
 
         self.assertEqual(self.kms_key.disabled_at, mocked_now)
         self.assertEqual(self.kms_key.disabled_by, self.user)
+        self.assertFalse(self.kms_key.is_active)
 
     def test_disabled_by_optional(self, mock_aws_disable):
         """disabled_by is optional."""
@@ -490,6 +494,7 @@ class DisableKeyTestCase(TestBase):
 
         self.assertIsNotNone(self.kms_key.disabled_at)
         self.assertIsNone(self.kms_key.disabled_by)
+        self.assertFalse(self.kms_key.is_active)
 
     def test_already_disabled(self, mock_aws_disable):
         """Already disabled key is not disabled again."""
