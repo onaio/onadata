@@ -1414,11 +1414,11 @@ pre_save.connect(save_project, sender=XForm, dispatch_uid="save_project_xform")
 
 # pylint: disable=unused-argument,import-outside-toplevel
 def _create_meta_perms(sender, instance, created, **kwargs):
-    meta_perms_exist = instance.metadata_set.filter(
+    meta_perms_exists = instance.metadata_set.filter(
         data_type="xform_meta_perms"
     ).exists()
 
-    if created and not meta_perms_exist:
+    if created and not meta_perms_exists:
         # Avoid cyclic dependency
         metadata_serializer = importlib.import_module(
             "onadata.libs.serializers.metadata_serializer"
