@@ -8,7 +8,6 @@ List, Retrieve, Update, Create/Register Organizations.
 import json
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils.module_loading import import_string
 
@@ -162,21 +161,10 @@ class OrganizationProfileViewSet(
     @action(methods=["POST"], detail=True, url_path="rotate-key")
     def rotate_key(self, request, *args, **kwargs):
         """Manually rotate KMS key."""
-        organization = self.get_object()
-        serializer = self.get_serializer(
-            data=request.data,
-            context={
-                **self.get_serializer_context(),
-                "organization": organization,
-            },
-        )
+        self.get_object()  # Check if user has permission to rotate key
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        old_key = KMSKey.objects.get(
-            object_id=organization.id,
-            content_type=content_type,
-            key_id=serializer.validated_data["key_id"],
-        )
+        old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
         new_key = serializer.save()
         # Capture audit log
         send_message(

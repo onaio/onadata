@@ -43,9 +43,10 @@ class KMSKeyInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = KMSKey
         fields = (
-            "key_id",
+            "id",
             "description",
             "date_created",
+            "is_active",
             "is_expired",
             "expiry_date",
             "grace_end_date",
@@ -189,32 +190,16 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 class AdminOrganizationSerializer(OrganizationSerializer):
     """Serializer for organization profile with admin permissions."""
 
-    active_kms_key = serializers.SerializerMethodField()
-    inactive_kms_keys = serializers.SerializerMethodField()
+    encryption_keys = serializers.SerializerMethodField()
 
-    def get_inactive_kms_keys(self, obj):
-        """Get the inactive KMSKeys for organization."""
+    def get_encryption_keys(self, obj):
+        """Get the encryption keys for organization."""
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        # All keys except the latest one
         kms_key_qs = KMSKey.objects.filter(
             content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
-        ).order_by("-date_created")[1:]
+        ).order_by("-date_created")
 
         return KMSKeyInlineSerializer(kms_key_qs, many=True).data
-
-    def get_active_kms_key(self, obj):
-        """Get the active KMSKey for organization."""
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
-
-        try:
-            # Get the latest key created
-            kms_key = KMSKey.objects.filter(
-                content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
-            ).latest("date_created")
-        except KMSKey.DoesNotExist:
-            return None
-
-        return KMSKeyInlineSerializer(kms_key).data
 
 
 # pylint: disable=abstract-method
@@ -224,18 +209,13 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
     user = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
-    key_id = serializers.CharField()
+    id = serializers.IntegerField()
     rotation_reason = serializers.CharField(required=False)
 
-    def validate_key_id(self, value):
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        organization = self.context["organization"]
-
+    def validate_id(self, value):
         try:
             # pylint: disable=attribute-defined-outside-init
-            self.kms_key = KMSKey.objects.get(
-                key_id=value, content_type=content_type, object_id=organization.pk
-            )
+            self.kms_key = KMSKey.objects.get(id=value)
 
         except KMSKey.DoesNotExist as exc:
             raise serializers.ValidationError(
@@ -258,4 +238,4 @@ class RotateOrganizationKeySerializer(serializers.Serializer):
                 rotation_reason=self.validated_data.get("rotation_reason"),
             )
         except EncryptionError as exc:
-            raise serializers.ValidationError({"key_id": f"{exc}"})
+            raise serializers.ValidationError({"id": f"{exc}"})

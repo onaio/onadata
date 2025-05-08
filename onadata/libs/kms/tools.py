@@ -170,6 +170,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         content_type=content_type,
         object_id=org.pk,
         created_by=created_by,
+        is_active=True,
     )
 
     try:
@@ -196,7 +197,8 @@ def disable_key(kms_key: KMSKey, disabled_by=None) -> None:
     kms_client.disable_key(kms_key.key_id)
     kms_key.disabled_at = timezone.now()
     kms_key.disabled_by = disabled_by
-    kms_key.save(update_fields=["disabled_at", "disabled_by"])
+    kms_key.is_active = False
+    kms_key.save(update_fields=["disabled_at", "disabled_by", "is_active"])
 
     try:
         # Invalidate cache for organization profile endpoint
@@ -275,6 +277,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     kms_key.rotated_at = timezone.now()
     kms_key.rotated_by = rotated_by
     kms_key.rotation_reason = rotation_reason
+    kms_key.is_active = False
     kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
     kms_key.save(
         update_fields=[
@@ -283,6 +286,7 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
             "rotated_at",
             "rotated_by",
             "rotation_reason",
+            "is_active",
         ]
     )
 

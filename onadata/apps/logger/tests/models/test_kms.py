@@ -52,6 +52,7 @@ class KMSKeyTestCase(TestBase):
             rotated_at=rotated_at,
             rotated_by=self.user,
             rotation_reason=rotation_reason,
+            is_active=True,
         )
 
         self.assertEqual(f"{kms_key}", "1234")
@@ -68,6 +69,7 @@ class KMSKeyTestCase(TestBase):
         self.assertEqual(kms_key.rotated_at, rotated_at)
         self.assertEqual(kms_key.rotated_by, self.user)
         self.assertEqual(kms_key.rotation_reason, rotation_reason)
+        self.assertTrue(kms_key.is_active)
 
     def test_default_values(self):
         """Default values for optional fields are correct."""
@@ -88,6 +90,7 @@ class KMSKeyTestCase(TestBase):
         self.assertIsNone(kms_key.rotated_at)
         self.assertIsNone(kms_key.rotated_by)
         self.assertIsNone(kms_key.rotation_reason)
+        self.assertTrue(kms_key.is_active)
 
     def test_key_id_provider_unique(self):
         """key_id, provider are unique together."""

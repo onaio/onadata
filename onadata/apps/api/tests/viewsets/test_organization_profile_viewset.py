@@ -4,6 +4,7 @@ Test /orgs API endpoint implementation.
 """
 
 import json
+import sys
 from builtins import str as text
 from datetime import timedelta
 from unittest.mock import patch
@@ -1295,13 +1296,20 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertFalse(OwnerRole.user_has_role(dave, org.userprofile_ptr))
 
     @override_settings(TIME_ZONE="UTC")
-    def test_active_kms_key(self):
-        """Active KMS key is returned."""
+    def test_encryption_keys(self):
+        """Encryption keys are returned."""
         self.organization = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
+        mars_org = self._create_organization(
+            username="mars", name="Mars Inc", created_by=self.user
+        )
         content_type = ContentType.objects.get_for_model(OrganizationProfile)
         self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
+
+        # Make user owner
+        OwnerRole.add(self.user, self.organization)
+        # Active key should be returned
         active_key = KMSKey.objects.create(
             key_id="active-key",
             description="Active Key",
@@ -1312,96 +1320,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             expiry_date=timezone.now() + timedelta(days=365),
             grace_end_date=timezone.now() + timedelta(days=395),
         )
-        # Make user owner
-        OwnerRole.add(self.user, self.organization)
-
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, user="valigetta")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["active_kms_key"]["key_id"], active_key.key_id)
-        self.assertEqual(
-            response.data["active_kms_key"]["description"],
-            active_key.description,
-        )
-        self.assertEqual(
-            response.data["active_kms_key"]["date_created"],
-            active_key.date_created.isoformat().replace("+00:00", "Z"),
-        )
-        self.assertEqual(
-            response.data["active_kms_key"]["expiry_date"],
-            active_key.expiry_date.isoformat().replace("+00:00", "Z"),
-        )
-        self.assertEqual(
-            response.data["active_kms_key"]["grace_end_date"],
-            active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
-        )
-        self.assertFalse(response.data["active_kms_key"]["is_expired"])
-        self.assertTrue(response.data["active_kms_key"]["is_automatic"])
-
-        # Only admins can see the active KMS key
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        self._login_user_and_profile(extra_post_data=alice_data)
-
-        for role in ROLES:
-            role_cls = ROLES.get(role)
-            role_cls.add(self.user, self.organization)
-            request = self.factory.get("/", **self.extra)
-            response = self.view(request, user=self.organization.user.username)
-
-            if role in ["owner", "manager"]:
-                self.assertEqual(response.status_code, 200)
-                self.assertIn("active_kms_key", response.data)
-
-            else:
-                self.assertEqual(response.status_code, 200)
-                self.assertNotIn("active_kms_key", response.data)
-
-        # is_automatic is False is key created manually
-        active_key.created_by = self.user
-        active_key.save()
-
-        cache.clear()
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, user="valigetta")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["active_kms_key"]["is_automatic"])
-
-    @override_settings(TIME_ZONE="UTC")
-    def test_inactive_kms_keys(self):
-        """Inactive KMS keys are returned."""
-        self.organization = self._create_organization(
-            username="valigetta", name="Valigetta Inc", created_by=self.user
-        )
-        mars_org = self._create_organization(
-            username="mars", name="Mars Inc", created_by=self.user
-        )
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        self.view = OrganizationProfileViewSet.as_view({"get": "retrieve"})
-        # Should not be returned since it is expired
-        valigetta_expired_key = KMSKey.objects.create(
-            key_id="expired-key",
-            description="Expired Key",
-            public_key="fake-pub-key",
-            content_type=content_type,
-            object_id=self.organization.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            expiry_date=timezone.now() - timedelta(days=2),
-            grace_end_date=timezone.now() - timedelta(days=1),
-        )
-        # Active key should not be returned
-        KMSKey.objects.create(
-            key_id="active-key",
-            description="Active Key",
-            public_key="fake-pub-key",
-            content_type=content_type,
-            object_id=self.organization.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            expiry_date=timezone.now() + timedelta(days=365),
-            grace_end_date=timezone.now() + timedelta(days=395),
-        )
-        # Should not be returned since it is disabled
+        # Disabled key should not be returned
         KMSKey.objects.create(
             key_id="disabled-key",
             description="Disabled Key",
@@ -1411,7 +1330,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             provider=KMSKey.KMSProvider.AWS,
             disabled_at=timezone.now(),
         )
-        # Should not be returned since it belongs to another organization
+        # Key from another organization should not be returned
         KMSKey.objects.create(
             key_id="mars-active-key",
             description="Mars Active Key",
@@ -1422,31 +1341,43 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             expiry_date=timezone.now() + timedelta(days=365),
         )
 
-        # Active keys are returned
         request = self.factory.get("/", **self.extra)
         response = self.view(request, user="valigetta")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["inactive_kms_keys"]), 1)
+        self.assertEqual(len(response.data["encryption_keys"]), 1)
         self.assertEqual(
-            response.data["inactive_kms_keys"][0]["description"],
-            valigetta_expired_key.description,
+            response.data["encryption_keys"][0]["description"],
+            active_key.description,
         )
         self.assertEqual(
-            response.data["inactive_kms_keys"][0]["date_created"],
-            valigetta_expired_key.date_created.isoformat().replace("+00:00", "Z"),
+            response.data["encryption_keys"][0]["date_created"],
+            active_key.date_created.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
-            response.data["inactive_kms_keys"][0]["expiry_date"],
-            valigetta_expired_key.expiry_date.isoformat().replace("+00:00", "Z"),
+            response.data["encryption_keys"][0]["expiry_date"],
+            active_key.expiry_date.isoformat().replace("+00:00", "Z"),
         )
         self.assertEqual(
-            response.data["inactive_kms_keys"][0]["grace_end_date"],
-            valigetta_expired_key.grace_end_date.isoformat().replace("+00:00", "Z"),
+            response.data["encryption_keys"][0]["grace_end_date"],
+            active_key.grace_end_date.isoformat().replace("+00:00", "Z"),
         )
-        self.assertTrue(response.data["inactive_kms_keys"][0]["is_expired"])
+        self.assertFalse(response.data["encryption_keys"][0]["is_expired"])
+        self.assertTrue(response.data["encryption_keys"][0]["is_automatic"])
+        self.assertTrue(response.data["encryption_keys"][0]["is_active"])
 
-        # Only admins can see inactive keys
+        # is_automatic is False is key created manually
+        active_key.created_by = self.user
+        active_key.save()
+        cache.clear()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, user="valigetta")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["encryption_keys"][0]["is_automatic"])
+
+        # Only admins can view encryption keys
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(extra_post_data=alice_data)
 
@@ -1458,14 +1389,14 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
             if role in ["owner", "manager"]:
                 self.assertEqual(response.status_code, 200)
-                self.assertIn("inactive_kms_keys", response.data)
+                self.assertIn("encryption_keys", response.data)
 
             else:
                 self.assertEqual(response.status_code, 200)
-                self.assertNotIn("inactive_kms_keys", response.data)
+                self.assertNotIn("encryption_keys", response.data)
 
-    def test_no_kms_keys(self):
-        """No KMS keys found."""
+    def test_no_encryption_keys(self):
+        """No encryption keys found."""
         self.organization = self._create_organization(
             username="valigetta", name="Valigetta Inc", created_by=self.user
         )
@@ -1477,13 +1408,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user=self.organization.user.username)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["inactive_kms_keys"]), 0)
-        self.assertIsNone(response.data["active_kms_key"])
+        self.assertEqual(len(response.data["encryption_keys"]), 0)
 
 
 @patch("onadata.libs.serializers.organization_serializer.rotate_key")
 class RotateKeyTestCase(TestAbstractViewSet):
-    """Tests for rotating KMS key"""
+    """Tests for rotating encryption key"""
 
     def setUp(self):
         super().setUp()
@@ -1499,7 +1429,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
             object_id=self.organization.pk,
             provider=KMSKey.KMSProvider.AWS,
         )
-        self.data = {"key_id": self.kms_key.key_id, "rotation_reason": "Test rotation"}
+        self.data = {"id": self.kms_key.id, "rotation_reason": "Test rotation"}
 
     @override_settings(TIME_ZONE="UTC")
     def test_rotate_key(self, mock_rotate_key):
@@ -1516,7 +1446,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["key_id"], "new-key")
+        self.assertEqual(response.data["id"], new_key.id)
         self.assertEqual(response.data["description"], "Key-2025-04-25")
         self.assertEqual(
             response.data["date_created"],
@@ -1558,11 +1488,11 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
     def test_invalid_key(self, mock_rotate_key):
         """Invalid key id is handled."""
-        request = self.factory.post("/", data={"key_id": "invalid_key"}, **self.extra)
+        request = self.factory.post("/", data={"id": sys.maxsize}, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Key does not exist", str(response.data["key_id"]))
+        self.assertIn("Key does not exist", str(response.data["id"]))
 
     def test_disabled_key(self, mock_rotate_key):
         """Rotatation for disabled key is not allowed."""
@@ -1573,7 +1503,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Key is inactive", str(response.data["key_id"]))
+        self.assertIn("Key is inactive", str(response.data["id"]))
 
     def test_already_rotated_key(self, mock_rotate_key):
         """Rotation for already rotated key is not allowed."""
@@ -1584,7 +1514,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Key already rotated", str(response.data["key_id"]))
+        self.assertIn("Key already rotated", str(response.data["id"]))
 
     def test_rotation_errors_captured(self, mock_rotate_key):
         """Rotation errors are captured."""
@@ -1594,7 +1524,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("Key is disabled", str(response.data["key_id"]))
+        self.assertIn("Key is disabled", str(response.data["id"]))
 
     @patch("onadata.apps.api.viewsets.organization_profile_viewset.send_message")
     def test_audit_log_capture(self, mock_send_message, mock_rotate_key):
@@ -1613,9 +1543,7 @@ class RotateKeyTestCase(TestAbstractViewSet):
 
     def test_rotation_reason_optional(self, mock_rotate_key):
         """Rotation reason is optional."""
-        request = self.factory.post(
-            "/", data={"key_id": self.kms_key.key_id}, **self.extra
-        )
+        request = self.factory.post("/", data={"id": self.kms_key.id}, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
