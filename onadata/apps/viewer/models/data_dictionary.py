@@ -464,7 +464,7 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
         and is_organization(instance.user.profile)
     ):
         if instance.encrypted and not getattr(
-            settings, "KMS_OVERRIDE_MANUAL_ENCRYPTION", False
+            settings, "KMS_OVERRIDE_CUSTOM_ENCRYPTION", False
         ):
             return
 
