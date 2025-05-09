@@ -623,6 +623,15 @@ class EncryptXFormTestCase(TestBase):
 
         mock_invalidate_xform_list_cache.assert_called_once_with(self.xform)
 
+    def test_override_encryption(self):
+        """Override encryption works."""
+        self.xform.encrypted = True
+        self.xform.save()
+
+        encrypt_xform(self.xform, encrypted_by=self.user, override_encryption=True)
+
+        self.assertEqual(self.xform.versions.count(), 1)
+
 
 @mock_aws
 @override_settings(
