@@ -289,7 +289,7 @@ Example
 
       curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key \
       -d '{
-            "key_id": "40d5289c-6141-4903-94d7-305a3873c8fb",
+            "id": "67",
             "rotation_reason": "Automatic rotation failed"
          }'
 
@@ -300,5 +300,13 @@ Response
 ::
 
       {
-          "key_id": "5b1fe709-abe9-4a69-8782-f493ebb85c69"
+          "id": "68",
+          "description": "Key-2025-05-09",
+          "date_created": "2025-05-09T00:00:00Z",
+          "is_active": true,
+          "is_expired": false,
+          "expiry_date": "2026-05-09T00:00:00Z",
+          "grace_end_date": "2026-06-09T00:00:00Z",
+          "is_automatic": false,
+
       }
