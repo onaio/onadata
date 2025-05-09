@@ -257,6 +257,31 @@ post_save.connect(
 )
 
 
+# pylint: disable=unused-argument,import-outside-toplevel
+def _create_meta_perms(sender, instance, created, **kwargs):
+    meta_perms_exists = instance.metadata_set.filter(
+        data_type="xform_meta_perms"
+    ).exists()
+
+    if created and not meta_perms_exists:
+        xform = XForm.objects.get(pk=instance.pk)
+
+        # Avoid cyclic dependency
+        metadata_serializer = importlib.import_module(
+            "onadata.libs.serializers.metadata_serializer"
+        )
+        metadata_serializer.create_xform_meta_permissions(
+            "dataentry-only|dataentry-only|readonly-no-download", xform
+        )
+
+
+post_save.connect(
+    _create_meta_perms,
+    sender=DataDictionary,
+    dispatch_uid="create_xform_meta_permissions",
+)
+
+
 # pylint: disable=unused-argument
 def save_project(sender, instance=None, created=False, **kwargs):
     """
