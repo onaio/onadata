@@ -469,8 +469,11 @@ class DataDictionaryTestCase(TestBase):
 
             self.assertFalse(xform.encrypted)
 
-        # XForm is not encrypted if already encrypted
-        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+        # XForm is not encrypted if already encrypted and
+        # KMS_OVERRIDE_MANUAL_ENCRYPTION is False
+        with override_settings(
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_MANUAL_ENCRYPTION=False
+        ):
             manual_md = """
             | survey  |
             |         | type        | name           | label      |
@@ -486,6 +489,17 @@ class DataDictionaryTestCase(TestBase):
             self.assertTrue(xform.encrypted)
             self.assertFalse(xform.is_managed)
 
+        # XForm is encrypted if already encrypted and
+        # KMS_OVERRIDE_MANUAL_ENCRYPTION is True
+        with override_settings(
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_MANUAL_ENCRYPTION=True
+        ):
+            xform = self._publish_markdown(manual_md, org.user, id_string="f")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertTrue(xform.is_managed)
+
         # Initial XForm version is updated when XForm is encrypted
         md = """
         | survey  |
@@ -497,7 +511,7 @@ class DataDictionaryTestCase(TestBase):
         |         | Students    | students       | 202504221539|
         """
         with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
-            xform = self._publish_markdown(md, org.user, id_string="f")
+            xform = self._publish_markdown(md, org.user, id_string="g")
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
@@ -508,7 +522,7 @@ class DataDictionaryTestCase(TestBase):
         kms_key.delete()
 
         with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
-            xform = self._publish_markdown(md, org.user, id_string="g")
+            xform = self._publish_markdown(md, org.user, id_string="h")
             xform.refresh_from_db()
 
             self.assertFalse(xform.encrypted)
