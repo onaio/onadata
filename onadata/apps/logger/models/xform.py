@@ -1412,30 +1412,6 @@ def save_project(sender, instance=None, created=False, **kwargs):
 pre_save.connect(save_project, sender=XForm, dispatch_uid="save_project_xform")
 
 
-# pylint: disable=unused-argument,import-outside-toplevel
-def _create_meta_perms(sender, instance, created, **kwargs):
-    if instance:
-        meta_perms_exists = instance.metadata_set.filter(
-            data_type="xform_meta_perms"
-        ).exists()
-    else:
-        meta_perms_exists = False
-
-    if not meta_perms_exists:
-        # Avoid cyclic dependency
-        metadata_serializer = importlib.import_module(
-            "onadata.libs.serializers.metadata_serializer"
-        )
-        metadata_serializer.create_xform_meta_permissions(
-            "dataentry-only|dataentry-only|readonly-no-download", instance
-        )
-
-
-post_save.connect(
-    _create_meta_perms, sender=XForm, dispatch_uid="create_xform_meta_permissions"
-)
-
-
 # pylint: disable=unused-argument
 def xform_post_delete_callback(sender, instance, **kwargs):
     """Clear project cache after deleting an XForm."""
