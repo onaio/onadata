@@ -259,20 +259,19 @@ post_save.connect(
 
 # pylint: disable=unused-argument,import-outside-toplevel
 def _create_meta_perms(sender, instance, created, **kwargs):
-    if instance:
-        meta_perms_exists = instance.metadata_set.filter(
-            data_type="xform_meta_perms"
-        ).exists()
-    else:
-        meta_perms_exists = False
+    meta_perms_exists = instance.metadata_set.filter(
+        data_type="xform_meta_perms"
+    ).exists()
 
     if created and not meta_perms_exists:
+        xform = XForm.objects.get(pk=instance.pk)
+
         # Avoid cyclic dependency
         metadata_serializer = importlib.import_module(
             "onadata.libs.serializers.metadata_serializer"
         )
         metadata_serializer.create_xform_meta_permissions(
-            "dataentry-only|dataentry-only|readonly-no-download", instance
+            "dataentry-only|dataentry-only|readonly-no-download", xform
         )
 
 
