@@ -3,6 +3,7 @@
 """
 The /forms API endpoint.
 """
+
 import json
 import os
 import random
@@ -16,8 +17,12 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import IntegrityError
 from django.db.models import Prefetch
-from django.http import (HttpResponseBadRequest, HttpResponseForbidden,
-                         HttpResponseRedirect, StreamingHttpResponse)
+from django.http import (
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -53,38 +58,47 @@ from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
-from onadata.libs.mixins.anonymous_user_public_forms_mixin import \
-    AnonymousUserPublicFormsMixin
-from onadata.libs.mixins.authenticate_header_mixin import \
-    AuthenticateHeaderMixin
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin,
+)
+from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.clone_xform_serializer import \
-    CloneXFormSerializer
-from onadata.libs.serializers.share_xform_serializer import \
-    ShareXFormSerializer
+from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
+from onadata.libs.serializers.share_xform_serializer import ShareXFormSerializer
 from onadata.libs.serializers.xform_serializer import (
-    XFormBaseSerializer, XFormCreateSerializer, XFormSerializer,
-    XFormVersionListSerializer)
-from onadata.libs.utils.api_export_tools import (_get_export_type,
-                                                 custom_response_handler,
-                                                 get_async_response,
-                                                 get_existing_file_format,
-                                                 process_async_export,
-                                                 response_for_format)
+    XFormBaseSerializer,
+    XFormCreateSerializer,
+    XFormSerializer,
+    XFormVersionListSerializer,
+)
+from onadata.libs.utils.api_export_tools import (
+    _get_export_type,
+    custom_response_handler,
+    get_async_response,
+    get_existing_file_format,
+    process_async_export,
+    response_for_format,
+)
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
 from onadata.libs.utils.common_tools import json_stream
-from onadata.libs.utils.csv_import import (get_async_csv_submission_status,
-                                           submission_xls_to_csv, submit_csv,
-                                           submit_csv_async)
+from onadata.libs.utils.csv_import import (
+    get_async_csv_submission_status,
+    submission_xls_to_csv,
+    submit_csv,
+    submit_csv_async,
+)
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.viewer_tools import (generate_enketo_form_defaults,
-                                             get_enketo_urls, get_form_url)
+from onadata.libs.utils.viewer_tools import (
+    generate_enketo_form_defaults,
+    get_enketo_urls,
+    get_form_url,
+)
 from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
 
 # pylint: disable=invalid-name

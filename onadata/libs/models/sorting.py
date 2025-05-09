@@ -2,6 +2,7 @@
 """
 Sorting utility functions.
 """
+
 import json
 from typing import Dict
 
@@ -37,7 +38,7 @@ def json_order_by(sort_list, none_json_fields: Dict = None, model_name: str = ""
     for field in sort_list:
         field_key = field.lstrip("-")
         _str = (
-            " json->>%s"
+            " logger_instance.json->>%s"
             if field_key not in none_json_fields
             else f'"{model_name}"."{none_json_fields.get(field_key)}"'
         )

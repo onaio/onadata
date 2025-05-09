@@ -5,6 +5,7 @@ The XForm model
 
 # pylint: disable=too-many-lines
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -20,7 +21,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Sum
-from django.db.models.signals import post_delete, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import conditional_escape
@@ -1013,6 +1014,7 @@ class XForm(XFormMixin, BaseModel):
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
     is_instance_json_regenerated = models.BooleanField(default=False)
+    is_managed = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:
@@ -1408,6 +1410,27 @@ def save_project(sender, instance=None, created=False, **kwargs):
 
 
 pre_save.connect(save_project, sender=XForm, dispatch_uid="save_project_xform")
+
+
+# pylint: disable=unused-argument,import-outside-toplevel
+def _create_meta_perms(sender, instance, created, **kwargs):
+    meta_perms_exists = instance.metadata_set.filter(
+        data_type="xform_meta_perms"
+    ).exists()
+
+    if created and not meta_perms_exists:
+        # Avoid cyclic dependency
+        metadata_serializer = importlib.import_module(
+            "onadata.libs.serializers.metadata_serializer"
+        )
+        metadata_serializer.create_xform_meta_permissions(
+            "editor-no-download|dataentry-only|readonly-no-download", instance
+        )
+
+
+post_save.connect(
+    _create_meta_perms, sender=XForm, dispatch_uid="create_xform_meta_permissions"
+)
 
 
 # pylint: disable=unused-argument
