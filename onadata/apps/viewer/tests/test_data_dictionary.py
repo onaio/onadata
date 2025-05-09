@@ -470,11 +470,11 @@ class DataDictionaryTestCase(TestBase):
             self.assertFalse(xform.encrypted)
 
         # XForm is not encrypted if already encrypted and
-        # KMS_OVERRIDE_MANUAL_ENCRYPTION is False
+        # KMS_OVERRIDE_CUSTOM_ENCRYPTION is False
         with override_settings(
-            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_MANUAL_ENCRYPTION=False
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_CUSTOM_ENCRYPTION=False
         ):
-            manual_md = """
+            custom_md = """
             | survey  |
             |         | type        | name           | label      |
             |         | text        | name           | First Name |
@@ -483,18 +483,18 @@ class DataDictionaryTestCase(TestBase):
             |         | form_title  | form_id        | public_key |
             |         | Students    | students       | fake-pub   |
             """
-            xform = self._publish_markdown(manual_md, org.user, id_string="e")
+            xform = self._publish_markdown(custom_md, org.user, id_string="e")
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
             self.assertFalse(xform.is_managed)
 
         # XForm is encrypted if already encrypted and
-        # KMS_OVERRIDE_MANUAL_ENCRYPTION is True
+        # KMS_OVERRIDE_CUSTOM_ENCRYPTION is True
         with override_settings(
-            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_MANUAL_ENCRYPTION=True
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_CUSTOM_ENCRYPTION=True
         ):
-            xform = self._publish_markdown(manual_md, org.user, id_string="f")
+            xform = self._publish_markdown(custom_md, org.user, id_string="f")
             xform.refresh_from_db()
 
             self.assertTrue(xform.encrypted)
