@@ -460,10 +460,14 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
 
     if (
         created
-        and not instance.encrypted
         and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
         and is_organization(instance.user.profile)
     ):
+        if instance.encrypted and not getattr(
+            settings, "KMS_OVERRIDE_MANUAL_ENCRYPTION", False
+        ):
+            return
+
         organization = instance.user.profile.organizationprofile
         content_type = ContentType.objects.get_for_model(organization)
         kms_key_qs = KMSKey.objects.filter(
@@ -475,9 +479,10 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
         if kms_key_qs.exists():
             # seems the super is not called, have to get xform from here
             xform = XForm.objects.get(pk=instance.pk)
-
             transaction.on_commit(
-                lambda: kms_tools.encrypt_xform(xform, encrypted_by=instance.created_by)
+                lambda: kms_tools.encrypt_xform(
+                    xform, encrypted_by=instance.created_by, override_encryption=True
+                )
             )
 
 

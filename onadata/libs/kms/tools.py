@@ -301,13 +301,14 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
 
 
 @transaction.atomic()
-def encrypt_xform(xform, encrypted_by=None) -> None:
+def encrypt_xform(xform, encrypted_by=None, override_encryption=False) -> None:
     """Encrypt unencrypted XForm
 
     :param xform: Unencrypted XForm
     :param encrypted_by: User encrypting the form
+    :param override_encryption: Whether to override encryption
     """
-    if xform.encrypted:
+    if xform.encrypted and not override_encryption:
         return
 
     if xform.num_of_submissions:
