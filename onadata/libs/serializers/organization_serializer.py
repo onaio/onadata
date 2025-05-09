@@ -35,6 +35,7 @@ class KMSKeyInlineSerializer(serializers.ModelSerializer):
     is_automatic = serializers.SerializerMethodField()
 
     def get_is_automatic(self, obj):
+        """Whether the key was created automatically."""
         if obj.created_by is None:
             return True
 
