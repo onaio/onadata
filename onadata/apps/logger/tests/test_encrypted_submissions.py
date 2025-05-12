@@ -2,13 +2,16 @@
 """
 Test encrypted form submissions.
 """
+
 import os
 from builtins import open
 
 from django.contrib.auth import authenticate
 from django.urls import reverse
 from rest_framework.test import APIRequestFactory
+from django_digest.test import Client as DigestClient
 
+from onadata.libs.models.share_project import ShareProject
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -75,6 +78,64 @@ class TestEncryptedForms(TestBase):
                 self.assertEqual(instance.total_media, 1)
                 self.assertEqual(instance.media_count, 1)
                 self.assertTrue(instance.media_all_received)
+
+    def test_encrypted_submissions_to_project_url(self):
+        """Test encrypted submissions through the project URL endpoint."""
+
+        # Create an organization and publish the form to it
+        organization = self._create_organization("test_org", "test org", self.user)
+        self._publish_xls_file(
+            os.path.join(
+                self.this_directory,
+                "fixtures",
+                "transportation",
+                "transportation_encrypted.xlsx",
+            ),
+            user=organization.user,
+        )
+
+        project = self.project
+        project.created_by = self.user
+
+        # Check that the project.organization is not project.user
+        self.assertFalse(self.project.user == self.project.organization)
+        project.save()
+        xform = XForm.objects.get(id_string="transportation_encrypted")
+        xform.is_managed = True
+
+        # create a new user alice
+        alice = self._create_user("alice", "alice")
+
+        # Share the form with the user "alice"
+        share_project = ShareProject(self.project, alice.username, "dataentry")
+        share_project.save()
+
+        # Use the REST framework test client instead of direct view call
+        client = DigestClient()
+        client.set_authorization(alice.username, alice.username, "Digest")
+
+        files = {}
+        for filename in ["submission.xml", "submission.xml.enc"]:
+            files[filename] = os.path.join(
+                self.this_directory,
+                "fixtures",
+                "transportation",
+                "instances_encrypted",
+                filename,
+            )
+
+        with open(files["submission.xml.enc"], "rb") as encrypted_file:
+            with open(files["submission.xml"], "rb") as f:
+                post_data = {
+                    "xml_submission_file": f,
+                    "submission.xml.enc": encrypted_file,
+                }
+                response = client.post(
+                    reverse("submissions", kwargs={"project_pk": xform.project.pk}),
+                    post_data,
+                    format="multipart",
+                )
+                self.assertEqual(response.status_code, 201)
 
     def test_encrypted_multiple_files(self):
         """
