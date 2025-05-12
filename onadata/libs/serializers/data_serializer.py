@@ -68,7 +68,7 @@ def get_request_and_username(context):
             project_pk = parse_int(project_pk)
             if project_pk:
                 project = get_object_or_404(Project, pk=project_pk)
-                username = project.user.username
+                username = project.organization.username
             else:
                 raise ValueError(_("Invalid Project id."))
         else:
