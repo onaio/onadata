@@ -2,6 +2,7 @@
 """
 CSV data import module.
 """
+
 import functools
 import sys
 import uuid
@@ -563,7 +564,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
         "duplicates": duplicates,
         "updates": inserts,
         "info": (
-            "Additional column(s) excluded from the upload: " f"'{additional_columns}'."
+            f"Additional column(s) excluded from the upload: '{additional_columns}'."
         ),
     }
 

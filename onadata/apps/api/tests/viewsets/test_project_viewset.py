@@ -16,7 +16,6 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Q
 from django.test import override_settings
-from django.utils import timezone
 
 import dateutil.parser
 import requests
@@ -62,6 +61,7 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -836,13 +836,33 @@ class TestProjectViewSet(TestAbstractViewSet):
             Q(object_id=self.xform.pk),
             Q(data_type="enketo_url")
             | Q(data_type="enketo_preview_url")  # noqa W503
-            | Q(data_type="enketo_single_submit_url"),  # noqa W503
+            | Q(data_type="enketo_single_submit_url")  # noqa W503
+            | Q(data_type="xform_meta_perms"),  # noqa W503
         )
         url = resultset.get(data_type="enketo_url")
         preview_url = resultset.get(data_type="enketo_preview_url")
         single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+        meta_perms = resultset.get(data_type="xform_meta_perms")
         form_metadata = sorted(
             [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -900,7 +920,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # test metadata content separately
         response_metadata = sorted(
-            [dict(item) for item in response.data[0].pop("metadata")],
+            [OrderedDict(item) for item in response.data[0].pop("metadata")],
             key=itemgetter("id"),
         )
 
@@ -2035,6 +2055,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_project_all_users_can_share_remove_themselves(self):
         self._publish_xls_form_to_project()
+
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(alice_data)
 
@@ -2644,6 +2665,18 @@ class TestProjectViewSet(TestAbstractViewSet):
         projectid = self.project.pk
 
         data_value = "editor-minor|dataentry|readonly-no-download"
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": data_value,
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
+        )
+
+        if serializer.is_valid():
+            serializer.save()
 
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
@@ -2682,6 +2715,13 @@ class TestProjectViewSet(TestAbstractViewSet):
                 self.assertTrue(
                     role_class.user_has_role(alice_profile.user, self.xform)
                 )
+
+            # remove user from project
+            data = {"username": "alice", "remove": "true", "role": role_class.name}
+            request = self.factory.post("/", data=data, **self.extra)
+            view = ProjectViewSet.as_view({"post": "share"})
+            response = view(request, pk=projectid)
+            self.assertEqual(response.status_code, 204)
 
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_project_share_atomicity(self, mock_send_mail):

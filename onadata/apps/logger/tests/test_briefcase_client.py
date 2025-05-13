@@ -138,7 +138,7 @@ class TestBriefcaseClient(TestBase):
     def setUp(self):
         TestBase.setUp(self)
         self._publish_transportation_form()
-        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
+        self._submit_transport_instance_w_attachment()
         src = os.path.join(
             self.this_directory, "fixtures", "transportation", "screenshot.png"
         )
