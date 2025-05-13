@@ -5,7 +5,6 @@ The XForm model
 
 # pylint: disable=too-many-lines
 import hashlib
-import importlib
 import json
 import os
 import re
@@ -21,7 +20,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Sum
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import conditional_escape
