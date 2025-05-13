@@ -2,8 +2,9 @@
 """
 The /api/v1/media API implementation.
 
-List, Create, Update, Delete MetaData objects.
+List, Create, Update, Delete Attachment objects.
 """
+
 from django.conf import settings
 from django.http import Http404
 from django.http import HttpResponseRedirect
