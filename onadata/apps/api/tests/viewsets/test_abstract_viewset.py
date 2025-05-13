@@ -50,6 +50,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
 from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 
 # pylint: disable=invalid-name
@@ -369,6 +370,20 @@ class TestAbstractViewSet(TestBase, TestCase):
 
                 # pylint: disable=attribute-defined-outside-init
                 self.form_data = response.data
+
+        data_value = "editor|dataentry|readonly"
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": data_value,
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
+        )
+
+        if serializer.is_valid():
+            serializer.save()
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(

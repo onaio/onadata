@@ -16,10 +16,10 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs import permissions as role
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.models.share_project import ShareProject
 
 
 class TestUserPermissions(TestAbstractViewSet):
-
     def setUp(self):
         super(self.__class__, self).setUp()
 
@@ -380,9 +380,13 @@ class TestUserPermissions(TestAbstractViewSet):
 
         # Give owner role to the project
         role.OwnerRole.add(self.user, self.project)
+        share_project = ShareProject(self.project, self.user.username, "manager")
+        share_project.save()
 
         response = project_view(request, pk=project_id)
         self.assertEqual(response.status_code, 200)
+        alice = list(filter(lambda u: u["user"] == "alice", response.data["users"]))[0]
+        self.assertEqual(alice["role"], "manager")
 
         response = xform_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
