@@ -18,8 +18,14 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.logger.models import Project
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import OwnerRole
-from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole
+from onadata.libs.permissions import OwnerRole, ReadOnlyRoleNoDownload
+from onadata.libs.permissions import (
+    ReadOnlyRole,
+    EditorRole,
+    DataEntryOnlyRole,
+    EditorMinorRole,
+)
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.permissions import get_role
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
@@ -174,9 +180,42 @@ class TestTeamViewSet(TestAbstractViewSet, TestBase):
         view = TeamViewSet.as_view({"post": "share"})
 
         ROLES = [ReadOnlyRole, EditorRole]
+        ROLES_SET = [ReadOnlyRoleNoDownload, DataEntryOnlyRole]
+
+        for role_class, role_class_set_for_user in zip(ROLES, ROLES_SET):
+            self.assertFalse(role_class.user_has_role(user_chuck, self.project))
+            self.assertFalse(
+                role_class_set_for_user.user_has_role(user_chuck, self.project)
+            )
+            data = {"role": role_class.name, "project": self.project.pk}
+            request = self.factory.post(
+                "/",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = view(request, pk=self.team.pk)
+
+            self.assertEqual(response.status_code, 204)
+
+            self.assertTrue(role_class.user_has_role(user_chuck, self.project))
+            self.assertTrue(
+                role_class_set_for_user.user_has_role(user_chuck, self.xform)
+            )
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": "editor|dataentry|readonly",
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
+        )
+
+        if serializer.is_valid():
+            serializer.save()
 
         for role_class in ROLES:
-            self.assertFalse(role_class.user_has_role(user_chuck, self.project))
             data = {"role": role_class.name, "project": self.project.pk}
             request = self.factory.post(
                 "/",

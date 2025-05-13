@@ -97,6 +97,10 @@ def get_linked_object(parts):
 
 
 def create_xform_meta_permissions(data_value, xform):
+    """
+    data_value - Meta permissions in the format: "editor-role|dataentry-role|read-role"
+    xform - xform for wich to set metadata
+    """
     metadata = MetaData.xform_meta_permission(xform, data_value=data_value)
     update_role_by_meta_xform_perms(xform)
     return metadata
