@@ -139,7 +139,6 @@ class TestCSVDataFrameBuilder(TestBase):
         |        | begin repeat             | browser_use  | Browser Use  |
         |        | integer                  | year         | Year         |
         |        | select_multiple browsers | browsers     | Browsers     |
-        |        | select_one passwords     | passwords    | Do you save passwords?|
         |        | end repeat               |              |              |
 
         | choices |
@@ -148,8 +147,6 @@ class TestCSVDataFrameBuilder(TestBase):
         |         | browsers  | chrome  | Chrome            |
         |         | browsers  | ie      | Internet Explorer |
         |         | browsers  | safari  | Safari            |
-        |         | passwords | yes     | Yes               |
-        |         | passwords | no      | No                |
         """
         xform = self._publish_markdown(md, self.user, id_string="browser_use")
         return xform
@@ -168,11 +165,7 @@ class TestCSVDataFrameBuilder(TestBase):
                             ("age", None),
                             (
                                 "browser_use",
-                                [
-                                    "browser_use[1]/year",
-                                    "browser_use[1]/browsers",
-                                    "browser_use[1]/passwords",
-                                ],
+                                ["browser_use[1]/year", "browser_use[1]/browsers"],
                             ),
                             ("meta/instanceID", None),
                         ]
@@ -191,7 +184,6 @@ class TestCSVDataFrameBuilder(TestBase):
                                     "browser_use[1]/browsers/chrome",
                                     "browser_use[1]/browsers/ie",
                                     "browser_use[1]/browsers/safari",
-                                    "browser_use[1]/passwords",
                                 ],
                             ),
                             ("meta/instanceID", None),
@@ -208,7 +200,6 @@ class TestCSVDataFrameBuilder(TestBase):
                     {
                         "browser_use/year": "2010",
                         "browser_use/browsers": "firefox safari",
-                        "browser_use/passwords": "yes",
                     },
                 ],
             }
@@ -2282,7 +2273,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "browser_use[1]/browsers/chrome",
             "browser_use[1]/browsers/ie",
             "browser_use[1]/browsers/safari",
-            "browser_use[1]/passwords",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2307,7 +2297,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "False",
             "False",
             "True",
-            "yes",
             "n/a",
             "n/a",
             "n/a",
@@ -2345,7 +2334,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "age",
             "browser_use[1]/year",
             "browser_use[1]/browsers",
-            "browser_use[1]/passwords",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2367,7 +2355,6 @@ class TestCSVDataFrameBuilder(TestBase):
             "23",
             "2010",
             "firefox safari",
-            "yes",
             "n/a",
             "n/a",
             "n/a",
@@ -2387,34 +2374,69 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def test_export_columns_register_missing(self):
         """Export columns register not found"""
-        xform = self._publish_select_multiples_grouped_repeating()
-        register_exists = MetaData.objects.filter(
-            content_type=ContentType.objects.get_for_model(xform),
-            object_id=xform.pk,
-            data_type="export_columns_register",
-        ).exists()
-
-        # Confirm register is not found
-        self.assertFalse(register_exists)
-
+        md_xform = """
+        | survey  |
+        |         | type          | name            | label         |
+        |         | begin repeat  | hospital_repeat |               |
+        |         | text          | hospital        | Hospital Name |
+        |         | begin repeat  | child_repeat    |               |
+        |         | text          | name            | Child Name    |
+        |         | decimal       | birthweight     | Birth Weight  |
+        |         | select_one male_female | sex    | Child sex     |
+        |         | end repeat    |                 |               |
+        |         | end repeat    |                 |               |
+        | choices |               |                 |               |
+        |         | list name     | name            | label         |
+        |         | male_female   | male            | Male          |
+        |         | male_female   | female          | Female        |
+        """
+        self._publish_markdown(md_xform, self.user, id_string="nested_repeats")
+        xform = XForm.objects.get(user=self.user, id_string="nested_repeats")
         cursor = [
             {
-                "name": "Tom",
-                "age": 23,
-                "browser_use": [
+                "hospital_repeat": [
                     {
-                        "browser_use/year": "2010",
-                        "browser_use/browsers": "firefox safari",
-                        "browser_use/passwords": "yes",
+                        "hospital_repeat/hospital": "Aga Khan",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "male",
+                                "hospital_repeat/child_repeat/name": "Zakayo",
+                                "hospital_repeat/child_repeat/birthweight": 3.3,
+                            },
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Melania",
+                                "hospital_repeat/child_repeat/birthweight": 3.5,
+                            },
+                        ],
+                    },
+                    {
+                        "hospital_repeat/hospital": "Mama Lucy",
+                        "hospital_repeat/child_repeat": [
+                            {
+                                "hospital_repeat/child_repeat/sex": "female",
+                                "hospital_repeat/child_repeat/name": "Winnie",
+                                "hospital_repeat/child_repeat/birthweight": 3.1,
+                            }
+                        ],
                     },
                 ],
             }
         ]
+        content_type = ContentType.objects.get_for_model(xform)
+        exists = MetaData.objects.filter(
+            content_type=content_type,
+            object_id=xform.pk,
+            data_type="export_columns_register",
+        ).exists()
+        # Confirm register is not found
+        self.assertFalse(exists)
+
         builder = CSVDataFrameBuilder(
             self.user.username,
             xform.id_string,
             include_images=False,
-            split_select_multiples=True,
+            split_select_multiples=False,
         )
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         builder.export_to(temp_file.name, cursor)
@@ -2422,14 +2444,17 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         expected_header = [
-            "name",
-            "age",
-            "browser_use[1]/year",
-            "browser_use[1]/browsers/firefox",
-            "browser_use[1]/browsers/chrome",
-            "browser_use[1]/browsers/ie",
-            "browser_use[1]/browsers/safari",
-            "browser_use[1]/passwords",
+            "hospital_repeat[1]/hospital",
+            "hospital_repeat[2]/hospital",
+            "hospital_repeat[1]/child_repeat[1]/name",
+            "hospital_repeat[1]/child_repeat[1]/birthweight",
+            "hospital_repeat[1]/child_repeat[1]/sex",
+            "hospital_repeat[1]/child_repeat[2]/name",
+            "hospital_repeat[1]/child_repeat[2]/birthweight",
+            "hospital_repeat[1]/child_repeat[2]/sex",
+            "hospital_repeat[2]/child_repeat[1]/name",
+            "hospital_repeat[2]/child_repeat[1]/birthweight",
+            "hospital_repeat[2]/child_repeat[1]/sex",
             "meta/instanceID",
             "_id",
             "_uuid",
@@ -2447,14 +2472,17 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertCountEqual(header, expected_header)
         row = next(csv_reader)
         expected_row = [
-            "Tom",
-            "23",
-            "2010",
-            "True",
-            "False",
-            "False",
-            "True",
-            "yes",
+            "Aga Khan",
+            "Mama Lucy",
+            "Zakayo",
+            "3.3",
+            "male",
+            "Melania",
+            "3.5",
+            "female",
+            "Winnie",
+            "3.1",
+            "female",
             "n/a",
             "n/a",
             "n/a",
