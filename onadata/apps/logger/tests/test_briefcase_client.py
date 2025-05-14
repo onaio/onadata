@@ -4,6 +4,7 @@ Test Briefcase client
 """
 
 import os.path
+import subprocess
 import shutil
 from io import BytesIO
 
@@ -136,9 +137,14 @@ class TestBriefcaseClient(TestBase):
     """Test briefcase_client module."""
 
     def setUp(self):
+        try:
+            cmd = f"rm {settings.MEDIA_ROOT}*/attachments/*/*"
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            pass
         TestBase.setUp(self)
         self._publish_transportation_form()
-        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
+        self._submit_transport_instance_w_attachment()
         src = os.path.join(
             self.this_directory, "fixtures", "transportation", "screenshot.png"
         )

@@ -65,6 +65,7 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
 
@@ -482,11 +483,21 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = project_view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 204)
 
-        self.assertTrue(EditorRole.user_has_role(user_alice, self.xform))
-        self._assign_user_role(user_alice, EditorMinorRole)
-        MetaData.xform_meta_permission(
-            self.xform, data_value="editor-minor|dataentry|readonly-no-download"
+        self.assertTrue(DataEntryOnlyRole.user_has_role(user_alice, self.xform))
+        self._assign_user_role(user_alice, DataEntryOnlyRole)
+        data_value = "editor|dataentry-minor|readonly"
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": data_value,
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
         )
+
+        if serializer.is_valid():
+            serializer.save()
 
         self.assertFalse(EditorRole.user_has_role(user_alice, self.xform))
 
@@ -1553,7 +1564,10 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "description": "",
             "url": "http://testserver/api/v1/data/%s" % formid,
         }
-        self.assertEqual(response.data[1], data)
+        data_for_self_xform = filter(
+            lambda d: d["id_string"] == xform.id_string, response.data
+        )
+        self.assertEqual(list(data_for_self_xform)[0], data)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 

@@ -9,6 +9,7 @@ import codecs
 import csv
 import json
 import os
+import subprocess
 import re
 from builtins import open
 from collections import OrderedDict
@@ -79,6 +80,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
+from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
@@ -496,7 +498,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 response = self.view(request)
                 xform = self.user.xforms.all()[0]
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                self.assertEqual(meta_count + 5, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value="itemsets.csv"
                 )
@@ -665,7 +667,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 response = self.view(request)
                 xform = self.user.xforms.all()[0]
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                self.assertEqual(meta_count + 5, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value="itemsets.csv"
                 )
@@ -1014,12 +1016,32 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 Q(object_id=self.xform.pk),
                 Q(data_type="enketo_url")
                 | Q(data_type="enketo_preview_url")
-                | Q(data_type="enketo_single_submit_url"),
+                | Q(data_type="enketo_single_submit_url")
+                | Q(data_type="xform_meta_perms"),
             )
             url = resultset.get(data_type="enketo_url")
             preview_url = resultset.get(data_type="enketo_preview_url")
             single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+            meta_perms = resultset.get(data_type="xform_meta_perms")
             self.form_data["metadata"] = [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -1260,13 +1282,33 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 Q(object_id=self.xform.pk),
                 Q(data_type="enketo_url")
                 | Q(data_type="enketo_preview_url")
-                | Q(data_type="enketo_single_submit_url"),
+                | Q(data_type="enketo_single_submit_url")
+                | Q(data_type="xform_meta_perms"),
             )
             url = resultset.get(data_type="enketo_url")
             preview_url = resultset.get(data_type="enketo_preview_url")
             single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+            meta_perms = resultset.get(data_type="xform_meta_perms")
 
             self.form_data["metadata"] = [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -2754,7 +2796,17 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self._publish_xls_form_to_project()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(extra_post_data=alice_data)
-        ReadOnlyRole.add(self.user, self.xform.project)
+
+        # assign data entry role
+        data = {
+            "project": self.xform.project.id,
+            "username": "alice",
+            "role": "dataentry",
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
 
         title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
@@ -2787,7 +2839,15 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 403)
 
         # assign manager role
-        ManagerRole.add(self.user, self.xform.project)
+        data = {
+            "project": self.xform.project.id,
+            "username": self.user.username,
+            "role": "manager",
+        }
+
+        serializer = ShareProjectSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
 
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
@@ -4711,6 +4771,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "uuid1",
                 media_file,
             )
+            try:
+                cmd = f"rm {settings.MEDIA_ROOT}*/attachments/*/{media_file}"
+                subprocess.run(cmd, shell=True, check=True)
+            except subprocess.CalledProcessError:
+                pass
             with open(path, "rb") as f:
                 self._make_submission(
                     os.path.join(

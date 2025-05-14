@@ -76,6 +76,8 @@ class ShareProject:
     def save(self, **kwargs):
         """Assigns role permissions to a project for the user."""
         # pylint: disable=too-many-nested-blocks
+        safe_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        safe_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
         if self.remove:
             self.__remove_user()
         else:
