@@ -889,6 +889,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             self._add_ordered_columns_for_select_multiples()
             self._add_ordered_columns_for_gps_fields()
+
             # Unpack xform columns and data
             data = self._format_for_dataframe(cursor)
 
