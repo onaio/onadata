@@ -612,6 +612,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         isinstance(elem, MultipleChoiceQuestion)
                         and split_select_multiples
                         and elem.choices
+                        and elem.type == MULTIPLE_SELECT_TYPE
                     ):
                         for choice in elem.choices.options:
                             abbreviated_xpath = get_abbreviated_xpath(

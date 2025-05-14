@@ -13,8 +13,7 @@ from django.utils.dateparse import parse_datetime
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary, Export
-from onadata.apps.viewer.models.data_dictionary import \
-    create_or_update_export_register
+from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -220,7 +219,7 @@ class TestCsvExport(TestBase):
             md, self.user, id_string="tutorial_w_repeats"
         )
         xform = XForm.objects.get(pk=data_dictionary.pk)
-        path = os.path.join(self.fixture_dir, "tutorial_w_repeats.xml")
+        path = os.path.join(self.fixture_dir, "tutorial_w_repeats_selects.xml")
         self._make_submission(path, forced_submission_time=self._submission_time)
         export = generate_export(Export.CSV_EXPORT, xform, None, self.options)
         storage = storages["default"]
@@ -266,3 +265,28 @@ class TestCsvExport(TestBase):
                 "_media_all_received",
             ]
             self.assertEqual(sorted(expected_headers), sorted(actual_headers))
+            self.assertEqual(
+                rows[1][:20],
+                [
+                    "Bob",
+                    "25",
+                    "n/a",
+                    "1",
+                    "Tom",
+                    "12",
+                    "0",
+                    "Dick",
+                    "1",
+                    "1",
+                    "-1.2625621 36.7921711 0.0 20.0",
+                    "-1.2625621",
+                    "36.7921711",
+                    "0.0",
+                    "20.0",
+                    "n/a",
+                    "n/a",
+                    "n/a",
+                    "n/a",
+                    "uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b",
+                ],
+            )
