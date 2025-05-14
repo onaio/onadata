@@ -13,7 +13,8 @@ from django.utils.dateparse import parse_datetime
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary, Export
-from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
+from onadata.apps.viewer.models.data_dictionary import \
+    create_or_update_export_register
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -177,6 +178,88 @@ class TestCsvExport(TestBase):
                 "_notes",
                 "_version",
                 "_duration",
+                "_submitted_by",
+                "_total_media",
+                "_media_count",
+                "_media_all_received",
+            ]
+            self.assertEqual(sorted(expected_headers), sorted(actual_headers))
+
+    def test_csv_repeat_with_selects(self):
+        """
+        Test that select one and select multiple in a repeat are exported correctly.
+        """
+        md = """
+        | survey   |
+        |          |
+        |          | type                                | name               | label                            |
+        |          | text                                | name               | 1. What is your name?            |
+        |          | integer                             | age                | 2. How old are you?              |
+        |          | image                               | picture            | 3. May I take your picture?      |
+        |          | select one from yes_no              | has_children       | 4. Do you have any children?     |
+        |          | begin repeat                        | children           | 5. Children                      |
+        |          | text                                | childs_name        | 5.1 Childs name?                 |
+        |          | integer                             | childs_age         | 5.2 Childs age?                  |
+        |          | select one from yes_no              | child_is_nursing   | 5.3 Is the child nursing?        |
+        |          | end repeat                          |                    |                                  |
+        |          | geopoint                            | gps                | 6. Record your GPS coordinates.  |
+        |          | select all that apply from browsers | web_browsers       | 7. What web browsers do you use? |
+        | choices  |
+        |          | list name                           | name               | label                            |
+        |          | yes_no                              | 0                  | No                               |
+        |          | yes_no                              | 1                  | Yes                              |
+        |          | browsers                            | firefox            | Mozilla Firefox                  |
+        |          | browsers                            | chrome             | Google Chrome                    |
+        |          | browsers                            | ie                 | Internet Explorer                |
+        |          | browsers                            | safari             | Safari                           |
+        | settings |
+        |          | form_id                             |
+        |          | tutorial_w_repeats                  |
+        """
+        data_dictionary = self._publish_markdown(
+            md, self.user, id_string="tutorial_w_repeats"
+        )
+        xform = XForm.objects.get(pk=data_dictionary.pk)
+        path = os.path.join(self.fixture_dir, "tutorial_w_repeats.xml")
+        self._make_submission(path, forced_submission_time=self._submission_time)
+        export = generate_export(Export.CSV_EXPORT, xform, None, self.options)
+        storage = storages["default"]
+        self.assertTrue(storage.exists(export.filepath))
+        path, ext = os.path.splitext(export.filename)
+        self.assertEqual(ext, ".csv")
+        with storage.open(export.filepath, "r") as csv_file:
+            reader = csv.reader(csv_file)
+            rows = [row for row in reader]
+            actual_headers = [h for h in rows[0]]
+            expected_headers = [
+                "name",
+                "age",
+                "picture",
+                "has_children",
+                "children[1]/childs_name",
+                "children[1]/childs_age",
+                "children[1]/child_is_nursing",
+                "children[2]/childs_name",
+                "children[2]/childs_age",
+                "children[2]/child_is_nursing",
+                "gps",
+                "web_browsers/chrome",
+                "web_browsers/firefox",
+                "web_browsers/ie",
+                "web_browsers/safari",
+                "meta/instanceID",
+                "_id",
+                "_uuid",
+                "_submission_time",
+                "_date_modified",
+                "_tags",
+                "_notes",
+                "_version",
+                "_duration",
+                "_gps_altitude",
+                "_gps_latitude",
+                "_gps_longitude",
+                "_gps_precision",
                 "_submitted_by",
                 "_total_media",
                 "_media_count",
