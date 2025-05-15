@@ -221,7 +221,8 @@ class TestCsvExport(TestBase):
         xform = XForm.objects.get(pk=data_dictionary.pk)
         path = os.path.join(self.fixture_dir, "tutorial_w_repeats_selects.xml")
         self._make_submission(path, forced_submission_time=self._submission_time)
-        export = generate_export(Export.CSV_EXPORT, xform, None, self.options)
+        export_options = {"extension": "csv", "split_select_multiples": True}
+        export = generate_export(Export.CSV_EXPORT, xform, None, export_options)
         storage = storages["default"]
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -283,10 +284,74 @@ class TestCsvExport(TestBase):
                     "36.7921711",
                     "0.0",
                     "20.0",
+                    "True",
+                    "True",
+                    "False",
+                    "False",
+                    "uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b",
+                ],
+            )
+        export_options = {"extension": "csv", "split_select_multiples": False}
+        export = generate_export(Export.CSV_EXPORT, xform, None, export_options)
+        storage = storages["default"]
+        self.assertTrue(storage.exists(export.filepath))
+        path, ext = os.path.splitext(export.filename)
+        self.assertEqual(ext, ".csv")
+        with storage.open(export.filepath, "r") as csv_file:
+            reader = csv.reader(csv_file)
+            rows = [row for row in reader]
+            actual_headers = [h for h in rows[0]]
+            expected_headers = [
+                "name",
+                "age",
+                "picture",
+                "has_children",
+                "children[1]/childs_name",
+                "children[1]/childs_age",
+                "children[1]/child_is_nursing",
+                "children[2]/childs_name",
+                "children[2]/childs_age",
+                "children[2]/child_is_nursing",
+                "gps",
+                "web_browsers",
+                "meta/instanceID",
+                "_id",
+                "_uuid",
+                "_submission_time",
+                "_date_modified",
+                "_tags",
+                "_notes",
+                "_version",
+                "_duration",
+                "_gps_altitude",
+                "_gps_latitude",
+                "_gps_longitude",
+                "_gps_precision",
+                "_submitted_by",
+                "_total_media",
+                "_media_count",
+                "_media_all_received",
+            ]
+            self.assertEqual(sorted(expected_headers), sorted(actual_headers))
+            self.assertEqual(
+                rows[1][:17],
+                [
+                    "Bob",
+                    "25",
                     "n/a",
-                    "n/a",
-                    "n/a",
-                    "n/a",
+                    "1",
+                    "Tom",
+                    "12",
+                    "0",
+                    "Dick",
+                    "1",
+                    "1",
+                    "-1.2625621 36.7921711 0.0 20.0",
+                    "-1.2625621",
+                    "36.7921711",
+                    "0.0",
+                    "20.0",
+                    "firefox chrome",
                     "uuid:b31c6ac2-b8ca-4180-914f-c844fa10ed3b",
                 ],
             )
