@@ -615,12 +615,20 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         and elem.type == MULTIPLE_SELECT_TYPE
                     ):
                         for choice in elem.choices.options:
-                            abbreviated_xpath = get_abbreviated_xpath(
-                                elem.get_xpath() + choice.get_xpath()
-                            )
-                            item[abbreviated_xpath] = repeat_value.get(
-                                abbreviated_xpath, DEFAULT_NA_REP
-                            )
+                            if show_choice_labels:
+                                abbreviated_xpath = get_abbreviated_xpath(
+                                    elem.get_xpath() + "/" + choice.label
+                                )
+                                item[abbreviated_xpath] = repeat_value.get(
+                                    abbreviated_xpath, DEFAULT_NA_REP
+                                )
+                            else:
+                                abbreviated_xpath = get_abbreviated_xpath(
+                                    elem.get_xpath() + choice.get_xpath()
+                                )
+                                item[abbreviated_xpath] = repeat_value.get(
+                                    abbreviated_xpath, DEFAULT_NA_REP
+                                )
                     else:
                         abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
                         item[abbreviated_xpath] = repeat_value.get(
