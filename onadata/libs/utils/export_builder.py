@@ -1153,7 +1153,7 @@ class ExportBuilder:
         win_excel_utf8 = options.get("win_excel_utf8") if options else False
         index_tags = options.get(REPEAT_INDEX_TAGS, self.REPEAT_INDEX_TAGS)
         show_choice_labels = options.get("show_choice_labels", False)
-        language = options.get("language")
+        language = options.get("language") or self.language
         entity_list = kwargs.get("entity_list")
 
         csv_builder = CSVDataFrameBuilder(

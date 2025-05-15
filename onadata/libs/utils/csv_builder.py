@@ -598,7 +598,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         """
         # pylint: disable=too-many-branches,too-many-locals
 
-        def get_ordered_repeat_value(xpath, repeat_value):
+        def get_ordered_repeat_value(xpath, repeat_value, language=None):
             """
             Return OrderedDict of repeats in the order in which they appear in
             the XForm.
@@ -614,21 +614,22 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                         and elem.choices
                         and elem.type == MULTIPLE_SELECT_TYPE
                     ):
+                        elem_xpath = elem.get_xpath()
                         for choice in elem.choices.options:
+                            choice_xpath = ""
                             if show_choice_labels:
-                                abbreviated_xpath = get_abbreviated_xpath(
-                                    elem.get_xpath() + "/" + choice.label
+                                _label = (
+                                    choice.label[language]
+                                    if isinstance(choice.label, dict)
+                                    else choice.label
                                 )
-                                item[abbreviated_xpath] = repeat_value.get(
-                                    abbreviated_xpath, DEFAULT_NA_REP
-                                )
+                                choice_xpath = elem_xpath + "/" + _label
                             else:
-                                abbreviated_xpath = get_abbreviated_xpath(
-                                    elem.get_xpath() + choice.get_xpath()
-                                )
-                                item[abbreviated_xpath] = repeat_value.get(
-                                    abbreviated_xpath, DEFAULT_NA_REP
-                                )
+                                choice_xpath = elem_xpath + choice.get_xpath()
+                            abbreviated_xpath = get_abbreviated_xpath(choice_xpath)
+                            item[abbreviated_xpath] = repeat_value.get(
+                                abbreviated_xpath, DEFAULT_NA_REP
+                            )
                     else:
                         abbreviated_xpath = get_abbreviated_xpath(elem.get_xpath())
                         item[abbreviated_xpath] = repeat_value.get(
@@ -649,7 +650,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 # this dict
                 if isinstance(item, dict):
                     # order repeat according to xform order
-                    _item = get_ordered_repeat_value(key, item)
+                    _item = get_ordered_repeat_value(key, item, language=language)
                     if key in _item and _item[key] == "n/a":
                         # handles the case of a repeat construct in the data but the
                         # form has no repeat construct defined using begin repeat for
