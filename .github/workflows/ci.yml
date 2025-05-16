@@ -37,13 +37,25 @@ jobs:
       - name: Install APT requirements
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
+
       - name: Install Pip requirements
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
-          pip install wheel
+          pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
+          pip install PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Install linting tools
         run: pip install prospector==1.14.1 pylint==3.3.4
@@ -88,6 +100,15 @@ jobs:
           distribution: "adopt"
           java-version: "8"
 
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
+
       - name: Setup python
         uses: actions/setup-python@v5
         with:
@@ -106,15 +127,20 @@ jobs:
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
       - name: Install Pip requirements
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           pip install -U pip
+          pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
+          pip install PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Run tests
         run: |
           ${{ matrix.test_path[1] }}
+
   security-check:
     name: Trivy Security Checks
     runs-on: ubuntu-22.04
@@ -125,6 +151,15 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup SSH Agent and add Github to known hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com > ~/.ssh/known_hosts
 
       - name: Update apt sources
         run: sudo apt-get update
@@ -145,6 +180,10 @@ jobs:
             onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           cache-from: type=registry,ref=onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           cache-to: type=inline
+          ssh: |
+            default=/tmp/ssh-agent.sock
+          build-args: |
+            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

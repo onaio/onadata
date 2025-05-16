@@ -1,0 +1,19 @@
+{% load i18n %}{% blocktranslate %}
+<p>Hello,</p>
+<p>
+  The managed key for organization {{organization_name}} is due for rotation on
+  {{rotation_date}}.
+</p>
+<p>
+  After rotation, all forms will immediately start using the new key for
+  encryption.
+</p>
+<p>
+  Forms will continue to receive and decrypt submissions encrypted with the
+  previous key until {{grace_end_date}} after which old key will no longer be
+  active and new submissions will not be decrypted.
+</p>
+
+<p>Thank you,</p>
+<p>The {{deployment_name}} Team</p>
+{% endblocktranslate %}

@@ -2,6 +2,7 @@
 """
 ShareTeamProject model - facilitate sharing a project to a team.
 """
+
 from onadata.libs.permissions import (
     ROLES,
     DataEntryMinorRole,
@@ -9,6 +10,8 @@ from onadata.libs.permissions import (
     DataEntryRole,
     EditorMinorRole,
     EditorRole,
+    ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
@@ -51,6 +54,10 @@ class ShareTeamProject:
                                 DataEntryOnlyRole,
                             ]:
                                 role = ROLES.get(meta_perm[1])
+
+                            elif role in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
+                                role = ROLES.get(meta_perm[2])
+
                     role.add(self.team, xform)
 
                 for dataview in self.project.dataview_set.all():
