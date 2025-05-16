@@ -265,6 +265,8 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
     export_builder.SHOW_CHOICE_LABELS = options.get("show_choice_labels", False)  # noqa
 
     export_builder.language = options.get("language")
+    if export_builder.language is None and xform.default_language != "default":
+        export_builder.language = xform.default_language
 
     # 'win_excel_utf8' is only relevant for CSV exports
     if "win_excel_utf8" in options and export_type != Export.CSV_EXPORT:
