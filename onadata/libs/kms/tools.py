@@ -22,8 +22,6 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 
-from valigetta.exceptions import InvalidSubmission
-
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import (
     Instance,
@@ -33,7 +31,7 @@ from onadata.apps.logger.models import (
     XFormKey,
 )
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
-from onadata.libs.exceptions import EncryptionError
+from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.email import friendly_date, send_mass_mail
@@ -383,12 +381,20 @@ def decrypt_instance(instance: Instance) -> None:
     :param instance: Instance to be decrypted
     """
     if not is_instance_encrypted(instance):
-        raise InvalidSubmission("Instance is not encrypted.")
+        raise DecryptionError("Instance is not encrypted.")
+
+    # Get the key that encrypted the submission
+    try:
+        xform_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
+
+    except XFormKey.DoesNotExist:
+        raise DecryptionError("KMSKey used for encryption not found.")
+
+    if xform_key.kms_key.disabled_at is not None:
+        raise DecryptionError("KMSKey is disabled.")
 
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
     kms_client = get_kms_client()
-    # Get the key that encrypted the submission
-    xms_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
     # Decrypt submission files
     attachment_qs = instance.attachments.all()
 
@@ -404,7 +410,7 @@ def decrypt_instance(instance: Instance) -> None:
         return enc_files
 
     decrypted_files = kms_client.decrypt_submission(
-        key_id=xms_key.kms_key.key_id,
+        key_id=xform_key.kms_key.key_id,
         submission_xml=submission_xml,
         enc_files=get_encrypted_files(),
     )
