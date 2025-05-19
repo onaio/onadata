@@ -125,7 +125,7 @@ def _invalidate_organization_cache(org: OrganizationProfile):
     """
     # Avoid circular import
     api_tools = importlib.import_module("onadata.apps.api.tools")
-    api_tools.invalidate_organization_cache(org.name)
+    api_tools.invalidate_organization_cache(org.user.username)
 
 
 @transaction.atomic()
