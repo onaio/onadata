@@ -5,16 +5,11 @@ ShareXForm model - facilitates sharing a form.
 
 from django.contrib.auth import get_user_model
 
+from onadata.apps.api.tools import update_role_by_meta_xform_perms
 from onadata.libs.permissions import (
     ROLES,
-    ReadOnlyRoleNoDownload,
-    ReadOnlyRole,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-    DataEntryRole,
-    EditorMinorRole,
-    EditorRole,
 )
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
 class ShareXForm:
@@ -35,20 +30,8 @@ class ShareXForm:
         """Assign specified role permission to a user for the given form."""
         role = ROLES.get(self.role)
 
-        # # check if there is xform meta perms set
-        meta_perms = self.xform.metadata_set.filter(data_type="xform_meta_perms")
+        meta_perms = self.xform.metadata_set.filter(data_type=XFORM_META_PERMS)
         if meta_perms:
-            meta_perm = meta_perms[0].data_value.split("|")
-
-            if len(meta_perm) > 1:
-                if role in [EditorRole, EditorMinorRole]:
-                    role = ROLES.get(meta_perm[0])
-
-                elif role in [DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole]:
-                    role = ROLES.get(meta_perm[1])
-
-                elif role in [ReadOnlyRoleNoDownload, ReadOnlyRole]:
-                    role = ROLES.get(meta_perm[2])
-
-        if role and self.user and self.xform:
+            update_role_by_meta_xform_perms(self.xform, user=self.user, user_role=role)
+        elif role and self.user and self.xform:
             role.add(self.user, self.xform)

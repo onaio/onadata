@@ -5,15 +5,9 @@ ShareTeamProject model - facilitate sharing a project to a team.
 
 from onadata.libs.permissions import (
     ROLES,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-    DataEntryRole,
-    EditorMinorRole,
-    EditorRole,
-    ReadOnlyRole,
-    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
+from onadata.apps.api.tools import update_role_by_meta_xform_perms
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 
 
@@ -39,26 +33,10 @@ class ShareTeamProject:
                 role.add(self.team, self.project)
 
                 for xform in self.project.xform_set.all():
-                    # check if there is xform meta perms set
-                    meta_perms = xform.metadata_set.filter(data_type=XFORM_META_PERMS)
-                    if meta_perms:
-                        meta_perm = meta_perms[0].data_value.split("|")
-
-                        if len(meta_perm) > 1:
-                            if role in [EditorRole, EditorMinorRole]:
-                                role = ROLES.get(meta_perm[0])
-
-                            elif role in [
-                                DataEntryRole,
-                                DataEntryMinorRole,
-                                DataEntryOnlyRole,
-                            ]:
-                                role = ROLES.get(meta_perm[1])
-
-                            elif role in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
-                                role = ROLES.get(meta_perm[2])
-
                     role.add(self.team, xform)
+
+                    if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
+                        update_role_by_meta_xform_perms(xform)
 
                 for dataview in self.project.dataview_set.all():
                     if dataview.matches_parent:
