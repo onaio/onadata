@@ -214,7 +214,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, xform)
 
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (  # noqa
+        from onadata.libs.utils.xform_utils import (  # noqa
             set_project_perms_to_xform_async,
         )
 
@@ -226,7 +226,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (  # noqa
+            from onadata.libs.utils.xform_utils import (  # noqa
                 set_project_perms_to_xform,
             )
 

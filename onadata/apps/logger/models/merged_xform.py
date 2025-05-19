@@ -2,6 +2,7 @@
 """
 MergedXForm model - stores info on forms to merge.
 """
+
 from django.db import models, transaction
 from django.db.models.signals import post_save
 
@@ -39,7 +40,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             OwnerRole.add(instance.created_by, instance)
             OwnerRole.add(instance.created_by, instance.xform_ptr)
 
-        from onadata.libs.utils.project_utils import (
+        from onadata.libs.utils.xform_utils import (
             set_project_perms_to_xform_async,
         )
 
