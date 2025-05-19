@@ -17,7 +17,6 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import openpyxl
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
 import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
@@ -41,6 +40,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -213,12 +213,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         if instance.created_by and instance.user != instance.created_by:
             OwnerRole.add(instance.created_by, xform)
 
-        # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.xform_utils import (  # noqa
-            set_project_perms_to_xform_async,
-        )
-
         try:
+            # pylint: disable=import-outside-toplevel
+            from onadata.libs.utils.xform_utils import (  # noqa
+                set_project_perms_to_xform_async,
+            )
+
             transaction.on_commit(
                 lambda: set_project_perms_to_xform_async.delay(
                     xform.pk, instance.project.pk
