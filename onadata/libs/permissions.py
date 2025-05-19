@@ -194,7 +194,7 @@ class ReadOnlyRole(Role):
     }
 
 
-class DataEntryOnlyRole(ReadOnlyRoleNoDownload):
+class DataEntryOnlyRole(Role):
     """
     Data-Entry only Role class.
     """
@@ -202,9 +202,17 @@ class DataEntryOnlyRole(ReadOnlyRoleNoDownload):
     name = "dataentry-only"
 
     class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA,
+        ],
         XForm: [
             CAN_VIEW_XFORM,
-            CAN_VIEW_XFORM_ALL,
             CAN_VIEW_XFORM_DATA,
             CAN_ADD_SUBMISSIONS,
         ],
