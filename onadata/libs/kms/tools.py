@@ -261,23 +261,25 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     def send_email_notification(organization):
         recipient_list = _get_org_owners_emails(organization)
 
-        if recipient_list:
-            mail_subject = _(f"Key Rotated for Organization: {organization.name}")
-            message = render_to_string(
-                "organization/key_rotated.html",
-                {
-                    "organization_name": organization.name,
-                    "grace_end_date": friendly_date(kms_key.grace_end_date),
-                    "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
-                },
-            )
-            send_mail(
-                mail_subject,
-                strip_tags(message),
-                settings.DEFAULT_FROM_EMAIL,
-                recipient_list,
-                html_message=message,
-            )
+        if not recipient_list:
+            return
+
+        mail_subject = _(f"Key Rotated for Organization: {organization.name}")
+        message = render_to_string(
+            "organization/key_rotated.html",
+            {
+                "organization_name": organization.name,
+                "grace_end_date": friendly_date(kms_key.grace_end_date),
+                "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+            },
+        )
+        send_mail(
+            mail_subject,
+            strip_tags(message),
+            settings.DEFAULT_FROM_EMAIL,
+            recipient_list,
+            html_message=message,
+        )
 
     if kms_key.disabled_at:
         raise EncryptionError("Key is disabled.")
