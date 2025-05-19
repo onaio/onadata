@@ -68,7 +68,7 @@ from onadata.libs.utils.cache_tools import (
     reset_project_cache,
     safe_delete,
 )
-from onadata.libs.utils.common_tags import MEMBERS, XFORM_META_PERMS
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (
     publish_form,
     response_with_mimetype_and_name,
@@ -465,6 +465,7 @@ def publish_project_xform(request, project):
         # First assign permissions to the person who uploaded the form
         OwnerRole.add(request.user, xform)
         try:
+            # pylint: disable=import-outside-toplevel,unused-import
             from onadata.libs.utils.xform_utils import (
                 set_project_perms_to_xform_async,
             )
@@ -472,6 +473,7 @@ def publish_project_xform(request, project):
             # Next run async task to apply all other perms
             set_project_perms_to_xform_async.delay(xform.pk, project.pk)
         except OperationalError:
+            # pylint: disable=import-outside-toplevel,unused-import
             from onadata.libs.utils.xform_utils import set_project_perms_to_xform
 
             # Apply permissions synchrounously
@@ -715,23 +717,6 @@ def generate_tmp_path(uploaded_csv_file):
         tmp_path = uploaded_csv_file.temporary_file_path()
 
     return tmp_path
-
-
-def get_team_members(org_username):
-    """Return members team if it exists else none.
-
-    :param org_username: organization name
-    :return: team
-    """
-    members = []
-    try:
-        team = Team.objects.get(name=f"{org_username}#{MEMBERS}")
-    except Team.DoesNotExist:
-        pass
-    else:
-        members = team.user_set.all()
-
-    return members
 
 
 def get_host_domain(request):
