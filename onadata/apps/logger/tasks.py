@@ -21,6 +21,7 @@ from onadata.libs.kms.tools import (
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
+    send_key_rotation_reminder,
 )
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.entities_utils import (
@@ -237,3 +238,9 @@ def rotate_expired_keys_async():
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
     disable_expired_keys()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def send_key_rotation_reminder_async():
+    """Send key rotation reminder asynchronously."""
+    send_key_rotation_reminder()
