@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
+from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -256,13 +257,36 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
     :param rotation_reason: Reason for rotation
     :return: New KMSKey
     """
+
+    def send_email_notification(organization):
+        recipient_list = _get_org_owners_emails(organization)
+
+        if recipient_list:
+            mail_subject = _(f"Key Rotated for Organization: {organization.name}")
+            message = render_to_string(
+                "organization/key_rotated.html",
+                {
+                    "organization_name": organization.name,
+                    "grace_end_date": friendly_date(kms_key.grace_end_date),
+                    "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+                },
+            )
+            send_mail(
+                mail_subject,
+                strip_tags(message),
+                settings.DEFAULT_FROM_EMAIL,
+                recipient_list,
+                html_message=message,
+            )
+
     if kms_key.disabled_at:
         raise EncryptionError("Key is disabled.")
 
     if kms_key.rotated_at:
         raise EncryptionError("Key already rotated.")
 
-    new_key = create_key(kms_key.content_object, created_by=rotated_by)
+    organization = kms_key.content_object
+    new_key = create_key(organization, created_by=rotated_by)
 
     # Update XForms using the old key to use the new key
     xform_qs = XForm.objects.filter(
@@ -274,11 +298,11 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
 
     # If the rotation is pre-mature, force expiry
     kms_key.expiry_date = min(kms_key.expiry_date, timezone.now())
+    kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
     kms_key.rotated_at = timezone.now()
     kms_key.rotated_by = rotated_by
     kms_key.rotation_reason = rotation_reason
     kms_key.is_active = False
-    kms_key.grace_end_date = kms_key.expiry_date + _get_kms_grace_period_duration()
     kms_key.save(
         update_fields=[
             "expiry_date",
@@ -292,7 +316,9 @@ def rotate_key(kms_key: KMSKey, rotated_by=None, rotation_reason=None) -> KMSKey
 
     try:
         # Invalidate cache for organization profile endpoint
-        _invalidate_organization_cache(kms_key.content_object)
+        _invalidate_organization_cache(organization)
+        # Send email notification
+        send_email_notification(organization)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         # Catch exception to avoid transaction rollback
         logger.exception(exc)
