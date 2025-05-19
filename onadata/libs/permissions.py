@@ -5,6 +5,7 @@ Permissions module.
 
 import json
 from collections import defaultdict
+from typing import Any
 
 from django.apps import apps
 from django.db.models import Q
@@ -24,7 +25,7 @@ from onadata.apps.logger.models.xform import (
     XFormUserObjectPermission,
 )
 from onadata.libs.exceptions import NoRecordsPermission
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.utils.common_tags import XFORM_META_PERMS, OWNER_TEAM_NAME
 from onadata.libs.utils.model_tools import queryset_iterator
 
 # Userprofile Permissions
@@ -773,3 +774,30 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
             query_list.append(query)
             return query_list
     raise NoRecordsPermission()
+
+
+def set_project_perms_to_object(obj: Any, project: Project) -> None:
+    """Apply project permissions to an object
+
+    Args:
+        obj: Object to set permissions for
+        project: Project under which the object belongs to
+    """
+    owners = project.organization.team_set.filter(
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
+
+    if owners:
+        OwnerRole.add(owners[0], obj)
+
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
+        role = ROLES.get(role_name)
+
+        if isinstance(obj, XForm) and user == obj.created_by:
+            OwnerRole.add(user, obj)
+
+        elif role:
+            role.add(user, obj)

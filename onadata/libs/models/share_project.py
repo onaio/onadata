@@ -13,7 +13,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_PERM_CACHE,
     safe_delete,
 )
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import propagate_project_permissions_async

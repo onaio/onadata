@@ -18,7 +18,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlparse
 
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
