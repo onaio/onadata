@@ -21,6 +21,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
+from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
@@ -968,6 +969,25 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(
             str(exc_info.exception), "KMSKey used for encryption not found."
         )
+
+        self.instance.refresh_from_db()
+
+        # No update was made to Instance
+        self.assertEqual(self.instance.xml, old_xml)
+        self.assertEqual(self.instance.date_modified, old_date_modified)
+
+    @patch.object(AWSKMSClient, "decrypt_submission")
+    def test_decryption_failure(self, mock_decrypt):
+        """Decryption failure is handled."""
+        mock_decrypt.side_effect = InvalidSubmission("Invalid signature.")
+
+        old_xml = self.instance.xml
+        old_date_modified = self.instance.date_modified
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(str(exc_info.exception), "Invalid signature.")
 
         self.instance.refresh_from_db()
 
