@@ -21,12 +21,11 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
-from valigetta.exceptions import InvalidSubmission
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.exceptions import EncryptionError
+from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     clean_public_key,
@@ -738,10 +737,10 @@ class DecryptInstanceTestCase(TestBase):
             "forest.mp4": BytesIO(b"Fake MP4 video data"),
         }
         dec_aes_key = b"0123456789abcdef0123456789abcdef"
-        kms_key = create_key(self.org)
-        enc_aes_key = self._encrypt(key_id=kms_key.key_id, plain_text=dec_aes_key)
+        self.kms_key = create_key(self.org)
+        enc_aes_key = self._encrypt(key_id=self.kms_key.key_id, plain_text=dec_aes_key)
         enc_signature = self._get_encrypted_signature(
-            key_id=kms_key.key_id,
+            key_id=self.kms_key.key_id,
             enc_aes_key=enc_aes_key,
             dec_media=self.dec_media,
             dec_submission=self.dec_submission_file,
@@ -805,7 +804,7 @@ class DecryptInstanceTestCase(TestBase):
 
         Attachment.objects.bulk_create(attachments)
 
-        self.xform.kms_keys.create(version="202502131337", kms_key=kms_key)
+        self.xform.kms_keys.create(version="202502131337", kms_key=self.kms_key)
 
     def _encrypt(self, key_id, plain_text):
         boto3_kms_client = boto3.client("kms", region_name="us-east-1")
@@ -923,7 +922,7 @@ class DecryptInstanceTestCase(TestBase):
         old_xml = instance.xml
         old_date_modified = instance.date_modified
 
-        with self.assertRaises(InvalidSubmission) as exc_info:
+        with self.assertRaises(DecryptionError) as exc_info:
             decrypt_instance(instance)
 
         self.assertEqual(str(exc_info.exception), "Instance is not encrypted.")
@@ -933,6 +932,48 @@ class DecryptInstanceTestCase(TestBase):
         # No update was made to Instance
         self.assertEqual(instance.xml, old_xml)
         self.assertEqual(instance.date_modified, old_date_modified)
+
+    def test_key_disabled(self):
+        """Decryption fails of key is disabled."""
+        # Disable key
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        old_xml = self.instance.xml
+        old_date_modified = self.instance.date_modified
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(str(exc_info.exception), "KMSKey is disabled.")
+
+        self.instance.refresh_from_db()
+
+        # No update was made to Instance
+        self.assertEqual(self.instance.xml, old_xml)
+        self.assertEqual(self.instance.date_modified, old_date_modified)
+
+    def test_encryption_key_not_found(self):
+        """Key that encrypted the Instance version not found."""
+        xform_key = self.xform.kms_keys.first()
+        xform_key.version = "202505131337"  # Update the version
+        xform_key.save()
+
+        old_xml = self.instance.xml
+        old_date_modified = self.instance.date_modified
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(
+            str(exc_info.exception), "KMSKey used for encryption not found."
+        )
+
+        self.instance.refresh_from_db()
+
+        # No update was made to Instance
+        self.assertEqual(self.instance.xml, old_xml)
+        self.assertEqual(self.instance.date_modified, old_date_modified)
 
 
 class DisableXFormEncryptionTestCase(TestBase):
