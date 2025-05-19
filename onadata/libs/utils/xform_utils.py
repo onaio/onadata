@@ -13,6 +13,13 @@ from guardian.shortcuts import get_perms
 from multidb.pinning import use_master
 
 from onadata.celeryapp import app
+from onadata.libs.utils.cache_tools import (
+    XFORM_DATA_VERSIONS,
+    XFORM_METADATA_CACHE,
+    XFORM_PERMISSIONS_CACHE,
+    PROJ_OWNER_CACHE,
+    safe_delete,
+)
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.permissions import (
     ROLES,
@@ -31,67 +38,27 @@ from onadata.libs.permissions import (
     ReadOnlyRoleNoDownload,
 )
 from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.common_tags import MEMBERS
 
 
-# pylint: disable=invalid-name
-@app.task(bind=True, max_retries=3)
-def set_project_perms_to_xform_async(self, xform_id, project_id):
+def get_team_members(org_username):
+    """Return members team if it exists else none.
+
+    :param org_username: organization name
+    :return: team
     """
-    Apply project permissions for ``project_id`` to a form ``xform_id`` task.
-    """
-    XForm = apps.get_model("logger", "XForm")
-    Project = apps.get_model("logger", "Project")
-
-    def _set_project_perms():
-        try:
-            xform = XForm.objects.get(id=xform_id)
-            project = Project.objects.get(id=project_id)
-        except (Project.DoesNotExist, XForm.DoesNotExist) as e:
-            msg = (
-                f"{type(e)}: Setting project {project_id} permissions to "
-                f"form {xform_id} failed."
-            )
-            # make a report only on the 3rd try.
-            if self.request.retries > 2:
-                report_exception(msg, e, sys.exc_info())
-            self.retry(countdown=60 * self.request.retries, exc=e)
-        else:
-            set_project_perms_to_xform(xform, project)
-
-            from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
-
-            update_role_by_meta_xform_perms(xform)
-
-            # Set MergedXForm permissions if XForm is also a MergedXForm
-            if hasattr(xform, "mergedxform"):
-                set_project_perms_to_xform(xform.mergedxform, project)
+    members = []
+    # pylint: disable=invalid-name
+    Team = apps.get_model("api", "Team")  # noqa: N806
 
     try:
-        if getattr(settings, "SLAVE_DATABASES", []):
-            with use_master:
-                _set_project_perms()
-        else:
-            _set_project_perms()
-    except (Project.DoesNotExist, XForm.DoesNotExist) as e:
-        # make a report only on the 3rd try.
-        if self.request.retries > 2:
-            msg = (
-                f"{type(e)}: Setting project {project_id} permissions to "
-                f"form {xform_id} failed."
-            )
-            report_exception(msg, e, sys.exc_info())
-        # let's retry if the record may still not be available in read replica.
-        self.retry(countdown=60 * self.request.retries)
-    except IntegrityError:
-        # Nothing to do, fail silently, permissions seems to have been applied
-        # already.
+        team = Team.objects.get(name=f"{org_username}#{MEMBERS}")
+    except Team.DoesNotExist:
         pass
-    except Exception as e:  # pylint: disable=broad-except
-        msg = (
-            f"{type(e)}: Setting project {project_id} permissions to "
-            f"form {xform_id} failed."
-        )
-        report_exception(msg, e, sys.exc_info())
+    else:
+        members = team.user_set.all()
+
+    return members
 
 
 def set_project_perms_to_xform(xform, project):
@@ -127,7 +94,8 @@ def get_xform_users(xform):
     data = {}
     org_members = []
     xform_user_obj_perm_qs = xform.xformuserobjectpermission_set.all()
-    UserProfile = apps.get_model("main", "UserProfile")
+    # pylint: disable=invalid-name
+    UserProfile = apps.get_model("main", "UserProfile")  # noqa: N806
 
     for perm in queryset_iterator(xform_user_obj_perm_qs):
         if perm.user not in data:
@@ -182,21 +150,14 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     """
     Updates users role in a xform based on meta permissions set on the form.
     """
-    from onadata.libs.utils.cache_tools import (
-        XFORM_DATA_VERSIONS,
-        XFORM_METADATA_CACHE,
-        XFORM_PERMISSIONS_CACHE,
-        PROJ_OWNER_CACHE,
-        safe_delete,
-    )
 
     safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
     safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
     safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
     safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
 
-    # load meta xform perms
-    MetaData = apps.get_model("main", "MetaData")
+    # pylint: disable=invalid-name
+    MetaData = apps.get_model("main", "MetaData")  # noqa: N806
     metadata = MetaData.xform_meta_permission(xform)
     editor_role_list = [EditorNoView, EditorNoDownload, EditorRole, EditorMinorRole]
     editor_role = {role.name: role for role in editor_role_list}
@@ -216,20 +177,81 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
             users = get_xform_users(xform)
 
         # update roles
-        for user in users:
+        for xform_user in users:
             if user_role:
                 role = user_role.name
             else:
-                role = users.get(user).get("role")
+                role = users.get(xform_user).get("role")
 
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
-                role.add(user, xform)
+                role.add(xform_user, xform)
 
             if role in dataentry_role:
                 role = ROLES.get(meta_perms[1])
-                role.add(user, xform)
+                role.add(xform_user, xform)
 
             if role in readonly_role:
                 role = ROLES.get(meta_perms[2])
-                role.add(user, xform)
+                role.add(xform_user, xform)
+
+
+# pylint: disable=invalid-name
+@app.task(bind=True, max_retries=3)
+def set_project_perms_to_xform_async(self, xform_id, project_id):
+    """
+    Apply project permissions for ``project_id`` to a form ``xform_id`` task.
+    """
+    # pylint: disable=invalid-name
+    XForm = apps.get_model("logger", "XForm")  # noqa: N806
+    # pylint: disable=invalid-name
+    Project = apps.get_model("logger", "Project")  # noqa: N806
+
+    def _set_project_perms():
+        try:
+            xform = XForm.objects.get(id=xform_id)
+            project = Project.objects.get(id=project_id)
+        except (Project.DoesNotExist, XForm.DoesNotExist) as e:
+            msg = (
+                f"{type(e)}: Setting project {project_id} permissions to "
+                f"form {xform_id} failed."
+            )
+            # make a report only on the 3rd try.
+            if self.request.retries > 2:
+                report_exception(msg, e, sys.exc_info())
+            self.retry(countdown=60 * self.request.retries, exc=e)
+        else:
+            set_project_perms_to_xform(xform, project)
+
+            update_role_by_meta_xform_perms(xform)
+
+            # Set MergedXForm permissions if XForm is also a MergedXForm
+            if hasattr(xform, "mergedxform"):
+                set_project_perms_to_xform(xform.mergedxform, project)
+
+    try:
+        if getattr(settings, "SLAVE_DATABASES", []):
+            with use_master:
+                _set_project_perms()
+        else:
+            _set_project_perms()
+    except (Project.DoesNotExist, XForm.DoesNotExist) as e:
+        # make a report only on the 3rd try.
+        if self.request.retries > 2:
+            msg = (
+                f"{type(e)}: Setting project {project_id} permissions to "
+                f"form {xform_id} failed."
+            )
+            report_exception(msg, e, sys.exc_info())
+        # let's retry if the record may still not be available in read replica.
+        self.retry(countdown=60 * self.request.retries)
+    except IntegrityError:
+        # Nothing to do, fail silently, permissions seems to have been applied
+        # already.
+        pass
+    except Exception as e:  # pylint: disable=broad-except
+        msg = (
+            f"{type(e)}: Setting project {project_id} permissions to "
+            f"form {xform_id} failed."
+        )
+        report_exception(msg, e, sys.exc_info())
