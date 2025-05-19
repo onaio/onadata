@@ -112,6 +112,7 @@ def check_and_set_user_and_form(username, id_string, request):
     """Checks and returns an `xform` and `owner` if ``request.user`` has permission."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
 
+    # pylint: disable=import-outside-toplevel,unused-import
     from onadata.libs.utils.viewer_tools import get_form
 
     xform = get_form(xform_kwargs)
@@ -124,6 +125,7 @@ def check_and_set_form_by_id_string(username, id_string, request):
     has permission."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
 
+    # pylint: disable=import-outside-toplevel,unused-import
     from onadata.libs.utils.viewer_tools import get_form
 
     xform = get_form(xform_kwargs)
@@ -142,6 +144,7 @@ def get_xform_and_perms(username, id_string, request):
     ``request.user`` has."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
 
+    # pylint: disable=import-outside-toplevel,unused-import
     from onadata.libs.utils.viewer_tools import get_form
 
     xform = get_form(xform_kwargs)

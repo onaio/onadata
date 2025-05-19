@@ -76,7 +76,8 @@ def accept_project_invitation(sender, instance=None, created=False, **kwargs):
     # pylint: disable=import-outside-toplevel
 
     if created:
-        ProjectInvitation = apps.get_model("logger", "ProjectInvitation")
+        # pylint: disable=invalid-name
+        ProjectInvitation = apps.get_model("logger", "ProjectInvitation")  # noqa: N806
         invitation_qs = ProjectInvitation.objects.filter(
             email=instance.email,
             status=ProjectInvitation.Status.PENDING,
