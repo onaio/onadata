@@ -98,8 +98,12 @@ def get_linked_object(parts):
 
 def create_xform_meta_permissions(data_value, xform):
     """
-    data_value - Meta permissions in the format: "editor-role|dataentry-role|read-role"
-    xform - xform for wich to set metadata
+    Creates and updates xform meta permissions.
+
+    :param data_value: example: "editor-no-view|dataentry-only|readonly-no-download"
+    :param xform: The xform object for which to set metadata
+    :returns: The created metadata object
+    :raises serializers.ValidationError: If the permissions format is invalid
     """
     metadata = MetaData.xform_meta_permission(xform, data_value=data_value)
     update_role_by_meta_xform_perms(xform)
