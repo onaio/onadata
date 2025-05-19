@@ -2,6 +2,7 @@
 """
 User authentication utility functions.
 """
+
 import base64
 import re
 from functools import wraps
@@ -20,7 +21,6 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.viewer_tools import get_form
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -112,6 +112,8 @@ def check_and_set_user_and_form(username, id_string, request):
     """Checks and returns an `xform` and `owner` if ``request.user`` has permission."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
 
+    from onadata.libs.utils.viewer_tools import get_form
+
     xform = get_form(xform_kwargs)
     owner = User.objects.get(username=username)
     return [xform, owner] if has_permission(xform, owner, request) else [False, False]
@@ -121,6 +123,8 @@ def check_and_set_form_by_id_string(username, id_string, request):
     """Checks xform by ``id_string`` and returns an `xform` if ``request.user``
     has permission."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
+
+    from onadata.libs.utils.viewer_tools import get_form
 
     xform = get_form(xform_kwargs)
     return xform if has_permission(xform, xform.user, request) else False
@@ -137,6 +141,8 @@ def get_xform_and_perms(username, id_string, request):
     """Returns the `xform` with the matching ``id_string``, and the permissions the
     ``request.user`` has."""
     xform_kwargs = {"id_string__iexact": id_string, "user__username__iexact": username}
+
+    from onadata.libs.utils.viewer_tools import get_form
 
     xform = get_form(xform_kwargs)
     is_owner = xform.user == request.user

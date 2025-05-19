@@ -29,7 +29,9 @@ from onadata.libs.utils.logger_tools import (
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
 )
-from onadata.libs.utils.project_utils import set_project_perms_to_object
+from onadata.libs.permissions import (
+    set_project_perms_to_object,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
