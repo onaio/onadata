@@ -2659,6 +2659,44 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(self.user, self.project))
             self.assertFalse(role_class.user_has_role(self.user, self.xform))
 
+    def test_default_meta_permissions_set_for_newly_form(self):
+        # 1. create a project and share it with user
+        self._project_create()
+        data = {"username": "alice", "role": DataEntryRole.name}
+        request = self.factory.post("/", data=data, **self.extra)
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._create_user_profile(alice_data)
+
+        view = ProjectViewSet.as_view({"post": "share"})
+        response = view(request, pk=self.project.pk)
+
+        # 2. upload a form to the project
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project()
+            data_value = "editor-minor|dataentry-minor|readonly-no-download"
+            metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+            serializer = MetaDataSerializer(
+                metadata,
+                data={
+                    "data_value": data_value,
+                    "data_type": "xform_meta_perms",
+                    "xform": self.xform.id,
+                },
+            )
+
+            if serializer.is_valid():
+                serializer.save()
+
+        # 3. check that default metapermissions are set
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        formid = self.xform.pk
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        alice = list(filter(lambda u: u["user"] == "alice", response.data["users"]))[0]
+        self.assertEqual("dataentry-minor", alice["role"])
+
     def test_project_share_xform_meta_perms(self):
         # create project and publish form to project
         self._publish_xls_form_to_project()
