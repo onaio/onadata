@@ -221,13 +221,14 @@ class RotateKeyTestCase(TestBase):
             version=self.xform.version,
         )
         self.mock_key_data = {
-            "key_id": "new-key-id",
+            "key_id": "mock-key-id",
             "description": "Key-2025-04-03-v2",
-            "public_key": "new-pub-key",
+            "public_key": "mock-pub-key",
             "content_type": self.content_type,
             "object_id": self.org.pk,
             "provider": KMSKey.KMSProvider.AWS,
         }
+        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
 
     def create_mock_key(self):
         return KMSKey.objects.create(**self.mock_key_data)
@@ -441,6 +442,72 @@ class RotateKeyTestCase(TestBase):
         rotate_key(self.kms_key)
 
         mock_invalidate_cache.assert_called_once_with(self.org)
+
+    @override_settings(DEFAULT_FROM_EMAIL="test@example.com")
+    @patch("onadata.libs.kms.tools.send_mail")
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_email_sent(
+        self, mock_get_org_owners_emails, mock_send_mail, mock_create_key
+    ):
+        """Email is sent to the organization owners when a key is rotated."""
+        mock_create_key.return_value = self.create_mock_key()
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        rotate_key(
+            kms_key=self.kms_key,
+            rotated_by=self.user,
+            rotation_reason="Test rotation",
+        )
+        mail_subject = f"Key Rotated for Organization: {self.org.name}"
+        message = render_to_string(
+            "organization/key_rotated.html",
+            {
+                "organization_name": self.org.name,
+                "grace_end_date": self.friendly_date(self.kms_key.grace_end_date),
+                "deployment_name": "Ona",
+            },
+        )
+        mock_send_mail.assert_called_once_with(
+            mail_subject,
+            strip_tags(message),
+            "test@example.com",
+            [self.user.email],
+            html_message=message,
+        )
+
+        # Custom deployment name is used if set
+        mock_send_mail.reset_mock()
+        kms_key = KMSKey.objects.create(
+            key_id="custom-key-id",
+            description="Key-2025-04-03",
+            public_key="custom-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            expiry_date=self.mocked_now - timedelta(hours=2),
+        )
+        with override_settings(DEPLOYMENT_NAME="Test"):
+            rotate_key(
+                kms_key=kms_key,
+                rotated_by=self.user,
+                rotation_reason="Test rotation",
+            )
+            mail_subject = f"Key Rotated for Organization: {self.org.name}"
+            message = render_to_string(
+                "organization/key_rotated.html",
+                {
+                    "organization_name": self.org.name,
+                    "grace_end_date": self.friendly_date(self.kms_key.grace_end_date),
+                    "deployment_name": "Test",
+                },
+            )
+            mock_send_mail.assert_called_once_with(
+                mail_subject,
+                strip_tags(message),
+                "test@example.com",
+                [self.user.email],
+                html_message=message,
+            )
 
 
 @mock_aws
