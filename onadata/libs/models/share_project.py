@@ -6,7 +6,7 @@ ShareProject model - facilitate sharing of a project to a user.
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ROLES, ManagerRole, OwnerRole
 
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
@@ -84,7 +84,9 @@ class ShareProject:
                 xform_qs = self.project.xform_set.all()
                 for xform in queryset_iterator(xform_qs):
                     # check if there is xform meta perms set
-                    if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
+                    if xform.metadata_set.filter(
+                        data_type=XFORM_META_PERMS
+                    ) and role not in [ManagerRole, OwnerRole]:
                         update_role_by_meta_xform_perms(
                             xform, user=self.user, user_role=role
                         )
