@@ -51,7 +51,9 @@ from onadata.libs.permissions import (
     DataEntryOnlyRole,
     DataEntryRole,
     EditorMinorRole,
+    EditorNoDownload,
     EditorRole,
+    EditorNoView,
     ManagerRole,
     OwnerRole,
     ReadOnlyRole,
@@ -2693,7 +2695,12 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
 
-            if role_class in [EditorRole, EditorMinorRole]:
+            if role_class in [
+                EditorRole,
+                EditorMinorRole,
+                EditorNoView,
+                EditorNoDownload,
+            ]:
                 self.assertFalse(
                     EditorRole.user_has_role(alice_profile.user, self.xform)
                 )
