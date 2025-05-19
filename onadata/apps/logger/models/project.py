@@ -2,6 +2,7 @@
 """
 Project model class
 """
+
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -150,8 +151,7 @@ class Project(BaseModel):
         )
         if query_set.exists():
             raise ValidationError(
-                f'Project name "{self.name.lower()}" is already in'
-                " use in this account."
+                f'Project name "{self.name.lower()}" is already in use in this account.'
             )
 
     @property

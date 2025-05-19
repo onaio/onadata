@@ -4,6 +4,7 @@
 """
 reapplyperms - reapplies XForm permissions for the given user.
 """
+
 import gc
 from datetime import timedelta
 
@@ -16,7 +17,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.libs.utils.xform_utils import set_project_perms_to_xform
 
 DEFAULT_SECONDS = 30 * 60
 

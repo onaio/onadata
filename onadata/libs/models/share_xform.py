@@ -5,7 +5,7 @@ ShareXForm model - facilitates sharing a form.
 
 from django.contrib.auth import get_user_model
 
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.libs.permissions import (
     ROLES,
 )

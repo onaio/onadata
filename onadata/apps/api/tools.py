@@ -40,28 +40,16 @@ from onadata.apps.api.models.organization_profile import (
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
 from onadata.apps.main.forms import QuickConverter
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.baseviewset import DefaultBaseViewset
 from onadata.libs.permissions import (
     ROLES,
     ROLES_ORDERED,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-    DataEntryRole,
-    EditorNoView,
-    EditorNoDownload,
-    EditorMinorRole,
-    EditorRole,
     ManagerRole,
     OwnerRole,
-    ReadOnlyRole,
-    ReadOnlyRoleNoDownload,
     get_role,
     get_role_in_org,
     get_team_project_default_permissions,
-    is_organization,
 )
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.api_export_tools import (
@@ -76,10 +64,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
-    XFORM_DATA_VERSIONS,
     XFORM_LIST_CACHE,
-    XFORM_METADATA_CACHE,
-    XFORM_PERMISSIONS_CACHE,
     reset_project_cache,
     safe_delete,
 )
@@ -89,10 +74,7 @@ from onadata.libs.utils.logger_tools import (
     response_with_mimetype_and_name,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.project_utils import (
-    set_project_perms_to_xform,
-    set_project_perms_to_xform_async,
-)
+
 from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
@@ -483,9 +465,15 @@ def publish_project_xform(request, project):
         # First assign permissions to the person who uploaded the form
         OwnerRole.add(request.user, xform)
         try:
+            from onadata.libs.utils.xform_utils import (
+                set_project_perms_to_xform_async,
+            )
+
             # Next run async task to apply all other perms
             set_project_perms_to_xform_async.delay(xform.pk, project.pk)
         except OperationalError:
+            from onadata.libs.utils.xform_utils import set_project_perms_to_xform
+
             # Apply permissions synchrounously
             set_project_perms_to_xform(xform, project)
     else:
@@ -729,65 +717,6 @@ def generate_tmp_path(uploaded_csv_file):
     return tmp_path
 
 
-def get_xform_users(xform):
-    """
-    Utility function that returns users and their roles in a form.
-    :param xform:
-    :return:
-    """
-    data = {}
-    org_members = []
-    xform_user_obj_perm_qs = xform.xformuserobjectpermission_set.all()
-
-    for perm in queryset_iterator(xform_user_obj_perm_qs):
-        if perm.user not in data:
-            user = perm.user
-
-            # create default profile if missing
-            try:
-                profile = user.profile
-            except UserProfile.DoesNotExist:
-                profile = UserProfile.objects.create(user=user)
-
-            if is_organization(user.profile):
-                org_members = get_team_members(user.username)
-
-            data[user] = {
-                "permissions": [],
-                "is_org": is_organization(profile),
-                "metadata": profile.metadata,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "user": user.username,
-            }
-        if perm.user in data:
-            data[perm.user]["permissions"].append(perm.permission.codename)
-
-    for user in org_members:
-        # create default profile if missing
-        try:
-            profile = user.profile
-        except UserProfile.DoesNotExist:
-            profile = UserProfile.objects.create(user=user)
-
-        if user not in data:
-            data[user] = {
-                "permissions": get_perms(user, xform),
-                "is_org": is_organization(profile),
-                "metadata": profile.metadata,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "user": user.username,
-            }
-
-    for value in data.values():
-        value["permissions"].sort()
-        value["role"] = get_role(value["permissions"], xform)
-        del value["permissions"]
-
-    return data
-
-
 def get_team_members(org_username):
     """Return members team if it exists else none.
 
@@ -803,54 +732,6 @@ def get_team_members(org_username):
         members = team.user_set.all()
 
     return members
-
-
-def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
-    """
-    Updates users role in a xform based on meta permissions set on the form.
-    """
-    safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
-    safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
-    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-    safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
-
-    # load meta xform perms
-    metadata = MetaData.xform_meta_permission(xform)
-    editor_role_list = [EditorNoView, EditorNoDownload, EditorRole, EditorMinorRole]
-    editor_role = {role.name: role for role in editor_role_list}
-
-    dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
-    dataentry_role = {role.name: role for role in dataentry_role_list}
-
-    readonly_role_list = [ReadOnlyRoleNoDownload, ReadOnlyRole]
-    readonly_role = {role.name: role for role in readonly_role_list}
-
-    if metadata:
-        meta_perms = metadata.data_value.split("|")
-
-        if user:
-            users = [user]
-        else:
-            users = get_xform_users(xform)
-
-        # update roles
-        for user in users:
-            if user_role:
-                role = user_role.name
-            else:
-                role = users.get(user).get("role")
-
-            if role in editor_role:
-                role = ROLES.get(meta_perms[0])
-                role.add(user, xform)
-
-            if role in dataentry_role:
-                role = ROLES.get(meta_perms[1])
-                role.add(user, xform)
-
-            if role in readonly_role:
-                role = ROLES.get(meta_perms[2])
-                role.add(user, xform)
 
 
 def get_host_domain(request):
