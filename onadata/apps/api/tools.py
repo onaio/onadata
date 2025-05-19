@@ -50,6 +50,8 @@ from onadata.libs.permissions import (
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
+    EditorNoView,
+    EditorNoDownload,
     EditorMinorRole,
     EditorRole,
     ManagerRole,
@@ -803,7 +805,7 @@ def get_team_members(org_username):
     return members
 
 
-def update_role_by_meta_xform_perms(xform):
+def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     """
     Updates users role in a xform based on meta permissions set on the form.
     """
@@ -814,7 +816,7 @@ def update_role_by_meta_xform_perms(xform):
 
     # load meta xform perms
     metadata = MetaData.xform_meta_permission(xform)
-    editor_role_list = [EditorRole, EditorMinorRole]
+    editor_role_list = [EditorNoView, EditorNoDownload, EditorRole, EditorMinorRole]
     editor_role = {role.name: role for role in editor_role_list}
 
     dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
@@ -826,11 +828,18 @@ def update_role_by_meta_xform_perms(xform):
     if metadata:
         meta_perms = metadata.data_value.split("|")
 
-        # update roles
-        users = get_xform_users(xform)
+        if user:
+            users = [user]
+        else:
+            users = get_xform_users(xform)
 
+        # update roles
         for user in users:
-            role = users.get(user).get("role")
+            if user_role:
+                role = user_role.name
+            else:
+                role = users.get(user).get("role")
+
             if role in editor_role:
                 role = ROLES.get(meta_perms[0])
                 role.add(user, xform)

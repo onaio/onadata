@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import openpyxl
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
@@ -260,7 +261,7 @@ post_save.connect(
 # pylint: disable=unused-argument,import-outside-toplevel
 def _create_meta_perms(sender, instance, created, **kwargs):
     meta_perms_exists = instance.metadata_set.filter(
-        data_type="xform_meta_perms"
+        data_type=XFORM_META_PERMS
     ).exists()
 
     if created and not meta_perms_exists:
@@ -271,7 +272,7 @@ def _create_meta_perms(sender, instance, created, **kwargs):
             "onadata.libs.serializers.metadata_serializer"
         )
         metadata_serializer.create_xform_meta_permissions(
-            "dataentry-only|dataentry-only|readonly-no-download", xform
+            "editor-no-view|dataentry-only|readonly-no-download", xform
         )
 
 

@@ -52,7 +52,7 @@ METADATA_TYPES = (
     ("external_export", _("External Export")),
     ("textit", _("TextIt")),
     ("google_sheets", _("Google Sheet")),
-    ("xform_meta_perms", _("Xform meta permissions")),
+    (XFORM_META_PERMS, _("Xform meta permissions")),
     ("submission_review", _("Submission Review")),
     (IMPORTED_VIA_CSV_BY, _("Imported via CSV by")),
 )  # yapf:disable

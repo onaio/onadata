@@ -194,7 +194,7 @@ class ReadOnlyRole(Role):
     }
 
 
-class DataEntryOnlyRole(Role):
+class DataEntryOnlyRole(ReadOnlyRoleNoDownload):
     """
     Data-Entry only Role class.
     """
@@ -202,10 +202,12 @@ class DataEntryOnlyRole(Role):
     name = "dataentry-only"
 
     class_to_permissions = {
-        MergedXForm: [CAN_VIEW_MERGED_XFORM],
-        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
-        Project: [CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT],
-        XForm: [CAN_ADD_SUBMISSIONS],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+            CAN_ADD_SUBMISSIONS,
+        ],
     }
 
 
@@ -256,6 +258,31 @@ class DataEntryRole(Role):
             CAN_VIEW_XFORM,
             CAN_VIEW_XFORM_ALL,
             CAN_VIEW_XFORM_DATA,
+        ],
+    }
+
+
+class EditorNoView(Role):
+    """
+    User can submit data, read and edit only the data they submitted
+    but will not be able to export data.
+    """
+
+    name = "editor-no-view"
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT,
+            CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS,
+            CAN_VIEW_XFORM,
+            CAN_CHANGE_XFORM,
         ],
     }
 
@@ -474,6 +501,7 @@ ROLES_ORDERED = [
     DataEntryOnlyRole,
     DataEntryMinorRole,
     DataEntryRole,
+    EditorNoView,
     EditorNoDownload,
     EditorMinorRole,
     EditorRole,
