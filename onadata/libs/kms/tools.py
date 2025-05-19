@@ -22,6 +22,8 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 
+from valigetta.exceptions import InvalidSubmission
+
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import (
     Instance,
@@ -387,8 +389,8 @@ def decrypt_instance(instance: Instance) -> None:
     try:
         xform_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
 
-    except XFormKey.DoesNotExist:
-        raise DecryptionError("KMSKey used for encryption not found.")
+    except XFormKey.DoesNotExist as exc:
+        raise DecryptionError("KMSKey used for encryption not found.") from exc
 
     if xform_key.kms_key.disabled_at is not None:
         raise DecryptionError("KMSKey is disabled.")
@@ -409,11 +411,15 @@ def decrypt_instance(instance: Instance) -> None:
 
         return enc_files
 
-    decrypted_files = kms_client.decrypt_submission(
-        key_id=xform_key.kms_key.key_id,
-        submission_xml=submission_xml,
-        enc_files=get_encrypted_files(),
-    )
+    try:
+        decrypted_files = kms_client.decrypt_submission(
+            key_id=xform_key.kms_key.key_id,
+            submission_xml=submission_xml,
+            enc_files=get_encrypted_files(),
+        )
+
+    except InvalidSubmission as exc:
+        raise DecryptionError(str(exc)) from exc
 
     # Replace encrypted submission with decrypted submission
     # Save history before replacement
