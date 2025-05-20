@@ -1,9 +1,9 @@
 name: CI
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["*"]
   push:
-    branches: ["main"]
+    branches: ["*"]
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.actor }}-${{ github.sha }}
   cancel-in-progress: true
