@@ -1348,6 +1348,36 @@ class SendKeyRotationReminderTestCase(TestBase):
         send_key_rotation_reminder()
         mock_send_mass_mail.assert_not_called()
 
+    @override_settings(KMS_ROTATION_REMINDER_DURATION=timedelta(weeks=2))
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_expiry_date_gt_duration(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Notification not sent if expiry date > target date."""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        self.kms_key.expiry_date = timezone.now() + timedelta(weeks=2, days=1)
+        self.kms_key.save()
+
+        send_key_rotation_reminder()
+
+        mock_send_mass_mail.assert_not_called()
+
+    @override_settings(KMS_ROTATION_REMINDER_DURATION=timedelta(weeks=2))
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_expiry_date_lt_duration(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Notification not sent if expiry date < target date"""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        self.kms_key.expiry_date = timezone.now() + timedelta(weeks=1, days=6)
+        self.kms_key.save()
+
+        send_key_rotation_reminder()
+
+        mock_send_mass_mail.assert_not_called()
+
 
 @patch("onadata.libs.kms.tools.rotate_key")
 class RotateExpiredKeysTestCase(TestBase):
