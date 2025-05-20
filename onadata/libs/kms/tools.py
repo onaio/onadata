@@ -525,7 +525,7 @@ def send_key_rotation_reminder():
     notification_duration = _get_kms_rotation_reminder_duration()
     target_date = (timezone.now() + notification_duration).date()
     kms_key_qs = KMSKey.objects.filter(
-        expiry_date__gte=target_date,
+        expiry_date__date=target_date,
         disabled_at__isnull=True,
         rotated_at__isnull=True,
     )
