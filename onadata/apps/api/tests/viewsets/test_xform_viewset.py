@@ -9,7 +9,6 @@ import codecs
 import csv
 import json
 import os
-import subprocess
 import re
 from builtins import open
 from collections import OrderedDict
@@ -4771,11 +4770,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "uuid1",
                 media_file,
             )
-            try:
-                cmd = f"rm {settings.MEDIA_ROOT}*/attachments/*/{media_file}"
-                subprocess.run(cmd, shell=True, check=True)
-            except subprocess.CalledProcessError:
-                pass
             with open(path, "rb") as f:
                 self._make_submission(
                     os.path.join(
