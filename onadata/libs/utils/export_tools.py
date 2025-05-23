@@ -505,9 +505,14 @@ def generate_attachments_zip_export(
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
 
+    attachment_qs = Attachment.objects.filter(
+        instance__deleted_at__isnull=True,
+        deleted_at__isnull=True,
+    )
+
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
-        attachments = Attachment.objects.filter(
+        attachment_qs = attachment_qs.filter(
             instance_id__in=[
                 rec.get("_id")
                 for rec in dataview.query_data(
@@ -517,15 +522,13 @@ def generate_attachments_zip_export(
                     sort=sort,
                 )
             ],
-            instance__deleted_at__isnull=True,
         )
     else:
         instance_ids = query_fields_data(
             xform, fields=["_id"], query=filter_query, sort=sort
         )
-        attachments = Attachment.objects.filter(instance__deleted_at__isnull=True)
         if xform.is_merged_dataset:
-            attachments = attachments.filter(
+            attachment_qs = attachment_qs.filter(
                 instance__xform_id__in=list(
                     xform.mergedxform.xforms.filter(
                         deleted_at__isnull=True
@@ -533,7 +536,7 @@ def generate_attachments_zip_export(
                 )
             ).filter(instance_id__in=[i_id["_id"] for i_id in instance_ids])
         else:
-            attachments = attachments.filter(instance__xform_id=xform.pk).filter(
+            attachment_qs = attachment_qs.filter(instance__xform_id=xform.pk).filter(
                 instance_id__in=[i_id["_id"] for i_id in instance_ids]
             )
 
@@ -545,7 +548,7 @@ def generate_attachments_zip_export(
     zip_file = None
 
     with NamedTemporaryFile() as zip_file:
-        create_attachments_zipfile(attachments, zip_file)
+        create_attachments_zipfile(attachment_qs, zip_file)
         with open(zip_file.name, "rb") as temp_file:
             filename = default_storage.save(file_path, File(temp_file, file_path))
 

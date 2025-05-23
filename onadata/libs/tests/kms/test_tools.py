@@ -901,9 +901,9 @@ class DecryptInstanceTestCase(TestBase):
 
         # Encrypted media files are soft deleted
         self.assertEqual(att_qs.filter(deleted_at__isnull=False).count(), 3)
-        self.assertIsNotNone(att_qs[0].deleted_at)
-        self.assertIsNotNone(att_qs[1].deleted_at)
-        self.assertIsNotNone(att_qs[2].deleted_at)
+        self.assertIsNotNone(att_qs.get(name="sunset.png.enc").deleted_at)
+        self.assertIsNotNone(att_qs.get(name="forest.mp4.enc").deleted_at)
+        self.assertIsNotNone(att_qs.get(name="submission.xml.enc").deleted_at)
         # Old submission is stored in history
         history_qs = self.instance.submission_history.all()
 
