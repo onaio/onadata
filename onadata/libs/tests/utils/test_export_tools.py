@@ -191,6 +191,35 @@ class TestExportTools(TestAbstractViewSet):
             self.assertFalse(os.path.exists(os.path.join(temp_dir, a.media_file.name)))
         shutil.rmtree(temp_dir)
 
+        # Delete attachment only but not submission
+        # Restore submission
+        submission.deleted_at = None
+        submission.save()
+        # Restore 1 attachment
+        attachment = Attachment.objects.first()
+        attachment.deleted_at = None
+        attachment.save()
+
+        export = generate_attachments_zip_export(
+            Export.ZIP_EXPORT, self.user.username, self.xform.id_string, None, options
+        )
+        self.assertTrue(export.is_successful)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(default_storage.path(export.filepath), "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+
+        for a in Attachment.objects.all():
+            if a.pk == attachment.pk:
+                self.assertTrue(
+                    os.path.exists(os.path.join(temp_dir, a.media_file.name))
+                )
+            else:
+                self.assertFalse(
+                    os.path.exists(os.path.join(temp_dir, a.media_file.name))
+                )
+        shutil.rmtree(temp_dir)
+
     def test_should_create_new_export(self):
         # should only create new export if filter is defined
         # Test setup
