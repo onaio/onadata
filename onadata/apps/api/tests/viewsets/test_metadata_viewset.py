@@ -2,6 +2,7 @@
 """
 Tests the MetaDataViewSet.
 """
+
 # pylint: disable=too-many-lines
 import os
 from builtins import open
@@ -521,7 +522,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor-minor|dataentry",
+            "data_value": "editor-minor|dataentry|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.post("/", data, **self.extra)
@@ -534,15 +535,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor-minors|invalid_role",
+            "data_value": "editor-minors|invalid_role|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.post("/", data, **self.extra)
         response = view(request)
 
         self.assertEqual(response.status_code, 400)
-        error = "Format 'role'|'role' or Invalid role"
-        self.assertEqual(response.data, {"non_field_errors": [error]})
+        error_line_1 = "Format must be: 'editor role' | 'dataentry role' | "
+        error_line_2 = "'readonly role', or an invalid role was provided."
+        self.assertEqual(
+            response.data, {"non_field_errors": [error_line_1 + error_line_2]}
+        )
 
     def test_role_update_xform_meta_perms(self):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
@@ -554,7 +558,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor-minor|dataentry",
+            "data_value": "editor-minor|dataentry|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.post("/", data, **self.extra)
@@ -572,7 +576,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor|dataentry-only",
+            "data_value": "editor|dataentry-only|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.put("/", data, **self.extra)
@@ -591,7 +595,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor-minor|dataentry",
+            "data_value": "editor-minor|dataentry|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.post("/", data, **self.extra)
@@ -607,7 +611,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data = {
             "data_type": XFORM_META_PERMS,
-            "data_value": "editor-minor|dataentry-only",
+            "data_value": "editor-minor|dataentry-only|readonly-no-download",
             "xform": self.xform.pk,
         }
         request = self.factory.post("/", data, **self.extra)
@@ -622,7 +626,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(1, count)
 
         metadata = MetaData.xform_meta_permission(self.xform)
-        self.assertEqual(metadata.data_value, "editor-minor|dataentry-only")
+        self.assertEqual(
+            metadata.data_value, "editor-minor|dataentry-only|readonly-no-download"
+        )
 
     def test_unique_submission_review_metadata(self):
         """Don't create duplicate submission_review for a form"""

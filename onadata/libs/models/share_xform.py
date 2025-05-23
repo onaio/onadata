@@ -2,10 +2,13 @@
 """
 ShareXForm model - facilitates sharing a form.
 """
+
 from django.contrib.auth import get_user_model
 
 from onadata.libs.permissions import (
     ROLES,
+    ReadOnlyRoleNoDownload,
+    ReadOnlyRole,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
@@ -43,6 +46,9 @@ class ShareXForm:
 
                 elif role in [DataEntryRole, DataEntryMinorRole, DataEntryOnlyRole]:
                     role = ROLES.get(meta_perm[1])
+
+                elif role in [ReadOnlyRoleNoDownload, ReadOnlyRole]:
+                    role = ROLES.get(meta_perm[2])
 
         if role and self.user and self.xform:
             role.add(self.user, self.xform)
