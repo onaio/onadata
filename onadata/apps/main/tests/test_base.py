@@ -200,7 +200,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         )
 
     def _submit_transport_instance_w_attachment(
-        self, survey_at=0, delete_existing_attachments=False
+        self, survey_at=0, delete_existing_attachments=True
     ):
         s = self.surveys[survey_at]
         media_file = "1335783522563.jpg"

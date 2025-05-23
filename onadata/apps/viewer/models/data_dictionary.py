@@ -40,6 +40,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -212,12 +213,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         if instance.created_by and instance.user != instance.created_by:
             OwnerRole.add(instance.created_by, xform)
 
-        # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (  # noqa
-            set_project_perms_to_xform_async,
-        )
-
         try:
+            # pylint: disable=import-outside-toplevel
+            from onadata.libs.utils.xform_utils import (  # noqa
+                set_project_perms_to_xform_async,
+            )
+
             transaction.on_commit(
                 lambda: set_project_perms_to_xform_async.delay(
                     xform.pk, instance.project.pk
@@ -225,7 +226,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (  # noqa
+            from onadata.libs.utils.xform_utils import (  # noqa
                 set_project_perms_to_xform,
             )
 
@@ -260,7 +261,7 @@ post_save.connect(
 # pylint: disable=unused-argument,import-outside-toplevel
 def _create_meta_perms(sender, instance, created, **kwargs):
     meta_perms_exists = instance.metadata_set.filter(
-        data_type="xform_meta_perms"
+        data_type=XFORM_META_PERMS
     ).exists()
 
     if created and not meta_perms_exists:
@@ -271,7 +272,7 @@ def _create_meta_perms(sender, instance, created, **kwargs):
             "onadata.libs.serializers.metadata_serializer"
         )
         metadata_serializer.create_xform_meta_permissions(
-            "dataentry-only|dataentry-only|readonly-no-download", xform
+            "editor-no-view|dataentry-only|readonly-no-download", xform
         )
 
 

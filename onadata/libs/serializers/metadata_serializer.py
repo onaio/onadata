@@ -18,7 +18,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlparse
 
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
@@ -52,7 +52,7 @@ METADATA_TYPES = (
     ("external_export", _("External Export")),
     ("textit", _("TextIt")),
     ("google_sheets", _("Google Sheet")),
-    ("xform_meta_perms", _("Xform meta permissions")),
+    (XFORM_META_PERMS, _("Xform meta permissions")),
     ("submission_review", _("Submission Review")),
     (IMPORTED_VIA_CSV_BY, _("Imported via CSV by")),
 )  # yapf:disable
@@ -97,6 +97,14 @@ def get_linked_object(parts):
 
 
 def create_xform_meta_permissions(data_value, xform):
+    """
+    Creates and updates xform meta permissions.
+
+    :param data_value: example: "editor-no-view|dataentry-only|readonly-no-download"
+    :param xform: The xform object for which to set metadata
+    :returns: The created metadata object
+    :raises serializers.ValidationError: If the permissions format is invalid
+    """
     metadata = MetaData.xform_meta_permission(xform, data_value=data_value)
     update_role_by_meta_xform_perms(xform)
     return metadata
