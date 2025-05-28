@@ -522,6 +522,32 @@ def get_filtered_instances(*args, **kwargs):
     return Instance.objects.filter(*args, **kwargs)
 
 
+def check_encrypted_submission(xml, xform):
+    """Validate encrypted submission"""
+    submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
+
+    if xform.encrypted and not submission_encrypted:
+        raise InstanceEncryptionError(
+            _("Unencrypted submissions are not allowed for encrypted forms.")
+        )
+
+    if (
+        xform.encrypted
+        and xform.is_managed
+        and not getattr(settings, "KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION", True)
+    ):
+        submission_tree = fromstring(xml)
+        version = submission_tree.attrib.get("version")
+        xform_key_qs = xform.kms_keys.filter(
+            version=version, kms_key__disabled_at__isnull=True
+        )
+
+        if not xform_key_qs.exists():
+            raise InstanceEncryptionError(
+                _("Encryption key does not exist or is disabled.")
+            )
+
+
 # pylint: disable=too-many-locals
 def create_instance(
     username,
@@ -550,30 +576,8 @@ def create_instance(
     xml = xml_file.read()
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
-    submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
-    if xform.encrypted and not submission_encrypted:
-        raise InstanceEncryptionError(
-            _("Unencrypted submissions are not allowed for encrypted forms.")
-        )
-
-    if (
-        xform.encrypted
-        and xform.is_managed
-        and not getattr(settings, "KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION", True)
-    ):
-        submission_tree = fromstring(xml)
-        version = submission_tree.attrib.get("version")
-        xform_key_qs = xform.kms_keys.filter(
-            version=version, kms_key__disabled_at__isnull=True
-        )
-
-        if not xform_key_qs.exists():
-            raise InstanceEncryptionError(
-                _("Encryption key does not exist or is disabled.")
-            )
-
+    check_encrypted_submission(xml, xform)
     checksum = sha256(xml).hexdigest()
-
     new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(uuid=new_uuid, xform_id=xform.pk)
     existing_instance = get_first_record(filtered_instances.only("id"))
