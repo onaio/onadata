@@ -1573,3 +1573,91 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             request.META.update(auth(request.META, response))
             response = self.view(request, username=self.user.username)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_encryption_key_not_found_default_setting(self):
+        """Submission is accepted if encryption key not found and setting missing."""
+        xlsform_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "transportation_encrypted.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform.is_managed = True  # Mark XForm as encrypted using managed keys
+        self.xform.save()
+        submission_xml_enc_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances_encrypted",
+            "submission.xml.enc",
+        )
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances_encrypted",
+            "submission.xml",
+        )
+
+        with open(submission_xml_enc_path, "rb") as mf, open(
+            submission_path, "rb"
+        ) as sf:
+            data = {"xml_submission_file": sf, "submission.xml.enc": mf}
+            request = self.factory.post("/submission", data)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            response = self.view(request, username=self.user.username)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_encryption_key_disabled_default_setting(self):
+        """Submission is accepted if encryption key is disabled and setting missing."""
+        xlsform_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "transportation_encrypted.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        self.xform.is_managed = True  # Mark XForm as encrypted using managed keys
+        self.xform.save()
+        # Create KMSKey
+        content_type = ContentType.objects.get_for_model(self.xform)
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=self.xform.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            disabled_at=timezone.now(),  # Disable key
+        )
+        submission_version = "2025051326"
+        self.xform.kms_keys.create(version=submission_version, kms_key=kms_key)
+        submission_xml_enc_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances_encrypted",
+            "submission.xml.enc",
+        )
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances_encrypted",
+            "submission.xml",
+        )
+
+        with open(submission_xml_enc_path, "rb") as mf, open(
+            submission_path, "rb"
+        ) as sf:
+            data = {"xml_submission_file": sf, "submission.xml.enc": mf}
+            request = self.factory.post("/submission", data)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            response = self.view(request, username=self.user.username)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
