@@ -499,10 +499,6 @@ def get_filtered_instances(*args, **kwargs):
     return Instance.objects.filter(*args, **kwargs)
 
 
-def _get_submission_tree(xml):
-    return fromstring(xml)
-
-
 # pylint: disable=too-many-locals
 def create_instance(
     username,
@@ -542,7 +538,7 @@ def create_instance(
         and xform.is_managed
         and not getattr(settings, "KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION", True)
     ):
-        submission_tree = _get_submission_tree(xml)
+        submission_tree = fromstring(xml)
         version = submission_tree.attrib.get("version")
         xform_key_qs = xform.kms_keys.filter(
             version=version, kms_key__disabled_at__isnull=True
