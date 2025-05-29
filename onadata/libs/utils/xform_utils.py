@@ -33,7 +33,6 @@ from onadata.libs.permissions import (
     EditorNoDownload,
     EditorMinorRole,
     EditorRole,
-    ReadOnlyRole,
     ReadOnlyRoleNoDownload,
 )
 from onadata.libs.utils.common_tools import report_exception
