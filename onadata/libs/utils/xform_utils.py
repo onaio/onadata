@@ -165,7 +165,7 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
     dataentry_role = {role.name: role for role in dataentry_role_list}
 
-    readonly_role_list = [ReadOnlyRoleNoDownload, ReadOnlyRole]
+    readonly_role_list = [ReadOnlyRoleNoDownload]
     readonly_role = {role.name: role for role in readonly_role_list}
 
     if metadata:
