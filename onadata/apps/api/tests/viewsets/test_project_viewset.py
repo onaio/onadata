@@ -53,7 +53,6 @@ from onadata.libs.permissions import (
     EditorMinorRole,
     EditorNoDownload,
     EditorRole,
-    EditorNoView,
     ManagerRole,
     OwnerRole,
     ReadOnlyRole,
@@ -2736,7 +2735,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             if role_class in [
                 EditorRole,
                 EditorMinorRole,
-                EditorNoView,
                 EditorNoDownload,
             ]:
                 self.assertFalse(

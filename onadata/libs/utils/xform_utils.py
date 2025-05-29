@@ -30,7 +30,6 @@ from onadata.libs.permissions import (
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
-    EditorNoView,
     EditorNoDownload,
     EditorMinorRole,
     EditorRole,
@@ -159,7 +158,7 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     # pylint: disable=invalid-name
     MetaData = apps.get_model("main", "MetaData")  # noqa: N806
     metadata = MetaData.xform_meta_permission(xform)
-    editor_role_list = [EditorNoView, EditorNoDownload, EditorRole, EditorMinorRole]
+    editor_role_list = [EditorNoDownload, EditorRole, EditorMinorRole]
     editor_role = {role.name: role for role in editor_role_list}
 
     dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
