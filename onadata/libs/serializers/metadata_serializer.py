@@ -100,7 +100,7 @@ def create_xform_meta_permissions(data_value, xform):
     """
     Creates and updates xform meta permissions.
 
-    :param data_value: example: "editor-no-view|dataentry-only|readonly-no-download"
+    :param data_value: example: "editor-no-download|dataentry-only|readonly-no-download"
     :param xform: The xform object for which to set metadata
     :returns: The created metadata object
     :raises serializers.ValidationError: If the permissions format is invalid

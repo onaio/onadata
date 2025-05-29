@@ -272,7 +272,7 @@ def _create_meta_perms(sender, instance, created, **kwargs):
             "onadata.libs.serializers.metadata_serializer"
         )
         metadata_serializer.create_xform_meta_permissions(
-            "editor-no-view|dataentry-only|readonly-no-download", xform
+            "editor-no-download|dataentry-only|readonly-no-download", xform
         )
 
 
