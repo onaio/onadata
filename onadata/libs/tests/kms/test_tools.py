@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import md5, sha256
 from io import BytesIO
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 from xml.etree.ElementTree import ParseError
 
 from django.contrib.contenttypes.models import ContentType
@@ -21,7 +21,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
-from valigetta.exceptions import InvalidSubmission
+from valigetta.exceptions import InvalidSubmission, KMSGetPublicKeyError
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
@@ -211,6 +211,21 @@ class CreateKeyTestCase(TestBase):
         create_key(self.org)
 
         mock_invalidate_cache.assert_called_once_with(self.org)
+
+    @patch("onadata.libs.kms.tools.logger.exception")
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_get_public_key_kms_error(self, mock_get_kms_client, mock_logger):
+        """Key is disabled if get public key fails."""
+        mock_client = Mock()
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.get_public_key.side_effect = KMSGetPublicKeyError()
+        mock_get_kms_client.return_value = mock_client
+
+        with self.assertRaises(KMSGetPublicKeyError):
+            create_key(self.org)
+
+        mock_client.disable_key.assert_called_once()
+        mock_logger.assert_called_once()
 
 
 @patch("onadata.libs.kms.tools.create_key")
