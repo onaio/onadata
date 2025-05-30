@@ -313,6 +313,7 @@ class DisableExpiredKeysAsyncTestCase(TestBase):
         self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
 
 
+@patch("onadata.apps.logger.tasks.send_key_rotation_reminder")
 class SendKeyRotationReminderAsyncTestCase(TestBase):
     """Tests for send_key_rotation_reminder_async"""
 
