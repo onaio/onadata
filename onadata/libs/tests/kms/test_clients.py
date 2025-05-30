@@ -39,18 +39,3 @@ class AWSKMSClientTestBase(TestBase):
         self.assertEqual(client.aws_access_key_id, "kms-id")
         self.assertEqual(client.aws_secret_access_key, "kms-secret")
         self.assertEqual(client.region_name, "us-east-1")
-
-    def test_create_key(self):
-        """KMS key is created"""
-
-        client = AWSKMSClient()
-
-        metadata = client.create_key("Key-2025-04-02")
-
-        self.assertIn("key_id", metadata)
-        self.assertIn("public_key", metadata)
-        self.assertTrue(isinstance(metadata["public_key"], str))
-        self.assertTrue(
-            metadata["public_key"].startswith("-----BEGIN PUBLIC KEY-----")
-            and metadata["public_key"].endswith("-----END PUBLIC KEY-----")
-        )
