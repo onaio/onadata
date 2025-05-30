@@ -24,7 +24,7 @@ from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
 from valigetta.decryptor import decrypt_submission
-from valigetta.exceptions import InvalidSubmission
+from valigetta.exceptions import InvalidSubmission, KMSGetPublicKeyError
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.api.models import OrganizationProfile
@@ -162,7 +162,18 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     metadata = kms_client.create_key(description=description)
     key_id = metadata["key_id"]
-    public_key = kms_client.get_public_key(key_id)
+
+    try:
+        public_key = kms_client.get_public_key(key_id)
+
+    except KMSGetPublicKeyError as exc:
+        logger.exception(exc)
+        # Disable key to avoid orphan keys (active keys not
+        # assigned to an organization)
+        kms_client.disable_key(key_id)
+
+        raise
+
     rotation_duration = _get_kms_rotation_duration()
     expiry_date = None
 
