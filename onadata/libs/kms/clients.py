@@ -1,13 +1,7 @@
-from io import BytesIO
-from typing import Iterable, Iterator, Tuple
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import load_der_public_key
-from valigetta.decryptor import decrypt_submission as vgetta_decrypt_submission
-from valigetta.kms import AWSKMSClient as ValigettaAWSClient
+from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 
 def setting(name, default=None):
@@ -24,7 +18,7 @@ def setting(name, default=None):
 
 
 # pylint: disable=too-few-public-methods
-class BaseKMSClient:
+class BaseClient:
     def __init__(self, **custom_settings):
         default_settings = self.get_default_settings()
 
@@ -43,10 +37,10 @@ class BaseKMSClient:
         return {}
 
 
-class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
+class AWSKMSClient(BaseClient, BaseAWSClient):
     def __init__(self, **custom_settings):
-        BaseKMSClient.__init__(self, **custom_settings)
-        ValigettaAWSClient.__init__(
+        BaseClient.__init__(self, **custom_settings)
+        BaseAWSClient.__init__(
             self,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key,
@@ -63,40 +57,3 @@ class AWSKMSClient(BaseKMSClient, ValigettaAWSClient):
             ),
             "region_name": setting("AWS_KMS_REGION_NAME"),
         }
-
-    def create_key(self, description: str | None = None) -> dict[str, str]:
-        """Creates a KMS key in AWS.
-
-        :param description: Key description
-        :type description: str
-        :return: Metadata of the key created
-        :rtype: dict
-        """
-        metadata = super().create_key(description)
-        key_id = metadata["KeyId"]
-        der_encoded_public_key = self.get_public_key(key_id)
-        public_key_obj = load_der_public_key(der_encoded_public_key)
-        pem_encoded_public_key = public_key_obj.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        ).decode("utf-8")
-
-        return {
-            "key_id": key_id,
-            "public_key": pem_encoded_public_key.strip(),
-        }
-
-    def decrypt_submission(
-        self,
-        key_id: str,
-        submission_xml: BytesIO,
-        enc_files: Iterable[Tuple[str, BytesIO]],
-    ) -> Iterator[Tuple[str, BytesIO]]:
-        """Decrypt encrypted submission"""
-
-        yield from vgetta_decrypt_submission(
-            kms_client=self,
-            key_id=key_id,
-            submission_xml=submission_xml,
-            enc_files=enc_files,
-        )
