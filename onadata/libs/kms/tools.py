@@ -138,6 +138,7 @@ def _invalidate_organization_cache(org: OrganizationProfile):
     api_tools.invalidate_organization_cache(org.user.username)
 
 
+# pylint: disable=too-many-locals
 @transaction.atomic()
 def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     """Create KMS key.
