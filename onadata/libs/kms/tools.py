@@ -20,9 +20,12 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
+from valigetta.decryptor import decrypt_submission
 from valigetta.exceptions import InvalidSubmission
+from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.logger.models import (
@@ -34,7 +37,6 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import DecryptionError, EncryptionError
-from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
@@ -42,11 +44,22 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 logger = logging.getLogger(__name__)
 
-KMS_CLIENTS = {"AWS": AWSKMSClient}
 
+def _get_kms_client_class():
+    """Return the KMS client that is active."""
+    class_path = getattr(
+        settings, "KMS_CLIENT_CLASS", "onadata.libs.kms.clients.AWSKMSClient"
+    )
 
-def _get_kms_provider():
-    return getattr(settings, "KMS_PROVIDER", "AWS")
+    if not class_path:
+        raise ImproperlyConfigured("KMS_CLIENT_CLASS setting is not defined.")
+
+    try:
+        return import_string(class_path)
+    except ImportError as exc:
+        raise ImproperlyConfigured(
+            f"Could not import KMS_CLIENT_CLASS '{class_path}': {exc}"
+        ) from exc
 
 
 def _get_kms_rotation_duration():
@@ -95,11 +108,7 @@ def _get_kms_rotation_reminder_duration():
 
 def get_kms_client():
     """Retrieve the appropriate KMS client based on settings."""
-    kms_provider = _get_kms_provider()
-    kms_client_cls = KMS_CLIENTS.get(kms_provider)
-
-    if not kms_client_cls:
-        raise ImproperlyConfigured(f"Unsupported KMS provider: {kms_provider}")
+    kms_client_cls = _get_kms_client_class()
 
     return kms_client_cls()
 
@@ -152,20 +161,23 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         description += suffix
 
     metadata = kms_client.create_key(description=description)
+    key_id = metadata["key_id"]
+    public_key = kms_client.get_public_key(key_id)
     rotation_duration = _get_kms_rotation_duration()
     expiry_date = None
 
     if rotation_duration:
         expiry_date = now + rotation_duration
 
-    provider_choice_map = {
-        "AWS": KMSKey.KMSProvider.AWS,
-    }
-    provider = provider_choice_map.get(_get_kms_provider().upper())
+    provider = None
+
+    if isinstance(kms_client, BaseAWSClient):
+        provider = KMSKey.KMSProvider.AWS
+
     kms_key = KMSKey.objects.create(
-        key_id=metadata["key_id"],
+        key_id=key_id,
         description=description,
-        public_key=clean_public_key(metadata["public_key"]),
+        public_key=clean_public_key(public_key),
         provider=provider,
         expiry_date=expiry_date,
         content_type=content_type,
@@ -412,7 +424,8 @@ def decrypt_instance(instance: Instance) -> None:
         return enc_files
 
     try:
-        decrypted_files = kms_client.decrypt_submission(
+        decrypted_files = decrypt_submission(
+            kms_client=kms_client,
             key_id=xform_key.kms_key.key_id,
             submission_xml=submission_xml,
             enc_files=get_encrypted_files(),

@@ -52,6 +52,7 @@ class GetKMSClientTestCase(TestBase):
         AWS_ACCESS_KEY_ID="fake-id",
         AWS_SECRET_ACCESS_KEY="fake-secret",
         AWS_KMS_REGION_NAME="us-east-1",
+        KMS_CLIENT_CLASS="onadata.libs.kms.clients.AWSKMSClient",
     )
     def test_returns_client(self):
         """Configured client is returned."""
@@ -64,14 +65,32 @@ class GetKMSClientTestCase(TestBase):
         AWS_ACCESS_KEY_ID="fake-id",
         AWS_SECRET_ACCESS_KEY="fake-secret",
         AWS_KMS_REGION_NAME="us-east-1",
+        KMS_CLIENT_CLASS="invalid",
     )
-    def test_invalid_provider(self):
-        """Invalid provider is handled."""
+    def test_module_path_not_found(self):
+        """Invalid module path is handled."""
 
         with self.assertRaises(ImproperlyConfigured) as exc_info:
             get_kms_client()
 
-        self.assertEqual(str(exc_info.exception), "Unsupported KMS provider: foo")
+        exc_str = str(exc_info.exception)
+        self.assertIn("Could not import KMS_CLIENT_CLASS 'invalid'", exc_str)
+
+    @override_settings(
+        KMS_PROVIDER="foo",
+        AWS_ACCESS_KEY_ID="fake-id",
+        AWS_SECRET_ACCESS_KEY="fake-secret",
+        AWS_KMS_REGION_NAME="us-east-1",
+        KMS_CLIENT_CLASS=None,
+    )
+    def test_module_path_required(self):
+        """KMS_CLIENT_CLASS is required."""
+
+        with self.assertRaises(ImproperlyConfigured) as exc_info:
+            get_kms_client()
+
+        exc_str = str(exc_info.exception)
+        self.assertIn("KMS_CLIENT_CLASS setting is not defined", exc_str)
 
     @override_settings(
         AWS_ACCESS_KEY_ID="fake-id",
@@ -976,7 +995,7 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
 
-    @patch.object(AWSKMSClient, "decrypt_submission")
+    @patch("onadata.libs.kms.tools.decrypt_submission")
     def test_decryption_failure(self, mock_decrypt):
         """Decryption failure is handled."""
         mock_decrypt.side_effect = InvalidSubmission("Invalid signature.")
