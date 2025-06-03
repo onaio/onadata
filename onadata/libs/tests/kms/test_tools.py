@@ -21,7 +21,11 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
-from valigetta.exceptions import InvalidSubmission, KMSGetPublicKeyError
+from valigetta.exceptions import (
+    InvalidSubmission,
+    KMSCreateAliasError,
+    KMSGetPublicKeyError,
+)
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
@@ -265,10 +269,10 @@ class CreateKeyTestCase(TestBase):
         """Key is disabled if get create alias fails."""
         mock_client = Mock()
         mock_client.create_key.return_value = {"key_id": "abc123"}
-        mock_client.create_alias.side_effect = KMSGetPublicKeyError()
+        mock_client.create_alias.side_effect = KMSCreateAliasError()
         mock_get_kms_client.return_value = mock_client
 
-        with self.assertRaises(KMSGetPublicKeyError):
+        with self.assertRaises(KMSCreateAliasError):
             create_key(self.org)
 
         mock_client.disable_key.assert_called_once()
