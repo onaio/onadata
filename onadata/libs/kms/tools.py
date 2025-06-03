@@ -165,7 +165,15 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         suffix = f"-v{duplicate_desc.count() + 1}"
         description += suffix
 
-    metadata = kms_client.create_key(description=description)
+    kms_description = description
+
+    if created_by is None:
+        kms_description += _(" via automatic rotation")
+
+    else:
+        kms_description += _(" via manual rotation")
+
+    metadata = kms_client.create_key(description=kms_description)
     key_id = metadata["key_id"]
     deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
     alias_name = f"alias/{deployment_name}/{org.user.username}"
