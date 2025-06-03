@@ -22,6 +22,7 @@ from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
 from valigetta.exceptions import InvalidSubmission, KMSGetPublicKeyError
+from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
@@ -212,6 +213,37 @@ class CreateKeyTestCase(TestBase):
 
         mock_invalidate_cache.assert_called_once_with(self.org)
 
+    @patch("django.utils.timezone.now")
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_description_created_on_kms(self, mock_get_kms_client, mock_now):
+        """Correct description is created on KMS."""
+        mock_now.return_value = datetime(2025, 6, 3, tzinfo=tz.utc)
+        mock_client = Mock(spec=BaseAWSClient)
+        mock_client.__class__ = BaseAWSClient
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.get_public_key.return_value = "fake-pub-key"
+        mock_get_kms_client.return_value = mock_client
+
+        create_key(self.org)
+
+        mock_client.create_key.assert_called_once_with(description="Key-2025-06-03")
+
+    @override_settings(DEPLOYMENT_NAME="Test")
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_alias_created_on_kms(self, mock_get_kms_client):
+        """Alias is created on KMS."""
+        mock_client = Mock(spec=BaseAWSClient)
+        mock_client.__class__ = BaseAWSClient
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.get_public_key.return_value = "fake-pub-key"
+        mock_get_kms_client.return_value = mock_client
+
+        create_key(self.org)
+
+        mock_client.create_alias.assert_called_once_with(
+            alias_name=f"alias/Test/{self.org.user.username}", key_id="abc123"
+        )
+
     @patch("onadata.libs.kms.tools.logger.exception")
     @patch("onadata.libs.kms.tools.get_kms_client")
     def test_get_public_key_kms_error(self, mock_get_kms_client, mock_logger):
@@ -219,6 +251,21 @@ class CreateKeyTestCase(TestBase):
         mock_client = Mock()
         mock_client.create_key.return_value = {"key_id": "abc123"}
         mock_client.get_public_key.side_effect = KMSGetPublicKeyError()
+        mock_get_kms_client.return_value = mock_client
+
+        with self.assertRaises(KMSGetPublicKeyError):
+            create_key(self.org)
+
+        mock_client.disable_key.assert_called_once()
+        mock_logger.assert_called_once()
+
+    @patch("onadata.libs.kms.tools.logger.exception")
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_create_alias_kms_error(self, mock_get_kms_client, mock_logger):
+        """Key is disabled if get create alias fails."""
+        mock_client = Mock()
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.create_alias.side_effect = KMSGetPublicKeyError()
         mock_get_kms_client.return_value = mock_client
 
         with self.assertRaises(KMSGetPublicKeyError):
