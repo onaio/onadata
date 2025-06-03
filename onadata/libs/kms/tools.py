@@ -176,7 +176,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
     metadata = kms_client.create_key(description=kms_description)
     key_id = metadata["key_id"]
     deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
-    alias_name = f"alias/{deployment_name}/{org.user.username}"
+    alias_name = f"alias/{deployment_name}/{org.user.username}/{description}"
 
     try:
         public_key = kms_client.get_public_key(key_id)

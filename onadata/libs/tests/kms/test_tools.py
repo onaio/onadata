@@ -245,9 +245,11 @@ class CreateKeyTestCase(TestBase):
         )
 
     @override_settings(DEPLOYMENT_NAME="Test")
+    @patch("django.utils.timezone.now")
     @patch("onadata.libs.kms.tools.get_kms_client")
-    def test_alias_created_on_kms(self, mock_get_kms_client):
+    def test_alias_created_on_kms(self, mock_get_kms_client, mock_now):
         """Alias is created on KMS."""
+        mock_now.return_value = datetime(2025, 6, 3, tzinfo=tz.utc)
         mock_client = Mock(spec=BaseAWSClient)
         mock_client.__class__ = BaseAWSClient
         mock_client.create_key.return_value = {"key_id": "abc123"}
@@ -257,7 +259,8 @@ class CreateKeyTestCase(TestBase):
         create_key(self.org)
 
         mock_client.create_alias.assert_called_once_with(
-            alias_name=f"alias/Test/{self.org.user.username}", key_id="abc123"
+            alias_name=f"alias/Test/{self.org.user.username}/Key-2025-06-03",
+            key_id="abc123",
         )
 
     @patch("onadata.libs.kms.tools.logger.exception")
