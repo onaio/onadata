@@ -228,9 +228,21 @@ class CreateKeyTestCase(TestBase):
         mock_client.get_public_key.return_value = "fake-pub-key"
         mock_get_kms_client.return_value = mock_client
 
+        # Automatic rotation
         create_key(self.org)
 
-        mock_client.create_key.assert_called_once_with(description="Key-2025-06-03")
+        mock_client.create_key.assert_called_once_with(
+            description="Key-2025-06-03 via automatic rotation"
+        )
+
+        # Manual rotation
+        mock_client.reset_mock()
+        KMSKey.objects.all().delete()
+        create_key(self.org, created_by=self.user)
+
+        mock_client.create_key.assert_called_once_with(
+            description="Key-2025-06-03 via manual rotation"
+        )
 
     @override_settings(DEPLOYMENT_NAME="Test")
     @patch("onadata.libs.kms.tools.get_kms_client")
