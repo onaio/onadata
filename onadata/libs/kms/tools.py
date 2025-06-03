@@ -24,7 +24,11 @@ from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
 from valigetta.decryptor import decrypt_submission
-from valigetta.exceptions import InvalidSubmission, KMSGetPublicKeyError
+from valigetta.exceptions import (
+    InvalidSubmission,
+    KMSCreateAliasError,
+    KMSGetPublicKeyError,
+)
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.api.models import OrganizationProfile
@@ -163,11 +167,14 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     metadata = kms_client.create_key(description=description)
     key_id = metadata["key_id"]
+    deployment_name = getattr(settings, "DEPLOYMENT_NAME", "Ona")
+    alias_name = f"alias/{deployment_name}/{org.user.username}"
 
     try:
         public_key = kms_client.get_public_key(key_id)
+        kms_client.create_alias(alias_name=alias_name, key_id=key_id)
 
-    except KMSGetPublicKeyError as exc:
+    except (KMSGetPublicKeyError, KMSCreateAliasError) as exc:
         logger.exception(exc)
         # Disable key to avoid orphan keys (active keys not
         # assigned to an organization)
