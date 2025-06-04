@@ -1,11 +1,13 @@
 """Tests for module onadata.libs.kms.clients"""
 
+from unittest.mock import patch
+
 from django.test import override_settings
 
 from moto import mock_aws
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.kms.clients import AWSKMSClient
+from onadata.libs.kms.clients import APIKMSClient, AWSKMSClient
 
 
 @mock_aws
@@ -39,3 +41,25 @@ class AWSKMSClientTestBase(TestBase):
         self.assertEqual(client.aws_access_key_id, "kms-id")
         self.assertEqual(client.aws_secret_access_key, "kms-secret")
         self.assertEqual(client.region_name, "us-east-1")
+
+
+@override_settings(
+    KMS_API_BASE_URL="https://api.example.com",
+    KMS_API_CLIENT_ID="test-client-id",
+    KMS_API_CLIENT_SECRET="test-client-secret",
+)
+@patch("onadata.libs.kms.clients.APIKMSClient._get_token")
+class APIKMSClientTestBase(TestBase):
+    """Tests for APIKMSClient"""
+
+    def test_client_instance(self, mock_get_token):
+        """Client instance is initialised with settings."""
+        mock_get_token.return_value = {
+            "access": "test-access-token",
+            "refresh": "test-refresh-token",
+        }
+        client = APIKMSClient()
+
+        self.assertEqual(client.base_url, "https://api.example.com")
+        self.assertEqual(client.client_id, "test-client-id")
+        self.assertEqual(client.client_secret, "test-client-secret")
