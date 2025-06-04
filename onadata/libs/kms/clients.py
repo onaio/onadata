@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
+from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 
@@ -56,4 +57,22 @@ class AWSKMSClient(BaseClient, BaseAWSClient):
                 "AWS_KMS_SECRET_ACCESS_KEY", setting("AWS_SECRET_ACCESS_KEY")
             ),
             "region_name": setting("AWS_KMS_REGION_NAME"),
+        }
+
+
+class APIKMSClient(BaseClient, BaseAPIClient):
+    def __init__(self, **custom_settings):
+        BaseClient.__init__(self, **custom_settings)
+        BaseAPIClient.__init__(
+            self,
+            base_url=self.base_url,
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+        )
+
+    def get_default_settings(self):
+        return {
+            "base_url": setting("KMS_API_BASE_URL"),
+            "client_id": setting("KMS_API_CLIENT_ID"),
+            "client_secret": setting("KMS_API_CLIENT_SECRET"),
         }
