@@ -25,9 +25,9 @@ from django.utils.translation import gettext as _
 
 from valigetta.decryptor import decrypt_submission
 from valigetta.exceptions import (
-    InvalidSubmission,
-    KMSCreateAliasError,
-    KMSGetPublicKeyError,
+    CreateAliasException,
+    GetPublicKeyException,
+    InvalidSubmissionException,
 )
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
@@ -182,7 +182,7 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
         public_key = kms_client.get_public_key(key_id)
         kms_client.create_alias(alias_name=alias_name, key_id=key_id)
 
-    except (KMSGetPublicKeyError, KMSCreateAliasError) as exc:
+    except (GetPublicKeyException, CreateAliasException) as exc:
         logger.exception(exc)
         # Disable key to avoid orphan keys (active keys not
         # assigned to an organization)
@@ -458,7 +458,7 @@ def decrypt_instance(instance: Instance) -> None:
             enc_files=get_encrypted_files(),
         )
 
-    except InvalidSubmission as exc:
+    except InvalidSubmissionException as exc:
         raise DecryptionError(str(exc)) from exc
 
     # Replace encrypted submission with decrypted submission
