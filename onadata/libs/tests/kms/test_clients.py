@@ -2,9 +2,11 @@
 
 from unittest.mock import patch
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
 from moto import mock_aws
+from valigetta.exceptions import InvalidAPIURLException
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.kms.clients import APIKMSClient, AWSKMSClient
@@ -44,9 +46,19 @@ class AWSKMSClientTestBase(TestBase):
 
 
 @override_settings(
-    KMS_API_BASE_URL="https://api.example.com",
     KMS_API_CLIENT_ID="test-client-id",
     KMS_API_CLIENT_SECRET="test-client-secret",
+    KMS_API_URLS={
+        "token": "https://api.example.com/token",
+        "token_refresh": "https://api.example.com/token/refresh",
+        "create_key": "https://api.example.com/api/v1/keys",
+        "decrypt": "https://api.example.com/api/v1/keys/{key_id}/decrypt",
+        "get_public_key": "https://api.example.com/api/v1/keys/{key_id}",
+        "describe_key": "https://api.example.com/api/v1/keys/{key_id}",
+        "update_key_description": "https://api.example.com/api/v1/keys/{key_id}",
+        "disable_key": "https://api.example.com/api/v1/keys/{key_id}/disable",
+        "create_alias": "https://api.example.com/api/v1/keys/{key_id}",
+    },
 )
 @patch("onadata.libs.kms.clients.APIKMSClient._get_token")
 class APIKMSClientTestBase(TestBase):
@@ -60,6 +72,47 @@ class APIKMSClientTestBase(TestBase):
         }
         client = APIKMSClient()
 
-        self.assertEqual(client.base_url, "https://api.example.com")
         self.assertEqual(client.client_id, "test-client-id")
         self.assertEqual(client.client_secret, "test-client-secret")
+        self.assertEqual(client.urls["token"], "https://api.example.com/token")
+        self.assertEqual(
+            client.urls["token_refresh"], "https://api.example.com/token/refresh"
+        )
+        self.assertEqual(
+            client.urls["create_key"], "https://api.example.com/api/v1/keys"
+        )
+        self.assertEqual(
+            client.urls["decrypt"],
+            "https://api.example.com/api/v1/keys/{key_id}/decrypt",
+        )
+        self.assertEqual(
+            client.urls["get_public_key"],
+            "https://api.example.com/api/v1/keys/{key_id}",
+        )
+        self.assertEqual(
+            client.urls["describe_key"], "https://api.example.com/api/v1/keys/{key_id}"
+        )
+        self.assertEqual(
+            client.urls["update_key_description"],
+            "https://api.example.com/api/v1/keys/{key_id}",
+        )
+        self.assertEqual(
+            client.urls["disable_key"],
+            "https://api.example.com/api/v1/keys/{key_id}/disable",
+        )
+        self.assertEqual(
+            client.urls["create_alias"],
+            "https://api.example.com/api/v1/keys/{key_id}",
+        )
+
+    @patch("onadata.libs.kms.clients.APIKMSClient._validate_urls")
+    def test_invalid_urls(self, mock_validate_urls, mock_get_token):
+        """Exception is raised if invalid urls are provided."""
+        mock_get_token.return_value = {
+            "access": "test-access-token",
+            "refresh": "test-refresh-token",
+        }
+        mock_validate_urls.side_effect = InvalidAPIURLException
+
+        with self.assertRaises(ImproperlyConfigured):
+            APIKMSClient()
