@@ -22,9 +22,9 @@ from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
 from valigetta.exceptions import (
-    InvalidSubmission,
-    KMSCreateAliasError,
-    KMSGetPublicKeyError,
+    CreateAliasException,
+    GetPublicKeyException,
+    InvalidSubmissionException,
 )
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
@@ -269,10 +269,10 @@ class CreateKeyTestCase(TestBase):
         """Key is disabled if get public key fails."""
         mock_client = Mock()
         mock_client.create_key.return_value = {"key_id": "abc123"}
-        mock_client.get_public_key.side_effect = KMSGetPublicKeyError()
+        mock_client.get_public_key.side_effect = GetPublicKeyException()
         mock_get_kms_client.return_value = mock_client
 
-        with self.assertRaises(KMSGetPublicKeyError):
+        with self.assertRaises(GetPublicKeyException):
             create_key(self.org)
 
         mock_client.disable_key.assert_called_once()
@@ -284,10 +284,10 @@ class CreateKeyTestCase(TestBase):
         """Key is disabled if get create alias fails."""
         mock_client = Mock()
         mock_client.create_key.return_value = {"key_id": "abc123"}
-        mock_client.create_alias.side_effect = KMSCreateAliasError()
+        mock_client.create_alias.side_effect = CreateAliasException()
         mock_get_kms_client.return_value = mock_client
 
-        with self.assertRaises(KMSCreateAliasError):
+        with self.assertRaises(CreateAliasException):
             create_key(self.org)
 
         mock_client.disable_key.assert_called_once()
@@ -1079,7 +1079,7 @@ class DecryptInstanceTestCase(TestBase):
     @patch("onadata.libs.kms.tools.decrypt_submission")
     def test_decryption_failure(self, mock_decrypt):
         """Decryption failure is handled."""
-        mock_decrypt.side_effect = InvalidSubmission("Invalid signature.")
+        mock_decrypt.side_effect = InvalidSubmissionException("Invalid signature.")
 
         old_xml = self.instance.xml
         old_date_modified = self.instance.date_modified
