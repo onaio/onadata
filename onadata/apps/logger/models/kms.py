@@ -21,6 +21,7 @@ class KMSKey(BaseModel):
         """Managed keys service providers"""
 
         AWS = 1, _("AWS")
+        API = 2, _("API")
 
     key_id = models.CharField(max_length=255)
     description = models.CharField(null=True, blank=True, max_length=255)
