@@ -5072,7 +5072,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             request = self.factory.get("/", **alices_extra)
             response = view(request, pk=self.xform.pk, format="csv")
-            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.status_code, 403)
 
     def test_csv_export_cache(self):
         with HTTMock(enketo_mock):
