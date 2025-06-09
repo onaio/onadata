@@ -189,7 +189,21 @@ class DataFilter(ObjectPermissionsFilter):
         """Filter by ``XForm.shared_data = True`` for anonymous users."""
         if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
-        return queryset
+
+        # Get all xforms from the queryset
+        xform_ids = list(set(queryset.values_list("id", flat=True)))
+        allowed_xform_ids = []
+
+        # Check permissions for each xform
+        for xform_id in xform_ids:
+            try:
+                xform = XForm.objects.get(pk=xform_id)
+                if request.user.has_perm("view_xform_data", xform):
+                    allowed_xform_ids.append(xform_id)
+            except XForm.DoesNotExist:
+                continue
+
+        return queryset.filter(id__in=allowed_xform_ids)
 
 
 class InstanceFilter(django_filter_filters.FilterSet):
