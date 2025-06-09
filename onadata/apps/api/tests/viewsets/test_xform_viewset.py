@@ -70,6 +70,7 @@ from onadata.libs.permissions import (
     DataEntryRole,
     EditorMinorRole,
     EditorRole,
+    EditorNoDownload,
     ManagerRole,
     OwnerRole,
     ReadOnlyRole,
@@ -4979,7 +4980,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
                 self.assertEqual(response.status_code, 204)
 
-                if role_class in [EditorRole, EditorMinorRole]:
+                if role_class in [
+                    EditorNoDownload,
+                    EditorRole,
+                    EditorMinorRole,
+                ]:
                     self.assertFalse(
                         EditorRole.user_has_role(alice_profile.user, self.xform)
                     )
@@ -4996,7 +5001,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                         DataEntryRole.user_has_role(alice_profile.user, self.xform)
                     )
                 elif role_class in [
-                    ReadOnlyRole,
                     ReadOnlyRoleNoDownload,
                 ]:
                     self.assertTrue(
