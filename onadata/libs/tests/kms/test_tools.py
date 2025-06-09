@@ -26,6 +26,7 @@ from valigetta.exceptions import (
     GetPublicKeyException,
     InvalidSubmissionException,
 )
+from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
@@ -292,6 +293,19 @@ class CreateKeyTestCase(TestBase):
 
         mock_client.disable_key.assert_called_once()
         mock_logger.assert_called_once()
+
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_api_provider(self, mock_get_kms_client):
+        """If KMSAPIClient is used provider is saved as API."""
+        mock_client = Mock(spec=BaseAPIClient)
+        mock_client.__class__ = BaseAPIClient
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.get_public_key.return_value = "fake-pub-key"
+        mock_get_kms_client.return_value = mock_client
+
+        kms_key = create_key(self.org)
+
+        self.assertEqual(kms_key.provider, KMSKey.KMSProvider.API)
 
 
 @patch("onadata.libs.kms.tools.create_key")
