@@ -214,7 +214,6 @@ class DataEntryOnlyRole(Role):
         ],
         XForm: [
             CAN_VIEW_XFORM,
-            CAN_VIEW_XFORM_DATA,
             CAN_ADD_SUBMISSIONS,
         ],
     }
