@@ -29,6 +29,7 @@ from valigetta.exceptions import (
     GetPublicKeyException,
     InvalidSubmissionException,
 )
+from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.api.models import OrganizationProfile
@@ -200,6 +201,8 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     if isinstance(kms_client, BaseAWSClient):
         provider = KMSKey.KMSProvider.AWS
+    elif isinstance(kms_client, BaseAPIClient):
+        provider = KMSKey.KMSProvider.API
 
     kms_key = KMSKey.objects.create(
         key_id=key_id,
