@@ -22,6 +22,7 @@ from Crypto.Util.Padding import pad
 from moto import mock_aws
 from valigetta.decryptor import _get_submission_iv
 from valigetta.exceptions import (
+    AliasAlreadyExistsException,
     CreateAliasException,
     GetPublicKeyException,
     InvalidSubmissionException,
@@ -306,6 +307,20 @@ class CreateKeyTestCase(TestBase):
         kms_key = create_key(self.org)
 
         self.assertEqual(kms_key.provider, KMSKey.KMSProvider.API)
+
+    @patch("onadata.libs.kms.tools.get_kms_client")
+    def test_create_alias_already_exists_kms_error(self, mock_get_kms_client):
+        """KMSKey is created even if alias already exists."""
+        mock_client = Mock(spec=BaseAPIClient)
+        mock_client.__class__ = BaseAPIClient
+        mock_client.create_key.return_value = {"key_id": "abc123"}
+        mock_client.get_public_key.return_value = "fake-pub-key"
+        mock_client.create_alias.side_effect = AliasAlreadyExistsException()
+        mock_get_kms_client.return_value = mock_client
+
+        create_key(self.org)
+
+        self.assertTrue(KMSKey.objects.filter(key_id="abc123").exists())
 
 
 @patch("onadata.libs.kms.tools.create_key")

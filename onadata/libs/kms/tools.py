@@ -6,6 +6,7 @@ import importlib
 import logging
 import mimetypes
 import os
+from contextlib import suppress
 from datetime import timedelta
 from hashlib import sha256
 from io import BytesIO
@@ -25,6 +26,7 @@ from django.utils.translation import gettext as _
 
 from valigetta.decryptor import decrypt_submission
 from valigetta.exceptions import (
+    AliasAlreadyExistsException,
     CreateAliasException,
     GetPublicKeyException,
     InvalidSubmissionException,
@@ -181,7 +183,9 @@ def create_key(org: OrganizationProfile, created_by=None) -> KMSKey:
 
     try:
         public_key = kms_client.get_public_key(key_id)
-        kms_client.create_alias(alias_name=alias_name, key_id=key_id)
+
+        with suppress(AliasAlreadyExistsException):
+            kms_client.create_alias(alias_name=alias_name, key_id=key_id)
 
     except (GetPublicKeyException, CreateAliasException) as exc:
         logger.exception(exc)
