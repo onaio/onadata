@@ -519,7 +519,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         profile.save()
 
         # Enable meta perms
-        data_value = "editor-minor|dataentry-minor|readonly-no-download"
+        data_value = "editor-minor|dataentry-only|readonly-no-download"
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         DataEntryOnlyRole.add(user_alice, self.xform)
