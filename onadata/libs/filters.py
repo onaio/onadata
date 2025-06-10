@@ -2,6 +2,7 @@
 """
 Django rest_framework ViewSet filters.
 """
+
 from uuid import UUID
 
 from django.contrib.auth import get_user_model
@@ -29,6 +30,7 @@ from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.numeric import int_or_parse_error
 
 # pylint: disable=invalid-name
@@ -190,16 +192,12 @@ class DataFilter(ObjectPermissionsFilter):
         if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
 
-        # Get all xforms from the queryset
-        xform_ids = list(set(queryset.values_list("id", flat=True)))
+        # Check permissions for each XForm
         allowed_xform_ids = []
-
-        # Check permissions for each xform
-        for xform_id in xform_ids:
+        for xform in queryset_iterator(queryset):
             try:
-                xform = XForm.objects.get(pk=xform_id)
                 if request.user.has_perm("view_xform_data", xform):
-                    allowed_xform_ids.append(xform_id)
+                    allowed_xform_ids.append(xform.id)
             except XForm.DoesNotExist:
                 continue
 
