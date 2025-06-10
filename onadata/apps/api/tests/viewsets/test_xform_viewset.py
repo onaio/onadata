@@ -63,6 +63,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
 from onadata.libs.exceptions import EncryptionError
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
@@ -80,7 +81,6 @@ from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
-from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
@@ -2799,14 +2799,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         # assign data entry role
         data = {
-            "project": self.xform.project.id,
+            "project": self.xform.project,
             "username": "alice",
             "role": "dataentry",
         }
 
-        serializer = ShareProjectSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
+        share_project = ShareProject(**data)
+        share_project.save()
 
         title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
@@ -2840,14 +2839,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         # assign manager role
         data = {
-            "project": self.xform.project.id,
+            "project": self.xform.project,
             "username": self.user.username,
             "role": "manager",
         }
 
-        serializer = ShareProjectSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
+        share_project = ShareProject(**data)
+        share_project.save()
 
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
