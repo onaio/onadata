@@ -22,11 +22,11 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
-from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
+from onadata.libs.models.share_project import ShareProject
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -1090,14 +1090,13 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 403)
 
         data = {
-            "project": self.xform.project.id,
+            "project": self.xform.project,
             "username": "alice",
             "role": "dataentry",
         }
 
-        serializer = ShareProjectSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
+        share_project = ShareProject(**data)
+        share_project.save()
 
         client = DigestClient()
         client.set_authorization(username, password, "Digest")
