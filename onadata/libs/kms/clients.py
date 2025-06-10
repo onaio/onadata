@@ -57,9 +57,9 @@ class APIKMSClient(BaseAPIClient):
             ) from exc
 
     @classmethod
-    def save_token_to_cache(cls, token):
+    def save_token_to_cache(cls, token: dict[str, str]) -> None:
         safe_cache_set(KMS_TOKEN_CACHE_KEY, token, KMS_TOKEN_CACHE_TTL)
 
     @classmethod
-    def get_token_from_cache(cls):
+    def get_token_from_cache(cls) -> dict[str, str] | None:
         return safe_cache_get(KMS_TOKEN_CACHE_KEY)
