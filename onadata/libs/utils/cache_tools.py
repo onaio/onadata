@@ -88,6 +88,10 @@ ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 # Report exception
 ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
 
+# KMS
+KMS_TOKEN_CACHE_KEY = "kms-token"
+KMS_TOKEN_CACHE_TTL = 60 * 60 * 24  # 24 hours
+
 
 def safe_delete(key):
     """Safely deletes a given key from the cache."""
