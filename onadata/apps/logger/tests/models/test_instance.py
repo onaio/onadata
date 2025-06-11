@@ -1507,3 +1507,32 @@ class TestInstance(TestBase):
         instance = Instance.objects.order_by("-pk").first()
 
         self.assertFalse(instance.is_encrypted)
+
+    def test_soft_delete_instance(self):
+        """Soft-deleted Instance is not counted as decrypted submission."""
+        now = datetime(2025, 6, 11, 12, 0, 0, tzinfo=timezone.utc)
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        self.xform.is_managed = True
+        self.xform.num_of_decrypted_submissions = 4
+        self.xform.save(update_fields=["is_managed", "num_of_decrypted_submissions"])
+
+        instance_qs = Instance.objects.filter(xform=self.xform)
+
+        instance = instance_qs[0]
+        instance.set_deleted(user=self.user, deleted_at=now)
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.xform.num_of_submissions, 3)
+        self.assertEqual(instance.xform.num_of_decrypted_submissions, 3)
+        self.assertEqual(instance.deleted_at, now)
+        self.assertEqual(instance.deleted_by, self.user)
+
+        # deleted_at and deleted_by are optional
+        instance = instance_qs[1]
+        instance.set_deleted()
+        instance.refresh_from_db()
+
+        self.assertIsNotNone(instance.deleted_at)
+        self.assertIsNone(instance.deleted_by)

@@ -808,6 +808,7 @@ class Instance(models.Model, InstanceBaseClass):
         self.save()
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
+        self.xform.decrypted_submission_count(force_update=True)
         self.parsed_instance.save()
 
     def soft_delete_attachments(self, user=None):
