@@ -1164,9 +1164,10 @@ def delete_xform_submissions(
 
     xform.project.date_modified = timezone.now()
     xform.project.save(update_fields=["date_modified"])
+    xform.decrypted_submission_count(force_update=True)
     safe_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
     send_message(
-        instance_id=instance_ids,
+        instance_id=list(instance_qs.values_list("id", flat=True)),
         target_id=xform.id,
         target_type=XFORM,
         user=deleted_by,
