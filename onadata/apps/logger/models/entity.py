@@ -44,7 +44,7 @@ class Entity(BaseModel):
             # Avoid cyclic dependency errors
             logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
             transaction.on_commit(
-                lambda: logger_tasks.dec_elist_num_entities_async.delay(
+                lambda: logger_tasks.decr_elist_num_entities_async.delay(
                     self.entity_list.pk
                 )
             )
