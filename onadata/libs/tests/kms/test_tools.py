@@ -38,12 +38,14 @@ from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     clean_public_key,
     create_key,
+    decr_xform_decrypted_submission_count,
     decrypt_instance,
     disable_expired_keys,
     disable_key,
     disable_xform_encryption,
     encrypt_xform,
     get_kms_client,
+    incr_xform_decrypted_submission_count,
     is_instance_encrypted,
     rotate_expired_keys,
     rotate_key,
@@ -1710,4 +1712,56 @@ class DisableExpiredKeysTestCase(TestBase):
 
         mock_logger_exception.assert_called_once_with(
             "Key disable failed for key %s", self.kms_key.key_id
+        )
+
+
+class IncrXFormDecryptedSubmissionCountTestCase(TestBase):
+    """Tests `incr_xform_decrypted_submission_count`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+
+    @patch("onadata.libs.kms.tools.increment_counter")
+    def test_incr_xform_decrypted_submission_count(self, mock_increment_counter):
+        """`incr_xform_decrypted_submission_count` increments the count"""
+        incr_xform_decrypted_submission_count(self.xform)
+
+        mock_increment_counter.assert_called_once_with(
+            pk=self.xform.pk,
+            model=self.xform,
+            field_name="num_of_decrypted_submissions",
+            key_prefix="xfm-dec-submission-count-",
+            tracked_ids_key="xfm-dec-submission-count-ids",
+            created_at_key="xfm-dec-submission-count-ids-created-at",
+            lock_key="xfm-dec-submission-count-ids-lock",
+            failover_report_key="xfm-dec-submission-count-failover-report-sent",
+            task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+        )
+
+
+class DecrXFormDecryptedSubmissionCountTestCase(TestBase):
+    """Tests `decr_xform_decrypted_submission_count`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+
+    @patch("onadata.libs.kms.tools.decrement_counter")
+    def test_decr_xform_decrypted_submission_count(self, mock_decrement_counter):
+        """`decr_xform_decrypted_submission_count` decrements the count"""
+        decr_xform_decrypted_submission_count(self.xform)
+
+        mock_decrement_counter.assert_called_once_with(
+            pk=self.xform.pk,
+            model=self.xform,
+            field_name="num_of_decrypted_submissions",
+            key_prefix="xfm-dec-submission-count-",
+            tracked_ids_key="xfm-dec-submission-count-ids",
+            created_at_key="xfm-dec-submission-count-ids-created-at",
+            lock_key="xfm-dec-submission-count-ids-lock",
+            failover_report_key="xfm-dec-submission-count-failover-report-sent",
+            task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
         )
