@@ -695,6 +695,10 @@ def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> 
     :param xform: XForm
     :param incr: True to increment, False to decrement
     """
+    # Ignore XForm that is not managed using encryption keys
+    if not xform.is_managed:
+        return
+
     adjust_counter(
         pk=xform.pk,
         model=XForm,
