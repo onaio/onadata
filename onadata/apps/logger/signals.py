@@ -2,9 +2,10 @@
 """
 logger signals module
 """
+
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -16,7 +17,7 @@ from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
 )
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.logger_tools import create_or_update_entity_from_instance
+from onadata.libs.utils.entities_utils import create_or_update_entity_from_instance
 
 
 # pylint: disable=unused-argument

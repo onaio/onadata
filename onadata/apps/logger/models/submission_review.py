@@ -2,6 +2,7 @@
 """
 Submission Review Model Module
 """
+
 from __future__ import unicode_literals
 
 import importlib
@@ -26,7 +27,7 @@ def update_instance_json_on_save(sender, instance, **kwargs):
 
 def create_or_update_entity(sender, instance, created=False, **kwargs):
     """Signal handler to create/update Entity if submission is approved"""
-    module = importlib.import_module("onadata.libs.utils.logger_tools")
+    module = importlib.import_module("onadata.libs.utils.entities_utils")
 
     submission_instance = instance.instance
 
