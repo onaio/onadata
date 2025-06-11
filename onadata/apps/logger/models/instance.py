@@ -756,13 +756,16 @@ class Instance(models.Model, InstanceBaseClass):
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
         """Set the timestamp and user when a submission is deleted."""
+        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
         if user:
             self.deleted_by = user
         self.deleted_at = deleted_at
         self.save()
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
-        self.xform.decrypted_submission_count(force_update=True)
+        # Decrement decrypted submission count
+        logger_tasks.decr_xform_decrypted_submission_count_async.delay(self.xform.pk)
         self.parsed_instance.save()
 
     def soft_delete_attachments(self, user=None):
@@ -884,6 +887,29 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
         update_fields_directly(instance, is_encrypted=True)
 
 
+def _decr_xform_decrypted_submission_count(xform_pk: int):
+    """Decrement XForm decrypted submission count"""
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
+    transaction.on_commit(
+        lambda: logger_tasks.decr_xform_decrypted_submission_count_async.delay(xform_pk)
+    )
+
+
+@use_master
+def decr_xform_decrypted_submission_count(sender, instance, created=False, **kwargs):
+    """Decrement XForm decrypted submission count"""
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
+    transaction.on_commit(
+        lambda: logger_tasks.decr_xform_decrypted_submission_count_async.delay(
+            instance.xform.pk
+        )
+    )
+
+
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
 )
@@ -927,6 +953,12 @@ pre_save.connect(
 post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_instance")
 
 post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
+
+post_delete.connect(
+    decr_xform_decrypted_submission_count,
+    sender=Instance,
+    dispatch_uid="decr_xform_decrypted_submission_count",
+)
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):

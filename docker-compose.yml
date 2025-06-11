@@ -6,7 +6,10 @@ services:
       context: .
       args:
         INSTALL_DEV_DEPENDENCIES: "true"
+        optional_packages: git+ssh://git@github.com/onaio/valigetta.git@d4f0d525f3c67acfd4a8f710233f57f59b3e6207
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
+      ssh:
+        - default # mount the default SSH agent
     depends_on:
       - database
       - cache
@@ -26,7 +29,10 @@ services:
       context: .
       args:
         INSTALL_DEV_DEPENDENCIES: "true"
+        optional_packages: git+ssh://git@github.com/onaio/valigetta.git@d4f0d525f3c67acfd4a8f710233f57f59b3e6207
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
+      ssh:
+        - default # mount the default SSH agent
     depends_on:
       - database
       - cache

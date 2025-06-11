@@ -693,7 +693,7 @@ def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> 
     """
     adjust_counter(
         pk=xform.pk,
-        model=xform,
+        model=XForm,
         field_name="num_of_decrypted_submissions",
         incr=incr,
         key_prefix=XFORM_DEC_SUBMISSION_COUNT,

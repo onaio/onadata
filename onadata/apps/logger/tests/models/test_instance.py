@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.http.request import HttpRequest
-from django.test import override_settings
+from django.test import TestCase, override_settings
 
 from django_digest.test import DigestAuth
 
@@ -42,9 +42,9 @@ from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-class TestInstance(TestBase):
+class TestInstance(TestBase, TestCase):
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super().setUp()
 
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
@@ -1508,9 +1508,11 @@ class TestInstance(TestBase):
 
         self.assertFalse(instance.is_encrypted)
 
-    def test_soft_delete_instance(self):
-        """Soft-deleted Instance is not counted as decrypted submission."""
-        now = datetime(2025, 6, 11, 12, 0, 0, tzinfo=timezone.utc)
+    @patch(
+        "onadata.apps.logger.tasks.decr_xform_decrypted_submission_count_async.delay"
+    )
+    def test_soft_delete_decrypted_submission_count_decremented(self, mock_decr):
+        """Soft deleting Instance decrements decrypted submission count."""
         self._publish_transportation_form()
         self._make_submissions()
 
@@ -1521,18 +1523,27 @@ class TestInstance(TestBase):
         instance_qs = Instance.objects.filter(xform=self.xform)
 
         instance = instance_qs[0]
-        instance.set_deleted(user=self.user, deleted_at=now)
-        instance.refresh_from_db()
-
-        self.assertEqual(instance.xform.num_of_submissions, 3)
-        self.assertEqual(instance.xform.num_of_decrypted_submissions, 3)
-        self.assertEqual(instance.deleted_at, now)
-        self.assertEqual(instance.deleted_by, self.user)
-
-        # deleted_at and deleted_by are optional
-        instance = instance_qs[1]
         instance.set_deleted()
-        instance.refresh_from_db()
 
-        self.assertIsNotNone(instance.deleted_at)
-        self.assertIsNone(instance.deleted_by)
+        mock_decr.assert_called_once_with(self.xform.pk)
+
+    @patch(
+        "onadata.apps.logger.tasks.decr_xform_decrypted_submission_count_async.delay"
+    )
+    def test_hard_delete_decrypted_submission_count_decremented(self, mock_decr):
+        """Hard deleting Instance decrements decrypted submission count."""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        self.xform.is_managed = True
+        self.xform.num_of_decrypted_submissions = 4
+        self.xform.save(update_fields=["is_managed", "num_of_decrypted_submissions"])
+
+        instance_qs = Instance.objects.filter(xform=self.xform)
+
+        instance = instance_qs[0]
+
+        with self.captureOnCommitCallbacks(execute=True):
+            instance.delete()
+
+        mock_decr.assert_called_once_with(self.xform.pk)
