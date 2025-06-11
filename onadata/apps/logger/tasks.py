@@ -14,6 +14,7 @@ from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XF
 from onadata.celeryapp import app
 from onadata.libs.kms.tools import (
     adjust_xform_decrypted_submission_count,
+    commit_cached_xform_decrypted_submission_count,
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
@@ -202,3 +203,17 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
 
     else:
         adjust_xform_decrypted_submission_count(xform, incr=False)
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def commit_cached_xform_decrypted_submission_count_async():
+    """Commit cached XForm decrypted submission count to the database
+
+    Call this task periodically, such as in a background task to ensure
+    cached counters for XForm `num_of_decrypted_submissions` are commited
+    to the database.
+
+    Cached counters have no expiry, so it is essential to ensure that
+    this task is called periodically.
+    """
+    commit_cached_xform_decrypted_submission_count()
