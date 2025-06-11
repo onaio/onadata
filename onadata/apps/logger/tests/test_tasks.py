@@ -11,6 +11,7 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
+    commit_cached_xform_decrypted_submission_count_async,
     decr_xform_decrypted_submission_count_async,
     disable_expired_keys_async,
     reconstruct_xform_export_register_async,
@@ -395,3 +396,41 @@ class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
         decr_xform_decrypted_submission_count_async.delay(sys.maxsize)
         mock_decr.assert_not_called()
         mock_logger.assert_called_once()
+
+
+@patch("onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count")
+class CommitCachedXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
+    """Tests for commit_cached_xform_decrypted_submission_count_async"""
+
+    def test_commit_cached_xform_decrypted_submission_count(self, mock_commit):
+        """Commit cached XForm decrypted submission count"""
+        commit_cached_xform_decrypted_submission_count_async.delay()
+        mock_commit.assert_called_once()
+
+    @patch(
+        "onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async.retry"
+    )
+    def test_retry_connection_error(self, mock_retry, mock_commit):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_commit.side_effect = ConnectionError
+        commit_cached_xform_decrypted_submission_count_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch(
+        "onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async.retry"
+    )
+    def test_retry_database_error(self, mock_retry, mock_commit):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_commit.side_effect = DatabaseError
+        commit_cached_xform_decrypted_submission_count_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
