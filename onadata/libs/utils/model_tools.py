@@ -223,11 +223,12 @@ def _decrement_cached_counter(
         cache.decr(cache_key)
 
 
-def increment_counter(
+def adjust_counter(
     *,
     pk: int,
     model: Type[Model],
     field_name: str,
+    incr: bool,
     key_prefix: str,
     tracked_ids_key: str,
     created_at_key: str,
@@ -235,14 +236,14 @@ def increment_counter(
     failover_report_key: str,
     task_name: str,
 ) -> None:
-    """Increment a numeric counter for a model instance.
+    """Adjust a numeric counter (increment or decrement) for a model instance.
 
-    Uses cache if available and not locked. Falls back to DB if cache is
-    locked or inaccessible.
+    Uses cached counter if available and valid. Falls back to DB otherwise.
 
     :param pk: Primary key of the instance
     :param model: The Django model class
-    :param field_name: The numeric field to increment
+    :param field_name: The numeric field to adjust
+    :param incr: True to increment, False to decrement
     :param key_prefix: Prefix used to form the cache counter key
     :param tracked_ids_key: Cache key to track modified PKs
     :param created_at_key: Cache key when caching began
@@ -252,76 +253,31 @@ def increment_counter(
     """
 
     def fallback_to_db():
-        adjust_numeric_field(model, pk=pk, field_name=field_name, count=1)
-
-    if cache.get(lock_key) is not None:
-        fallback_to_db()
-        return
-
-    try:
-        _increment_cached_counter(
-            pk=pk,
-            key_prefix=key_prefix,
-            tracked_ids_key=tracked_ids_key,
-            created_at_key=created_at_key,
+        adjust_numeric_field(
+            model, pk=pk, field_name=field_name, count=1 if incr else -1
         )
-        _execute_cached_counter_commit_failover(
-            model=model,
-            field_name=field_name,
-            key_prefix=key_prefix,
-            tracked_ids_key=tracked_ids_key,
-            lock_key=lock_key,
-            created_at_key=created_at_key,
-            failover_report_key=failover_report_key,
-            task_name=task_name,
-        )
-    except ConnectionError as exc:
-        logger.exception(exc)
-        fallback_to_db()
-
-
-def decrement_counter(
-    *,
-    pk: int,
-    model: Type[Model],
-    field_name: str,
-    key_prefix: str,
-    tracked_ids_key: str,
-    created_at_key: str,
-    lock_key: str,
-    failover_report_key: str,
-    task_name: str,
-) -> None:
-    """Decrement a numeric counter for a model instance.
-
-    Uses cache if available and not locked. Falls back to DB if cache is locked,
-    counter is missing, or cache access fails.
-
-    :param pk: Primary key of the instance
-    :param model: The Django model class
-    :param field_name: The numeric field to decrement
-    :param key_prefix: Prefix used to form the cache counter key
-    :param tracked_ids_key: Cache key to track modified PKs
-    :param created_at_key: Cache key when caching began
-    :param lock_key: Cache key used for locking
-    :param failover_report_key: Cache key to throttle failover alerts
-    :param task_name: Task responsible for committing to DB
-    """
-
-    def db_fallback():
-        adjust_numeric_field(model, pk=pk, field_name=field_name, count=-1)
 
     cache_key = f"{key_prefix}{pk}"
 
-    if cache.get(lock_key) or cache.get(cache_key) is None:
-        db_fallback()
+    # Always fallback to DB if cache is locked or (for decrement) counter is missing
+    if cache.get(lock_key) or (not incr and cache.get(cache_key) is None):
+        fallback_to_db()
         return
 
     try:
-        _decrement_cached_counter(
-            pk=pk,
-            key_prefix=key_prefix,
-        )
+        if incr:
+            _increment_cached_counter(
+                pk=pk,
+                key_prefix=key_prefix,
+                tracked_ids_key=tracked_ids_key,
+                created_at_key=created_at_key,
+            )
+        else:
+            _decrement_cached_counter(
+                pk=pk,
+                key_prefix=key_prefix,
+            )
+
         _execute_cached_counter_commit_failover(
             model=model,
             field_name=field_name,
@@ -334,4 +290,4 @@ def decrement_counter(
         )
     except ConnectionError as exc:
         logger.exception(exc)
-        db_fallback()
+        fallback_to_db()

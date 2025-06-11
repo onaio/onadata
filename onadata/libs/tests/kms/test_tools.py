@@ -38,7 +38,6 @@ from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     clean_public_key,
     create_key,
-    decr_xform_decrypted_submission_count,
     decrypt_instance,
     disable_expired_keys,
     disable_key,
@@ -1723,41 +1722,16 @@ class IncrXFormDecryptedSubmissionCountTestCase(TestBase):
 
         self._publish_transportation_form()
 
-    @patch("onadata.libs.kms.tools.increment_counter")
-    def test_incr_xform_decrypted_submission_count(self, mock_increment_counter):
+    @patch("onadata.libs.kms.tools.adjust_counter")
+    def test_incr_xform_decrypted_submission_count(self, mock_adjust_counter):
         """`incr_xform_decrypted_submission_count` increments the count"""
         incr_xform_decrypted_submission_count(self.xform)
 
-        mock_increment_counter.assert_called_once_with(
+        mock_adjust_counter.assert_called_once_with(
             pk=self.xform.pk,
             model=self.xform,
             field_name="num_of_decrypted_submissions",
-            key_prefix="xfm-dec-submission-count-",
-            tracked_ids_key="xfm-dec-submission-count-ids",
-            created_at_key="xfm-dec-submission-count-ids-created-at",
-            lock_key="xfm-dec-submission-count-ids-lock",
-            failover_report_key="xfm-dec-submission-count-failover-report-sent",
-            task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
-        )
-
-
-class DecrXFormDecryptedSubmissionCountTestCase(TestBase):
-    """Tests `decr_xform_decrypted_submission_count`"""
-
-    def setUp(self):
-        super().setUp()
-
-        self._publish_transportation_form()
-
-    @patch("onadata.libs.kms.tools.decrement_counter")
-    def test_decr_xform_decrypted_submission_count(self, mock_decrement_counter):
-        """`decr_xform_decrypted_submission_count` decrements the count"""
-        decr_xform_decrypted_submission_count(self.xform)
-
-        mock_decrement_counter.assert_called_once_with(
-            pk=self.xform.pk,
-            model=self.xform,
-            field_name="num_of_decrypted_submissions",
+            incr=True,
             key_prefix="xfm-dec-submission-count-",
             tracked_ids_key="xfm-dec-submission-count-ids",
             created_at_key="xfm-dec-submission-count-ids-created-at",
