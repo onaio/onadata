@@ -223,9 +223,11 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter incremented if cache inacessible
         with patch(
-            "onadata.libs.utils.logger_tools._inc_elist_num_entities_cache"
+            "onadata.libs.utils.entities_utils._inc_elist_num_entities_cache"
         ) as mock_inc:
-            with patch("onadata.libs.utils.logger_tools.logger.exception") as mock_exc:
+            with patch(
+                "onadata.libs.utils.entities_utils.logger.exception"
+            ) as mock_exc:
                 mock_inc.side_effect = ConnectionError
                 cache.set(self.counter_key, 3)
                 inc_elist_num_entities(self.entity_list.pk)
@@ -346,9 +348,11 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter is decremented if cache inaccesible
         with patch(
-            "onadata.libs.utils.logger_tools._dec_elist_num_entities_cache"
+            "onadata.libs.utils.entities_utils._dec_elist_num_entities_cache"
         ) as mock_dec:
-            with patch("onadata.libs.utils.logger_tools.logger.exception") as mock_exc:
+            with patch(
+                "onadata.libs.utils.entities_utils.logger.exception"
+            ) as mock_exc:
                 mock_dec.side_effect = ConnectionError
                 cache.set(counter_key, 3)
                 dec_elist_num_entities(self.entity_list.pk)
