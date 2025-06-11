@@ -223,11 +223,9 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter incremented if cache inacessible
         with patch(
-            "onadata.libs.utils.entities_utils._inc_elist_num_entities_cache"
+            "onadata.libs.utils.model_tools._increment_cached_counter"
         ) as mock_inc:
-            with patch(
-                "onadata.libs.utils.entities_utils.logger.exception"
-            ) as mock_exc:
+            with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_inc.side_effect = ConnectionError
                 cache.set(self.counter_key, 3)
                 inc_elist_num_entities(self.entity_list.pk)
@@ -251,10 +249,11 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Timeout should be `None`
         self.assertTrue(
-            call(self.counter_key, 1, None) in mock_cache_add.call_args_list
+            call(self.counter_key, 1, timeout=None) in mock_cache_add.call_args_list
         )
         self.assertTrue(
-            call(self.created_at_key, mocked_now, None) in mock_cache_add.call_args_list
+            call(self.created_at_key, mocked_now, timeout=None)
+            in mock_cache_add.call_args_list
         )
         mock_cache_set.assert_called_once_with(
             self.ids_key, {self.entity_list.pk}, None
@@ -269,8 +268,8 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         # Cache value is not overridden
         self.assertEqual(cache.get(self.created_at_key), now)
 
-    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.entities_utils.report_exception")
+    @override_settings(COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
+    @patch("onadata.libs.utils.model_tools.report_exception")
     def test_failover(self, mock_report_exc):
         """Failover is executed if commit timeout threshold exceeded"""
         cache_created_at = timezone.now() - timedelta(minutes=10)
@@ -294,8 +293,8 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         mock_report_exc.assert_called_once_with(subject, msg)
         self.assertEqual(cache.get("elist-failover-report-sent"), "sent")
 
-    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.entities_utils.report_exception")
+    @override_settings(COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
+    @patch("onadata.libs.utils.model_tools.report_exception")
     def test_failover_report_cache_hit(self, mock_report_exc):
         """Report exception not sent if cache `elist-failover-report-sent` set"""
         cache.set("elist-failover-report-sent", "sent")
@@ -348,11 +347,9 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter is decremented if cache inaccesible
         with patch(
-            "onadata.libs.utils.entities_utils._dec_elist_num_entities_cache"
+            "onadata.libs.utils.model_tools._decrement_cached_counter"
         ) as mock_dec:
-            with patch(
-                "onadata.libs.utils.entities_utils.logger.exception"
-            ) as mock_exc:
+            with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_dec.side_effect = ConnectionError
                 cache.set(counter_key, 3)
                 dec_elist_num_entities(self.entity_list.pk)
