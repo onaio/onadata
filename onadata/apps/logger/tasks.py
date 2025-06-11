@@ -13,13 +13,15 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
-from onadata.libs.utils.logger_tools import (
+from onadata.libs.utils.entities_utils import (
     commit_cached_elist_num_entities,
     dec_elist_num_entities,
     inc_elist_num_entities,
+    soft_delete_entities_bulk,
+)
+from onadata.libs.utils.logger_tools import (
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
-    soft_delete_entities_bulk,
 )
 from onadata.libs.utils.project_utils import set_project_perms_to_object
 
