@@ -45,9 +45,19 @@ from onadata.apps.logger.models import (
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.permissions import is_organization
+from onadata.libs.utils.cache_tools import (
+    XFORM_DECRYPTED_SUBMISSION_COUNT,
+    XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
+    XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
+    XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+)
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
-from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.model_tools import (
+    decrement_counter,
+    increment_counter,
+    queryset_iterator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -510,6 +520,7 @@ def decrypt_instance(instance: Instance) -> None:
     attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
         deleted_at=timezone.now()
     )
+    incr_xform_decrypted_submission_count(instance.xform)
 
 
 @transaction.atomic()
@@ -674,3 +685,39 @@ def disable_expired_keys():
 
     if mass_mail_data:
         send_mass_mail(tuple(mass_mail_data))
+
+
+def incr_xform_decrypted_submission_count(xform: XForm) -> None:
+    """Increment XForm decrypted submission count
+
+    :param xform: XForm
+    """
+    increment_counter(
+        pk=xform.pk,
+        model=XForm,
+        field_name="num_of_decrypted_submissions",
+        key_prefix=XFORM_DECRYPTED_SUBMISSION_COUNT,
+        tracked_ids_key=XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
+        created_at_key=XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
+        lock_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+        failover_report_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+    )
+
+
+def decr_xform_decrypted_submission_count(xform: XForm) -> None:
+    """Decrement XForm decrypted submission count
+
+    :param xform: XForm
+    """
+    decrement_counter(
+        pk=xform.pk,
+        model=XForm,
+        field_name="num_of_decrypted_submissions",
+        key_prefix=XFORM_DECRYPTED_SUBMISSION_COUNT,
+        tracked_ids_key=XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
+        created_at_key=XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
+        lock_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+        failover_report_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+    )
