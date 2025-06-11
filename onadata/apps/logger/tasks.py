@@ -13,6 +13,7 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
 from onadata.libs.kms.tools import (
+    adjust_xform_decrypted_submission_count,
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
@@ -105,7 +106,7 @@ def commit_cached_elist_num_entities_async():
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def inc_elist_num_entities_async(elist_pk: int):
+def incr_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
@@ -114,7 +115,7 @@ def inc_elist_num_entities_async(elist_pk: int):
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
-def dec_elist_num_entities_async(elist_pk: int) -> None:
+def decr_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
@@ -186,3 +187,18 @@ def disable_expired_keys_async():
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
     send_key_rotation_reminder()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
+    """Decrement XForm decrypted submission count asynchronously
+
+    :param xform_id: Primary key for XForm
+    """
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        adjust_xform_decrypted_submission_count(xform, incr=False)
