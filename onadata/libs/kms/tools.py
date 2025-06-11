@@ -54,11 +54,7 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
-from onadata.libs.utils.model_tools import (
-    decrement_counter,
-    increment_counter,
-    queryset_iterator,
-)
+from onadata.libs.utils.model_tools import adjust_counter, queryset_iterator
 
 logger = logging.getLogger(__name__)
 
@@ -697,28 +693,11 @@ def incr_xform_decrypted_submission_count(xform: XForm) -> None:
 
     :param xform: XForm
     """
-    increment_counter(
+    adjust_counter(
         pk=xform.pk,
         model=xform,
         field_name="num_of_decrypted_submissions",
-        key_prefix=XFORM_DEC_SUBMISSION_COUNT,
-        tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
-        created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
-        lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
-        failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
-        task_name=DECRYPTED_SUBMISSION_COUNT_TASK,
-    )
-
-
-def decr_xform_decrypted_submission_count(xform: XForm) -> None:
-    """Decrement XForm decrypted submission count
-
-    :param xform: XForm
-    """
-    decrement_counter(
-        pk=xform.pk,
-        model=xform,
-        field_name="num_of_decrypted_submissions",
+        incr=True,
         key_prefix=XFORM_DEC_SUBMISSION_COUNT,
         tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
         created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,

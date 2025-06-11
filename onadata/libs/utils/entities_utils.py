@@ -16,9 +16,8 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_LOCK,
 )
 from onadata.libs.utils.model_tools import (
+    adjust_counter,
     commit_cached_counters,
-    decrement_counter,
-    increment_counter,
     queryset_iterator,
 )
 
@@ -186,10 +185,11 @@ def inc_elist_num_entities(pk: int) -> None:
 
     :param pk: Primary key for EntityList
     """
-    increment_counter(
+    adjust_counter(
         pk=pk,
         model=EntityList,
         field_name="num_entities",
+        incr=True,
         key_prefix=ELIST_NUM_ENTITIES,
         tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
         created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
@@ -207,10 +207,11 @@ def dec_elist_num_entities(pk: int) -> None:
 
     :param pk: Primary key for EntityList
     """
-    decrement_counter(
+    adjust_counter(
         pk=pk,
         model=EntityList,
         field_name="num_entities",
+        incr=False,
         key_prefix=ELIST_NUM_ENTITIES,
         tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
         created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
