@@ -21,10 +21,9 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.entities_utils import (
+    adjust_elist_num_entities,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
-    dec_elist_num_entities,
-    inc_elist_num_entities,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -187,7 +186,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Database counter is incremented if cache is locked"""
         cache.set(self.lock_key, "true")
         cache.set(self.counter_key, 3)
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 11)
@@ -204,7 +203,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertIsNone(cache.get(self.ids_key))
         self.assertIsNone(cache.get(self.created_at_key))
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
 
         self.assertEqual(cache.get(self.counter_key), 1)
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk})
@@ -214,7 +213,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertEqual(self.entity_list.num_entities, 10)
         # New EntityList
         vaccine = EntityList.objects.create(name="vaccine", project=self.project)
-        inc_elist_num_entities(vaccine.pk)
+        adjust_elist_num_entities(vaccine.pk, incr=True)
 
         self.assertEqual(cache.get(f"{self.counter_key_prefix}{vaccine.pk}"), 1)
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk, vaccine.pk})
@@ -228,7 +227,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
             with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_inc.side_effect = ConnectionError
                 cache.set(self.counter_key, 3)
-                inc_elist_num_entities(self.entity_list.pk)
+                adjust_elist_num_entities(self.entity_list.pk, incr=True)
                 self.entity_list.refresh_from_db()
 
                 self.assertEqual(cache.get(self.counter_key), 3)
@@ -245,7 +244,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """
         mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=dtz.utc)
         mock_now.return_value = mocked_now
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
 
         # Timeout should be `None`
         self.assertTrue(
@@ -264,7 +263,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         now = timezone.now()
         cache.set(self.created_at_key, now)
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
         # Cache value is not overridden
         self.assertEqual(cache.get(self.created_at_key), now)
 
@@ -277,7 +276,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 14)
@@ -303,7 +302,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=True)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 14)
@@ -321,7 +320,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(self.lock_key, "true")
         cache.set(counter_key, 3)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=False)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 9)
@@ -332,7 +331,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Cache counter is decremented if cache is unlocked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(counter_key, 3)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=False)
 
         self.assertEqual(cache.get(counter_key), 2)
         self.entity_list.refresh_from_db()
@@ -341,7 +340,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter is decremented if cache missing
         cache.delete(counter_key)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list.pk, incr=False)
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 9)
 
@@ -352,7 +351,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
             with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_dec.side_effect = ConnectionError
                 cache.set(counter_key, 3)
-                dec_elist_num_entities(self.entity_list.pk)
+                adjust_elist_num_entities(self.entity_list.pk, incr=False)
                 self.entity_list.refresh_from_db()
 
                 self.assertEqual(cache.get(counter_key), 3)

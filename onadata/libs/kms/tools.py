@@ -58,10 +58,6 @@ from onadata.libs.utils.model_tools import adjust_counter, queryset_iterator
 
 logger = logging.getLogger(__name__)
 
-DECRYPTED_SUBMISSION_COUNT_TASK = (
-    "onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async"
-)
-
 
 def _get_kms_client_class():
     """Return the KMS client that is active."""
@@ -521,7 +517,8 @@ def decrypt_instance(instance: Instance) -> None:
     attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
         deleted_at=timezone.now()
     )
-    incr_xform_decrypted_submission_count(instance.xform)
+    # Increment XForm decrypted submission count
+    adjust_xform_decrypted_submission_count(instance.xform, incr=True)
 
 
 @transaction.atomic()
@@ -688,20 +685,21 @@ def disable_expired_keys():
         send_mass_mail(tuple(mass_mail_data))
 
 
-def incr_xform_decrypted_submission_count(xform: XForm) -> None:
-    """Increment XForm decrypted submission count
+def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> None:
+    """Adjust XForm decrypted submission count
 
     :param xform: XForm
+    :param incr: True to increment, False to decrement
     """
     adjust_counter(
         pk=xform.pk,
         model=xform,
         field_name="num_of_decrypted_submissions",
-        incr=True,
+        incr=incr,
         key_prefix=XFORM_DEC_SUBMISSION_COUNT,
         tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
         created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
         lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
         failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
-        task_name=DECRYPTED_SUBMISSION_COUNT_TASK,
+        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
     )
