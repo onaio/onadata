@@ -46,10 +46,11 @@ from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
-    XFORM_DECRYPTED_SUBMISSION_COUNT,
-    XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
-    XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
-    XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
+    XFORM_DEC_SUBMISSION_COUNT,
+    XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
+    XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
+    XFORM_DEC_SUBMISSION_COUNT_IDS,
+    XFORM_DEC_SUBMISSION_COUNT_LOCK,
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
@@ -60,6 +61,10 @@ from onadata.libs.utils.model_tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+DECRYPTED_SUBMISSION_COUNT_TASK = (
+    "onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async"
+)
 
 
 def _get_kms_client_class():
@@ -694,14 +699,14 @@ def incr_xform_decrypted_submission_count(xform: XForm) -> None:
     """
     increment_counter(
         pk=xform.pk,
-        model=XForm,
+        model=xform,
         field_name="num_of_decrypted_submissions",
-        key_prefix=XFORM_DECRYPTED_SUBMISSION_COUNT,
-        tracked_ids_key=XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
-        created_at_key=XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
-        lock_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
-        failover_report_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
-        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+        key_prefix=XFORM_DEC_SUBMISSION_COUNT,
+        tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
+        created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
+        lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
+        failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
+        task_name=DECRYPTED_SUBMISSION_COUNT_TASK,
     )
 
 
@@ -712,12 +717,12 @@ def decr_xform_decrypted_submission_count(xform: XForm) -> None:
     """
     decrement_counter(
         pk=xform.pk,
-        model=XForm,
+        model=xform,
         field_name="num_of_decrypted_submissions",
-        key_prefix=XFORM_DECRYPTED_SUBMISSION_COUNT,
-        tracked_ids_key=XFORM_DECRYPTED_SUBMISSION_COUNT_IDS,
-        created_at_key=XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT,
-        lock_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
-        failover_report_key=XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK,
-        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+        key_prefix=XFORM_DEC_SUBMISSION_COUNT,
+        tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
+        created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
+        lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
+        failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
+        task_name=DECRYPTED_SUBMISSION_COUNT_TASK,
     )
