@@ -68,11 +68,12 @@ XFORM_LIST_CACHE = "xfm-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
 XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
 XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
-XFORM_DECRYPTED_SUBMISSION_COUNT = "xfm-decrypted-submissions-count-"
-XFORM_DECRYPTED_SUBMISSION_COUNT_IDS = "xfm-decrypted-submission-count-ids"
-XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK = f"{XFORM_DECRYPTED_SUBMISSION_COUNT_IDS}-lock"
-XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT = (
-    f"{XFORM_DECRYPTED_SUBMISSION_COUNT_IDS}-created-at"
+XFORM_DEC_SUBMISSION_COUNT = "xfm-dec-submission-count-"
+XFORM_DEC_SUBMISSION_COUNT_IDS = "xfm-dec-submission-count-ids"
+XFORM_DEC_SUBMISSION_COUNT_LOCK = f"{XFORM_DEC_SUBMISSION_COUNT_IDS}-lock"
+XFORM_DEC_SUBMISSION_COUNT_CREATED_AT = f"{XFORM_DEC_SUBMISSION_COUNT_IDS}-created-at"
+XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT = (
+    "xfm-dec-submission-count-failover-report-sent"
 )
 
 # Cache timeouts used in XForm model
