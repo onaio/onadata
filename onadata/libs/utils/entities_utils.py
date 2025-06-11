@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import F, QuerySet
 from django.utils import timezone
 
@@ -17,7 +18,6 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_CREATED_AT,
     ELIST_NUM_ENTITIES_IDS,
     ELIST_NUM_ENTITIES_LOCK,
-    cache,
     safe_delete,
     set_cache_with_lock,
 )
