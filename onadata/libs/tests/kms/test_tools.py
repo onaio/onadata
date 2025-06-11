@@ -30,7 +30,7 @@ from valigetta.exceptions import (
 from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
-from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType
+from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType, XForm
 from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import DecryptionError, EncryptionError
@@ -1731,7 +1731,7 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
 
         mock_adjust_counter.assert_called_once_with(
             pk=self.xform.pk,
-            model=self.xform,
+            model=XForm,
             field_name="num_of_decrypted_submissions",
             incr=True,
             key_prefix="xfm-dec-submission-count-",
