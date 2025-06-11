@@ -23,19 +23,16 @@ from onadata.libs.kms.tools import (
     rotate_expired_keys,
     send_key_rotation_reminder,
 )
+from onadata.libs.permissions import set_project_perms_to_object
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.entities_utils import (
+    adjust_elist_num_entities,
     commit_cached_elist_num_entities,
-    dec_elist_num_entities,
-    inc_elist_num_entities,
     soft_delete_entities_bulk,
 )
 from onadata.libs.utils.logger_tools import (
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
-)
-from onadata.libs.permissions import (
-    set_project_perms_to_object,
 )
 
 logger = logging.getLogger(__name__)
@@ -129,7 +126,7 @@ def inc_elist_num_entities_async(elist_pk: int):
 
     :param elist_pk: Primary key for EntityList
     """
-    inc_elist_num_entities(elist_pk)
+    adjust_elist_num_entities(elist_pk, incr=True)
 
 
 @app.task(base=AutoRetryTask)
@@ -139,7 +136,7 @@ def dec_elist_num_entities_async(elist_pk: int) -> None:
 
     :param elist_pk: Primary key for EntityList
     """
-    dec_elist_num_entities(elist_pk)
+    adjust_elist_num_entities(elist_pk, incr=False)
 
 
 @app.task(base=AutoRetryTask)

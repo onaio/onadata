@@ -36,6 +36,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
+    adjust_xform_decrypted_submission_count,
     clean_public_key,
     create_key,
     decrypt_instance,
@@ -44,7 +45,6 @@ from onadata.libs.kms.tools import (
     disable_xform_encryption,
     encrypt_xform,
     get_kms_client,
-    incr_xform_decrypted_submission_count,
     is_instance_encrypted,
     rotate_expired_keys,
     rotate_key,
@@ -979,8 +979,8 @@ class DecryptInstanceTestCase(TestBase):
     def _compute_file_sha256(self, buffer):
         return sha256(buffer.getvalue()).hexdigest()
 
-    @patch("onadata.libs.kms.tools.incr_xform_decrypted_submission_count")
-    def test_decrypt_submission(self, mock_incr_decrypted_submission_count):
+    @patch("onadata.libs.kms.tools.adjust_xform_decrypted_submission_count")
+    def test_decrypt_submission(self, mock_adjust_decrypted_submission_count):
         """Decrypt submission is successful."""
         self.assertTrue(self.instance.is_encrypted)
 
@@ -1048,7 +1048,9 @@ class DecryptInstanceTestCase(TestBase):
         )
 
         # XForm decrypted submission count is incremented
-        mock_incr_decrypted_submission_count.assert_called_once_with(self.xform)
+        mock_adjust_decrypted_submission_count.assert_called_once_with(
+            self.xform, incr=True
+        )
 
     def test_unencrypted_submission(self):
         """Unencrypted Instance is rejected."""
@@ -1714,8 +1716,8 @@ class DisableExpiredKeysTestCase(TestBase):
         )
 
 
-class IncrXFormDecryptedSubmissionCountTestCase(TestBase):
-    """Tests `incr_xform_decrypted_submission_count`"""
+class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
+    """Tests `adjust_xform_decrypted_submission_count`"""
 
     def setUp(self):
         super().setUp()
@@ -1723,9 +1725,9 @@ class IncrXFormDecryptedSubmissionCountTestCase(TestBase):
         self._publish_transportation_form()
 
     @patch("onadata.libs.kms.tools.adjust_counter")
-    def test_incr_xform_decrypted_submission_count(self, mock_adjust_counter):
-        """`incr_xform_decrypted_submission_count` increments the count"""
-        incr_xform_decrypted_submission_count(self.xform)
+    def test_adjust_xform_decrypted_submission_count(self, mock_adjust_counter):
+        """`adjust_xform_decrypted_submission_count` increments the count"""
+        adjust_xform_decrypted_submission_count(self.xform, incr=True)
 
         mock_adjust_counter.assert_called_once_with(
             pk=self.xform.pk,
