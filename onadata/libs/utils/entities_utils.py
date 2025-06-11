@@ -32,11 +32,9 @@ def get_entity_json_from_instance(
 ) -> dict:
     """Parses Instance json and returns Entity json
 
-    Args:
-        instance (Instance): Submission to create Entity
-
-    Returns:
-        dict: Entity properties
+    :param instance: Instance to create Entity from
+    :param registration_form: RegistrationForm to create Entity from
+    :return: Entity properties
     """
     instance_json: dict[str, Any] = instance.get_dict()
     # Getting a mapping of save_to field to the field name
@@ -87,13 +85,9 @@ def create_entity_from_instance(
 ) -> Entity:
     """Create an Entity
 
-    Args:
-        instance (Instance): Submission from which the Entity is created from
-        registration_form (RegistrationForm): RegistrationForm creating the
-        Entity
-
-    Returns:
-        Entity: A newly created Entity
+    :param instance: Submission from which the Entity is created from
+    :param registration_form: RegistrationForm creating the Entity
+    :return: A newly created Entity
     """
     entity_json = get_entity_json_from_instance(instance, registration_form)
     entity_list = registration_form.entity_list
@@ -119,12 +113,10 @@ def update_entity_from_instance(
 ) -> Entity | None:
     """Updates Entity
 
-    Args:
-        uuid (str): uuid of the Entity to be updated
-        instance (Instance): Submission that updates an Entity
-
-    Returns:
-        Entity | None: updated Entity if uuid valid, else None
+    :param uuid: uuid of the Entity to be updated
+    :param instance: Submission that updates an Entity
+    :param registration_form: RegistrationForm updating the Entity
+    :return: updated Entity if uuid valid, else None
     """
     try:
         entity = Entity.objects.get(uuid=uuid)
@@ -151,9 +143,8 @@ def update_entity_from_instance(
 def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> None:
     """Soft delete Entities in bulk
 
-    Args:
-        entity_qs QuerySet(Entity): Entity queryset
-        deleted_by (User): User initiating the delete
+    :param entity_qs: Entity queryset
+    :param deleted_by: User initiating the delete
     """
     for entity in queryset_iterator(entity_qs):
         entity.soft_delete(deleted_by)
@@ -162,8 +153,7 @@ def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> N
 def create_or_update_entity_from_instance(instance: Instance) -> None:
     """Create or Update Entity from Instance
 
-    Args:
-        instance (Instance): Instance to create/update Entity from
+    :param instance: Instance to create/update Entity from
     """
     registration_form_qs = RegistrationForm.objects.filter(
         xform=instance.xform, is_active=True
@@ -193,9 +183,8 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
 def _inc_elist_num_entities_db(pk: int, count=1) -> None:
     """Increment EntityList `num_entities` counter in the database
 
-    Args:
-        pk (int): Primary key for EntityList
-        count (int): Value to increase by
+    :param pk: Primary key for EntityList
+    :param count: Value to increase by
     """
     # Using Queryset.update ensures we do not call the model's save method and
     # signals
@@ -205,9 +194,8 @@ def _inc_elist_num_entities_db(pk: int, count=1) -> None:
 def _dec_elist_num_entities_db(pk: int, count=1) -> None:
     """Decrement EntityList `num_entities` counter in the database
 
-    Args:
-        pk (int): Primary key for EntityList
-        count (int): Value to decrease by
+    :param pk: Primary key for EntityList
+    :param count: Value to decrease by
     """
     # Using Queryset.update ensures we do not call the model's save method and
     # signals
@@ -217,8 +205,7 @@ def _dec_elist_num_entities_db(pk: int, count=1) -> None:
 def _inc_elist_num_entities_cache(pk: int) -> None:
     """Increment EntityList `num_entities` counter in cache
 
-    Args:
-        pk (int): Primary key for EntityList
+    :param pk: Primary key for EntityList
     """
     counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
     # Cache timeout is None (no expiry). A background task should be run
@@ -247,8 +234,7 @@ def _inc_elist_num_entities_cache(pk: int) -> None:
 def _dec_elist_num_entities_cache(pk: int) -> None:
     """Decrement EntityList `num_entities` counter in cache
 
-    Args:
-        pk (int): Primary key for EntityList
+    :param pk: Primary key for EntityList
     """
     counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
 
@@ -262,8 +248,7 @@ def inc_elist_num_entities(pk: int) -> None:
     Updates cached counter if cache is not locked. Else, the database
     counter is updated
 
-    Args:
-        pk (int): Primary key for EntityList
+    :param pk: Primary key for EntityList
     """
 
     if _is_elist_num_entities_cache_locked():
@@ -286,8 +271,7 @@ def dec_elist_num_entities(pk: int) -> None:
     Updates cached counter if cache is not locked. Else, the database
     counter is updated.
 
-    Args:
-        pk (int): Primary key for EntityList
+    :param pk: Primary key for EntityList
     """
     counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
 
