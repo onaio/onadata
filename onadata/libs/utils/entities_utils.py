@@ -177,41 +177,17 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         create_entity_from_instance(instance, registration_form)
 
 
-def inc_elist_num_entities(pk: int) -> None:
-    """Increment EntityList `num_entities` counter
-
-    Updates cached counter if cache is not locked. Else, the database
-    counter is updated
+def adjust_elist_num_entities(pk: int, incr: bool) -> None:
+    """Adjust EntityList `num_entities` counter
 
     :param pk: Primary key for EntityList
+    :param incr: True to increment, False to decrement
     """
     adjust_counter(
         pk=pk,
         model=EntityList,
         field_name="num_entities",
-        incr=True,
-        key_prefix=ELIST_NUM_ENTITIES,
-        tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
-        created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
-        lock_key=ELIST_NUM_ENTITIES_LOCK,
-        failover_report_key=ELIST_FAILOVER_REPORT_SENT,
-        task_name="onadata.apps.logger.tasks.commit_cached_elist_num_entities_async",
-    )
-
-
-def dec_elist_num_entities(pk: int) -> None:
-    """Decrement EntityList `num_entities` counter
-
-    Updates cached counter if cache is not locked. Else, the database
-    counter is updated.
-
-    :param pk: Primary key for EntityList
-    """
-    adjust_counter(
-        pk=pk,
-        model=EntityList,
-        field_name="num_entities",
-        incr=False,
+        incr=incr,
         key_prefix=ELIST_NUM_ENTITIES,
         tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
         created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
