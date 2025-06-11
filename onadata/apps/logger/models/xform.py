@@ -995,6 +995,7 @@ class XForm(XFormMixin, BaseModel):
     instances_with_geopoints = models.BooleanField(default=False)
     instances_with_osm = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
+    num_of_decrypted_submissions = models.IntegerField(default=0)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True, blank=True)
     project = models.ForeignKey("Project", on_delete=models.CASCADE)
     created_by = models.ForeignKey(

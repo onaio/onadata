@@ -68,6 +68,12 @@ XFORM_LIST_CACHE = "xfm-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
 XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
 XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
+XFORM_DECRYPTED_SUBMISSION_COUNT = "xfm-decrypted-submissions-count-"
+XFORM_DECRYPTED_SUBMISSION_COUNT_IDS = "xfm-decrypted-submission-count-ids"
+XFORM_DECRYPTED_SUBMISSION_COUNT_LOCK = f"{XFORM_DECRYPTED_SUBMISSION_COUNT_IDS}-lock"
+XFORM_DECRYPTED_SUBMISSION_COUNT_CREATED_AT = (
+    f"{XFORM_DECRYPTED_SUBMISSION_COUNT_IDS}-created-at"
+)
 
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
@@ -77,12 +83,11 @@ XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 
-LOCK_SUFFIX = "-lock"
 
 # Entities
 ELIST_NUM_ENTITIES = "elist-num-entities-"
 ELIST_NUM_ENTITIES_IDS = "elist-num-entities-ids"
-ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
+ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}-lock"
 ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 
 # Report exception
