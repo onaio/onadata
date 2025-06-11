@@ -54,7 +54,11 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
-from onadata.libs.utils.model_tools import adjust_counter, queryset_iterator
+from onadata.libs.utils.model_tools import (
+    adjust_counter,
+    commit_cached_counters,
+    queryset_iterator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -702,4 +706,16 @@ def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> 
         lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
         failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
         task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+    )
+
+
+def commit_cached_xform_decrypted_submission_count():
+    """Commit cached XForm decrypted submission count to the database"""
+    commit_cached_counters(
+        model=XForm,
+        field_name="num_of_decrypted_submissions",
+        key_prefix=XFORM_DEC_SUBMISSION_COUNT,
+        tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
+        lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
+        created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
     )

@@ -38,6 +38,7 @@ from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     adjust_xform_decrypted_submission_count,
     clean_public_key,
+    commit_cached_xform_decrypted_submission_count,
     create_key,
     decrypt_instance,
     disable_expired_keys,
@@ -1740,4 +1741,29 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
             lock_key="xfm-dec-submission-count-ids-lock",
             failover_report_key="xfm-dec-submission-count-failover-report-sent",
             task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+        )
+
+
+class CommitCachedXFormDecryptedSubmissionCountTestCase(TestBase):
+    """Tests `commit_cached_xform_decrypted_submission_count`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_transportation_form()
+
+    @patch("onadata.libs.kms.tools.commit_cached_counters")
+    def test_commit_cached_xform_decrypted_submission_count(
+        self, mock_commit_cached_counters
+    ):
+        """`commit_cached_xform_decrypted_submission_count` commits the count"""
+        commit_cached_xform_decrypted_submission_count()
+
+        mock_commit_cached_counters.assert_called_once_with(
+            model=XForm,
+            field_name="num_of_decrypted_submissions",
+            key_prefix="xfm-dec-submission-count-",
+            tracked_ids_key="xfm-dec-submission-count-ids",
+            lock_key="xfm-dec-submission-count-ids-lock",
+            created_at_key="xfm-dec-submission-count-ids-created-at",
         )
