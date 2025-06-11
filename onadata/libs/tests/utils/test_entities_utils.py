@@ -268,7 +268,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertEqual(cache.get(self.created_at_key), now)
 
     @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.logger_tools.report_exception")
+    @patch("onadata.libs.utils.entities_utils.report_exception")
     def test_failover(self, mock_report_exc):
         """Failover is executed if commit timeout threshold exceeded"""
         cache_created_at = timezone.now() - timedelta(minutes=10)
@@ -293,7 +293,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertEqual(cache.get("elist-failover-report-sent"), "sent")
 
     @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.logger_tools.report_exception")
+    @patch("onadata.libs.utils.entities_utils.report_exception")
     def test_failover_report_cache_hit(self, mock_report_exc):
         """Report exception not sent if cache `elist-failover-report-sent` set"""
         cache.set("elist-failover-report-sent", "sent")
