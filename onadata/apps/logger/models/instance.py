@@ -887,16 +887,6 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
         update_fields_directly(instance, is_encrypted=True)
 
 
-def _decr_xform_decrypted_submission_count(xform_pk: int):
-    """Decrement XForm decrypted submission count"""
-    # Avoid cyclic dependency errors
-    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-
-    transaction.on_commit(
-        lambda: logger_tasks.decr_xform_decrypted_submission_count_async.delay(xform_pk)
-    )
-
-
 @use_master
 def decr_xform_decrypted_submission_count(sender, instance, created=False, **kwargs):
     """Decrement XForm decrypted submission count"""
