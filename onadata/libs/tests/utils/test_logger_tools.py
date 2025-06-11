@@ -780,6 +780,22 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
         self.assertIsNone(cache.get(f"xfm-submissions-deleting-{self.xform.id}"))
 
+    def test_decrypted_submission_count_updated(self):
+        """Decrypted submission count is updated"""
+        self.xform.is_managed = True
+        self.xform.num_of_decrypted_submissions = 4
+        self.xform.save(update_fields=["num_of_decrypted_submissions", "is_managed"])
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 4)
+
+        delete_xform_submissions(
+            self.xform, self.user, instance_ids=[self.instances[0].pk]
+        )
+
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 3)
+
 
 class RegisterInstanceRepeatColumnsTestCase(TestBase):
     """Tests for method `register_instance_repeat_columns`"""

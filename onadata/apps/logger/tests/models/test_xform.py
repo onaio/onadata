@@ -7,6 +7,8 @@ import os
 from builtins import str as text
 from unittest.mock import call, patch
 
+from django.utils import timezone
+
 from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import DuplicateUUIDError, check_xform_uuid
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -344,3 +346,53 @@ class TestXForm(TestBase):
         self.assertIsNone(xform.deleted_by)
         calls = [call(self.project.pk), call(self.project.pk)]
         mock_clear_project_cache.has_calls(calls, any_order=True)
+
+    def test_decrypted_submission_count(self):
+        """Test XForm.decrypted_submission_count"""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        instance_qs = Instance.objects.filter(xform=self.xform)
+
+        instance = instance_qs[0]
+        instance.is_encrypted = True  # Encrypted submission
+        instance.save(update_fields=["is_encrypted"])
+
+        instance = instance_qs[1]
+        instance.deleted_at = timezone.now()  # Soft-deleted submission
+        instance.save(update_fields=["deleted_at"])
+
+        # Forced update for non-managed forms resets to 0
+        self.xform.num_of_decrypted_submissions = 10
+        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
+
+        self.xform.decrypted_submission_count(force_update=True)
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
+
+        # Forced update works for managed forms
+        self.xform.num_of_decrypted_submissions = 10
+        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
+
+        self.xform.is_managed = True
+        self.xform.decrypted_submission_count(force_update=True)
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 2)
+
+        # Without forced update, the count is not updated
+        self.xform.num_of_decrypted_submissions = 10
+        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
+
+        self.xform.decrypted_submission_count()
+        self.xform.refresh_from_db()
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)

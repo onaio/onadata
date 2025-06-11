@@ -1371,6 +1371,22 @@ class XForm(XFormMixin, BaseModel):
         """Returns a queryset of public forms i.e. shared = True"""
         return cls.objects.filter(shared=True)
 
+    def decrypted_submission_count(self, force_update=False):
+        """Returns the number of decrypted submissions for the form."""
+        if self.num_of_decrypted_submissions == 0 or force_update:
+            if self.is_managed:
+                count = self.instances.filter(
+                    deleted_at__isnull=True, is_encrypted=False
+                ).count()
+            else:
+                count = 0
+
+            if count != self.num_of_decrypted_submissions:
+                self.num_of_decrypted_submissions = count
+                self.save(update_fields=["num_of_decrypted_submissions"])
+
+        return self.num_of_decrypted_submissions
+
 
 # pylint: disable=unused-argument
 def update_profile_num_submissions(sender, instance, **kwargs):
