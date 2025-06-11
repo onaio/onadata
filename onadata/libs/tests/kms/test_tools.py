@@ -1717,6 +1717,7 @@ class DisableExpiredKeysTestCase(TestBase):
         )
 
 
+@patch("onadata.libs.kms.tools.adjust_counter")
 class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
     """Tests `adjust_xform_decrypted_submission_count`"""
 
@@ -1725,9 +1726,11 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
 
         self._publish_transportation_form()
 
-    @patch("onadata.libs.kms.tools.adjust_counter")
     def test_adjust_xform_decrypted_submission_count(self, mock_adjust_counter):
         """`adjust_xform_decrypted_submission_count` increments the count"""
+        self.xform.is_managed = True
+        self.xform.save()
+
         adjust_xform_decrypted_submission_count(self.xform, incr=True)
 
         mock_adjust_counter.assert_called_once_with(
@@ -1742,6 +1745,14 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
             failover_report_key="xfm-dec-submission-count-failover-report-sent",
             task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
         )
+
+    def test_unmanaged_xform(self, mock_adjust_counter):
+        """Unmanaged XForm is ignored."""
+        self.xform.is_managed = False
+        self.xform.save()
+
+        adjust_xform_decrypted_submission_count(self.xform, incr=True)
+        mock_adjust_counter.assert_not_called()
 
 
 class CommitCachedXFormDecryptedSubmissionCountTestCase(TestBase):
