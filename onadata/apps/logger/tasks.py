@@ -76,9 +76,10 @@ def apply_project_date_modified_async():
     if not project_ids:
         return
 
-    # Update project date_modified field in batches
-    for project_id, timestamp in project_ids.items():
-        Project.objects.filter(pk=project_id).update(date_modified=timestamp)
+    with use_master:
+        # Update project date_modified field in batches
+        for project_id, timestamp in project_ids.items():
+            Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
@@ -118,7 +119,8 @@ def commit_cached_elist_num_entities_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    commit_cached_elist_num_entities()
+    with use_master:
+        commit_cached_elist_num_entities()
 
 
 @app.task(base=AutoRetryTask)
@@ -128,7 +130,8 @@ def incr_elist_num_entities_async(elist_pk: int):
 
     :param elist_pk: Primary key for EntityList
     """
-    adjust_elist_num_entities(elist_pk, delta=1)
+    with use_master:
+        adjust_elist_num_entities(elist_pk, delta=1)
 
 
 @app.task(base=AutoRetryTask)
@@ -138,7 +141,8 @@ def decr_elist_num_entities_async(elist_pk: int) -> None:
 
     :param elist_pk: Primary key for EntityList
     """
-    adjust_elist_num_entities(elist_pk, delta=-1)
+    with use_master:
+        adjust_elist_num_entities(elist_pk, delta=-1)
 
 
 @app.task(base=AutoRetryTask)
@@ -148,14 +152,15 @@ def register_instance_repeat_columns_async(instance_pk: int) -> None:
 
     :param instance_pk: Primary key for Instance
     """
-    try:
-        instance = Instance.objects.get(pk=instance_pk)
+    with use_master:
+        try:
+            instance = Instance.objects.get(pk=instance_pk)
 
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
+        except Instance.DoesNotExist as exc:
+            logger.exception(exc)
 
-    else:
-        register_instance_repeat_columns(instance)
+        else:
+            register_instance_repeat_columns(instance)
 
 
 @app.task(base=AutoRetryTask)
@@ -165,14 +170,15 @@ def reconstruct_xform_export_register_async(xform_id: int) -> None:
 
     :param xform_id: Primary key for XForm
     """
-    try:
-        xform = XForm.objects.get(pk=xform_id)
+    with use_master:
+        try:
+            xform = XForm.objects.get(pk=xform_id)
 
-    except XForm.DoesNotExist as exc:
-        logger.exception(exc)
+        except XForm.DoesNotExist as exc:
+            logger.exception(exc)
 
-    else:
-        reconstruct_xform_export_register(xform)
+        else:
+            reconstruct_xform_export_register(xform)
 
 
 @app.task(base=AutoRetryTask)
@@ -219,32 +225,36 @@ def decrypt_instance_async(instance_id: int):
 
     :param instance_id: Primary key for Instance
     """
-    try:
-        instance = Instance.objects.get(pk=instance_id)
+    with use_master:
+        try:
+            instance = Instance.objects.get(pk=instance_id)
 
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
+        except Instance.DoesNotExist as exc:
+            logger.exception(exc)
 
-    else:
-        decrypt_instance(instance)
+        else:
+            decrypt_instance(instance)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def rotate_expired_keys_async():
     """Rotate expired keys asynchronously."""
-    rotate_expired_keys()
+    with use_master:
+        rotate_expired_keys()
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
-    disable_expired_keys()
+    with use_master:
+        disable_expired_keys()
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
-    send_key_rotation_reminder()
+    with use_master:
+        send_key_rotation_reminder()
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -253,13 +263,15 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
 
     :param xform_id: Primary key for XForm
     """
-    try:
-        xform = XForm.objects.get(pk=xform_id)
-    except XForm.DoesNotExist as exc:
-        logger.exception(exc)
+    with use_master:
+        try:
+            xform = XForm.objects.get(pk=xform_id)
 
-    else:
-        adjust_xform_decrypted_submission_count(xform, delta=-1)
+        except XForm.DoesNotExist as exc:
+            logger.exception(exc)
+
+        else:
+            adjust_xform_decrypted_submission_count(xform, delta=-1)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
@@ -273,4 +285,5 @@ def commit_cached_xform_decrypted_submission_count_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    commit_cached_xform_decrypted_submission_count()
+    with use_master:
+        commit_cached_xform_decrypted_submission_count()
