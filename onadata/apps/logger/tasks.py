@@ -128,7 +128,7 @@ def incr_elist_num_entities_async(elist_pk: int):
 
     :param elist_pk: Primary key for EntityList
     """
-    adjust_elist_num_entities(elist_pk, incr=True)
+    adjust_elist_num_entities(elist_pk, delta=1)
 
 
 @app.task(base=AutoRetryTask)
@@ -138,7 +138,7 @@ def decr_elist_num_entities_async(elist_pk: int) -> None:
 
     :param elist_pk: Primary key for EntityList
     """
-    adjust_elist_num_entities(elist_pk, incr=False)
+    adjust_elist_num_entities(elist_pk, delta=-1)
 
 
 @app.task(base=AutoRetryTask)
@@ -259,7 +259,7 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
         logger.exception(exc)
 
     else:
-        adjust_xform_decrypted_submission_count(xform, incr=False)
+        adjust_xform_decrypted_submission_count(xform, delta=-1)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
