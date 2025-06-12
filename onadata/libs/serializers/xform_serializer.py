@@ -412,6 +412,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    num_of_pending_decryption_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
