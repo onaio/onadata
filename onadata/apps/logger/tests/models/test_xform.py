@@ -7,6 +7,7 @@ import os
 from builtins import str as text
 from unittest.mock import call, patch
 
+from django.core.cache import cache
 from django.utils import timezone
 
 from onadata.apps.logger.models import DataView, Instance, XForm
@@ -347,7 +348,7 @@ class TestXForm(TestBase):
         calls = [call(self.project.pk), call(self.project.pk)]
         mock_clear_project_cache.has_calls(calls, any_order=True)
 
-    def test_decrypted_submission_count(self):
+    def test_update_num_of_decrypted_submissions(self):
         """Test XForm.decrypted_submission_count"""
         self._publish_transportation_form()
         self._make_submissions()
@@ -362,19 +363,22 @@ class TestXForm(TestBase):
         instance.deleted_at = timezone.now()  # Soft-deleted submission
         instance.save(update_fields=["deleted_at"])
 
-        # Forced update for non-managed forms resets to 0
+        # Non-managed forms resets to 0
         self.xform.num_of_decrypted_submissions = 10
         self.xform.save(update_fields=["num_of_decrypted_submissions"])
         self.xform.refresh_from_db()
 
         self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
 
-        self.xform.decrypted_submission_count(force_update=True)
+        self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()
 
         self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
 
-        # Forced update works for managed forms
+        # Managed forms updates the count
+        cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
+        cache.set(cache_key, 10)
+
         self.xform.num_of_decrypted_submissions = 10
         self.xform.save(update_fields=["num_of_decrypted_submissions"])
         self.xform.refresh_from_db()
@@ -382,17 +386,43 @@ class TestXForm(TestBase):
         self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
 
         self.xform.is_managed = True
-        self.xform.decrypted_submission_count(force_update=True)
+        self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()
+
         self.assertEqual(self.xform.num_of_decrypted_submissions, 2)
 
-        # Without forced update, the count is not updated
-        self.xform.num_of_decrypted_submissions = 10
+        # Cached counter is deleted
+        self.assertIsNone(cache.get(cache_key))
+
+    def test_live_num_of_decrypted_submissions(self):
+        """Test XForm.live_num_of_decrypted_submissions"""
+        self._publish_transportation_form()
+
+        # Simulate cached count
+        cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
+        cache.set(cache_key, 10)
+
+        self.xform.num_of_decrypted_submissions = 5
+        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+
+        self.assertEqual(self.xform.live_num_of_decrypted_submissions, 15)
+
+    def test_num_of_pending_decryption_submissions(self):
+        """Test XForm.num_of_pending_decryption_submissions"""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        # Simulate cached count
+        cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
+        cache.set(cache_key, 10)
+
+        # Simulate total submissions
+        self.xform.num_of_submissions = 20
+        self.xform.save(update_fields=["num_of_submissions"])
+
+        # Simulate decrypted submissions count committed to DB
+        self.xform.num_of_decrypted_submissions = 5
         self.xform.save(update_fields=["num_of_decrypted_submissions"])
         self.xform.refresh_from_db()
 
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
-
-        self.xform.decrypted_submission_count()
-        self.xform.refresh_from_db()
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
+        self.assertEqual(self.xform.num_of_pending_decryption_submissions, 5)

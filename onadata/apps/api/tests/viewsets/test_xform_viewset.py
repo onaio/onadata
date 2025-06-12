@@ -70,8 +70,8 @@ from onadata.libs.permissions import (
     DataEntryOnlyRole,
     DataEntryRole,
     EditorMinorRole,
-    EditorRole,
     EditorNoDownload,
+    EditorRole,
     ManagerRole,
     OwnerRole,
     ReadOnlyRole,
@@ -5409,6 +5409,19 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["is_managed"])
+
+    def test_retrieve_managed_form(self):
+        """Retrieving a managed form is correct."""
+        self._publish_transportation_form()
+        self.xform.is_managed = True
+        self.xform.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.data["num_of_pending_decryption_submissions"], 0)
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
