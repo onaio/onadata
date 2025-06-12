@@ -1379,15 +1379,15 @@ class XForm(XFormMixin, BaseModel):
             count = self.instances.filter(
                 deleted_at__isnull=True, is_encrypted=False
             ).count()
+
         else:
             count = 0
 
         if count != self.num_of_decrypted_submissions:
+            # Delete cached delta counter
+            safe_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
             self.num_of_decrypted_submissions = count
             self.save(update_fields=["num_of_decrypted_submissions"])
-
-        # Delete cached delta counter
-        safe_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
 
         return self.num_of_decrypted_submissions
 
