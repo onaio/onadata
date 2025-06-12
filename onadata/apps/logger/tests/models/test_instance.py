@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.http.request import HttpRequest
-from django.test import TestCase, override_settings
+from django.test import override_settings
 
 from django_digest.test import DigestAuth
 
@@ -42,7 +42,7 @@ from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-class TestInstance(TestBase, TestCase):
+class TestInstance(TestBase):
     def setUp(self):
         super().setUp()
 
@@ -1542,8 +1542,6 @@ class TestInstance(TestBase, TestCase):
         instance_qs = Instance.objects.filter(xform=self.xform)
 
         instance = instance_qs[0]
-
-        with self.captureOnCommitCallbacks(execute=True):
-            instance.delete()
+        instance.delete()
 
         mock_decr.assert_called_once_with(self.xform.pk)

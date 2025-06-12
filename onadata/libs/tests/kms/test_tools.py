@@ -1050,7 +1050,7 @@ class DecryptInstanceTestCase(TestBase):
 
         # XForm decrypted submission count is incremented
         mock_adjust_decrypted_submission_count.assert_called_once_with(
-            self.xform, incr=True
+            self.xform, delta=1
         )
 
     def test_unencrypted_submission(self):
@@ -1731,13 +1731,13 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
         self.xform.is_managed = True
         self.xform.save()
 
-        adjust_xform_decrypted_submission_count(self.xform, incr=True)
+        adjust_xform_decrypted_submission_count(self.xform, delta=1)
 
         mock_adjust_counter.assert_called_once_with(
             pk=self.xform.pk,
             model=XForm,
             field_name="num_of_decrypted_submissions",
-            incr=True,
+            delta=1,
             key_prefix="xfm-dec-submission-count-",
             tracked_ids_key="xfm-dec-submission-count-ids",
             created_at_key="xfm-dec-submission-count-ids-created-at",
@@ -1751,7 +1751,7 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
         self.xform.is_managed = False
         self.xform.save()
 
-        adjust_xform_decrypted_submission_count(self.xform, incr=True)
+        adjust_xform_decrypted_submission_count(self.xform, delta=1)
         mock_adjust_counter.assert_not_called()
 
 
