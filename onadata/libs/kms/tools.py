@@ -522,7 +522,7 @@ def decrypt_instance(instance: Instance) -> None:
         deleted_at=timezone.now()
     )
     # Increment XForm decrypted submission count
-    adjust_xform_decrypted_submission_count(instance.xform, incr=True)
+    adjust_xform_decrypted_submission_count(instance.xform, delta=1)
 
 
 @transaction.atomic()
@@ -689,11 +689,11 @@ def disable_expired_keys():
         send_mass_mail(tuple(mass_mail_data))
 
 
-def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> None:
+def adjust_xform_decrypted_submission_count(xform: XForm, delta: int) -> None:
     """Adjust XForm decrypted submission count
 
     :param xform: XForm
-    :param incr: True to increment, False to decrement
+    :param delta: Value to increment or decrement by
     """
     # Ignore XForm that is not managed using encryption keys
     if not xform.is_managed:
@@ -703,7 +703,7 @@ def adjust_xform_decrypted_submission_count(xform: XForm, incr: bool = True) -> 
         pk=xform.pk,
         model=XForm,
         field_name="num_of_decrypted_submissions",
-        incr=incr,
+        delta=delta,
         key_prefix=XFORM_DEC_SUBMISSION_COUNT,
         tracked_ids_key=XFORM_DEC_SUBMISSION_COUNT_IDS,
         created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,

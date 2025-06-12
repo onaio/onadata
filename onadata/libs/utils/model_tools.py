@@ -68,18 +68,18 @@ def update_fields_directly(instance, **fields):
 
 
 def adjust_numeric_field(
-    model: Type[Model], pk: int, field_name: str, count: int = 1
+    model: Type[Model], pk: int, field_name: str, delta: int
 ) -> None:
     """Generic helper to increment a numeric field on a model instance.
 
     :param model: The Django model class
     :param pk: Primary key of the instance
     :param field_name: Name of the field to increment
-    :param count: Value to increment by (use negative to decrement)
+    :param delta: Value to increment by (use negative to decrement)
     """
     # Using Queryset.update ensures we do not call the model's save method and
     # signals
-    model.objects.filter(pk=pk).update(**{field_name: F(field_name) + count})
+    model.objects.filter(pk=pk).update(**{field_name: F(field_name) + delta})
 
 
 def commit_cached_counters(
@@ -116,7 +116,7 @@ def commit_cached_counters(
         counter = cache.get(counter_key, 0)
 
         if counter:
-            adjust_numeric_field(model, pk=pk, field_name=field_name, count=counter)
+            adjust_numeric_field(model, pk=pk, field_name=field_name, delta=counter)
 
         safe_delete(counter_key)
 
@@ -180,16 +180,18 @@ def _increment_cached_counter(
     key_prefix: str,
     tracked_ids_key: str,
     created_at_key: str,
+    delta: int = 1,
 ) -> None:
     """Increment a cached numeric counter for a given object.
 
     :param pk: Primary key of the object
     :param key_prefix: Prefix used to generate the counter cache key
+    :param delta: Value to increment by
     :param tracked_ids_key: Cache key to track which objects were modified
     :param created_at_key: Cache key to track when caching began
     """
-    cache_key = f"{key_prefix}{pk}"
-    created = cache.add(cache_key, 1, timeout=None)
+    counter_key = f"{key_prefix}{pk}"
+    created = cache.add(counter_key, 1, timeout=None)
 
     def add_to_modified_ids(current_ids: set | None):
         current_ids = current_ids or set()
@@ -204,23 +206,24 @@ def _increment_cached_counter(
     cache.add(created_at_key, timezone.now(), timeout=None)
 
     if not created:
-        cache.incr(cache_key)
+        cache.incr(counter_key, delta=delta)
 
 
 def _decrement_cached_counter(
     *,
     pk: int,
     key_prefix: str,
+    delta: int = 1,
 ) -> None:
     """Decrement a cached numeric counter for a given object, if it exists.
 
     :param pk: Primary key of the object
     :param key_prefix: Prefix used to generate the counter cache key
     """
-    cache_key = f"{key_prefix}{pk}"
+    counter_key = f"{key_prefix}{pk}"
 
-    if cache.get(cache_key) is not None:
-        cache.decr(cache_key)
+    if cache.get(counter_key) is not None:
+        cache.decr(counter_key, delta=delta)
 
 
 def adjust_counter(
@@ -228,7 +231,7 @@ def adjust_counter(
     pk: int,
     model: Type[Model],
     field_name: str,
-    incr: bool,
+    delta: int,
     key_prefix: str,
     tracked_ids_key: str,
     created_at_key: str,
@@ -243,7 +246,7 @@ def adjust_counter(
     :param pk: Primary key of the instance
     :param model: The Django model class
     :param field_name: The numeric field to adjust
-    :param incr: True to increment, False to decrement
+    :param delta: Value to increment or decrement by
     :param key_prefix: Prefix used to form the cache counter key
     :param tracked_ids_key: Cache key to track modified PKs
     :param created_at_key: Cache key when caching began
@@ -253,29 +256,29 @@ def adjust_counter(
     """
 
     def fallback_to_db():
-        adjust_numeric_field(
-            model, pk=pk, field_name=field_name, count=1 if incr else -1
-        )
+        adjust_numeric_field(model, pk=pk, field_name=field_name, delta=delta)
 
-    cache_key = f"{key_prefix}{pk}"
+    counter_key = f"{key_prefix}{pk}"
 
     # Always fallback to DB if cache is locked or (for decrement) counter is missing
-    if cache.get(lock_key) or (not incr and cache.get(cache_key) is None):
+    if cache.get(lock_key) or (delta < 0 and cache.get(counter_key) is None):
         fallback_to_db()
         return
 
     try:
-        if incr:
+        if delta > 0:
             _increment_cached_counter(
                 pk=pk,
                 key_prefix=key_prefix,
                 tracked_ids_key=tracked_ids_key,
                 created_at_key=created_at_key,
+                delta=delta,
             )
         else:
             _decrement_cached_counter(
                 pk=pk,
                 key_prefix=key_prefix,
+                delta=delta * -1,
             )
 
         _execute_cached_counter_commit_failover(

@@ -370,7 +370,7 @@ class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
     def test_decr_xform_decrypted_submission_count(self, mock_decr):
         """Decrement XForm decrypted submission count"""
         decr_xform_decrypted_submission_count_async.delay(self.xform.pk)
-        mock_decr.assert_called_once_with(self.xform, incr=False)
+        mock_decr.assert_called_once_with(self.xform, delta=-1)
 
     @patch(
         "onadata.apps.logger.tasks.decr_xform_decrypted_submission_count_async.retry"
