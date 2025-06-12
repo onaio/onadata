@@ -2368,6 +2368,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "has_hxl_support": False,
             "hash": "",
             "is_instance_json_regenerated": False,
+            "num_of_decrypted_submissions": None,
         }
 
         self.assertEqual(data, XFormSerializer(None).data)

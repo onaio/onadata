@@ -374,6 +374,10 @@ class XFormMixin:
             )
         )
 
+    def get_num_of_pending_decryption_submissions(self, obj):
+        """Return the number of submissions pending decryption for the form."""
+        return obj.num_of_pending_decryption_submissions
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     """XForm base serializer."""
@@ -480,6 +484,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    num_of_pending_decryption_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
@@ -500,7 +505,6 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "is_merged_dataset",
             "xls_available",
             "is_managed",
-            "num_of_pending_decryption_submissions",
         )
         exclude = (
             "json",
