@@ -50,8 +50,10 @@ from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_COUNT,
+    XFORM_DEC_SUBMISSION_COUNT,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    safe_cache_get,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -1371,21 +1373,34 @@ class XForm(XFormMixin, BaseModel):
         """Returns a queryset of public forms i.e. shared = True"""
         return cls.objects.filter(shared=True)
 
-    def decrypted_submission_count(self, force_update=False):
-        """Returns the number of decrypted submissions for the form."""
-        if self.num_of_decrypted_submissions == 0 or force_update:
-            if self.is_managed:
-                count = self.instances.filter(
-                    deleted_at__isnull=True, is_encrypted=False
-                ).count()
-            else:
-                count = 0
+    def update_num_of_decrypted_submissions(self):
+        """Update the number of decrypted submissions for the form."""
+        if self.is_managed:
+            count = self.instances.filter(
+                deleted_at__isnull=True, is_encrypted=False
+            ).count()
+        else:
+            count = 0
 
-            if count != self.num_of_decrypted_submissions:
-                self.num_of_decrypted_submissions = count
-                self.save(update_fields=["num_of_decrypted_submissions"])
+        if count != self.num_of_decrypted_submissions:
+            self.num_of_decrypted_submissions = count
+            self.save(update_fields=["num_of_decrypted_submissions"])
+
+        # Delete cached delta counter
+        safe_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
 
         return self.num_of_decrypted_submissions
+
+    @property
+    def live_num_of_decrypted_submissions(self):
+        """Returns database + cache count of decrypted submissions."""
+        cached_counter = safe_cache_get(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}", 0)
+        return self.num_of_decrypted_submissions + cached_counter
+
+    @property
+    def num_of_pending_decryption_submissions(self):
+        """Returns the number of submissions pending decryption for the form."""
+        return self.num_of_submissions - self.live_num_of_decrypted_submissions
 
 
 # pylint: disable=unused-argument
