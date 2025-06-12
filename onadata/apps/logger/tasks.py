@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def set_entity_list_perms_async(entity_list_id):
     """Set permissions for EntityList asynchronously
 
@@ -53,8 +53,8 @@ def set_entity_list_perms_async(entity_list_id):
     set_project_perms_to_object(entity_list, entity_list.project)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def apply_project_date_modified_async():
     """
     Batch update projects date_modified field periodically
@@ -71,8 +71,8 @@ def apply_project_date_modified_async():
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def delete_entities_bulk_async(entity_pks: list[int], username: str | None = None):
     """Delete Entities asynchronously
 
@@ -93,8 +93,8 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
         soft_delete_entities_bulk(entity_qs, deleted_by)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def commit_cached_elist_num_entities_async():
     """Commit cached EntityList `num_entities` counter to the database
 
@@ -108,8 +108,8 @@ def commit_cached_elist_num_entities_async():
     commit_cached_elist_num_entities()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def incr_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
 
@@ -118,8 +118,8 @@ def incr_elist_num_entities_async(elist_pk: int):
     adjust_elist_num_entities(elist_pk, delta=1)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def decr_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
 
@@ -128,8 +128,8 @@ def decr_elist_num_entities_async(elist_pk: int) -> None:
     adjust_elist_num_entities(elist_pk, delta=-1)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def register_instance_repeat_columns_async(instance_pk: int) -> None:
     """Register Instance repeat columns asynchronously
 
@@ -145,8 +145,8 @@ def register_instance_repeat_columns_async(instance_pk: int) -> None:
         register_instance_repeat_columns(instance)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def reconstruct_xform_export_register_async(xform_id: int) -> None:
     """Register a XForm's Instances export columns asynchronously
 
@@ -162,8 +162,8 @@ def reconstruct_xform_export_register_async(xform_id: int) -> None:
         reconstruct_xform_export_register(xform)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def decrypt_instance_async(instance_id: int):
     """Decrypt encrypted Instance asynchronously.
 
@@ -179,29 +179,29 @@ def decrypt_instance_async(instance_id: int):
         decrypt_instance(instance)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def rotate_expired_keys_async():
     """Rotate expired keys asynchronously."""
     rotate_expired_keys()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
     disable_expired_keys()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
     send_key_rotation_reminder()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
     """Decrement XForm decrypted submission count asynchronously
 
@@ -217,8 +217,8 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
         adjust_xform_decrypted_submission_count(xform, delta=-1)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def commit_cached_xform_decrypted_submission_count_async():
     """Commit cached XForm decrypted submission count to the database
 
