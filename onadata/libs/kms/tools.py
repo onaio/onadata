@@ -709,7 +709,10 @@ def adjust_xform_decrypted_submission_count(xform: XForm, delta: int) -> None:
         created_at_key=XFORM_DEC_SUBMISSION_COUNT_CREATED_AT,
         lock_key=XFORM_DEC_SUBMISSION_COUNT_LOCK,
         failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
-        task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+        task_name=(
+            "onadata.apps.logger.tasks"
+            ".commit_cached_xform_decrypted_submission_count_async"
+        ),
     )
 
 

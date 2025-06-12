@@ -17,6 +17,8 @@ from onadata.libs.utils.common_tools import get_uuid, report_exception
 
 logger = logging.getLogger(__name__)
 
+# pylint: disable=too-many-arguments
+
 
 def set_uuid(obj):
     """
