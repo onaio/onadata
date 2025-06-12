@@ -1158,17 +1158,16 @@ def delete_xform_submissions(
         # Every submission has been deleted
         xform.num_of_submissions = 0
         xform.save(update_fields=["num_of_submissions"])
-
-    else:
-        xform.submission_count(force_update=True)
-
+    # Force update of submission counts since Queryset.update() does not trigger signals
+    xform.submission_count(force_update=True)
     xform.update_num_of_decrypted_submissions()
+
     xform.project.date_modified = timezone.now()
     xform.project.save(update_fields=["date_modified"])
 
     safe_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
     send_message(
-        instance_id=list(instance_qs.values_list("id", flat=True)),
+        instance_id=instance_ids or [],
         target_id=xform.id,
         target_type=XFORM,
         user=deleted_by,
