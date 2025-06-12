@@ -36,23 +36,24 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def set_entity_list_perms_async(entity_list_id):
     """Set permissions for EntityList asynchronously
 
     :param entity_list_id: Primary key for EntityList
     """
-    with use_master:
-        try:
-            entity_list = EntityList.objects.get(pk=entity_list_id)
+    try:
+        entity_list = EntityList.objects.get(pk=entity_list_id)
 
-        except EntityList.DoesNotExist as err:
-            logger.exception(err)
-            return
+    except EntityList.DoesNotExist as err:
+        logger.exception(err)
+        return
 
-        set_project_perms_to_object(entity_list, entity_list.project)
+    set_project_perms_to_object(entity_list, entity_list.project)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def apply_project_date_modified_async():
     """
@@ -62,15 +63,15 @@ def apply_project_date_modified_async():
     if not project_ids:
         return
 
-    with use_master:
-        # Update project date_modified field in batches
-        for project_id, timestamp in project_ids.items():
-            Project.objects.filter(pk=project_id).update(date_modified=timestamp)
+    # Update project date_modified field in batches
+    for project_id, timestamp in project_ids.items():
+        Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def delete_entities_bulk_async(entity_pks: list[int], username: str | None = None):
     """Delete Entities asynchronously
@@ -78,21 +79,21 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
     :param entity_pks: Primary keys of Entities to be deleted
     :param username: Username of the user initiating the delete operation
     """
-    with use_master:
-        entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
-        deleted_by = None
+    entity_qs = Entity.objects.filter(pk__in=entity_pks, deleted_at__isnull=True)
+    deleted_by = None
 
-        try:
-            if username is not None:
-                deleted_by = User.objects.get(username=username)
+    try:
+        if username is not None:
+            deleted_by = User.objects.get(username=username)
 
-        except User.DoesNotExist as exc:
-            logger.exception(exc)
+    except User.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            soft_delete_entities_bulk(entity_qs, deleted_by)
+    else:
+        soft_delete_entities_bulk(entity_qs, deleted_by)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def commit_cached_elist_num_entities_async():
     """Commit cached EntityList `num_entities` counter to the database
@@ -104,119 +105,119 @@ def commit_cached_elist_num_entities_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    with use_master:
-        commit_cached_elist_num_entities()
+    commit_cached_elist_num_entities()
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def incr_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
     """
-    with use_master:
-        adjust_elist_num_entities(elist_pk, delta=1)
+    adjust_elist_num_entities(elist_pk, delta=1)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def decr_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
     """
-    with use_master:
-        adjust_elist_num_entities(elist_pk, delta=-1)
+    adjust_elist_num_entities(elist_pk, delta=-1)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def register_instance_repeat_columns_async(instance_pk: int) -> None:
     """Register Instance repeat columns asynchronously
 
     :param instance_pk: Primary key for Instance
     """
-    with use_master:
-        try:
-            instance = Instance.objects.get(pk=instance_pk)
+    try:
+        instance = Instance.objects.get(pk=instance_pk)
 
-        except Instance.DoesNotExist as exc:
-            logger.exception(exc)
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            register_instance_repeat_columns(instance)
+    else:
+        register_instance_repeat_columns(instance)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def reconstruct_xform_export_register_async(xform_id: int) -> None:
     """Register a XForm's Instances export columns asynchronously
 
     :param xform_id: Primary key for XForm
     """
-    with use_master:
-        try:
-            xform = XForm.objects.get(pk=xform_id)
+    try:
+        xform = XForm.objects.get(pk=xform_id)
 
-        except XForm.DoesNotExist as exc:
-            logger.exception(exc)
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            reconstruct_xform_export_register(xform)
+    else:
+        reconstruct_xform_export_register(xform)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def decrypt_instance_async(instance_id: int):
     """Decrypt encrypted Instance asynchronously.
 
     :param instance_id: Primary key for Instance
     """
-    with use_master:
-        try:
-            instance = Instance.objects.get(pk=instance_id)
+    try:
+        instance = Instance.objects.get(pk=instance_id)
 
-        except Instance.DoesNotExist as exc:
-            logger.exception(exc)
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            decrypt_instance(instance)
+    else:
+        decrypt_instance(instance)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def rotate_expired_keys_async():
     """Rotate expired keys asynchronously."""
-    with use_master:
-        rotate_expired_keys()
+    rotate_expired_keys()
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
-    with use_master:
-        disable_expired_keys()
+    disable_expired_keys()
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
-    with use_master:
-        send_key_rotation_reminder()
+    send_key_rotation_reminder()
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
     """Decrement XForm decrypted submission count asynchronously
 
     :param xform_id: Primary key for XForm
     """
-    with use_master:
-        try:
-            xform = XForm.objects.get(pk=xform_id)
+    try:
+        xform = XForm.objects.get(pk=xform_id)
 
-        except XForm.DoesNotExist as exc:
-            logger.exception(exc)
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
 
-        else:
-            adjust_xform_decrypted_submission_count(xform, delta=-1)
+    else:
+        adjust_xform_decrypted_submission_count(xform, delta=-1)
 
 
+@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 def commit_cached_xform_decrypted_submission_count_async():
     """Commit cached XForm decrypted submission count to the database
@@ -228,5 +229,4 @@ def commit_cached_xform_decrypted_submission_count_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    with use_master:
-        commit_cached_xform_decrypted_submission_count()
+    commit_cached_xform_decrypted_submission_count()
