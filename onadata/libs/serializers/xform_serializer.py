@@ -500,6 +500,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "is_merged_dataset",
             "xls_available",
             "is_managed",
+            "num_of_pending_decryption_submissions",
         )
         exclude = (
             "json",
