@@ -230,29 +230,29 @@ def decrypt_instance_async(instance_id: int):
         decrypt_instance(instance)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def rotate_expired_keys_async():
     """Rotate expired keys asynchronously."""
     rotate_expired_keys()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
     disable_expired_keys()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
     send_key_rotation_reminder()
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
     """Decrement XForm decrypted submission count asynchronously
 
@@ -268,8 +268,8 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
         adjust_xform_decrypted_submission_count(xform, delta=-1)
 
 
-@use_master
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
 def commit_cached_xform_decrypted_submission_count_async():
     """Commit cached XForm decrypted submission count to the database
 
