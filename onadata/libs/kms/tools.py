@@ -690,7 +690,7 @@ def disable_expired_keys():
 
 
 def adjust_xform_num_of_decrypted_submissions(xform: XForm, delta: int) -> None:
-    """Adjust XForm decrypted submission count
+    """Adjust XForm `num_of_decrypted_submissions` counter
 
     :param xform: XForm
     :param delta: Value to increment or decrement by
@@ -717,7 +717,7 @@ def adjust_xform_num_of_decrypted_submissions(xform: XForm, delta: int) -> None:
 
 
 def commit_cached_xform_num_of_decrypted_submissions():
-    """Commit cached XForm decrypted submission count to the database"""
+    """Commit cached XForm `num_of_decrypted_submissions` counter to the database"""
     commit_cached_counters(
         model=XForm,
         field_name="num_of_decrypted_submissions",
