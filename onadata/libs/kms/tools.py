@@ -433,7 +433,6 @@ def is_instance_encrypted(instance: Instance) -> bool:
 
 
 # pylint: disable=too-many-locals
-@transaction.atomic()
 def decrypt_instance(instance: Instance) -> None:
     """Decrypt encrypted Instance
 
@@ -452,75 +451,76 @@ def decrypt_instance(instance: Instance) -> None:
     if xform_key.kms_key.disabled_at is not None:
         raise DecryptionError("KMSKey is disabled.")
 
-    submission_xml = BytesIO(instance.xml.encode("utf-8"))
-    kms_client = get_kms_client()
-    # Decrypt submission files
-    attachment_qs = instance.attachments.all()
+    with transaction.atomic():
+        submission_xml = BytesIO(instance.xml.encode("utf-8"))
+        kms_client = get_kms_client()
+        # Decrypt submission files
+        attachment_qs = instance.attachments.all()
 
-    def get_encrypted_files():
-        enc_files = {}
+        def get_encrypted_files():
+            enc_files = {}
 
-        for attachment in queryset_iterator(attachment_qs):
-            name = attachment.name or attachment.media_file.name.split("/")[-1]
+            for attachment in queryset_iterator(attachment_qs):
+                name = attachment.name or attachment.media_file.name.split("/")[-1]
 
-            with attachment.media_file.open("rb") as file:
-                enc_files[name] = BytesIO(file.read())
+                with attachment.media_file.open("rb") as file:
+                    enc_files[name] = BytesIO(file.read())
 
-        return enc_files
+            return enc_files
 
-    try:
-        decrypted_files = decrypt_submission(
-            kms_client=kms_client,
-            key_id=xform_key.kms_key.key_id,
-            submission_xml=submission_xml,
-            enc_files=get_encrypted_files(),
-        )
-
-    except InvalidSubmissionException as exc:
-        raise DecryptionError(str(exc)) from exc
-
-    # Replace encrypted submission with decrypted submission
-    # Save history before replacement
-    history = InstanceHistory(
-        checksum=instance.checksum,
-        xml=instance.xml,
-        xform_instance=instance,
-        uuid=instance.uuid,
-        geom=instance.geom,
-        submission_date=instance.last_edited or instance.date_created,
-    )
-    decrypted_attachment_ids = []
-
-    for original_name, decrypted_file in decrypted_files:
-        if original_name.lower() == "submission.xml":
-            # Replace submission with decrypted submission
-            xml = decrypted_file.getvalue()
-
-            instance.xml = xml.decode("utf-8")
-            instance.checksum = sha256(xml).hexdigest()
-            instance.is_encrypted = False
-            instance.save()
-
-        else:
-            # Save decrypted media file
-            media_file = File(decrypted_file, name=original_name)
-            mimetype, _ = mimetypes.guess_type(original_name)
-            _, extension = os.path.splitext(original_name)
-            attachment = instance.attachments.create(
-                xform=instance.xform,
-                media_file=media_file,
-                name=original_name,
-                mimetype=mimetype or "application/octet-stream",
-                extension=extension.lstrip("."),
-                file_size=len(decrypted_file.getbuffer()),
+        try:
+            decrypted_files = decrypt_submission(
+                kms_client=kms_client,
+                key_id=xform_key.kms_key.key_id,
+                submission_xml=submission_xml,
+                enc_files=get_encrypted_files(),
             )
-            decrypted_attachment_ids.append(attachment.id)
-    # Commit history after saving decrypted files
-    history.save()
-    # Soft delete encrypted attachments
-    attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
-        deleted_at=timezone.now()
-    )
+
+        except InvalidSubmissionException as exc:
+            raise DecryptionError(str(exc)) from exc
+
+        # Replace encrypted submission with decrypted submission
+        # Save history before replacement
+        history = InstanceHistory(
+            checksum=instance.checksum,
+            xml=instance.xml,
+            xform_instance=instance,
+            uuid=instance.uuid,
+            geom=instance.geom,
+            submission_date=instance.last_edited or instance.date_created,
+        )
+        decrypted_attachment_ids = []
+
+        for original_name, decrypted_file in decrypted_files:
+            if original_name.lower() == "submission.xml":
+                # Replace submission with decrypted submission
+                xml = decrypted_file.getvalue()
+
+                instance.xml = xml.decode("utf-8")
+                instance.checksum = sha256(xml).hexdigest()
+                instance.is_encrypted = False
+                instance.save()
+
+            else:
+                # Save decrypted media file
+                media_file = File(decrypted_file, name=original_name)
+                mimetype, _ = mimetypes.guess_type(original_name)
+                _, extension = os.path.splitext(original_name)
+                attachment = instance.attachments.create(
+                    xform=instance.xform,
+                    media_file=media_file,
+                    name=original_name,
+                    mimetype=mimetype or "application/octet-stream",
+                    extension=extension.lstrip("."),
+                    file_size=len(decrypted_file.getbuffer()),
+                )
+                decrypted_attachment_ids.append(attachment.id)
+        # Commit history after saving decrypted files
+        history.save()
+        # Soft delete encrypted attachments
+        attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
+            deleted_at=timezone.now()
+        )
     # Increment XForm decrypted submission count
     adjust_xform_decrypted_submission_count(instance.xform, delta=1)
 
