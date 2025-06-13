@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -802,16 +802,12 @@ class Instance(models.Model, InstanceBaseClass):
     # pylint: disable=no-member
     def set_deleted(self, deleted_at=timezone.now(), user=None):
         """Set the timestamp and user when a submission is deleted."""
-        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-
         if user:
             self.deleted_by = user
         self.deleted_at = deleted_at
         self.save()
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
-        # Decrement decrypted submission count
-        logger_tasks.decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
         self.parsed_instance.save()
 
     def soft_delete_attachments(self, user=None):
@@ -920,17 +916,36 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
         update_fields_directly(instance, is_encrypted=True)
 
 
-@use_master
-def decr_xform_num_of_decrypted_submissions(sender, instance, created=False, **kwargs):
-    """Decrement XForm decrypted submission count"""
+def _decr_xform_num_of_decrypted_submissions(instance: Instance):
+    """Decrement XForm `num_of_decrypted_submissions` counter"""
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
     transaction.on_commit(
         lambda: logger_tasks.decr_xform_num_of_decrypted_submissions_async.delay(
-            instance.xform.pk
+            instance.xform_id
         )
     )
+
+
+def decr_xform_num_of_decrypted_submissions_on_hard_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_decrypted_submissions` counter on Instance hard delete"""
+    _decr_xform_num_of_decrypted_submissions(instance)
+
+
+def decr_xform_num_of_decrypted_submissions_on_soft_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_decrypted_submissions` counter on Instance soft delete"""
+    if not instance.pk or instance.deleted_at is None:
+        return
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+
+    if old_instance.deleted_at is None and instance.deleted_at is not None:
+        # Instance was soft deleted
+        _decr_xform_num_of_decrypted_submissions(instance)
 
 
 post_save.connect(
@@ -960,9 +975,15 @@ post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_insta
 post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 post_delete.connect(
-    decr_xform_num_of_decrypted_submissions,
+    decr_xform_num_of_decrypted_submissions_on_hard_delete,
     sender=Instance,
-    dispatch_uid="decr_xform_num_of_decrypted_submissions",
+    dispatch_uid="decr_xform_num_of_decrypted_submissions_on_hard_delete",
+)
+
+pre_save.connect(
+    decr_xform_num_of_decrypted_submissions_on_soft_delete,
+    sender=Instance,
+    dispatch_uid="decr_xform_num_of_decrypted_submissions_on_soft_delete",
 )
 
 

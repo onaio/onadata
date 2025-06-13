@@ -1511,8 +1511,10 @@ class TestInstance(TestBase):
     @patch(
         "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
     )
-    def test_soft_delete_decrypted_submission_count_decremented(self, mock_decr):
-        """Soft deleting Instance decrements decrypted submission count."""
+    def test_soft_delete_xform_num_of_decrypted_submissions_decremented(
+        self, mock_decr
+    ):
+        """Soft deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
         self._publish_transportation_form()
         self._make_submissions()
 
@@ -1530,8 +1532,10 @@ class TestInstance(TestBase):
     @patch(
         "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
     )
-    def test_hard_delete_decrypted_submission_count_decremented(self, mock_decr):
-        """Hard deleting Instance decrements decrypted submission count."""
+    def test_hard_delete_xform_num_of_decrypted_submissions_decremented(
+        self, mock_decr
+    ):
+        """Hard deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
         self._publish_transportation_form()
         self._make_submissions()
 
