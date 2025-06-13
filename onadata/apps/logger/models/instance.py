@@ -329,6 +329,13 @@ def _update_xform_submission_count_delete(instance):
             instance.xform.save()
 
 
+# pylint: disable=unused-argument,invalid-name
+def update_xform_submission_count_delete(sender, instance, **kwargs):
+    """Updates the XForm submissions count on deletion of a submission."""
+    if instance:
+        _update_xform_submission_count_delete(instance)
+
+
 @app.task(bind=True, max_retries=3)
 def save_full_json_async(self, instance_id):
     """
@@ -921,14 +928,13 @@ def _decr_xform_num_of_decrypted_submissions(instance: Instance):
     )
 
 
-def post_delete_instance(sender, instance, **kwargs):
-    """post_delete signal handler for Instance"""
+def decr_xform_num_of_decrypted_submissions_on_hard_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_decrypted_submissions` counter on Instance hard delete"""
     _decr_xform_num_of_decrypted_submissions(instance)
-    _update_xform_submission_count_delete(instance)
 
 
-def pre_save_instance(sender, instance, **kwargs):
-    """pre_save signal handler for Instance"""
+def decr_xform_num_of_decrypted_submissions_on_soft_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_decrypted_submissions` counter on Instance soft delete"""
     if not instance.pk or instance.deleted_at is None:
         return
 
@@ -944,6 +950,12 @@ def pre_save_instance(sender, instance, **kwargs):
 
 post_save.connect(
     post_save_submission, sender=Instance, dispatch_uid="post_save_submission"
+)
+
+post_delete.connect(
+    update_xform_submission_count_delete,
+    sender=Instance,
+    dispatch_uid="update_xform_submission_count_delete",
 )
 
 pre_delete.connect(
@@ -963,15 +975,15 @@ post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_insta
 post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 post_delete.connect(
-    post_delete_instance,
+    decr_xform_num_of_decrypted_submissions_on_hard_delete,
     sender=Instance,
-    dispatch_uid="post_delete_instance",
+    dispatch_uid="decr_xform_num_of_decrypted_submissions_on_hard_delete",
 )
 
 pre_save.connect(
-    pre_save_instance,
+    decr_xform_num_of_decrypted_submissions_on_soft_delete,
     sender=Instance,
-    dispatch_uid="pre_save_instance",
+    dispatch_uid="decr_xform_num_of_decrypted_submissions_on_soft_delete",
 )
 
 
