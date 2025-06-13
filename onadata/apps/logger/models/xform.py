@@ -1395,12 +1395,15 @@ class XForm(XFormMixin, BaseModel):
     def live_num_of_decrypted_submissions(self):
         """Returns database + cache count of decrypted submissions."""
         cached_counter = safe_cache_get(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}", 0)
+
         return self.num_of_decrypted_submissions + cached_counter
 
     @property
     def num_of_pending_decryption_submissions(self):
         """Returns the number of submissions pending decryption for the form."""
-        return self.num_of_submissions - self.live_num_of_decrypted_submissions
+        count = self.num_of_submissions - self.live_num_of_decrypted_submissions
+
+        return max(count, 0)
 
 
 # pylint: disable=unused-argument

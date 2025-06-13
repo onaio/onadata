@@ -416,7 +416,7 @@ class TestXForm(TestBase):
         cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
         cache.set(cache_key, 10)
 
-        # Simulate total submissions
+        # num_of_submissions is greater than num_of_decrypted_submissions
         self.xform.num_of_submissions = 20
         self.xform.save(update_fields=["num_of_submissions"])
 
@@ -426,3 +426,10 @@ class TestXForm(TestBase):
         self.xform.refresh_from_db()
 
         self.assertEqual(self.xform.num_of_pending_decryption_submissions, 5)
+
+        # num_of_submissions is less than num_of_decrypted_submissions
+        self.xform.num_of_submissions = 5
+        self.xform.save(update_fields=["num_of_submissions"])
+        self.xform.refresh_from_db()
+
+        self.assertEqual(self.xform.num_of_pending_decryption_submissions, 0)
