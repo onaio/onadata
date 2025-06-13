@@ -379,12 +379,13 @@ def get_abbreviated_xpath(xpath):
     return "/".join(xpath.split("/")[2:])
 
 
-class track_duration:
+class TrackDuration:
     """Context manager that measures and logs duration of a code block."""
 
     def __init__(self, label: str):
         self.label = label
         self.duration = None
+        self.start = None
 
     def __enter__(self):
         self.start = time.perf_counter()
@@ -392,4 +393,5 @@ class track_duration:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.duration = time.perf_counter() - self.start
-        logger.info(f"{self.label} took {self.duration:.3f} seconds.")
+
+        logger.info("%s took %.3f seconds.", self.label, self.duration)

@@ -52,7 +52,7 @@ from onadata.libs.utils.cache_tools import (
     XFORM_DEC_SUBMISSION_COUNT_IDS,
     XFORM_DEC_SUBMISSION_COUNT_LOCK,
 )
-from onadata.libs.utils.common_tools import track_duration
+from onadata.libs.utils.common_tools import TrackDuration
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
 from onadata.libs.utils.model_tools import (
@@ -453,7 +453,7 @@ def decrypt_instance(instance: Instance) -> None:
         raise DecryptionError("KMSKey is disabled.")
 
     with transaction.atomic():
-        with track_duration(f"Decrypting instance {instance.pk}") as timer:
+        with TrackDuration(f"Decrypting instance {instance.pk}") as timer:
             submission_xml = BytesIO(instance.xml.encode("utf-8"))
             kms_client = get_kms_client()
             # Decrypt submission files
