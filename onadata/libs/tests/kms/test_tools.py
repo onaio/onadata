@@ -36,9 +36,9 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
-    adjust_xform_decrypted_submission_count,
+    adjust_xform_num_of_decrypted_submissions,
     clean_public_key,
-    commit_cached_xform_decrypted_submission_count,
+    commit_cached_xform_num_of_decrypted_submissions,
     create_key,
     decrypt_instance,
     disable_expired_keys,
@@ -980,7 +980,7 @@ class DecryptInstanceTestCase(TestBase):
     def _compute_file_sha256(self, buffer):
         return sha256(buffer.getvalue()).hexdigest()
 
-    @patch("onadata.libs.kms.tools.adjust_xform_decrypted_submission_count")
+    @patch("onadata.libs.kms.tools.adjust_xform_num_of_decrypted_submissions")
     def test_decrypt_submission(self, mock_adjust_decrypted_submission_count):
         """Decrypt submission is successful."""
         self.assertTrue(self.instance.is_encrypted)
@@ -1719,19 +1719,19 @@ class DisableExpiredKeysTestCase(TestBase):
 
 @patch("onadata.libs.kms.tools.adjust_counter")
 class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
-    """Tests `adjust_xform_decrypted_submission_count`"""
+    """Tests `adjust_xform_num_of_decrypted_submissions`"""
 
     def setUp(self):
         super().setUp()
 
         self._publish_transportation_form()
 
-    def test_adjust_xform_decrypted_submission_count(self, mock_adjust_counter):
-        """`adjust_xform_decrypted_submission_count` increments the count"""
+    def test_adjust_xform_num_of_decrypted_submissions(self, mock_adjust_counter):
+        """`adjust_xform_num_of_decrypted_submissions` increments the count"""
         self.xform.is_managed = True
         self.xform.save()
 
-        adjust_xform_decrypted_submission_count(self.xform, delta=1)
+        adjust_xform_num_of_decrypted_submissions(self.xform, delta=1)
 
         mock_adjust_counter.assert_called_once_with(
             pk=self.xform.pk,
@@ -1743,7 +1743,7 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
             created_at_key="xfm-dec-submission-count-ids-created-at",
             lock_key="xfm-dec-submission-count-ids-lock",
             failover_report_key="xfm-dec-submission-count-failover-report-sent",
-            task_name="onadata.apps.logger.tasks.commit_cached_xform_decrypted_submission_count_async",
+            task_name="onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions_async",
         )
 
     def test_unmanaged_xform(self, mock_adjust_counter):
@@ -1751,12 +1751,12 @@ class AdjustXFormDecryptedSubmissionCountTestCase(TestBase):
         self.xform.is_managed = False
         self.xform.save()
 
-        adjust_xform_decrypted_submission_count(self.xform, delta=1)
+        adjust_xform_num_of_decrypted_submissions(self.xform, delta=1)
         mock_adjust_counter.assert_not_called()
 
 
 class CommitCachedXFormDecryptedSubmissionCountTestCase(TestBase):
-    """Tests `commit_cached_xform_decrypted_submission_count`"""
+    """Tests `commit_cached_xform_num_of_decrypted_submissions`"""
 
     def setUp(self):
         super().setUp()
@@ -1764,11 +1764,11 @@ class CommitCachedXFormDecryptedSubmissionCountTestCase(TestBase):
         self._publish_transportation_form()
 
     @patch("onadata.libs.kms.tools.commit_cached_counters")
-    def test_commit_cached_xform_decrypted_submission_count(
+    def test_commit_cached_xform_num_of_decrypted_submissions(
         self, mock_commit_cached_counters
     ):
-        """`commit_cached_xform_decrypted_submission_count` commits the count"""
-        commit_cached_xform_decrypted_submission_count()
+        """`commit_cached_xform_num_of_decrypted_submissions` commits the count"""
+        commit_cached_xform_num_of_decrypted_submissions()
 
         mock_commit_cached_counters.assert_called_once_with(
             model=XForm,
