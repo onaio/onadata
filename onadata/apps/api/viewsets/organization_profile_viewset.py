@@ -4,6 +4,7 @@ The /api/v1/orgs API implementation
 
 List, Retrieve, Update, Create/Register Organizations.
 """
+
 import json
 
 from django.conf import settings
@@ -18,6 +19,9 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
+from onadata.apps.logger.models import KMSKey
+from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
     OrganizationsSharedWithUserFilter,
@@ -26,10 +30,16 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.permissions import ManagerRole, OwnerRole
 from onadata.libs.serializers.organization_member_serializer import (
     OrganizationMemberSerializer,
 )
-from onadata.libs.serializers.organization_serializer import OrganizationSerializer
+from onadata.libs.serializers.organization_serializer import (
+    AdminOrganizationSerializer,
+    KMSKeyInlineSerializer,
+    OrganizationSerializer,
+    RotateOrganizationKeySerializer,
+)
 from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.common_tools import merge_dicts
 
@@ -63,15 +73,34 @@ class OrganizationProfileViewSet(
     permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
 
+    def get_serializer_class(self):
+        """Override `get_serializer_class` method"""
+        if self.action == "rotate_key":
+            return RotateOrganizationKeySerializer
+
+        return super().get_serializer_class()
+
     def retrieve(self, request, *args, **kwargs):
         """Get organization from cache or db"""
-        cache_key = get_org_profile_cache_key(request.user, self.get_object())
+        organization = self.get_object()
+        cache_key = get_org_profile_cache_key(request.user, organization)
         cached_org = cache.get(cache_key)
+
         if cached_org:
             return Response(cached_org)
-        response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data)
-        return response
+
+        is_admin = OwnerRole.user_has_role(
+            request.user, organization
+        ) or ManagerRole.user_has_role(request.user, organization)
+        serializer_class = (
+            AdminOrganizationSerializer if is_admin else self.get_serializer_class()
+        )
+        serializer = serializer_class(
+            organization, context=self.get_serializer_context()
+        )
+        data = serializer.data
+        cache.set(cache_key, data)
+        return Response(data)
 
     def create(self, request, *args, **kwargs):
         """Create and cache organization"""
@@ -128,3 +157,22 @@ class OrganizationProfileViewSet(
         )
 
         return Response(status=resp_status, data=serializer.data)
+
+    @action(methods=["POST"], detail=True, url_path="rotate-key")
+    def rotate_key(self, request, *args, **kwargs):
+        """Manually rotate KMS key."""
+        self.get_object()  # Check if user has permission to rotate key
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
+        new_key = serializer.save()
+        # Capture audit log
+        send_message(
+            instance_id=old_key.id,
+            target_id=old_key.id,
+            target_type=KMS_KEY,
+            user=request.user,
+            message_verb=KMS_KEY_ROTATED,
+        )
+        data = KMSKeyInlineSerializer(new_key).data
+        return Response(data, status=status.HTTP_200_OK)

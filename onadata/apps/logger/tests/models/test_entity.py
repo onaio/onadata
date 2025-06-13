@@ -1,8 +1,8 @@
 """Tests for module onadata.apps.logger.models.entity"""
 
 import uuid
-import pytz
 from datetime import datetime
+from datetime import timezone as tz
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError
@@ -25,7 +25,7 @@ class EntityTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=tz.utc)
         self.project = get_user_default_project(self.user)
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
 
@@ -58,7 +58,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity.json, {})
         self.assertIsInstance(entity.uuid, uuid.UUID)
 
-    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
+    @patch("onadata.apps.logger.tasks.decr_elist_num_entities_async.delay")
     @patch("django.utils.timezone.now")
     def test_soft_delete(self, mock_now, mock_dec):
         """Soft delete works"""
@@ -96,7 +96,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity3.deleted_at, self.mocked_now)
         self.assertIsNone(entity3.deleted_by)
 
-    @patch("onadata.apps.logger.tasks.dec_elist_num_entities_async.delay")
+    @patch("onadata.apps.logger.tasks.decr_elist_num_entities_async.delay")
     def test_hard_delete(self, mock_dec):
         """Hard deleting updates dataset info"""
         entity = Entity.objects.create(entity_list=self.entity_list)
@@ -130,7 +130,7 @@ class EntityHistoryTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
-        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
+        self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=tz.utc)
         self.xform = self._publish_registration_form(self.user)
         self.entity_list = EntityList.objects.first()
         self.entity = Entity.objects.create(entity_list=self.entity_list)

@@ -474,6 +474,7 @@ class DataViewSet(
         xform: XForm,
         current_page: Union[int, str],
         current_page_size: Union[int, str] = SUBMISSION_RETRIEVAL_THRESHOLD,
+        is_encrypted=None,
     ):
         """
         Sets the self.headers value for the viewset
@@ -483,7 +484,7 @@ class DataViewSet(
         base_url = url.split("?")[0]
         if query:
             query = self._parse_query(query)
-            num_of_records = query_count(xform, query=query)
+            num_of_records = query_count(xform, query=query, is_encrypted=is_encrypted)
         else:
             num_of_records = xform.num_of_submissions
         next_page_url = None
@@ -543,6 +544,11 @@ class DataViewSet(
         sort = request.GET.get("sort")
         start = parse_int(request.GET.get("start"))
         limit = parse_int(request.GET.get("limit"))
+        is_encrypted = request.query_params.get("is_encrypted")
+
+        if is_encrypted is not None:
+            is_encrypted = str_to_bool(is_encrypted)
+
         export_type = kwargs.get("format", request.GET.get("format"))
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
@@ -581,6 +587,15 @@ class DataViewSet(
                 xform_id__in=pks, deleted_at=None
             ).only("json")
 
+            if is_encrypted is not None:
+                self.object_list = self.object_list.filter(is_encrypted=is_encrypted)
+
+            else:
+                self.object_list = self.object_list.exclude(
+                    is_encrypted=True,
+                    xform__is_managed=True,
+                )
+
             # Enable ordering for XForms with Submissions that are less
             # than the SUBMISSION_RETRIEVAL_THRESHOLD
             if num_of_submissions < SUBMISSION_RETRIEVAL_THRESHOLD:
@@ -610,7 +625,9 @@ class DataViewSet(
         if (
             export_type is None or export_type in ["json", "jsonp", "debug", "xml"]
         ) and hasattr(self, "object_list"):
-            return self._get_data(query, fields, sort, start, limit, is_public_request)
+            return self._get_data(
+                query, fields, sort, start, limit, is_public_request, is_encrypted
+            )
 
         xform = self.get_object()
         kwargs = {"instance__xform": xform}
@@ -618,7 +635,7 @@ class DataViewSet(
         if export_type == Attachment.OSM:
             if request.GET:
                 self.set_object_list(
-                    query, fields, sort, start, limit, is_public_request
+                    query, fields, sort, start, limit, is_public_request, is_encrypted
                 )
                 kwargs = {"instance__in": self.object_list}
             osm_list = OsmData.objects.filter(**kwargs).order_by("instance")
@@ -656,7 +673,9 @@ class DataViewSet(
         )
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
-    def set_object_list(self, query, fields, sort, start, limit, is_public_request):
+    def set_object_list(
+        self, query, fields, sort, start, limit, is_public_request, is_encrypted
+    ):
         """
         Set the submission instances queryset.
         """
@@ -731,6 +750,7 @@ class DataViewSet(
                             sort=sort,
                             start_index=start,
                             limit=limit,
+                            is_encrypted=is_encrypted,
                         )
                         # pylint: disable=attribute-defined-outside-init
                         self.object_list = data
@@ -742,6 +762,7 @@ class DataViewSet(
                             start_index=start,
                             limit=limit,
                             json_only=not self.kwargs.get("format") == "xml",
+                            is_encrypted=is_encrypted,
                         )
                         # pylint: disable=attribute-defined-outside-init
                         self.object_list = data
@@ -792,8 +813,12 @@ class DataViewSet(
         return any(k in query_param_keys for k in pagination_keys)
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals
-    def _get_data(self, query, fields, sort, start, limit, is_public_request):
-        self.set_object_list(query, fields, sort, start, limit, is_public_request)
+    def _get_data(
+        self, query, fields, sort, start, limit, is_public_request, is_encrypted
+    ):
+        self.set_object_list(
+            query, fields, sort, start, limit, is_public_request, is_encrypted
+        )
         should_paginate = self._should_paginate()
         retrieval_threshold = getattr(settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000)
 
@@ -817,6 +842,7 @@ class DataViewSet(
                 self.get_object(),
                 current_page=current_page,
                 current_page_size=current_page_size,
+                is_encrypted=is_encrypted,
             )
 
         if not isinstance(self.object_list, types.GeneratorType) and should_paginate:

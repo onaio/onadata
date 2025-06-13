@@ -7,9 +7,9 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import (
-    get_where_clause,
-    get_sql_with_params,
     _parse_sort_fields,
+    get_sql_with_params,
+    get_where_clause,
 )
 from onadata.apps.viewer.parsed_instance_tools import _parse_where
 
@@ -26,8 +26,8 @@ class TestParsedInstance(TestBase):
         )
 
         expected_where = [
-            "json->>%s = %s",
-            "CAST(json->>%s AS INT) > %s",
+            "logger_instance.json->>%s = %s",
+            "CAST(logger_instance.json->>%s AS INT) > %s",
             "is_active = true",
         ]
         expected_where_params = ["name", "bla", "age", "18"]
@@ -43,7 +43,10 @@ class TestParsedInstance(TestBase):
         known_decimals = []
         or_where = []
         or_params = []
-        expected_where = ["json->>%s >= %s", "json->>%s <= %s"]
+        expected_where = [
+            "logger_instance.json->>%s >= %s",
+            "logger_instance.json->>%s <= %s",
+        ]
         expected_params = [
             "created_at",
             "2022-01-01 00:00:00",
@@ -64,7 +67,7 @@ class TestParsedInstance(TestBase):
         known_decimals = []
         or_where = []
         or_params = []
-        expected_where = ["json->>%s IS NULL"]
+        expected_where = ["logger_instance.json->>%s IS NULL"]
         expected_params = ["name"]
 
         where, params = _parse_where(
@@ -77,19 +80,19 @@ class TestParsedInstance(TestBase):
     def test_get_where_clause_with_json_query(self):
         query = '{"name": "bla"}'
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, ["json->>%s = %s"])
+        self.assertEqual(where, ["logger_instance.json->>%s = %s"])
         self.assertEqual(where_params, ["name", "bla"])
 
     def test_get_where_clause_with_string_query(self):
         query = "bla"
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, ["json::text ~* cast(%s as text)"])
+        self.assertEqual(where, ["logger_instance.json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, ["bla"])
 
     def test_get_where_clause_with_integer(self):
         query = "11"
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, ["json::text ~* cast(%s as text)"])
+        self.assertEqual(where, ["logger_instance.json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, [11])
 
     def test_get_where_clause_or_date_range(self):
@@ -107,9 +110,9 @@ class TestParsedInstance(TestBase):
             where,
             [
                 (
-                    "((date_created >= %s AND date_created <= %s) OR "
-                    "(last_edited >= %s AND last_edited <= %s) OR "
-                    "(date_modified >= %s AND date_modified <= %s))"
+                    "((logger_instance.date_created >= %s AND logger_instance.date_created <= %s) OR "
+                    "(logger_instance.last_edited >= %s AND logger_instance.last_edited <= %s) OR "
+                    "(logger_instance.date_modified >= %s AND logger_instance.date_modified <= %s))"
                 )
             ],
         )

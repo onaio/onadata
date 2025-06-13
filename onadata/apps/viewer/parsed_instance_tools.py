@@ -2,17 +2,18 @@
 """
 ParsedInstance model utility functions
 """
+
 import datetime
 import json
 from builtins import str as text
 from typing import Any, Tuple
-import six
 
 from django.utils.translation import gettext_lazy as _
 
-from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
-from onadata.libs.exceptions import InavlidDateFormat
+import six
 
+from onadata.libs.exceptions import InavlidDateFormat
+from onadata.libs.utils.common_tags import KNOWN_DATE_FORMATS
 
 KNOWN_DATES = ["_submission_time", "_last_edited", "_date_modified"]
 NONE_JSON_FIELDS = {
@@ -32,14 +33,14 @@ def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=Non
         known_dates = []
     if known_decimals is None:
         known_decimals = []
-    _json_str = "json->>%s"
+    _json_str = "logger_instance.json->>%s"
 
     if key in known_integers:
-        _json_str = "CAST(json->>%s AS INT)"
+        _json_str = "CAST(logger_instance.json->>%s AS INT)"
     elif key in known_dates:
-        _json_str = "CAST(json->>%s AS TIMESTAMP)"
+        _json_str = "CAST(logger_instance.json->>%s AS TIMESTAMP)"
     elif key in known_decimals:
-        _json_str = "CAST(json->>%s AS DECIMAL)"
+        _json_str = "CAST(logger_instance.json->>%s AS DECIMAL)"
 
     return _json_str
 
@@ -53,7 +54,7 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
     for field_key, field_value in six.iteritems(query):
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
-                json_str = NONE_JSON_FIELDS.get(field_key)
+                json_str = f"logger_instance.{NONE_JSON_FIELDS.get(field_key)}"
             else:
                 json_str = _json_sql_str(
                     field_key, known_integers, KNOWN_DATES, known_decimals
@@ -88,13 +89,13 @@ def _parse_where(query, known_integers, known_decimals, or_where, or_params):
                     where_params.extend((field_key, text(_v)))
         else:
             if field_key in NONE_JSON_FIELDS:
-                where.append(f"{NONE_JSON_FIELDS[field_key]} = %s")
+                where.append(f"logger_instance.{NONE_JSON_FIELDS[field_key]} = %s")
                 where_params.append(text(field_value))
             elif field_value is None:
-                where.append("json->>%s IS NULL")
+                where.append("logger_instance.json->>%s IS NULL")
                 where_params.append(field_key)
             else:
-                where.append("json->>%s = %s")
+                where.append("logger_instance.json->>%s = %s")
                 where_params.extend((field_key, text(field_value)))
 
     return where + or_where, where_params + or_params
@@ -161,13 +162,13 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
                             continue
 
                         if value is None:
-                            or_where.extend([f"json->>'{key}' IS NULL"])
+                            or_where.extend([f"logger_instance.json->>'{key}' IS NULL"])
                         elif isinstance(value, list):
                             for item in value:
-                                or_where.extend(["json->>%s = %s"])
+                                or_where.extend(["logger_instance.json->>%s = %s"])
                                 or_params.extend([key, item])
                         else:
-                            or_where.extend(["json->>%s = %s"])
+                            or_where.extend(["logger_instance.json->>%s = %s"])
                             or_params.extend([key, value])
 
                 or_where = ["".join(["(", " OR ".join(or_where), ")"])]
@@ -180,7 +181,7 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
         if query and isinstance(query, six.string_types) and query.startswith("{"):
             raise error
         # cast query param to text
-        where = ["json::text ~* cast(%s as text)"]
+        where = ["logger_instance.json::text ~* cast(%s as text)"]
         where_params = [query]
 
     return where, where_params

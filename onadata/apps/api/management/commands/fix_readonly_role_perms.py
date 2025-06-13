@@ -2,6 +2,7 @@
 """
 fix_readonly_role_perms - Reassign permission to the model when permissions are changed
 """
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -14,6 +15,7 @@ from onadata.libs.permissions import (
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
+    EditorNoDownload,
     EditorMinorRole,
     EditorRole,
     ManagerRole,
@@ -87,6 +89,7 @@ def reassign_perms(user, model, new_perm):
             DataEntryOnlyRole,
             DataEntryMinorRole,
             DataEntryRole,
+            EditorNoDownload,
             EditorMinorRole,
             EditorRole,
             ManagerRole,

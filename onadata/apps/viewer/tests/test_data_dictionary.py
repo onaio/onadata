@@ -6,9 +6,11 @@ from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
+from django.test import override_settings
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
@@ -415,3 +417,112 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(split_multiples_columns, expected_columns)
         # Task is called to add columns for repeat data
         mock_register_xform_columns.assert_called_once_with(xform.pk)
+
+    def test_kms_encryption(self):
+        """XForm is auto-encrypted using managed key."""
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        content_type = ContentType.objects.get_for_model(org)
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=content_type,
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        |         | text        | age            | Age        |
+        | settings|             |                |            |
+        |         | form_title  | form_id        |            |
+        |         | Students    | students       |            |
+        """
+        # XForm is encrypted if config is enabled
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, org.user, id_string="a")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertTrue(xform.is_managed)
+
+        # XForm is not encrypted if config disabled
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=False):
+            xform = self._publish_markdown(md, org.user, id_string="b")
+            xform.refresh_from_db()
+
+            self.assertFalse(xform.encrypted)
+
+        # XForm is not encrypted if config missing
+        xform = self._publish_markdown(md, org.user, id_string="c")
+        xform.refresh_from_db()
+
+        self.assertFalse(xform.encrypted)
+
+        # XForm is not encrypted if owner is not organization
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, self.user, id_string="d")
+            xform.refresh_from_db()
+
+            self.assertFalse(xform.encrypted)
+
+        # XForm is not encrypted if already encrypted and
+        # KMS_OVERRIDE_CUSTOM_ENCRYPTION is False
+        with override_settings(
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_CUSTOM_ENCRYPTION=False
+        ):
+            custom_md = """
+            | survey  |
+            |         | type        | name           | label      |
+            |         | text        | name           | First Name |
+            |         | text        | age            | Age        |
+            | settings|             |                |            |
+            |         | form_title  | form_id        | public_key |
+            |         | Students    | students       | fake-pub   |
+            """
+            xform = self._publish_markdown(custom_md, org.user, id_string="e")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertFalse(xform.is_managed)
+
+        # XForm is encrypted if already encrypted and
+        # KMS_OVERRIDE_CUSTOM_ENCRYPTION is True
+        with override_settings(
+            KMS_AUTO_ENCRYPT_XFORM=True, KMS_OVERRIDE_CUSTOM_ENCRYPTION=True
+        ):
+            xform = self._publish_markdown(custom_md, org.user, id_string="f")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertTrue(xform.is_managed)
+
+        # Initial XForm version is updated when XForm is encrypted
+        md = """
+        | survey  |
+        |         | type        | name           | label      |
+        |         | text        | name           | First Name |
+        |         | text        | age            | Age        |
+        | settings|             |                |            |
+        |         | form_title  | form_id        | version    |
+        |         | Students    | students       | 202504221539|
+        """
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, org.user, id_string="g")
+            xform.refresh_from_db()
+
+            self.assertTrue(xform.encrypted)
+            self.assertTrue(xform.is_managed)
+            self.assertNotEqual(xform.version, "202504221539")
+
+        # XForm is not encrypted if KMSKey missing
+        kms_key.delete()
+
+        with override_settings(KMS_AUTO_ENCRYPT_XFORM=True):
+            xform = self._publish_markdown(md, org.user, id_string="h")
+            xform.refresh_from_db()
+
+            self.assertFalse(xform.encrypted)

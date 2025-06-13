@@ -13,8 +13,13 @@ from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
+    commit_cached_xform_num_of_decrypted_submissions_async,
+    decr_xform_num_of_decrypted_submissions_async,
+    disable_expired_keys_async,
     reconstruct_xform_export_register_async,
     register_instance_repeat_columns_async,
+    rotate_expired_keys_async,
+    send_key_rotation_reminder_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
@@ -250,3 +255,192 @@ class ReconstructXFormExportRegisterAsyncTestCase(TestBase):
         reconstruct_xform_export_register_async.delay(sys.maxsize)
         mock_register.assert_not_called()
         mock_logger.assert_called_once()
+
+
+@patch("onadata.apps.logger.tasks.rotate_expired_keys")
+class RotateExpiredKeysAsyncTestCase(TestBase):
+    """Tests for rotate_expired_keys_async"""
+
+    def test_rotate_expired_keys(self, mock_rotate):
+        """Rotate expired keys"""
+        rotate_expired_keys_async.delay()
+        mock_rotate.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_rotate):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_rotate.side_effect = ConnectionError
+        rotate_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_rotate):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_rotate.side_effect = DatabaseError
+        rotate_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+
+@patch("onadata.apps.logger.tasks.disable_expired_keys")
+class DisableExpiredKeysAsyncTestCase(TestBase):
+    """Tests for disable_expired_keys_async"""
+
+    def test_disable_expired_keys(self, mock_disable):
+        """Disable expired keys"""
+        disable_expired_keys_async.delay()
+        mock_disable.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_disable):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_disable.side_effect = ConnectionError
+        disable_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_disable):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_disable.side_effect = DatabaseError
+        disable_expired_keys_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+
+@patch("onadata.apps.logger.tasks.send_key_rotation_reminder")
+class SendKeyRotationReminderAsyncTestCase(TestBase):
+    """Tests for send_key_rotation_reminder_async"""
+
+    def test_send_key_rotation_reminder(self, mock_send):
+        """Send key rotation reminder"""
+        send_key_rotation_reminder_async.delay()
+        mock_send.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.send_key_rotation_reminder_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_send):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_send.side_effect = ConnectionError
+        send_key_rotation_reminder_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.send_key_rotation_reminder_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_send):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_send.side_effect = DatabaseError
+        send_key_rotation_reminder_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+
+@patch("onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions")
+class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
+    """Tests for decr_xform_num_of_decrypted_submissions_async"""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_transportation_form()
+
+    def test_decr_xform_num_of_decrypted_submissions(self, mock_decr):
+        """Decrement XForm decrypted submission count"""
+        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
+        mock_decr.assert_called_once_with(self.xform, delta=-1)
+
+    @patch(
+        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.retry"
+    )
+    def test_retry_connection_error(self, mock_retry, mock_decr):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_decr.side_effect = ConnectionError
+        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch(
+        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.retry"
+    )
+    def test_retry_database_error(self, mock_retry, mock_decr):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_decr.side_effect = DatabaseError
+        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_pk(self, mock_logger, mock_decr):
+        """Invalid XForm primary key is handled"""
+        decr_xform_num_of_decrypted_submissions_async.delay(sys.maxsize)
+        mock_decr.assert_not_called()
+        mock_logger.assert_called_once()
+
+
+@patch("onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions")
+class CommitCachedXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
+    """Tests for commit_cached_xform_num_of_decrypted_submissions_async"""
+
+    def test_commit_cached_xform_num_of_decrypted_submissions(self, mock_commit):
+        """Commit cached XForm decrypted submission count"""
+        commit_cached_xform_num_of_decrypted_submissions_async.delay()
+        mock_commit.assert_called_once()
+
+    @patch(
+        "onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions_async.retry"
+    )
+    def test_retry_connection_error(self, mock_retry, mock_commit):
+        """ConnectionError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_commit.side_effect = ConnectionError
+        commit_cached_xform_num_of_decrypted_submissions_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch(
+        "onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions_async.retry"
+    )
+    def test_retry_database_error(self, mock_retry, mock_commit):
+        """DatabaseError exception is retried"""
+        mock_retry.side_effect = Retry
+        mock_commit.side_effect = DatabaseError
+        commit_cached_xform_num_of_decrypted_submissions_async.delay()
+
+        self.assertTrue(mock_retry.called)
+
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))

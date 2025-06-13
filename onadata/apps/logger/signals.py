@@ -12,8 +12,8 @@ from django.utils import timezone
 from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.tasks import (
-    dec_elist_num_entities_async,
-    inc_elist_num_entities_async,
+    decr_elist_num_entities_async,
+    incr_elist_num_entities_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.models.meta_data import MetaData
@@ -54,7 +54,7 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
 
     if created:
         transaction.on_commit(
-            lambda: inc_elist_num_entities_async.delay(entity_list.pk)
+            lambda: incr_elist_num_entities_async.delay(entity_list.pk)
         )
 
 
@@ -62,7 +62,7 @@ def increment_entity_list_num_entities(sender, instance, created=False, **kwargs
 def decrement_entity_list_num_entities(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
     transaction.on_commit(
-        lambda: dec_elist_num_entities_async.delay(instance.entity_list.pk)
+        lambda: decr_elist_num_entities_async.delay(instance.entity_list.pk)
     )
 
 
