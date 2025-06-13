@@ -917,7 +917,7 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
 
 
 def _decr_xform_num_of_decrypted_submissions(instance: Instance):
-    """Decrement XForm decrypted submission count"""
+    """Decrement XForm `num_of_decrypted_submissions` counter"""
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
