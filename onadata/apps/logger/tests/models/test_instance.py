@@ -1509,7 +1509,7 @@ class TestInstance(TestBase):
         self.assertFalse(instance.is_encrypted)
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_decrypted_submission_count_async.delay"
+        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
     )
     def test_soft_delete_decrypted_submission_count_decremented(self, mock_decr):
         """Soft deleting Instance decrements decrypted submission count."""
@@ -1528,7 +1528,7 @@ class TestInstance(TestBase):
         mock_decr.assert_called_once_with(self.xform.pk)
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_decrypted_submission_count_async.delay"
+        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
     )
     def test_hard_delete_decrypted_submission_count_decremented(self, mock_decr):
         """Hard deleting Instance decrements decrypted submission count."""

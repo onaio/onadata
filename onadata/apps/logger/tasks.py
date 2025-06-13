@@ -13,8 +13,8 @@ from multidb.pinning import use_master
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.celeryapp import app
 from onadata.libs.kms.tools import (
-    adjust_xform_decrypted_submission_count,
-    commit_cached_xform_decrypted_submission_count,
+    adjust_xform_num_of_decrypted_submissions,
+    commit_cached_xform_num_of_decrypted_submissions,
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
@@ -209,7 +209,7 @@ def send_key_rotation_reminder_async():
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 @use_master
-def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
+def decr_xform_num_of_decrypted_submissions_async(xform_id: int) -> None:
     """Decrement XForm decrypted submission count asynchronously
 
     :param xform_id: Primary key for XForm
@@ -221,12 +221,12 @@ def decr_xform_decrypted_submission_count_async(xform_id: int) -> None:
         logger.exception(exc)
 
     else:
-        adjust_xform_decrypted_submission_count(xform, delta=-1)
+        adjust_xform_num_of_decrypted_submissions(xform, delta=-1)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 @use_master
-def commit_cached_xform_decrypted_submission_count_async():
+def commit_cached_xform_num_of_decrypted_submissions_async():
     """Commit cached XForm decrypted submission count to the database
 
     Call this task periodically, such as in a background task to ensure
@@ -236,4 +236,4 @@ def commit_cached_xform_decrypted_submission_count_async():
     Cached counters have no expiry, so it is essential to ensure that
     this task is called periodically.
     """
-    commit_cached_xform_decrypted_submission_count()
+    commit_cached_xform_num_of_decrypted_submissions()
