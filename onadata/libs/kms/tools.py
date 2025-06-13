@@ -524,8 +524,8 @@ def decrypt_instance(instance: Instance) -> None:
                 deleted_at=timezone.now()
             )
 
-    instance.decryption_time = timer.duration
-    instance.save(update_fields=["decryption_time"])
+    instance.decryption_duration = timer.duration
+    instance.save(update_fields=["decryption_duration"])
     # Increment XForm decrypted submission count
     adjust_xform_decrypted_submission_count(instance.xform, delta=1)
 

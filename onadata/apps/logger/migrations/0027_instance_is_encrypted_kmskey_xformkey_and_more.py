@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="instance",
-            name="decryption_time",
+            name="decryption_duration",
             field=models.FloatField(default=None, null=True),
         ),
         migrations.AddField(
