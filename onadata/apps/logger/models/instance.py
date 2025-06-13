@@ -765,7 +765,7 @@ class Instance(models.Model, InstanceBaseClass):
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
         # Decrement decrypted submission count
-        logger_tasks.decr_xform_decrypted_submission_count_async.delay(self.xform.pk)
+        logger_tasks.decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
         self.parsed_instance.save()
 
     def soft_delete_attachments(self, user=None):
@@ -888,13 +888,13 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
 
 
 @use_master
-def decr_xform_decrypted_submission_count(sender, instance, created=False, **kwargs):
+def decr_xform_num_of_decrypted_submissions(sender, instance, created=False, **kwargs):
     """Decrement XForm decrypted submission count"""
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
     transaction.on_commit(
-        lambda: logger_tasks.decr_xform_decrypted_submission_count_async.delay(
+        lambda: logger_tasks.decr_xform_num_of_decrypted_submissions_async.delay(
             instance.xform.pk
         )
     )
@@ -945,9 +945,9 @@ post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_insta
 post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 post_delete.connect(
-    decr_xform_decrypted_submission_count,
+    decr_xform_num_of_decrypted_submissions,
     sender=Instance,
-    dispatch_uid="decr_xform_decrypted_submission_count",
+    dispatch_uid="decr_xform_num_of_decrypted_submissions",
 )
 
 

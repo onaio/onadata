@@ -522,7 +522,7 @@ def decrypt_instance(instance: Instance) -> None:
             deleted_at=timezone.now()
         )
     # Increment XForm decrypted submission count
-    adjust_xform_decrypted_submission_count(instance.xform, delta=1)
+    adjust_xform_num_of_decrypted_submissions(instance.xform, delta=1)
 
 
 @transaction.atomic()
@@ -689,7 +689,7 @@ def disable_expired_keys():
         send_mass_mail(tuple(mass_mail_data))
 
 
-def adjust_xform_decrypted_submission_count(xform: XForm, delta: int) -> None:
+def adjust_xform_num_of_decrypted_submissions(xform: XForm, delta: int) -> None:
     """Adjust XForm decrypted submission count
 
     :param xform: XForm
@@ -711,12 +711,12 @@ def adjust_xform_decrypted_submission_count(xform: XForm, delta: int) -> None:
         failover_report_key=XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT,
         task_name=(
             "onadata.apps.logger.tasks"
-            ".commit_cached_xform_decrypted_submission_count_async"
+            ".commit_cached_xform_num_of_decrypted_submissions_async"
         ),
     )
 
 
-def commit_cached_xform_decrypted_submission_count():
+def commit_cached_xform_num_of_decrypted_submissions():
     """Commit cached XForm decrypted submission count to the database"""
     commit_cached_counters(
         model=XForm,
