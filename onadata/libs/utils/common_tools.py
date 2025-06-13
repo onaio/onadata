@@ -5,6 +5,7 @@ Common helper functions
 
 from __future__ import unicode_literals
 
+import logging
 import math
 import sys
 import time
@@ -22,6 +23,9 @@ import six
 from celery import current_task
 
 from onadata.libs.utils.common_tags import ATTACHMENTS
+
+logger = logging.getLogger(__name__)
+
 
 DEFAULT_UPDATE_BATCH = 100
 TRUE_VALUES = ["TRUE", "T", "1", 1]
@@ -373,3 +377,19 @@ def get_abbreviated_xpath(xpath):
     For example "/data/image1" results in "image1".
     """
     return "/".join(xpath.split("/")[2:])
+
+
+class track_duration:
+    """Context manager that measures and logs duration of a code block."""
+
+    def __init__(self, label: str):
+        self.label = label
+        self.duration = None
+
+    def __enter__(self):
+        self.start = time.perf_counter()
+        return self  # Allows access to `duration` after
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.duration = time.perf_counter() - self.start
+        logger.info(f"{self.label} took {self.duration:.3f} seconds.")

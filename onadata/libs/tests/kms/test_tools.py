@@ -996,6 +996,7 @@ class DecryptInstanceTestCase(TestBase):
             sha256(self.dec_submission_file.getvalue()).hexdigest(),
         )
         self.assertFalse(self.instance.is_encrypted)
+        self.assertIsNotNone(self.instance.decryption_time)
 
         # Decrypted media files are saved
         att_qs = Attachment.objects.filter(

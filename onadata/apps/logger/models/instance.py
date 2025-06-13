@@ -695,6 +695,7 @@ class Instance(models.Model, InstanceBaseClass):
     # Keep track of submission reviews, only query reviews if True
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
     is_encrypted = models.BooleanField(default=False)
+    decryption_time = models.FloatField(null=True, default=None)
 
     tags = TaggableManager()
 
