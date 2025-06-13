@@ -921,14 +921,14 @@ def _decr_xform_num_of_decrypted_submissions(instance: Instance):
     )
 
 
-def trigger_on_instance_hard_delete(sender, instance, **kwargs):
-    """Trigger on Instance hard delete"""
+def post_delete_instance(sender, instance, **kwargs):
+    """post_delete signal handler for Instance"""
     _decr_xform_num_of_decrypted_submissions(instance)
     _update_xform_submission_count_delete(instance)
 
 
-def trigger_on_instance_soft_delete(sender, instance, **kwargs):
-    """Trigger on Instance soft delete"""
+def pre_save_instance(sender, instance, **kwargs):
+    """pre_save signal handler for Instance"""
     if not instance.pk or instance.deleted_at is None:
         return
 
@@ -938,6 +938,7 @@ def trigger_on_instance_soft_delete(sender, instance, **kwargs):
         return
 
     if old_instance.deleted_at is None and instance.deleted_at is not None:
+        # Instance was soft deleted
         _decr_xform_num_of_decrypted_submissions(instance)
 
 
@@ -962,15 +963,15 @@ post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_insta
 post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 post_delete.connect(
-    trigger_on_instance_hard_delete,
+    post_delete_instance,
     sender=Instance,
-    dispatch_uid="trigger_on_instance_hard_delete",
+    dispatch_uid="post_delete_instance",
 )
 
 pre_save.connect(
-    trigger_on_instance_soft_delete,
+    pre_save_instance,
     sender=Instance,
-    dispatch_uid="trigger_on_instance_soft_delete",
+    dispatch_uid="pre_save_instance",
 )
 
 
