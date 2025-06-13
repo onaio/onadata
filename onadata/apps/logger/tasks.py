@@ -210,7 +210,7 @@ def send_key_rotation_reminder_async():
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 @use_master
 def decr_xform_num_of_decrypted_submissions_async(xform_id: int) -> None:
-    """Decrement XForm decrypted submission count asynchronously
+    """Decrement XForm `num_of_decrypted_submissions` counter asynchronously
 
     :param xform_id: Primary key for XForm
     """
@@ -227,7 +227,7 @@ def decr_xform_num_of_decrypted_submissions_async(xform_id: int) -> None:
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 @use_master
 def commit_cached_xform_num_of_decrypted_submissions_async():
-    """Commit cached XForm decrypted submission count to the database
+    """Commit cached XForm `num_of_decrypted_submissions` counter to the database
 
     Call this task periodically, such as in a background task to ensure
     cached counters for XForm `num_of_decrypted_submissions` are commited
