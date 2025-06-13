@@ -228,8 +228,12 @@ def decrypt_instance_async(self, instance_id: int):
 
     else:
         decrypt_instance(instance)
+
         logger.info(
-            f"Decryption successful - XForm: { instance.xform_id }; Instance: { instance_id }; Task: {self.request.id}."
+            "Decryption successful - XForm: %s; Instance: %s; Task: %s",
+            instance.xform_id,
+            instance_id,
+            self.request.id,
         )
 
 
