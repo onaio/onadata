@@ -213,9 +213,9 @@ def update_project_date_modified_async(instance_id):
         update_project_date_modified(instance)
 
 
-@app.task(base=AutoRetryTask)
+@app.task(base=AutoRetryTask, bind=True)
 @use_master
-def decrypt_instance_async(instance_id: int):
+def decrypt_instance_async(self, instance_id: int):
     """Decrypt encrypted Instance asynchronously.
 
     :param instance_id: Primary key for Instance
@@ -228,6 +228,9 @@ def decrypt_instance_async(instance_id: int):
 
     else:
         decrypt_instance(instance)
+        logger.info(
+            f"Decryption successful - XForm: { instance.xform_id }; Instance: { instance_id }; Task: {self.request.id}."
+        )
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
