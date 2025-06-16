@@ -128,7 +128,7 @@ def _get_kms_grace_expiry_reminder_duration():
     default_duration = timedelta(days=1)
     duration = getattr(settings, "KMS_GRACE_EXPIRY_REMINDER_DURATION", default_duration)
 
-    if isinstance(duration, timedelta):
+    if isinstance(duration, timedelta) or isinstance(duration, list):
         return duration
 
     if duration:
@@ -641,11 +641,18 @@ def send_key_rotation_reminder():
 
 def send_key_grace_expiry_reminder():
     """Send email to organization admins that key grace period is scheduled."""
+    now = timezone.now()
     notification_duration = _get_kms_grace_expiry_reminder_duration()
-    target_date = (timezone.now() + notification_duration).date()
+
+    if isinstance(notification_duration, timedelta):
+        target_dates = [(now + notification_duration).date()]
+
+    elif isinstance(notification_duration, list):
+        target_dates = [(now + duration).date() for duration in notification_duration]
+
     # Any active key with a scheduled grace period date
     kms_key_qs = KMSKey.objects.filter(
-        grace_end_date__date=target_date,
+        grace_end_date__date__in=target_dates,
         disabled_at__isnull=True,
     )
     mass_mail_data = []

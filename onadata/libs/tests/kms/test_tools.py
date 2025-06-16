@@ -1635,6 +1635,34 @@ class SendKeyGraceExpiryReminderTestCase(TestBase):
 
         mock_send_mass_mail.assert_not_called()
 
+    @override_settings(
+        KMS_GRACE_EXPIRY_REMINDER_DURATION=[timedelta(weeks=1), timedelta(days=1)]
+    )
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_multiple_notification_duration(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Multiple notification duration is supported."""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        # Notification is sent 1 week prior to the grace end date
+        self.kms_key.grace_end_date = timezone.now() + timedelta(weeks=1)
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
+
+        mock_send_mass_mail.assert_called_once()
+
+        mock_send_mass_mail.reset_mock()
+
+        # Notification is sent 1 day prior to the grace end date
+        self.kms_key.grace_end_date = timezone.now() + timedelta(days=1)
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
+
+        mock_send_mass_mail.assert_called_once()
+
 
 @patch("onadata.libs.kms.tools.rotate_key")
 class RotateExpiredKeysTestCase(TestBase):
