@@ -241,29 +241,22 @@ def update_xform_submission_count(instance_id, created):
                     .only("xform__user_id", "date_created")
                     .get(pk=instance_id)
                 )
-            except Instance.DoesNotExist as e:
-                # Retry if run asynchrounously
-                if current_task.request.id:
-                    raise e
-            else:
-                # update xform.num_of_submissions
-                cursor = connection.cursor()
-                sql = (
-                    "UPDATE logger_xform SET "
-                    "num_of_submissions = num_of_submissions + 1, "
-                    "last_submission_time = %s "
-                    "WHERE id = %s"
-                )
-                params = [instance.date_created, instance.xform_id]
 
-                # update user profile.num_of_submissions
-                cursor.execute(sql, params)
-                sql = (
-                    "UPDATE main_userprofile SET "
-                    "num_of_submissions = num_of_submissions + 1 "
-                    "WHERE user_id = %s"
+                # Get the XForm and user profile with locks
+                xform = XForm.objects.select_for_update().get(pk=instance.xform_id)
+                user_profile = (
+                    User.profile.get_queryset()
+                    .select_for_update()
+                    .get(user_id=instance.xform.user_id)
                 )
-                cursor.execute(sql, [instance.xform.user_id])
+
+                # Update counts atomically
+                xform.num_of_submissions = models.F("num_of_submissions") + 1
+                xform.last_submission_time = instance.date_created
+                xform.save(update_fields=["num_of_submissions", "last_submission_time"])
+
+                user_profile.num_of_submissions = models.F("num_of_submissions") + 1
+                user_profile.save(update_fields=["num_of_submissions"])
 
                 # Track submissions made today
                 _update_submission_count_for_today(instance.xform_id)
@@ -276,6 +269,11 @@ def update_xform_submission_count(instance_id, created):
                 from onadata.apps.logger.models.xform import clear_project_cache
 
                 clear_project_cache(instance.xform.project_id)
+
+            except Instance.DoesNotExist as e:
+                # Retry if run asynchrounously
+                if current_task.request.id:
+                    raise e
 
 
 @use_master
