@@ -128,7 +128,12 @@ def _get_kms_grace_expiry_reminder_duration():
     default_duration = timedelta(days=1)
     duration = getattr(settings, "KMS_GRACE_EXPIRY_REMINDER_DURATION", default_duration)
 
-    if isinstance(duration, timedelta) or isinstance(duration, list):
+    if isinstance(duration, timedelta):
+        return duration
+
+    if isinstance(duration, list) and all(
+        isinstance(item, timedelta) for item in duration
+    ):
         return duration
 
     if duration:
