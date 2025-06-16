@@ -655,7 +655,7 @@ def send_key_grace_expiry_reminder():
     elif isinstance(notification_duration, list):
         target_dates = [(now + duration).date() for duration in notification_duration]
 
-    # Any active key with a scheduled grace period date
+    # Any non-disabled key with a grace period date
     kms_key_qs = KMSKey.objects.filter(
         grace_end_date__date__in=target_dates,
         disabled_at__isnull=True,
