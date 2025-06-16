@@ -23,6 +23,7 @@ from onadata.libs.kms.tools import (
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
+    send_key_grace_expiry_reminder,
     send_key_rotation_reminder,
 )
 from onadata.libs.permissions import set_project_perms_to_object
@@ -288,3 +289,10 @@ def commit_cached_xform_num_of_decrypted_submissions_async():
     this task is called periodically.
     """
     commit_cached_xform_num_of_decrypted_submissions()
+
+
+@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@use_master
+def send_key_grace_expiry_reminder_async():
+    """Send key grace expiry reminder asynchronously."""
+    send_key_grace_expiry_reminder()
