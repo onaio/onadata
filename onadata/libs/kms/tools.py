@@ -648,6 +648,7 @@ def send_key_grace_expiry_reminder():
     """Send email to organization admins that key grace period is scheduled."""
     now = timezone.now()
     notification_duration = _get_kms_grace_expiry_reminder_duration()
+    target_dates = []
 
     if isinstance(notification_duration, timedelta):
         target_dates = [(now + notification_duration).date()]
