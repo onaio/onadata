@@ -124,6 +124,22 @@ def _get_kms_rotation_reminder_duration():
     return default_duration
 
 
+def _get_kms_grace_expiry_reminder_duration():
+    default_duration = timedelta(days=1)
+    duration = getattr(settings, "KMS_GRACE_EXPIRY_REMINDER_DURATION", default_duration)
+
+    if isinstance(duration, timedelta):
+        return duration
+
+    if duration:
+        logger.error(
+            "KMS_GRACE_EXPIRY_REMINDER_DURATION is set to an invalid value: %s",
+            duration,
+        )
+
+    return default_duration
+
+
 def get_kms_client():
     """Retrieve the appropriate KMS client based on settings."""
     kms_client_cls = _get_kms_client_class()
@@ -606,6 +622,49 @@ def send_key_rotation_reminder():
                 "organization_name": organization.name,
                 "rotation_date": friendly_date(kms_key.expiry_date),
                 "grace_end_date": friendly_date(grace_end_date),
+                "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+            },
+        )
+        mass_mail_data.append(
+            (
+                mail_subject,
+                strip_tags(message),
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                recipient_list,
+            )
+        )
+
+    if mass_mail_data:
+        send_mass_mail(tuple(mass_mail_data))
+
+
+def send_key_grace_expiry_reminder():
+    """Send email to organization admins that key grace period is scheduled."""
+    notification_duration = _get_kms_grace_expiry_reminder_duration()
+    target_date = (timezone.now() + notification_duration).date()
+    # Any active key with a scheduled grace period date
+    kms_key_qs = KMSKey.objects.filter(
+        grace_end_date__date=target_date,
+        disabled_at__isnull=True,
+    )
+    mass_mail_data = []
+
+    for kms_key in queryset_iterator(kms_key_qs):
+        organization = kms_key.content_object
+        recipient_list = _get_org_owners_emails(organization)
+
+        if not recipient_list:
+            continue
+
+        mail_subject = _(
+            f"Key Grace Period Expiry for Organization: {organization.name}"
+        )
+        message = render_to_string(
+            "organization/key_grace_expiry_reminder.html",
+            {
+                "organization_name": organization.name,
+                "grace_end_date": friendly_date(kms_key.grace_end_date),
                 "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
             },
         )

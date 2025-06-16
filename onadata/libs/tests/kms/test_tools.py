@@ -49,6 +49,7 @@ from onadata.libs.kms.tools import (
     is_instance_encrypted,
     rotate_expired_keys,
     rotate_key,
+    send_key_grace_expiry_reminder,
     send_key_rotation_reminder,
 )
 
@@ -1512,6 +1513,125 @@ class SendKeyRotationReminderTestCase(TestBase):
         self.kms_key.save()
 
         send_key_rotation_reminder()
+
+        mock_send_mass_mail.assert_not_called()
+
+
+@override_settings(DEFAULT_FROM_EMAIL="test@example.com")
+@patch("onadata.libs.kms.tools.send_mass_mail")
+class SendKeyGraceExpiryReminderTestCase(TestBase):
+    """Tests for `send_key_grace_expiry_reminder`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.user.email = "bob@example.com"
+        self.user.save()
+        self.content_type = ContentType.objects.get_for_model(self.org)
+
+        self.kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-29",
+            public_key="fake-pub-key",
+            content_type=self.content_type,
+            object_id=self.org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+            grace_end_date=timezone.now() + timedelta(days=1),
+        )
+        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+        self.html_message = render_to_string(
+            "organization/key_grace_expiry_reminder.html",
+            {
+                "organization_name": self.org.name,
+                "grace_end_date": self.friendly_date(self.kms_key.grace_end_date),
+                "deployment_name": "Ona",
+            },
+        )
+
+    @override_settings(KMS_GRACE_EXPIRY_REMINDER_DURATION=timedelta(days=1))
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_key_grace_expiry_reminder(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Key grace expiry reminder is sent."""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        send_key_grace_expiry_reminder()
+
+        mass_mail_data = (
+            (
+                "Key Grace Period Expiry for Organization: Valigetta Inc",
+                strip_tags(self.html_message),
+                self.html_message,
+                "test@example.com",
+                ["bob@example.com"],
+            ),
+        )
+        mock_send_mass_mail.assert_called_once_with(mass_mail_data)
+
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_no_organization_owners(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """No email is sent if no organization owners are found."""
+        mock_get_org_owners_emails.return_value = []
+
+        send_key_grace_expiry_reminder()
+
+        mock_send_mass_mail.assert_not_called()
+
+    def test_no_keys_to_notify(self, mock_send_mass_mail):
+        """Notification is not sent if no keys to notify."""
+        self.kms_key.grace_end_date = timezone.now() - timedelta(days=1)
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
+        mock_send_mass_mail.assert_not_called()
+
+    def test_default_notification_duration(self, mock_send_mass_mail):
+        """Default reminder notification duration is 1 day."""
+        send_key_grace_expiry_reminder()
+
+        mock_send_mass_mail.assert_called_once()
+
+    def test_disabled_key_is_ignored(self, mock_send_mass_mail):
+        """Disabled key is ignored."""
+        self.kms_key.disabled_at = timezone.now()
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
+        mock_send_mass_mail.assert_not_called()
+
+    @override_settings(KMS_GRACE_EXPIRY_REMINDER_DURATION=timedelta(weeks=2))
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_expiry_date_gt_duration(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Notification not sent if grace end date > target date."""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        self.kms_key.grace_end_date = timezone.now() + timedelta(weeks=2, days=1)
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
+
+        mock_send_mass_mail.assert_not_called()
+
+    @override_settings(KMS_GRACE_EXPIRY_REMINDER_DURATION=timedelta(weeks=2))
+    @patch("onadata.libs.kms.tools._get_org_owners_emails")
+    def test_expiry_date_lt_duration(
+        self, mock_get_org_owners_emails, mock_send_mass_mail
+    ):
+        """Notification not sent if grace end date < target date"""
+        mock_get_org_owners_emails.return_value = [self.user.email]
+
+        self.kms_key.grace_end_date = timezone.now() + timedelta(weeks=1, days=6)
+        self.kms_key.save()
+
+        send_key_grace_expiry_reminder()
 
         mock_send_mass_mail.assert_not_called()
 
