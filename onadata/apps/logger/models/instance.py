@@ -335,8 +335,10 @@ def _is_instance_soft_deleted(sender, instance):
 
 def decr_xform_num_of_submissions_on_soft_delete(sender, instance, **kwargs):
     """Decrement XForm `num_of_submissions` counter on Instance soft delete"""
-    if _is_instance_soft_deleted(sender, instance):
-        _update_xform_submission_count_delete(instance)
+    if not _is_instance_soft_deleted(sender, instance):
+        return
+
+    _update_xform_submission_count_delete(instance)
 
 
 def _update_geopoints(instance):
@@ -903,10 +905,12 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 @use_master
 def soft_delete_attachments_on_soft_delete(sender, instance, **kwargs):
     """Soft delete attachments on Instance soft delete"""
-    if _is_instance_soft_deleted(sender, instance):
-        instance.attachments.filter(deleted_at__isnull=True).update(
-            deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
-        )
+    if not _is_instance_soft_deleted(sender, instance):
+        return
+
+    instance.attachments.filter(deleted_at__isnull=True).update(
+        deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
+    )
 
 
 @use_master
