@@ -124,22 +124,19 @@ def commit_cached_elist_num_entities_async():
 
 @app.task(base=AutoRetryTask)
 @use_master
-def incr_elist_num_entities_async(elist_pk: int):
+def adjust_elist_num_entities_async(elist_pk: int, delta: int):
     """Increment EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
     """
-    adjust_elist_num_entities(elist_pk, delta=1)
+    try:
+        entity_list = EntityList.objects.get(pk=elist_pk)
 
+    except EntityList.DoesNotExist as exc:
+        logger.exception(exc)
 
-@app.task(base=AutoRetryTask)
-@use_master
-def decr_elist_num_entities_async(elist_pk: int) -> None:
-    """Decrement EntityList `num_entities` counter asynchronously
-
-    :param elist_pk: Primary key for EntityList
-    """
-    adjust_elist_num_entities(elist_pk, delta=-1)
+    else:
+        adjust_elist_num_entities(entity_list, delta=delta)
 
 
 @app.task(base=AutoRetryTask)
@@ -261,10 +258,11 @@ def send_key_rotation_reminder_async():
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
 @use_master
-def decr_xform_num_of_decrypted_submissions_async(xform_id: int) -> None:
-    """Decrement XForm `num_of_decrypted_submissions` counter asynchronously
+def adjust_xform_num_of_decrypted_submissions_async(xform_id: int, delta: int) -> None:
+    """Adjust XForm `num_of_decrypted_submissions` counter asynchronously
 
     :param xform_id: Primary key for XForm
+    :param delta: Value to increment or decrement by
     """
     try:
         xform = XForm.objects.get(pk=xform_id)
@@ -273,7 +271,7 @@ def decr_xform_num_of_decrypted_submissions_async(xform_id: int) -> None:
         logger.exception(exc)
 
     else:
-        adjust_xform_num_of_decrypted_submissions(xform, delta=-1)
+        adjust_xform_num_of_decrypted_submissions(xform, delta=delta)
 
 
 @app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))

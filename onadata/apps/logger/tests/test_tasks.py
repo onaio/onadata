@@ -9,10 +9,10 @@ from django.utils import timezone
 
 from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
+    adjust_xform_num_of_decrypted_submissions_async,
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
     commit_cached_xform_num_of_decrypted_submissions_async,
-    decr_xform_num_of_decrypted_submissions_async,
     disable_expired_keys_async,
     reconstruct_xform_export_register_async,
     register_instance_repeat_columns_async,
@@ -351,26 +351,26 @@ class SendKeyRotationReminderAsyncTestCase(TestBase):
 
 
 @patch("onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions")
-class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
-    """Tests for decr_xform_num_of_decrypted_submissions_async"""
+class AdjustXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
+    """Tests for adjust_xform_num_of_decrypted_submissions_async"""
 
     def setUp(self):
         super().setUp()
         self._publish_transportation_form()
 
-    def test_decr_xform_num_of_decrypted_submissions(self, mock_decr):
-        """Decrement XForm decrypted submission count"""
-        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
-        mock_decr.assert_called_once_with(self.xform, delta=-1)
+    def test_adjust_xform_num_of_decrypted_submissions(self, mock_adjust):
+        """Adjust XForm decrypted submission count"""
+        adjust_xform_num_of_decrypted_submissions_async.delay(self.xform.pk, delta=-1)
+        mock_adjust.assert_called_once_with(self.xform, delta=-1)
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.retry"
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.retry"
     )
-    def test_retry_connection_error(self, mock_retry, mock_decr):
+    def test_retry_connection_error(self, mock_retry, mock_adjust):
         """ConnectionError exception is retried"""
         mock_retry.side_effect = Retry
-        mock_decr.side_effect = ConnectionError
-        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
+        mock_adjust.side_effect = ConnectionError
+        adjust_xform_num_of_decrypted_submissions_async.delay(self.xform.pk, delta=-1)
 
         self.assertTrue(mock_retry.called)
 
@@ -378,13 +378,13 @@ class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
         self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.retry"
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.retry"
     )
-    def test_retry_database_error(self, mock_retry, mock_decr):
+    def test_retry_database_error(self, mock_retry, mock_adjust):
         """DatabaseError exception is retried"""
         mock_retry.side_effect = Retry
-        mock_decr.side_effect = DatabaseError
-        decr_xform_num_of_decrypted_submissions_async.delay(self.xform.pk)
+        mock_adjust.side_effect = DatabaseError
+        adjust_xform_num_of_decrypted_submissions_async.delay(self.xform.pk, delta=-1)
 
         self.assertTrue(mock_retry.called)
 
@@ -392,10 +392,10 @@ class DecrXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
         self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
 
     @patch("onadata.apps.logger.tasks.logger.exception")
-    def test_invalid_pk(self, mock_logger, mock_decr):
+    def test_invalid_pk(self, mock_logger, mock_adjust):
         """Invalid XForm primary key is handled"""
-        decr_xform_num_of_decrypted_submissions_async.delay(sys.maxsize)
-        mock_decr.assert_not_called()
+        adjust_xform_num_of_decrypted_submissions_async.delay(sys.maxsize, delta=-1)
+        mock_adjust.assert_not_called()
         mock_logger.assert_called_once()
 
 

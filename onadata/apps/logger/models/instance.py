@@ -889,8 +889,8 @@ def _decr_xform_num_of_decrypted_submissions(instance: Instance):
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
     transaction.on_commit(
-        lambda: logger_tasks.decr_xform_num_of_decrypted_submissions_async.delay(
-            instance.xform_id
+        lambda: logger_tasks.adjust_xform_num_of_decrypted_submissions_async.delay(
+            instance.xform_id, delta=-1
         )
     )
 
