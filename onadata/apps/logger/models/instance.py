@@ -215,6 +215,7 @@ def _update_submission_count_for_today(
 @app.task(
     retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
 )
+@use_master
 def update_xform_submission_count_async(self, instance_id, created):
     """
     Celery task to asynchrounously update an XForms Submission count
