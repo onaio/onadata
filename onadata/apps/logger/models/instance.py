@@ -224,7 +224,6 @@ def update_xform_submission_count_async(self, instance_id, created):
     update_xform_submission_count(instance_id, created)
 
 
-@use_master
 def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
     if not created:
