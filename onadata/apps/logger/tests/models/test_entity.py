@@ -58,12 +58,13 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity.json, {})
         self.assertIsInstance(entity.uuid, uuid.UUID)
 
-    @patch("onadata.apps.logger.tasks.decr_elist_num_entities_async.delay")
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
     @patch("django.utils.timezone.now")
-    def test_soft_delete(self, mock_now, mock_dec):
+    def test_soft_delete(self, mock_now, mock_adjust):
         """Soft delete works"""
         mock_now.return_value = self.mocked_now
         entity = Entity.objects.create(entity_list=self.entity_list)
+        mock_adjust.reset_mock()
         self.entity_list.refresh_from_db()
 
         self.assertIsNone(entity.deleted_at)
@@ -76,7 +77,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(self.entity_list.last_entity_update_time, self.mocked_now)
         self.assertEqual(entity.deleted_at, self.mocked_now)
         self.assertEqual(entity.deleted_at, self.mocked_now)
-        mock_dec.assert_called_once_with(self.entity_list.pk)
+        mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
 
         # Soft deleted item cannot be soft deleted again
         deleted_at = timezone.now()
@@ -96,10 +97,11 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity3.deleted_at, self.mocked_now)
         self.assertIsNone(entity3.deleted_by)
 
-    @patch("onadata.apps.logger.tasks.decr_elist_num_entities_async.delay")
-    def test_hard_delete(self, mock_dec):
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    def test_hard_delete(self, mock_adjust):
         """Hard deleting updates dataset info"""
         entity = Entity.objects.create(entity_list=self.entity_list)
+        mock_adjust.reset_mock()
         self.entity_list.refresh_from_db()
         old_last_entity_update_time = self.entity_list.last_entity_update_time
 
@@ -108,7 +110,7 @@ class EntityTestCase(TestBase):
         new_last_entity_update_time = self.entity_list.last_entity_update_time
 
         self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
-        mock_dec.assert_called_once_with(self.entity_list.pk)
+        mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
 
     def test_entity_list_uuid_unique(self):
         """`entity_list` and `uuid` are unique together"""
