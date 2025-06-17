@@ -327,6 +327,7 @@ def _update_xform_submission_count_delete(instance):
         instance.xform.save()
 
 
+# pylint: disable=unused-argument
 def decr_xform_num_of_submissions_on_hard_delete(sender, instance, **kwargs):
     """Decrement XForm `num_of_submissions` counter on Instance hard delete"""
     _update_xform_submission_count_delete(instance)
