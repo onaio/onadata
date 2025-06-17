@@ -177,14 +177,14 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         create_entity_from_instance(instance, registration_form)
 
 
-def adjust_elist_num_entities(pk: int, delta: int) -> None:
+def adjust_elist_num_entities(entity_list: EntityList, delta: int) -> None:
     """Adjust EntityList `num_entities` counter
 
-    :param pk: Primary key for EntityList
+    :param entity_list: EntityList
     :param delta: Value to increment or decrement by
     """
     adjust_counter(
-        pk=pk,
+        pk=entity_list.pk,
         model=EntityList,
         field_name="num_entities",
         delta=delta,

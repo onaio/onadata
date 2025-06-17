@@ -1509,10 +1509,10 @@ class TestInstance(TestBase):
         self.assertFalse(instance.is_encrypted)
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
     )
     def test_soft_delete_xform_num_of_decrypted_submissions_decremented(
-        self, mock_decr
+        self, mock_adjust
     ):
         """Soft deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
         self._publish_transportation_form()
@@ -1527,13 +1527,13 @@ class TestInstance(TestBase):
         instance = instance_qs[0]
         instance.set_deleted()
 
-        mock_decr.assert_called_once_with(self.xform.pk)
+        mock_adjust.assert_called_once_with(self.xform.pk, delta=-1)
 
     @patch(
-        "onadata.apps.logger.tasks.decr_xform_num_of_decrypted_submissions_async.delay"
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
     )
     def test_hard_delete_xform_num_of_decrypted_submissions_decremented(
-        self, mock_decr
+        self, mock_adjust
     ):
         """Hard deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
         self._publish_transportation_form()
@@ -1548,4 +1548,4 @@ class TestInstance(TestBase):
         instance = instance_qs[0]
         instance.delete()
 
-        mock_decr.assert_called_once_with(self.xform.pk)
+        mock_adjust.assert_called_once_with(self.xform.pk, delta=-1)
