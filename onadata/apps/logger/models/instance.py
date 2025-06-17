@@ -313,19 +313,6 @@ def _update_xform_submission_count_delete(instance):
     safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
     safe_delete(f"{XFORM_COUNT}{xform.pk}")
 
-    # update xform if no instance has geoms
-    if (
-        instance.xform.instances.filter(deleted_at__isnull=True)
-        .exclude(geom=None)
-        .count()
-        < 1
-    ):
-        if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
-            instance.xform.instances_with_geopoints = True
-        else:
-            instance.xform.instances_with_geopoints = False
-        instance.xform.save()
-
 
 # pylint: disable=unused-argument
 def decr_xform_num_of_submissions_on_hard_delete(sender, instance, **kwargs):
@@ -350,6 +337,25 @@ def decr_xform_num_of_submissions_on_soft_delete(sender, instance, **kwargs):
     """Decrement XForm `num_of_submissions` counter on Instance soft delete"""
     if _is_instance_soft_deleted(sender, instance):
         _update_xform_submission_count_delete(instance)
+
+
+def _update_geopoints(instance):
+    if (
+        instance.xform.instances.filter(deleted_at__isnull=True)
+        .exclude(geom=None)
+        .count()
+        < 1
+    ):
+        if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
+            instance.xform.instances_with_geopoints = True
+        else:
+            instance.xform.instances_with_geopoints = False
+        instance.xform.save()
+
+
+def update_geopoints_on_hard_delete(sender, instance, **kwargs):
+    """Update geopoints on Instance hard delete"""
+    _update_geopoints(instance)
 
 
 @app.task(bind=True, max_retries=3)
@@ -850,6 +856,9 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         post_save signal because some implementations in get_full_dict
         require the id to be available
     """
+    if instance.deleted_at is not None:
+        _update_geopoints(instance)
+
     if (
         hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
         and settings.ASYNC_POST_SUBMISSION_PROCESSING_ENABLED
@@ -918,6 +927,12 @@ post_delete.connect(
     decr_xform_num_of_submissions_on_hard_delete,
     sender=Instance,
     dispatch_uid="decr_xform_num_of_submissions_on_hard_delete",
+)
+
+post_delete.connect(
+    update_geopoints_on_hard_delete,
+    sender=Instance,
+    dispatch_uid="update_geopoints_on_hard_delete",
 )
 
 pre_delete.connect(
