@@ -2,7 +2,6 @@
 Entity model
 """
 
-import importlib
 import uuid
 
 from django.contrib.auth import get_user_model
@@ -41,13 +40,6 @@ class Entity(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             self.save(update_fields=["deleted_at", "deleted_by"])
-            # Avoid cyclic dependency errors
-            logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-            transaction.on_commit(
-                lambda: logger_tasks.adjust_elist_num_entities_async.delay(
-                    self.entity_list.pk, delta=-1
-                )
-            )
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
