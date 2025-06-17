@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -29,10 +29,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import (
-    XFORM_TITLE_LENGTH,
-    XForm,
-)
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
@@ -230,127 +227,146 @@ def update_xform_submission_count_async(self, instance_id, created):
         self.retry(exc=e, countdown=60 * self.request.retries)
 
 
-@transaction.atomic()
+@use_master
 def update_xform_submission_count(instance_id, created):
     """Updates the XForm submissions count on a new submission being created."""
-    if created:
-        with use_master:
-            try:
-                instance = (
-                    Instance.objects.select_related("xform")
-                    .only("xform__user_id", "date_created")
-                    .get(pk=instance_id)
-                )
-            except Instance.DoesNotExist as e:
-                # Retry if run asynchrounously
-                if current_task.request.id:
-                    raise e
-            else:
-                # update xform.num_of_submissions
-                cursor = connection.cursor()
-                sql = (
-                    "UPDATE logger_xform SET "
-                    "num_of_submissions = num_of_submissions + 1, "
-                    "last_submission_time = %s "
-                    "WHERE id = %s"
-                )
-                params = [instance.date_created, instance.xform_id]
+    if not created:
+        return
 
-                # update user profile.num_of_submissions
-                cursor.execute(sql, params)
-                sql = (
-                    "UPDATE main_userprofile SET "
-                    "num_of_submissions = num_of_submissions + 1 "
-                    "WHERE user_id = %s"
-                )
-                cursor.execute(sql, [instance.xform.user_id])
+    with transaction.atomic():
+        try:
+            instance = (
+                Instance.objects.select_related("xform")
+                .only("xform__user_id", "date_created")
+                .get(pk=instance_id)
+            )
+        except Instance.DoesNotExist as e:
+            # Retry if run asynchrounously
+            if current_task.request.id:
+                raise e
+        else:
+            # update xform.num_of_submissions
+            cursor = connection.cursor()
+            sql = (
+                "UPDATE logger_xform SET "
+                "num_of_submissions = num_of_submissions + 1, "
+                "last_submission_time = %s "
+                "WHERE id = %s"
+            )
+            params = [instance.date_created, instance.xform_id]
 
-                # Track submissions made today
-                _update_submission_count_for_today(instance.xform_id)
+            # update user profile.num_of_submissions
+            cursor.execute(sql, params)
+            sql = (
+                "UPDATE main_userprofile SET "
+                "num_of_submissions = num_of_submissions + 1 "
+                "WHERE user_id = %s"
+            )
+            cursor.execute(sql, [instance.xform.user_id])
 
-                safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
-                safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
-                safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
-                # Clear project cache
-                # pylint: disable=import-outside-toplevel
-                from onadata.apps.logger.models.xform import clear_project_cache
+    # Track submissions made today
+    _update_submission_count_for_today(instance.xform_id)
 
-                clear_project_cache(instance.xform.project_id)
+    safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
+    safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
+    safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    # Clear project cache
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.xform import clear_project_cache
+
+    clear_project_cache(instance.xform.project_id)
 
 
 @use_master
-@transaction.atomic()
 def _update_xform_submission_count_delete(instance):
     """Updates the XForm submissions count on deletion of a submission."""
-    try:
-        xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
-    except XForm.DoesNotExist:
-        pass
-    else:
-        xform.num_of_submissions -= 1
-
-        xform.num_of_submissions = max(xform.num_of_submissions, 0)
-        xform.save(update_fields=["num_of_submissions"])
-        profile_qs = User.profile.get_queryset()
+    with transaction.atomic():
         try:
-            profile = profile_qs.select_for_update().get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
+            xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
+        except XForm.DoesNotExist:
             pass
         else:
-            profile.num_of_submissions -= 1
-            profile.num_of_submissions = max(profile.num_of_submissions, 0)
-            profile.save()
+            xform.num_of_submissions -= 1
 
-        # Track submissions made today
-        _update_submission_count_for_today(
-            xform.id, incr=False, date_created=instance.date_created
-        )
-
-        for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
-            safe_delete(f"{cache_prefix}{xform.project.pk}")
-
-        safe_delete(f"{IS_ORG}{xform.pk}")
-        safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-        safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
-        safe_delete(f"{XFORM_COUNT}{xform.pk}")
-
-        # update xform if no instance has geoms
-        if (
-            instance.xform.instances.filter(deleted_at__isnull=True)
-            .exclude(geom=None)
-            .count()
-            < 1
-        ):
-            if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
-                instance.xform.instances_with_geopoints = True
+            xform.num_of_submissions = max(xform.num_of_submissions, 0)
+            xform.save(update_fields=["num_of_submissions"])
+            profile_qs = User.profile.get_queryset()
+            try:
+                profile = profile_qs.select_for_update().get(pk=xform.user.profile.pk)
+            except profile_qs.model.DoesNotExist:
+                pass
             else:
-                instance.xform.instances_with_geopoints = False
-            instance.xform.save()
+                profile.num_of_submissions -= 1
+                profile.num_of_submissions = max(profile.num_of_submissions, 0)
+                profile.save()
+
+    # Track submissions made today
+    _update_submission_count_for_today(
+        xform.id, incr=False, date_created=instance.date_created
+    )
+
+    for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+        safe_delete(f"{cache_prefix}{xform.project.pk}")
+
+    safe_delete(f"{IS_ORG}{xform.pk}")
+    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
+    safe_delete(f"{XFORM_COUNT}{xform.pk}")
+
+    # update xform if no instance has geoms
+    if (
+        instance.xform.instances.filter(deleted_at__isnull=True)
+        .exclude(geom=None)
+        .count()
+        < 1
+    ):
+        if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
+            instance.xform.instances_with_geopoints = True
+        else:
+            instance.xform.instances_with_geopoints = False
+        instance.xform.save()
 
 
-# pylint: disable=unused-argument,invalid-name
-def update_xform_submission_count_delete(sender, instance, **kwargs):
-    """Updates the XForm submissions count on deletion of a submission."""
-    if instance:
+def decr_xform_num_of_submissions_on_hard_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_submissions` counter on Instance hard delete"""
+    _update_xform_submission_count_delete(instance)
+
+
+def _is_instance_soft_deleted(sender, instance):
+    """Check if an Instance was soft deleted"""
+    if not instance.pk or instance.deleted_at is None:
+        return False
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return False
+
+    return old_instance.deleted_at is None and instance.deleted_at is not None
+
+
+def decr_xform_num_of_submissions_on_soft_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_submissions` counter on Instance soft delete"""
+    if _is_instance_soft_deleted(sender, instance):
         _update_xform_submission_count_delete(instance)
 
 
 @app.task(bind=True, max_retries=3)
+@use_master
 def save_full_json_async(self, instance_id):
     """
     Celery task to asynchrounously generate and save an Instances JSON
     once a submission has been made
     """
-    with use_master:
-        try:
-            instance = Instance.objects.get(pk=instance_id)
-        except Instance.DoesNotExist as e:
-            if self.request.retries > 2:
-                msg = f"Failed to save full JSON for Instance {instance_id}"
-                report_exception(msg, e, sys.exc_info())
-            self.retry(exc=e, countdown=60 * self.request.retries)
-        else:
-            save_full_json(instance)
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+    except Instance.DoesNotExist as e:
+        if self.request.retries > 2:
+            msg = f"Failed to save full JSON for Instance {instance_id}"
+            report_exception(msg, e, sys.exc_info())
+        self.retry(exc=e, countdown=60 * self.request.retries)
+    else:
+        save_full_json(instance)
 
 
 @use_master
@@ -833,13 +849,6 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         post_save signal because some implementations in get_full_dict
         require the id to be available
     """
-    if instance.deleted_at is not None:
-        _update_xform_submission_count_delete(instance)
-        # mark attachments also as deleted.
-        instance.attachments.filter(deleted_at__isnull=True).update(
-            deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
-        )
-
     if (
         hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
         and settings.ASYNC_POST_SUBMISSION_PROCESSING_ENABLED
@@ -882,6 +891,15 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
 
 
 @use_master
+def soft_delete_attachments_on_soft_delete(sender, instance, **kwargs):
+    """Soft delete attachments on Instance soft delete"""
+    if _is_instance_soft_deleted(sender, instance):
+        instance.attachments.filter(deleted_at__isnull=True).update(
+            deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
+        )
+
+
+@use_master
 def register_instance_repeat_columns(sender, instance, created=False, **kwargs):
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
@@ -896,9 +914,9 @@ post_save.connect(
 )
 
 post_delete.connect(
-    update_xform_submission_count_delete,
+    decr_xform_num_of_submissions_on_hard_delete,
     sender=Instance,
-    dispatch_uid="update_xform_submission_count_delete",
+    dispatch_uid="decr_xform_num_of_submissions_on_hard_delete",
 )
 
 pre_delete.connect(
@@ -911,6 +929,18 @@ post_save.connect(
     register_instance_repeat_columns,
     sender=Instance,
     dispatch_uid="register_instance_repeat_columns",
+)
+
+pre_save.connect(
+    decr_xform_num_of_submissions_on_soft_delete,
+    sender=Instance,
+    dispatch_uid="decr_xform_num_of_submissions_on_soft_delete",
+)
+
+pre_save.connect(
+    soft_delete_attachments_on_soft_delete,
+    sender=Instance,
+    dispatch_uid="soft_delete_attachments_on_soft_delete",
 )
 
 
