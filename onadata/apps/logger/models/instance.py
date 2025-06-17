@@ -15,7 +15,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.core.files.storage import storages
-from django.db import connection, transaction
+from django.db import DatabaseError, OperationalError, connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.urls import reverse
@@ -212,19 +212,15 @@ def _update_submission_count_for_today(
         cache.decr(count_cache_key)
 
 
-@app.task(bind=True, max_retries=3)
+@app.task(
+    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
+)
 def update_xform_submission_count_async(self, instance_id, created):
     """
     Celery task to asynchrounously update an XForms Submission count
     once a submission has been made
     """
-    try:
-        update_xform_submission_count(instance_id, created)
-    except Instance.DoesNotExist as e:
-        if self.request.retries > 2:
-            msg = f"Failed to update XForm submission count for Instance {instance_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
+    update_xform_submission_count(instance_id, created)
 
 
 @use_master
