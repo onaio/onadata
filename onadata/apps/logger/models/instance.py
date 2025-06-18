@@ -5,8 +5,8 @@ Instance model class
 # pylint: disable=too-many-lines
 
 import importlib
+import logging
 import math
-import sys
 from datetime import datetime
 
 from django.conf import settings
@@ -17,28 +17,23 @@ from django.core.cache import cache
 from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from celery import current_task
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.submission_review import SubmissionReview
 from onadata.apps.logger.models.survey_type import SurveyType
-from onadata.apps.logger.models.xform import (
-    XFORM_TITLE_LENGTH,
-    XForm,
-)
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH, XForm
 from onadata.apps.logger.xform_instance_parser import (
     XFormInstanceParser,
     clean_and_parse_xml,
     get_uuid_from_xml,
 )
-from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -80,10 +75,12 @@ from onadata.libs.utils.common_tags import (
     XFORM_ID,
     XFORM_ID_STRING,
 )
-from onadata.libs.utils.common_tools import get_abbreviated_xpath, report_exception
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 from onadata.libs.utils.timing import calculate_duration
+
+logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -215,146 +212,127 @@ def _update_submission_count_for_today(
         cache.decr(count_cache_key)
 
 
-@app.task(bind=True, max_retries=3)
-def update_xform_submission_count_async(self, instance_id, created):
-    """
-    Celery task to asynchrounously update an XForms Submission count
-    once a submission has been made
-    """
-    try:
-        update_xform_submission_count(instance_id, created)
-    except Instance.DoesNotExist as e:
-        if self.request.retries > 2:
-            msg = f"Failed to update XForm submission count for Instance {instance_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
-
-
-@transaction.atomic()
-def update_xform_submission_count(instance_id, created):
+def update_xform_submission_count(instance):
     """Updates the XForm submissions count on a new submission being created."""
-    if created:
-        with use_master:
-            try:
-                instance = (
-                    Instance.objects.select_related("xform")
-                    .only("xform__user_id", "date_created")
-                    .get(pk=instance_id)
-                )
-            except Instance.DoesNotExist as e:
-                # Retry if run asynchrounously
-                if current_task.request.id:
-                    raise e
-            else:
-                # update xform.num_of_submissions
-                cursor = connection.cursor()
-                sql = (
-                    "UPDATE logger_xform SET "
-                    "num_of_submissions = num_of_submissions + 1, "
-                    "last_submission_time = %s "
-                    "WHERE id = %s"
-                )
-                params = [instance.date_created, instance.xform_id]
+    with transaction.atomic():
+        # update xform.num_of_submissions
+        cursor = connection.cursor()
+        sql = (
+            "UPDATE logger_xform SET "
+            "num_of_submissions = num_of_submissions + 1, "
+            "last_submission_time = %s "
+            "WHERE id = %s"
+        )
+        params = [instance.date_created, instance.xform_id]
 
-                # update user profile.num_of_submissions
-                cursor.execute(sql, params)
-                sql = (
-                    "UPDATE main_userprofile SET "
-                    "num_of_submissions = num_of_submissions + 1 "
-                    "WHERE user_id = %s"
-                )
-                cursor.execute(sql, [instance.xform.user_id])
+        # update user profile.num_of_submissions
+        cursor.execute(sql, params)
+        sql = (
+            "UPDATE main_userprofile SET "
+            "num_of_submissions = num_of_submissions + 1 "
+            "WHERE user_id = %s"
+        )
+        cursor.execute(sql, [instance.xform.user_id])
 
-                # Track submissions made today
-                _update_submission_count_for_today(instance.xform_id)
+    # Track submissions made today
+    _update_submission_count_for_today(instance.xform_id)
 
-                safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
-                safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
-                safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
-                # Clear project cache
-                # pylint: disable=import-outside-toplevel
-                from onadata.apps.logger.models.xform import clear_project_cache
+    safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
+    safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
+    safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    # Clear project cache
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.xform import clear_project_cache
 
-                clear_project_cache(instance.xform.project_id)
+    clear_project_cache(instance.xform.project_id)
 
 
-@use_master
-@transaction.atomic()
 def _update_xform_submission_count_delete(instance):
     """Updates the XForm submissions count on deletion of a submission."""
-    try:
-        xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
-    except XForm.DoesNotExist:
-        pass
-    else:
-        xform.num_of_submissions -= 1
-
-        xform.num_of_submissions = max(xform.num_of_submissions, 0)
-        xform.save(update_fields=["num_of_submissions"])
-        profile_qs = User.profile.get_queryset()
+    with transaction.atomic():
         try:
-            profile = profile_qs.select_for_update().get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
+            xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
+        except XForm.DoesNotExist:
             pass
         else:
-            profile.num_of_submissions -= 1
-            profile.num_of_submissions = max(profile.num_of_submissions, 0)
-            profile.save()
+            xform.num_of_submissions -= 1
 
-        # Track submissions made today
-        _update_submission_count_for_today(
-            xform.id, incr=False, date_created=instance.date_created
-        )
-
-        for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
-            safe_delete(f"{cache_prefix}{xform.project.pk}")
-
-        safe_delete(f"{IS_ORG}{xform.pk}")
-        safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-        safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
-        safe_delete(f"{XFORM_COUNT}{xform.pk}")
-
-        # update xform if no instance has geoms
-        if (
-            instance.xform.instances.filter(deleted_at__isnull=True)
-            .exclude(geom=None)
-            .count()
-            < 1
-        ):
-            if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
-                instance.xform.instances_with_geopoints = True
+            xform.num_of_submissions = max(xform.num_of_submissions, 0)
+            xform.save(update_fields=["num_of_submissions"])
+            profile_qs = User.profile.get_queryset()
+            try:
+                profile = profile_qs.select_for_update().get(pk=xform.user.profile.pk)
+            except profile_qs.model.DoesNotExist:
+                pass
             else:
-                instance.xform.instances_with_geopoints = False
-            instance.xform.save()
+                profile.num_of_submissions -= 1
+                profile.num_of_submissions = max(profile.num_of_submissions, 0)
+                profile.save()
+
+    # Track submissions made today
+    _update_submission_count_for_today(
+        xform.id, incr=False, date_created=instance.date_created
+    )
+
+    for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+        safe_delete(f"{cache_prefix}{xform.project.pk}")
+
+    safe_delete(f"{IS_ORG}{xform.pk}")
+    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
+    safe_delete(f"{XFORM_COUNT}{xform.pk}")
 
 
-# pylint: disable=unused-argument,invalid-name
-def update_xform_submission_count_delete(sender, instance, **kwargs):
-    """Updates the XForm submissions count on deletion of a submission."""
-    if instance:
-        _update_xform_submission_count_delete(instance)
+# pylint: disable=unused-argument
+@use_master
+def decr_xform_num_of_submissions_on_hard_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_submissions` counter on Instance hard delete"""
+    _update_xform_submission_count_delete(instance)
 
 
-@app.task(bind=True, max_retries=3)
-def save_full_json_async(self, instance_id):
-    """
-    Celery task to asynchrounously generate and save an Instances JSON
-    once a submission has been made
-    """
-    with use_master:
-        try:
-            instance = Instance.objects.get(pk=instance_id)
-        except Instance.DoesNotExist as e:
-            if self.request.retries > 2:
-                msg = f"Failed to save full JSON for Instance {instance_id}"
-                report_exception(msg, e, sys.exc_info())
-            self.retry(exc=e, countdown=60 * self.request.retries)
-        else:
-            save_full_json(instance)
+def _is_instance_soft_deleted(sender, instance):
+    """Check if an Instance was soft deleted"""
+    if not instance.pk or instance.deleted_at is None:
+        return False
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return False
+
+    return old_instance.deleted_at is None and instance.deleted_at is not None
 
 
 @use_master
-def save_full_json(instance: "Instance", include_related=True):
+def decr_xform_num_of_submissions_on_soft_delete(sender, instance, **kwargs):
+    """Decrement XForm `num_of_submissions` counter on Instance soft delete"""
+    if not _is_instance_soft_deleted(sender, instance):
+        return
+
+    _update_xform_submission_count_delete(instance)
+
+
+def _update_geopoints(instance):
+    if (
+        instance.xform.instances.filter(deleted_at__isnull=True)
+        .exclude(geom=None)
+        .count()
+        < 1
+    ):
+        if instance.xform.polygon_xpaths() or instance.xform.geotrace_xpaths():
+            instance.xform.instances_with_geopoints = True
+        else:
+            instance.xform.instances_with_geopoints = False
+        instance.xform.save()
+
+
+@use_master
+def update_geopoints_on_hard_delete(sender, instance, **kwargs):
+    """Update geopoints on Instance hard delete"""
+    _update_geopoints(instance)
+
+
+def save_full_json(instance, include_related=True):
     """Save full json dict
 
     Args:
@@ -367,47 +345,20 @@ def save_full_json(instance: "Instance", include_related=True):
     )
 
 
-@app.task(bind=True, max_retries=3)
-def update_project_date_modified_async(self, instance_id, created):
-    """
-    Celery task to asynchrounously update a Projects last modified date
-    once a submission has been made
-    """
-    try:
-        update_project_date_modified(instance_id, created)
-    except Instance.DoesNotExist as e:
-        if self.request.retries > 2:
-            msg = f"Failed to update project date modified for Instance {instance_id}"
-            report_exception(msg, e, sys.exc_info())
-        self.retry(exc=e, countdown=60 * self.request.retries)
-
-
-@use_master
-def update_project_date_modified(instance_id, _):
+def update_project_date_modified(instance):
     """Update the project's date_modified
 
     Changes the etag value of the projects endpoint.
     """
     # update the date modified field of the project which will change
     # the etag value of the projects endpoint
-    try:
-        instance = (
-            Instance.objects.select_related("xform__project")
-            .only("xform__project__date_modified")
-            .get(pk=instance_id)
-        )
-    except Instance.DoesNotExist as e:
-        # Retry if run asynchrounously
-        if current_task.request.id:
-            raise e
-    else:
-        timeout = getattr(settings, "PROJECT_IDS_CACHE_TIMEOUT", 3600)
-        project_id = instance.xform.project_id
+    timeout = getattr(settings, "PROJECT_IDS_CACHE_TIMEOUT", 3600)
+    project_id = instance.xform.project_id
 
-        # Log project id and date motified in cache with timeout
-        project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
-        project_ids[project_id] = instance.date_modified
-        cache.set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=timeout)
+    # Log project id and date motified in cache with timeout
+    project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
+    project_ids[project_id] = instance.date_modified
+    cache.set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=timeout)
 
 
 def convert_to_serializable_date(date):
@@ -824,6 +775,7 @@ class Instance(models.Model, InstanceBaseClass):
 
 
 # pylint: disable=unused-argument
+@use_master
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     """Update XForm, Project, JSON field
 
@@ -834,11 +786,7 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         require the id to be available
     """
     if instance.deleted_at is not None:
-        _update_xform_submission_count_delete(instance)
-        # mark attachments also as deleted.
-        instance.attachments.filter(deleted_at__isnull=True).update(
-            deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
-        )
+        _update_geopoints(instance)
 
     if (
         hasattr(settings, "ASYNC_POST_SUBMISSION_PROCESSING_ENABLED")
@@ -848,25 +796,30 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         # (metadata from non-performance intensive tasks) first since we
         # do not know when the async processing will complete
         save_full_json(instance, False)
+        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
+        if created:
+            transaction.on_commit(
+                lambda: logger_tasks.update_xform_submission_count_async.apply_async(
+                    args=[instance.pk]
+                )
+            )
 
         transaction.on_commit(
-            lambda: update_xform_submission_count_async.apply_async(
-                args=[instance.pk, created]
-            )
+            lambda: logger_tasks.save_full_json_async.apply_async(args=[instance.pk])
         )
         transaction.on_commit(
-            lambda: save_full_json_async.apply_async(args=[instance.pk])
-        )
-        transaction.on_commit(
-            lambda: update_project_date_modified_async.apply_async(
-                args=[instance.pk, created]
+            lambda: logger_tasks.update_project_date_modified_async.apply_async(
+                args=[instance.pk]
             )
         )
 
     else:
-        update_xform_submission_count(instance.pk, created)
+        if created:
+            update_xform_submission_count(instance)
+
         save_full_json(instance)
-        update_project_date_modified(instance.pk, created)
+        update_project_date_modified(instance)
 
 
 # pylint: disable=unused-argument
@@ -879,6 +832,17 @@ def permanently_delete_attachments(sender, instance=None, created=False, **kwarg
             storage.exists(attachment.media_file.name) and storage.delete(
                 attachment.media_file.name
             )
+
+
+@use_master
+def soft_delete_attachments_on_soft_delete(sender, instance, **kwargs):
+    """Soft delete attachments on Instance soft delete"""
+    if not _is_instance_soft_deleted(sender, instance):
+        return
+
+    instance.attachments.filter(deleted_at__isnull=True).update(
+        deleted_at=instance.deleted_at, deleted_by=instance.deleted_by
+    )
 
 
 @use_master
@@ -896,9 +860,15 @@ post_save.connect(
 )
 
 post_delete.connect(
-    update_xform_submission_count_delete,
+    decr_xform_num_of_submissions_on_hard_delete,
     sender=Instance,
-    dispatch_uid="update_xform_submission_count_delete",
+    dispatch_uid="decr_xform_num_of_submissions_on_hard_delete",
+)
+
+post_delete.connect(
+    update_geopoints_on_hard_delete,
+    sender=Instance,
+    dispatch_uid="update_geopoints_on_hard_delete",
 )
 
 pre_delete.connect(
@@ -911,6 +881,18 @@ post_save.connect(
     register_instance_repeat_columns,
     sender=Instance,
     dispatch_uid="register_instance_repeat_columns",
+)
+
+pre_save.connect(
+    decr_xform_num_of_submissions_on_soft_delete,
+    sender=Instance,
+    dispatch_uid="decr_xform_num_of_submissions_on_soft_delete",
+)
+
+pre_save.connect(
+    soft_delete_attachments_on_soft_delete,
+    sender=Instance,
+    dispatch_uid="soft_delete_attachments_on_soft_delete",
 )
 
 

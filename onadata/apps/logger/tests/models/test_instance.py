@@ -15,18 +15,28 @@ from django.test import override_settings
 
 from django_digest.test import DigestAuth
 
-from onadata.apps.logger.models import (Entity, EntityList, Instance,
-                                        RegistrationForm, SubmissionReview,
-                                        XForm)
-from onadata.apps.logger.models.instance import (get_id_string_from_xml_str,
-                                                 numeric_checker)
+from onadata.apps.logger.models import (
+    Entity,
+    EntityList,
+    Instance,
+    RegistrationForm,
+    SubmissionReview,
+    XForm,
+)
+from onadata.apps.logger.models.instance import (
+    get_id_string_from_xml_str,
+    numeric_checker,
+)
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.parsed_instance import (ParsedInstance,
-                                                        query_data,
-                                                        query_fields_data)
-from onadata.libs.serializers.submission_review_serializer import \
-    SubmissionReviewSerializer
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance,
+    query_data,
+    query_fields_data,
+)
+from onadata.libs.serializers.submission_review_serializer import (
+    SubmissionReviewSerializer,
+)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMITTED_BY
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -384,7 +394,7 @@ class TestInstance(TestBase):
         self.assertEqual(result, "Hello World")
 
     @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
-    @patch("onadata.apps.logger.models.instance.save_full_json_async.apply_async")
+    @patch("onadata.apps.logger.tasks.save_full_json_async.apply_async")
     def test_light_tasks_synchronous(self, mock_json_async):
         """Metadata from light tasks is always processed synchronously"""
         self._publish_transportation_form_and_submit_instance()

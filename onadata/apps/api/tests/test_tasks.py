@@ -158,33 +158,27 @@ class ShareProjectAsyncTestCase(TestBase):
 
     @patch.object(ShareProject, "save")
     @patch("onadata.apps.api.tasks.share_project_async.retry")
-    def test_database_error(self, mock_retry, mock_share):
-        """We retry calls if DatabaseError is raised"""
-        mock_share.side_effect = DatabaseError()
-        share_project_async.delay(self.project.id, self.user.pk, "manager")
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+    def test_retry_exceptions(self, mock_retry, mock_share):
+        """We retry calls for exceptions"""
+        test_cases = [
+            (DatabaseError, "DatabaseError"),
+            (ConnectionError, "ConnectionError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-    @patch.object(ShareProject, "save")
-    @patch("onadata.apps.api.tasks.share_project_async.retry")
-    def test_connection_error(self, mock_retry, mock_share):
-        """We retry calls if ConnectionError is raised"""
-        mock_share.side_effect = ConnectionError()
-        share_project_async.delay(self.project.pk, self.user.pk, "manager")
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_share.side_effect = exception_class
+                share_project_async.delay(self.project.id, "alice", "manager")
 
-    @patch.object(ShareProject, "save")
-    @patch("onadata.apps.api.tasks.share_project_async.retry")
-    def test_operation_error(self, mock_retry, mock_share):
-        """We retry calls if OperationError is raised"""
-        mock_share.side_effect = OperationalError()
-        share_project_async.delay(self.project.pk, self.user.pk, "manager")
-        self.assertTrue(mock_retry.called)
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
+                self.assertTrue(mock_retry.called)
+
+                _, kwargs = mock_retry.call_args_list[0]
+
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
+
+                mock_retry.reset_mock()
+                mock_share.reset_mock()
 
 
 @patch("onadata.apps.api.tasks.delete_xform_submissions")
@@ -202,18 +196,27 @@ class DeleteXFormSubmissionsAsyncTestCase(TestBase):
         mock_delete.assert_called_once_with(self.xform, self.user, [1, 2], False)
 
     @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
-    def test_database_error(self, mock_retry, mock_delete):
-        """We retry calls if DatabaseError is raised"""
-        mock_delete.side_effect = DatabaseError()
-        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
+    def test_retry_exceptions(self, mock_retry, mock_delete):
+        """We retry calls for exceptions"""
+        test_cases = [
+            (DatabaseError, "DatabaseError"),
+            (ConnectionError, "ConnectionError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.retry")
-    def test_connection_error(self, mock_retry, mock_delete):
-        """We retry calls if ConnectionError is raised"""
-        mock_delete.side_effect = ConnectionError()
-        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_delete.side_effect = exception_class
+                delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
+
+                self.assertTrue(mock_retry.called)
+
+                _, kwargs = mock_retry.call_args_list[0]
+
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
+
+                mock_retry.reset_mock()
+                mock_delete.reset_mock()
 
     @patch("onadata.apps.api.tasks.logger.exception")
     def test_xform_id_invalid(self, mock_logger, mock_delete):

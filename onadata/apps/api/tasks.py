@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import TemporaryUploadedFile
-from django.db import DatabaseError
+from django.db import DatabaseError, OperationalError
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
@@ -36,6 +36,14 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+# pylint: disable=too-few-public-methods
+class AutoRetryTask(app.Task):
+    """Base task class for retrying exceptions"""
+
+    retry_backoff = 3
+    autoretry_for = (DatabaseError, ConnectionError, OperationalError)
+
+
 def recreate_tmp_file(name, path, mime_type):
     """Creates a TemporaryUploadedFile from a file path with given name"""
     tmp_file = TemporaryUploadedFile(name, mime_type, 0, None)
@@ -45,7 +53,7 @@ def recreate_tmp_file(name, path, mime_type):
     return tmp_file
 
 
-@app.task(bind=True)
+@app.task(bind=True, base=AutoRetryTask)
 def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
     """Publishes an XLSForm"""
     try:
@@ -79,7 +87,7 @@ def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
         return {"error": error_message}
 
 
-@app.task()
+@app.task(base=AutoRetryTask)
 def delete_xform_async(xform_id, user_id):
     """Soft delete an XForm asynchrounous task"""
     xform = XForm.objects.get(pk=xform_id)
@@ -87,7 +95,7 @@ def delete_xform_async(xform_id, user_id):
     xform.soft_delete(user)
 
 
-@app.task()
+@app.task(base=AutoRetryTask)
 def delete_user_async():
     """Delete inactive user accounts"""
     users = User.objects.filter(
@@ -111,7 +119,7 @@ def get_async_status(job_uuid):
     return result
 
 
-@app.task()
+@app.task(base=AutoRetryTask)
 def send_verification_email(email, message_txt, subject):
     """
     Sends a verification email
@@ -119,13 +127,13 @@ def send_verification_email(email, message_txt, subject):
     send_generic_email(email, message_txt, subject)
 
 
-@app.task()
+@app.task(base=AutoRetryTask)
 def send_account_lockout_email(email, message_txt, subject):
     """Sends account locked email."""
     send_generic_email(email, message_txt, subject)
 
 
-@app.task()
+@app.task(base=AutoRetryTask)
 def delete_inactive_submissions():
     """
     Task to periodically delete soft deleted submissions from db
@@ -143,7 +151,7 @@ def delete_inactive_submissions():
 
 
 # pylint: disable=invalid-name
-@app.task()
+@app.task(base=AutoRetryTask)
 def send_project_invitation_email_async(invitation_id: str, url: str):
     """Sends project invitation email asynchronously"""
     try:
@@ -157,7 +165,7 @@ def send_project_invitation_email_async(invitation_id: str, url: str):
         email.send()
 
 
-@app.task(track_started=True)
+@app.task(track_started=True, base=AutoRetryTask)
 def regenerate_form_instance_json(xform_id: int):
     """Regenerate a form's instances json
 
@@ -189,7 +197,7 @@ def regenerate_form_instance_json(xform_id: int):
             safe_delete(cache_key)
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 def share_project_async(project_id, username, role, remove=False):
     """Share project asynchronously"""
     try:
@@ -203,7 +211,7 @@ def share_project_async(project_id, username, role, remove=False):
         share.save()
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 def delete_xform_submissions_async(
     xform_id: int,
     deleted_by_id: int,
