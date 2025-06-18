@@ -30,7 +30,7 @@ User = get_user_model()
 
 
 class AutoRetryTask(app.Task):
-    """Base task class for retrying on database errors"""
+    """Base task class for retrying exceptions"""
 
     retry_backoff = 3
     autoretry_for = (DatabaseError, ConnectionError, OperationalError)
