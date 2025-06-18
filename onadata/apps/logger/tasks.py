@@ -235,28 +235,28 @@ def decrypt_instance_async(self, instance_id: int):
         )
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def rotate_expired_keys_async():
     """Rotate expired keys asynchronously."""
     rotate_expired_keys()
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def disable_expired_keys_async():
     """Disable expired keys asynchronously."""
     disable_expired_keys()
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def send_key_rotation_reminder_async():
     """Send key rotation reminder asynchronously."""
     send_key_rotation_reminder()
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def adjust_xform_num_of_decrypted_submissions_async(xform_id: int, delta: int) -> None:
     """Adjust XForm `num_of_decrypted_submissions` counter asynchronously
@@ -274,7 +274,7 @@ def adjust_xform_num_of_decrypted_submissions_async(xform_id: int, delta: int) -
         adjust_xform_num_of_decrypted_submissions(xform, delta=delta)
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def commit_cached_xform_num_of_decrypted_submissions_async():
     """Commit cached XForm `num_of_decrypted_submissions` counter to the database
@@ -289,7 +289,7 @@ def commit_cached_xform_num_of_decrypted_submissions_async():
     commit_cached_xform_num_of_decrypted_submissions()
 
 
-@app.task(retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError))
+@app.task(base=AutoRetryTask)
 @use_master
 def send_key_grace_expiry_reminder_async():
     """Send key grace expiry reminder asynchronously."""
