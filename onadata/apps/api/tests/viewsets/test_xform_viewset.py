@@ -81,6 +81,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
+from onadata.libs.serializers.metadata_serializer import create_xform_meta_permissions
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
@@ -94,6 +95,7 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.utils.xform_utils import get_xform_users
 
 ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
 
@@ -4958,6 +4960,68 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertIn("form_versions", response.data)
         self.assertEqual(response.data["form_versions"][0].get("total"), 3)
+
+    def test_readonly_no_download_role_not_changed_by_metapermissions(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {"username": "alice", "email": "alice@localhost.com"}
+            frankline_data = {
+                "username": "frankline",
+                "email": "frankline@localhost.com",
+            }
+            alice_profile = self._create_user_profile(alice_data)
+            frankline_profile = self._create_user_profile(frankline_data)
+
+            view = ProjectViewSet.as_view({"post": "share"})
+            alice_perms = {"username": "alice", "role": "readonly-no-download"}
+            frankline_perms = {"username": "frankline", "role": "readonly"}
+            alice_request = self.factory.post("/", data=alice_perms, **self.extra)
+            frankline_request = self.factory.post(
+                "/", data=frankline_perms, **self.extra
+            )
+            response = view(alice_request, pk=self.xform.project.id)
+            self.assertEqual(response.status_code, 204)
+            response = view(frankline_request, pk=self.xform.project.id)
+            self.assertEqual(response.status_code, 204)
+
+            # confirm metadata for the xform to be the default
+            self.assertEqual(
+                "editor|dataentry|readonly",
+                self.xform.metadata_set.get(data_type="xform_meta_perms").data_value,
+            )
+
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly",
+            )
+
+            # change metadata
+            data_value = "editor-minor|dataentry|readonly-no-download"
+            create_xform_meta_permissions(data_value, self.xform)
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly-no-download",
+            )
+
+            # change metadata
+            data_value = "editor-minor|dataentry|readonly"
+            create_xform_meta_permissions(data_value, self.xform)
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly",
+            )
 
     def test_share_auto_xform_meta_perms(self):
         with HTTMock(enketo_mock):
