@@ -29,9 +29,14 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+class AutoRetryTask(app.Task):
+    """Base task class for retrying on database errors"""
+
+    retry_backoff = 3
+    autoretry_for = (DatabaseError, ConnectionError, OperationalError)
+
+
+@app.task(base=AutoRetryTask)
 @use_master
 def set_entity_list_perms_async(entity_list_id):
     """Set permissions for EntityList asynchronously
@@ -48,9 +53,7 @@ def set_entity_list_perms_async(entity_list_id):
     set_project_perms_to_object(entity_list, entity_list.project)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def apply_project_date_modified_async():
     """
@@ -68,9 +71,7 @@ def apply_project_date_modified_async():
     safe_delete(PROJECT_DATE_MODIFIED_CACHE)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def delete_entities_bulk_async(entity_pks: list[int], username: str | None = None):
     """Delete Entities asynchronously
@@ -92,9 +93,7 @@ def delete_entities_bulk_async(entity_pks: list[int], username: str | None = Non
         soft_delete_entities_bulk(entity_qs, deleted_by)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def commit_cached_elist_num_entities_async():
     """Commit cached EntityList `num_entities` counter to the database
@@ -109,9 +108,7 @@ def commit_cached_elist_num_entities_async():
     commit_cached_elist_num_entities()
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def inc_elist_num_entities_async(elist_pk: int):
     """Increment EntityList `num_entities` counter asynchronously
@@ -121,9 +118,7 @@ def inc_elist_num_entities_async(elist_pk: int):
     inc_elist_num_entities(elist_pk)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def dec_elist_num_entities_async(elist_pk: int) -> None:
     """Decrement EntityList `num_entities` counter asynchronously
@@ -133,9 +128,7 @@ def dec_elist_num_entities_async(elist_pk: int) -> None:
     dec_elist_num_entities(elist_pk)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def register_instance_repeat_columns_async(instance_pk: int) -> None:
     """Register Instance repeat columns asynchronously
@@ -152,9 +145,7 @@ def register_instance_repeat_columns_async(instance_pk: int) -> None:
         register_instance_repeat_columns(instance)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
+@app.task(base=AutoRetryTask)
 @use_master
 def reconstruct_xform_export_register_async(xform_id: int) -> None:
     """Register a XForm's Instances export columns asynchronously
