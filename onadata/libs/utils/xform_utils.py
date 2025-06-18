@@ -199,7 +199,7 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
                 role.add(xform_user, xform)
 
             if role in readonly_role:
-                if (
+                if xform_user.username not in project_users or (
                     xform_user.username in project_users
                     and project_users[xform_user.username]["role"] is ReadOnlyRole.name
                 ):
