@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+# pylint: disable=too-few-public-methods
 class AutoRetryTask(app.Task):
     """Base task class for retrying exceptions"""
 
