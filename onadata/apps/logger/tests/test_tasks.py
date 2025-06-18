@@ -258,28 +258,27 @@ class RotateExpiredKeysAsyncTestCase(TestBase):
         mock_rotate.assert_called_once()
 
     @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
-    def test_retry_connection_error(self, mock_retry, mock_rotate):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_rotate.side_effect = ConnectionError
-        rotate_expired_keys_async.delay()
+    def test_retry_exceptions(self, mock_retry, mock_rotate):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_rotate.side_effect = exception_class
+                rotate_expired_keys_async.delay()
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch("onadata.apps.logger.tasks.rotate_expired_keys_async.retry")
-    def test_retry_database_error(self, mock_retry, mock_rotate):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_rotate.side_effect = DatabaseError
-        rotate_expired_keys_async.delay()
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_rotate.reset_mock()
 
 
 @patch("onadata.apps.logger.tasks.disable_expired_keys")
@@ -292,28 +291,27 @@ class DisableExpiredKeysAsyncTestCase(TestBase):
         mock_disable.assert_called_once()
 
     @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
-    def test_retry_connection_error(self, mock_retry, mock_disable):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_disable.side_effect = ConnectionError
-        disable_expired_keys_async.delay()
+    def test_retry_exceptions(self, mock_retry, mock_disable):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_disable.side_effect = exception_class
+                disable_expired_keys_async.delay()
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch("onadata.apps.logger.tasks.disable_expired_keys_async.retry")
-    def test_retry_database_error(self, mock_retry, mock_disable):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_disable.side_effect = DatabaseError
-        disable_expired_keys_async.delay()
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_disable.reset_mock()
 
 
 @patch("onadata.apps.logger.tasks.send_key_rotation_reminder")
@@ -326,28 +324,27 @@ class SendKeyRotationReminderAsyncTestCase(TestBase):
         mock_send.assert_called_once()
 
     @patch("onadata.apps.logger.tasks.send_key_rotation_reminder_async.retry")
-    def test_retry_connection_error(self, mock_retry, mock_send):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_send.side_effect = ConnectionError
-        send_key_rotation_reminder_async.delay()
+    def test_retry_exceptions(self, mock_retry, mock_send):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_send.side_effect = exception_class
+                send_key_rotation_reminder_async.delay()
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch("onadata.apps.logger.tasks.send_key_rotation_reminder_async.retry")
-    def test_retry_database_error(self, mock_retry, mock_send):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_send.side_effect = DatabaseError
-        send_key_rotation_reminder_async.delay()
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_send.reset_mock()
 
 
 @patch("onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions")
@@ -366,30 +363,29 @@ class AdjustXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.retry"
     )
-    def test_retry_connection_error(self, mock_retry, mock_adjust):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_adjust.side_effect = ConnectionError
-        adjust_xform_num_of_decrypted_submissions_async.delay(self.xform.pk, delta=-1)
+    def test_retry_exceptions(self, mock_retry, mock_adjust):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_adjust.side_effect = exception_class
+                adjust_xform_num_of_decrypted_submissions_async.delay(
+                    self.xform.pk, delta=-1
+                )
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch(
-        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.retry"
-    )
-    def test_retry_database_error(self, mock_retry, mock_adjust):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_adjust.side_effect = DatabaseError
-        adjust_xform_num_of_decrypted_submissions_async.delay(self.xform.pk, delta=-1)
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_adjust.reset_mock()
 
     @patch("onadata.apps.logger.tasks.logger.exception")
     def test_invalid_pk(self, mock_logger, mock_adjust):
@@ -411,30 +407,27 @@ class CommitCachedXFormDecryptedSubmissionCountAsyncTestCase(TestBase):
     @patch(
         "onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions_async.retry"
     )
-    def test_retry_connection_error(self, mock_retry, mock_commit):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_commit.side_effect = ConnectionError
-        commit_cached_xform_num_of_decrypted_submissions_async.delay()
+    def test_retry_exceptions(self, mock_retry, mock_commit):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_commit.side_effect = exception_class
+                commit_cached_xform_num_of_decrypted_submissions_async.delay()
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch(
-        "onadata.apps.logger.tasks.commit_cached_xform_num_of_decrypted_submissions_async.retry"
-    )
-    def test_retry_database_error(self, mock_retry, mock_commit):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_commit.side_effect = DatabaseError
-        commit_cached_xform_num_of_decrypted_submissions_async.delay()
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_commit.reset_mock()
 
 
 @patch("onadata.apps.logger.tasks.send_key_grace_expiry_reminder")
@@ -447,25 +440,24 @@ class SendKeyGraceExpiryReminderAsyncTestCase(TestBase):
         mock_send.assert_called_once()
 
     @patch("onadata.apps.logger.tasks.send_key_grace_expiry_reminder_async.retry")
-    def test_retry_connection_error(self, mock_retry, mock_send):
-        """ConnectionError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_send.side_effect = ConnectionError
-        send_key_grace_expiry_reminder_async.delay()
+    def test_retry_exceptions(self, mock_retry, mock_send):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
 
-        self.assertTrue(mock_retry.called)
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_send.side_effect = exception_class
+                send_key_grace_expiry_reminder_async.delay()
 
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+                self.assertTrue(mock_retry.called)
 
-    @patch("onadata.apps.logger.tasks.send_key_grace_expiry_reminder_async.retry")
-    def test_retry_database_error(self, mock_retry, mock_send):
-        """DatabaseError exception is retried"""
-        mock_retry.side_effect = Retry
-        mock_send.side_effect = DatabaseError
-        send_key_grace_expiry_reminder_async.delay()
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
 
-        self.assertTrue(mock_retry.called)
-
-        _, kwargs = mock_retry.call_args_list[0]
-        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_send.reset_mock()
