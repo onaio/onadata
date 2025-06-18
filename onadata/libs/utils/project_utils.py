@@ -49,7 +49,7 @@ def get_project_users(project):
 
             ret[user.username] = {
                 "permissions": [],
-                "is_org": is_organization(user.profile),
+                "is_org": hasattr(user, "profile") and is_organization(user.profile),
                 "first_name": user.first_name,
                 "last_name": user.last_name,
             }
