@@ -23,6 +23,7 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.permissions import (
     ROLES,
+    ReadOnlyRole,
     get_object_users_with_permissions,
     set_project_perms_to_object,
     get_role,
@@ -37,6 +38,7 @@ from onadata.libs.permissions import (
 )
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.common_tags import MEMBERS
+from onadata.libs.utils.project_utils import get_project_users
 
 
 def get_team_members(org_username):
@@ -144,15 +146,19 @@ def get_xform_users(xform):
     return data
 
 
+def clear_permissions_cache(xform):
+    safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+    safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
+    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
+
+
 def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     """
     Updates users role in a xform based on meta permissions set on the form.
     """
 
-    safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
-    safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
-    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-    safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
+    clear_permissions_cache(xform)
 
     # pylint: disable=invalid-name
     MetaData = apps.get_model("main", "MetaData")  # noqa: N806
@@ -163,8 +169,10 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
     dataentry_role = {role.name: role for role in dataentry_role_list}
 
-    readonly_role_list = [ReadOnlyRoleNoDownload]
+    readonly_role_list = [ReadOnlyRole, ReadOnlyRoleNoDownload]
     readonly_role = {role.name: role for role in readonly_role_list}
+
+    project_users = get_project_users(xform.project)
 
     if metadata:
         meta_perms = metadata.data_value.split("|")
@@ -190,8 +198,10 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
                 role.add(xform_user, xform)
 
             if role in readonly_role:
-                role = ROLES.get(meta_perms[2])
-                role.add(xform_user, xform)
+                project_user_role = project_users[xform_user.username]["role"]
+                if project_user_role == ReadOnlyRole.name:
+                    role = ROLES.get(meta_perms[2])
+                    role.add(xform_user, xform)
 
 
 # pylint: disable=invalid-name

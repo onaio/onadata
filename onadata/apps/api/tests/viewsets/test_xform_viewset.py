@@ -4999,9 +4999,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     self.assertTrue(
                         DataEntryRole.user_has_role(alice_profile.user, self.xform)
                     )
-                elif role_class in [
-                    ReadOnlyRoleNoDownload,
-                ]:
+                elif role_class in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
                     self.assertTrue(
                         ReadOnlyRoleNoDownload.user_has_role(
                             alice_profile.user, self.xform
