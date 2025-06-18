@@ -15,7 +15,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.core.files.storage import storages
-from django.db import DatabaseError, OperationalError, connection, transaction
+from django.db import connection, transaction
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.urls import reverse
@@ -34,7 +34,6 @@ from onadata.apps.logger.xform_instance_parser import (
     clean_and_parse_xml,
     get_uuid_from_xml,
 )
-from onadata.celeryapp import app
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -213,23 +212,6 @@ def _update_submission_count_for_today(
         cache.decr(count_cache_key)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
-@use_master
-def update_xform_submission_count_async(instance_id):
-    """
-    Celery task to asynchrounously update an XForms Submission count
-    once a submission has been made
-    """
-    try:
-        instance = Instance.objects.get(pk=instance_id)
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
-    else:
-        update_xform_submission_count(instance)
-
-
 def update_xform_submission_count(instance):
     """Updates the XForm submissions count on a new submission being created."""
     with transaction.atomic():
@@ -350,23 +332,6 @@ def update_geopoints_on_hard_delete(sender, instance, **kwargs):
     _update_geopoints(instance)
 
 
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
-@use_master
-def save_full_json_async(instance_id):
-    """
-    Celery task to asynchrounously generate and save an Instances JSON
-    once a submission has been made
-    """
-    try:
-        instance = Instance.objects.get(pk=instance_id)
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
-    else:
-        save_full_json(instance)
-
-
 def save_full_json(instance, include_related=True):
     """Save full json dict
 
@@ -378,24 +343,6 @@ def save_full_json(instance, include_related=True):
     Instance.objects.filter(pk=instance.pk).update(
         json=instance.get_full_dict(include_related)
     )
-
-
-@app.task(
-    retry_backoff=3, autoretry_for=(DatabaseError, ConnectionError, OperationalError)
-)
-@use_master
-def update_project_date_modified_async(instance_id):
-    """
-    Celery task to asynchrounously update a Projects last modified date
-    once a submission has been made
-    """
-    try:
-        instance = Instance.objects.get(pk=instance_id)
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
-
-    else:
-        update_project_date_modified(instance)
 
 
 def update_project_date_modified(instance):
@@ -849,19 +796,22 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         # (metadata from non-performance intensive tasks) first since we
         # do not know when the async processing will complete
         save_full_json(instance, False)
+        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
         if created:
             transaction.on_commit(
-                lambda: update_xform_submission_count_async.apply_async(
+                lambda: logger_tasks.update_xform_submission_count_async.apply_async(
                     args=[instance.pk]
                 )
             )
 
         transaction.on_commit(
-            lambda: save_full_json_async.apply_async(args=[instance.pk])
+            lambda: logger_tasks.save_full_json_async.apply_async(args=[instance.pk])
         )
         transaction.on_commit(
-            lambda: update_project_date_modified_async.apply_async(args=[instance.pk])
+            lambda: logger_tasks.update_project_date_modified_async.apply_async(
+                args=[instance.pk]
+            )
         )
 
     else:

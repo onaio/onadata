@@ -11,6 +11,11 @@ from django.db import DatabaseError, OperationalError
 from multidb.pinning import use_master
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
+from onadata.apps.logger.models.instance import (
+    save_full_json,
+    update_project_date_modified,
+    update_xform_submission_count,
+)
 from onadata.celeryapp import app
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.entities_utils import (
@@ -161,3 +166,40 @@ def reconstruct_xform_export_register_async(xform_id: int) -> None:
 
     else:
         reconstruct_xform_export_register(xform)
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def update_xform_submission_count_async(instance_id):
+    """Update an XForm's submission count asynchronously"""
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+    else:
+        update_xform_submission_count(instance)
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def save_full_json_async(instance_id):
+    """Save an Instance's JSON asynchronously"""
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+    else:
+        save_full_json(instance)
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def update_project_date_modified_async(instance_id):
+    """Update a Project's date_modified asynchronously"""
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        update_project_date_modified(instance)
