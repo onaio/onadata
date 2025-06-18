@@ -371,20 +371,6 @@ class TestAbstractViewSet(TestBase, TestCase):
                 # pylint: disable=attribute-defined-outside-init
                 self.form_data = response.data
 
-        data_value = "editor|dataentry|readonly"
-        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
-        serializer = MetaDataSerializer(
-            metadata,
-            data={
-                "data_value": data_value,
-                "data_type": "xform_meta_perms",
-                "xform": self.xform.id,
-            },
-        )
-
-        if serializer.is_valid():
-            serializer.save()
-
     # pylint: disable=too-many-arguments, too-many-positional-arguments,too-many-locals,unused-argument
     def _make_submission(
         self,

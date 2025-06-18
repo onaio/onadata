@@ -157,20 +157,21 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
     """
     Updates users role in a xform based on meta permissions set on the form.
     """
-
     clear_permissions_cache(xform)
 
     # pylint: disable=invalid-name
     MetaData = apps.get_model("main", "MetaData")  # noqa: N806
     metadata = MetaData.xform_meta_permission(xform)
-    editor_role_list = [EditorNoDownload, EditorRole, EditorMinorRole]
-    editor_role = {role.name: role for role in editor_role_list}
+    editor_role = {
+        role.name: role for role in [EditorNoDownload, EditorRole, EditorMinorRole]
+    }
 
-    dataentry_role_list = [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
-    dataentry_role = {role.name: role for role in dataentry_role_list}
+    dataentry_role = {
+        role.name: role
+        for role in [DataEntryMinorRole, DataEntryOnlyRole, DataEntryRole]
+    }
 
-    readonly_role_list = [ReadOnlyRole, ReadOnlyRoleNoDownload]
-    readonly_role = {role.name: role for role in readonly_role_list}
+    readonly_role = {role.name: role for role in [ReadOnlyRole, ReadOnlyRoleNoDownload]}
 
     project_users = get_project_users(xform.project)
 
@@ -198,8 +199,10 @@ def update_role_by_meta_xform_perms(xform, user=None, user_role=None):
                 role.add(xform_user, xform)
 
             if role in readonly_role:
-                project_user_role = project_users[xform_user.username]["role"]
-                if project_user_role == ReadOnlyRole.name:
+                if (
+                    xform_user.username in project_users
+                    and project_users[xform_user.username]["role"] is ReadOnlyRole.name
+                ):
                     role = ROLES.get(meta_perms[2])
                     role.add(xform_user, xform)
 
