@@ -7,12 +7,15 @@ from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 from django.utils import timezone
 
+from valigetta.exceptions import AuthenticationException
+
 from onadata.apps.logger.models import EntityList
 from onadata.apps.logger.tasks import (
     adjust_xform_num_of_decrypted_submissions_async,
     apply_project_date_modified_async,
     commit_cached_elist_num_entities_async,
     commit_cached_xform_num_of_decrypted_submissions_async,
+    decrypt_instance_async,
     disable_expired_keys_async,
     reconstruct_xform_export_register_async,
     register_instance_repeat_columns_async,
@@ -461,3 +464,49 @@ class SendKeyGraceExpiryReminderAsyncTestCase(TestBase):
                 # Reset mocks for next iteration
                 mock_retry.reset_mock()
                 mock_send.reset_mock()
+
+
+@patch("onadata.apps.logger.tasks.decrypt_instance")
+class DecryptInstanceAsyncTestCase(TestBase):
+    """Tests for decrypt_instance_async"""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        self.instance = self.xform.instances.first()
+
+    def test_decrypt_instance(self, mock_decrypt):
+        """Decrypt instance"""
+        decrypt_instance_async.delay(self.instance.pk)
+        mock_decrypt.assert_called_once_with(self.instance)
+
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.retry")
+    def test_retry_exceptions(self, mock_retry, mock_decrypt):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+            (AuthenticationException, "AuthenticationException"),
+        ]
+
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_decrypt.side_effect = exception_class
+                decrypt_instance_async.delay(self.instance.pk)
+
+                self.assertTrue(mock_retry.called)
+
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
+                # Reset mocks for next iteration
+                mock_retry.reset_mock()
+                mock_decrypt.reset_mock()
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_pk(self, mock_logger, mock_decrypt):
+        """Invalid Instance primary key is handled"""
+        decrypt_instance_async.delay(sys.maxsize)
+        mock_decrypt.assert_not_called()
+        mock_logger.assert_called_once()

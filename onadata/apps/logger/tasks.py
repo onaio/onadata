@@ -9,6 +9,7 @@ from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
 from multidb.pinning import use_master
+from valigetta.exceptions import AuthenticationException
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.apps.logger.models.instance import (
@@ -211,7 +212,16 @@ def update_project_date_modified_async(instance_id):
         update_project_date_modified(instance)
 
 
-@app.task(base=AutoRetryTask, bind=True)
+@app.task(
+    base=AutoRetryTask,
+    bind=True,
+    autoretry_for=(
+        ConnectionError,
+        DatabaseError,
+        OperationalError,
+        AuthenticationException,
+    ),
+)
 @use_master
 def decrypt_instance_async(self, instance_id: int):
     """Decrypt encrypted Instance asynchronously.
