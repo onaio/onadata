@@ -215,12 +215,7 @@ def update_project_date_modified_async(instance_id):
 @app.task(
     base=AutoRetryTask,
     bind=True,
-    autoretry_for=(
-        ConnectionError,
-        DatabaseError,
-        OperationalError,
-        AuthenticationException,
-    ),
+    autoretry_for=AutoRetryTask.autoretry_for + (AuthenticationException,),
 )
 @use_master
 def decrypt_instance_async(self, instance_id: int):
