@@ -6,14 +6,22 @@ ShareProject model - facilitate sharing of a project to a user.
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from onadata.libs.permissions import ROLES, ManagerRole, OwnerRole, ReadOnlyRole
+from onadata.libs.permissions import (
+    ROLES,
+    ManagerRole,
+    OwnerRole,
+    ReadOnlyRoleNoDownload,
+)
 
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
     safe_delete,
 )
-from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import (
+    update_role_by_meta_xform_perms,
+    clear_permissions_cache,
+)
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
@@ -86,11 +94,12 @@ class ShareProject:
                     # check if there is xform meta perms set
                     if xform.metadata_set.filter(
                         data_type=XFORM_META_PERMS
-                    ) and role not in [ReadOnlyRole, ManagerRole, OwnerRole]:
+                    ) and role not in [ReadOnlyRoleNoDownload, ManagerRole, OwnerRole]:
                         update_role_by_meta_xform_perms(
                             xform, user=self.user, user_role=role
                         )
                     else:
+                        clear_permissions_cache(xform)
                         role.add(self.user, xform)
 
                     # Set MergedXForm permissions if XForm is also a MergedXForm
