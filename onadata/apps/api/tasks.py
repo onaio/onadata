@@ -42,6 +42,7 @@ class AutoRetryTask(app.Task):
 
     retry_backoff = 3
     autoretry_for = (DatabaseError, ConnectionError, OperationalError)
+    max_retries = 5
 
 
 def recreate_tmp_file(name, path, mime_type):

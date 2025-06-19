@@ -48,6 +48,7 @@ class AutoRetryTask(app.Task):
 
     retry_backoff = 3
     autoretry_for = (DatabaseError, ConnectionError, OperationalError)
+    max_retries = 5
 
 
 @app.task(base=AutoRetryTask)
