@@ -545,7 +545,7 @@ def decrypt_instance(instance: Instance) -> None:
         attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
             deleted_at=timezone.now()
         )
-
+        # Increment XForm num_of_decrypted_submissions
         transaction.on_commit(
             lambda: logger_tasks.adjust_xform_num_of_decrypted_submissions_async.delay(
                 instance.xform_id, delta=1
