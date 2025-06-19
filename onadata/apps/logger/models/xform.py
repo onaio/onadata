@@ -50,8 +50,10 @@ from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_COUNT,
+    XFORM_DEC_SUBMISSION_COUNT,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    safe_cache_get,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -995,6 +997,7 @@ class XForm(XFormMixin, BaseModel):
     instances_with_geopoints = models.BooleanField(default=False)
     instances_with_osm = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
+    num_of_decrypted_submissions = models.IntegerField(default=0)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True, blank=True)
     project = models.ForeignKey("Project", on_delete=models.CASCADE)
     created_by = models.ForeignKey(
@@ -1013,6 +1016,7 @@ class XForm(XFormMixin, BaseModel):
     # XForm was created as a merged dataset
     is_merged_dataset = models.BooleanField(default=False)
     is_instance_json_regenerated = models.BooleanField(default=False)
+    is_managed = models.BooleanField(default=False)
     tags = TaggableManager()
 
     class Meta:
@@ -1368,6 +1372,38 @@ class XForm(XFormMixin, BaseModel):
     def public_forms(cls):
         """Returns a queryset of public forms i.e. shared = True"""
         return cls.objects.filter(shared=True)
+
+    def update_num_of_decrypted_submissions(self):
+        """Update the number of decrypted submissions for the form."""
+        if self.is_managed:
+            count = self.instances.filter(
+                deleted_at__isnull=True, is_encrypted=False
+            ).count()
+
+        else:
+            count = 0
+
+        # Delete cached delta counter
+        safe_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
+
+        self.num_of_decrypted_submissions = count
+        self.save(update_fields=["num_of_decrypted_submissions"])
+
+        return self.num_of_decrypted_submissions
+
+    @property
+    def live_num_of_decrypted_submissions(self):
+        """Returns database + cache count of decrypted submissions."""
+        cached_counter = safe_cache_get(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}", 0)
+
+        return self.num_of_decrypted_submissions + cached_counter
+
+    @property
+    def num_of_pending_decryption_submissions(self):
+        """Returns the number of submissions pending decryption for the form."""
+        count = self.num_of_submissions - self.live_num_of_decrypted_submissions
+
+        return max(count, 0)
 
 
 # pylint: disable=unused-argument

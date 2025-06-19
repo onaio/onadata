@@ -2,6 +2,7 @@
 """
 Test onadata.libs.utils.project_utils
 """
+
 from unittest.mock import call, MagicMock, patch
 
 from django.test.utils import override_settings
@@ -12,13 +13,19 @@ from guardian.shortcuts import get_perms
 from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import DataEntryRole, ManagerRole, OwnerRole
+from onadata.libs.permissions import (
+    DataEntryRole,
+    ManagerRole,
+    OwnerRole,
+    set_project_perms_to_object,
+)
 from onadata.libs.utils.project_utils import (
     assign_change_asset_permission,
     retrieve_asset_permissions,
+)
+from onadata.libs.utils.xform_utils import (
     set_project_perms_to_xform,
     set_project_perms_to_xform_async,
-    set_project_perms_to_object,
 )
 
 
@@ -62,7 +69,7 @@ class TestProjectUtils(TestBase):
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    @patch("onadata.libs.utils.project_utils.set_project_perms_to_xform")
+    @patch("onadata.libs.utils.xform_utils.set_project_perms_to_xform")
     def test_set_project_perms_to_xform_async(self, mock):
         """
         Test that the set_project_perms_to_xform_async task actually calls
@@ -75,7 +82,7 @@ class TestProjectUtils(TestBase):
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], self.project)
 
-    @patch("onadata.libs.utils.project_utils.set_project_perms_to_xform")
+    @patch("onadata.libs.utils.xform_utils.set_project_perms_to_xform")
     def test_set_project_perms_to_xform_async_mergedxform(self, mock):
         """set_project_perms_to_xform_async sets permissions for a MergedXForm"""
         merged_xf = self._create_merged_dataset()
@@ -148,9 +155,9 @@ class TestProjectUtils(TestBase):
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch(
-        "onadata.libs.utils.project_utils.set_project_perms_to_xform_async.delay"  # noqa
+        "onadata.libs.utils.xform_utils.set_project_perms_to_xform_async.delay"  # noqa
     )
-    @patch("onadata.libs.utils.project_utils.set_project_perms_to_xform")
+    @patch("onadata.libs.utils.xform_utils.set_project_perms_to_xform")
     def test_rabbitmq_connection_error(self, mock_set_perms_async, mock_set_perms):
         """
         Test rabbitmq connection error.

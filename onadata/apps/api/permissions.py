@@ -2,6 +2,7 @@
 """
 API permissions module.
 """
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import Http404
@@ -494,6 +495,11 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
     OrganizationProfilePermissions - allow authenticated users to delete an org
     """
 
+    def _check_is_admin_or_manager(self, user, obj):
+        return OwnerRole.user_has_role(user, obj) or ManagerRole.user_has_role(
+            user, obj
+        )
+
     def has_object_permission(self, request, view, obj):
         is_authenticated = (
             request
@@ -502,6 +508,9 @@ class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
         )
         if is_authenticated and request.method == "DELETE":
             return True
+
+        if view.action == "rotate_key":
+            return self._check_is_admin_or_manager(request.user, obj)
 
         return super().has_object_permission(request=request, view=view, obj=obj)
 

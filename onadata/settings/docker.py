@@ -51,8 +51,8 @@ else:
     TESTING_MODE = False
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "cache")
-CELERY_BROKER_URL = f"redis://{ REDIS_HOST }:6379"
-CELERY_RESULT_BACKEND = f"redis://{ REDIS_HOST }:6379"
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:6379"
+CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:6379"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -62,7 +62,7 @@ CELERY_BROKER_CONNECTION_MAX_RETRIES = 2
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{ REDIS_HOST }:6379",
+        "LOCATION": f"redis://{REDIS_HOST}:6379",
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
@@ -107,3 +107,4 @@ else:
 ENKETO_API_ALL_SURVEY_LINKS_PATH = "/api_v2/survey/all"
 SUBMISSION_RETRIEVAL_THRESHOLD = 1000
 CSV_FILESIZE_IMPORT_ASYNC_THRESHOLD = 100000
+DEFAULT_XFORM_META_PERMS = "editor|dataentry|readonly"

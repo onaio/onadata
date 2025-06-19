@@ -174,7 +174,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             "SELECT json FROM logger_instance WHERE"
             " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"
             " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"
-            " ORDER BY  json->>%s ASC"
+            " ORDER BY  logger_instance.json->>%s ASC"
         )
 
         (sql, columns, params) = DataView.generate_query_string(
@@ -201,7 +201,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             "SELECT json FROM logger_instance WHERE"
             " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"
             " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"
-            " ORDER BY  json->>%s DESC"
+            " ORDER BY  logger_instance.json->>%s DESC"
         )
 
         (sql, columns, params) = DataView.generate_query_string(

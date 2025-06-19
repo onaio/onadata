@@ -12,7 +12,7 @@ from onadata.apps.logger.models.project import (
     set_object_permissions as set_project_permissions,
 )
 from onadata.libs.permissions import ReadOnlyRole
-from onadata.libs.utils.project_utils import set_project_perms_to_xform
+from onadata.libs.utils.xform_utils import set_project_perms_to_xform
 
 
 class Command(BaseCommand):

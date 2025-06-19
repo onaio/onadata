@@ -2,6 +2,7 @@
 """
 Test XFormListViewSet module.
 """
+
 import os
 from builtins import open
 from hashlib import md5
@@ -21,9 +22,11 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
+from onadata.libs.models.share_project import ShareProject
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -596,7 +599,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             content = response.render().content.decode("utf-8")
             self.assertEqual(content, form_list_xml % data)
             download_url = (
-                "<downloadUrl>http://testserver/%s/" "forms/%s/form.xml</downloadUrl>"
+                "<downloadUrl>http://testserver/%s/forms/%s/form.xml</downloadUrl>"
             ) % (self.user.username, self.xform.id)
             # check that bob's form exists in alice's formList
             self.assertTrue(download_url in content)
@@ -1037,7 +1040,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         # sign in bob
         request = self.factory.head("/")
         auth_response = self.view(request, pk=self.xform.pk)
-        auth = DigestAuth("bob", "bobbob")
+        username = "bob"
+        password = "bobbob"
+
+        auth = DigestAuth(username, password)
 
         # set up bob's request
         request = self.factory.get("/xformsManifest")
@@ -1060,21 +1066,67 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         url = "/bob/xformsMedia/{}/{}.csv?group_delimiter=.".format(
             self.xform.pk, self.metadata.pk
         )
-        username = "bob"
-        password = "bob"
 
         client = DigestClient()
         client.set_authorization(username, password, "Digest")
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
 
-        req = client.get(url)
-        self.assertEqual(req.status_code, 200)
+        # test same conditions for a user who is not form owner
+        username = "alice"
+        password = "alice"
+        client = DigestClient()
+        alice_data = {
+            "username": "alice",
+            "email": "alice@localhost.com",
+            "password1": username,
+            "password2": password,
+        }
+        self._create_user_profile(alice_data)
 
-        # enable meta perms
-        data_value = "editor-minor|dataentry"
-        MetaData.xform_meta_permission(self.xform, data_value=data_value)
+        client.set_authorization(username, password, "Digest")
+        response = client.get(url)
 
-        req = client.get(url)
-        self.assertEqual(req.status_code, 401)
+        self.assertEqual(response.status_code, 403)
+
+        data = {
+            "project": self.xform.project,
+            "username": "alice",
+            "role": "dataentry",
+        }
+
+        share_project = ShareProject(**data)
+        share_project.save()
+
+        client = DigestClient()
+        client.set_authorization(username, password, "Digest")
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        # update meta perms
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        data_value = "dataentry-only|dataentry-only|readonly-no-download"
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": data_value,
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+        client = DigestClient()
+        client.set_authorization(username, password, "Digest")
+        response = client.get(url)
+        self.assertEqual(response.status_code, 403)
+
+        client = DigestClient()
+        client.set_authorization(username, "wrong password", "Digest")
+        response = client.get(url)
+        self.assertEqual(response.status_code, 401)
 
     def test_xform_3gp_media_type(self):
         for fmt in ["png", "jpg", "mp3", "3gp", "wav"]:
@@ -1131,7 +1183,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         content = response.render().content.decode("utf-8")
         manifest_url = (
-            "<manifestUrl>http://testserver/%s/xformsManifest" "/%s</manifestUrl>"
+            "<manifestUrl>http://testserver/%s/xformsManifest/%s</manifestUrl>"
         ) % (self.user.username, self.xform.id)
         self.assertTrue(manifest_url in content)
 

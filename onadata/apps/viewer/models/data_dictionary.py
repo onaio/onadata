@@ -8,6 +8,7 @@ import json
 import os
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
@@ -24,6 +25,7 @@ from pyxform.xls2json_backends import xlsx_value_to_str
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
+from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.xform import (
     XForm,
@@ -38,6 +40,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE,
     safe_delete,
 )
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
 
@@ -210,12 +213,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         if instance.created_by and instance.user != instance.created_by:
             OwnerRole.add(instance.created_by, xform)
 
-        # pylint: disable=import-outside-toplevel
-        from onadata.libs.utils.project_utils import (
-            set_project_perms_to_xform_async,
-        )  # noqa
-
         try:
+            # pylint: disable=import-outside-toplevel
+            from onadata.libs.utils.xform_utils import (  # noqa
+                set_project_perms_to_xform_async,
+            )
+
             transaction.on_commit(
                 lambda: set_project_perms_to_xform_async.delay(
                     xform.pk, instance.project.pk
@@ -223,9 +226,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
             )
         except OperationalError:
             # pylint: disable=import-outside-toplevel
-            from onadata.libs.utils.project_utils import (
+            from onadata.libs.utils.xform_utils import (  # noqa
                 set_project_perms_to_xform,
-            )  # noqa
+            )
 
             set_project_perms_to_xform(xform, instance.project)
 
@@ -252,6 +255,32 @@ post_save.connect(
     set_object_permissions,
     sender=DataDictionary,
     dispatch_uid="xform_object_permissions",
+)
+
+
+# pylint: disable=unused-argument,import-outside-toplevel
+def _create_meta_perms(sender, instance, created, **kwargs):
+    meta_perms_exists = instance.metadata_set.filter(
+        data_type=XFORM_META_PERMS
+    ).exists()
+
+    if created and not meta_perms_exists:
+        xform = XForm.objects.get(pk=instance.pk)
+
+        # Avoid cyclic dependency
+        metadata_serializer = importlib.import_module(
+            "onadata.libs.serializers.metadata_serializer"
+        )
+        metadata_serializer.create_xform_meta_permissions(
+            getattr(settings, "DEFAULT_XFORM_META_PERMS", "editor|dataentry|readonly"),
+            xform,
+        )
+
+
+post_save.connect(
+    _create_meta_perms,
+    sender=DataDictionary,
+    dispatch_uid="create_xform_meta_permissions",
 )
 
 
@@ -446,4 +475,46 @@ post_save.connect(
     create_or_update_export_register,
     sender=DataDictionary,
     dispatch_uid="create_or_update_export_register",
+)
+
+
+def auto_encrypt_xform(sender, instance, created, **kwargs):
+    """Automatically encrypt published XForm using managed keys."""
+    # Avoid cyclic import by using importlib
+    kms_tools = importlib.import_module("onadata.libs.kms.tools")
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.permissions import is_organization
+
+    if (
+        created
+        and getattr(settings, "KMS_AUTO_ENCRYPT_XFORM", False)
+        and is_organization(instance.user.profile)
+    ):
+        if instance.encrypted and not getattr(
+            settings, "KMS_OVERRIDE_CUSTOM_ENCRYPTION", False
+        ):
+            return
+
+        organization = instance.user.profile.organizationprofile
+        content_type = ContentType.objects.get_for_model(organization)
+        kms_key_qs = KMSKey.objects.filter(
+            object_id=organization.pk,
+            content_type=content_type,
+            disabled_at__isnull=True,
+        )
+
+        if kms_key_qs.exists():
+            # seems the super is not called, have to get xform from here
+            xform = XForm.objects.get(pk=instance.pk)
+            transaction.on_commit(
+                lambda: kms_tools.encrypt_xform(
+                    xform, encrypted_by=instance.created_by, override_encryption=True
+                )
+            )
+
+
+post_save.connect(
+    auto_encrypt_xform,
+    sender=DataDictionary,
+    dispatch_uid="auto_encrypt_xform",
 )

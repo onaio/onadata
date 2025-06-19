@@ -5,15 +5,14 @@ logger signals module
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.tasks import (
-    dec_elist_num_entities_async,
-    inc_elist_num_entities_async,
+    adjust_elist_num_entities_async,
     set_entity_list_perms_async,
 )
 from onadata.apps.main.models.meta_data import MetaData
@@ -47,23 +46,49 @@ def create_or_update_entity(sender, instance, created=False, **kwargs):
         create_or_update_entity_from_instance(instance)
 
 
-@receiver(post_save, sender=Entity, dispatch_uid="update_enti_el_inc_num_entities")
-def increment_entity_list_num_entities(sender, instance, created=False, **kwargs):
+@receiver(post_save, sender=Entity, dispatch_uid="incr_entity_list_num_entities")
+def incr_entity_list_num_entities(sender, instance, created=False, **kwargs):
     """Increment EntityList `num_entities`"""
     entity_list = instance.entity_list
 
     if created:
         transaction.on_commit(
-            lambda: inc_elist_num_entities_async.delay(entity_list.pk)
+            lambda: adjust_elist_num_entities_async.delay(entity_list.pk, delta=1)
         )
 
 
-@receiver(post_delete, sender=Entity, dispatch_uid="update_enti_el_dec_num_entities")
-def decrement_entity_list_num_entities(sender, instance, **kwargs):
+@receiver(
+    post_delete,
+    sender=Entity,
+    dispatch_uid="decr_entity_list_num_entities_on_hard_delete",
+)
+def decr_entity_list_num_entities_on_hard_delete(sender, instance, **kwargs):
     """Decrement EntityList `num_entities`"""
     transaction.on_commit(
-        lambda: dec_elist_num_entities_async.delay(instance.entity_list.pk)
+        lambda: adjust_elist_num_entities_async.delay(instance.entity_list.pk, delta=-1)
     )
+
+
+@receiver(
+    pre_save, sender=Entity, dispatch_uid="decr_entity_list_num_entities_on_soft_delete"
+)
+def decr_entity_list_num_entities_on_soft_delete(sender, instance, **kwargs):
+    """Decrement EntityList `num_entities` on Entity soft delete"""
+    if not instance.pk or instance.deleted_at is None:
+        return
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+
+    if old_instance.deleted_at is None and instance.deleted_at is not None:
+        # Entity was soft deleted
+        transaction.on_commit(
+            lambda: adjust_elist_num_entities_async.delay(
+                instance.entity_list.pk, delta=-1
+            )
+        )
 
 
 @receiver(post_delete, sender=Entity, dispatch_uid="delete_enti_el_last_update_time")

@@ -2,6 +2,7 @@
 """
 Django settings module or use on GitHub actions.
 """
+
 # flake8: noqa
 # this preset is used for automated testing of onadata
 from __future__ import absolute_import

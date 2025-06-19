@@ -2,18 +2,17 @@
 """
 XForm model serialization.
 """
+
 import hashlib
 import logging
 import os
-
-from six import itervalues
-from six.moves.urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+from django.db import transaction
 from django.db.models import Count
 from django.utils.translation import gettext as _
 
@@ -21,8 +20,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from six import itervalues
+from six.moves.urllib.parse import urlparse
 
-from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.apps.logger.models import (
     DataView,
     EntityList,
@@ -32,11 +32,17 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.exceptions import EnketoError
+from onadata.libs.exceptions import EncryptionError, EnketoError
+from onadata.libs.kms.tools import (
+    clean_public_key,
+    disable_xform_encryption,
+    encrypt_xform,
+)
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.utils.api_export_tools import get_metadata_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
@@ -118,23 +124,6 @@ def user_to_username(item):
     item["user"] = item["user"].username
 
     return item
-
-
-def clean_public_key(value):
-    """
-    Strips public key comments and spaces from a public key ``value``.
-    """
-    if value.startswith("-----BEGIN PUBLIC KEY-----") and value.endswith(
-        "-----END PUBLIC KEY-----"
-    ):
-        return (
-            value.replace("-----BEGIN PUBLIC KEY-----", "")
-            .replace("-----END PUBLIC KEY-----", "")
-            .replace(" ", "")
-            .rstrip()
-        )
-
-    return value
 
 
 # pylint: disable=too-few-public-methods
@@ -385,6 +374,10 @@ class XFormMixin:
             )
         )
 
+    def get_num_of_pending_decryption_submissions(self, obj):
+        """Return the number of submissions pending decryption for the form."""
+        return obj.num_of_pending_decryption_submissions
+
 
 class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     """XForm base serializer."""
@@ -419,6 +412,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    num_of_pending_decryption_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
     xls_available = serializers.SerializerMethodField()
@@ -438,6 +432,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
+            "is_managed",
         )
         exclude = (
             "json",
@@ -477,6 +472,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source="shared")
     public_data = serializers.BooleanField(source="shared_data")
     public_key = serializers.CharField(required=False)
+    enable_kms_encryption = serializers.BooleanField(required=False, write_only=True)
     require_auth = serializers.BooleanField()
     submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
@@ -489,6 +485,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     enketo_preview_url = serializers.SerializerMethodField()
     enketo_single_submit_url = serializers.SerializerMethodField()
     num_of_submissions = serializers.SerializerMethodField()
+    num_of_pending_decryption_submissions = serializers.SerializerMethodField()
     last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
@@ -508,6 +505,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "last_submission_time",
             "is_merged_dataset",
             "xls_available",
+            "is_managed",
         )
         exclude = (
             "json",
@@ -598,6 +596,38 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                 cache.set(f"{XFORM_DATA_VERSIONS}{obj.pk}", list(versions))
 
         return versions
+
+    def update(self, instance, validated_data):
+        enable_kms_encryption = validated_data.pop("enable_kms_encryption", None)
+
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+
+            if enable_kms_encryption and not instance.encrypted:
+                try:
+                    encrypt_xform(instance, encrypted_by=self.context["request"].user)
+
+                except EncryptionError as exc:
+                    raise serializers.ValidationError(
+                        {"enable_kms_encryption": f"{exc}"}
+                    )
+
+            elif (
+                enable_kms_encryption is not None
+                and not enable_kms_encryption
+                and instance.encrypted
+            ):
+                try:
+                    disable_xform_encryption(
+                        instance, disabled_by=self.context["request"].user
+                    )
+
+                except EncryptionError as exc:
+                    raise serializers.ValidationError(
+                        {"enable_kms_encryption": f"{exc}"}
+                    )
+
+            return instance
 
 
 # pylint: disable=abstract-method

@@ -68,6 +68,13 @@ XFORM_LIST_CACHE = "xfm-list-"
 XFROM_LIST_CACHE_TTL = 10 * 60  # 10 minutes converted to seconds
 XFORM_SUBMISSIONS_DELETING = "xfm-submissions-deleting-"
 XFORM_SUBMISSIONS_DELETING_TTL = 60 * 60  # 1 hour converted to seconds
+XFORM_DEC_SUBMISSION_COUNT = "xfm-dec-submission-count-"
+XFORM_DEC_SUBMISSION_COUNT_IDS = "xfm-dec-submission-count-ids"
+XFORM_DEC_SUBMISSION_COUNT_LOCK = f"{XFORM_DEC_SUBMISSION_COUNT_IDS}-lock"
+XFORM_DEC_SUBMISSION_COUNT_CREATED_AT = f"{XFORM_DEC_SUBMISSION_COUNT_IDS}-created-at"
+XFORM_DEC_SUBMISSION_COUNT_FAILOVER_REPORT_SENT = (
+    "xfm-dec-submission-count-failover-report-sent"
+)
 
 # Cache timeouts used in XForm model
 XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL = 24 * 60 * 60  # 24 hrs converted to seconds
@@ -77,16 +84,19 @@ XFORM_MANIFEST_CACHE_LOCK_TTL = 300  # 5 minutes converted to seconds
 # Project date modified cache
 PROJECT_DATE_MODIFIED_CACHE = "project_date_modified"
 
-LOCK_SUFFIX = "-lock"
 
 # Entities
 ELIST_NUM_ENTITIES = "elist-num-entities-"
 ELIST_NUM_ENTITIES_IDS = "elist-num-entities-ids"
-ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}{LOCK_SUFFIX}"
+ELIST_NUM_ENTITIES_LOCK = f"{ELIST_NUM_ENTITIES_IDS}-lock"
 ELIST_NUM_ENTITIES_CREATED_AT = f"{ELIST_NUM_ENTITIES_IDS}-created-at"
 
 # Report exception
 ELIST_FAILOVER_REPORT_SENT = "elist-failover-report-sent"
+
+# KMS
+KMS_TOKEN_CACHE_KEY = "kms-token"
+KMS_TOKEN_CACHE_TTL = 60 * 60 * 24  # 24 hours
 
 
 def safe_delete(key):

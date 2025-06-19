@@ -1,0 +1,15 @@
+{% load i18n %}{% blocktranslate %}
+<p>Hello,</p>
+<p>
+  The grace period for the managed key for organization {{organization_name}} is
+  scheduled to expire on {{grace_end_date}}.
+</p>
+
+<p>
+  After the grace period expires, all forms using the key will no longer be able
+  to receive or decrypt submissions encrypted with the key.
+</p>
+
+<p>Thank you,</p>
+<p>The {{deployment_name}} Team</p>
+{% endblocktranslate %}

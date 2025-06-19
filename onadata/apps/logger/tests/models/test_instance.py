@@ -21,6 +21,7 @@ from onadata.apps.logger.models import (
     Instance,
     RegistrationForm,
     SubmissionReview,
+    SurveyType,
     XForm,
 )
 from onadata.apps.logger.models.instance import (
@@ -43,7 +44,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 class TestInstance(TestBase):
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super().setUp()
 
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
@@ -1396,3 +1397,155 @@ class TestInstance(TestBase):
 
         self.assertEqual(merged_multiples_columns, expected_columns)
         self.assertEqual(split_multiples_columns, expected_columns)
+
+    @patch("onadata.apps.logger.tasks.decrypt_instance")
+    def test_decrypt_instance(self, mock_dec):
+        """Encrypted Instance using managed keys is decrypted."""
+        metadata_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        xform = self._publish_markdown(md, self.user, id_string="nature")
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+
+        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=True):
+            instance = Instance.objects.create(
+                xform=xform,
+                xml=metadata_xml,
+                user=self.user,
+                survey_type=survey_type,
+            )
+            mock_dec.assert_called_once_with(instance)
+
+        # Auto-decrypt is disabled
+        mock_dec.reset_mock()
+        instance.delete()
+
+        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=False):
+            instance = Instance.objects.create(
+                xform=xform,
+                xml=metadata_xml,
+                user=self.user,
+                survey_type=survey_type,
+            )
+            mock_dec.assert_not_called()
+
+        # Auto-decrypt config is missing
+        mock_dec.reset_mock()
+        instance.delete()
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+        )
+        mock_dec.assert_not_called()
+
+        # Unencrypted submission
+        mock_dec.reset_mock()
+
+        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=True):
+            self._publish_transportation_form_and_submit_instance()
+
+            mock_dec.assert_not_called()
+
+    def test_set_is_encrypted(self):
+        """is_encrypted is set to True for encrypted Instance."""
+        metadata_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        xform = self._publish_markdown(md, self.user, id_string="nature")
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+        )
+        instance.refresh_from_db()
+
+        self.assertTrue(instance.is_encrypted)
+
+        # Unencrypted Instance value is false
+        self._publish_transportation_form_and_submit_instance()
+
+        instance = Instance.objects.order_by("-pk").first()
+
+        self.assertFalse(instance.is_encrypted)
+
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_soft_delete_xform_num_of_decrypted_submissions_decremented(
+        self, mock_adjust
+    ):
+        """Soft deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        self.xform.is_managed = True
+        self.xform.num_of_decrypted_submissions = 4
+        self.xform.save(update_fields=["is_managed", "num_of_decrypted_submissions"])
+
+        instance_qs = Instance.objects.filter(xform=self.xform)
+
+        instance = instance_qs[0]
+        instance.set_deleted()
+
+        mock_adjust.assert_called_once_with(self.xform.pk, delta=-1)
+
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_hard_delete_xform_num_of_decrypted_submissions_decremented(
+        self, mock_adjust
+    ):
+        """Hard deleting Instance decrements XForm `num_of_decrypted_submissions` counter."""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        self.xform.is_managed = True
+        self.xform.num_of_decrypted_submissions = 4
+        self.xform.save(update_fields=["is_managed", "num_of_decrypted_submissions"])
+
+        instance_qs = Instance.objects.filter(xform=self.xform)
+
+        instance = instance_qs[0]
+        instance.delete()
+
+        mock_adjust.assert_called_once_with(self.xform.pk, delta=-1)

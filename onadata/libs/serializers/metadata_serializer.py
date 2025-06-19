@@ -18,7 +18,7 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlparse
 
-from onadata.apps.api.tools import update_role_by_meta_xform_perms
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
@@ -52,7 +52,7 @@ METADATA_TYPES = (
     ("external_export", _("External Export")),
     ("textit", _("TextIt")),
     ("google_sheets", _("Google Sheet")),
-    ("xform_meta_perms", _("Xform meta permissions")),
+    (XFORM_META_PERMS, _("Xform meta permissions")),
     ("submission_review", _("Submission Review")),
     (IMPORTED_VIA_CSV_BY, _("Imported via CSV by")),
 )  # yapf:disable
@@ -94,6 +94,20 @@ def get_linked_object(parts):
 
             return get_object_or_404(model, pk=obj_pk)
     return None
+
+
+def create_xform_meta_permissions(data_value, xform):
+    """
+    Creates and updates xform meta permissions.
+
+    :param data_value: example: "editor-no-download|dataentry-only|readonly-no-download"
+    :param xform: The xform object for which to set metadata
+    :returns: The created metadata object
+    :raises serializers.ValidationError: If the permissions format is invalid
+    """
+    metadata = MetaData.xform_meta_permission(xform, data_value=data_value)
+    update_role_by_meta_xform_perms(xform)
+    return metadata
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
@@ -245,9 +259,13 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         if data_type == XFORM_META_PERMS:
             perms = value.split("|")
-            if len(perms) != 2 or not set(perms).issubset(set(ROLES)):
+            if len(perms) != 3 or not set(perms).issubset(set(ROLES)):
                 raise serializers.ValidationError(
-                    _("Format 'role'|'role' or Invalid role")
+                    _(
+                        "Format must be: "
+                        "'editor role' | 'dataentry role' | 'readonly role', "
+                        "or an invalid role was provided."
+                    )
                 )
 
         return attrs
@@ -290,10 +308,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         try:
             if data_type == XFORM_META_PERMS:
-                metadata = MetaData.xform_meta_permission(
-                    content_object, data_value=data_value
-                )
-                update_role_by_meta_xform_perms(content_object)
+                metadata = create_xform_meta_permissions(data_value, content_object)
 
             elif data_type == SUBMISSION_REVIEW:
                 # ensure only one submission_review metadata exists per form
@@ -320,12 +335,12 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             return metadata
         except IntegrityError as error:
             raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR)) from error
-        return None
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
 
         if instance.data_type == XFORM_META_PERMS:
-            update_role_by_meta_xform_perms(instance.content_object)
+            xform = instance.content_object
+            update_role_by_meta_xform_perms(xform)
 
         return instance
