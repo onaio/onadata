@@ -459,6 +459,9 @@ def decrypt_instance(instance: Instance) -> None:
 
     :param instance: Instance to be decrypted
     """
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
     if not is_instance_encrypted(instance):
         raise DecryptionError("Instance is not encrypted.")
 
@@ -542,8 +545,12 @@ def decrypt_instance(instance: Instance) -> None:
         attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
             deleted_at=timezone.now()
         )
-    # Increment XForm decrypted submission count
-    adjust_xform_num_of_decrypted_submissions(instance.xform, delta=1)
+
+        transaction.on_commit(
+            lambda: logger_tasks.adjust_xform_num_of_decrypted_submissions_async.delay(
+                instance.xform_id, delta=1
+            )
+        )
 
 
 @transaction.atomic()

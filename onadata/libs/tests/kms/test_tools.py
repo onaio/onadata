@@ -981,7 +981,9 @@ class DecryptInstanceTestCase(TestBase):
     def _compute_file_sha256(self, buffer):
         return sha256(buffer.getvalue()).hexdigest()
 
-    @patch("onadata.libs.kms.tools.adjust_xform_num_of_decrypted_submissions")
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
     def test_decrypt_submission(self, mock_adjust_decrypted_submission_count):
         """Decrypt submission is successful."""
         self.assertTrue(self.instance.is_encrypted)
@@ -1051,7 +1053,7 @@ class DecryptInstanceTestCase(TestBase):
 
         # XForm decrypted submission count is incremented
         mock_adjust_decrypted_submission_count.assert_called_once_with(
-            self.xform, delta=1
+            self.xform.pk, delta=1
         )
 
     def test_unencrypted_submission(self):
