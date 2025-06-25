@@ -209,32 +209,28 @@ class UserProfileViewSet(
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
         username = kwargs.get("user")
-        response = super().update(request, *args, **kwargs)
-        cache.set(f"{USER_PROFILE_PREFIX}{username}", response.data)
-        return response
+        request_username = request.user.username if request.user else ""
+        cache.delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+        return super().update(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         """Get user profile from cache or db"""
         username = kwargs.get("user")
-        cached_user = cache.get(f"{USER_PROFILE_PREFIX}{username}")
+        request_username = request.user.username or "-public-"
+        cached_user = cache.get(f"{USER_PROFILE_PREFIX}{username}{request_username}")
         if cached_user:
             return Response(cached_user)
         response = super().retrieve(request, *args, **kwargs)
+        cache.set(f"{USER_PROFILE_PREFIX}{username}{request_username}", response.data)
         return response
 
     def create(self, request, *args, **kwargs):
         """Create and cache user profile"""
         disable_user_creation = getattr(settings, "DISABLE_CREATING_USERS", False)
         if disable_user_creation:
-            raise PermissionDenied(
-                _("You do not have permission to create user.")
-            )
+            raise PermissionDenied(_("You do not have permission to create user."))
 
-        response = super().create(request, *args, **kwargs)
-        profile = response.data
-        user_name = profile.get("username")
-        cache.set(f"{USER_PROFILE_PREFIX}{user_name}", profile)
-        return response
+        return super().create(request, *args, **kwargs)
 
     @action(methods=["POST"], detail=True)
     def change_password(self, request, *args, **kwargs):  # noqa
@@ -267,8 +263,7 @@ class UserProfileViewSet(
                 limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
                 response = {
                     "error": _(
-                        "Invalid password. "
-                        f"You have {limits_remaining} attempts left."
+                        f"Invalid password. You have {limits_remaining} attempts left."
                     )
                 }
             return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
