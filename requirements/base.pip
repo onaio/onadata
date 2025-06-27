@@ -4,8 +4,6 @@
 #
 #    pip-compile --output-file=requirements/base.pip --strip-extras requirements/base.in
 #
-
-    # via -r requirements/base.in
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
     # via -r requirements/base.in
 amqp==5.3.1
@@ -30,7 +28,9 @@ backoff==1.10.0
 billiard==4.2.1
     # via celery
 boto3==1.37.29
-    # via dataflows-tabulator
+    # via
+    #   dataflows-tabulator
+    #   valigetta
 botocore==1.37.29
     # via
     #   boto3
@@ -75,6 +75,7 @@ cryptography==44.0.2
     #   jwcrypto
     #   onadata
     #   pyjwt
+    #   valigetta
 dataflows-tabulator==1.54.3
     # via
     #   datapackage
@@ -268,6 +269,8 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
+pycryptodome==3.23.0
+    # via valigetta
 pyfloip @ git+https://github.com/onaio/floip-py.git@3c980eb184069ae7c3c9136b18441978237cd41d
     # via -r requirements/base.in
 pyjwt==2.10.1
@@ -379,6 +382,8 @@ urllib3==2.3.0
     #   sentry-sdk
 uwsgi==2.0.28
     # via onadata
+valigetta @ git+https://git@github.com/onaio/valigetta.git@v0.1.0
+    # via -r requirements/base.in
 vine==5.1.0
     # via
     #   amqp
