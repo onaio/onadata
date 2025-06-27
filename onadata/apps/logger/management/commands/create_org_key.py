@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4
 """
-create_org_key - creates KMS keys for organizations.
+Management command to create KMS keys for organizations.
 """
 
 from django.contrib.auth import get_user_model
