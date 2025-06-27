@@ -10,4 +10,5 @@ git+https://github.com/onaio/python-json2xlsclient.git@62b4645f7b4f2684421a13ce9
 git+https://github.com/onaio/ona-oidc.git@v2.0.1#egg=ona-oidc
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
 git+https://github.com/onaio/pyxform.git@fix-osm-attribute-error#egg=pyxform
+git+https://git@github.com/onaio/valigetta.git@v0.1.0#egg=valigetta
 codetiming
