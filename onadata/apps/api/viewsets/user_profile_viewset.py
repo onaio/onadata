@@ -8,7 +8,6 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
-from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
@@ -45,9 +44,10 @@ from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
-    safe_delete,
-    safe_cache_set,
     safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
+    safe_delete,
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
@@ -133,7 +133,7 @@ def change_password_attempts(request):
     attempts = safe_cache_get(password_attempts)
 
     if attempts:
-        cache.incr(password_attempts)
+        safe_cache_incr(password_attempts)
         attempts = safe_cache_get(password_attempts)
         if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
             safe_cache_set(
