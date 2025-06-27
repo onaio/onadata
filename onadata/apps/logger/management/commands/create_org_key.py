@@ -73,7 +73,8 @@ class Command(BaseCommand):
             )
             self.stdout.write(
                 _(
-                    f"Processing {organizations.count()} organizations: {', '.join(usernames)}"
+                    f"Processing {organizations.count()} "
+                    f"organizations: {', '.join(usernames)}"
                 )
             )
         else:
@@ -118,7 +119,8 @@ class Command(BaseCommand):
                     key = create_key(org, created_by=None)
                     self.stdout.write(
                         _(
-                            f"Created key {key.key_id} for organization: {org.user.username}"
+                            f"Created key {key.key_id} for "
+                            f"organization: {org.user.username}"
                         )
                     )
                     created_count += 1
