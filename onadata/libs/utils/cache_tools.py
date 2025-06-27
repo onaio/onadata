@@ -116,6 +116,29 @@ def reset_project_cache(project, request, project_serializer_class):
     cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
 
 
+def _safe_cache_operation(operation, default_return=None):
+    """
+    Generic wrapper for cache operations with error handling.
+
+    Args:
+        operation (callable): The cache operation to execute.
+        default_return (Any): The default value to return on error.
+    Returns:
+        Any: The result of the operation or the default value on error.
+    """
+    try:
+        return operation()
+    except ConnectionError as exc:
+        # Handle cache connection error
+        logger.exception(exc)
+        return default_return
+    except socket.error as exc:
+        # Handle other potential connection errors, especially for
+        # older Python versions
+        logger.exception(exc)
+        return default_return
+
+
 def safe_cache_set(key, value, timeout=None):
     """
     Safely set a value in the cache.
@@ -130,15 +153,7 @@ def safe_cache_set(key, value, timeout=None):
     Returns:
         None
     """
-    try:
-        cache.set(key, value, timeout)
-    except ConnectionError as exc:
-        # Handle cache connection error
-        logger.exception(exc)
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
+    return _safe_cache_operation(lambda: cache.set(key, value, timeout))
 
 
 def safe_cache_get(key, default=None):
@@ -154,17 +169,7 @@ def safe_cache_get(key, default=None):
     Returns:
         Any: The value from the cache if accessible, otherwise the default value.
     """
-    try:
-        return cache.get(key, default)
-    except ConnectionError as exc:
-        # Handle cache connection error
-        logger.exception(exc)
-        return default
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
-        return default
+    return _safe_cache_operation(lambda: cache.get(key, default), default)
 
 
 def safe_cache_add(key, value, timeout=None):
@@ -181,17 +186,22 @@ def safe_cache_add(key, value, timeout=None):
     Returns:
         bool: True if the value was added to the cache, False otherwise.
     """
-    try:
-        return cache.add(key, value, timeout)
-    except ConnectionError as exc:
-        # Handle cache connection error
-        logger.exception(exc)
-        return False
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
-        return False
+    return _safe_cache_operation(lambda: cache.add(key, value, timeout), False)
+
+
+def safe_cache_incr(key, delta=1):
+    """
+    Safely increment a value in the cache.
+
+    If the cache is not reachable, the operation silently fails.
+
+    Args:
+        key (str): The cache key to increment.
+        delta (int): The amount to increment by (default: 1).
+    Returns:
+        int: The new value after incrementing, or None if the operation fails.
+    """
+    return _safe_cache_operation(lambda: cache.incr(key, delta))
 
 
 class CacheLockError(Exception):

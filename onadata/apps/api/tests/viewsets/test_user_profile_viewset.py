@@ -2,6 +2,7 @@
 """
 Tests the UserProfileViewSet.
 """
+
 # pylint: disable=too-many-lines
 import datetime
 import json
@@ -32,6 +33,7 @@ from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permission
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
+from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX
 
 User = get_user_model()
 
@@ -301,8 +303,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         )
         response = self.view(request)
         self.assertEqual(
-            str(response.data["detail"]),
-            "You do not have permission to create user.")
+            str(response.data["detail"]), "You do not have permission to create user."
+        )
         self.assertEqual(response.status_code, 403)
 
     def _create_user_using_profiles_endpoint(self, data):
@@ -386,10 +388,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
     @patch(
-        (
-            "onadata.apps.api.viewsets.user_profile_viewset."
-            "send_verification_email.delay"
-        )
+        ("onadata.apps.api.viewsets.user_profile_viewset.send_verification_email.delay")
     )
     def test_sending_verification_email_succeeds(self, mock_send_verification_email):
         data = _profile_data()
@@ -1572,3 +1571,100 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(mock_send_verification_email.called)
         user = User.objects.get(username="deno")
         self.assertTrue(user.is_active)
+
+    def test_cache_isolation_between_users_retrieve(self):
+        """Test that user A's cached profile is not accessible to user B"""
+        # Create user A
+        user_a_data = _profile_data()
+        user_a_data["username"] = "user_a"
+        user_a_data["email"] = "user_a@example.com"
+        user_a_data["first_name"] = "UserA"
+        user_a_data["name"] = "UserA lastname"
+        self._create_user_using_profiles_endpoint(user_a_data)
+        user_a = User.objects.get(username="user_a")
+        token_a = Token.objects.get(user=user_a)
+        user_a_extra = {"HTTP_AUTHORIZATION": f"Token {token_a.key}"}
+
+        # Create user B
+        user_b_data = _profile_data()
+        user_b_data["username"] = "user_b"
+        user_b_data["email"] = "user_b@example.com"
+        user_b_data["first_name"] = "UserB"
+        user_b_data["name"] = "UserB lastname"
+        self._create_user_using_profiles_endpoint(user_b_data)
+        user_b = User.objects.get(username="user_b")
+        token_b = Token.objects.get(user=user_b)
+        user_b_extra = {"HTTP_AUTHORIZATION": f"Token {token_b.key}"}
+
+        cache.clear()
+        retrieve_view = UserProfileViewSet.as_view({"get": "retrieve"})
+
+        # User A retrieves their own profile
+        request_a = self.factory.get("/", **user_a_extra)
+        response_a = retrieve_view(request_a, user="user_a")
+        self.assertEqual(response_a.status_code, 200)
+        self.assertEqual(response_a.data["first_name"], "UserA")
+        self.assertEqual(response_a.data["email"], user_a_data["email"])
+
+        # Verify user A's profile is cached with user A as requester
+        cache_key_a = f"{USER_PROFILE_PREFIX}user_a{user_a.username}"
+        cached_data_a = cache.get(cache_key_a)
+        self.assertIsNotNone(cached_data_a)
+        self.assertEqual(cached_data_a["first_name"], "UserA")
+        self.assertEqual(cached_data_a["email"], user_a_data["email"])
+
+        # User B retrieves user A's profile
+        request_b = self.factory.get("/", **user_b_extra)
+        response_b = retrieve_view(request_b, user="user_a")
+        self.assertEqual(response_b.status_code, 200)
+        self.assertEqual(response_b.data["first_name"], "UserA")
+        self.assertTrue("email" not in response_b)
+
+        # Verify user B profile cache for user A
+        user_b_cache_key_of_user_a = f"{USER_PROFILE_PREFIX}user_a{user_b.username}"
+        cache_b_a = cache.get(user_b_cache_key_of_user_a)
+        self.assertIsNotNone(cache_b_a)
+        self.assertEqual(cache_b_a["first_name"], "UserA")
+        self.assertTrue("email" not in cache_b_a)
+
+        # anonymous user retrieves user A's profile
+        request_anon = self.factory.get("/")
+        response_anon = retrieve_view(request_anon, user="user_a")
+        self.assertEqual(response_anon.status_code, 200)
+        self.assertEqual(response_anon.data["first_name"], "UserA")
+        self.assertTrue("email" not in response_anon)
+
+        # Verify anonymous user profile cache
+        anonymous_user_cache_key = f"{USER_PROFILE_PREFIX}user_a-public-"
+        anonymous_user_cache = cache.get(anonymous_user_cache_key)
+        self.assertIsNotNone(anonymous_user_cache)
+        self.assertEqual(anonymous_user_cache["first_name"], "UserA")
+        self.assertTrue("email" not in anonymous_user_cache)
+
+        # User B retrieves their own profile
+        request_b_own = self.factory.get("/", **user_b_extra)
+        response_b_own = retrieve_view(request_b_own, user="user_b")
+        self.assertEqual(response_b_own.status_code, 200)
+        self.assertEqual(response_b_own.data["first_name"], "UserB")
+        self.assertEqual(response_b_own.data["email"], user_b_data["email"])
+
+        # Verify user B's own profile cache
+        cache_key_b_own = f"{USER_PROFILE_PREFIX}user_b{user_b.username}"
+        cached_data_b_own = cache.get(cache_key_b_own)
+        self.assertIsNotNone(cached_data_b_own)
+        self.assertEqual(cached_data_b_own["first_name"], "UserB")
+        self.assertEqual(cached_data_b_own["email"], user_b_data["email"])
+
+        # anonymous user retrieves user B's profile
+        request_anon = self.factory.get("/")
+        response_anon = retrieve_view(request_anon, user="user_b")
+        self.assertEqual(response_anon.status_code, 200)
+        self.assertEqual(response_anon.data["first_name"], "UserB")
+        self.assertTrue("email" not in response_anon)
+
+        # Verify anonymous user profile cache
+        anonymous_user_cache_key = f"{USER_PROFILE_PREFIX}user_b-public-"
+        anonymous_user_cache = cache.get(anonymous_user_cache_key)
+        self.assertIsNotNone(anonymous_user_cache)
+        self.assertEqual(anonymous_user_cache["first_name"], "UserB")
+        self.assertTrue("email" not in anonymous_user_cache)

@@ -8,7 +8,6 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
-from django.core.cache import cache
 from django.core.validators import ValidationError
 from django.db.models import Count
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
@@ -45,6 +44,9 @@ from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
+    safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
     safe_delete,
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
@@ -107,7 +109,7 @@ def set_is_email_verified(profile, is_email_verified):
 def check_user_lockout(request):
     """Returns the error object with lockout error message."""
     username = request.user.username
-    lockout = cache.get(f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}")
+    lockout = safe_cache_get(f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}")
     if lockout:
         time_locked_out = datetime.datetime.now() - datetime.datetime.strptime(
             lockout, "%Y-%m-%dT%H:%M:%S"
@@ -128,13 +130,13 @@ def change_password_attempts(request):
     of time"""
     username = request.user.username
     password_attempts = f"{CHANGE_PASSWORD_ATTEMPTS}{username}"
-    attempts = cache.get(password_attempts)
+    attempts = safe_cache_get(password_attempts)
 
     if attempts:
-        cache.incr(password_attempts)
-        attempts = cache.get(password_attempts)
+        safe_cache_incr(password_attempts)
+        attempts = safe_cache_get(password_attempts)
         if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
-            cache.set(
+            safe_cache_set(
                 f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
                 datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                 LOCKOUT_TIME,
@@ -144,7 +146,7 @@ def change_password_attempts(request):
 
         return attempts
 
-    cache.set(password_attempts, 1)
+    safe_cache_set(password_attempts, 1)
 
     return 1
 
@@ -209,32 +211,32 @@ class UserProfileViewSet(
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
         username = kwargs.get("user")
-        response = super().update(request, *args, **kwargs)
-        cache.set(f"{USER_PROFILE_PREFIX}{username}", response.data)
-        return response
+        request_username = request.user.username if request.user else ""
+        safe_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+        return super().update(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         """Get user profile from cache or db"""
         username = kwargs.get("user")
-        cached_user = cache.get(f"{USER_PROFILE_PREFIX}{username}")
+        request_username = request.user.username or "-public-"
+        cached_user = safe_cache_get(
+            f"{USER_PROFILE_PREFIX}{username}{request_username}"
+        )
         if cached_user:
             return Response(cached_user)
         response = super().retrieve(request, *args, **kwargs)
+        safe_cache_set(
+            f"{USER_PROFILE_PREFIX}{username}{request_username}", response.data
+        )
         return response
 
     def create(self, request, *args, **kwargs):
         """Create and cache user profile"""
         disable_user_creation = getattr(settings, "DISABLE_CREATING_USERS", False)
         if disable_user_creation:
-            raise PermissionDenied(
-                _("You do not have permission to create user.")
-            )
+            raise PermissionDenied(_("You do not have permission to create user."))
 
-        response = super().create(request, *args, **kwargs)
-        profile = response.data
-        user_name = profile.get("username")
-        cache.set(f"{USER_PROFILE_PREFIX}{user_name}", profile)
-        return response
+        return super().create(request, *args, **kwargs)
 
     @action(methods=["POST"], detail=True)
     def change_password(self, request, *args, **kwargs):  # noqa
@@ -267,8 +269,7 @@ class UserProfileViewSet(
                 limits_remaining = MAX_CHANGE_PASSWORD_ATTEMPTS - response
                 response = {
                     "error": _(
-                        "Invalid password. "
-                        f"You have {limits_remaining} attempts left."
+                        f"Invalid password. You have {limits_remaining} attempts left."
                     )
                 }
             return Response(data=response, status=status.HTTP_400_BAD_REQUEST)
