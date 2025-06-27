@@ -46,6 +46,8 @@ from onadata.libs.utils.cache_tools import (
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
     safe_delete,
+    safe_cache_set,
+    safe_cache_get,
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
@@ -107,7 +109,7 @@ def set_is_email_verified(profile, is_email_verified):
 def check_user_lockout(request):
     """Returns the error object with lockout error message."""
     username = request.user.username
-    lockout = cache.get(f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}")
+    lockout = safe_cache_get(f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}")
     if lockout:
         time_locked_out = datetime.datetime.now() - datetime.datetime.strptime(
             lockout, "%Y-%m-%dT%H:%M:%S"
@@ -128,13 +130,13 @@ def change_password_attempts(request):
     of time"""
     username = request.user.username
     password_attempts = f"{CHANGE_PASSWORD_ATTEMPTS}{username}"
-    attempts = cache.get(password_attempts)
+    attempts = safe_cache_get(password_attempts)
 
     if attempts:
         cache.incr(password_attempts)
-        attempts = cache.get(password_attempts)
+        attempts = safe_cache_get(password_attempts)
         if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
-            cache.set(
+            safe_cache_set(
                 f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
                 datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                 LOCKOUT_TIME,
@@ -144,7 +146,7 @@ def change_password_attempts(request):
 
         return attempts
 
-    cache.set(password_attempts, 1)
+    safe_cache_set(password_attempts, 1)
 
     return 1
 
@@ -210,18 +212,22 @@ class UserProfileViewSet(
         """Update user in cache and db"""
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
-        cache.delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+        safe_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
         return super().update(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         """Get user profile from cache or db"""
         username = kwargs.get("user")
         request_username = request.user.username or "-public-"
-        cached_user = cache.get(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+        cached_user = safe_cache_get(
+            f"{USER_PROFILE_PREFIX}{username}{request_username}"
+        )
         if cached_user:
             return Response(cached_user)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(f"{USER_PROFILE_PREFIX}{username}{request_username}", response.data)
+        safe_cache_set(
+            f"{USER_PROFILE_PREFIX}{username}{request_username}", response.data
+        )
         return response
 
     def create(self, request, *args, **kwargs):
