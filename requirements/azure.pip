@@ -34,7 +34,7 @@ isodate==0.6.1
     # via azure-storage-blob
 pycparser==2.22
     # via cffi
-requests==2.32.3
+requests==2.32.4
     # via azure-core
 six==1.16.0
     # via
