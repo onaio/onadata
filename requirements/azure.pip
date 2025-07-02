@@ -47,5 +47,5 @@ typing-extensions==4.12.2
     #   asgiref
     #   azure-core
     #   azure-storage-blob
-urllib3==2.2.2
+urllib3==2.5.0
     # via requests

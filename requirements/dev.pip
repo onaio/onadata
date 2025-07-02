@@ -532,7 +532,7 @@ unicodecsv==0.14.1
     #   datapackage
     #   onadata
     #   tableschema
-urllib3==2.2.2
+urllib3==2.5.0
     # via
     #   botocore
     #   requests
