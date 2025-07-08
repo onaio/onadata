@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.0.5 (2025-05-19)
+-------------------
+- Refactor: Add module for entities utility functions
+  `PR #2839 <https://github.com/onaio/onadata/pull/2839>`
+  [@kelvin-muchiri]
+- Fix inconsistent XForm num_of_submissions
+  `PR #2848 <https://github.com/onaio/onadata/pull/2848>`
+  [@kelvin-muchiri]
+- Fix cache poisoning vulnerability in UserProfileViewSet
+  `PR #2852 <https://github.com/onaio/onadata/pull/2852>`
+  [@FrankApiyo]
+- chore: Update trivy image ref
+  `PR #2816 <https://github.com/onaio/onadata/pull/2816>`
+  [@FrankApiyo]
+
 v5.0.4 (2025-05-19)
 -------------------
 - PyXForm question may have choices as None 
