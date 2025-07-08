@@ -175,8 +175,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: |
-            ${{ env.docker_repo }}
+          image-ref: ${{ env.docker_repo }}
           format: 'sarif'
           output: 'trivy-results.sarif'
 
@@ -189,8 +188,7 @@ jobs:
       - name: Run Trivy vulnerability scanner for Slack
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: |
-            ${{ env.docker_repo }}
+          image-ref: ${{ env.docker_repo }}
           format: json
           output: 'trivy-results.json'
 
