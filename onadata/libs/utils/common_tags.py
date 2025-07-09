@@ -49,6 +49,7 @@ BAMBOO_DATASET_ID = "_bamboo_dataset_id"
 SUBMITTED_BY = "_submitted_by"
 VERSION = "_version"
 DURATION = "_duration"
+DECRYPTION_ERROR = "_decryption_error"
 
 # fields to deal with media attachments and keep track of how many
 # have been received

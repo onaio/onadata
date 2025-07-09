@@ -844,6 +844,7 @@ class DecryptInstanceTestCase(TestBase):
 
     def setUp(self):
         super().setUp()
+
         self.instance_version = "202502131337"
         self.instance_uuid = "uuid:a10ead67-7415-47da-b823-0947ab8a8ef0"
         self.form_id = "test_valigetta"
@@ -999,6 +1000,9 @@ class DecryptInstanceTestCase(TestBase):
             sha256(self.dec_submission_file.getvalue()).hexdigest(),
         )
         self.assertFalse(self.instance.is_encrypted)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
 
         # Decrypted media files are saved
         att_qs = Attachment.objects.filter(
@@ -1081,7 +1085,6 @@ class DecryptInstanceTestCase(TestBase):
         self.kms_key.save()
 
         old_xml = self.instance.xml
-        old_date_modified = self.instance.date_modified
 
         with self.assertRaises(DecryptionError) as exc_info:
             decrypt_instance(self.instance)
@@ -1090,9 +1093,16 @@ class DecryptInstanceTestCase(TestBase):
 
         self.instance.refresh_from_db()
 
-        # No update was made to Instance
+        # No change in XML
         self.assertEqual(self.instance.xml, old_xml)
-        self.assertEqual(self.instance.date_modified, old_date_modified)
+        # Decryption status is updated to failed
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"),
+            "KMSKey is disabled.",
+        )
 
     def test_encryption_key_not_found(self):
         """Key that encrypted the Instance version not found."""
@@ -1101,7 +1111,6 @@ class DecryptInstanceTestCase(TestBase):
         xform_key.save()
 
         old_xml = self.instance.xml
-        old_date_modified = self.instance.date_modified
 
         with self.assertRaises(DecryptionError) as exc_info:
             decrypt_instance(self.instance)
@@ -1112,9 +1121,16 @@ class DecryptInstanceTestCase(TestBase):
 
         self.instance.refresh_from_db()
 
-        # No update was made to Instance
+        # No change in XML
         self.assertEqual(self.instance.xml, old_xml)
-        self.assertEqual(self.instance.date_modified, old_date_modified)
+        # Decryption status is updated to failed
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"),
+            "KMSKey used for encryption not found.",
+        )
 
     @patch("onadata.libs.kms.tools.decrypt_submission")
     def test_decryption_failure(self, mock_decrypt):
@@ -1122,7 +1138,6 @@ class DecryptInstanceTestCase(TestBase):
         mock_decrypt.side_effect = InvalidSubmissionException("Invalid signature.")
 
         old_xml = self.instance.xml
-        old_date_modified = self.instance.date_modified
 
         with self.assertRaises(DecryptionError) as exc_info:
             decrypt_instance(self.instance)
@@ -1131,9 +1146,16 @@ class DecryptInstanceTestCase(TestBase):
 
         self.instance.refresh_from_db()
 
-        # No update was made to Instance
+        # No change in XML
         self.assertEqual(self.instance.xml, old_xml)
-        self.assertEqual(self.instance.date_modified, old_date_modified)
+        # Decryption status is updated to failed
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"),
+            "Invalid signature.",
+        )
 
 
 class DisableXFormEncryptionTestCase(TestBase):
