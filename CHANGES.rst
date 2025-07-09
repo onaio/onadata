@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v5.0.5 (2025-05-19)
+v5.1.0 (2025-07-09)
+-------------------
+- Decryption of submission via managed keys
+ `PR #2839 <https://github.com/onaio/onadata/pull/2789>`
+  [@kelvin-muchiri, @FrankApiyo]
+
+v5.0.5 (2025-07-08)
 -------------------
 - Refactor: Add module for entities utility functions
   `PR #2839 <https://github.com/onaio/onadata/pull/2839>`
@@ -20,25 +26,25 @@ v5.0.5 (2025-05-19)
 
 v5.0.4 (2025-05-19)
 -------------------
-- PyXForm question may have choices as None 
+- PyXForm question may have choices as None
   `PR #2798 <https://github.com/onaio/onadata/pull/2798>`
   [@ukanga]
-- feat(perf): Check submission duplicate using only instanceID uuid 
+- feat(perf): Check submission duplicate using only instanceID uuid
   `PR #2806 <https://github.com/onaio/onadata/pull/2806>`
-  [@FrankApiyo] 
-- Optimize export register reconstruction 
+  [@FrankApiyo]
+- Optimize export register reconstruction
   `PR #2790 <https://github.com/onaio/onadata/pull/2790>`
-  [@kelvin-muchiri] 
+  [@kelvin-muchiri]
 - fix: Use is_active and not active when querying User model
   `PR #2809 <https://github.com/onaio/onadata/pull/2809>`
-  [@FrankApiyo] 
-- Fix 404 eror on project submission endpoint 
+  [@FrankApiyo]
+- Fix 404 eror on project submission endpoint
   `PR #2824 <https://github.com/onaio/onadata/pull/2824>`
   [@FrankApiyo]
 - Resolve select one questions within repeat sections split in CSV export
   `PR #2826 <https://github.com/onaio/onadata/pull/2826>`
   [@kelvin-muchiri, @ukanga]
-- Update to python 3.10.17 
+- Update to python 3.10.17
   `PR #2829 <https://github.com/onaio/onadata/pull/2829>`
   [@ukanga]
 
@@ -51,19 +57,19 @@ v5.0.3 (2025-04-15)
 
 v5.0.2 (2025-04-09)
 -------------------
-- Update ona-oidc to v2.0.1 
+- Update ona-oidc to v2.0.1
   `PR #2794 <https://github.com/onaio/onadata/pull/2794>`
   [@ukanga]
 
 v5.0.1 (2025-04-09)
 -------------------
-- Pin Django version to < 5.2 
+- Pin Django version to < 5.2
   `PR #2777 <https://github.com/onaio/onadata/pull/2793>`
   [@ukanga]
 
 v5.0.0 (2025-04-08)
 -------------------
-- Django upgrade to version 5.x.x * 
+- Django upgrade to version 5.x.x *
   `PR #2777 <https://github.com/onaio/onadata/pull/2777>`
   [@ukanga]
 
