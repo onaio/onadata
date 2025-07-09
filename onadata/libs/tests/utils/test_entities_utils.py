@@ -21,10 +21,9 @@ from onadata.apps.logger.models import (
 )
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.entities_utils import (
+    adjust_elist_num_entities,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
-    dec_elist_num_entities,
-    inc_elist_num_entities,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -187,7 +186,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Database counter is incremented if cache is locked"""
         cache.set(self.lock_key, "true")
         cache.set(self.counter_key, 3)
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 11)
@@ -204,7 +203,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertIsNone(cache.get(self.ids_key))
         self.assertIsNone(cache.get(self.created_at_key))
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
 
         self.assertEqual(cache.get(self.counter_key), 1)
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk})
@@ -214,7 +213,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertEqual(self.entity_list.num_entities, 10)
         # New EntityList
         vaccine = EntityList.objects.create(name="vaccine", project=self.project)
-        inc_elist_num_entities(vaccine.pk)
+        adjust_elist_num_entities(vaccine, delta=1)
 
         self.assertEqual(cache.get(f"{self.counter_key_prefix}{vaccine.pk}"), 1)
         self.assertEqual(cache.get(self.ids_key), {self.entity_list.pk, vaccine.pk})
@@ -223,14 +222,12 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter incremented if cache inacessible
         with patch(
-            "onadata.libs.utils.entities_utils._inc_elist_num_entities_cache"
+            "onadata.libs.utils.model_tools._increment_cached_counter"
         ) as mock_inc:
-            with patch(
-                "onadata.libs.utils.entities_utils.logger.exception"
-            ) as mock_exc:
+            with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_inc.side_effect = ConnectionError
                 cache.set(self.counter_key, 3)
-                inc_elist_num_entities(self.entity_list.pk)
+                adjust_elist_num_entities(self.entity_list, delta=1)
                 self.entity_list.refresh_from_db()
 
                 self.assertEqual(cache.get(self.counter_key), 3)
@@ -247,14 +244,15 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """
         mocked_now = datetime(2024, 7, 26, 12, 45, 0, tzinfo=dtz.utc)
         mock_now.return_value = mocked_now
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
 
         # Timeout should be `None`
         self.assertTrue(
-            call(self.counter_key, 1, None) in mock_cache_add.call_args_list
+            call(self.counter_key, 1, timeout=None) in mock_cache_add.call_args_list
         )
         self.assertTrue(
-            call(self.created_at_key, mocked_now, None) in mock_cache_add.call_args_list
+            call(self.created_at_key, mocked_now, timeout=None)
+            in mock_cache_add.call_args_list
         )
         mock_cache_set.assert_called_once_with(
             self.ids_key, {self.entity_list.pk}, None
@@ -265,12 +263,12 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         now = timezone.now()
         cache.set(self.created_at_key, now)
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
         # Cache value is not overridden
         self.assertEqual(cache.get(self.created_at_key), now)
 
-    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.entities_utils.report_exception")
+    @override_settings(COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
+    @patch("onadata.libs.utils.model_tools.report_exception")
     def test_failover(self, mock_report_exc):
         """Failover is executed if commit timeout threshold exceeded"""
         cache_created_at = timezone.now() - timedelta(minutes=10)
@@ -278,7 +276,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 14)
@@ -294,8 +292,8 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         mock_report_exc.assert_called_once_with(subject, msg)
         self.assertEqual(cache.get("elist-failover-report-sent"), "sent")
 
-    @override_settings(ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
-    @patch("onadata.libs.utils.entities_utils.report_exception")
+    @override_settings(COUNTER_COMMIT_FAILOVER_TIMEOUT=3)
+    @patch("onadata.libs.utils.model_tools.report_exception")
     def test_failover_report_cache_hit(self, mock_report_exc):
         """Report exception not sent if cache `elist-failover-report-sent` set"""
         cache.set("elist-failover-report-sent", "sent")
@@ -304,7 +302,7 @@ class IncEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         cache.set(self.created_at_key, cache_created_at)
         cache.set(self.ids_key, {self.entity_list.pk})
 
-        inc_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=1)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 14)
@@ -322,7 +320,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(self.lock_key, "true")
         cache.set(counter_key, 3)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=-1)
         self.entity_list.refresh_from_db()
 
         self.assertEqual(self.entity_list.num_entities, 9)
@@ -333,7 +331,7 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         """Cache counter is decremented if cache is unlocked"""
         counter_key = f"{self.counter_key_prefix}{self.entity_list.pk}"
         cache.set(counter_key, 3)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=-1)
 
         self.assertEqual(cache.get(counter_key), 2)
         self.entity_list.refresh_from_db()
@@ -342,20 +340,18 @@ class DecEListNumEntitiesTestCase(EntityListNumEntitiesBase):
 
         # Database counter is decremented if cache missing
         cache.delete(counter_key)
-        dec_elist_num_entities(self.entity_list.pk)
+        adjust_elist_num_entities(self.entity_list, delta=-1)
         self.entity_list.refresh_from_db()
         self.assertEqual(self.entity_list.num_entities, 9)
 
         # Database counter is decremented if cache inaccesible
         with patch(
-            "onadata.libs.utils.entities_utils._dec_elist_num_entities_cache"
+            "onadata.libs.utils.model_tools._decrement_cached_counter"
         ) as mock_dec:
-            with patch(
-                "onadata.libs.utils.entities_utils.logger.exception"
-            ) as mock_exc:
+            with patch("onadata.libs.utils.model_tools.logger.exception") as mock_exc:
                 mock_dec.side_effect = ConnectionError
                 cache.set(counter_key, 3)
-                dec_elist_num_entities(self.entity_list.pk)
+                adjust_elist_num_entities(self.entity_list, delta=-1)
                 self.entity_list.refresh_from_db()
 
                 self.assertEqual(cache.get(counter_key), 3)

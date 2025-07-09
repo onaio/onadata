@@ -2,7 +2,9 @@
 """
 signal module.
 """
+
 from django.conf import settings
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -11,7 +13,6 @@ from django.utils import timezone
 
 from onadata.libs.utils.email import send_generic_email
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.apps.logger.models import ProjectInvitation
 
 User = get_user_model()
 
@@ -71,7 +72,12 @@ def send_activation_email(sender, instance=None, **kwargs):
 @receiver(post_save, sender=User, dispatch_uid="accept_project_invitation")
 def accept_project_invitation(sender, instance=None, created=False, **kwargs):
     """Accept project invitations that match user email"""
+    # Avoid cylic dependency
+    # pylint: disable=import-outside-toplevel
+
     if created:
+        # pylint: disable=invalid-name
+        ProjectInvitation = apps.get_model("logger", "ProjectInvitation")  # noqa: N806
         invitation_qs = ProjectInvitation.objects.filter(
             email=instance.email,
             status=ProjectInvitation.Status.PENDING,

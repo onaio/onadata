@@ -274,3 +274,39 @@ Response
 ::
 
       []
+
+Rotate a KMS key manually
+-------------------------
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/rotate-key</pre>
+
+Example
+^^^^^^^
+
+::
+
+      curl -X POST https://api.ona.io/api/v1/orgs/modilabs/rotate-key \
+      -d '{
+            "id": "67",
+            "rotation_reason": "Automatic rotation failed"
+         }'
+
+
+Response
+^^^^^^^^
+
+::
+
+      {
+          "id": "68",
+          "description": "Key-2025-05-09",
+          "date_created": "2025-05-09T00:00:00Z",
+          "is_active": true,
+          "is_expired": false,
+          "expiry_date": "2026-05-09T00:00:00Z",
+          "grace_end_date": "2026-06-09T00:00:00Z",
+          "is_automatic": false,
+
+      }

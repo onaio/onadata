@@ -16,7 +16,6 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Q
 from django.test import override_settings
-from django.utils import timezone
 
 import dateutil.parser
 import requests
@@ -52,6 +51,7 @@ from onadata.libs.permissions import (
     DataEntryOnlyRole,
     DataEntryRole,
     EditorMinorRole,
+    EditorNoDownload,
     EditorRole,
     ManagerRole,
     OwnerRole,
@@ -62,6 +62,7 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -836,13 +837,33 @@ class TestProjectViewSet(TestAbstractViewSet):
             Q(object_id=self.xform.pk),
             Q(data_type="enketo_url")
             | Q(data_type="enketo_preview_url")  # noqa W503
-            | Q(data_type="enketo_single_submit_url"),  # noqa W503
+            | Q(data_type="enketo_single_submit_url")  # noqa W503
+            | Q(data_type="xform_meta_perms"),  # noqa W503
         )
         url = resultset.get(data_type="enketo_url")
         preview_url = resultset.get(data_type="enketo_preview_url")
         single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+        meta_perms = resultset.get(data_type="xform_meta_perms")
         form_metadata = sorted(
             [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -900,7 +921,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # test metadata content separately
         response_metadata = sorted(
-            [dict(item) for item in response.data[0].pop("metadata")],
+            [OrderedDict(item) for item in response.data[0].pop("metadata")],
             key=itemgetter("id"),
         )
 
@@ -1285,7 +1306,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         alice_profile = self._create_user_profile(alice_data)
         self._login_user_and_profile(alice_data)
-        alice_url = f'http://testserver/api/v1/users/{alice_data["username"]}'
+        alice_url = f"http://testserver/api/v1/users/{alice_data['username']}"
         self._project_create(
             {
                 "name": "test project",
@@ -2035,6 +2056,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_project_all_users_can_share_remove_themselves(self):
         self._publish_xls_form_to_project()
+
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(alice_data)
 
@@ -2636,6 +2658,44 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(self.user, self.project))
             self.assertFalse(role_class.user_has_role(self.user, self.xform))
 
+    def test_default_meta_permissions_set_for_newly_form(self):
+        # 1. create a project and share it with user
+        self._project_create()
+        data = {"username": "alice", "role": DataEntryRole.name}
+        request = self.factory.post("/", data=data, **self.extra)
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._create_user_profile(alice_data)
+
+        view = ProjectViewSet.as_view({"post": "share"})
+        response = view(request, pk=self.project.pk)
+
+        # 2. upload a form to the project
+        with self.captureOnCommitCallbacks(execute=True):
+            self._publish_xls_form_to_project()
+            data_value = "editor-minor|dataentry-minor|readonly-no-download"
+            metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+            serializer = MetaDataSerializer(
+                metadata,
+                data={
+                    "data_value": data_value,
+                    "data_type": "xform_meta_perms",
+                    "xform": self.xform.id,
+                },
+            )
+
+            if serializer.is_valid():
+                serializer.save()
+
+        # 3. check that default metapermissions are set
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        formid = self.xform.pk
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+        alice = list(filter(lambda u: u["user"] == "alice", response.data["users"]))[0]
+        self.assertEqual("dataentry-minor", alice["role"])
+
     def test_project_share_xform_meta_perms(self):
         # create project and publish form to project
         self._publish_xls_form_to_project()
@@ -2643,7 +2703,19 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         projectid = self.project.pk
 
-        data_value = "editor-minor|dataentry"
+        data_value = "editor-minor|dataentry|readonly-no-download"
+        metadata = self.xform.metadata_set.get(data_type="xform_meta_perms")
+        serializer = MetaDataSerializer(
+            metadata,
+            data={
+                "data_value": data_value,
+                "data_type": "xform_meta_perms",
+                "xform": self.xform.id,
+            },
+        )
+
+        if serializer.is_valid():
+            serializer.save()
 
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
@@ -2660,7 +2732,11 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertTrue(role_class.user_has_role(alice_profile.user, self.project))
 
-            if role_class in [EditorRole, EditorMinorRole]:
+            if role_class in [
+                EditorRole,
+                EditorMinorRole,
+                EditorNoDownload,
+            ]:
                 self.assertFalse(
                     EditorRole.user_has_role(alice_profile.user, self.xform)
                 )
@@ -2673,10 +2749,22 @@ class TestProjectViewSet(TestAbstractViewSet):
                     DataEntryRole.user_has_role(alice_profile.user, self.xform)
                 )
 
+            elif role_class in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
+                self.assertTrue(
+                    ReadOnlyRoleNoDownload.user_has_role(alice_profile.user, self.xform)
+                )
+
             else:
                 self.assertTrue(
                     role_class.user_has_role(alice_profile.user, self.xform)
                 )
+
+            # remove user from project
+            data = {"username": "alice", "remove": "true", "role": role_class.name}
+            request = self.factory.post("/", data=data, **self.extra)
+            view = ProjectViewSet.as_view({"post": "share"})
+            response = view(request, pk=projectid)
+            self.assertEqual(response.status_code, 204)
 
     @patch("onadata.apps.api.viewsets.project_viewset.send_mail")
     def test_project_share_atomicity(self, mock_send_mail):

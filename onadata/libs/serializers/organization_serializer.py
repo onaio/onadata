@@ -4,6 +4,7 @@ Organization Serializer
 """
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext as _
 
@@ -16,13 +17,42 @@ from onadata.apps.api.tools import (
     get_organization_members,
     get_organization_owners,
 )
+from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.exceptions import EncryptionError
+from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+
+class KMSKeyInlineSerializer(serializers.ModelSerializer):
+    """Serializer for KMSKey model."""
+
+    is_automatic = serializers.SerializerMethodField()
+
+    def get_is_automatic(self, obj):
+        """Whether the key was created automatically."""
+        if obj.created_by is None:
+            return True
+
+        return False
+
+    class Meta:
+        model = KMSKey
+        fields = (
+            "id",
+            "description",
+            "date_created",
+            "is_active",
+            "is_expired",
+            "expiry_date",
+            "grace_end_date",
+            "is_automatic",
+        )
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -156,3 +186,57 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = _create_user_list(owners)
 
         return owners_list + members_list
+
+
+class AdminOrganizationSerializer(OrganizationSerializer):
+    """Serializer for organization profile with admin permissions."""
+
+    encryption_keys = serializers.SerializerMethodField()
+
+    def get_encryption_keys(self, obj):
+        """Get the encryption keys for organization."""
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        kms_key_qs = KMSKey.objects.filter(
+            content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
+        ).order_by("-date_created")
+
+        return KMSKeyInlineSerializer(kms_key_qs, many=True).data
+
+
+# pylint: disable=abstract-method
+class RotateOrganizationKeySerializer(serializers.Serializer):
+    """Serializer for manual key rotation."""
+
+    user = serializers.HyperlinkedRelatedField(
+        view_name="user-detail", lookup_field="username", read_only=True
+    )
+    id = serializers.IntegerField()
+    rotation_reason = serializers.CharField(required=False)
+
+    def validate_id(self, value):
+        try:
+            # pylint: disable=attribute-defined-outside-init
+            self.kms_key = KMSKey.objects.get(id=value)
+
+        except KMSKey.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                _("Key does not exist."), code="does_not_exist"
+            ) from exc
+
+        if self.kms_key.disabled_at:
+            raise serializers.ValidationError(_("Key is inactive."))
+
+        if self.kms_key.rotated_at:
+            raise serializers.ValidationError(_("Key already rotated."))
+
+        return value
+
+    def save(self, **kwargs):
+        try:
+            return rotate_key(
+                self.kms_key,
+                rotated_by=self.context["request"].user,
+                rotation_reason=self.validated_data.get("rotation_reason"),
+            )
+        except EncryptionError as exc:
+            raise serializers.ValidationError({"id": f"{exc}"})

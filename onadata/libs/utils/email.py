@@ -2,14 +2,15 @@
 """
 Email utility functions.
 """
+
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives, get_connection, send_mail
 from django.http import HttpRequest
-from django.utils.html import strip_tags
 from django.template.loader import render_to_string
-from six.moves.urllib.parse import urlencode
+from django.utils.html import strip_tags
+
 from rest_framework.reverse import reverse
-from onadata.apps.logger.models import ProjectInvitation
+from six.moves.urllib.parse import urlencode
 
 
 def get_verification_url(redirect_url, request, verification_key):
@@ -115,7 +116,7 @@ class ProjectInvitationEmail:
     A class to send a project invitation email
     """
 
-    def __init__(self, invitation: ProjectInvitation, url: str) -> None:
+    def __init__(self, invitation, url: str) -> None:
         super().__init__()
 
         self.invitation = invitation
@@ -144,7 +145,7 @@ class ProjectInvitationEmail:
 
         return data
 
-    def get_email_data(self) -> dict[str, str]:
+    def get_email_data(self) -> tuple[str, str]:
         """Get the email data to be sent"""
         template_data = self.get_template_data()
         custom_subject: str | None = getattr(
@@ -171,10 +172,7 @@ class ProjectInvitationEmail:
                 template_data["body"],
             )
 
-        return (
-            subject,
-            message,
-        )
+        return (subject, message)
 
     def send(self) -> None:
         """Send project invitation email"""
@@ -186,3 +184,31 @@ class ProjectInvitationEmail:
             (self.invitation.email,),
             html_message=message,
         )
+
+
+def send_mass_mail(
+    datatuple, fail_silently=False, user=None, password=None, connection=None
+):
+    """
+    Custom method to send mass mail with support for HTML message
+
+    The default from Django, django.core.mail.send_mass_mail does not support
+    HTML message
+
+    If auth_user and auth_password are set, they're used to log in.
+    If auth_user is None, the EMAIL_HOST_USER setting is used.
+    If auth_password is None, the EMAIL_HOST_PASSWORD setting is used.
+    """
+    connection = connection or get_connection(
+        username=user, password=password, fail_silently=fail_silently
+    )
+    messages = []
+    for subject, text, html, from_email, recipient in datatuple:
+        message = EmailMultiAlternatives(subject, text, from_email, recipient)
+        message.attach_alternative(html, "text/html")
+        messages.append(message)
+    return connection.send_messages(messages)
+
+
+def friendly_date(date):
+    return f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'

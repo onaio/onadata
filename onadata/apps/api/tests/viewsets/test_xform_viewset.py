@@ -62,21 +62,26 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.viewer.models import Export
+from onadata.libs.exceptions import EncryptionError
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES_ORDERED,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
     EditorMinorRole,
+    EditorNoDownload,
     EditorRole,
     ManagerRole,
     OwnerRole,
     ReadOnlyRole,
+    ReadOnlyRoleNoDownload,
 )
 from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
+from onadata.libs.serializers.metadata_serializer import create_xform_meta_permissions
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
@@ -90,6 +95,7 @@ from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
 )
+from onadata.libs.utils.xform_utils import get_xform_users
 
 ROLES = [ReadOnlyRole, DataEntryRole, EditorRole, ManagerRole, OwnerRole]
 
@@ -494,7 +500,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 response = self.view(request)
                 xform = self.user.xforms.all()[0]
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                self.assertEqual(meta_count + 5, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value="itemsets.csv"
                 )
@@ -579,9 +585,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
             response = self.view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
-            error_msg = (
-                "Title shouldn't have any invalid xml characters " "('>' '&' '<')"
-            )
+            error_msg = "Title shouldn't have any invalid xml characters ('>' '&' '<')"
             self.assertEqual(response.data.get("text"), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
@@ -665,7 +669,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 response = self.view(request)
                 xform = self.user.xforms.all()[0]
                 self.assertEqual(response.status_code, 201)
-                self.assertEqual(meta_count + 4, MetaData.objects.count())
+                self.assertEqual(meta_count + 5, MetaData.objects.count())
                 metadata = MetaData.objects.get(
                     object_id=xform.id, data_value="itemsets.csv"
                 )
@@ -1014,12 +1018,32 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 Q(object_id=self.xform.pk),
                 Q(data_type="enketo_url")
                 | Q(data_type="enketo_preview_url")
-                | Q(data_type="enketo_single_submit_url"),
+                | Q(data_type="enketo_single_submit_url")
+                | Q(data_type="xform_meta_perms"),
             )
             url = resultset.get(data_type="enketo_url")
             preview_url = resultset.get(data_type="enketo_preview_url")
             single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+            meta_perms = resultset.get(data_type="xform_meta_perms")
             self.form_data["metadata"] = [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -1260,13 +1284,33 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 Q(object_id=self.xform.pk),
                 Q(data_type="enketo_url")
                 | Q(data_type="enketo_preview_url")
-                | Q(data_type="enketo_single_submit_url"),
+                | Q(data_type="enketo_single_submit_url")
+                | Q(data_type="xform_meta_perms"),
             )
             url = resultset.get(data_type="enketo_url")
             preview_url = resultset.get(data_type="enketo_preview_url")
             single_submit_url = resultset.get(data_type="enketo_single_submit_url")
+            meta_perms = resultset.get(data_type="xform_meta_perms")
 
             self.form_data["metadata"] = [
+                OrderedDict(
+                    [
+                        ("id", meta_perms.pk),
+                        ("xform", self.xform.pk),
+                        (
+                            "data_value",
+                            "editor|dataentry|readonly",
+                        ),
+                        ("data_type", "xform_meta_perms"),
+                        ("data_file", None),
+                        ("extra_data", {}),
+                        ("data_file_type", None),
+                        ("media_url", None),
+                        ("file_hash", None),
+                        ("url", f"http://testserver/api/v1/metadata/{meta_perms.pk}"),
+                        ("date_created", meta_perms.date_created),
+                    ]
+                ),
                 OrderedDict(
                     [
                         ("id", url.pk),
@@ -1984,7 +2028,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.patch("/", data=data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data["public_key"], clean_public_key)
+            self.assertEqual(response.data["public_key"], clean_public_key.strip())
             self.assertTrue(response.data["encrypted"])
 
     def test_partial_update_anon(self):
@@ -2312,6 +2356,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "public": False,
             "public_data": False,
             "public_key": "",
+            "enable_kms_encryption": False,
             "require_auth": False,
             "description": "",
             "downloadable": False,
@@ -2325,7 +2370,9 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             "has_hxl_support": False,
             "hash": "",
             "is_instance_json_regenerated": False,
+            "num_of_decrypted_submissions": None,
         }
+
         self.assertEqual(data, XFormSerializer(None).data)
 
     def test_external_export(self):
@@ -2612,7 +2659,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertIn("info", response.data)
             self.assertEqual(
                 response.data.get("info"),
-                "Additional column(s) excluded from the upload:" " '_additional'.",
+                "Additional column(s) excluded from the upload: '_additional'.",
             )
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -2687,9 +2734,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 self.assertEqual(response.data.get("progress"), 10)
                 self.assertEqual(response.data.get("total"), 100)
 
-    @patch(
-        ("onadata.apps.api.viewsets.xform_viewset." "get_async_csv_submission_status")
-    )
+    @patch(("onadata.apps.api.viewsets.xform_viewset.get_async_csv_submission_status"))
     def test_csv_import_status_check_invalid_returned_value(
         self, mock_submission_status
     ):
@@ -2754,7 +2799,16 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self._publish_xls_form_to_project()
         alice_data = {"username": "alice", "email": "alice@localhost.com"}
         self._login_user_and_profile(extra_post_data=alice_data)
-        ReadOnlyRole.add(self.user, self.xform.project)
+
+        # assign data entry role
+        data = {
+            "project": self.xform.project,
+            "username": "alice",
+            "role": "dataentry",
+        }
+
+        share_project = ShareProject(**data)
+        share_project.save()
 
         title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
@@ -2787,7 +2841,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 403)
 
         # assign manager role
-        ManagerRole.add(self.user, self.xform.project)
+        data = {
+            "project": self.xform.project,
+            "username": self.user.username,
+            "role": "manager",
+        }
+
+        share_project = ShareProject(**data)
+        share_project.save()
 
         with open(path, "rb") as xls_file:
             post_data = {"xls_file": xls_file}
@@ -3522,8 +3583,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
     ):
         error_message = {
             "error": (
-                "Service temporarily unavailable, please try to "
-                "publish the form again"
+                "Service temporarily unavailable, please try to publish the form again"
             )
         }
         mock_get_status.return_value = error_message
@@ -4901,6 +4961,68 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertIn("form_versions", response.data)
         self.assertEqual(response.data["form_versions"][0].get("total"), 3)
 
+    def test_readonly_no_download_role_not_changed_by_metapermissions(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {"username": "alice", "email": "alice@localhost.com"}
+            frankline_data = {
+                "username": "frankline",
+                "email": "frankline@localhost.com",
+            }
+            alice_profile = self._create_user_profile(alice_data)
+            frankline_profile = self._create_user_profile(frankline_data)
+
+            view = ProjectViewSet.as_view({"post": "share"})
+            alice_perms = {"username": "alice", "role": "readonly-no-download"}
+            frankline_perms = {"username": "frankline", "role": "readonly"}
+            alice_request = self.factory.post("/", data=alice_perms, **self.extra)
+            frankline_request = self.factory.post(
+                "/", data=frankline_perms, **self.extra
+            )
+            response = view(alice_request, pk=self.xform.project.id)
+            self.assertEqual(response.status_code, 204)
+            response = view(frankline_request, pk=self.xform.project.id)
+            self.assertEqual(response.status_code, 204)
+
+            # confirm metadata for the xform to be the default
+            self.assertEqual(
+                "editor|dataentry|readonly",
+                self.xform.metadata_set.get(data_type="xform_meta_perms").data_value,
+            )
+
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly",
+            )
+
+            # change metadata
+            data_value = "editor-minor|dataentry|readonly-no-download"
+            create_xform_meta_permissions(data_value, self.xform)
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly-no-download",
+            )
+
+            # change metadata
+            data_value = "editor-minor|dataentry|readonly"
+            create_xform_meta_permissions(data_value, self.xform)
+            self.assertEqual(
+                get_xform_users(self.xform)[alice_profile.user]["role"],
+                "readonly-no-download",
+            )
+            self.assertEqual(
+                get_xform_users(self.xform)[frankline_profile.user]["role"],
+                "readonly",
+            )
+
     def test_share_auto_xform_meta_perms(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -4910,7 +5032,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             view = XFormViewSet.as_view({"post": "share"})
             formid = self.xform.pk
 
-            data_value = "editor-minor|dataentry"
+            data_value = "editor-minor|dataentry|readonly-no-download"
 
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
@@ -4921,7 +5043,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
                 self.assertEqual(response.status_code, 204)
 
-                if role_class in [EditorRole, EditorMinorRole]:
+                if role_class in [
+                    EditorNoDownload,
+                    EditorRole,
+                    EditorMinorRole,
+                ]:
                     self.assertFalse(
                         EditorRole.user_has_role(alice_profile.user, self.xform)
                     )
@@ -4936,6 +5062,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 ]:
                     self.assertTrue(
                         DataEntryRole.user_has_role(alice_profile.user, self.xform)
+                    )
+                elif role_class in [ReadOnlyRole, ReadOnlyRoleNoDownload]:
+                    self.assertTrue(
+                        ReadOnlyRoleNoDownload.user_has_role(
+                            alice_profile.user, self.xform
+                        )
                     )
 
                 else:
@@ -4967,7 +5099,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             alice_data = {"username": "alice", "email": "alice@localhost.com"}
             alice_profile = self._create_user_profile(alice_data)
 
-            data_value = "editor|dataentry-minor"
+            data_value = "editor|dataentry-minor|readonly-no-download"
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
             DataEntryMinorRole.add(alice_profile.user, self.xform)
@@ -5001,7 +5133,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             request = self.factory.get("/", **alices_extra)
             response = view(request, pk=self.xform.pk, format="csv")
-            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.status_code, 403)
 
     def test_csv_export_cache(self):
         with HTTMock(enketo_mock):
@@ -5168,134 +5300,33 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request, pk=xform.pk)
         self.assertEqual(response.status_code, 200)
         entity_list = EntityList.objects.get(name="trees")
-        expected_data = {
-            "url": f"http://testserver/api/v1/forms/{xform.pk}",
-            "formid": xform.pk,
-            "metadata": [],
-            "owner": "http://testserver/api/v1/users/bob",
-            "created_by": "http://testserver/api/v1/users/bob",
-            "public": False,
-            "public_data": False,
-            "public_key": "",
-            "require_auth": False,
-            "submission_count_for_today": 0,
-            "tags": [],
-            "title": xform.title,
-            "users": [
-                {
-                    "is_org": False,
-                    "metadata": {},
-                    "first_name": "Bob",
-                    "last_name": "erama",
-                    "user": "bob",
-                    "role": "owner",
-                }
-            ],
-            "enketo_url": None,
-            "enketo_preview_url": None,
-            "enketo_single_submit_url": None,
-            "num_of_submissions": 0,
-            "last_submission_time": None,
-            "form_versions": [],
-            "data_views": [],
-            "xls_available": False,
-            "contributes_entities_to": {
+        self.assertEqual(
+            response.data["contributes_entities_to"],
+            {
                 "id": entity_list.pk,
                 "name": "trees",
                 "is_active": True,
             },
-            "consumes_entities_from": [],
-            "description": "",
-            "downloadable": True,
-            "allows_sms": False,
-            "encrypted": False,
-            "sms_id_string": xform.sms_id_string,
-            "id_string": xform.id_string,
-            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
-            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
-            "uuid": xform.uuid,
-            "bamboo_dataset": "",
-            "instances_with_geopoints": False,
-            "instances_with_osm": False,
-            "version": xform.version,
-            "has_hxl_support": False,
-            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
-            "hash": xform.hash,
-            "is_merged_dataset": False,
-            "is_instance_json_regenerated": False,
-            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
-        }
-        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+        )
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_list_registration_form(self):
         """Getting a list of registration forms is correct"""
         # Publish registration form
-        xform = self._publish_registration_form(self.user)
+        self._publish_registration_form(self.user)
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
         entity_list = EntityList.objects.get(name="trees")
-        expected_data = [
+        self.assertEqual(
+            response.data[0]["contributes_entities_to"],
             {
-                "url": f"http://testserver/api/v1/forms/{xform.pk}",
-                "formid": xform.pk,
-                "owner": "http://testserver/api/v1/users/bob",
-                "created_by": "http://testserver/api/v1/users/bob",
-                "public": False,
-                "public_data": False,
-                "public_key": "",
-                "require_auth": False,
-                "tags": [],
-                "title": xform.title,
-                "users": [
-                    {
-                        "is_org": False,
-                        "metadata": {},
-                        "first_name": "Bob",
-                        "last_name": "erama",
-                        "user": "bob",
-                        "role": "owner",
-                    }
-                ],
-                "enketo_url": None,
-                "enketo_preview_url": None,
-                "enketo_single_submit_url": None,
-                "num_of_submissions": 0,
-                "last_submission_time": None,
-                "data_views": [],
-                "xls_available": False,
-                "contributes_entities_to": {
-                    "id": entity_list.pk,
-                    "name": "trees",
-                    "is_active": True,
-                },
-                "consumes_entities_from": [],
-                "description": "",
-                "downloadable": True,
-                "allows_sms": False,
-                "encrypted": False,
-                "sms_id_string": xform.sms_id_string,
-                "id_string": xform.id_string,
-                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
-                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
-                "uuid": xform.uuid,
-                "bamboo_dataset": "",
-                "instances_with_geopoints": False,
-                "instances_with_osm": False,
-                "version": xform.version,
-                "has_hxl_support": False,
-                "last_updated_at": xform.last_updated_at.isoformat().replace(
-                    "+00:00", "Z"
-                ),
-                "hash": xform.hash,
-                "is_merged_dataset": False,
-                "is_instance_json_regenerated": False,
-                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
-            }
-        ]
-        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+                "id": entity_list.pk,
+                "name": "trees",
+                "is_active": True,
+            },
+        )
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_single_follow_up_form(self):
@@ -5307,83 +5338,16 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=xform.pk)
         self.assertEqual(response.status_code, 200)
-        metadata = MetaData.objects.order_by("-pk").first()
-        expected_data = {
-            "url": f"http://testserver/api/v1/forms/{xform.pk}",
-            "formid": xform.pk,
-            "metadata": [
-                OrderedDict(
-                    [
-                        ("id", metadata.pk),
-                        ("xform", xform.pk),
-                        ("data_value", f"entity_list {entity_list.pk} trees"),
-                        ("data_type", "media"),
-                        ("data_file", None),
-                        ("extra_data", {}),
-                        ("data_file_type", None),
-                        ("media_url", None),
-                        ("file_hash", None),
-                        ("url", f"http://testserver/api/v1/metadata/{metadata.pk}"),
-                        ("date_created", metadata.date_created),
-                    ]
-                )
-            ],
-            "owner": "http://testserver/api/v1/users/bob",
-            "created_by": "http://testserver/api/v1/users/bob",
-            "public": False,
-            "public_data": False,
-            "public_key": "",
-            "require_auth": False,
-            "submission_count_for_today": 0,
-            "tags": [],
-            "title": xform.title,
-            "users": [
-                {
-                    "is_org": False,
-                    "metadata": {},
-                    "first_name": "Bob",
-                    "last_name": "erama",
-                    "user": "bob",
-                    "role": "owner",
-                }
-            ],
-            "enketo_url": None,
-            "enketo_preview_url": None,
-            "enketo_single_submit_url": None,
-            "num_of_submissions": 0,
-            "last_submission_time": None,
-            "form_versions": [],
-            "data_views": [],
-            "xls_available": False,
-            "contributes_entities_to": None,
-            "consumes_entities_from": [
+        self.assertEqual(
+            response.data["consumes_entities_from"],
+            [
                 {
                     "id": entity_list.pk,
                     "name": "trees",
                     "is_active": True,
                 }
             ],
-            "description": "",
-            "downloadable": True,
-            "allows_sms": False,
-            "encrypted": False,
-            "sms_id_string": xform.sms_id_string,
-            "id_string": xform.id_string,
-            "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
-            "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
-            "uuid": xform.uuid,
-            "bamboo_dataset": "",
-            "instances_with_geopoints": False,
-            "instances_with_osm": False,
-            "version": xform.version,
-            "has_hxl_support": False,
-            "last_updated_at": xform.last_updated_at.isoformat().replace("+00:00", "Z"),
-            "hash": xform.hash,
-            "is_merged_dataset": False,
-            "is_instance_json_regenerated": False,
-            "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
-        }
-        self.assertEqual(response.data, expected_data)
+        )
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_list_follow_up_form(self):
@@ -5391,73 +5355,136 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         # Publish registration form
         self._project_create()
         entity_list = EntityList.objects.create(name="trees", project=self.project)
-        xform = self._publish_follow_up_form(self.user, self.project)
+        self._publish_follow_up_form(self.user, self.project)
         view = XFormViewSet.as_view({"get": "list"})
         request = self.factory.get("/", **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
         entity_list = EntityList.objects.get(name="trees")
-        expected_data = [
-            {
-                "url": f"http://testserver/api/v1/forms/{xform.pk}",
-                "formid": xform.pk,
-                "owner": "http://testserver/api/v1/users/bob",
-                "created_by": "http://testserver/api/v1/users/bob",
-                "public": False,
-                "public_data": False,
-                "public_key": "",
-                "require_auth": False,
-                "tags": [],
-                "title": xform.title,
-                "users": [
-                    {
-                        "is_org": False,
-                        "metadata": {},
-                        "first_name": "Bob",
-                        "last_name": "erama",
-                        "user": "bob",
-                        "role": "owner",
-                    }
-                ],
-                "enketo_url": None,
-                "enketo_preview_url": None,
-                "enketo_single_submit_url": None,
-                "num_of_submissions": 0,
-                "last_submission_time": None,
-                "data_views": [],
-                "xls_available": False,
-                "contributes_entities_to": None,
-                "consumes_entities_from": [
-                    {
-                        "id": entity_list.pk,
-                        "name": "trees",
-                        "is_active": True,
-                    }
-                ],
-                "description": "",
-                "downloadable": True,
-                "allows_sms": False,
-                "encrypted": False,
-                "sms_id_string": xform.sms_id_string,
-                "id_string": xform.id_string,
-                "date_created": xform.date_created.isoformat().replace("+00:00", "Z"),
-                "date_modified": xform.date_modified.isoformat().replace("+00:00", "Z"),
-                "uuid": xform.uuid,
-                "bamboo_dataset": "",
-                "instances_with_geopoints": False,
-                "instances_with_osm": False,
-                "version": xform.version,
-                "has_hxl_support": False,
-                "last_updated_at": xform.last_updated_at.isoformat().replace(
-                    "+00:00", "Z"
-                ),
-                "hash": xform.hash,
-                "is_merged_dataset": False,
-                "is_instance_json_regenerated": False,
-                "project": f"http://testserver/api/v1/projects/{xform.project.pk}",
-            }
-        ]
-        self.assertEqual(json.dumps(response.data), json.dumps(expected_data))
+        self.assertEqual(
+            response.data[0]["consumes_entities_from"],
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+        )
+
+    @patch("onadata.libs.serializers.xform_serializer.encrypt_xform")
+    def test_enable_kms_encryption(self, mock_encrypt_xform):
+        """Enabling KMS encryption works."""
+        self._publish_transportation_form()
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        mock_encrypt_xform.assert_called_once_with(self.xform, encrypted_by=self.user)
+
+        # Encryption error messages are captured
+        mock_encrypt_xform.side_effect = EncryptionError(
+            "Encryption failed due to missing key."
+        )
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Encryption failed due to missing key", str(response.data))
+
+        # Already encrypted form is not encrypted again
+        mock_encrypt_xform.reset_mock()
+        mock_encrypt_xform.side_effect = None
+        self.xform.public_key = "fake-public-key"
+        self.xform.save()
+        self.xform.refresh_from_db()
+
+        self.assertTrue(self.xform.encrypted)
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": True}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        mock_encrypt_xform.assert_not_called()
+
+    @patch("onadata.libs.serializers.xform_serializer.disable_xform_encryption")
+    def test_disable_kms_encryption(self, mock_disable_enc):
+        """Disabling KMS encryption works."""
+        self._publish_transportation_form()
+        self.xform.public_key = "fake-public-key"
+        self.xform.save()
+
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        mock_disable_enc.assert_called_once_with(self.xform, disabled_by=self.user)
+
+        # Encryption error messages are captured
+        mock_disable_enc.side_effect = EncryptionError("XForm already has submissions.")
+
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("XForm already has submissions", str(response.data))
+
+        # Unencrypted form is ignored
+        mock_disable_enc.reset_mock()
+        mock_disable_enc.side_effect = None
+        self.xform.delete()
+        self._publish_transportation_form()
+
+        self.view = XFormViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch(
+            "/", data={"enable_kms_encryption": False}, **self.extra
+        )
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        mock_disable_enc.assert_not_called()
+
+    def test_retrive_kms_encrypted_form(self):
+        """Retrieving a KMS enecrypted form is correct."""
+        self._publish_transportation_form()
+        self.xform.public_key = "fake-public-key"
+        self.xform.encrypted = True
+        self.xform.is_managed = True
+        self.xform.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["is_managed"])
+
+    def test_retrieve_managed_form(self):
+        """Retrieving a managed form is correct."""
+        self._publish_transportation_form()
+        self.xform.is_managed = True
+        self.xform.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.data["num_of_pending_decryption_submissions"], 0)
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):

@@ -50,6 +50,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary
 from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 
 # pylint: disable=invalid-name

@@ -2,22 +2,27 @@
 """
 ShareProject model - facilitate sharing of a project to a user.
 """
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from onadata.libs.permissions import (
     ROLES,
-    DataEntryMinorRole,
-    DataEntryOnlyRole,
-    DataEntryRole,
-    EditorMinorRole,
-    EditorRole,
+    ManagerRole,
+    OwnerRole,
+    ReadOnlyRoleNoDownload,
 )
+
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
     safe_delete,
 )
+from onadata.libs.utils.xform_utils import (
+    update_role_by_meta_xform_perms,
+    clear_permissions_cache,
+)
+from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
 
@@ -73,6 +78,8 @@ class ShareProject:
     def save(self, **kwargs):
         """Assigns role permissions to a project for the user."""
         # pylint: disable=too-many-nested-blocks
+        safe_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        safe_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
         if self.remove:
             self.__remove_user()
         else:
@@ -85,21 +92,15 @@ class ShareProject:
                 xform_qs = self.project.xform_set.all()
                 for xform in queryset_iterator(xform_qs):
                     # check if there is xform meta perms set
-                    meta_perms = xform.metadata_set.filter(data_type="xform_meta_perms")
-                    if meta_perms:
-                        meta_perm = meta_perms[0].data_value.split("|")
-
-                        if len(meta_perm) > 1:
-                            if role in [EditorRole, EditorMinorRole]:
-                                role = ROLES.get(meta_perm[0])
-
-                            elif role in [
-                                DataEntryRole,
-                                DataEntryMinorRole,
-                                DataEntryOnlyRole,
-                            ]:
-                                role = ROLES.get(meta_perm[1])
-                    role.add(self.user, xform)
+                    if xform.metadata_set.filter(
+                        data_type=XFORM_META_PERMS
+                    ) and role not in [ReadOnlyRoleNoDownload, ManagerRole, OwnerRole]:
+                        update_role_by_meta_xform_perms(
+                            xform, user=self.user, user_role=role
+                        )
+                    else:
+                        clear_permissions_cache(xform)
+                        role.add(self.user, xform)
 
                     # Set MergedXForm permissions if XForm is also a MergedXForm
                     if hasattr(xform, "mergedxform"):

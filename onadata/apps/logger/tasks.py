@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
 from multidb.pinning import use_master
+from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, Project, XForm
 from onadata.apps.logger.models.instance import (
@@ -15,18 +16,26 @@ from onadata.apps.logger.models.instance import (
     update_xform_submission_count,
 )
 from onadata.celeryapp import app
+from onadata.libs.kms.tools import (
+    adjust_xform_num_of_decrypted_submissions,
+    commit_cached_xform_num_of_decrypted_submissions,
+    decrypt_instance,
+    disable_expired_keys,
+    rotate_expired_keys,
+    send_key_grace_expiry_reminder,
+    send_key_rotation_reminder,
+)
+from onadata.libs.permissions import set_project_perms_to_object
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
 from onadata.libs.utils.entities_utils import (
+    adjust_elist_num_entities,
     commit_cached_elist_num_entities,
-    dec_elist_num_entities,
-    inc_elist_num_entities,
     soft_delete_entities_bulk,
 )
 from onadata.libs.utils.logger_tools import (
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
 )
-from onadata.libs.utils.project_utils import set_project_perms_to_object
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -38,6 +47,7 @@ class AutoRetryTask(app.Task):
 
     retry_backoff = 3
     autoretry_for = (DatabaseError, ConnectionError, OperationalError)
+    max_retries = 5
 
 
 @app.task(base=AutoRetryTask)
@@ -114,22 +124,19 @@ def commit_cached_elist_num_entities_async():
 
 @app.task(base=AutoRetryTask)
 @use_master
-def inc_elist_num_entities_async(elist_pk: int):
+def adjust_elist_num_entities_async(elist_pk: int, delta: int):
     """Increment EntityList `num_entities` counter asynchronously
 
     :param elist_pk: Primary key for EntityList
     """
-    inc_elist_num_entities(elist_pk)
+    try:
+        entity_list = EntityList.objects.get(pk=elist_pk)
 
+    except EntityList.DoesNotExist as exc:
+        logger.exception(exc)
 
-@app.task(base=AutoRetryTask)
-@use_master
-def dec_elist_num_entities_async(elist_pk: int) -> None:
-    """Decrement EntityList `num_entities` counter asynchronously
-
-    :param elist_pk: Primary key for EntityList
-    """
-    dec_elist_num_entities(elist_pk)
+    else:
+        adjust_elist_num_entities(entity_list, delta=delta)
 
 
 @app.task(base=AutoRetryTask)
@@ -196,8 +203,98 @@ def update_project_date_modified_async(instance_id):
     """Update a Project's date_modified asynchronously"""
     try:
         instance = Instance.objects.get(pk=instance_id)
+
     except Instance.DoesNotExist as exc:
         logger.exception(exc)
 
     else:
         update_project_date_modified(instance)
+
+
+@app.task(
+    base=AutoRetryTask,
+    bind=True,
+    autoretry_for=AutoRetryTask.autoretry_for + (ValigettaConnectionException,),
+)
+@use_master
+def decrypt_instance_async(self, instance_id: int):
+    """Decrypt encrypted Instance asynchronously.
+
+    :param instance_id: Primary key for Instance
+    """
+    try:
+        instance = Instance.objects.get(pk=instance_id)
+
+    except Instance.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        decrypt_instance(instance)
+
+        logger.info(
+            "Decryption successful - XForm: %s; Instance: %s; Task: %s",
+            instance.xform_id,
+            instance_id,
+            self.request.id,
+        )
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def rotate_expired_keys_async():
+    """Rotate expired keys asynchronously."""
+    rotate_expired_keys()
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def disable_expired_keys_async():
+    """Disable expired keys asynchronously."""
+    disable_expired_keys()
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def send_key_rotation_reminder_async():
+    """Send key rotation reminder asynchronously."""
+    send_key_rotation_reminder()
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def adjust_xform_num_of_decrypted_submissions_async(xform_id: int, delta: int) -> None:
+    """Adjust XForm `num_of_decrypted_submissions` counter asynchronously
+
+    :param xform_id: Primary key for XForm
+    :param delta: Value to increment or decrement by
+    """
+    try:
+        xform = XForm.objects.get(pk=xform_id)
+
+    except XForm.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        adjust_xform_num_of_decrypted_submissions(xform, delta=delta)
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def commit_cached_xform_num_of_decrypted_submissions_async():
+    """Commit cached XForm `num_of_decrypted_submissions` counter to the database
+
+    Call this task periodically, such as in a background task to ensure
+    cached counters for XForm `num_of_decrypted_submissions` are commited
+    to the database.
+
+    Cached counters have no expiry, so it is essential to ensure that
+    this task is called periodically.
+    """
+    commit_cached_xform_num_of_decrypted_submissions()
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def send_key_grace_expiry_reminder_async():
+    """Send key grace expiry reminder asynchronously."""
+    send_key_grace_expiry_reminder()

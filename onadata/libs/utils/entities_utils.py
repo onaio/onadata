@@ -1,11 +1,7 @@
 import logging
-from datetime import datetime
 from typing import Any
 
-from django.conf import settings
-from django.core.cache import cache
-from django.db.models import F, QuerySet
-from django.utils import timezone
+from django.db.models import QuerySet
 
 from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
 from onadata.apps.logger.xform_instance_parser import (
@@ -18,11 +14,12 @@ from onadata.libs.utils.cache_tools import (
     ELIST_NUM_ENTITIES_CREATED_AT,
     ELIST_NUM_ENTITIES_IDS,
     ELIST_NUM_ENTITIES_LOCK,
-    safe_delete,
-    set_cache_with_lock,
 )
-from onadata.libs.utils.common_tools import report_exception
-from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.model_tools import (
+    adjust_counter,
+    commit_cached_counters,
+    queryset_iterator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -180,127 +177,24 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         create_entity_from_instance(instance, registration_form)
 
 
-def _inc_elist_num_entities_db(pk: int, count=1) -> None:
-    """Increment EntityList `num_entities` counter in the database
+def adjust_elist_num_entities(entity_list: EntityList, delta: int) -> None:
+    """Adjust EntityList `num_entities` counter
 
-    :param pk: Primary key for EntityList
-    :param count: Value to increase by
+    :param entity_list: EntityList
+    :param delta: Value to increment or decrement by
     """
-    # Using Queryset.update ensures we do not call the model's save method and
-    # signals
-    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") + count)
-
-
-def _dec_elist_num_entities_db(pk: int, count=1) -> None:
-    """Decrement EntityList `num_entities` counter in the database
-
-    :param pk: Primary key for EntityList
-    :param count: Value to decrease by
-    """
-    # Using Queryset.update ensures we do not call the model's save method and
-    # signals
-    EntityList.objects.filter(pk=pk).update(num_entities=F("num_entities") - count)
-
-
-def _inc_elist_num_entities_cache(pk: int) -> None:
-    """Increment EntityList `num_entities` counter in cache
-
-    :param pk: Primary key for EntityList
-    """
-    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
-    # Cache timeout is None (no expiry). A background task should be run
-    # periodically to persist the cached counters to the db
-    # and delete the cache. If we were to set a timeout, the cache could
-    # expire before the next periodic run and data will be lost.
-    counter_cache_ttl = None
-    counter_cache_created = cache.add(counter_cache_key, 1, counter_cache_ttl)
-
-    def add_to_cached_ids(current_ids: set | None):
-        if current_ids is None:
-            current_ids = set()
-
-        if pk not in current_ids:
-            current_ids.add(pk)
-
-        return current_ids
-
-    set_cache_with_lock(ELIST_NUM_ENTITIES_IDS, add_to_cached_ids, counter_cache_ttl)
-    cache.add(ELIST_NUM_ENTITIES_CREATED_AT, timezone.now(), counter_cache_ttl)
-
-    if not counter_cache_created:
-        cache.incr(counter_cache_key)
-
-
-def _dec_elist_num_entities_cache(pk: int) -> None:
-    """Decrement EntityList `num_entities` counter in cache
-
-    :param pk: Primary key for EntityList
-    """
-    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
-
-    if cache.get(counter_cache_key) is not None:
-        cache.decr(counter_cache_key)
-
-
-def inc_elist_num_entities(pk: int) -> None:
-    """Increment EntityList `num_entities` counter
-
-    Updates cached counter if cache is not locked. Else, the database
-    counter is updated
-
-    :param pk: Primary key for EntityList
-    """
-
-    if _is_elist_num_entities_cache_locked():
-        _inc_elist_num_entities_db(pk)
-
-    else:
-        try:
-            _inc_elist_num_entities_cache(pk)
-            _exec_cached_elist_counter_commit_failover()
-
-        except ConnectionError as exc:
-            logger.exception(exc)
-            # Fallback to db if cache inacessible
-            _inc_elist_num_entities_db(pk)
-
-
-def dec_elist_num_entities(pk: int) -> None:
-    """Decrement EntityList `num_entities` counter
-
-    Updates cached counter if cache is not locked. Else, the database
-    counter is updated.
-
-    :param pk: Primary key for EntityList
-    """
-    counter_cache_key = f"{ELIST_NUM_ENTITIES}{pk}"
-
-    if _is_elist_num_entities_cache_locked() or cache.get(counter_cache_key) is None:
-        _dec_elist_num_entities_db(pk)
-
-    else:
-        try:
-            _dec_elist_num_entities_cache(pk)
-
-        except ConnectionError as exc:
-            logger.exception(exc)
-            # Fallback to db if cache inacessible
-            _dec_elist_num_entities_db(pk)
-
-
-def _is_elist_num_entities_cache_locked() -> bool:
-    """Checks if EntityList `num_entities` cached counter is locked
-
-    Typically, the cache is locked if the cached data is in the process
-    of being persisted in the database.
-
-    The cache is locked to ensure no further updates are made when the
-    data is being committed to the database.
-
-    Returns True, if cache is locked, False otherwise
-    """
-
-    return cache.get(ELIST_NUM_ENTITIES_LOCK) is not None
+    adjust_counter(
+        pk=entity_list.pk,
+        model=EntityList,
+        field_name="num_entities",
+        delta=delta,
+        key_prefix=ELIST_NUM_ENTITIES,
+        tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
+        created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
+        lock_key=ELIST_NUM_ENTITIES_LOCK,
+        failover_report_key=ELIST_FAILOVER_REPORT_SENT,
+        task_name="onadata.apps.logger.tasks.commit_cached_elist_num_entities_async",
+    )
 
 
 def commit_cached_elist_num_entities() -> None:
@@ -308,55 +202,11 @@ def commit_cached_elist_num_entities() -> None:
 
     Commit is successful if no other process holds the lock
     """
-    lock_acquired = cache.add(ELIST_NUM_ENTITIES_LOCK, "true", 7200)
-
-    if lock_acquired:
-        entity_list_pks: set[int] = cache.get(ELIST_NUM_ENTITIES_IDS, set())
-
-        for pk in entity_list_pks:
-            counter_key = f"{ELIST_NUM_ENTITIES}{pk}"
-            counter: int = cache.get(counter_key, 0)
-
-            if counter:
-                _inc_elist_num_entities_db(pk, counter)
-
-            safe_delete(counter_key)
-
-        safe_delete(ELIST_NUM_ENTITIES_IDS)
-        safe_delete(ELIST_NUM_ENTITIES_LOCK)
-        safe_delete(ELIST_NUM_ENTITIES_CREATED_AT)
-
-
-def _exec_cached_elist_counter_commit_failover() -> None:
-    """Check the time lapse since the cached EntityList `num_entities`
-    counters were created and commit if the time lapse exceeds
-    the threshold allowed.
-
-    Acts as a failover incase the cron job responsible for committing
-    the cached data fails or is not configured
-    """
-    cache_created_at: datetime | None = cache.get(ELIST_NUM_ENTITIES_CREATED_AT)
-
-    if cache_created_at is None:
-        return
-
-    # If the time lapse is > ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT, run the failover
-    failover_timeout: int = getattr(
-        settings, "ELIST_COUNTER_COMMIT_FAILOVER_TIMEOUT", 7200
+    commit_cached_counters(
+        model=EntityList,
+        field_name="num_entities",
+        key_prefix=ELIST_NUM_ENTITIES,
+        tracked_ids_key=ELIST_NUM_ENTITIES_IDS,
+        lock_key=ELIST_NUM_ENTITIES_LOCK,
+        created_at_key=ELIST_NUM_ENTITIES_CREATED_AT,
     )
-    time_lapse = timezone.now() - cache_created_at
-
-    if time_lapse.total_seconds() > failover_timeout:
-        commit_cached_elist_num_entities()
-        # Do not send report exception if already sent within the past 24 hrs
-        if cache.get(ELIST_FAILOVER_REPORT_SENT) is None:
-            subject = "Periodic task not running"
-            task_name = (
-                "onadata.apps.logger.tasks.commit_cached_elist_num_entities_async"
-            )
-            msg = (
-                f"The failover has been executed because task {task_name} "
-                "is not configured or has malfunctioned"
-            )
-            report_exception(subject, msg)
-            cache.set(ELIST_FAILOVER_REPORT_SENT, "sent", 86400)

@@ -2,8 +2,10 @@
 """
 Permissions module.
 """
+
 import json
 from collections import defaultdict
+from typing import Any
 
 from django.apps import apps
 from django.db.models import Q
@@ -23,7 +25,7 @@ from onadata.apps.logger.models.xform import (
     XFormUserObjectPermission,
 )
 from onadata.libs.exceptions import NoRecordsPermission
-from onadata.libs.utils.common_tags import XFORM_META_PERMS
+from onadata.libs.utils.common_tags import XFORM_META_PERMS, OWNER_TEAM_NAME
 from onadata.libs.utils.model_tools import queryset_iterator
 
 # Userprofile Permissions
@@ -165,7 +167,11 @@ class ReadOnlyRoleNoDownload(Role):
     class_to_permissions = {
         MergedXForm: [CAN_VIEW_MERGED_XFORM],
         Project: [CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
-        XForm: [CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
     }
 
 
@@ -180,7 +186,12 @@ class ReadOnlyRole(Role):
         MergedXForm: [CAN_VIEW_MERGED_XFORM],
         OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
         Project: [CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL],
-        XForm: [CAN_EXPORT_XFORM, CAN_VIEW_XFORM, CAN_VIEW_XFORM_ALL],
+        XForm: [
+            CAN_EXPORT_XFORM,
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_ALL,
+            CAN_VIEW_XFORM_DATA,
+        ],
     }
 
 
@@ -194,15 +205,23 @@ class DataEntryOnlyRole(Role):
     class_to_permissions = {
         MergedXForm: [CAN_VIEW_MERGED_XFORM],
         OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
-        Project: [CAN_ADD_SUBMISSIONS_PROJECT, CAN_EXPORT_PROJECT, CAN_VIEW_PROJECT],
-        XForm: [CAN_ADD_SUBMISSIONS],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_ALL,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_VIEW_XFORM,
+            CAN_ADD_SUBMISSIONS,
+        ],
     }
 
 
 class DataEntryMinorRole(Role):
     """
-    Data-Entry minor Role class - user can submit and  has readonly access to
-                                  data they submitted.
+    User can submit and  has readonly access to data they submitted.
     """
 
     name = "dataentry-minor"
@@ -226,8 +245,8 @@ class DataEntryMinorRole(Role):
 
 class DataEntryRole(Role):
     """
-    Data-Entry Role class - user can submit data and has readonly permissions
-                            to all the data including data submitted by others.
+    User can submit data and has readonly permissions to all
+    the data including data submitted by others.
     """
 
     name = "dataentry"
@@ -251,10 +270,36 @@ class DataEntryRole(Role):
     }
 
 
+class EditorNoDownload(Role):
+    """
+    User can submit data, read and edit only the data they submitted
+    but will not be able to export data.
+    """
+
+    name = "editor-no-download"
+    class_to_permissions = {
+        MergedXForm: [CAN_VIEW_MERGED_XFORM],
+        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
+        Project: [
+            CAN_ADD_SUBMISSIONS_PROJECT,
+            CAN_CHANGE_PROJECT,
+            CAN_EXPORT_PROJECT,
+            CAN_VIEW_PROJECT,
+            CAN_VIEW_PROJECT_DATA,
+        ],
+        XForm: [
+            CAN_ADD_SUBMISSIONS,
+            CAN_CHANGE_XFORM,
+            CAN_DELETE_SUBMISSION,
+            CAN_VIEW_XFORM,
+            CAN_VIEW_XFORM_DATA,
+        ],
+    }
+
+
 class EditorMinorRole(Role):
     """
-    Editor-Minor Role class - user can submit data, read and edit only the data
-                              they submitted.
+    User can submit data, read and edit only the data they submitted.
     """
 
     name = "editor-minor"
@@ -281,7 +326,7 @@ class EditorMinorRole(Role):
 
 class EditorRole(Role):
     """
-    Editor Role class - user can submit, read and edit any submitted data.
+    User can submit, read and edit any submitted data.
     """
 
     name = "editor"
@@ -310,8 +355,8 @@ class EditorRole(Role):
 
 class ManagerRole(Role):
     """
-    Manager Role class - user can add,delete,edit forms and data as well as
-                         control access to data, forms and projects.
+    User can add,delete,edit forms and data as well as
+    control access to data, forms and projects.
     """
 
     name = "manager"
@@ -439,6 +484,7 @@ ROLES_ORDERED = [
     DataEntryOnlyRole,
     DataEntryMinorRole,
     DataEntryRole,
+    EditorNoDownload,
     EditorMinorRole,
     EditorRole,
     ManagerRole,
@@ -569,7 +615,9 @@ def _get_users_with_perms(obj, attach_perms=False, with_group_users=None):
 
 # pylint: disable=invalid-name
 def get_object_users_with_permissions(
-    obj, username=False, with_group_users=False  # pylint: disable=invalid-name
+    obj,
+    username=False,
+    with_group_users=False,  # pylint: disable=invalid-name
 ):
     """
     Returns users, roles and permissions for an object.
@@ -699,3 +747,30 @@ def filter_queryset_xform_meta_perms_sql(xform, user, query):
             query_list.append(query)
             return query_list
     raise NoRecordsPermission()
+
+
+def set_project_perms_to_object(obj: Any, project: Project) -> None:
+    """Apply project permissions to an object
+
+    Args:
+        obj: Object to set permissions for
+        project: Project under which the object belongs to
+    """
+    owners = project.organization.team_set.filter(
+        name=f"{project.organization.username}#{OWNER_TEAM_NAME}",
+        organization=project.organization,
+    )
+
+    if owners:
+        OwnerRole.add(owners[0], obj)
+
+    for perm in get_object_users_with_permissions(project, with_group_users=True):
+        user = perm["user"]
+        role_name = perm["role"]
+        role = ROLES.get(role_name)
+
+        if isinstance(obj, XForm) and user == obj.created_by:
+            OwnerRole.add(user, obj)
+
+        elif role:
+            role.add(user, obj)

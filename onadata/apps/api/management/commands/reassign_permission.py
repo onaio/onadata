@@ -2,6 +2,7 @@
 """
 reassign_permission - reassign permission to the model when permissions are changed.
 """
+
 from guardian.shortcuts import get_perms
 
 from django.core.management.base import BaseCommand, CommandError
@@ -15,12 +16,13 @@ from onadata.libs.permissions import (
     ReadOnlyRole,
     DataEntryRole,
     EditorRole,
+    EditorMinorRole,
+    EditorNoDownload,
     ManagerRole,
     OwnerRole,
     ReadOnlyRoleNoDownload,
     DataEntryOnlyRole,
     DataEntryMinorRole,
-    EditorMinorRole,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -105,6 +107,7 @@ class Command(BaseCommand):
                 DataEntryOnlyRole,
                 DataEntryMinorRole,
                 DataEntryRole,
+                EditorNoDownload,
                 EditorMinorRole,
                 EditorRole,
                 ManagerRole,
@@ -113,7 +116,6 @@ class Command(BaseCommand):
 
             # For each role reassign the perms
             for role_class in reversed(roles):
-
                 if self.check_role(role_class, user, obj, new_perm):
                     # If true
                     role_class.add(user, obj)
