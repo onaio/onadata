@@ -474,6 +474,18 @@ def decrypt_instance(instance: Instance) -> None:
             decryption_status=Instance.DecryptionStatus.FAILED,
         )
 
+    def get_encrypted_files(attachment_qs):
+        """Get Instance's encrypted media files"""
+        enc_files = {}
+
+        for attachment in queryset_iterator(attachment_qs):
+            name = attachment.name or attachment.media_file.name.split("/")[-1]
+
+            with attachment.media_file.open("rb") as file:
+                enc_files[name] = BytesIO(file.read())
+
+        return enc_files
+
     try:
         if not is_instance_encrypted(instance):
             raise DecryptionError("Instance is not encrypted.")
@@ -487,43 +499,29 @@ def decrypt_instance(instance: Instance) -> None:
         except XFormKey.DoesNotExist as exc:
             raise DecryptionError("KMSKey used for encryption not found.") from exc
 
-        else:
-            if xform_key.kms_key.disabled_at is not None:
-                raise DecryptionError("KMSKey is disabled.")
+        if xform_key.kms_key.disabled_at is not None:
+            raise DecryptionError("KMSKey is disabled.")
+
+        submission_xml = BytesIO(instance.xml.encode("utf-8"))
+        kms_client = get_kms_client()
+        # Decrypt submission files
+        attachment_qs = instance.attachments.all()
+
+        try:
+            decrypted_files = decrypt_submission(
+                kms_client=kms_client,
+                key_id=xform_key.kms_key.key_id,
+                submission_xml=submission_xml,
+                enc_files=get_encrypted_files(attachment_qs),
+            )
+
+        except InvalidSubmissionException as exc:
+            raise DecryptionError(str(exc)) from exc
 
     except DecryptionError as exc:
         save_decryption_error(str(exc))
 
         raise
-
-    submission_xml = BytesIO(instance.xml.encode("utf-8"))
-    kms_client = get_kms_client()
-    # Decrypt submission files
-    attachment_qs = instance.attachments.all()
-
-    def get_encrypted_files():
-        enc_files = {}
-
-        for attachment in queryset_iterator(attachment_qs):
-            name = attachment.name or attachment.media_file.name.split("/")[-1]
-
-            with attachment.media_file.open("rb") as file:
-                enc_files[name] = BytesIO(file.read())
-
-        return enc_files
-
-    try:
-        decrypted_files = decrypt_submission(
-            kms_client=kms_client,
-            key_id=xform_key.kms_key.key_id,
-            submission_xml=submission_xml,
-            enc_files=get_encrypted_files(),
-        )
-
-    except InvalidSubmissionException as exc:
-        save_decryption_error(str(exc))
-
-        raise DecryptionError(str(exc)) from exc
 
     # Replace encrypted submission with decrypted submission
     # Save history before replacement
