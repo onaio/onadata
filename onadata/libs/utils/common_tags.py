@@ -222,8 +222,8 @@ DECRYPTION_FAILURE_MESSAGES = {
     DECRYPTION_FAILURE_MAX_RETRIES: _(
         "System was unable to decrypt the submission after multiple attempts."
     ),
-    DECRYPTION_FAILURE_KEY_DISABLED: "KMSKey is disabled.",
-    DECRYPTION_FAILURE_KEY_NOT_FOUND: "KMSKey used for encryption not found.",
-    DECRYPTION_FAILURE_INVALID_SUBMISSION: "Corrupted data.",
-    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: "Instance is not encrypted.",
+    DECRYPTION_FAILURE_KEY_DISABLED: _("KMSKey is disabled."),
+    DECRYPTION_FAILURE_KEY_NOT_FOUND: _("KMSKey used for encryption not found."),
+    DECRYPTION_FAILURE_INVALID_SUBMISSION: _("Corrupted data."),
+    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: _("Instance is not encrypted."),
 }
