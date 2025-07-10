@@ -524,5 +524,5 @@ class DecryptInstanceAsyncTestCase(TestBase):
         )
 
         mock_save_decryption_error.assert_called_once_with(
-            self.instance, "max_retries_exceeded"
+            self.instance, "MAX_RETRIES_EXCEEDED"
         )

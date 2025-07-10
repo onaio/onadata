@@ -966,6 +966,13 @@ Example
     curl -X GET https://api.ona.io/api/v1/data/22845?decryption_status=failed
 
 
+For submissions that have a status of ``failed``, there exists a ``decryption_error`` field that contains the error code. The following are the possible error codes:
+
+- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
+- ``KMS_KEY_DISABLED``: Encryption key is disabled.
+- ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
+- ``INVALID_SUBMISSION``: Data is corrupted.
+
 Tag a submission data point
 ----------------------------
 
