@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 from django.utils import timezone
 
+from celery.exceptions import MaxRetriesExceededError
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
 from onadata.apps.logger.models import EntityList
@@ -46,7 +47,7 @@ class SetEntityListPermsAsyncTestCase(TestBase):
 
     @patch("onadata.apps.logger.tasks.set_entity_list_perms_async.retry")
     def test_retry_exceptions(self, mock_retry, mock_set_perms):
-        """ConnectionError and DatabaseError exceptions are retried"""
+        """ConnectionError, DatabaseError, OperationalError exceptions are retried"""
         test_cases = [
             (ConnectionError, "ConnectionError"),
             (DatabaseError, "DatabaseError"),
@@ -510,3 +511,19 @@ class DecryptInstanceAsyncTestCase(TestBase):
         decrypt_instance_async.delay(sys.maxsize)
         mock_decrypt.assert_not_called()
         mock_logger.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.save_decryption_error")
+    # pylint: disable=unused-argument
+    def test_max_retries_exceeded(self, mock_save_decryption_error, mock_decrypt):
+        """Instance is tagged as failed decryption if max retries exceeded"""
+        decrypt_instance_async.on_failure(
+            MaxRetriesExceededError(),
+            "task_id",
+            (self.instance.pk,),
+            {},
+            None,
+        )
+
+        mock_save_decryption_error.assert_called_once_with(
+            self.instance, "MAX_RETRIES_EXCEEDED"
+        )

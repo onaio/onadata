@@ -593,6 +593,12 @@ class Instance(models.Model, InstanceBaseClass):
     Model representing a single submission to an XForm
     """
 
+    class DecryptionStatus(models.TextChoices):
+        PLAINTEXT = "plaintext", _("Never encrypted")
+        PENDING = "pending", _("Pending decryption")
+        SUCCESS = "success", _("Decryption successful")
+        FAILED = "failed", _("Decryption failed")
+
     json = models.JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(
@@ -649,6 +655,11 @@ class Instance(models.Model, InstanceBaseClass):
     # Keep track of submission reviews, only query reviews if True
     has_a_review = models.BooleanField(_("has_a_review"), default=False)
     is_encrypted = models.BooleanField(default=False)
+    decryption_status = models.CharField(
+        max_length=20,
+        choices=DecryptionStatus.choices,
+        default=DecryptionStatus.PLAINTEXT,
+    )
 
     tags = TaggableManager()
 
@@ -660,6 +671,7 @@ class Instance(models.Model, InstanceBaseClass):
             models.Index(fields=["date_modified"]),
             models.Index(fields=["deleted_at"]),
             models.Index(fields=["xform_id", "id"]),
+            models.Index(fields=["decryption_status"]),
         ]
 
     @classmethod
@@ -880,7 +892,11 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
     kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
     if kms_tools.is_instance_encrypted(instance) and not instance.is_encrypted:
-        update_fields_directly(instance, is_encrypted=True)
+        update_fields_directly(
+            instance,
+            is_encrypted=True,
+            decryption_status=Instance.DecryptionStatus.PENDING,
+        )
 
 
 def _decr_xform_num_of_decrypted_submissions(instance: Instance):

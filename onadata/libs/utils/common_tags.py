@@ -49,6 +49,7 @@ BAMBOO_DATASET_ID = "_bamboo_dataset_id"
 SUBMITTED_BY = "_submitted_by"
 VERSION = "_version"
 DURATION = "_duration"
+DECRYPTION_ERROR = "_decryption_error"
 
 # fields to deal with media attachments and keep track of how many
 # have been received
@@ -212,3 +213,17 @@ XFORM_CREATION_EVENT = "XForm created"
 PROJECT_CREATION_EVENT = "Project created"
 USER_CREATION_EVENT = "User account created"
 EXPORT_COLUMNS_REGISTER = "export_columns_register"
+DECRYPTION_FAILURE_MAX_RETRIES = "MAX_RETRIES_EXCEEDED"
+DECRYPTION_FAILURE_KEY_DISABLED = "KMS_KEY_DISABLED"
+DECRYPTION_FAILURE_KEY_NOT_FOUND = "KMS_KEY_NOT_FOUND"
+DECRYPTION_FAILURE_INVALID_SUBMISSION = "INVALID_SUBMISSION"
+DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED = "INSTANCE_NOT_ENCRYPTED"
+DECRYPTION_FAILURE_MESSAGES = {
+    DECRYPTION_FAILURE_MAX_RETRIES: _(
+        "System was unable to decrypt the submission after multiple attempts."
+    ),
+    DECRYPTION_FAILURE_KEY_DISABLED: _("KMSKey is disabled."),
+    DECRYPTION_FAILURE_KEY_NOT_FOUND: _("KMSKey used for encryption not found."),
+    DECRYPTION_FAILURE_INVALID_SUBMISSION: _("Corrupted data."),
+    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: _("Instance is not encrypted."),
+}

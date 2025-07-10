@@ -52,12 +52,21 @@ from onadata.libs.utils.cache_tools import (
     XFORM_DEC_SUBMISSION_COUNT_IDS,
     XFORM_DEC_SUBMISSION_COUNT_LOCK,
 )
+from onadata.libs.utils.common_tags import (
+    DECRYPTION_ERROR,
+    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED,
+    DECRYPTION_FAILURE_INVALID_SUBMISSION,
+    DECRYPTION_FAILURE_KEY_DISABLED,
+    DECRYPTION_FAILURE_KEY_NOT_FOUND,
+    DECRYPTION_FAILURE_MESSAGES,
+)
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
 from onadata.libs.utils.model_tools import (
     adjust_counter,
     commit_cached_counters,
     queryset_iterator,
+    update_fields_directly,
 )
 
 logger = logging.getLogger(__name__)
@@ -453,6 +462,21 @@ def is_instance_encrypted(instance: Instance) -> bool:
     return tree.attrib.get("encrypted") == "yes"
 
 
+def save_decryption_error(instance: Instance, error_name: str):
+    """Add decryption error metadata to Instance json.
+
+    :param instance: Instance
+    :param error_name: Error code
+    """
+    json = instance.json
+    json[DECRYPTION_ERROR] = error_name
+    update_fields_directly(
+        instance,
+        json=json,
+        decryption_status=Instance.DecryptionStatus.FAILED,
+    )
+
+
 # pylint: disable=too-many-locals
 def decrypt_instance(instance: Instance) -> None:
     """Decrypt encrypted Instance
@@ -462,59 +486,69 @@ def decrypt_instance(instance: Instance) -> None:
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
 
-    if not is_instance_encrypted(instance):
-        raise DecryptionError("Instance is not encrypted.")
+    def get_encrypted_files(attachment_qs):
+        """Get Instance's encrypted media files"""
+        enc_files = {}
 
-    # Get the key that encrypted the submission
+        for attachment in queryset_iterator(attachment_qs):
+            name = attachment.name or attachment.media_file.name.split("/")[-1]
+
+            with attachment.media_file.open("rb") as file:
+                enc_files[name] = BytesIO(file.read())
+
+        return enc_files
+
+    if not is_instance_encrypted(instance):
+        raise DecryptionError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
+        )
+
     try:
+        # Get the key that encrypted the submission
         xform_key = XFormKey.objects.get(version=instance.version, xform=instance.xform)
 
     except XFormKey.DoesNotExist as exc:
-        raise DecryptionError("KMSKey used for encryption not found.") from exc
+        save_decryption_error(instance, DECRYPTION_FAILURE_KEY_NOT_FOUND)
+        raise DecryptionError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_KEY_NOT_FOUND]
+        ) from exc
 
     if xform_key.kms_key.disabled_at is not None:
-        raise DecryptionError("KMSKey is disabled.")
+        save_decryption_error(instance, DECRYPTION_FAILURE_KEY_DISABLED)
+        raise DecryptionError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_KEY_DISABLED]
+        )
+
+    submission_xml = BytesIO(instance.xml.encode("utf-8"))
+    kms_client = get_kms_client()
+    # Decrypt submission files
+    attachment_qs = instance.attachments.all()
+
+    try:
+        decrypted_files = decrypt_submission(
+            kms_client=kms_client,
+            key_id=xform_key.kms_key.key_id,
+            submission_xml=submission_xml,
+            enc_files=get_encrypted_files(attachment_qs),
+        )
+
+    except InvalidSubmissionException as exc:
+        save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
+        raise DecryptionError(str(exc)) from exc
+
+    # Replace encrypted submission with decrypted submission
+    # Initialize InstanceHistory before replacement
+    history = InstanceHistory(
+        checksum=instance.checksum,
+        xml=instance.xml,
+        xform_instance=instance,
+        uuid=instance.uuid,
+        geom=instance.geom,
+        submission_date=instance.last_edited or instance.date_created,
+    )
+    decrypted_attachment_ids = []
 
     with transaction.atomic():
-        submission_xml = BytesIO(instance.xml.encode("utf-8"))
-        kms_client = get_kms_client()
-        # Decrypt submission files
-        attachment_qs = instance.attachments.all()
-
-        def get_encrypted_files():
-            enc_files = {}
-
-            for attachment in queryset_iterator(attachment_qs):
-                name = attachment.name or attachment.media_file.name.split("/")[-1]
-
-                with attachment.media_file.open("rb") as file:
-                    enc_files[name] = BytesIO(file.read())
-
-            return enc_files
-
-        try:
-            decrypted_files = decrypt_submission(
-                kms_client=kms_client,
-                key_id=xform_key.kms_key.key_id,
-                submission_xml=submission_xml,
-                enc_files=get_encrypted_files(),
-            )
-
-        except InvalidSubmissionException as exc:
-            raise DecryptionError(str(exc)) from exc
-
-        # Replace encrypted submission with decrypted submission
-        # Save history before replacement
-        history = InstanceHistory(
-            checksum=instance.checksum,
-            xml=instance.xml,
-            xform_instance=instance,
-            uuid=instance.uuid,
-            geom=instance.geom,
-            submission_date=instance.last_edited or instance.date_created,
-        )
-        decrypted_attachment_ids = []
-
         for original_name, decrypted_file in decrypted_files:
             if original_name.lower() == "submission.xml":
                 # Replace submission with decrypted submission
@@ -523,6 +557,7 @@ def decrypt_instance(instance: Instance) -> None:
                 instance.xml = xml.decode("utf-8")
                 instance.checksum = sha256(xml).hexdigest()
                 instance.is_encrypted = False
+                instance.decryption_status = Instance.DecryptionStatus.SUCCESS
                 instance.save()
 
             else:

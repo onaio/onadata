@@ -1398,13 +1398,14 @@ class TestInstance(TestBase):
         self.assertEqual(merged_multiples_columns, expected_columns)
         self.assertEqual(split_multiples_columns, expected_columns)
 
-    @patch("onadata.apps.logger.tasks.decrypt_instance")
-    def test_decrypt_instance(self, mock_dec):
-        """Encrypted Instance using managed keys is decrypted."""
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    def test_decrypt_instance(self, mock_decrypt):
+        """Instance encrypted using managed keys is decrypted."""
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
-            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
             <meta xmlns="http://openrosa.org/xforms">
                 <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
             </meta>
@@ -1424,47 +1425,13 @@ class TestInstance(TestBase):
         """
         xform = self._publish_markdown(md, self.user, id_string="nature")
         survey_type = SurveyType.objects.create(slug="slug-foo")
-
-        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=True):
-            instance = Instance.objects.create(
-                xform=xform,
-                xml=metadata_xml,
-                user=self.user,
-                survey_type=survey_type,
-            )
-            mock_dec.assert_called_once_with(instance)
-
-        # Auto-decrypt is disabled
-        mock_dec.reset_mock()
-        instance.delete()
-
-        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=False):
-            instance = Instance.objects.create(
-                xform=xform,
-                xml=metadata_xml,
-                user=self.user,
-                survey_type=survey_type,
-            )
-            mock_dec.assert_not_called()
-
-        # Auto-decrypt config is missing
-        mock_dec.reset_mock()
-        instance.delete()
         instance = Instance.objects.create(
             xform=xform,
             xml=metadata_xml,
             user=self.user,
             survey_type=survey_type,
         )
-        mock_dec.assert_not_called()
-
-        # Unencrypted submission
-        mock_dec.reset_mock()
-
-        with override_settings(KMS_AUTO_DECRYPT_INSTANCE=True):
-            self._publish_transportation_form_and_submit_instance()
-
-            mock_dec.assert_not_called()
+        mock_decrypt.assert_called_once_with(instance.pk)
 
     def test_set_is_encrypted(self):
         """is_encrypted is set to True for encrypted Instance."""
@@ -1500,6 +1467,7 @@ class TestInstance(TestBase):
         instance.refresh_from_db()
 
         self.assertTrue(instance.is_encrypted)
+        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
         # Unencrypted Instance value is false
         self._publish_transportation_form_and_submit_instance()
@@ -1507,6 +1475,9 @@ class TestInstance(TestBase):
         instance = Instance.objects.order_by("-pk").first()
 
         self.assertFalse(instance.is_encrypted)
+        self.assertEqual(
+            instance.decryption_status, Instance.DecryptionStatus.PLAINTEXT
+        )
 
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"

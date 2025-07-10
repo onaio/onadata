@@ -955,6 +955,24 @@ Example
     curl -X GET https://api.ona.io/api/v1/data/22845?is_encrypted=true
 
 
+Filter submissions using the decryption_status field.
+
+Use ``pending`` to get submissions that are pending decryption, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?decryption_status=failed
+
+
+For submissions that have a status of ``failed``, there exists a ``_decryption_error`` field that contains an error name and message. The following are the possible errors:
+
+- ``MAX_RETRIES_EXCEEDED``: System was unable to decrypt the submission after multiple attempts.
+- ``KMS_KEY_DISABLED``: Encryption key is disabled.
+- ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
+- ``INVALID_SUBMISSION``: Data is corrupted.
+
 Tag a submission data point
 ----------------------------
 
