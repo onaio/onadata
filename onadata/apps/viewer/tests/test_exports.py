@@ -2,6 +2,7 @@
 """
 Test exports
 """
+
 import csv
 import datetime
 import json
@@ -23,7 +24,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import delete_data
-from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
 from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.tasks import create_xlsx_export
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
@@ -1541,3 +1542,48 @@ class TestExports(TestBase):
 
         result_data = clean_keys_of_slashes(data)
         self.assertEqual(expected_data, result_data)
+
+
+class TestGetExportOptionsQueryKwargs(TestBase):
+    """Tests for the `get_export_options_query_kwargs`"""
+
+    def test_get_query_kwargs(self):
+        """Query kwargs are correctly generated"""
+        options = {
+            "binary_select_multiples": True,
+            "dataview_pk": 1,
+            "title": "Test Title",
+            "fields": "field1,field2",
+            "geo_fields": "geo1,geo2",
+            "simple_style": True,
+            "group_delimiter": "/",
+            "include_images": True,
+            "include_labels": True,
+            "include_labels_only": True,
+            "include_hxl": True,
+            "language": "en",
+            "query": "query1",
+            "remove_group_name": True,
+            "show_choice_labels": True,
+            "include_reviews": True,
+            "split_select_multiples": True,
+            "value_select_multiples": True,
+            "win_excel_utf8": True,
+            "repeat_index_tags": ["[", "]"],
+        }
+        expected_query_kwargs = {
+            f"options__{key}": value for key, value in options.items()
+        }
+        query_kwargs = get_export_options_query_kwargs(options)
+        self.assertEqual(query_kwargs, expected_query_kwargs)
+
+    def test_repeat_index_tags_tuple(self):
+        """repeat_index_tags tuple value is converted to list"""
+        options = {
+            "repeat_index_tags": ("[", "]"),
+        }
+        expected_query_kwargs = {
+            "options__repeat_index_tags": ["[", "]"],
+        }
+        query_kwargs = get_export_options_query_kwargs(options)
+        self.assertEqual(query_kwargs, expected_query_kwargs)
