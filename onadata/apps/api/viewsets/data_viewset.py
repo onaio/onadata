@@ -468,7 +468,8 @@ class DataViewSet(
             return Response(serializer.data)
         raise ParseError(_(f"'{_format}' format unknown or not implemented!"))
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
+    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments,\
+    # too-many-positional-arguments
     def _set_pagination_headers(
         self,
         xform: XForm,
