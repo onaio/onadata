@@ -119,7 +119,7 @@ class JsonDataSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         if DECRYPTION_ERROR in instance:
-            instance["_decryption_error"] = {
+            instance[DECRYPTION_ERROR] = {
                 "name": instance[DECRYPTION_ERROR],
                 "message": _(DECRYPTION_FAILURE_MESSAGES[instance[DECRYPTION_ERROR]]),
             }
@@ -226,7 +226,7 @@ class DataInstanceSerializer(serializers.ModelSerializer):
             ret = ret["json"]
 
         if DECRYPTION_ERROR in ret:
-            ret["_decryption_error"] = {
+            ret[DECRYPTION_ERROR] = {
                 "name": ret[DECRYPTION_ERROR],
                 "message": _(DECRYPTION_FAILURE_MESSAGES[ret[DECRYPTION_ERROR]]),
             }
