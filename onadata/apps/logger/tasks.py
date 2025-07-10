@@ -215,6 +215,7 @@ def update_project_date_modified_async(instance_id):
 
 
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         instance = self.get_instance_from_args(args, kwargs)
 
