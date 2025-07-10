@@ -1100,8 +1100,7 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.decryption_status, Instance.DecryptionStatus.FAILED
         )
         self.assertEqual(
-            self.instance.json.get("_decryption_error"),
-            "KMSKey is disabled.",
+            self.instance.json.get("_decryption_error"), "kms_key_disabled"
         )
 
     def test_encryption_key_not_found(self):
@@ -1128,8 +1127,7 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.decryption_status, Instance.DecryptionStatus.FAILED
         )
         self.assertEqual(
-            self.instance.json.get("_decryption_error"),
-            "KMSKey used for encryption not found.",
+            self.instance.json.get("_decryption_error"), "kms_key_not_found"
         )
 
     @patch("onadata.libs.kms.tools.decrypt_submission")
@@ -1153,8 +1151,7 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.decryption_status, Instance.DecryptionStatus.FAILED
         )
         self.assertEqual(
-            self.instance.json.get("_decryption_error"),
-            "Invalid signature.",
+            self.instance.json.get("_decryption_error"), "invalid_submission"
         )
 
 

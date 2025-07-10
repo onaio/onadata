@@ -213,3 +213,17 @@ XFORM_CREATION_EVENT = "XForm created"
 PROJECT_CREATION_EVENT = "Project created"
 USER_CREATION_EVENT = "User account created"
 EXPORT_COLUMNS_REGISTER = "export_columns_register"
+DECRYPTION_FAILURE_MAX_RETRIES = "max_retries_exceeded"
+DECRYPTION_FAILURE_KEY_DISABLED = "kms_key_disabled"
+DECRYPTION_FAILURE_KEY_NOT_FOUND = "kms_key_not_found"
+DECRYPTION_FAILURE_INVALID_SUBMISSION = "invalid_submission"
+DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED = "instance_not_encrypted"
+DECRYPTION_FAILURE_MESSAGES = {
+    DECRYPTION_FAILURE_MAX_RETRIES: _(
+        "System was unable to decrypt the submission after multiple attempts."
+    ),
+    DECRYPTION_FAILURE_KEY_DISABLED: "KMSKey is disabled.",
+    DECRYPTION_FAILURE_KEY_NOT_FOUND: "KMSKey used for encryption not found.",
+    DECRYPTION_FAILURE_INVALID_SUBMISSION: "Corrupted data.",
+    DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: "Instance is not encrypted.",
+}

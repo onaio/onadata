@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
+from celery.exceptions import MaxRetriesExceededError
 from multidb.pinning import use_master
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
@@ -22,11 +23,13 @@ from onadata.libs.kms.tools import (
     decrypt_instance,
     disable_expired_keys,
     rotate_expired_keys,
+    save_decryption_error,
     send_key_grace_expiry_reminder,
     send_key_rotation_reminder,
 )
 from onadata.libs.permissions import set_project_perms_to_object
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
+from onadata.libs.utils.common_tags import DECRYPTION_FAILURE_MAX_RETRIES
 from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
@@ -211,8 +214,28 @@ def update_project_date_modified_async(instance_id):
         update_project_date_modified(instance)
 
 
+class DecryptInstanceAutoRetryTask(AutoRetryTask):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        instance = self.get_instance_from_args(args, kwargs)
+
+        if instance is not None and isinstance(exc, MaxRetriesExceededError):
+            save_decryption_error(instance, DECRYPTION_FAILURE_MAX_RETRIES)
+
+        super().on_failure(exc, task_id, args, kwargs, einfo)
+
+    def get_instance_from_args(self, args, kwargs):
+        instance_id = args[0] if args else kwargs.get("instance_id")
+
+        if instance_id is not None:
+            try:
+                return Instance.objects.get(pk=instance_id)
+            except Instance.DoesNotExist as exc:
+                logger.exception(exc)
+        return None
+
+
 @app.task(
-    base=AutoRetryTask,
+    base=DecryptInstanceAutoRetryTask,
     bind=True,
     autoretry_for=AutoRetryTask.autoretry_for + (ValigettaConnectionException,),
 )
