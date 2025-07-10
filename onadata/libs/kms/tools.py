@@ -462,14 +462,14 @@ def is_instance_encrypted(instance: Instance) -> bool:
     return tree.attrib.get("encrypted") == "yes"
 
 
-def save_decryption_error(instance: Instance, error_code: str):
+def save_decryption_error(instance: Instance, error_name: str):
     """Add decryption error metadata to Instance json.
 
     :param instance: Instance
-    :param error_code: Error code
+    :param error_name: Error code
     """
     json = instance.json
-    json[DECRYPTION_ERROR] = error_code
+    json[DECRYPTION_ERROR] = error_name
     update_fields_directly(
         instance,
         json=json,

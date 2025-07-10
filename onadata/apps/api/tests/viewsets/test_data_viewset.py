@@ -3979,8 +3979,12 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         # Mark the last as failed decryption
         instance = Instance.objects.order_by("-pk").first()
-        instance.decryption_status = "failed"
-        instance.save()
+        json_data = instance.json
+        json_data["_decryption_error"] = "KMS_KEY_NOT_FOUND"
+        Instance.objects.filter(pk=instance.pk).update(
+            json=json_data,
+            decryption_status="failed",
+        )
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -3990,9 +3994,15 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]["_decryption_error"]["name"], "KMS_KEY_NOT_FOUND"
+        )
+        self.assertEqual(
+            response.data[0]["_decryption_error"]["message"],
+            "KMSKey used for encryption not found.",
+        )
 
         # Works with raw SQL query
-
         request = self.factory.get(
             "/",
             data={"sort": '{"_submission_time":1}', "decryption_status": "failed"},
@@ -4001,12 +4011,22 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]["_decryption_error"]["name"], "KMS_KEY_NOT_FOUND"
+        )
+        self.assertEqual(
+            response.data[0]["_decryption_error"]["message"],
+            "KMSKey used for encryption not found.",
+        )
 
-        data = {
-            "fields": '["_id", "age", "net_worth", "imei"]',
-            "decryption_status": "failed",
-        }
-        request = self.factory.get("/", data=data, **self.extra)
+        request = self.factory.get(
+            "/",
+            data={
+                "fields": '["_id", "age", "net_worth", "imei"]',
+                "decryption_status": "failed",
+            },
+            **self.extra,
+        )
         response = view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)

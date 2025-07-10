@@ -20,6 +20,8 @@ from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     DATE_MODIFIED,
+    DECRYPTION_ERROR,
+    DECRYPTION_FAILURE_MESSAGES,
     GEOLOCATION,
     METADATA_FIELDS,
     NOTES,
@@ -116,6 +118,12 @@ class JsonDataSerializer(serializers.Serializer):
         pass
 
     def to_representation(self, instance):
+        if DECRYPTION_ERROR in instance:
+            instance["_decryption_error"] = {
+                "name": instance[DECRYPTION_ERROR],
+                "message": _(DECRYPTION_FAILURE_MESSAGES[instance[DECRYPTION_ERROR]]),
+            }
+
         return instance
 
 
@@ -216,6 +224,13 @@ class DataInstanceSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         if "json" in ret:
             ret = ret["json"]
+
+        if DECRYPTION_ERROR in ret:
+            ret["_decryption_error"] = {
+                "name": ret[DECRYPTION_ERROR],
+                "message": _(DECRYPTION_FAILURE_MESSAGES[ret[DECRYPTION_ERROR]]),
+            }
+
         return ret
 
 
