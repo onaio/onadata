@@ -513,6 +513,7 @@ class DecryptInstanceAsyncTestCase(TestBase):
         mock_logger.assert_called_once()
 
     @patch("onadata.apps.logger.tasks.save_decryption_error")
+    # pylint: disable=unused-argument
     def test_max_retries_exceeded(self, mock_save_decryption_error, mock_decrypt):
         """Instance is tagged as failed decryption if max retries exceeded"""
         decrypt_instance_async.on_failure(

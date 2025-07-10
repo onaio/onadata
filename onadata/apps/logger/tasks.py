@@ -215,8 +215,11 @@ def update_project_date_modified_async(instance_id):
 
 
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
+    """Custom task class for decrypting instances with auto-retry"""
+
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):
+        """Override `on_failure` to save decryption error if max retries exceeded"""
         instance = self.get_instance_from_args(args, kwargs)
 
         if instance is not None and isinstance(exc, MaxRetriesExceededError):
@@ -225,6 +228,7 @@ class DecryptInstanceAutoRetryTask(AutoRetryTask):
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
     def get_instance_from_args(self, args, kwargs):
+        """Get Instance from args or kwargs"""
         instance_id = args[0] if args else kwargs.get("instance_id")
 
         if instance_id is not None:
