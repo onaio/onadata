@@ -83,7 +83,7 @@ SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
     settings, "SUBMISSION_RETRIEVAL_THRESHOLD", 10000
 )
-
+# pylint: disable=too-many-positional-arguments
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -468,8 +468,7 @@ class DataViewSet(
             return Response(serializer.data)
         raise ParseError(_(f"'{_format}' format unknown or not implemented!"))
 
-    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments,\
-    # too-many-positional-arguments
+    # pylint: disable=too-many-locals,too-many-branches,too-many-arguments
     def _set_pagination_headers(
         self,
         xform: XForm,
