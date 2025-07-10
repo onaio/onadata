@@ -955,6 +955,17 @@ Example
     curl -X GET https://api.ona.io/api/v1/data/22845?is_encrypted=true
 
 
+Filter submissions using the decryption_status field.
+
+Use ``pending`` to get submissions that are pending decryption, ``success`` to get submissions that were successfully decrypted, ``failed`` to get submissions that failed decryption.
+
+Example
+^^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?decryption_status=failed
+
+
 Tag a submission data point
 ----------------------------
 

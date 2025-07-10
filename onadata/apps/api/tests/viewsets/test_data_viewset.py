@@ -62,10 +62,10 @@ from onadata.libs.permissions import (
     ReadOnlyRole,
     ReadOnlyRoleNoDownload,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.submission_review_serializer import (
     SubmissionReviewSerializer,
 )
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.logger_tools import create_instance
 
@@ -3972,6 +3972,45 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+
+    def test_decryption_status_query_param(self):
+        """`decryption_status` query param works."""
+        self._make_submissions()
+
+        # Mark the last as failed decryption
+        instance = Instance.objects.order_by("-pk").first()
+        instance.decryption_status = "failed"
+        instance.save()
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/", data={"decryption_status": "failed"}, **self.extra
+        )
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        # Works with raw SQL query
+
+        request = self.factory.get(
+            "/",
+            data={"sort": '{"_submission_time":1}', "decryption_status": "failed"},
+            **self.extra,
+        )
+        response = view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        data = {
+            "fields": '["_id", "age", "net_worth", "imei"]',
+            "decryption_status": "failed",
+        }
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
 
 class TestOSM(TestAbstractViewSet):

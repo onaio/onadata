@@ -198,7 +198,9 @@ def exclude_deleting_submissions_clause(xform_id: int) -> tuple[str, list[int]]:
 
 
 # pylint: disable=too-many-locals
-def build_sql_where(xform, query, start=None, end=None, is_encrypted=None):
+def build_sql_where(
+    xform, query, start=None, end=None, is_encrypted=None, decryption_status=None
+):
     """Build SQL WHERE clause"""
     known_integers = [
         get_name_from_survey_element(e)
@@ -243,6 +245,10 @@ def build_sql_where(xform, query, start=None, end=None, is_encrypted=None):
             " AND logger_xform.is_managed = TRUE)"
         )
 
+    if isinstance(decryption_status, str):
+        sql_where += " AND logger_instance.decryption_status = %s"
+        where_params += [decryption_status]
+
     exclude_sql, exclude_params = exclude_deleting_submissions_clause(xform.pk)
 
     if exclude_sql:
@@ -278,6 +284,7 @@ def get_sql_with_params(
     limit=None,
     json_only=True,
     is_encrypted=None,
+    decryption_status=None,
 ):
     """Returns the SQL and related parameters"""
     sort = _get_sort_fields(sort)
@@ -311,7 +318,9 @@ def get_sql_with_params(
     if not isinstance(is_encrypted, bool):
         sql += " JOIN logger_xform ON logger_instance.xform_id = logger_xform.id"
 
-    sql_where, params = build_sql_where(xform, query, start, end, is_encrypted)
+    sql_where, params = build_sql_where(
+        xform, query, start, end, is_encrypted, decryption_status
+    )
     sql += f" {sql_where}"
 
     # apply sorting
@@ -351,6 +360,7 @@ def query_count(
     date_created_gte=None,
     date_created_lte=None,
     is_encrypted=None,
+    decryption_status=None,
 ):
     """Count number of instances matching query"""
     sql_where, params = build_sql_where(
@@ -359,6 +369,7 @@ def query_count(
         date_created_gte,
         date_created_lte,
         is_encrypted=is_encrypted,
+        decryption_status=decryption_status,
     )
     sql = "SELECT COUNT(logger_instance.id) FROM logger_instance"
 
@@ -384,6 +395,7 @@ def query_fields_data(
     start_index=None,
     limit=None,
     is_encrypted=None,
+    decryption_status=None,
 ):
     """Query the submissions table and return json fields data"""
     sql, params = get_sql_with_params(
@@ -396,6 +408,7 @@ def query_fields_data(
         start_index=start_index,
         limit=limit,
         is_encrypted=is_encrypted,
+        decryption_status=decryption_status,
     )
 
     if isinstance(fields, six.string_types):
@@ -414,6 +427,7 @@ def query_data(
     limit=None,
     json_only: bool = True,
     is_encrypted=None,
+    decryption_status=None,
 ):
     """Query the submissions table and returns the results"""
     sql, params = get_sql_with_params(
@@ -426,6 +440,7 @@ def query_data(
         limit=limit,
         json_only=json_only,
         is_encrypted=is_encrypted,
+        decryption_status=decryption_status,
     )
 
     instances = Instance.objects.raw(sql, params)
