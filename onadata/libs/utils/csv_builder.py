@@ -19,7 +19,6 @@ from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
-from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
@@ -882,9 +881,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                     self.data_dictionary.survey, self.ordered_columns
                 )
                 self._add_ordered_columns_for_repeat_data(ordered_col_cursor)
-                # Register export columns for future use
-                reconstruct_xform_export_register_async.delay(self.xform.pk)
-
             else:
                 serialized_columns = columns_register.extra_data.get("split_multiples")
 

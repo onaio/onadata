@@ -9,7 +9,6 @@ import os
 from builtins import chr, open
 from collections import OrderedDict
 from tempfile import NamedTemporaryFile
-from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
@@ -68,28 +67,22 @@ class TestCSVDataFrameBuilder(TestBase):
     def setUp(self):
         self._create_user_and_login()
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
+
+    @classmethod
+    def setUpClass(cls):
         # Disable signals
         post_save.disconnect(
             sender=DataDictionary, dispatch_uid="create_or_update_export_register"
         )
-        # Patch and start the mock
-        self.patcher = patch(
-            "onadata.libs.utils.csv_builder.reconstruct_xform_export_register_async.delay",
-            autospec=True,
-        )
-        self.mock_register = self.patcher.start()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         # Enable signals
         post_save.connect(
             sender=DataDictionary,
             dispatch_uid="create_or_update_export_register",
             receiver=create_or_update_export_register,
         )
-        # Stop the mock
-        self.patcher.stop()
-
-        super().tearDown()
 
     def _publish_xls_fixture_set_xform(self, fixture):
         """
@@ -2499,5 +2492,3 @@ class TestCSVDataFrameBuilder(TestBase):
         ]
         self.assertEqual(row, expected_row)
         csv_file.close()
-        # Columns registered for future use
-        self.mock_register.assert_called_once_with(xform.pk)

@@ -22,11 +22,11 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
-from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.permissions import DataEntryRole, OwnerRole, ReadOnlyRole
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 
 class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
@@ -995,6 +995,79 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(
             response["Content-Disposition"], 'attachment; filename="transportation.csv"'
         )
+
+    def test_retrieve_xform_media_linked_xform_delimiters(self):
+        """Delimeters for group repeat questions are correct."""
+        xls_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation_1.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_path)
+        self._add_form_metadata(
+            self.xform, "media", f"xform {self.xform.pk} transportation"
+        )
+        xml_submission_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation_w_nested_repeat_groups.xml",
+        )
+        self._make_submission(xml_submission_file_path)
+        self.view = XFormListViewSet.as_view({"get": "media", "head": "media"})
+        request = self.factory.get("/")
+        response = self.view(
+            request, pk=self.xform.pk, metadata=self.metadata.pk, format="csv"
+        )
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.head("/")
+        response = self.view(
+            request, pk=self.xform.pk, metadata=self.metadata.pk, format="csv"
+        )
+        auth = DigestAuth("bob", "bobbob")
+        request = self.factory.get(
+            "/",
+            data={
+                "group_delimiter": ".",
+                "repeat_index_tags": "_,_",
+            },
+        )
+        request.META.update(auth(request.META, response))
+        response = self.view(
+            request, pk=self.xform.pk, metadata=self.metadata.pk, format="csv"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
+        )
+        content = "".join([i.decode("utf-8") for i in response.streaming_content])
+        first_line = content.split("\n")[0]
+        expected_headers = (
+            "hospital.name,"
+            "hospital.hiv_medication.food.cake,"
+            "hospital.hiv_medication.food.cheese,"
+            "hospital.hiv_medication.food.ham,"
+            "hospital.hiv_medication.food.vegetables,"
+            "hospital.hiv_medication.have_hiv_medication,"
+            "hospital.hiv_medication.person_repeat_1_.person.first_name,"
+            "hospital.hiv_medication.person_repeat_1_.person.last_name,"
+            "hospital.hiv_medication.person_repeat_1_.person.age,"
+            "hospital.hiv_medication.person_repeat_2_.person.first_name,"
+            "hospital.hiv_medication.person_repeat_2_.person.last_name,"
+            "hospital.hiv_medication.person_repeat_2_.person.age,"
+            "meta.instanceID,_id,_uuid,_submission_time,_date_modified,_tags,"
+            "_notes,_version,_duration,_submitted_by,_total_media,"
+            "_media_count,_media_all_received"
+        )
+        self.assertEqual(first_line, expected_headers)
 
     def test_retrieve_xform_media_entity_list_dataset(self):
         """EntityList dataset is returned"""
