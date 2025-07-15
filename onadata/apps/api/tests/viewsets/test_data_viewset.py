@@ -1598,42 +1598,37 @@ class TestDataViewSet(SerializeMixin, TestBase):
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
-        patch_value = "onadata.libs.utils.logger_tools.get_filtered_instances"
-        with patch(patch_value) as get_filtered_instances:
-            get_filtered_instances.return_value = Instance.objects.filter(
-                uuid="#doesnotexist"
-            )
-            media_file = "1442323232322.jpg"
-            self._make_submission_w_attachment(
-                submission_file.name,
-                os.path.join(
-                    self.this_directory,
-                    "fixtures",
-                    "transportation",
-                    "instances",
-                    self.surveys[0],
-                    media_file,
-                ),
-            )
-            attachment = Attachment.objects.get(name=media_file)
+        media_file = "1442323232322.jpg"
+        self._make_submission_w_attachment(
+            submission_file.name,
+            os.path.join(
+                self.this_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                self.surveys[0],
+                media_file,
+            ),
+        )
+        attachment = Attachment.objects.get(name=media_file)
 
-            data["_attachments"] = data.get("_attachments") + [
-                {
-                    "download_url": get_attachment_url(attachment),
-                    "small_download_url": get_attachment_url(attachment, "small"),
-                    "medium_download_url": get_attachment_url(attachment, "medium"),
-                    "mimetype": attachment.mimetype,
-                    "instance": attachment.instance.pk,
-                    "filename": attachment.media_file.name,
-                    "name": attachment.name,
-                    "id": attachment.pk,
-                    "xform": xform.id,
-                }
-            ]
-            self.maxDiff = None
-            response = view(request, pk=formid)
-            self.assertDictContainsSubset(sorted([data])[0], sorted(response.data)[0])
-            self.assertEqual(response.status_code, 200)
+        data["_attachments"] = data.get("_attachments") + [
+            {
+                "download_url": get_attachment_url(attachment),
+                "small_download_url": get_attachment_url(attachment, "small"),
+                "medium_download_url": get_attachment_url(attachment, "medium"),
+                "mimetype": attachment.mimetype,
+                "instance": attachment.instance.pk,
+                "filename": attachment.media_file.name,
+                "name": attachment.name,
+                "id": attachment.pk,
+                "xform": xform.id,
+            }
+        ]
+        self.maxDiff = None
+        response = view(request, pk=formid)
+        self.assertDictContainsSubset(sorted([data])[0], sorted(response.data)[0])
+        self.assertEqual(response.status_code, 200)
         submission_file.close()
         os.unlink(submission_file.name)
 
