@@ -444,11 +444,11 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
             Attachment.objects.get_or_create(
                 xform=xform,
                 instance=instance,
-                media_file=f,
                 mimetype=content_type,
                 name=filename,
                 extension=extension,
                 user=instance.user,
+                defaults={"media_file": f},
             )
     if remove_deleted_media:
         instance.soft_delete_attachments()
