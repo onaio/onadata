@@ -1661,3 +1661,41 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             request.META.update(auth(request.META, response))
             response = self.view(request, username=self.user.username)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_duplicate_submission(self):
+        """Submission is not duplicated if it already exists."""
+        # Existing submission
+        survey = self.surveys[0]
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            survey + ".xml",
+        )
+        self._make_submission(submission_path)
+        # Duplicate submission
+        with open(submission_path, "rb") as sf:
+            data = {"xml_submission_file": sf}
+            request = self.factory.post(f"/{self.user.username}/submission", data)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            response = self.view(request, username=self.user.username)
+
+        self.assertContains(
+            response,
+            "Duplicate submission",
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/{self.user.username}/submission",
+        )
+        self.assertEqual(Instance.objects.count(), 1)

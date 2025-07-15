@@ -594,36 +594,21 @@ def create_instance(
 
         return DuplicateInstance()
 
-    try:
-        with transaction.atomic():
-            if isinstance(xml, bytes):
-                xml = xml.decode("utf-8")
-            instance = save_submission(
-                xform,
-                xml,
-                media_files,
-                new_uuid,
-                submitted_by,
-                status,
-                date_created_override,
-                checksum,
-                request,
-            )
-    except IntegrityError:
-        instance = get_first_record(
-            Instance.objects.filter(uuid=new_uuid, xform_id=xform.pk)
+    with transaction.atomic():
+        if isinstance(xml, bytes):
+            xml = xml.decode("utf-8")
+        instance = save_submission(
+            xform,
+            xml,
+            media_files,
+            new_uuid,
+            submitted_by,
+            status,
+            date_created_override,
+            checksum,
+            request,
         )
 
-        if instance:
-            attachment_names = [
-                a.media_file.name.split("/")[-1]
-                for a in Attachment.objects.filter(instance=instance)
-            ]
-            media_files = [f for f in media_files if f.name not in attachment_names]
-            save_attachments(xform, instance, media_files)
-            instance.save()
-
-        instance = DuplicateInstance()
     return instance
 
 
