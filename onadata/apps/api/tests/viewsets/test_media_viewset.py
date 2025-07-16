@@ -125,7 +125,9 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         self.assertEqual(response.url, expected_url)
         filename = self.attachment.media_file.name.split("/")[-1]
         mock_download_url.assert_called_once_with(
-            self.attachment.media_file.name, f'attachment; filename="{filename}"', 3600
+            self.attachment.media_file.name,
+            f'attachment; filename="{filename}"',
+            expires_in=3600,
         )
 
     @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")

@@ -1172,9 +1172,9 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
     """Tests for method `response_with_mimetype_and_name`"""
 
     @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
-    def test_signed_url_full_mime_type(self, mock_get_storages_media_download_url):
+    def test_signed_url_full_mime_type(self, mock_download_url):
         """Signed url is generated for full mime type"""
-        mock_get_storages_media_download_url.return_value = "https://test.com/test.csv"
+        mock_download_url.return_value = "https://test.com/test.csv"
         response = response_with_mimetype_and_name(
             "text/csv",
             "test",
@@ -1184,14 +1184,14 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
             show_date=False,
         )
         self.assertEqual(response.status_code, 302)
-        mock_get_storages_media_download_url.assert_called_once_with(
+        mock_download_url.assert_called_once_with(
             "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
 
     @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
-    def test_signed_url_no_full_mime(self, mock_get_storages_media_download_url):
+    def test_signed_url_no_full_mime(self, mock_download_url):
         """Signed url is generated for no full mime type"""
-        mock_get_storages_media_download_url.return_value = "https://test.com/test.csv"
+        mock_download_url.return_value = "https://test.com/test.csv"
         response = response_with_mimetype_and_name(
             "csv",
             "test",
@@ -1201,6 +1201,6 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
             show_date=False,
         )
         self.assertEqual(response.status_code, 302)
-        mock_get_storages_media_download_url.assert_called_once_with(
+        mock_download_url.assert_called_once_with(
             "test.csv", 'attachment; filename="test.csv"', "application/csv", 3600
         )
