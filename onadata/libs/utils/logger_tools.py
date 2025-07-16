@@ -693,7 +693,7 @@ def safe_create_instance(  # noqa C901
 
 
 def generate_aws_media_url(
-    file_path: str, content_disposition: str, content_type: str, expiration: int = 3600
+    file_path: str, content_disposition=None, content_type=None, expiration: int = 3600
 ):
     """Generate S3 URL."""
     s3_class = storages.create_storage(
@@ -727,7 +727,7 @@ def generate_aws_media_url(
 
 
 def generate_media_url_with_sas(
-    file_path: str, content_disposition: str, content_type: str, expiration: int = 3600
+    file_path: str, content_disposition=None, content_type=None, expiration: int = 3600
 ):
     """
     Generate Azure storage URL.
@@ -754,12 +754,13 @@ def generate_media_url_with_sas(
 
 
 def get_storages_media_download_url(
-    file_path: str, content_disposition: str, content_type: str, expires_in=3600
+    file_path: str, content_disposition: str, content_type=None, expires_in=3600
 ) -> str | None:
     """Get the media download URL for the storages backend.
 
     :param file_path: The path to the media file.
     :param content_disposition: The content disposition header.
+    :param content_type: The content type header.
     :param expires_in: The expiration time in seconds.
     :returns: The media download URL.
     """
@@ -786,7 +787,10 @@ def get_storages_media_download_url(
     if isinstance(default_storage, type(s3_class)):
         try:
             url = generate_aws_media_url(
-                file_path, content_disposition, content_type, expires_in
+                file_path,
+                content_type=content_type,
+                content_disposition=content_disposition,
+                expiration=expires_in,
             )
         except Exception as error:  # pylint: disable=broad-exception-caught
             logging.exception(error)
@@ -795,7 +799,10 @@ def get_storages_media_download_url(
     elif isinstance(default_storage, type(azure_class)):
         try:
             url = generate_media_url_with_sas(
-                file_path, content_disposition, content_type, expires_in
+                file_path,
+                content_type=content_type,
+                content_disposition=content_disposition,
+                expiration=expires_in,
             )
         except Exception as error:  # pylint: disable=broad-exception-caught
             logging.error(error)
