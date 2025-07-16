@@ -35,7 +35,6 @@ from django.db import DataError, IntegrityError, transaction
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
-    HttpResponseRedirect,
     StreamingHttpResponse,
     UnreadablePostError,
 )
@@ -823,11 +822,11 @@ def response_with_mimetype_and_name(
 
     if file_path:
         if not use_local_filesystem:
-            download_url = get_storages_media_download_url(
-                file_path, content_disposition, expires_in
-            )
-            if download_url is not None:
-                return HttpResponseRedirect(download_url)
+            # download_url = get_storages_media_download_url(
+            #     file_path, content_disposition, expires_in
+            # )
+            # if download_url is not None:
+            #     return HttpResponseRedirect(download_url)
 
             try:
                 default_storage = storages["default"]
