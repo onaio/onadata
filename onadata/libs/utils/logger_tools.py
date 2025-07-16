@@ -720,7 +720,7 @@ def generate_aws_media_url(
             "Bucket": bucket_name,
             "Key": file_path,
             "ResponseContentDisposition": content_disposition,
-            "ResponseContentType": content_type,
+            "ResponseContentType": content_type or "application/octet-stream",
         },
         ExpiresIn=expiration,
     )
