@@ -36,6 +36,7 @@ from onadata.libs.utils.logger_tools import (
     get_first_record,
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
+    response_with_mimetype_and_name,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1165,3 +1166,41 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
         self.register.delete()
 
         reconstruct_xform_export_register(self.xform)
+
+
+class ResponseWithMimetypeAndNameTestCase(TestBase):
+    """Tests for method `response_with_mimetype_and_name`"""
+
+    @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
+    def test_signed_url_full_mime_type(self, mock_get_storages_media_download_url):
+        """Signed url is generated for full mime type"""
+        mock_get_storages_media_download_url.return_value = "https://test.com/test.csv"
+        response = response_with_mimetype_and_name(
+            "text/csv",
+            "test",
+            extension="csv",
+            file_path="test.csv",
+            full_mime=True,
+            show_date=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        mock_get_storages_media_download_url.assert_called_once_with(
+            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+        )
+
+    @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
+    def test_signed_url_no_full_mime(self, mock_get_storages_media_download_url):
+        """Signed url is generated for no full mime type"""
+        mock_get_storages_media_download_url.return_value = "https://test.com/test.csv"
+        response = response_with_mimetype_and_name(
+            "csv",
+            "test",
+            extension="csv",
+            file_path="test.csv",
+            full_mime=False,
+            show_date=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        mock_get_storages_media_download_url.assert_called_once_with(
+            "test.csv", 'attachment; filename="test.csv"', "application/csv", 3600
+        )
