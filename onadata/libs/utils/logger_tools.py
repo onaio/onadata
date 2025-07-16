@@ -714,15 +714,17 @@ def generate_aws_media_url(
     )
 
     # Generate a presigned URL for the S3 object
+    params = {
+        "Bucket": bucket_name,
+        "Key": file_path,
+        "ResponseContentType": content_type or "application/octet-stream",
+    }
+
+    if content_disposition:
+        params["ResponseContentDisposition"] = content_disposition
+
     return s3_client.generate_presigned_url(
-        "get_object",
-        Params={
-            "Bucket": bucket_name,
-            "Key": file_path,
-            "ResponseContentDisposition": content_disposition,
-            "ResponseContentType": content_type or "application/octet-stream",
-        },
-        ExpiresIn=expiration,
+        "get_object", Params=params, ExpiresIn=expiration
     )
 
 
