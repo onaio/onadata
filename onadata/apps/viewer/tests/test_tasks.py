@@ -1,44 +1,48 @@
 from datetime import timedelta
 
-from celery import current_app
 from django.conf import settings
 from django.utils import timezone
 
+from celery import current_app
+
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.tasks import create_async_export
-from onadata.apps.viewer.tasks import mark_expired_pending_exports_as_failed
-from onadata.apps.viewer.tasks import delete_expired_failed_exports
+from onadata.apps.viewer.tasks import (
+    create_async_export,
+    delete_expired_failed_exports,
+    mark_expired_pending_exports_as_failed,
+)
 
 
 class TestExportTasks(TestBase):
-
     def setUp(self):
         super(TestExportTasks, self).setUp()
         settings.CELERY_TASK_ALWAYS_EAGER = True
         current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
 
     def test_create_async(self):
-
         self._publish_transportation_form_and_submit_instance()
         self.xform.refresh_from_db()
-        options = {"group_delimiter": "/",
-                   "remove_group_name": False,
-                   "split_select_multiples": True}
-        export_types = ((Export.XLSX_EXPORT, {}),
-                        (Export.GOOGLE_SHEETS_EXPORT, {}),
-                        (Export.CSV_EXPORT, {}),
-                        (Export.CSV_ZIP_EXPORT, {}),
-                        (Export.SAV_ZIP_EXPORT, {}),
-                        (Export.ZIP_EXPORT, {}),
-                        (Export.KML_EXPORT, {}),
-                        (Export.OSM_EXPORT, {}),
-                        (Export.EXTERNAL_EXPORT, {"meta": "j2x.ona.io"}),
-                        )
+        options = {
+            "group_delimiter": "/",
+            "remove_group_name": False,
+            "split_select_multiples": True,
+        }
+        export_types = (
+            (Export.XLSX_EXPORT, {}),
+            (Export.GOOGLE_SHEETS_EXPORT, {}),
+            (Export.CSV_EXPORT, {}),
+            (Export.CSV_ZIP_EXPORT, {}),
+            (Export.SAV_ZIP_EXPORT, {}),
+            (Export.ZIP_EXPORT, {}),
+            (Export.KML_EXPORT, {}),
+            (Export.OSM_EXPORT, {}),
+            (Export.EXTERNAL_EXPORT, {"meta": "j2x.ona.io"}),
+            (Export.GEOJSON_EXPORT, {}),
+        )
 
         for export_type, extra_options in export_types:
-            result = create_async_export(
-                self.xform, export_type, None, False, options)
+            result = create_async_export(self.xform, export_type, None, False, options)
             export = result[0]
             self.assertTrue(export.id)
             self.assertIn("username", options)
@@ -47,10 +51,12 @@ class TestExportTasks(TestBase):
     def test_mark_expired_pending_exports_as_failed(self):
         self._publish_transportation_form_and_submit_instance()
         over_threshold = settings.EXPORT_TASK_LIFESPAN + 2
-        export = Export.objects.create(xform=self.xform,
-                                       export_type=Export.CSV_EXPORT,
-                                       internal_status=Export.PENDING,
-                                       filename="")
+        export = Export.objects.create(
+            xform=self.xform,
+            export_type=Export.CSV_EXPORT,
+            internal_status=Export.PENDING,
+            filename="",
+        )
         # we set created_on here because Export.objects.create() overrides it
         export.created_on = timezone.now() - timedelta(hours=over_threshold)
         export.save()
@@ -61,10 +67,12 @@ class TestExportTasks(TestBase):
     def test_delete_expired_failed_exports(self):
         self._publish_transportation_form_and_submit_instance()
         over_threshold = settings.EXPORT_TASK_LIFESPAN + 2
-        export = Export.objects.create(xform=self.xform,
-                                       export_type=Export.CSV_EXPORT,
-                                       internal_status=Export.FAILED,
-                                       filename="")
+        export = Export.objects.create(
+            xform=self.xform,
+            export_type=Export.CSV_EXPORT,
+            internal_status=Export.FAILED,
+            filename="",
+        )
         # we set created_on here because Export.objects.create() overrides it
         export.created_on = timezone.now() - timedelta(hours=over_threshold)
         export.save()
