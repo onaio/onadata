@@ -693,7 +693,7 @@ def safe_create_instance(  # noqa C901
 
 
 def generate_aws_media_url(
-    file_path: str, content_disposition: str, expiration: int = 3600
+    file_path: str, content_disposition=None, content_type=None, expiration: int = 3600
 ):
     """Generate S3 URL."""
     s3_class = storages.create_storage(
@@ -714,19 +714,23 @@ def generate_aws_media_url(
     )
 
     # Generate a presigned URL for the S3 object
+    params = {
+        "Bucket": bucket_name,
+        "Key": file_path,
+        "ResponseContentType": content_type or "application/octet-stream",
+    }
+
+    if content_disposition:
+        params["ResponseContentDisposition"] = content_disposition
+
     return s3_client.generate_presigned_url(
-        "get_object",
-        Params={
-            "Bucket": bucket_name,
-            "Key": file_path,
-            "ResponseContentDisposition": content_disposition,
-            "ResponseContentType": "application/octet-stream",
-        },
-        ExpiresIn=expiration,
+        "get_object", Params=params, ExpiresIn=expiration
     )
 
 
-def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
+def generate_media_url_with_sas(
+    file_path: str, content_disposition=None, content_type=None, expiration: int = 3600
+):
     """
     Generate Azure storage URL.
     """
@@ -745,17 +749,20 @@ def generate_media_url_with_sas(file_path: str, expiration: int = 3600):
         blob_name=file_path,
         permission=AccountSasPermissions(read=True),
         expiry=timezone.now() + timedelta(seconds=expiration),
+        content_disposition=content_disposition,
+        content_type=content_type,
     )
     return f"{media_url}?{sas_token}"
 
 
 def get_storages_media_download_url(
-    file_path: str, content_disposition: str, expires_in=3600
+    file_path: str, content_disposition: str, content_type=None, expires_in=3600
 ) -> str | None:
     """Get the media download URL for the storages backend.
 
     :param file_path: The path to the media file.
     :param content_disposition: The content disposition header.
+    :param content_type: The content type header.
     :param expires_in: The expiration time in seconds.
     :returns: The media download URL.
     """
@@ -781,14 +788,24 @@ def get_storages_media_download_url(
     # Check if the storage backend is S3
     if isinstance(default_storage, type(s3_class)):
         try:
-            url = generate_aws_media_url(file_path, content_disposition, expires_in)
+            url = generate_aws_media_url(
+                file_path,
+                content_type=content_type,
+                content_disposition=content_disposition,
+                expiration=expires_in,
+            )
         except Exception as error:  # pylint: disable=broad-exception-caught
             logging.exception(error)
 
     # Check if the storage backend is Azure
     elif isinstance(default_storage, type(azure_class)):
         try:
-            url = generate_media_url_with_sas(file_path, expires_in)
+            url = generate_media_url_with_sas(
+                file_path,
+                content_type=content_type,
+                content_disposition=content_disposition,
+                expiration=expires_in,
+            )
         except Exception as error:  # pylint: disable=broad-exception-caught
             logging.error(error)
 
@@ -824,7 +841,7 @@ def response_with_mimetype_and_name(
     if file_path:
         if not use_local_filesystem:
             download_url = get_storages_media_download_url(
-                file_path, content_disposition, expires_in
+                file_path, content_disposition, mimetype, expires_in
             )
             if download_url is not None:
                 return HttpResponseRedirect(download_url)

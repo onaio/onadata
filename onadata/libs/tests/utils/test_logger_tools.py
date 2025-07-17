@@ -7,6 +7,7 @@ import json
 import os
 import re
 from collections import OrderedDict
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import Mock, patch
 
@@ -20,6 +21,7 @@ from django.http.request import HttpRequest
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from azure.storage.blob import AccountSasPermissions
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
@@ -34,8 +36,10 @@ from onadata.libs.utils.logger_tools import (
     delete_xform_submissions,
     generate_content_disposition_header,
     get_first_record,
+    get_storages_media_download_url,
     reconstruct_xform_export_register,
     register_instance_repeat_columns,
+    response_with_mimetype_and_name,
     safe_create_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -1165,3 +1169,124 @@ class ReconstructXFormExportRegisterTestCase(TestBase):
         self.register.delete()
 
         reconstruct_xform_export_register(self.xform)
+
+
+class ResponseWithMimetypeAndNameTestCase(TestBase):
+    """Tests for method `response_with_mimetype_and_name`"""
+
+    @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
+    def test_signed_url_full_mime_type(self, mock_download_url):
+        """Signed url is generated for full mime type"""
+        mock_download_url.return_value = "https://test.com/test.csv"
+        response = response_with_mimetype_and_name(
+            "text/csv",
+            "test",
+            extension="csv",
+            file_path="test.csv",
+            full_mime=True,
+            show_date=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        mock_download_url.assert_called_once_with(
+            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+        )
+
+    @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
+    def test_signed_url_no_full_mime(self, mock_download_url):
+        """Signed url is generated for no full mime type"""
+        mock_download_url.return_value = "https://test.com/test.csv"
+        response = response_with_mimetype_and_name(
+            "csv",
+            "test",
+            extension="csv",
+            file_path="test.csv",
+            full_mime=False,
+            show_date=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        mock_download_url.assert_called_once_with(
+            "test.csv", 'attachment; filename="test.csv"', "application/csv", 3600
+        )
+
+
+class GetStoragesMediaDownloadUrlTestCase(TestBase):
+    """Tests for method `get_storages_media_download_url`"""
+
+    @override_settings(
+        STORAGES={"default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}},
+        AWS_STORAGE_BUCKET_NAME="test-bucket",
+    )
+    @patch("boto3.client")
+    def test_s3_url(self, mock_boto_client):
+        """S3 signed url is generated if default storage is S3"""
+        mock_s3 = mock_boto_client.return_value
+        mock_s3.generate_presigned_url.return_value = "https://test.com/test.csv"
+
+        url = get_storages_media_download_url(
+            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+        )
+
+        self.assertEqual(url, "https://test.com/test.csv")
+        mock_s3.generate_presigned_url.assert_called_once_with(
+            "get_object",
+            Params={
+                "Bucket": "test-bucket",
+                "Key": "test.csv",
+                "ResponseContentDisposition": 'attachment; filename="test.csv"',
+                "ResponseContentType": "text/csv",
+            },
+            ExpiresIn=3600,
+        )
+
+        # Content type is application/octet-stream if not provided
+        mock_s3.generate_presigned_url.reset_mock()
+        url = get_storages_media_download_url(
+            "test.csv", 'attachment; filename="test.csv"', expires_in=3600
+        )
+        self.assertEqual(url, "https://test.com/test.csv")
+        mock_s3.generate_presigned_url.assert_called_once_with(
+            "get_object",
+            Params={
+                "Bucket": "test-bucket",
+                "Key": "test.csv",
+                "ResponseContentDisposition": 'attachment; filename="test.csv"',
+                "ResponseContentType": "application/octet-stream",
+            },
+            ExpiresIn=3600,
+        )
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+        },
+        AZURE_ACCOUNT_NAME="test-account",
+        AZURE_CONTAINER="test-container",
+    )
+    @patch("azure.storage.blob.generate_blob_sas")
+    def test_azure_url(self, mock_generate_blob_sas):
+        """Azure signed url is generated if default storage is Azure"""
+        mock_generate_blob_sas.return_value = "sas-token"
+        mocked_now = timezone.now()
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = mocked_now
+            url = get_storages_media_download_url(
+                "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+            )
+
+        self.assertEqual(
+            url,
+            "https://test-account.blob.core.windows.net/test-container/test.csv?sas-token",
+        )
+        called_kwargs = mock_generate_blob_sas.call_args.kwargs
+
+        self.assertEqual(called_kwargs["account_name"], "test-account")
+        self.assertEqual(called_kwargs["container_name"], "test-container")
+        self.assertEqual(called_kwargs["blob_name"], "test.csv")
+        self.assertEqual(called_kwargs["expiry"], mocked_now + timedelta(seconds=3600))
+        self.assertEqual(
+            called_kwargs["content_disposition"], 'attachment; filename="test.csv"'
+        )
+        self.assertEqual(called_kwargs["content_type"], "text/csv")
+        self.assertIsInstance(called_kwargs["permission"], AccountSasPermissions)
+        self.assertTrue(called_kwargs["permission"].read)

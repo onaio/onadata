@@ -397,7 +397,7 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
 
         if data and self.can_update_cache:
             data = data.strip()
-            cached_manifest: str | None = safe_cache_get(self.cache_key)
+            cached_manifest = safe_cache_get(self.cache_key)
 
             if cached_manifest is not None:
                 cached_manifest += data

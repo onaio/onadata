@@ -217,7 +217,7 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         # pylint: disable=attribute-defined-outside-init
         xform = self.get_object()
         cache_key = f"{XFORM_MANIFEST_CACHE}{xform.pk}"
-        cached_manifest: str | None = safe_cache_get(cache_key)
+        cached_manifest = safe_cache_get(cache_key)
         # Ensure a previous stream has completed updating the cache by
         # confirm the last tag </manifest> exists
         if cached_manifest is not None and cached_manifest.endswith("</manifest>"):

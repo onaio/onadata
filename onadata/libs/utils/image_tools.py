@@ -43,7 +43,7 @@ def generate_media_download_url(obj, expiration: int = 3600):
     # spaces or non-ASCII characters.
     content_disposition = f'attachment; filename="{filename}"'
     download_url = get_storages_media_download_url(
-        file_path, content_disposition, expiration
+        file_path, content_disposition, expires_in=expiration
     )
     if download_url is not None:
         return HttpResponseRedirect(download_url)
