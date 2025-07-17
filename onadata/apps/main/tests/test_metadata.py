@@ -379,7 +379,7 @@ class TestMetaData(TestBase):
         )
 
     @patch("onadata.libs.utils.api_export_tools.include_hxl_row")
-    @patch("onadata.apps.main.models.meta_data.get_columns_with_hxl")
+    @patch("onadata.libs.utils.export_tools.get_columns_with_hxl")
     @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
     def test_generate_link_data_view_hxl_export(

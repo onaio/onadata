@@ -7,6 +7,7 @@ Export tools
 from __future__ import unicode_literals
 
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -1173,3 +1174,28 @@ def get_latest_generic_export(
         return None
 
     return latest_export
+
+
+def get_dataview_export_options(data_view):
+    """
+    Get the export options for a dataview.
+
+    :param data_view: DataView instance
+    :return: Export options
+    """
+    # Avoid circular import
+    api_export_tools = importlib.import_module("onadata.libs.utils.api_export_tools")
+
+    export_options = {
+        "dataview_pk": data_view.pk,
+    }
+
+    xform = data_view.xform
+    columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
+
+    if columns_with_hxl:
+        export_options["include_hxl"] = api_export_tools.include_hxl_row(
+            data_view.columns, list(columns_with_hxl)
+        )
+
+    return export_options

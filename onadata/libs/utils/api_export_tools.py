@@ -63,6 +63,7 @@ from onadata.libs.utils.export_tools import (
     generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
+    get_dataview_export_options,
     get_latest_generic_export,
     get_query_params_from_metadata,
     newest_export_for,
@@ -71,7 +72,6 @@ from onadata.libs.utils.export_tools import (
 )
 from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
 
 # Supported external exports
@@ -163,12 +163,8 @@ def custom_response_handler(  # noqa: C0901
     options["host"] = request.get_host()
 
     if dataview:
-        columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
+        options.update(get_dataview_export_options(dataview))
 
-        if columns_with_hxl:
-            options["include_hxl"] = include_hxl_row(
-                dataview.columns, list(columns_with_hxl)
-            )
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
     except NoRecordsPermission:
