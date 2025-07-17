@@ -67,7 +67,6 @@ class TestFormMetadata(TestBase):
         else:
             self.doc = (
                 MetaData.objects.all()
-                .exclude(data_type="export_columns_register")
                 .exclude(data_type="xform_meta_perms")
                 .reverse()[0]
             )
