@@ -628,9 +628,7 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
 
     if created and instance.is_linked_dataset:
         export_type = api_export_tools.get_metadata_format(instance.data_value)
-        export_metadata_options = (
-            export_tools.get_query_params_from_metadata(instance) or {}
-        )
+        export_metadata_options = export_tools.get_query_params_from_metadata(instance)
         export_request_options = {
             "group_delimiter": ".",
             "repeat_index_tags": ("_", "_"),

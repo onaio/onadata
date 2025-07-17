@@ -651,9 +651,6 @@ def get_query_params_from_metadata(metadata):
     """
     Build out query params to be used in GeoJsonSerializer
     """
-    if metadata is None or metadata.extra_data is None:
-        return None
-
     extra_data = metadata.extra_data
 
     return {

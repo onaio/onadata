@@ -152,12 +152,10 @@ def custom_response_handler(  # noqa: C0901
     ):
         export_type = Export.EXTERNAL_EXPORT
 
-    metadata_query_params = get_query_params_from_metadata(metadata) or {}
+    options = parse_request_export_options(request.query_params)
 
-    options = {
-        **parse_request_export_options(request.query_params),
-        **metadata_query_params,
-    }
+    if metadata is not None:
+        options.update(get_query_params_from_metadata(metadata))
 
     dataview_pk = hasattr(dataview, "pk") and dataview.pk
     options["dataview_pk"] = dataview_pk
