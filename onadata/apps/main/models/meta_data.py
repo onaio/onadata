@@ -640,6 +640,7 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
             **export_metadata_options,
             "dataview_pk": False,
         }
+        xform = None
 
         if instance.data_value.startswith("xform"):
             _, xform_id, _ = instance.data_value.split()
@@ -651,7 +652,9 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
             xform = dataview.xform
             export_options.update(export_tools.get_dataview_export_options(dataview))
 
-        if export_tools.should_create_new_export(xform, export_type, export_options):
+        if xform and export_tools.should_create_new_export(
+            xform, export_type, export_options
+        ):
             api_export_tools.create_export_async(
                 xform, export_type, options=export_options
             )
