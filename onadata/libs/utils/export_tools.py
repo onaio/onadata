@@ -59,7 +59,11 @@ from onadata.apps.viewer.models.parsed_instance import (
 )
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.utils.common_tags import DATAVIEW_EXPORT, GROUPNAME_REMOVED_FLAG
+from onadata.libs.utils.common_tags import (
+    DATAVIEW_EXPORT,
+    GEOJSON_EXTRA_DATA_QUERY_MAP,
+    GROUPNAME_REMOVED_FLAG,
+)
 from onadata.libs.utils.common_tools import (
     cmp_to_key,
     report_exception,
@@ -651,16 +655,10 @@ def get_query_params_from_metadata(metadata):
         return None
 
     extra_data = metadata.extra_data
-    keys_mapping = {
-        "data_geo_field": "geo_field",
-        "data_simple_style": "simple_style",
-        "data_title": "title",
-        "data_fields": "fields",
-    }
 
     return {
         mapped_key: extra_data[original_key]
-        for original_key, mapped_key in keys_mapping.items()
+        for original_key, mapped_key in GEOJSON_EXTRA_DATA_QUERY_MAP.items()
         if original_key in extra_data
     }
 
@@ -669,7 +667,6 @@ def generate_geojson_export(
     export_type,
     username,
     id_string,
-    metadata=None,
     export_id=None,
     options=None,
     xform=None,
@@ -682,14 +679,18 @@ def generate_geojson_export(
     :param id_string: xform id_string
     :param export_id: ID of export object associated with the request
     :param options: additional parameters required for the lookup.
-    :param ext: File extension of the generated export
+    :param xform: XForm to export
     """
 
     extension = options.get("extension", export_type)
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
     request = HttpRequest()
-    request.query_params = get_query_params_from_metadata(metadata)
+    request.query_params = {
+        param: options.get(param)
+        for param in GEOJSON_EXTRA_DATA_QUERY_MAP.values()
+        if param in options
+    }
     _context = {}
     _context["request"] = request
     # filter out deleted submissions

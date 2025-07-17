@@ -226,3 +226,9 @@ DECRYPTION_FAILURE_MESSAGES = {
     DECRYPTION_FAILURE_INVALID_SUBMISSION: _("Corrupted data."),
     DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: _("Instance is not encrypted."),
 }
+GEOJSON_EXTRA_DATA_QUERY_MAP = {
+    "data_geo_field": "geo_field",
+    "data_simple_style": "simple_style",
+    "data_title": "title",
+    "data_fields": "fields",
+}

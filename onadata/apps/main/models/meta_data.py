@@ -6,6 +6,7 @@ MetaData model
 from __future__ import unicode_literals
 
 import hashlib
+import importlib
 import logging
 import mimetypes
 import os
@@ -24,6 +25,8 @@ from django.utils import timezone
 
 import requests
 
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
@@ -35,6 +38,7 @@ from onadata.libs.utils.common_tags import (
     TEXTIT_DETAILS,
     XFORM_META_PERMS,
 )
+from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 ANONYMOUS_USERNAME = "anonymous"
 CHUNK_SIZE = 1024
@@ -614,6 +618,51 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
         instance.content_object.save()
 
 
+def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
+    """
+    Generate a linked dataset for the MetaData instance.
+    """
+    # Avoid circular import
+    export_tools = importlib.import_module("onadata.libs.utils.export_tools")
+    api_export_tools = importlib.import_module("onadata.libs.utils.api_export_tools")
+
+    if created and instance.is_linked_dataset:
+        export_type = api_export_tools.get_metadata_format(instance.data_value)
+        export_metadata_options = (
+            export_tools.get_query_params_from_metadata(instance) or {}
+        )
+        export_request_options = {
+            "group_delimiter": ".",
+            "repeat_index_tags": ("_", "_"),
+        }
+        export_options = {
+            **export_tools.parse_request_export_options(export_request_options),
+            **export_metadata_options,
+        }
+
+        if instance.data_value.startswith("xform"):
+            _, xform_id, _ = instance.data_value.split()
+            xform = XForm.objects.get(pk=xform_id)
+            export_options["dataview_pk"] = False
+
+        elif instance.data_value.startswith("dataview"):
+            _, dataview_id, _ = instance.data_value.split()
+            dataview = DataView.objects.get(pk=dataview_id)
+            xform = dataview.xform
+            export_options["dataview_pk"] = dataview.pk
+            columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
+
+            if columns_with_hxl:
+                export_options["include_hxl"] = api_export_tools.include_hxl_row(
+                    dataview.columns, list(columns_with_hxl)
+                )
+
+        if export_tools.should_create_new_export(xform, export_type, export_options):
+            api_export_tools.create_export_async(
+                xform, export_type, options=export_options
+            )
+
+
 post_save.connect(
     clear_cached_metadata_instance_object,
     sender=MetaData,
@@ -626,4 +675,9 @@ post_delete.connect(
     clear_cached_metadata_instance_object,
     sender=MetaData,
     dispatch_uid="clear_cached_metadata_instance_delete",
+)
+post_save.connect(
+    generate_linked_dataset,
+    sender=MetaData,
+    dispatch_uid="generate_linked_dataset",
 )

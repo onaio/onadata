@@ -2,6 +2,7 @@
 """
 Export tasks.
 """
+
 import sys
 from datetime import timedelta
 
@@ -25,6 +26,7 @@ from onadata.libs.utils.export_tools import (
     generate_attachments_zip_export,
     generate_export,
     generate_external_export,
+    generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
 )
@@ -96,6 +98,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         Export.KML_EXPORT: create_kml_export,
         Export.OSM_EXPORT: create_osm_export,
         Export.EXTERNAL_EXPORT: create_external_export,
+        Export.GEOJSON_EXPORT: create_geojson_export,
     }
 
     # start async export
@@ -416,6 +419,36 @@ def create_google_sheet_export(username, id_string, export_id, **options):
         details = _get_export_details(username, id_string, export_id)
         report_exception(
             "Google Export Exception: Export ID - "
+            "%(export_id)s, /%(username)s/%(id_string)s" % details,
+            error,
+            sys.exc_info(),
+        )
+        raise
+    return gen_export.id
+
+
+@app.task(track_started=True)
+def create_geojson_export(username, id_string, export_id, **options):
+    """
+    GeoJSON export task.
+    """
+    try:
+        export = _get_export_object(export_id)
+        gen_export = generate_geojson_export(
+            Export.GEOJSON_EXPORT,
+            username,
+            id_string,
+            export_id=export_id,
+            options=options,
+            xform=export.xform,
+        )
+    except (Exception, NoRecordsFoundError, ConnectionError) as error:
+        export.internal_status = Export.FAILED
+        export.save()
+        # mail admins
+        details = _get_export_details(username, id_string, export_id)
+        report_exception(
+            "GeoJSON Export Exception: Export ID - "
             "%(export_id)s, /%(username)s/%(id_string)s" % details,
             error,
             sys.exc_info(),

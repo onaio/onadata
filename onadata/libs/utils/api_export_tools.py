@@ -208,7 +208,6 @@ def custom_response_handler(  # noqa: C0901
                 query,
                 export_type,
                 dataview_pk=dataview_pk,
-                metadata=metadata,
                 export_options=options,
             )
 
@@ -257,7 +256,6 @@ def _generate_new_export(  # noqa: C0901
     query,
     export_type,
     dataview_pk=False,
-    metadata=None,
     export_options=None,
 ):
     query = _set_start_end_params(request, query)
@@ -325,7 +323,6 @@ def _generate_new_export(  # noqa: C0901
                 export_type,
                 xform.user.username,
                 xform.id_string,
-                metadata,
                 None,
                 options,
                 xform=xform,
@@ -500,7 +497,7 @@ def process_async_export(request, xform, export_type, options=None):
         or export_type == Export.EXTERNAL_EXPORT
     ):
         resp = {
-            "job_uuid": _create_export_async(
+            "job_uuid": create_export_async(
                 xform, export_type, query, force_xlsx, options=options
             )
         }
@@ -511,7 +508,7 @@ def process_async_export(request, xform, export_type, options=None):
         if not export.filename:
             # tends to happen when using newest_export_for.
             resp = {
-                "job_uuid": _create_export_async(
+                "job_uuid": create_export_async(
                     xform, export_type, query, force_xlsx, options=options
                 )
             }
@@ -521,9 +518,7 @@ def process_async_export(request, xform, export_type, options=None):
     return resp
 
 
-def _create_export_async(
-    xform, export_type, query=None, force_xlsx=False, options=None
-):
+def create_export_async(xform, export_type, query=None, force_xlsx=False, options=None):
     """
     Creates async exports
     :param xform:
