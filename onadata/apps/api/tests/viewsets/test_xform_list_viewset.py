@@ -997,7 +997,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
 
     def test_retrieve_xform_media_linked_xform_delimiters(self):
-        """Delimeters for group repeat questions are correct."""
+        """Appropriate delimiters for group and repeat CSV headers are applied."""
         xls_path = os.path.join(
             settings.PROJECT_ROOT,
             "apps",
