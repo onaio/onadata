@@ -14,13 +14,15 @@ import zipfile
 from collections import OrderedDict
 from ctypes import ArgumentError
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
+from pyxform.question import Question
+from pyxform.survey import Survey
 from savReaderWriter import SavHeaderReader, SavReader
 
 from onadata.apps.logger.import_tools import django_file
@@ -102,13 +104,11 @@ class TestExportBuilder(TestBase):
                             "children/cartoons/characters": [
                                 {
                                     "children/cartoons/characters/name": "Dee Dee",
-                                    "children/cartoons/characters/good_or_evi"
-                                    "l": "good",
+                                    "children/cartoons/characters/good_or_evil": "good",
                                 },
                                 {
                                     "children/cartoons/characters/name": "Dexter",
-                                    "children/cartoons/characters/good_or_evi"
-                                    "l": "evil",
+                                    "children/cartoons/characters/good_or_evil": "evil",
                                 },
                             ],
                         },
@@ -162,14 +162,12 @@ class TestExportBuilder(TestBase):
                                 {
                                     "childrens_survey_with_a_very_lo/cartoons/"
                                     "characters/name": "Dee Dee",
-                                    "children/cartoons/characters/good_or_evi"
-                                    "l": "good",
+                                    "children/cartoons/characters/good_or_evil": "good",
                                 },
                                 {
                                     "childrens_survey_with_a_very_lo/cartoons/"
                                     "characters/name": "Dexter",
-                                    "children/cartoons/characters/good_or_evi"
-                                    "l": "evil",
+                                    "children/cartoons/characters/good_or_evil": "evil",
                                 },
                             ],
                         },
@@ -3736,3 +3734,188 @@ class TestExportBuilder(TestBase):
                 dataview, export_builder.sections[0], "title"
             )
             self.assertEqual(fields, ["name", extra_col])
+
+    def test_none_bind_attribute_with_markdown_survey(self):
+        """Test that None bind attributes from markdown survey are handled gracefully."""
+        # Create a markdown survey that might produce None bind scenarios
+        md = """
+        | survey   |
+        |          | type               | name                    | label                    |
+        |          | text               | respondent_name         | What is your name?       |
+        |          | note               | info_note               | This is just information |
+        |          | begin group        | personal_info           | Personal Information     |
+        |          | integer            | age                     | What is your age?        |
+        |          | note               | age_note                | Age must be accurate     |
+        |          | end group          |                         |                          |
+        |          | text               | comments                | Any comments?            |
+        | choices  |                    |                         |                          |
+        |          | list_name          | name                    | label                    |
+        | settings |                    |                         |                          |
+        |          | form_title         | form_id                 | version                  |
+        |          | Null Bind Test     | null_bind_test          | 1                        |
+        """
+
+        survey = self.md_to_pyxform_survey(md)
+
+        # Manually set bind to None for note elements to simulate the error condition
+        for child in survey.children:
+            if child.type == "note":
+                child.bind = None
+            if hasattr(child, "children"):
+                for grandchild in child.children:
+                    if grandchild.type == "note":
+                        grandchild.bind = None
+
+        # Create export builder and test that it handles None bind gracefully
+        export_builder = ExportBuilder()
+
+        # This should not raise AttributeError: 'NoneType' object has no attribute 'get'
+        try:
+            export_builder.set_survey(survey)
+            success = True
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'get'" in str(e):
+                success = False
+            else:
+                # Re-raise if it's a different AttributeError
+                raise
+
+        self.assertTrue(
+            success, "ExportBuilder should handle None bind attributes gracefully"
+        )
+
+    def test_mixed_bind_attributes(self):
+        """Test survey with mix of valid bind and None bind attributes."""
+        # Create a mock survey with mixed bind scenarios
+        survey = Mock(spec=Survey)
+        survey.name = "mixed_bind_test"
+        survey.children = []
+
+        # Add a normal question with valid bind
+        normal_question = Mock(spec=Question)
+        normal_question.bind = {"type": "string"}
+        normal_question.type = "text"
+        normal_question.name = "normal_field"
+        normal_question.get_xpath.return_value = "normal_field"
+        survey.children.append(normal_question)
+
+        # Add a question with None bind (simulating the error scenario)
+        null_bind_question = Mock(spec=Question)
+        null_bind_question.bind = None
+        null_bind_question.type = "note"
+        null_bind_question.name = "info_note"
+        null_bind_question.get_xpath.return_value = "info_note"
+        survey.children.append(null_bind_question)
+
+        # Create export builder and test handling
+        export_builder = ExportBuilder()
+
+        # This should not crash even with mixed bind scenarios
+        try:
+            export_builder.set_survey(survey)
+            success = True
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'get'" in str(e):
+                success = False
+            else:
+                raise
+
+        self.assertTrue(
+            success, "ExportBuilder should handle mixed bind scenarios gracefully"
+        )
+
+    def test_prosperity_survey_simulation(self):
+        """Test survey structure with metadata fields that have None bind attributes."""
+        # Create a survey structure similar to the one in the error
+        md = """
+        | survey   |
+        |          | type               | name                    | label                          |
+        |          | today              | today                   | Today                          |
+        |          | start              | starttime               | Start Time                     |
+        |          | deviceid           | imei                    | Device ID                      |
+        |          | text               | enumerator              | Please select your name        |
+        |          | text               | enum_name_label         | Enumerator Name Label          |
+        |          | text               | region                  | Please select the region       |
+        |          | text               | district                | Please select the district     |
+        |          | geopoint           | gps                     | Records gps coordinates        |
+        | choices  |                    |                         |                                |
+        |          | list_name          | name                    | label                          |
+        | settings |                    |                         |                                |
+        |          | form_title         | form_id                 | version                        |
+        |          | Metadata Test      | metadata_test           | 1                              |
+        """
+
+        survey = self.md_to_pyxform_survey(md)
+
+        # Simulate the error condition where some elements have None bind
+        for child in survey.children:
+            if child.name in ["today", "starttime", "imei"]:
+                # These metadata fields might have None bind in certain scenarios
+                child.bind = None
+
+        # Create export builder and test
+        export_builder = ExportBuilder()
+
+        # Test that it handles survey structures with None bind attributes without crashing
+        try:
+            export_builder.set_survey(survey)
+            success = True
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'get'" in str(e):
+                success = False
+            else:
+                raise
+
+        self.assertTrue(
+            success,
+            "ExportBuilder should handle survey structures with None bind attributes",
+        )
+
+    def test_none_bind_in_groups_with_markdown(self):
+        """Test None bind handling in grouped elements using markdown."""
+        md = """
+        | survey   |
+        |          | type               | name                    | label                    |
+        |          | text               | participant_name        | Participant Name         |
+        |          | begin group        | demographics            | Demographics             |
+        |          | note               | demo_instructions       | Please answer carefully  |
+        |          | integer            | age                     | Age                      |
+        |          | select_one gender  | gender                  | Gender                   |
+        |          | end group          |                         |                          |
+        |          | begin group        | location_info           | Location Information     |
+        |          | note               | location_note           | GPS coordinates          |
+        |          | geopoint           | location                | Current location         |
+        |          | end group          |                         |                          |
+        | choices  |                    |                         |                          |
+        |          | list_name          | name                    | label                    |
+        |          | gender             | male                    | Male                     |
+        |          | gender             | female                  | Female                   |
+        | settings |                    |                         |                          |
+        |          | form_title         | form_id                 | version                  |
+        |          | Group Test         | group_test              | 1                        |
+        """
+
+        survey = self.md_to_pyxform_survey(md)
+
+        # Simulate None bind for note elements in groups
+        for child in survey.children:
+            if hasattr(child, "children"):
+                for grandchild in child.children:
+                    if grandchild.type == "note":
+                        grandchild.bind = None
+
+        export_builder = ExportBuilder()
+
+        # Test that nested None bind is handled
+        try:
+            export_builder.set_survey(survey)
+            success = True
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'get'" in str(e):
+                success = False
+            else:
+                raise
+
+        self.assertTrue(
+            success, "ExportBuilder should handle None bind in nested groups"
+        )
