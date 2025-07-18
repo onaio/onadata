@@ -16,6 +16,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
+from django.db.models.signals import post_save
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -30,6 +31,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Entity, EntityList, Instance, XForm
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.models.meta_data import generate_linked_dataset
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
@@ -66,6 +68,20 @@ class TestExportTools(TestAbstractViewSet):
     """
     Test export_tools functions.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        # Disable signals
+        post_save.disconnect(sender=MetaData, dispatch_uid="generate_linked_dataset")
+
+    @classmethod
+    def tearDownClass(cls):
+        # Re-enable signals
+        post_save.connect(
+            sender=MetaData,
+            dispatch_uid="generate_linked_dataset",
+            receiver=generate_linked_dataset,
+        )
 
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
@@ -815,9 +831,16 @@ class TestExportTools(TestAbstractViewSet):
         # get metadata instance and pass to geojson export util function
         metadata_qs = self.xform.metadata_set.filter(data_type="media")
         self.assertEqual(metadata_qs.count(), 1)
-        metadata = metadata_qs[0]
+        options = {
+            "extension": "geojson",
+            "title": "fruit",
+            "geo_field": "gps",
+            "simple_style": True,
+            "fields": "fruit,gps",
+        }
+
         export = generate_geojson_export(
-            export_type, username, id_string, metadata, options=options, xform=xform1
+            export_type, username, id_string, options=options, xform=xform1
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
@@ -851,7 +874,6 @@ class TestExportTools(TestAbstractViewSet):
             export_type,
             username,
             id_string,
-            metadata,
             export_id=export_id,
             options=options,
             xform=xform1,
@@ -886,9 +908,6 @@ class TestExportTools(TestAbstractViewSet):
         XFormSerializer(xform1, context={"request": request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
-        options = {
-            "extension": "geojson",
-        }
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
@@ -921,9 +940,15 @@ class TestExportTools(TestAbstractViewSet):
         # get metadata instance and pass to geojson export util function
         metadata_qs = self.xform.metadata_set.filter(data_type="media")
         self.assertEqual(metadata_qs.count(), 1)
-        metadata = metadata_qs[0]
+        options = {
+            "extension": "geojson",
+            "title": "fruit",
+            "geo_field": "gps",
+            "simple_style": True,
+            "fields": "fruit,gps",
+        }
         export = generate_geojson_export(
-            export_type, username, id_string, metadata, options=options, xform=xform1
+            export_type, username, id_string, options=options, xform=xform1
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
