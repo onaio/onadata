@@ -402,24 +402,24 @@ class TestExportTools(TestAbstractViewSet):
         )
 
         self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "start",
-                "fields": "",
-                "simple_style": True,
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.get(xform=self.xform).options,
-        )
+        export = Export.objects.get(xform=self.xform)
+        expected_export_options = {
+            "dataview_pk": False,
+            "title": "start",
+            "fields": "",
+            "geo_field": "qn09",
+            "simple_style": True,
+            "include_hxl": True,
+            "include_images": True,
+            "include_labels": False,
+            "win_excel_utf8": False,
+            "group_delimiter": "/",
+            "include_reviews": False,
+            "remove_group_name": False,
+            "include_labels_only": False,
+            "split_select_multiples": True,
+        }
+        self.assertEqual(export.options, expected_export_options)
         custom_response_handler(
             request,
             self.xform,
@@ -431,24 +431,7 @@ class TestExportTools(TestAbstractViewSet):
         )
         # we still have only one export, we didn't generate another
         self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "start",
-                "fields": "",
-                "simple_style": True,
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.get(xform=self.xform).options,
-        )
+        self.assertEqual(export.options, expected_export_options)
 
         # New metadata will yield a new export
         metadata = MetaData.objects.create(
@@ -480,6 +463,7 @@ class TestExportTools(TestAbstractViewSet):
                 "title": "end",
                 "fields": "",
                 "simple_style": True,
+                "geo_field": "qn09",
                 "include_hxl": True,
                 "include_images": True,
                 "include_labels": False,
