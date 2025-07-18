@@ -1554,7 +1554,7 @@ class TestGetExportOptionsQueryKwargs(TestBase):
             "dataview_pk": 1,
             "title": "Test Title",
             "fields": "field1,field2",
-            "geo_fields": "geo1,geo2",
+            "geo_field": "geofield_1",
             "simple_style": True,
             "group_delimiter": "/",
             "include_images": True,

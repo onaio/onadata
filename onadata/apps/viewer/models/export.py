@@ -15,7 +15,14 @@ from django.db.models.signals import post_delete
 from django.utils.translation import gettext as _
 
 from onadata.libs.utils import async_status
-from onadata.libs.utils.common_tags import OSM, REPEAT_INDEX_TAGS
+from onadata.libs.utils.common_tags import (
+    FIELDS,
+    GEO_FIELD,
+    OSM,
+    REPEAT_INDEX_TAGS,
+    SIMPLE_STYLE,
+    TITLE,
+)
 
 EXPORT_QUERY_KEY = "query"
 
@@ -114,10 +121,10 @@ class ExportBaseModel(models.Model):
     EXPORT_OPTION_FIELDS = [
         "binary_select_multiples",
         "dataview_pk",
-        "title",
-        "fields",
-        "geo_fields",
-        "simple_style",
+        TITLE,
+        FIELDS,
+        GEO_FIELD,
+        SIMPLE_STYLE,
         "group_delimiter",
         "include_images",
         "include_labels",
