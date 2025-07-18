@@ -62,7 +62,7 @@ from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.utils.common_tags import (
     DATAVIEW_EXPORT,
-    GEOJSON_EXTRA_DATA_QUERY_MAP,
+    GEOJSON_EXTRA_DATA_EXPORT_OPTION_MAP,
     GROUPNAME_REMOVED_FLAG,
 )
 from onadata.libs.utils.common_tools import (
@@ -656,7 +656,7 @@ def get_query_params_from_metadata(metadata):
 
     return {
         mapped_key: extra_data[original_key]
-        for original_key, mapped_key in GEOJSON_EXTRA_DATA_QUERY_MAP.items()
+        for original_key, mapped_key in GEOJSON_EXTRA_DATA_EXPORT_OPTION_MAP.items()
         if original_key in extra_data
     }
 
@@ -686,7 +686,7 @@ def generate_geojson_export(
     request = HttpRequest()
     request.query_params = {
         param: options.get(param)
-        for param in GEOJSON_EXTRA_DATA_QUERY_MAP.values()
+        for param in GEOJSON_EXTRA_DATA_EXPORT_OPTION_MAP.values()
         if param in options
     }
     _context = {}
