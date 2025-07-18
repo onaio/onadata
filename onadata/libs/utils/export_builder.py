@@ -522,9 +522,13 @@ class ExportBuilder:
                             remove_group_name,
                             language=language,
                         )
-                elif isinstance(child, Question) and (
-                    child.bind.get("type") not in QUESTION_TYPES_TO_EXCLUDE
-                    and child.type not in QUESTION_TYPES_TO_EXCLUDE  # noqa W503
+                elif (
+                    isinstance(child, Question)
+                    and child.bind is not None
+                    and (
+                        child.bind.get("type") not in QUESTION_TYPES_TO_EXCLUDE
+                        and child.type not in QUESTION_TYPES_TO_EXCLUDE  # noqa W503
+                    )
                 ):
                     # add to survey_sections
                     if isinstance(child, Question):
@@ -546,7 +550,11 @@ class ExportBuilder:
                                 "label": _label,
                                 "title": _title,
                                 "xpath": child_xpath,
-                                "type": child.bind.get("type"),
+                                "type": (
+                                    child.bind.get("type")
+                                    if child.bind is not None
+                                    else None
+                                ),
                             }
                         )
 
@@ -559,7 +567,8 @@ class ExportBuilder:
 
                     # if its a select multiple, make columns out of its choices
                     if (
-                        child.bind.get("type") == SELECT_BIND_TYPE
+                        child.bind is not None
+                        and child.bind.get("type") == SELECT_BIND_TYPE
                         and child.type == MULTIPLE_SELECT_TYPE  # noqa W503
                     ):
                         choices = []
@@ -583,7 +592,10 @@ class ExportBuilder:
                         )
 
                     # split gps fields within this section
-                    if child.bind.get("type") == GEOPOINT_BIND_TYPE:
+                    if (
+                        child.bind is not None
+                        and child.bind.get("type") == GEOPOINT_BIND_TYPE
+                    ):
                         # add columns for geopoint components
                         parent_xpath = get_abbreviated_xpath(child.get_xpath())
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
@@ -638,7 +650,8 @@ class ExportBuilder:
                             xpaths,
                         )
                     if (
-                        child.bind.get("type") == SELECT_BIND_TYPE
+                        child.bind is not None
+                        and child.bind.get("type") == SELECT_BIND_TYPE
                         and child.type == SELECT_ONE  # noqa W503
                     ):
                         _append_xpaths_to_section(
