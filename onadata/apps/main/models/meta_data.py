@@ -628,15 +628,20 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
     if created and instance.is_linked_dataset:
         export_type = api_export_tools.get_metadata_format(instance.data_value)
         export_metadata_options = export_tools.get_query_params_from_metadata(instance)
-        # For external CSV data in XLSForms, (.) is used as the group delimiter and
-        # the repeat index tags are (_).
-        export_options = {
-            **export_tools.parse_request_export_options(
+        export_request_options = {}
+
+        if export_type == "csv":
+            # For external CSV data in XLSForms, period is used as the group delimiter
+            # and the repeat index tags are underscores
+            export_request_options.update(
                 {
                     "group_delimiter": ".",
                     "repeat_index_tags": ("_", "_"),
                 }
-            ),
+            )
+
+        export_options = {
+            **export_tools.parse_request_export_options(export_request_options),
             **export_metadata_options,
             "dataview_pk": False,
         }

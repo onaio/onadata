@@ -200,20 +200,11 @@ class TestMetaData(TestBase):
 
         self.assertIsNone(metadata.deleted_at)
 
-    @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
-    def test_generate_linked_xform_csv_export(
-        self, mock_export_async, mock_parse_options
-    ):
+    def test_generate_linked_xform_csv_export(self, mock_export_async):
         """
         Export is generated if linked CSV dataset is created from an XForm.
         """
-        mock_parse_options.return_value = {
-            "show_choice_labels": False,
-            "split_select_multiples": True,
-            "repeat_index_tags": ("_", "_"),
-            "group_delimiter": ".",
-        }
         MetaData.objects.create(
             data_type="media",
             object_id=self.xform.id,
@@ -226,31 +217,14 @@ class TestMetaData(TestBase):
         self.assertEqual(args[1], "csv")
         self.assertEqual(kwargs["options"]["group_delimiter"], ".")
         self.assertEqual(kwargs["options"]["repeat_index_tags"], ("_", "_"))
-        self.assertEqual(kwargs["options"]["show_choice_labels"], False)
         self.assertEqual(kwargs["options"]["split_select_multiples"], True)
         self.assertEqual(kwargs["options"]["dataview_pk"], False)
 
-        mock_parse_options.assert_called_once_with(
-            {
-                "group_delimiter": ".",
-                "repeat_index_tags": ("_", "_"),
-            }
-        )
-
-    @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
-    def test_generate_linked_xform_geojson_export(
-        self, mock_export_async, mock_parse_options
-    ):
+    def test_generate_linked_xform_geojson_export(self, mock_export_async):
         """
         Export is generated if linked GeoJSON dataset is created from an XForm.
         """
-        mock_parse_options.return_value = {
-            "group_delimiter": ".",
-            "repeat_index_tags": ("_", "_"),
-            "show_choice_labels": False,
-            "split_select_multiples": True,
-        }
         MetaData.objects.create(
             data_type="media",
             object_id=self.xform.id,
@@ -266,37 +240,17 @@ class TestMetaData(TestBase):
         args, kwargs = mock_export_async.call_args
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], "geojson")
-        self.assertEqual(kwargs["options"]["group_delimiter"], ".")
-        self.assertEqual(kwargs["options"]["repeat_index_tags"], ("_", "_"))
-        self.assertEqual(kwargs["options"]["show_choice_labels"], False)
-        self.assertEqual(kwargs["options"]["split_select_multiples"], True)
         self.assertEqual(kwargs["options"]["dataview_pk"], False)
         self.assertEqual(kwargs["options"]["geo_field"], "geo_field_1")
         self.assertEqual(kwargs["options"]["simple_style"], True)
         self.assertEqual(kwargs["options"]["title"], "fruits")
         self.assertEqual(kwargs["options"]["fields"], "field_1,field_2,field_3")
 
-        mock_parse_options.assert_called_once_with(
-            {
-                "group_delimiter": ".",
-                "repeat_index_tags": ("_", "_"),
-            }
-        )
-
-    @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
-    def test_generate_link_data_view_csv_export(
-        self, mock_export_async, mock_parse_options
-    ):
+    def test_generate_link_data_view_csv_export(self, mock_export_async):
         """
         Export is generated if linked CSV dataset is created from a DataView.
         """
-        mock_parse_options.return_value = {
-            "group_delimiter": ".",
-            "repeat_index_tags": ("_", "_"),
-            "show_choice_labels": False,
-            "split_select_multiples": True,
-        }
         data_view = DataView.objects.create(
             xform=self.xform,
             name="transportation",
@@ -314,31 +268,14 @@ class TestMetaData(TestBase):
         self.assertEqual(args[1], "csv")
         self.assertEqual(kwargs["options"]["group_delimiter"], ".")
         self.assertEqual(kwargs["options"]["repeat_index_tags"], ("_", "_"))
-        self.assertEqual(kwargs["options"]["show_choice_labels"], False)
         self.assertEqual(kwargs["options"]["split_select_multiples"], True)
         self.assertEqual(kwargs["options"]["dataview_pk"], data_view.pk)
 
-        mock_parse_options.assert_called_once_with(
-            {
-                "group_delimiter": ".",
-                "repeat_index_tags": ("_", "_"),
-            }
-        )
-
-    @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
-    def test_generate_link_data_view_geojson_export(
-        self, mock_export_async, mock_parse_options
-    ):
+    def test_generate_link_data_view_geojson_export(self, mock_export_async):
         """
         Export is generated if linked GeoJSON dataset is created from a DataView.
         """
-        mock_parse_options.return_value = {
-            "group_delimiter": ".",
-            "repeat_index_tags": ("_", "_"),
-            "show_choice_labels": False,
-            "split_select_multiples": True,
-        }
         data_view = DataView.objects.create(
             xform=self.xform,
             name="transportation",
@@ -361,43 +298,21 @@ class TestMetaData(TestBase):
         args, kwargs = mock_export_async.call_args
         self.assertEqual(args[0], self.xform)
         self.assertEqual(args[1], "geojson")
-        self.assertEqual(kwargs["options"]["group_delimiter"], ".")
-        self.assertEqual(kwargs["options"]["repeat_index_tags"], ("_", "_"))
-        self.assertEqual(kwargs["options"]["show_choice_labels"], False)
-        self.assertEqual(kwargs["options"]["split_select_multiples"], True)
         self.assertEqual(kwargs["options"]["dataview_pk"], data_view.pk)
         self.assertEqual(kwargs["options"]["geo_field"], "geo_field_1")
         self.assertEqual(kwargs["options"]["simple_style"], True)
         self.assertEqual(kwargs["options"]["title"], "fruits")
         self.assertEqual(kwargs["options"]["fields"], "field_1,field_2,field_3")
 
-        mock_parse_options.assert_called_once_with(
-            {
-                "group_delimiter": ".",
-                "repeat_index_tags": ("_", "_"),
-            }
-        )
-
     @patch("onadata.libs.utils.api_export_tools.include_hxl_row")
     @patch("onadata.libs.utils.export_tools.get_columns_with_hxl")
-    @patch("onadata.libs.utils.export_tools.parse_request_export_options")
     @patch("onadata.libs.utils.api_export_tools.create_export_async")
     def test_generate_link_data_view_hxl_export(
-        self,
-        mock_export_async,
-        mock_parse_options,
-        mock_get_hxl_cols,
-        mock_hxl_row,
+        self, mock_export_async, mock_get_hxl_cols, mock_hxl_row
     ):
         """
         Export is generated with include_hxl set to True if dataview has HXL columns.
         """
-        mock_parse_options.return_value = {
-            "group_delimiter": ".",
-            "repeat_index_tags": ("_", "_"),
-            "show_choice_labels": False,
-            "split_select_multiples": True,
-        }
         mock_get_hxl_cols.return_value = ["column1", "column2", "column3"]
         mock_hxl_row.return_value = True
         data_view = DataView.objects.create(
