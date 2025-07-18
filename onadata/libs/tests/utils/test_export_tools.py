@@ -378,7 +378,7 @@ class TestExportTools(TestAbstractViewSet):
 
         request = RequestFactory().get("/")
         request.user = self.user
-        request.query_params = options = {}
+        request.query_params = {}
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(XForm),
             data_type="media",
@@ -405,10 +405,6 @@ class TestExportTools(TestAbstractViewSet):
         export = Export.objects.get(xform=self.xform)
         expected_export_options = {
             "dataview_pk": False,
-            "title": "start",
-            "fields": "",
-            "geo_field": "qn09",
-            "simple_style": True,
             "include_hxl": True,
             "include_images": True,
             "include_labels": False,
@@ -419,6 +415,12 @@ class TestExportTools(TestAbstractViewSet):
             "include_labels_only": False,
             "split_select_multiples": True,
         }
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in metadata.extra_data.items()
+            if key.startswith("data_")
+        }
+        expected_export_options.update(metadata_export_options)
         self.assertEqual(export.options, expected_export_options)
         custom_response_handler(
             request,
@@ -455,27 +457,16 @@ class TestExportTools(TestAbstractViewSet):
             dataview=False,
             metadata=metadata,
         )
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in metadata.extra_data.items()
+            if key.startswith("data_")
+        }
+        expected_export_options.update(metadata_export_options)
         # we generated a new export since the extra_data has been updated
         self.assertEqual(2, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "end",
-                "fields": "",
-                "simple_style": True,
-                "geo_field": "qn09",
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.filter(xform=self.xform).last().options,
-        )
+        export = Export.objects.filter(xform=self.xform).last()
+        self.assertEqual(export.options, expected_export_options)
 
     def test_should_create_new_export_when_filter_defined(self):
         export_type = "csv"
@@ -793,9 +784,6 @@ class TestExportTools(TestAbstractViewSet):
         XFormSerializer(xform1, context={"request": request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
-        options = {
-            "extension": "geojson",
-        }
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
@@ -817,12 +805,13 @@ class TestExportTools(TestAbstractViewSet):
         self.assertEqual(metadata_qs.count(), 1)
         options = {
             "extension": "geojson",
-            "title": "fruit",
-            "geo_field": "gps",
-            "simple_style": True,
-            "fields": "fruit,gps",
         }
-
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in extra_data.items()
+            if key.startswith("data_")
+        }
+        options.update(metadata_export_options)
         export = generate_geojson_export(
             export_type, username, id_string, options=options, xform=xform1
         )
@@ -926,11 +915,13 @@ class TestExportTools(TestAbstractViewSet):
         self.assertEqual(metadata_qs.count(), 1)
         options = {
             "extension": "geojson",
-            "title": "fruit",
-            "geo_field": "gps",
-            "simple_style": True,
-            "fields": "fruit,gps",
         }
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in extra_data.items()
+            if key.startswith("data_")
+        }
+        options.update(metadata_export_options)
         export = generate_geojson_export(
             export_type, username, id_string, options=options, xform=xform1
         )
