@@ -226,13 +226,13 @@ DECRYPTION_FAILURE_MESSAGES = {
     DECRYPTION_FAILURE_INVALID_SUBMISSION: _("Corrupted data."),
     DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED: _("Instance is not encrypted."),
 }
-GEO_FIELD = "geo_field"
-SIMPLE_STYLE = "simple_style"
-TITLE = "title"
-FIELDS = "fields"
+EXPORT_OPTION_GEO_FIELD = "geo_field"
+EXPORT_OPTION_SIMPLE_STYLE = "simple_style"
+EXPORT_OPTION_TITLE = "title"
+EXPORT_OPTION_FIELDS = "fields"
 GEOJSON_EXTRA_DATA_EXPORT_OPTION_MAP = {
-    "data_geo_field": GEO_FIELD,
-    "data_simple_style": SIMPLE_STYLE,
-    "data_title": TITLE,
-    "data_fields": FIELDS,
+    "data_geo_field": EXPORT_OPTION_GEO_FIELD,
+    "data_simple_style": EXPORT_OPTION_SIMPLE_STYLE,
+    "data_title": EXPORT_OPTION_TITLE,
+    "data_fields": EXPORT_OPTION_FIELDS,
 }

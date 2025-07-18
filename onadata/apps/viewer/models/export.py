@@ -16,12 +16,12 @@ from django.utils.translation import gettext as _
 
 from onadata.libs.utils import async_status
 from onadata.libs.utils.common_tags import (
-    FIELDS,
-    GEO_FIELD,
+    EXPORT_OPTION_FIELDS,
+    EXPORT_OPTION_GEO_FIELD,
+    EXPORT_OPTION_SIMPLE_STYLE,
+    EXPORT_OPTION_TITLE,
     OSM,
     REPEAT_INDEX_TAGS,
-    SIMPLE_STYLE,
-    TITLE,
 )
 
 EXPORT_QUERY_KEY = "query"
@@ -121,10 +121,10 @@ class ExportBaseModel(models.Model):
     EXPORT_OPTION_FIELDS = [
         "binary_select_multiples",
         "dataview_pk",
-        TITLE,
-        FIELDS,
-        GEO_FIELD,
-        SIMPLE_STYLE,
+        EXPORT_OPTION_TITLE,
+        EXPORT_OPTION_FIELDS,
+        EXPORT_OPTION_GEO_FIELD,
+        EXPORT_OPTION_SIMPLE_STYLE,
         "group_delimiter",
         "include_images",
         "include_labels",
