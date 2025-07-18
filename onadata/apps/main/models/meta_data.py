@@ -619,7 +619,7 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
 
 def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
     """
-    Generate a linked dataset for the MetaData instance.
+    Generate dataset if the MetaData instance is a linked dataset.
     """
     # Avoid circular import
     export_tools = importlib.import_module("onadata.libs.utils.export_tools")
