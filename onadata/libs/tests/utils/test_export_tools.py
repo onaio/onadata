@@ -16,6 +16,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
+from django.db.models.signals import post_save
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -30,6 +31,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment, Entity, EntityList, Instance, XForm
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.models.meta_data import generate_linked_dataset
 from onadata.apps.viewer.models.export import Export, GenericExport
 from onadata.apps.viewer.models.parsed_instance import query_fields_data
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
@@ -66,6 +68,20 @@ class TestExportTools(TestAbstractViewSet):
     """
     Test export_tools functions.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        # Disable signals
+        post_save.disconnect(sender=MetaData, dispatch_uid="generate_linked_dataset")
+
+    @classmethod
+    def tearDownClass(cls):
+        # Re-enable signals
+        post_save.connect(
+            sender=MetaData,
+            dispatch_uid="generate_linked_dataset",
+            receiver=generate_linked_dataset,
+        )
 
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
@@ -362,7 +378,7 @@ class TestExportTools(TestAbstractViewSet):
 
         request = RequestFactory().get("/")
         request.user = self.user
-        request.query_params = options = {}
+        request.query_params = {}
         metadata = MetaData.objects.create(
             content_type=ContentType.objects.get_for_model(XForm),
             data_type="media",
@@ -386,24 +402,26 @@ class TestExportTools(TestAbstractViewSet):
         )
 
         self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "start",
-                "fields": "",
-                "simple_style": True,
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.get(xform=self.xform).options,
-        )
+        export = Export.objects.get(xform=self.xform)
+        expected_export_options = {
+            "dataview_pk": False,
+            "include_hxl": True,
+            "include_images": True,
+            "include_labels": False,
+            "win_excel_utf8": False,
+            "group_delimiter": "/",
+            "include_reviews": False,
+            "remove_group_name": False,
+            "include_labels_only": False,
+            "split_select_multiples": True,
+        }
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in metadata.extra_data.items()
+            if key.startswith("data_")
+        }
+        expected_export_options.update(metadata_export_options)
+        self.assertEqual(export.options, expected_export_options)
         custom_response_handler(
             request,
             self.xform,
@@ -415,24 +433,7 @@ class TestExportTools(TestAbstractViewSet):
         )
         # we still have only one export, we didn't generate another
         self.assertEqual(1, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "start",
-                "fields": "",
-                "simple_style": True,
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.get(xform=self.xform).options,
-        )
+        self.assertEqual(export.options, expected_export_options)
 
         # New metadata will yield a new export
         metadata = MetaData.objects.create(
@@ -456,26 +457,16 @@ class TestExportTools(TestAbstractViewSet):
             dataview=False,
             metadata=metadata,
         )
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in metadata.extra_data.items()
+            if key.startswith("data_")
+        }
+        expected_export_options.update(metadata_export_options)
         # we generated a new export since the extra_data has been updated
         self.assertEqual(2, Export.objects.filter(xform=self.xform).count())
-        self.assertEqual(
-            {
-                "dataview_pk": False,
-                "title": "end",
-                "fields": "",
-                "simple_style": True,
-                "include_hxl": True,
-                "include_images": True,
-                "include_labels": False,
-                "win_excel_utf8": False,
-                "group_delimiter": "/",
-                "include_reviews": False,
-                "remove_group_name": False,
-                "include_labels_only": False,
-                "split_select_multiples": True,
-            },
-            Export.objects.filter(xform=self.xform).last().options,
-        )
+        export = Export.objects.filter(xform=self.xform).last()
+        self.assertEqual(export.options, expected_export_options)
 
     def test_should_create_new_export_when_filter_defined(self):
         export_type = "csv"
@@ -793,9 +784,6 @@ class TestExportTools(TestAbstractViewSet):
         XFormSerializer(xform1, context={"request": request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
-        options = {
-            "extension": "geojson",
-        }
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
@@ -815,9 +803,17 @@ class TestExportTools(TestAbstractViewSet):
         # get metadata instance and pass to geojson export util function
         metadata_qs = self.xform.metadata_set.filter(data_type="media")
         self.assertEqual(metadata_qs.count(), 1)
-        metadata = metadata_qs[0]
+        options = {
+            "extension": "geojson",
+        }
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in extra_data.items()
+            if key.startswith("data_")
+        }
+        options.update(metadata_export_options)
         export = generate_geojson_export(
-            export_type, username, id_string, metadata, options=options, xform=xform1
+            export_type, username, id_string, options=options, xform=xform1
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
@@ -851,7 +847,6 @@ class TestExportTools(TestAbstractViewSet):
             export_type,
             username,
             id_string,
-            metadata,
             export_id=export_id,
             options=options,
             xform=xform1,
@@ -886,9 +881,6 @@ class TestExportTools(TestAbstractViewSet):
         XFormSerializer(xform1, context={"request": request}).data
         xform1 = XForm.objects.get(id_string="a")
         export_type = "geojson"
-        options = {
-            "extension": "geojson",
-        }
         self._publish_transportation_form_and_submit_instance()
         # set metadata to xform
         data_type = "media"
@@ -921,9 +913,17 @@ class TestExportTools(TestAbstractViewSet):
         # get metadata instance and pass to geojson export util function
         metadata_qs = self.xform.metadata_set.filter(data_type="media")
         self.assertEqual(metadata_qs.count(), 1)
-        metadata = metadata_qs[0]
+        options = {
+            "extension": "geojson",
+        }
+        metadata_export_options = {
+            key.replace("data_", ""): value
+            for key, value in extra_data.items()
+            if key.startswith("data_")
+        }
+        options.update(metadata_export_options)
         export = generate_geojson_export(
-            export_type, username, id_string, metadata, options=options, xform=xform1
+            export_type, username, id_string, options=options, xform=xform1
         )
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)

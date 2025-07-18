@@ -18,8 +18,6 @@ from onadata.apps.logger.tasks import (
     commit_cached_xform_num_of_decrypted_submissions_async,
     decrypt_instance_async,
     disable_expired_keys_async,
-    reconstruct_xform_export_register_async,
-    register_instance_repeat_columns_async,
     rotate_expired_keys_async,
     send_key_grace_expiry_reminder_async,
     send_key_rotation_reminder_async,
@@ -157,99 +155,6 @@ class CommitEListNumEntitiesAsyncTestCase(TestBase):
                 # Reset mocks for next iteration
                 mock_retry.reset_mock()
                 mock_commit.reset_mock()
-
-
-@patch("onadata.apps.logger.tasks.register_instance_repeat_columns")
-class RegisterInstanceRepeatColumnsAsyncTestCase(TestBase):
-    """Tests for register_instance_repeat_columns_async"""
-
-    def setUp(self):
-        super().setUp()
-
-        self._publish_transportation_form()
-        self._submit_transport_instance()
-        self.instance = self.xform.instances.first()
-
-    def test_register_columns(self, mock_register):
-        """Columns are registered"""
-        register_instance_repeat_columns_async.delay(self.instance.pk)
-        mock_register.assert_called_once_with(self.instance)
-
-    @patch("onadata.apps.logger.tasks.register_instance_repeat_columns_async.retry")
-    def test_retry_exceptions(self, mock_retry, mock_register):
-        """ConnectionError and DatabaseError exceptions are retried"""
-        test_cases = [
-            (ConnectionError, "ConnectionError"),
-            (DatabaseError, "DatabaseError"),
-            (OperationalError, "OperationalError"),
-        ]
-
-        for exception_class, exception_name in test_cases:
-            with self.subTest(exception=exception_name):
-                mock_register.side_effect = exception_class
-                register_instance_repeat_columns_async.delay(self.instance.pk)
-
-                self.assertTrue(mock_retry.called)
-
-                _, kwargs = mock_retry.call_args_list[0]
-                self.assertTrue(isinstance(kwargs["exc"], exception_class))
-
-                # Reset mocks for next iteration
-                mock_retry.reset_mock()
-                mock_register.reset_mock()
-
-    @patch("onadata.apps.logger.tasks.logger.exception")
-    def test_invalid_pk(self, mock_logger, mock_register):
-        """Invalid Instance primary key is handled"""
-        register_instance_repeat_columns_async.delay(sys.maxsize)
-        mock_register.assert_not_called()
-        mock_logger.assert_called_once()
-
-
-@patch("onadata.apps.logger.tasks.reconstruct_xform_export_register")
-class ReconstructXFormExportRegisterAsyncTestCase(TestBase):
-    """Tests for register_xform_export_register_async"""
-
-    def setUp(self):
-        super().setUp()
-
-        self._publish_transportation_form()
-        self._submit_transport_instance()
-
-    def test_register_columns(self, mock_register):
-        """Columns are registered"""
-        reconstruct_xform_export_register_async.delay(self.xform.pk)
-        mock_register.assert_called_once_with(self.xform)
-
-    @patch("onadata.apps.logger.tasks.reconstruct_xform_export_register_async.retry")
-    def test_retry_exceptions(self, mock_retry, mock_register):
-        """ConnectionError and DatabaseError exceptions are retried"""
-        test_cases = [
-            (ConnectionError, "ConnectionError"),
-            (DatabaseError, "DatabaseError"),
-            (OperationalError, "OperationalError"),
-        ]
-
-        for exception_class, exception_name in test_cases:
-            with self.subTest(exception=exception_name):
-                mock_register.side_effect = exception_class
-                reconstruct_xform_export_register_async.delay(self.xform.pk)
-
-                self.assertTrue(mock_retry.called)
-
-                _, kwargs = mock_retry.call_args_list[0]
-                self.assertTrue(isinstance(kwargs["exc"], exception_class))
-
-                # Reset mocks for next iteration
-                mock_retry.reset_mock()
-                mock_register.reset_mock()
-
-    @patch("onadata.apps.logger.tasks.logger.exception")
-    def test_invalid_pk(self, mock_logger, mock_register):
-        """Invalid XForm primary key is handled"""
-        reconstruct_xform_export_register_async.delay(sys.maxsize)
-        mock_register.assert_not_called()
-        mock_logger.assert_called_once()
 
 
 @patch("onadata.apps.logger.tasks.rotate_expired_keys")

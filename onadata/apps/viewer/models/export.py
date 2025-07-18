@@ -2,8 +2,8 @@
 """
 Export model.
 """
-import os
 
+import os
 from tempfile import NamedTemporaryFile
 
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -14,8 +14,15 @@ from django.db.models import JSONField
 from django.db.models.signals import post_delete
 from django.utils.translation import gettext as _
 
-from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import async_status
+from onadata.libs.utils.common_tags import (
+    EXPORT_OPTION_FIELDS,
+    EXPORT_OPTION_GEO_FIELD,
+    EXPORT_OPTION_SIMPLE_STYLE,
+    EXPORT_OPTION_TITLE,
+    OSM,
+    REPEAT_INDEX_TAGS,
+)
 
 EXPORT_QUERY_KEY = "query"
 
@@ -38,7 +45,10 @@ def get_export_options_query_kwargs(options):
     options_kwargs = {}
     for field in Export.EXPORT_OPTION_FIELDS:
         if field in options:
-            field_value = options.get(field)
+            if field == REPEAT_INDEX_TAGS:
+                field_value = list(options.get(field))
+            else:
+                field_value = options.get(field)
 
             key = f"options__{field}"
             options_kwargs[key] = field_value
@@ -111,10 +121,10 @@ class ExportBaseModel(models.Model):
     EXPORT_OPTION_FIELDS = [
         "binary_select_multiples",
         "dataview_pk",
-        "title",
-        "fields",
-        "geo_fields",
-        "simple_style",
+        EXPORT_OPTION_TITLE,
+        EXPORT_OPTION_FIELDS,
+        EXPORT_OPTION_GEO_FIELD,
+        EXPORT_OPTION_SIMPLE_STYLE,
         "group_delimiter",
         "include_images",
         "include_labels",
@@ -128,6 +138,7 @@ class ExportBaseModel(models.Model):
         "split_select_multiples",
         "value_select_multiples",
         "win_excel_utf8",
+        REPEAT_INDEX_TAGS,
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)

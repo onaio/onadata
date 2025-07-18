@@ -13,7 +13,6 @@ from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
-from django.db.models.signals import post_save
 from django.test import TestCase
 
 import requests
@@ -47,10 +46,7 @@ from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main import tests as main_tests
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.common_tools import merge_dicts
 
 # pylint: disable=invalid-name
@@ -138,20 +134,6 @@ class TestAbstractViewSet(TestBase, TestCase):
         self.factory = APIRequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
-        # Disable signals
-        post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_or_update_export_register"
-        )
-
-    def tearDown(self):
-        # Enable signals
-        post_save.connect(
-            sender=DataDictionary,
-            dispatch_uid="create_or_update_export_register",
-            receiver=create_or_update_export_register,
-        )
-
-        TestCase.tearDown(self)
 
     def user_profile_data(self):
         """Returns the user profile python object."""

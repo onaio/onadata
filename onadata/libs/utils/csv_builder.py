@@ -3,12 +3,10 @@
 CSV export utility functions.
 """
 
-import json
 from collections import OrderedDict
 from itertools import chain, tee
 
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext as _
 
 import unicodecsv as csv
@@ -19,8 +17,6 @@ from six import iteritems
 
 from onadata.apps.logger.models import EntityList, OsmData
 from onadata.apps.logger.models.xform import XForm, question_types_to_exclude
-from onadata.apps.logger.tasks import reconstruct_xform_export_register_async
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
@@ -29,7 +25,6 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT,
     DURATION,
     EDITED,
-    EXPORT_COLUMNS_REGISTER,
     GEOLOCATION,
     ID,
     MEDIA_ALL_RECEIVED,
@@ -866,37 +861,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         columns_with_hxl = None
 
         if self.entity_list is None:
-            content_type = ContentType.objects.get_for_model(self.xform)
             # creator copy of iterator cursor
             cursor, ordered_col_cursor = tee(cursor)
 
-            try:
-                columns_register = MetaData.objects.get(
-                    content_type=content_type,
-                    object_id=self.xform.pk,
-                    data_type=EXPORT_COLUMNS_REGISTER,
-                )
-
-            except MetaData.DoesNotExist:
-                self._build_ordered_columns(
-                    self.data_dictionary.survey, self.ordered_columns
-                )
-                self._add_ordered_columns_for_repeat_data(ordered_col_cursor)
-                # Register export columns for future use
-                reconstruct_xform_export_register_async.delay(self.xform.pk)
-
-            else:
-                serialized_columns = columns_register.extra_data.get("split_multiples")
-
-                if not self.split_select_multiples:
-                    serialized_columns = columns_register.extra_data.get(
-                        "merged_multiples"
-                    )
-
-                self.ordered_columns = json.loads(
-                    serialized_columns, object_pairs_hook=OrderedDict
-                )
-
+            self._build_ordered_columns(
+                self.data_dictionary.survey, self.ordered_columns
+            )
+            self._add_ordered_columns_for_repeat_data(ordered_col_cursor)
             self._add_ordered_columns_for_select_multiples()
             self._add_ordered_columns_for_gps_fields()
             # Unpack xform columns and data

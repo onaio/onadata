@@ -456,28 +456,6 @@ post_save.connect(
 )
 
 
-def create_or_update_export_register(sender, instance=None, created=False, **kwargs):
-    """Create or update export columns register for the form"""
-    # Avoid cyclic import by using importlib
-    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-
-    MetaData.update_or_create_export_register(instance)
-
-    if not created:
-        transaction.on_commit(
-            lambda: logger_tasks.reconstruct_xform_export_register_async.delay(
-                instance.pk
-            )
-        )
-
-
-post_save.connect(
-    create_or_update_export_register,
-    sender=DataDictionary,
-    dispatch_uid="create_or_update_export_register",
-)
-
-
 def auto_encrypt_xform(sender, instance, created, **kwargs):
     """Automatically encrypt published XForm using managed keys."""
     # Avoid cyclic import by using importlib

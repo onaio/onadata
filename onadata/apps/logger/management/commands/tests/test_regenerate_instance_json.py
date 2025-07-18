@@ -1,15 +1,15 @@
 """Tests for management command regenerate_instance_json"""
-from io import StringIO
 
-from unittest.mock import patch, call
+from io import StringIO
+from unittest.mock import call, patch
+
+from django.core.cache import cache
+from django.core.management import call_command
 
 from celery.result import AsyncResult
 
-from django.core.management import call_command
-from django.core.cache import cache
-
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
+from onadata.apps.main.tests.test_base import TestBase
 
 # pylint: disable=line-too-long
 
@@ -47,23 +47,23 @@ class RegenerateInstanceJsonTestCase(TestBase):
     def test_multiple_form_ids(self, mock_regenerate):
         """Command supports multiple forms"""
         self._publish_xlsx_file_with_external_choices()
-        form2 = XForm.objects.all()[1]
+        xform_2 = XForm.objects.last()
         mock_regenerate.apply_async.side_effect = [
             AsyncResult("f78ef7bb-873f-4a28-bc8a-865da43a741f"),
             AsyncResult("ca760839-d2d9-4244-938f-e884880ac0b4"),
         ]
         call_command(
-            "regenerate_instance_json", (self.xform.pk, form2.pk), stdout=self.out
+            "regenerate_instance_json", (self.xform.pk, xform_2.pk), stdout=self.out
         )
         self.assertIn(f"Regeneration for {self.xform.pk} STARTED", self.out.getvalue())
-        self.assertIn(f"Regeneration for {form2.pk} STARTED", self.out.getvalue())
+        self.assertIn(f"Regeneration for {xform_2.pk} STARTED", self.out.getvalue())
         mock_regenerate.apply_async.assert_has_calls(
-            [call(args=[self.xform.pk]), call(args=[form2.pk])]
+            [call(args=[self.xform.pk]), call(args=[xform_2.pk])]
         )
         self.assertEqual(
             cache.get(self.cache_key), "f78ef7bb-873f-4a28-bc8a-865da43a741f"
         )
-        form2_cache = f"xfm-regenerate_instance_json_task-{form2.pk}"
+        form2_cache = f"xfm-regenerate_instance_json_task-{xform_2.pk}"
         self.assertEqual(cache.get(form2_cache), "ca760839-d2d9-4244-938f-e884880ac0b4")
 
     @patch(

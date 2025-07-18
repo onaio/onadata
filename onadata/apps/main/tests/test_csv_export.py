@@ -7,13 +7,11 @@ import csv
 import os
 
 from django.core.files.storage import storages
-from django.db.models.signals import post_save
 from django.utils.dateparse import parse_datetime
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models import DataDictionary, Export
-from onadata.apps.viewer.models.data_dictionary import create_or_update_export_register
 from onadata.libs.utils.export_tools import generate_export
 
 
@@ -29,20 +27,6 @@ class TestCsvExport(TestBase):
         self._submission_time = parse_datetime("2013-02-18 15:54:01Z")
         self.options = {"extension": "csv"}
         self.xform = None
-        # Disable signals
-        post_save.disconnect(
-            sender=DataDictionary, dispatch_uid="create_or_update_export_register"
-        )
-
-    def tearDown(self):
-        # Reconnect signals
-        post_save.connect(
-            sender=DataDictionary,
-            dispatch_uid="create_or_update_export_register",
-            receiver=create_or_update_export_register,
-        )
-
-        super().tearDown()
 
     def test_csv_export_output(self):
         """

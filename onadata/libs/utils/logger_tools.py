@@ -4,8 +4,6 @@
 logger_tools - Logger app utility functions.
 """
 
-import copy
-import importlib
 import json
 import logging
 import os
@@ -13,7 +11,6 @@ import re
 import sys
 import tempfile
 from builtins import str as text
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
@@ -24,7 +21,6 @@ from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import (
     MultipleObjectsReturned,
     PermissionDenied,
@@ -77,7 +73,6 @@ from onadata.apps.logger.xform_instance_parser import (
     get_submission_date_from_xml,
     get_uuid_from_xml,
 )
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.messaging.constants import (
     SUBMISSION_CREATED,
     SUBMISSION_DELETED,
@@ -90,9 +85,9 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import XFORM_SUBMISSIONS_DELETING, safe_delete
-from onadata.libs.utils.common_tags import EXPORT_COLUMNS_REGISTER, METADATA_FIELDS
+from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
-from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
 OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version"
@@ -1175,112 +1170,3 @@ def delete_xform_submissions(
         user=deleted_by,
         message_verb=SUBMISSION_DELETED,
     )
-
-
-def _load_register_columns(register):
-    merged_multiples = json.loads(
-        register.extra_data["merged_multiples"], object_pairs_hook=OrderedDict
-    )
-    split_multiples = json.loads(
-        register.extra_data["split_multiples"], object_pairs_hook=OrderedDict
-    )
-
-    return {
-        "merged_multiples": merged_multiples,
-        "split_multiples": split_multiples,
-    }
-
-
-def _update_register_columns(instance, columns):
-    # Avoid cyclic import by using importlib
-    csv_builder_module = importlib.import_module("onadata.libs.utils.csv_builder")
-
-    xform = instance.xform
-    csv_builder_module = csv_builder_module.CSVDataFrameBuilder(
-        xform=xform, username=xform.user.username, id_string=xform.id_string
-    )
-    data = instance.get_full_dict()
-
-    for key, value in data.items():
-        # Reindex split multiples
-        # pylint: disable=protected-access
-        csv_builder_module._reindex(
-            key,
-            value,
-            columns["split_multiples"],
-            data,
-            xform,
-            include_images=[],
-            split_select_multiples=True,
-        )
-        # Reindex merged multiples
-        # pylint: disable=protected-access
-        csv_builder_module._reindex(
-            key,
-            value,
-            columns["merged_multiples"],
-            data,
-            xform,
-            include_images=[],
-            split_select_multiples=False,
-        )
-
-
-def _get_locked_register(xform):
-    content_type = ContentType.objects.get_for_model(xform)
-
-    # We use select_for_update to acquire a row-level lock
-    # Only one process updates it at a time. This prevents race conditions
-    # and updates extra_data atomically
-    return MetaData.objects.select_for_update().get(
-        content_type=content_type,
-        object_id=xform.pk,
-        data_type=EXPORT_COLUMNS_REGISTER,
-    )
-
-
-def _save_register_columns(register, columns):
-    register.extra_data = {key: json.dumps(value) for key, value in columns.items()}
-    register.save()
-
-
-@transaction.atomic()
-def register_instance_repeat_columns(instance: Instance) -> None:
-    """Add an Instance repeat columns to the export columns register
-
-    :param instance: Instance object
-    """
-    try:
-        register = _get_locked_register(instance.xform)
-
-    except MetaData.DoesNotExist:
-        return
-
-    old_columns = _load_register_columns(register)
-    new_columns = copy.deepcopy(old_columns)
-
-    _update_register_columns(instance=instance, columns=new_columns)
-
-    if old_columns != new_columns:
-        _save_register_columns(register=register, columns=new_columns)
-
-
-@transaction.atomic()
-def reconstruct_xform_export_register(xform: XForm) -> None:
-    """Reconstruct the export columns register for an XForm
-
-    :param xform: XForm object
-    """
-    try:
-        register = _get_locked_register(xform)
-
-    except MetaData.DoesNotExist:
-        return
-
-    instance_qs = xform.instances.filter(deleted_at__isnull=True)
-    columns = _load_register_columns(register)
-
-    for instance in queryset_iterator(instance_qs, chunksize=500):
-        _update_register_columns(instance, columns)
-
-    _save_register_columns(register=register, columns=columns)

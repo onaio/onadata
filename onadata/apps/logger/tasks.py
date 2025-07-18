@@ -35,10 +35,6 @@ from onadata.libs.utils.entities_utils import (
     commit_cached_elist_num_entities,
     soft_delete_entities_bulk,
 )
-from onadata.libs.utils.logger_tools import (
-    reconstruct_xform_export_register,
-    register_instance_repeat_columns,
-)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -140,40 +136,6 @@ def adjust_elist_num_entities_async(elist_pk: int, delta: int):
 
     else:
         adjust_elist_num_entities(entity_list, delta=delta)
-
-
-@app.task(base=AutoRetryTask)
-@use_master
-def register_instance_repeat_columns_async(instance_pk: int) -> None:
-    """Register Instance repeat columns asynchronously
-
-    :param instance_pk: Primary key for Instance
-    """
-    try:
-        instance = Instance.objects.get(pk=instance_pk)
-
-    except Instance.DoesNotExist as exc:
-        logger.exception(exc)
-
-    else:
-        register_instance_repeat_columns(instance)
-
-
-@app.task(base=AutoRetryTask)
-@use_master
-def reconstruct_xform_export_register_async(xform_id: int) -> None:
-    """Register a XForm's Instances export columns asynchronously
-
-    :param xform_id: Primary key for XForm
-    """
-    try:
-        xform = XForm.objects.get(pk=xform_id)
-
-    except XForm.DoesNotExist as exc:
-        logger.exception(exc)
-
-    else:
-        reconstruct_xform_export_register(xform)
 
 
 @app.task(base=AutoRetryTask)
