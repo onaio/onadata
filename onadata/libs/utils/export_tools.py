@@ -652,7 +652,7 @@ def get_query_params_from_metadata(metadata):
     """
     Build out query params to be used in GeoJsonSerializer
     """
-    extra_data = metadata.extra_data
+    extra_data = metadata.extra_data or {}
 
     return {
         mapped_key: extra_data[original_key]
