@@ -63,6 +63,7 @@ from onadata.libs.utils.export_tools import (
     generate_geojson_export,
     generate_kml_export,
     generate_osm_export,
+    get_dataview_export_options,
     get_latest_generic_export,
     get_query_params_from_metadata,
     newest_export_for,
@@ -71,7 +72,6 @@ from onadata.libs.utils.export_tools import (
 )
 from onadata.libs.utils.google_tools import create_flow
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.utils.model_tools import get_columns_with_hxl
 from onadata.settings.common import XLS_EXTENSIONS
 
 # Supported external exports
@@ -152,12 +152,10 @@ def custom_response_handler(  # noqa: C0901
     ):
         export_type = Export.EXTERNAL_EXPORT
 
-    metadata_query_params = get_query_params_from_metadata(metadata) or {}
+    options = parse_request_export_options(request.query_params)
 
-    options = {
-        **parse_request_export_options(request.query_params),
-        **metadata_query_params,
-    }
+    if metadata is not None:
+        options.update(get_query_params_from_metadata(metadata))
 
     dataview_pk = hasattr(dataview, "pk") and dataview.pk
     options["dataview_pk"] = dataview_pk
@@ -165,12 +163,8 @@ def custom_response_handler(  # noqa: C0901
     options["host"] = request.get_host()
 
     if dataview:
-        columns_with_hxl = get_columns_with_hxl(xform.survey.get("children"))
+        options.update(get_dataview_export_options(dataview))
 
-        if columns_with_hxl:
-            options["include_hxl"] = include_hxl_row(
-                dataview.columns, list(columns_with_hxl)
-            )
     try:
         query = filter_queryset_xform_meta_perms_sql(xform, request.user, query)
     except NoRecordsPermission:
@@ -208,7 +202,6 @@ def custom_response_handler(  # noqa: C0901
                 query,
                 export_type,
                 dataview_pk=dataview_pk,
-                metadata=metadata,
                 export_options=options,
             )
 
@@ -257,7 +250,6 @@ def _generate_new_export(  # noqa: C0901
     query,
     export_type,
     dataview_pk=False,
-    metadata=None,
     export_options=None,
 ):
     query = _set_start_end_params(request, query)
@@ -325,7 +317,6 @@ def _generate_new_export(  # noqa: C0901
                 export_type,
                 xform.user.username,
                 xform.id_string,
-                metadata,
                 None,
                 options,
                 xform=xform,
@@ -500,7 +491,7 @@ def process_async_export(request, xform, export_type, options=None):
         or export_type == Export.EXTERNAL_EXPORT
     ):
         resp = {
-            "job_uuid": _create_export_async(
+            "job_uuid": create_export_async(
                 xform, export_type, query, force_xlsx, options=options
             )
         }
@@ -511,7 +502,7 @@ def process_async_export(request, xform, export_type, options=None):
         if not export.filename:
             # tends to happen when using newest_export_for.
             resp = {
-                "job_uuid": _create_export_async(
+                "job_uuid": create_export_async(
                     xform, export_type, query, force_xlsx, options=options
                 )
             }
@@ -521,9 +512,7 @@ def process_async_export(request, xform, export_type, options=None):
     return resp
 
 
-def _create_export_async(
-    xform, export_type, query=None, force_xlsx=False, options=None
-):
+def create_export_async(xform, export_type, query=None, force_xlsx=False, options=None):
     """
     Creates async exports
     :param xform:

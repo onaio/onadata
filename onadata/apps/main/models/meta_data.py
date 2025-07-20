@@ -7,11 +7,9 @@ from __future__ import unicode_literals
 
 import hashlib
 import importlib
-import json
 import logging
 import mimetypes
 import os
-from collections import OrderedDict
 from contextlib import closing
 
 from django.conf import settings
@@ -27,13 +25,14 @@ from django.utils import timezone
 
 import requests
 
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
-    EXPORT_COLUMNS_REGISTER,
     GOOGLE_SHEET_DATA_TYPE,
     TEXTIT,
     TEXTIT_DETAILS,
@@ -594,27 +593,6 @@ class MetaData(models.Model):
         data_type = "imported_via_csv_by"
         return unique_type_for_form(content_object, data_type, data_value)
 
-    @staticmethod
-    def update_or_create_export_register(content_object, data_value=None):
-        """Update or create export columns register for XForm."""
-        # Avoid cyclic import by using importlib
-        csv_builder = importlib.import_module("onadata.libs.utils.csv_builder")
-        ordered_columns = OrderedDict()
-        # pylint: disable=protected-access
-        csv_builder.CSVDataFrameBuilder._build_ordered_columns(
-            content_object._get_survey(), ordered_columns
-        )
-        serialized_columns = json.dumps(ordered_columns)
-        data_type = EXPORT_COLUMNS_REGISTER
-        extra_data = {
-            "merged_multiples": serialized_columns,
-            "split_multiples": serialized_columns,
-        }
-        data_value = "" if data_value is None else data_value
-        return unique_type_for_form(
-            content_object, data_type, data_value=data_value, extra_data=extra_data
-        )
-
 
 # pylint: disable=unused-argument,invalid-name
 def clear_cached_metadata_instance_object(
@@ -639,6 +617,54 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
         instance.content_object.save()
 
 
+def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
+    """
+    Generate dataset if the MetaData instance is a linked dataset.
+    """
+    # Avoid circular import
+    export_tools = importlib.import_module("onadata.libs.utils.export_tools")
+    api_export_tools = importlib.import_module("onadata.libs.utils.api_export_tools")
+
+    if created and instance.is_linked_dataset:
+        export_type = api_export_tools.get_metadata_format(instance.data_value)
+        export_metadata_options = export_tools.get_query_params_from_metadata(instance)
+        export_request_options = {}
+
+        if export_type == "csv":
+            # For external CSV data in XLSForms, period is used as the group delimiter
+            # and the repeat index tags are underscores
+            export_request_options.update(
+                {
+                    "group_delimiter": ".",
+                    "repeat_index_tags": ("_", "_"),
+                }
+            )
+
+        export_options = {
+            **export_tools.parse_request_export_options(export_request_options),
+            **export_metadata_options,
+            "dataview_pk": False,
+        }
+        xform = None
+
+        if instance.data_value.startswith("xform"):
+            _, xform_id, _ = instance.data_value.split()
+            xform = XForm.objects.get(pk=xform_id)
+
+        elif instance.data_value.startswith("dataview"):
+            _, dataview_id, _ = instance.data_value.split()
+            dataview = DataView.objects.get(pk=dataview_id)
+            xform = dataview.xform
+            export_options.update(export_tools.get_dataview_export_options(dataview))
+
+        if xform and export_tools.should_create_new_export(
+            xform, export_type, export_options
+        ):
+            api_export_tools.create_export_async(
+                xform, export_type, options=export_options
+            )
+
+
 post_save.connect(
     clear_cached_metadata_instance_object,
     sender=MetaData,
@@ -651,4 +677,9 @@ post_delete.connect(
     clear_cached_metadata_instance_object,
     sender=MetaData,
     dispatch_uid="clear_cached_metadata_instance_delete",
+)
+post_save.connect(
+    generate_linked_dataset,
+    sender=MetaData,
+    dispatch_uid="generate_linked_dataset",
 )

@@ -859,16 +859,6 @@ def soft_delete_attachments_on_soft_delete(sender, instance, **kwargs):
 
 
 @use_master
-def register_instance_repeat_columns(sender, instance, created=False, **kwargs):
-    # Avoid cyclic dependency errors
-    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-
-    transaction.on_commit(
-        lambda: logger_tasks.register_instance_repeat_columns_async.delay(instance.pk)
-    )
-
-
-@use_master
 def decrypt_instance(sender, instance, created=False, **kwargs):
     """Decrypt Instance if encrypted."""
     # Avoid cyclic dependency errors
@@ -953,11 +943,6 @@ pre_delete.connect(
     dispatch_uid="permanently_delete_attachments",
 )
 
-post_save.connect(
-    register_instance_repeat_columns,
-    sender=Instance,
-    dispatch_uid="register_instance_repeat_columns",
-)
 
 pre_save.connect(
     decr_xform_num_of_submissions_on_soft_delete,
