@@ -22,7 +22,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
-from onadata.libs.permissions import get_role_in_org
+from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
@@ -74,23 +74,24 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
     name = serializers.CharField(max_length=30)
+    encryption_keys = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationProfile
         exclude = ("created_by", "is_organization", "organization")
-        owner_only_fields = ("metadata", "email")
+        owner_only_fields = ("metadata", "email", "encryption_keys")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if self.instance and hasattr(self.Meta, "owner_only_fields"):
             request = self.context.get("request")
-            is_permitted = (
+            is_owner = (
                 request
                 and request.user
-                and request.user.has_perm("api.view_organizationprofile", self.instance)
+                and request.user.has_perm(CAN_ADD_ORGANIZATION_PROJECT, self.instance)
             )
-            if isinstance(self.instance, QuerySet) or not is_permitted or not request:
+            if isinstance(self.instance, QuerySet) or not is_owner or not request:
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
 
@@ -127,6 +128,15 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         profile.save()
 
         return profile
+
+    def get_encryption_keys(self, obj):
+        """Get the encryption keys for organization."""
+        content_type = ContentType.objects.get_for_model(OrganizationProfile)
+        kms_key_qs = KMSKey.objects.filter(
+            content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
+        ).order_by("-date_created")
+
+        return KMSKeyInlineSerializer(kms_key_qs, many=True).data
 
     def validate_org(self, value):
         """
@@ -186,21 +196,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         owners_list = _create_user_list(owners)
 
         return owners_list + members_list
-
-
-class AdminOrganizationSerializer(OrganizationSerializer):
-    """Serializer for organization profile with admin permissions."""
-
-    encryption_keys = serializers.SerializerMethodField()
-
-    def get_encryption_keys(self, obj):
-        """Get the encryption keys for organization."""
-        content_type = ContentType.objects.get_for_model(OrganizationProfile)
-        kms_key_qs = KMSKey.objects.filter(
-            content_type=content_type, object_id=obj.pk, disabled_at__isnull=True
-        ).order_by("-date_created")
-
-        return KMSKeyInlineSerializer(kms_key_qs, many=True).data
 
 
 # pylint: disable=abstract-method
