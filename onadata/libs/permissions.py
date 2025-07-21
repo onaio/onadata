@@ -25,7 +25,7 @@ from onadata.apps.logger.models.xform import (
     XFormUserObjectPermission,
 )
 from onadata.libs.exceptions import NoRecordsPermission
-from onadata.libs.utils.common_tags import XFORM_META_PERMS, OWNER_TEAM_NAME
+from onadata.libs.utils.common_tags import OWNER_TEAM_NAME, XFORM_META_PERMS
 from onadata.libs.utils.model_tools import queryset_iterator
 
 # Userprofile Permissions
@@ -428,8 +428,6 @@ class OwnerRole(Role):
             CAN_ADD_ORGANIZATION_PROJECT,
             CAN_ADD_ORGANIZATION_XFORM,
             CAN_ADD_ORGANIZATION_PROFILE,
-            CAN_ADD_ORGANIZATION_PROJECT,
-            CAN_ADD_ORGANIZATION_XFORM,
             CAN_CHANGE_ORGANIZATION_PROFILE,
             CAN_DELETE_ORGANIZATION_PROFILE,
             CAN_VIEW_ORGANIZATION_PROFILE,

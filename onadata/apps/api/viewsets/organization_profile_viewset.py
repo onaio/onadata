@@ -86,13 +86,10 @@ class OrganizationProfileViewSet(
 
         if cached_org:
             return Response(cached_org)
-        serializer_class = self.get_serializer_class()
-        serializer = serializer_class(
-            organization, context=self.get_serializer_context()
-        )
-        data = serializer.data
-        cache.set(cache_key, data)
-        return Response(data)
+
+        response = super().retrieve(request, *args, **kwargs)
+        cache.set(cache_key, response.data)
+        return response
 
     def create(self, request, *args, **kwargs):
         """Create and cache organization"""

@@ -86,12 +86,12 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         if self.instance and hasattr(self.Meta, "owner_only_fields"):
             request = self.context.get("request")
-            is_permitted = (
+            is_owner = (
                 request
                 and request.user
                 and request.user.has_perm(CAN_ADD_ORGANIZATION_PROJECT, self.instance)
             )
-            if isinstance(self.instance, QuerySet) or not is_permitted or not request:
+            if isinstance(self.instance, QuerySet) or not is_owner or not request:
                 for field in getattr(self.Meta, "owner_only_fields"):
                     self.fields.pop(field)
 
