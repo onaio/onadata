@@ -248,7 +248,7 @@ Link XForm as a GeoJSON media attachment example:
 Create XForm meta permissions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Set meta permissions for a specific form by passing two roles that are pipe delimited.
-First role indicates editor default role and the other is the dataentry default role.
+First role indicates editor default role, the second is the dataentry default role and the last is the readonly default role.
 
 Example
 ::
@@ -266,4 +266,3 @@ Delete Metadata
 .. raw:: html
 
     <pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre>
-
