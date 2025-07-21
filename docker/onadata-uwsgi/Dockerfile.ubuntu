@@ -93,14 +93,14 @@ RUN apt-get install -y --no-install-recommends \
     && chown -R appuser:appuser /srv/onadata
 
 COPY --from=base /home/appuser/.pyenv/ /home/appuser/.pyenv/
-COPY --from=base /usr/local/lib/ /usr/lib/
 # Copy documentation build
 COPY --from=docs /srv/onadata/docs/_build/html /srv/onadata/docs/_build/html
 # Copy only the onadata files required in the final build
-COPY --from=base /srv/onadata/extras /srv/onadata/extras
-COPY --from=base /srv/onadata/onadata /srv/onadata/onadata
-COPY --from=base /srv/onadata/uwsgi.ini /srv/onadata/uwsgi.ini
-COPY --from=base /srv/onadata/manage.py /srv/onadata/manage.py
+COPY --from=docs /srv/onadata/extras /srv/onadata/extras
+COPY --from=docs /srv/onadata/onadata /srv/onadata/onadata
+COPY --from=docs /srv/onadata/uwsgi.ini /srv/onadata/uwsgi.ini
+COPY --from=docs /srv/onadata/manage.py /srv/onadata/manage.py
+COPY --from=base /usr/local/lib/ /usr/lib/
 
 RUN chown -R appuser:appuser /srv/onadata /home/appuser/.pyenv
 
