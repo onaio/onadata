@@ -22,7 +22,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
-from onadata.libs.permissions import get_role_in_org
+from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
@@ -89,7 +89,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             is_permitted = (
                 request
                 and request.user
-                and request.user.has_perm("api.view_organizationprofile", self.instance)
+                and request.user.has_perm(CAN_ADD_ORGANIZATION_PROJECT, self.instance)
             )
             if isinstance(self.instance, QuerySet) or not is_permitted or not request:
                 for field in getattr(self.Meta, "owner_only_fields"):
