@@ -100,6 +100,7 @@ COPY --from=docs /srv/onadata/docs/_build/html /srv/onadata/docs/_build/html
 COPY --from=base /srv/onadata/extras /srv/onadata/extras
 COPY --from=base /srv/onadata/onadata /srv/onadata/onadata
 COPY --from=base /srv/onadata/uwsgi.ini /srv/onadata/uwsgi.ini
+COPY --from=base /srv/onadata/manage.py /srv/onadata/manage.py
 
 RUN chown -R appuser:appuser /srv/onadata /home/appuser/.pyenv
 
