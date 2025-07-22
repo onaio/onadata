@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.2.1(2025-07-22)
+------------------
+- Create index concurrently
+  `PR #2870 <https://github.com/onaio/onadata/pull/2870>`
+  [@kelvin-muchiri]
+- Reduce final Docker image size
+  `PR #2867 <https://github.com/onaio/onadata/pull/2867>`
+  [@kelvin-muchiri]
+
 v5.2.0 (2025-07-22)*
 -------------------
 - feature: Save submission decryption error
