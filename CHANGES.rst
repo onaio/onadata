@@ -3,7 +3,34 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v5.1.0 (2025-07-09)
+v5.2.0 (2025-07-22)*
+-------------------
+- feature: Save submission decryption error
+  `PR #2859 <https://github.com/onaio/onadata/pull/2859>`
+  [@kelvin-muchiri]
+- Fix submission marked as duplicate if IntegrityError is thrown
+  `PR 2860 https://github.com/onaio/onadata/pull/2860`
+  [@kelvin-muchiri]
+- Fix media signed url missing content type header
+ `PR 2862 https://github.com/onaio/onadata/pull/2862`
+  [@kelvin-muchiri]
+- Handle None bind attributes in ExportBuilder survey processing
+  `PR 2864 https://github.com/onaio/onadata/pull/2864`
+  [@FrankApiyo]
+- Remove CSV export headers register
+  `PR 2863 https://github.com/onaio/onadata/pull/2863`
+  [@kelvin-muchiri]
+- fix: Ensure organization serializer in settings is applied for organization admins
+  `PR #2865 <https://github.com/onaio/onadata/pull/2865>`
+  [@FrankApiyo]
+- Add xform meta perms migration
+  `PR #2866 <https://github.com/onaio/onadata/pull/2866>`
+  [@FrankApiyo]
+- Security updates
+  `PR #2869 <https://github.com/onaio/onadata/pull/2869>`
+  [@FrankApiyo]
+
+v5.1.0 (2025-07-09)*
 -------------------
 - Decryption of submission via managed keys
  `PR #2839 <https://github.com/onaio/onadata/pull/2789>`
