@@ -5,6 +5,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ("logger", "0027_instance_is_encrypted_kmskey_xformkey_and_more"),
         (
@@ -29,10 +31,24 @@ class Migration(migrations.Migration):
                 max_length=20,
             ),
         ),
-        migrations.AddIndex(
-            model_name="instance",
-            index=models.Index(
-                fields=["decryption_status"], name="logger_inst_decrypt_1b32ab_idx"
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=(
+                        'CREATE INDEX CONCURRENTLY "logger_inst_decrypt_1b32ab_idx" '
+                        'ON "logger_instance" ("decryption_status");'
+                    ),
+                    reverse_sql='DROP INDEX CONCURRENTLY "logger_inst_decrypt_1b32ab_idx";',
+                ),
+            ],
+            state_operations=[
+                migrations.AddIndex(
+                    model_name="instance",
+                    index=models.Index(
+                        fields=["decryption_status"],
+                        name="logger_inst_decrypt_1b32ab_idx",
+                    ),
+                ),
+            ],
         ),
     ]
