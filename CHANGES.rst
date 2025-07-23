@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.2.2(2025-07-23)
+------------------
+- Update Ona-OIDC
+  `PR #2872 <https://github.com/onaio/onadata/pull/2872>`
+  [@FrankApiyo]
+
 v5.2.1(2025-07-22)
 ------------------
 - Create index concurrently
