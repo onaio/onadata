@@ -1720,20 +1720,31 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(project.metadata, json_metadata)
 
     # pylint: disable=invalid-name
-    def test_cache_invalidated_on_project_update(self):
-        """Cache is invalidated on project update"""
-        view = ProjectViewSet.as_view({"patch": "partial_update"})
+    def test_cache_updated_on_project_update(self):
+        view = ProjectViewSet.as_view({"get": "retrieve", "patch": "partial_update"})
         self._project_create()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(False, response.data.get("public"))
+        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        self.assertEqual(cached_project, response.data)
 
-        cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}"
-        self.assertIsNotNone(cache.get(cache_key))
-
+        projectid = self.project.pk
         data = {"public": True}
         request = self.factory.patch("/", data=data, **self.extra)
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(True, response.data.get("public"))
+        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        self.assertEqual(cached_project, response.data)
+
+        request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
-        self.assertIsNone(cache.get(cache_key))
+        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        self.assertEqual(cached_project, response.data)
 
     def test_project_put_updates(self):
         self._project_create()

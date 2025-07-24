@@ -79,10 +79,9 @@ class ProjectViewSet(
 
     # pylint: disable=no-member
     queryset = (
-        Project.objects.filter(deleted_at__isnull=True, organization__is_active=True)
+        Project.objects.filter(deleted_at__isnull=True)
         .order_by("-date_created")
         .select_related()
-        .prefetch_related("xform_set")
     )
     serializer_class = ProjectSerializer
     lookup_field = "pk"
@@ -107,25 +106,42 @@ class ProjectViewSet(
 
         return super().get_serializer_class()
 
+    def get_queryset(self):
+        """Use 'prepared' prefetched queryset for GET requests."""
+        if self.request.method.upper() in ["GET", "OPTIONS"]:
+            self.queryset = Project.prefetched.filter(
+                deleted_at__isnull=True, organization__is_active=True
+            ).order_by("-date_created")
+
+        return super().get_queryset()
+
     def update(self, request, *args, **kwargs):
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
-        # Invalidate cached project
-        safe_delete(f"{PROJ_OWNER_CACHE}{project_id}")
+        safe_cache_set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
         return response
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve single project"""
-        project = self.get_object()
-        cache_key = f"{PROJ_OWNER_CACHE}{project.pk}"
-        cached_project = safe_cache_get(cache_key)
+        project_id = kwargs.get("pk")
+        project = safe_cache_get(f"{PROJ_OWNER_CACHE}{project_id}")
+        if project:
+            return Response(project)
+        # pylint: disable=attribute-defined-outside-init
+        self.object = self.get_object()
+        serializer = ProjectSerializer(self.object, context={"request": request})
+        return Response(serializer.data)
 
-        if cached_project:
-            return Response(cached_project)
+    def list(self, request, *args, **kwargs):
+        """Returns a list of projects"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
 
-        serializer = ProjectSerializer(project, context={"request": request})
-        safe_cache_set(cache_key, serializer.data)
         return Response(serializer.data)
 
     @action(methods=["POST", "GET"], detail=True)
