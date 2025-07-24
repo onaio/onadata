@@ -2,15 +2,17 @@
 """
 OpenID Connect Tools
 """
+
 import json
 
-from django.core.cache import cache
 from django.http import Http404, HttpResponseRedirect
 from django.utils.translation import gettext as _
 
 import jwt
 import requests
 from jwt.algorithms import RSAAlgorithm
+
+from onadata.libs.utils.cache_tools import safe_cache_get
 
 EMAIL = "email"
 NAME = "name"
@@ -184,7 +186,7 @@ class OpenIDHandler:
                 # Verify that the cached nonce is present and that
                 # the provider the nonce was initiated for, is the same
                 # provider returning it
-                provider_initiated_for = cache.get(decoded_token.get(NONCE))
+                provider_initiated_for = safe_cache_get(decoded_token.get(NONCE))
 
                 if provider_initiated_for != openid_provider:
                     raise ValueError("Incorrect nonce value returned")

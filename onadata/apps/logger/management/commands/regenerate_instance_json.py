@@ -4,16 +4,17 @@ Management command python manage.py regenerate_instance_json <form_ids>
 Regenerates a form's instances json asynchronously
 """
 
-from celery.result import AsyncResult
-
 from django.core.management.base import BaseCommand, CommandError
-from django.core.cache import cache
+
+from celery.result import AsyncResult
 
 from onadata.apps.api.tasks import regenerate_form_instance_json
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.cache_tools import (
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
     XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,
+    safe_cache_get,
+    safe_cache_set,
 )
 
 
@@ -53,7 +54,7 @@ class Command(BaseCommand):
             return
 
         cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform.pk}"
-        cached_task_id: str | None = cache.get(cache_key)
+        cached_task_id: str | None = safe_cache_get(cache_key)
 
         if cached_task_id and AsyncResult(cached_task_id).state.upper() != "FAILURE":
             # FAILURE is the only state that should trigger regeneration if
@@ -70,7 +71,7 @@ class Command(BaseCommand):
         # We therefore set the cache timeout to 1 day same as the Celery backend result
         # expiry timeout
         result: AsyncResult = regenerate_form_instance_json.apply_async(args=[xform.pk])
-        cache.set(
+        safe_cache_set(
             cache_key,
             result.task_id,
             XFORM_REGENERATE_INSTANCE_JSON_TASK_TTL,

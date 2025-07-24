@@ -16,7 +16,6 @@ from xml.dom import Node
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Sum
@@ -1324,8 +1323,8 @@ class XForm(XFormMixin, BaseModel):
         """Returns the submissions count for the current day."""
         current_date = timezone.localdate().isoformat()
         count = (
-            cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}")
-            if cache.get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}")
+            safe_cache_get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{self.id}")
+            if safe_cache_get(f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{self.id}")
             == current_date
             else 0
         )

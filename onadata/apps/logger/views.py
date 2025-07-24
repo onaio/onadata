@@ -2,6 +2,7 @@
 """
 logger views.
 """
+
 import os
 import tempfile
 
@@ -36,7 +37,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData, UserProfile
 from onadata.libs.exceptions import EnketoError
-from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, cache
+from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, safe_cache_get
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.log import Actions, audit_log
 from onadata.libs.utils.logger_tools import (
@@ -202,7 +203,7 @@ def formList(request, username):  # noqa N802
     formList view, /formList OpenRosa Form Discovery API 1.0.
     """
     formlist_user = get_object_or_404(User, username__iexact=username)
-    profile = cache.get(f"{USER_PROFILE_PREFIX}{formlist_user.username}")
+    profile = safe_cache_get(f"{USER_PROFILE_PREFIX}{formlist_user.username}")
     if not profile:
         profile, __ = UserProfile.objects.get_or_create(
             user__username=formlist_user.username
@@ -265,7 +266,7 @@ def xformsManifest(request, username, id_string):  # noqa N802
 
     xform = get_form(xform_kwargs)
     formlist_user = xform.user
-    profile = cache.get(f"{USER_PROFILE_PREFIX}{formlist_user.username}")
+    profile = safe_cache_get(f"{USER_PROFILE_PREFIX}{formlist_user.username}")
     if not profile:
         profile, __ = UserProfile.objects.get_or_create(
             user__username=formlist_user.username

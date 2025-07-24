@@ -5,7 +5,6 @@ The /projects API endpoint implementation.
 
 import logging
 
-from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -47,7 +46,12 @@ from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    safe_cache_get,
+    safe_cache_set,
+    safe_delete,
+)
 from onadata.libs.utils.common_tools import merge_dicts, report_exception
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
@@ -115,13 +119,13 @@ class ProjectViewSet(
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
-        cache.set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+        safe_cache_set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
         return response
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve single project"""
         project_id = kwargs.get("pk")
-        project = cache.get(f"{PROJ_OWNER_CACHE}{project_id}")
+        project = safe_cache_get(f"{PROJ_OWNER_CACHE}{project_id}")
         if project:
             return Response(project)
         # pylint: disable=attribute-defined-outside-init

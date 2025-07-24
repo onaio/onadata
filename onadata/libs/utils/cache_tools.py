@@ -214,6 +214,21 @@ def safe_cache_incr(key, delta=1):
     return _safe_cache_operation(lambda: cache.incr(key, delta))
 
 
+def safe_cache_decr(key, delta=1):
+    """
+    Safely decrement a value in the cache.
+
+    If the cache is not reachable, the operation silently fails.
+
+    Args:
+        key (str): The cache key to decrement.
+        delta (int): The amount to decrement by (default: 1).
+    Returns:
+        int: The new value after decrementing, or None if the operation fails.
+    """
+    return _safe_cache_operation(lambda: cache.decr(key, delta))
+
+
 class CacheLockError(Exception):
     """Custom exception raised when a cache lock cannot be acquired."""
 

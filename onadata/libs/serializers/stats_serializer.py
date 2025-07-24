@@ -2,8 +2,8 @@
 """
 Stats API endpoint serializer.
 """
+
 from django.conf import settings
-from django.core.cache import cache
 from django.utils.translation import gettext as _
 
 from rest_framework import exceptions, serializers
@@ -18,7 +18,11 @@ from onadata.libs.data.statistics import (
     get_min_max_range,
     get_mode_for_numeric_fields_in_form,
 )
-from onadata.libs.utils.cache_tools import XFORM_SUBMISSION_STAT
+from onadata.libs.utils.cache_tools import (
+    XFORM_SUBMISSION_STAT,
+    safe_cache_get,
+    safe_cache_set,
+)
 
 SELECT_FIELDS = ["select one", "select multiple"]
 
@@ -63,7 +67,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
 
         cache_key = f"{XFORM_SUBMISSION_STAT}{instance.pk}{field}{name}"
 
-        data = cache.get(cache_key)
+        data = safe_cache_get(cache_key)
         if data:
             return data
 
@@ -79,7 +83,7 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                     label = instance.get_choice_label(element, record[name])
                     record[name] = label
 
-        cache.set(cache_key, data, settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
+        safe_cache_set(cache_key, data, settings.XFORM_SUBMISSION_STAT_CACHE_TIME)
 
         return data
 

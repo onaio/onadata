@@ -13,7 +13,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
-from django.core.cache import cache
 from django.core.files.storage import storages
 from django.db import connection, transaction
 from django.db.models import Q
@@ -45,6 +44,10 @@ from onadata.libs.utils.cache_tools import (
     XFORM_DATA_VERSIONS,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    safe_cache_decr,
+    safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
     safe_delete,
 )
 from onadata.libs.utils.common_tags import (
@@ -199,21 +202,21 @@ def _update_submission_count_for_today(
     date_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY_DATE}{form_id}"
     count_cache_key = f"{XFORM_SUBMISSION_COUNT_FOR_DAY}{form_id}"
 
-    if not cache.get(date_cache_key) == current_date:
-        cache.set(date_cache_key, current_date, 86400)
+    if not safe_cache_get(date_cache_key) == current_date:
+        safe_cache_set(date_cache_key, current_date, 86400)
 
     if date_created:
         date_created = (
             date_created.astimezone(timezone.get_current_timezone()).date().isoformat()
         )
 
-    current_count = cache.get(count_cache_key)
+    current_count = safe_cache_get(count_cache_key)
     if not current_count and incr:
-        cache.set(count_cache_key, 1, 86400)
+        safe_cache_set(count_cache_key, 1, 86400)
     elif incr:
-        cache.incr(count_cache_key)
+        safe_cache_incr(count_cache_key)
     elif current_count and current_count > 0 and date_created == current_date:
-        cache.decr(count_cache_key)
+        safe_cache_decr(count_cache_key)
 
 
 def update_xform_submission_count(instance):
@@ -356,9 +359,9 @@ def update_project_date_modified(instance):
     project_id = instance.xform.project_id
 
     # Log project id and date motified in cache with timeout
-    project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
+    project_ids = safe_cache_get(PROJECT_DATE_MODIFIED_CACHE, {})
     project_ids[project_id] = instance.date_modified
-    cache.set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=timeout)
+    safe_cache_set(PROJECT_DATE_MODIFIED_CACHE, project_ids, timeout=timeout)
 
 
 def convert_to_serializable_date(date):
