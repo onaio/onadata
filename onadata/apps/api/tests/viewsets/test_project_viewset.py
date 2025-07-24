@@ -58,11 +58,11 @@ from onadata.libs.permissions import (
     ReadOnlyRole,
     ReadOnlyRoleNoDownload,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -1720,7 +1720,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(project.metadata, json_metadata)
 
     # pylint: disable=invalid-name
-    def test_cache_updated_on_project_update(self):
+    def test_cache_invalidation_on_project_update(self):
         view = ProjectViewSet.as_view({"get": "retrieve", "patch": "partial_update"})
         self._project_create()
         request = self.factory.get("/", **self.extra)
@@ -1737,14 +1737,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
-
-        request = self.factory.get("/", **self.extra)
-        response = view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(True, response.data.get("public"))
-        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        self.assertIsNone(cached_project)
 
     def test_project_put_updates(self):
         self._project_create()
