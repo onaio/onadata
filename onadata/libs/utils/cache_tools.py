@@ -12,9 +12,9 @@ from contextlib import contextmanager
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
-DEFAULT_CACHE_TIMEOUT = cache.default_timeout
-
 logger = logging.getLogger(__name__)
+
+DEFAULT_CACHE_TIMEOUT = cache.default_timeout
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
