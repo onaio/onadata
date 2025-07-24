@@ -31,9 +31,9 @@ from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE_LOCK_TTL,
     XFORM_MANIFEST_CACHE_TTL,
     safe_cache_add,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
-    safe_delete,
 )
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -407,7 +407,7 @@ class XFormManifestRenderer(XFormListRenderer, StreamRendererMixin):
 
                 if data.endswith("</manifest>"):
                     # We are done, release the lock
-                    safe_delete(self.cache_lock_key)
+                    safe_cache_delete(self.cache_lock_key)
 
             else:
                 safe_cache_set(self.cache_key, data, XFORM_MANIFEST_CACHE_TTL)

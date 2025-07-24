@@ -77,18 +77,18 @@ from onadata.libs.permissions import (
     ReadOnlyRole,
     ReadOnlyRoleNoDownload,
 )
+from onadata.libs.serializers.metadata_serializer import create_xform_meta_permissions
 from onadata.libs.serializers.xform_serializer import (
     XFormBaseSerializer,
     XFormSerializer,
 )
-from onadata.libs.serializers.metadata_serializer import create_xform_meta_permissions
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE,
     XFORM_DATA_VERSIONS,
     XFORM_PERMISSIONS_CACHE,
-    safe_delete,
+    safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG, MONGO_STRFTIME
 from onadata.libs.utils.common_tools import (
@@ -1188,7 +1188,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
 
             ReadOnlyRole.add(self.user, self.xform)
             view = XFormViewSet.as_view({"get": "retrieve"})
-            safe_delete("{}{}".format(XFORM_PERMISSIONS_CACHE, self.xform.pk))
+            safe_cache_delete("{}{}".format(XFORM_PERMISSIONS_CACHE, self.xform.pk))
             request = self.factory.get("/", **self.extra)
             response = view(request, pk=self.xform.pk)
             bobs_form_data = response.data
@@ -4552,7 +4552,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(2, count)
 
             # delete cache
-            safe_delete(f"{ENKETO_URL_CACHE}{self.xform.pk}")
+            safe_cache_delete(f"{ENKETO_URL_CACHE}{self.xform.pk}")
 
             view = XFormViewSet.as_view(
                 {
@@ -4953,7 +4953,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         instance.set_deleted()
 
         # delete cache
-        safe_delete(f"{XFORM_DATA_VERSIONS}{self.xform.pk}")
+        safe_cache_delete(f"{XFORM_DATA_VERSIONS}{self.xform.pk}")
 
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk)

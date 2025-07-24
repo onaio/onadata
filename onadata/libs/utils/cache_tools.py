@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
+DEFAULT_CACHE_TIMEOUT = cache.default_timeout
+
 logger = logging.getLogger(__name__)
 
 # Cache names used in project serializer
@@ -99,9 +101,9 @@ KMS_TOKEN_CACHE_KEY = "kms-token"
 KMS_TOKEN_CACHE_TTL = 60 * 60 * 24  # 24 hours
 
 
-def safe_delete(key):
+def safe_cache_delete(key):
     """Safely deletes a given key from the cache."""
-    _ = safe_cache_get(key) and cache.delete(key)
+    _safe_cache_operation(lambda: cache.delete(key))
 
 
 def safe_key(key):
@@ -116,7 +118,7 @@ def reset_project_cache(project, request, project_serializer_class):
 
     # Clear all project cache entries
     for prefix in project_cache_prefixes:
-        safe_delete(f"{prefix}{project.pk}")
+        safe_cache_delete(f"{prefix}{project.pk}")
 
     # Reserialize project and cache value
     # Note: The ProjectSerializer sets all the other cache entries
@@ -138,30 +140,22 @@ def _safe_cache_operation(operation, default_return=None):
     """
     try:
         return operation()
-    except ConnectionError as exc:
-        # Handle cache connection error
+    except (ConnectionError, socket.error, ValueError) as exc:
         logger.exception(exc)
-        return default_return
-    except socket.error as exc:
-        # Handle other potential connection errors, especially for
-        # older Python versions
-        logger.exception(exc)
+
         return default_return
 
 
-def safe_cache_set(key, value, timeout=None):
+def safe_cache_set(key, value, timeout=DEFAULT_CACHE_TIMEOUT):
     """
     Safely set a value in the cache.
 
     If the cache is not reachable, the operation silently fails.
 
-    Args:
-        key (str): The cache key to set.
-        value (Any): The value to store in the cache.
-        timeout (int, optional): The cache timeout in seconds. If None,
-            the default cache timeout will be used.
-    Returns:
-        None
+    :param key: The cache key to set.
+    :param value: The value to store in the cache.
+    :param timeout: The cache timeout in seconds. If None,
+        the default cache timeout will be used.
     """
     return _safe_cache_operation(lambda: cache.set(key, value, timeout))
 
@@ -172,29 +166,24 @@ def safe_cache_get(key, default=None):
 
     If the cache is not reachable, the operation silently fails.
 
-    Args:
-        key (str): The cache key to retrieve.
-        default (Any): The default value to return if the cache is inaccessible
-            or the key does not exist.
-    Returns:
-        Any: The value from the cache if accessible, otherwise the default value.
+    :param key: The cache key to get.
+    :param default: The default value to return if the key is not found.
+    :return: The value from the cache or the default value.
     """
     return _safe_cache_operation(lambda: cache.get(key, default), default)
 
 
-def safe_cache_add(key, value, timeout=None):
+def safe_cache_add(key, value, timeout=DEFAULT_CACHE_TIMEOUT):
     """
     Safely add a value to the cache.
 
     If the cache is not reachable, the operation silently fails.
 
-    Args:
-        key (str): The cache key to add.
-        value (Any): The value to store in the cache.
-        timeout (int, optional): The cache timeout in seconds. If None,
-            the default cache timeout will be used.
-    Returns:
-        bool: True if the value was added to the cache, False otherwise.
+    :param key: The cache key to add.
+    :param value: The value to store in the cache.
+    :param timeout: The cache timeout in seconds. If None,
+        the default cache timeout will be used.
+    :return: True if the value was added to the cache, False otherwise.
     """
     return _safe_cache_operation(lambda: cache.add(key, value, timeout), False)
 
@@ -271,7 +260,11 @@ def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
 
 
 def set_cache_with_lock(
-    cache_key, modify_callback, cache_timeout=None, lock_expire=30, lock_timeout=10
+    cache_key,
+    modify_callback,
+    cache_timeout=DEFAULT_CACHE_TIMEOUT,
+    lock_expire=30,
+    lock_timeout=10,
 ):
     """
     Set a cache value with a lock, using a callback function to modify the value.
@@ -279,22 +272,15 @@ def set_cache_with_lock(
     Use of lock ensures that race conditions are avoided, even when multiple processes
     or threads attempt to modifiy the cache concurrently.
 
-    Args:
-        cache_key (str): The key under which the value is stored in the cache.
-        modify_callback (callable): A callback function that takes the current cache
-                                    value and returns the modified value.
-        cache_timeout (int, optional): The expiration time for the cached value
-                                        in seconds. If None, the default cache
-                                        timeout is used.
-        lock_expire (int): The expiration time for the lock in seconds.
-        lock_timeout (int): The maximum time to wait for the lock in seconds.
+    :param cache_key: The key under which the value is stored in the cache.
+    :param modify_callback: A callback function that takes the current cache
+                            value and returns the modified value.
+    :param cache_timeout: The expiration time for the cached value in seconds.
+    :param lock_expire: The expiration time for the lock in seconds.
+    :param lock_timeout: The maximum time to wait for the lock in seconds.
 
-    Raises:
-        CacheLockError: If the lock cannot be acquired within the specified
-                        lock_timeout.
-
-    Returns:
-        None
+    :raises CacheLockError: If the lock cannot be acquired within the specified
+                            lock_timeout.
     """
     with with_cache_lock(cache_key, lock_expire, lock_timeout):
         # Get the current value from cache

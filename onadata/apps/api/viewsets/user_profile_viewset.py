@@ -44,10 +44,10 @@ from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_incr,
     safe_cache_set,
-    safe_delete,
 )
 from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
@@ -212,7 +212,7 @@ class UserProfileViewSet(
         """Update user in cache and db"""
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
-        safe_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
         return super().update(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
@@ -244,7 +244,7 @@ class UserProfileViewSet(
         Change user's password.
         """
         # clear cache
-        safe_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
         user_profile = self.get_object()
         current_password = request.data.get("current_password", None)
         new_password = request.data.get("new_password", None)
@@ -318,7 +318,7 @@ class UserProfileViewSet(
     def monthly_submissions(self, request, *args, **kwargs):
         """Get the total number of submissions for a user"""
         # clear cache
-        safe_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
         profile = self.get_object()
         month_param = self.request.query_params.get("month", None)
         year_param = self.request.query_params.get("year", None)
@@ -386,7 +386,7 @@ class UserProfileViewSet(
                 username = registration_profile.user.username
                 set_is_email_verified(registration_profile.user.profile, True)
                 # Clear profiles cache
-                safe_delete(f"{USER_PROFILE_PREFIX}{username}")
+                safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}")
 
                 response_data = {"username": username, "is_email_verified": True}
 

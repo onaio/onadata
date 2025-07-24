@@ -29,8 +29,8 @@ from onadata.libs.kms.tools import (
 from onadata.libs.permissions import set_project_perms_to_object
 from onadata.libs.utils.cache_tools import (
     PROJECT_DATE_MODIFIED_CACHE,
+    safe_cache_delete,
     safe_cache_get,
-    safe_delete,
 )
 from onadata.libs.utils.common_tags import DECRYPTION_FAILURE_MAX_RETRIES
 from onadata.libs.utils.entities_utils import (
@@ -84,7 +84,7 @@ def apply_project_date_modified_async():
         Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
-    safe_delete(PROJECT_DATE_MODIFIED_CACHE)
+    safe_cache_delete(PROJECT_DATE_MODIFIED_CACHE)
 
 
 @app.task(base=AutoRetryTask)

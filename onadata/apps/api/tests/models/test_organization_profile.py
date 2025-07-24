@@ -11,7 +11,7 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import OwnerRole
-from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
+from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_delete
 
 
 class TestOrganizationProfile(TestBase):
@@ -56,7 +56,7 @@ class TestOrganizationProfile(TestBase):
         cache.set(f"{IS_ORG}{profile_id}", True)
 
         profile.delete()
-        safe_delete(f"{IS_ORG}{profile_id}")
+        safe_cache_delete(f"{IS_ORG}{profile_id}")
         self.assertIsNone(cache.get(f"{IS_ORG}{profile_id}"))
         self.assertEqual(count - 1, OrganizationProfile.objects.all().count())
 

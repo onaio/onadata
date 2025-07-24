@@ -37,7 +37,11 @@ from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
 )
-from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set, safe_delete
+from onadata.libs.utils.cache_tools import (
+    safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
+)
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
@@ -103,7 +107,7 @@ class OrganizationProfileViewSet(
     def destroy(self, request, *args, **kwargs):
         """Clear cache and destroy organization"""
         cache_key = get_org_profile_cache_key(request.user, self.get_object())
-        safe_delete(cache_key)
+        safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):

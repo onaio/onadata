@@ -24,7 +24,7 @@ from onadata.celeryapp import app
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.utils.cache_tools import (
     XFORM_REGENERATE_INSTANCE_JSON_TASK,
-    safe_delete,
+    safe_cache_delete,
 )
 from onadata.libs.utils.email import ProjectInvitationEmail, send_generic_email
 from onadata.libs.utils.logger_tools import delete_xform_submissions
@@ -195,7 +195,7 @@ def regenerate_form_instance_json(xform_id: int):
             xform.save()
             # Clear cache used to store the task id from the AsyncResult
             cache_key = f"{XFORM_REGENERATE_INSTANCE_JSON_TASK}{xform_id}"
-            safe_delete(cache_key)
+            safe_cache_delete(cache_key)
 
 
 @app.task(base=AutoRetryTask)

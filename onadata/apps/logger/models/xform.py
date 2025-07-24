@@ -52,8 +52,8 @@ from onadata.libs.utils.cache_tools import (
     XFORM_DEC_SUBMISSION_COUNT,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    safe_cache_delete,
     safe_cache_get,
-    safe_delete,
 )
 from onadata.libs.utils.common_tags import (
     DATE_MODIFIED,
@@ -1312,7 +1312,7 @@ class XForm(XFormMixin, BaseModel):
 
                 # clear cache
                 key = f"{XFORM_COUNT}{self.pk}"
-                safe_delete(key)
+                safe_cache_delete(key)
 
         return self.num_of_submissions
 
@@ -1383,7 +1383,7 @@ class XForm(XFormMixin, BaseModel):
             count = 0
 
         # Delete cached delta counter
-        safe_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
+        safe_cache_delete(f"{XFORM_DEC_SUBMISSION_COUNT}{self.pk}")
 
         self.num_of_decrypted_submissions = count
         self.save(update_fields=["num_of_decrypted_submissions"])
@@ -1428,11 +1428,11 @@ post_delete.connect(
 
 def clear_project_cache(project_id):
     """Clear project cache"""
-    safe_delete(f"{PROJ_OWNER_CACHE}{project_id}")
-    safe_delete(f"{PROJ_FORMS_CACHE}{project_id}")
-    safe_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
-    safe_delete(f"{PROJ_SUB_DATE_CACHE}{project_id}")
-    safe_delete(f"{PROJ_NUM_DATASET_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_OWNER_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_FORMS_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{project_id}")
 
 
 # pylint: disable=unused-argument

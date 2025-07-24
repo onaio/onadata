@@ -25,7 +25,7 @@ from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-impo
     DATAVIEW_LAST_SUBMISSION_TIME,
     PROJ_OWNER_CACHE,
     XFORM_LINKED_DATAVIEWS,
-    safe_delete,
+    safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
@@ -448,15 +448,15 @@ class DataView(models.Model):
 
 def clear_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post delete handler for clearing the dataview cache."""
-    safe_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
+    safe_cache_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
 def clear_dataview_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post Save handler for clearing dataview cache on serialized fields."""
-    safe_delete(f"{PROJ_OWNER_CACHE}{instance.project.pk}")
-    safe_delete(f"{DATAVIEW_COUNT}{instance.xform.pk}")
-    safe_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
-    safe_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
+    safe_cache_delete(f"{PROJ_OWNER_CACHE}{instance.project.pk}")
+    safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform.pk}")
+    safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
+    safe_cache_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")
 
 
 post_save.connect(clear_dataview_cache, sender=DataView, dispatch_uid="clear_cache")

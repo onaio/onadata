@@ -16,7 +16,6 @@ from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.data_view import DataView
@@ -24,13 +23,13 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.utils import common_tags
-from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.api_export_tools import (
     custom_response_handler,
     export_async_export_response,
@@ -38,15 +37,16 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import (
-    PROJECT_LINKED_DATAVIEWS,
     PROJ_OWNER_CACHE,
-    safe_delete,
+    PROJECT_LINKED_DATAVIEWS,
+    safe_cache_delete,
 )
 from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
-from onadata.libs.utils.export_tools import str_to_bool, parse_request_export_options
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
+from onadata.libs.utils.export_tools import parse_request_export_options, str_to_bool
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -340,7 +340,7 @@ class DataViewViewSet(
         dataview = self.get_object()
         user = request.user
         dataview.soft_delete(user)
-        safe_delete(f"{PROJ_OWNER_CACHE}{dataview.project.pk}")
+        safe_cache_delete(f"{PROJ_OWNER_CACHE}{dataview.project.pk}")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -348,13 +348,13 @@ class DataViewViewSet(
 # pylint: disable=unused-argument
 def dataview_post_save_callback(sender, instance=None, created=False, **kwargs):
     """Clear project cache post dataview save."""
-    safe_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
+    safe_cache_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
 
 
 def dataview_post_delete_callback(sender, instance, **kwargs):
     """Clear project cache post dataview delete."""
     if instance.project:
-        safe_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
+        safe_cache_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
 
 
 post_save.connect(

@@ -45,10 +45,10 @@ from onadata.libs.utils.cache_tools import (
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
     safe_cache_decr,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_incr,
     safe_cache_set,
-    safe_delete,
 )
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
@@ -244,9 +244,9 @@ def update_xform_submission_count(instance):
     # Track submissions made today
     _update_submission_count_for_today(instance.xform_id)
 
-    safe_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
-    safe_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
-    safe_delete(f"{XFORM_COUNT}{instance.xform_id}")
+    safe_cache_delete(f"{XFORM_DATA_VERSIONS}{instance.xform_id}")
+    safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform_id}")
+    safe_cache_delete(f"{XFORM_COUNT}{instance.xform_id}")
     # Clear project cache
     # pylint: disable=import-outside-toplevel
     from onadata.apps.logger.models.xform import clear_project_cache
@@ -282,12 +282,12 @@ def _update_xform_submission_count_delete(instance):
     )
 
     for cache_prefix in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
-        safe_delete(f"{cache_prefix}{xform.project.pk}")
+        safe_cache_delete(f"{cache_prefix}{xform.project.pk}")
 
-    safe_delete(f"{IS_ORG}{xform.pk}")
-    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-    safe_delete(f"{DATAVIEW_COUNT}{xform.pk}")
-    safe_delete(f"{XFORM_COUNT}{xform.pk}")
+    safe_cache_delete(f"{IS_ORG}{xform.pk}")
+    safe_cache_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_cache_delete(f"{DATAVIEW_COUNT}{xform.pk}")
+    safe_cache_delete(f"{XFORM_COUNT}{xform.pk}")
 
 
 # pylint: disable=unused-argument

@@ -5,39 +5,39 @@ project_utils module - apply project permissions to a form.
 
 import sys
 
+from django.apps import apps
 from django.conf import settings
 from django.db import IntegrityError
-from django.apps import apps
-from guardian.shortcuts import get_perms
 
+from guardian.shortcuts import get_perms
 from multidb.pinning import use_master
 
 from onadata.celeryapp import app
-from onadata.libs.utils.cache_tools import (
-    XFORM_DATA_VERSIONS,
-    XFORM_METADATA_CACHE,
-    XFORM_PERMISSIONS_CACHE,
-    PROJ_OWNER_CACHE,
-    safe_delete,
-)
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.permissions import (
     ROLES,
-    ReadOnlyRole,
-    get_object_users_with_permissions,
-    set_project_perms_to_object,
-    get_role,
-    is_organization,
     DataEntryMinorRole,
     DataEntryOnlyRole,
     DataEntryRole,
-    EditorNoDownload,
     EditorMinorRole,
+    EditorNoDownload,
     EditorRole,
+    ReadOnlyRole,
     ReadOnlyRoleNoDownload,
+    get_object_users_with_permissions,
+    get_role,
+    is_organization,
+    set_project_perms_to_object,
 )
-from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    XFORM_DATA_VERSIONS,
+    XFORM_METADATA_CACHE,
+    XFORM_PERMISSIONS_CACHE,
+    safe_cache_delete,
+)
 from onadata.libs.utils.common_tags import MEMBERS
+from onadata.libs.utils.common_tools import report_exception
+from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.project_utils import get_project_users
 
 
@@ -147,10 +147,10 @@ def get_xform_users(xform):
 
 
 def clear_permissions_cache(xform):
-    safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
-    safe_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
-    safe_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
-    safe_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
+    safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+    safe_cache_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
+    safe_cache_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
+    safe_cache_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
 
 
 def update_role_by_meta_xform_perms(xform, user=None, user_role=None):

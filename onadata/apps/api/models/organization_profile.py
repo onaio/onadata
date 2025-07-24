@@ -19,7 +19,7 @@ from multidb.pinning import use_master
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
+from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_delete
 from onadata.libs.utils.common_tags import MEMBERS
 
 User = get_user_model()
@@ -32,7 +32,7 @@ def org_profile_post_delete_callback(sender, instance, **kwargs):
     """
     # delete the org_user too
     instance.user.delete()
-    safe_delete(f"{IS_ORG}{instance.pk}")
+    safe_cache_delete(f"{IS_ORG}{instance.pk}")
 
 
 def create_owner_team_and_assign_permissions(org):

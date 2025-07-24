@@ -29,9 +29,9 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
-    safe_delete,
 )
 from onadata.libs.utils.decorators import check_obj
 
@@ -542,7 +542,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 )
 
             # clear cache
-            safe_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
+            safe_cache_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
 
         project = super().update(instance, validated_data)
 

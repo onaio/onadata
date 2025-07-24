@@ -48,9 +48,9 @@ from onadata.libs.serializers.xform_serializer import (
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
+    safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
-    safe_delete,
 )
 from onadata.libs.utils.common_tools import merge_dicts, report_exception
 from onadata.libs.utils.export_tools import str_to_bool
@@ -230,7 +230,7 @@ class ProjectViewSet(
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # clear cache
-        safe_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
+        safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
