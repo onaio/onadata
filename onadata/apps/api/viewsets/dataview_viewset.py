@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-The /dataview API endpoint implementation.
-"""
+"""The /dataview API endpoint implementation."""
 
 from django.db.models.signals import post_delete, post_save
 from django.http import Http404, HttpResponseBadRequest
