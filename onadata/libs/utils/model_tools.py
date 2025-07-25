@@ -12,7 +12,7 @@ from django.core.cache import cache
 from django.db.models import F, Model
 from django.utils import timezone
 
-from onadata.libs.utils.cache_tools import safe_delete, set_cache_with_lock
+from onadata.libs.utils.cache_tools import set_cache_with_lock
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 
 logger = logging.getLogger(__name__)
@@ -120,11 +120,11 @@ def commit_cached_counters(
         if counter:
             adjust_numeric_field(model, pk=pk, field_name=field_name, delta=counter)
 
-        safe_delete(counter_key)
+        cache.delete(counter_key)
 
-    safe_delete(tracked_ids_key)
-    safe_delete(lock_key)
-    safe_delete(created_at_key)
+    cache.delete(tracked_ids_key)
+    cache.delete(lock_key)
+    cache.delete(created_at_key)
 
 
 def _execute_cached_counter_commit_failover(
@@ -200,10 +200,12 @@ def _increment_cached_counter(
         current_ids.add(pk)
         return current_ids
 
+    # We set the cache with no expiration (timeout=None). The cache will
+    # be cleared when commiting the cached counters to the database.
     set_cache_with_lock(
         cache_key=tracked_ids_key,
         modify_callback=add_to_modified_ids,
-        cache_timeout=None,
+        cache_timeout=None,  # No expiration
     )
     cache.add(created_at_key, timezone.now(), timeout=None)
 

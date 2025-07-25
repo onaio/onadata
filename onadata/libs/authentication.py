@@ -34,7 +34,14 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
-from onadata.libs.utils.cache_tools import LOCKOUT_IP, LOGIN_ATTEMPTS, cache, safe_key
+from onadata.libs.utils.cache_tools import (
+    LOCKOUT_IP,
+    LOGIN_ATTEMPTS,
+    safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
+    safe_key,
+)
 from onadata.libs.utils.common_tags import API_TOKEN
 from onadata.libs.utils.email import get_account_lockout_email_data
 
@@ -279,7 +286,7 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
         ip_address, username = retrieve_user_identification(request)
 
         if ip_address and username:
-            lockout = cache.get(safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"))
+            lockout = safe_cache_get(safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"))
             if lockout:
                 time_locked_out = datetime.now() - datetime.strptime(
                     lockout, "%Y-%m-%dT%H:%M:%S"
@@ -305,17 +312,17 @@ def login_attempts(request):
     """
     ip_address, username = check_lockout(request)
     attempts_key = safe_key(f"{LOGIN_ATTEMPTS}{ip_address}-{username}")
-    attempts = cache.get(attempts_key)
+    attempts = safe_cache_get(attempts_key)
 
     if attempts:
-        cache.incr(attempts_key)
-        attempts = cache.get(attempts_key, 0)
+        safe_cache_incr(attempts_key)
+        attempts = safe_cache_get(attempts_key, 0)
         if attempts >= getattr(settings, "MAX_LOGIN_ATTEMPTS", 10):
             lockout_key = safe_key(f"{LOCKOUT_IP}{ip_address}-{username}")
-            lockout = cache.get(lockout_key)
+            lockout = safe_cache_get(lockout_key)
             if not lockout:
                 send_lockout_email(username, ip_address)
-                cache.set(
+                safe_cache_set(
                     lockout_key,
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                     getattr(settings, "LOCKOUT_TIME", 1800),
@@ -324,9 +331,9 @@ def login_attempts(request):
             return attempts
         return attempts
 
-    cache.set(attempts_key, 1)
+    safe_cache_set(attempts_key, 1)
 
-    return cache.get(attempts_key)
+    return safe_cache_get(attempts_key)
 
 
 def send_lockout_email(username, ip_address):

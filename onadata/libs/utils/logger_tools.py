@@ -84,7 +84,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
-from onadata.libs.utils.cache_tools import XFORM_SUBMISSIONS_DELETING, safe_delete
+from onadata.libs.utils.cache_tools import XFORM_SUBMISSIONS_DELETING, safe_cache_delete
 from onadata.libs.utils.common_tags import METADATA_FIELDS
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
@@ -1162,7 +1162,7 @@ def delete_xform_submissions(
     xform.project.date_modified = timezone.now()
     xform.project.save(update_fields=["date_modified"])
 
-    safe_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
+    safe_cache_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
     send_message(
         instance_id=instance_ids or [],
         target_id=xform.id,

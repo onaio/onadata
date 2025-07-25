@@ -83,7 +83,7 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_cache_delete
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -838,7 +838,7 @@ class XFormViewSet(
             }
 
             # clear project from cache
-            safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+            safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
             resp_code = status.HTTP_202_ACCEPTED
 
         if request.method == "GET":

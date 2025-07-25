@@ -2,14 +2,14 @@
 """
 UserProfile Serializers.
 """
+
 import copy
 import re
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.core.cache import cache
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -22,21 +22,16 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_host_domain
-from onadata.apps.api.tasks import (
-    send_verification_email,
-)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
-from onadata.libs.utils.cache_tools import IS_ORG
-from onadata.libs.utils.email import (
-    get_verification_email_data,
-    get_verification_url,
-)
+from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_get, safe_cache_set
+from onadata.libs.utils.email import get_verification_email_data, get_verification_url
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -192,12 +187,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         Returns True if it is an organization profile.
         """
         if obj:
-            is_org = cache.get(f"{IS_ORG}{obj.pk}")
+            is_org = safe_cache_get(f"{IS_ORG}{obj.pk}")
             if is_org:
                 return is_org
 
         is_org = is_organization(obj)
-        cache.set(f"{IS_ORG}{obj.pk}", is_org)
+        safe_cache_set(f"{IS_ORG}{obj.pk}", is_org)
         return is_org
 
     def to_representation(self, instance):

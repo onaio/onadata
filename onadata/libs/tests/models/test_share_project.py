@@ -1,6 +1,6 @@
 """Tests for module onadata.libs.models.share_project"""
 
-from unittest.mock import patch, call
+from unittest.mock import call, patch
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.entity_list import EntityList
@@ -32,8 +32,8 @@ class ShareProjectTestCase(TestBase):
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.alice = self._create_user("alice", "Yuao8(-)")
 
-    @patch("onadata.libs.models.share_project.safe_delete")
-    def test_share(self, mock_safe_delete, mock_propagate):
+    @patch("onadata.libs.models.share_project.safe_cache_delete")
+    def test_share(self, mock_safe_cache_delete, mock_propagate):
         """A project is shared with a user
 
         Permissions assigned to project, xform, mergedxform and dataview
@@ -49,15 +49,15 @@ class ShareProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
-        mock_safe_delete.assert_has_calls(
+        mock_safe_cache_delete.assert_has_calls(
             [
                 call(f"ps-project_owner-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),
             ]
         )
 
-    @patch("onadata.libs.models.share_project.safe_delete")
-    def test_remove(self, mock_safe_delete, mock_propagate):
+    @patch("onadata.libs.models.share_project.safe_cache_delete")
+    def test_remove(self, mock_safe_cache_delete, mock_propagate):
         """A user is removed from a project
 
         Permissions removed from project, xform, mergedxform and dataview
@@ -89,7 +89,7 @@ class ShareProjectTestCase(TestBase):
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
-        mock_safe_delete.assert_has_calls(
+        mock_safe_cache_delete.assert_has_calls(
             [
                 call(f"ps-project_owner-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),

@@ -4,7 +4,6 @@
 """
 
 from django.conf import settings
-from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 
 from rest_framework import viewsets
@@ -30,7 +29,7 @@ from onadata.libs.serializers.chart_serializer import (
     ChartSerializer,
     FieldsChartSerializer,
 )
-from onadata.libs.utils.cache_tools import XFORM_CHARTS
+from onadata.libs.utils.cache_tools import XFORM_CHARTS, safe_cache_get, safe_cache_set
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
 from onadata.libs.utils.common_tools import str_to_bool
 
@@ -61,7 +60,6 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
         return renderers[0]()
 
     def get_content(self, renderer, data, accepted_media_type, renderer_context):
-
         try:
             content = super().get_content(
                 renderer, data, accepted_media_type, renderer_context
@@ -129,14 +127,14 @@ class ChartsViewSet(
                 f"{XFORM_CHARTS}{xform.pk}{field_xpath}{field_name}{group_by}{fmt}"
             )
 
-            data = cache.get(cache_key)
+            data = safe_cache_get(cache_key)
 
             if not data or refresh_cache:
                 data = get_chart_data_for_field(
                     field_name, xform, fmt, group_by, field_xpath
                 )
 
-                cache.set(cache_key, data, settings.XFORM_CHARTS_CACHE_TIME)
+                safe_cache_set(cache_key, data, settings.XFORM_CHARTS_CACHE_TIME)
 
             return Response(data, template_name="chart_detail.html")
 

@@ -3,7 +3,6 @@
 import logging
 
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
 from celery.exceptions import MaxRetriesExceededError
@@ -28,7 +27,11 @@ from onadata.libs.kms.tools import (
     send_key_rotation_reminder,
 )
 from onadata.libs.permissions import set_project_perms_to_object
-from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    PROJECT_DATE_MODIFIED_CACHE,
+    safe_cache_delete,
+    safe_cache_get,
+)
 from onadata.libs.utils.common_tags import DECRYPTION_FAILURE_MAX_RETRIES
 from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
@@ -72,7 +75,7 @@ def apply_project_date_modified_async():
     """
     Batch update projects date_modified field periodically
     """
-    project_ids = cache.get(PROJECT_DATE_MODIFIED_CACHE, {})
+    project_ids = safe_cache_get(PROJECT_DATE_MODIFIED_CACHE, {})
     if not project_ids:
         return
 
@@ -81,7 +84,7 @@ def apply_project_date_modified_async():
         Project.objects.filter(pk=project_id).update(date_modified=timestamp)
 
     # Clear cache after updating
-    safe_delete(PROJECT_DATE_MODIFIED_CACHE)
+    safe_cache_delete(PROJECT_DATE_MODIFIED_CACHE)
 
 
 @app.task(base=AutoRetryTask)

@@ -66,7 +66,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     XFORM_LIST_CACHE,
     reset_project_cache,
-    safe_delete,
+    safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.logger_tools import (
@@ -74,7 +74,6 @@ from onadata.libs.utils.logger_tools import (
     response_with_mimetype_and_name,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
-
 from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
@@ -438,11 +437,11 @@ def publish_project_xform(request, project):
 
     if "formid" in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))
-        safe_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
-        safe_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
-        safe_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
-        safe_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
-        safe_delete(f"{PROJ_SUB_DATE_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{xform.project.pk}")
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(
                 _(f"{request.user} has no manager/owner role to the form {xform}")
@@ -466,9 +465,7 @@ def publish_project_xform(request, project):
         OwnerRole.add(request.user, xform)
         try:
             # pylint: disable=import-outside-toplevel,unused-import
-            from onadata.libs.utils.xform_utils import (
-                set_project_perms_to_xform_async,
-            )
+            from onadata.libs.utils.xform_utils import set_project_perms_to_xform_async
 
             # Next run async task to apply all other perms
             set_project_perms_to_xform_async.delay(xform.pk, project.pk)
@@ -798,9 +795,9 @@ def invalidate_organization_cache(org_username):
     """Set organization cache to none for all roles"""
     for role in ROLES_ORDERED:
         key = f"{ORG_PROFILE_CACHE}{org_username}-{role.name}"
-        safe_delete(key)
+        safe_cache_delete(key)
 
-    safe_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
+    safe_cache_delete(f"{ORG_PROFILE_CACHE}{org_username}-anon")
 
 
 def _get_xform_list_cache_key_prefix(xform_or_project):
@@ -845,8 +842,8 @@ def invalidate_xform_list_cache(xform):
     project_cache_key_prefix = _get_xform_list_cache_key_prefix(xform.project)
 
     for role in ROLES_ORDERED:
-        safe_delete(f"{xform_cache_key_prefix}-{role.name}")
-        safe_delete(f"{project_cache_key_prefix}-{role.name}")
+        safe_cache_delete(f"{xform_cache_key_prefix}-{role.name}")
+        safe_cache_delete(f"{project_cache_key_prefix}-{role.name}")
 
-    safe_delete(f"{xform_cache_key_prefix}-anon")
-    safe_delete(f"{project_cache_key_prefix}-anon")
+    safe_cache_delete(f"{xform_cache_key_prefix}-anon")
+    safe_cache_delete(f"{project_cache_key_prefix}-anon")

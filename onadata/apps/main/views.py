@@ -9,14 +9,13 @@ import os
 from datetime import datetime
 from http import HTTPStatus
 
-from django.db import connections
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.files.storage import default_storage, storages
-from django.db import IntegrityError
+from django.db import IntegrityError, connections
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -38,6 +37,7 @@ from guardian.shortcuts import assign_perm, remove_perm
 from oauth2_provider.views.base import AuthorizationView
 from rest_framework.authtoken.models import Token
 
+import onadata
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
@@ -64,11 +64,11 @@ from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 from onadata.apps.viewer.models.parsed_instance import (
     DATETIME_FORMAT,
-    query_data,
-    query_fields_data,
-    query_count,
     ParsedInstance,
     _get_sort_fields,
+    query_count,
+    query_data,
+    query_fields_data,
 )
 from onadata.apps.viewer.views import attachment_url
 from onadata.libs.exceptions import EnketoError
@@ -92,7 +92,6 @@ from onadata.libs.utils.user_auth import (
     set_profile_data,
 )
 from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form
-import onadata
 
 # pylint: disable=invalid-name
 User = get_user_model()

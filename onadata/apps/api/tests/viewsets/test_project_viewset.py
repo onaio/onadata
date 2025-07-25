@@ -58,11 +58,11 @@ from onadata.libs.permissions import (
     ReadOnlyRole,
     ReadOnlyRoleNoDownload,
 )
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 from onadata.libs.utils.user_auth import get_user_default_project
 

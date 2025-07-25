@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-The /data API endpoint.
-"""
+"""The /data API endpoint."""
 
 import json
 import math

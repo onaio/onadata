@@ -5,7 +5,6 @@ Project Serializer module.
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
@@ -30,7 +29,9 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS,
-    safe_delete,
+    safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
 )
 from onadata.libs.utils.decorators import check_obj
 
@@ -58,7 +59,7 @@ def get_last_submission_date(project):
     :param project: The project to find the last submission date for.
     """
     cache_key = f"{PROJ_SUB_DATE_CACHE}{project.pk}"
-    last_submission_date = cache.get(cache_key)
+    last_submission_date = safe_cache_get(cache_key)
     if last_submission_date:
         return last_submission_date
     xforms = get_project_xforms(project)
@@ -68,7 +69,7 @@ def get_last_submission_date(project):
     dates.sort(reverse=True)
     last_submission_date = dates[0] if dates else None
 
-    cache.set(cache_key, last_submission_date)
+    safe_cache_set(cache_key, last_submission_date)
 
     return last_submission_date
 
@@ -80,12 +81,12 @@ def get_num_datasets(project):
     :param project: The project to find datasets for.
     """
     project_cache_key = f"{PROJ_NUM_DATASET_CACHE}{project.pk}"
-    count = cache.get(project_cache_key)
+    count = safe_cache_get(project_cache_key)
     if count:
         return count
 
     count = len(get_project_xforms(project))
-    cache.set(project_cache_key, count)
+    safe_cache_set(project_cache_key, count)
     return count
 
 
@@ -111,7 +112,7 @@ def get_teams(project):
     Return the teams with access to the project.
     """
     project_team_cache_key = f"{PROJ_TEAM_USERS_CACHE}{project.pk}"
-    teams_users = cache.get(project_team_cache_key)
+    teams_users = safe_cache_get(project_team_cache_key)
     if teams_users:
         return teams_users
 
@@ -127,7 +128,7 @@ def get_teams(project):
             {"name": team.name, "role": get_role(perms, project), "users": users}
         )
 
-    cache.set(project_team_cache_key, teams_users)
+    safe_cache_set(project_team_cache_key, teams_users)
     return teams_users
 
 
@@ -138,7 +139,7 @@ def get_users(project, context, all_perms=True):
     """
     project_permissions_cache_key = f"{PROJ_PERM_CACHE}{project.pk}"
     if all_perms:
-        users = cache.get(project_permissions_cache_key)
+        users = safe_cache_get(project_permissions_cache_key)
         if users:
             return users
 
@@ -192,7 +193,7 @@ def get_users(project, context, all_perms=True):
     results = list(itervalues(data))
 
     if all_perms:
-        cache.set(project_permissions_cache_key, results)
+        safe_cache_set(project_permissions_cache_key, results)
 
     return results
 
@@ -375,7 +376,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return list of xforms in the project.
         """
         project_forms_cache_key = f"{PROJ_BASE_FORMS_CACHE}{obj.pk}"
-        forms = cache.get(project_forms_cache_key)
+        forms = safe_cache_get(project_forms_cache_key)
         if forms:
             return forms
 
@@ -385,7 +386,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             xforms, context={"request": request}, many=True
         )
         forms = list(serializer.data)
-        cache.set(project_forms_cache_key, forms)
+        safe_cache_set(project_forms_cache_key, forms)
 
         return forms
 
@@ -541,7 +542,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 )
 
             # clear cache
-            safe_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
+            safe_cache_delete(f"{PROJ_PERM_CACHE}{instance.pk}")
 
         project = super().update(instance, validated_data)
 
@@ -584,7 +585,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
         serializer = ProjectSerializer(project, context={"request": request})
         response = serializer.data
-        cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
+        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
         return project
 
     def get_users(self, obj):
@@ -600,7 +601,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return list of xforms in the project.
         """
         project_forms_cache_key = f"{PROJ_FORMS_CACHE}{obj.pk}"
-        forms = cache.get(project_forms_cache_key)
+        forms = safe_cache_get(project_forms_cache_key)
         if forms:
             return forms
         xforms = get_project_xforms(obj)
@@ -609,7 +610,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             xforms, context={"request": request}, many=True
         )
         forms = list(serializer.data)
-        cache.set(project_forms_cache_key, forms)
+        safe_cache_set(project_forms_cache_key, forms)
 
         return forms
 
@@ -643,7 +644,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return a list of filtered datasets.
         """
         project_dataview_cache_key = f"{PROJECT_LINKED_DATAVIEWS}{obj.pk}"
-        data_views = cache.get(project_dataview_cache_key)
+        data_views = safe_cache_get(project_dataview_cache_key)
         if data_views:
             return data_views
 
@@ -663,6 +664,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         )
         data_views = list(serializer.data)
 
-        cache.set(project_dataview_cache_key, data_views)
+        safe_cache_set(project_dataview_cache_key, data_views)
 
         return data_views

@@ -2,24 +2,27 @@
 """
 The DataViewSerializer - manage DataView objects.
 """
+
 import datetime
 
 from django.utils.translation import gettext as _
-from django.core.cache import cache
 
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS, DataView
 from onadata.apps.logger.models.project import Project
-from onadata.libs.utils.cache_tools import DATAVIEW_COUNT, DATAVIEW_LAST_SUBMISSION_TIME
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, DATE_FORMAT
-from onadata.libs.utils.model_tools import get_columns_with_hxl
+from onadata.apps.logger.models.xform import XForm
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.api_export_tools import include_hxl_row
-
+from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME,
+    safe_cache_get,
+    safe_cache_set,
+)
+from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
+from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 LAST_SUBMISSION_TIME = "_submission_time"
 
@@ -203,7 +206,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     def get_count(self, obj):
         """Returns the submission count for the data view,"""
         if obj:
-            count_dict = cache.get(f"{DATAVIEW_COUNT}{obj.xform.pk}")
+            count_dict = safe_cache_get(f"{DATAVIEW_COUNT}{obj.xform.pk}")
 
             if count_dict:
                 if obj.pk in count_dict:
@@ -219,7 +222,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             if "count" in count_row:
                 count = count_row.get("count")
                 count_dict.setdefault(obj.pk, count)
-                cache.set(f"{DATAVIEW_COUNT}{obj.xform.pk}", count_dict)
+                safe_cache_set(f"{DATAVIEW_COUNT}{obj.xform.pk}", count_dict)
 
                 return count
 
@@ -228,7 +231,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     def get_last_submission_time(self, obj):
         """Returns the last submission timestamp."""
         if obj:
-            last_submission_time = cache.get(
+            last_submission_time = safe_cache_get(
                 f"{DATAVIEW_LAST_SUBMISSION_TIME}{obj.xform.pk}"
             )
 
@@ -247,7 +250,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
                 if LAST_SUBMISSION_TIME in last_submission_row:
                     last_submission_time = last_submission_row.get(LAST_SUBMISSION_TIME)
-                    cache.set(
+                    safe_cache_set(
                         f"{DATAVIEW_LAST_SUBMISSION_TIME}{obj.xform.pk}",
                         last_submission_time,
                     )

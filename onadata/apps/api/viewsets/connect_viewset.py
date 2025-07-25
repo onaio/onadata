@@ -4,6 +4,7 @@ The /api/v1/user API implementation
 
 User authentication API support to access API tokens.
 """
+
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -33,7 +34,11 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer,
 )
-from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, cache
+from onadata.libs.utils.cache_tools import (
+    USER_PROFILE_PREFIX,
+    safe_cache_get,
+    safe_cache_set,
+)
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 
 
@@ -49,14 +54,14 @@ def user_profile_w_token_response(request, status_code):
     try:
         user_profile = request.user.profile
     except UserProfile.DoesNotExist:
-        user_profile = cache.get(f"{USER_PROFILE_PREFIX}{request.user.username}")
+        user_profile = safe_cache_get(f"{USER_PROFILE_PREFIX}{request.user.username}")
         if not user_profile:
             with use_master:
                 user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
                 serializer = serializer_from_settings()(
                     user_profile, context={"request": request}
                 )
-                cache.set(
+                safe_cache_set(
                     f"{USER_PROFILE_PREFIX}{request.user.username}", serializer.data
                 )
 

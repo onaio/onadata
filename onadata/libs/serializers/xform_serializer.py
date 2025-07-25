@@ -9,7 +9,6 @@ import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import transaction
@@ -52,6 +51,8 @@ from onadata.libs.utils.cache_tools import (
     XFORM_LINKED_DATAVIEWS,
     XFORM_METADATA_CACHE,
     XFORM_PERMISSIONS_CACHE,
+    safe_cache_get,
+    safe_cache_set,
 )
 from onadata.libs.utils.common_tags import GROUP_DELIMETER_TAG, REPEAT_INDEX_TAGS
 from onadata.libs.utils.decorators import check_obj
@@ -113,7 +114,7 @@ def _set_cache(cache_key, cache_data, obj):
     :param obj:
     :return: Data that has been cached
     """
-    cache.set(f"{cache_key}{obj.pk}", cache_data)
+    safe_cache_set(f"{cache_key}{obj.pk}", cache_data)
     return cache_data
 
 
@@ -188,11 +189,11 @@ class XFormMixin:
         """
         xform_perms = []
         if obj:
-            xform_perms = cache.get(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}")
+            xform_perms = safe_cache_get(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}")
             if xform_perms:
                 return xform_perms
 
-            cache.set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
+            safe_cache_set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
         data = {}
         for perm in obj.xformuserobjectpermission_set.all():
             if perm.user_id not in data:
@@ -222,7 +223,7 @@ class XFormMixin:
 
         xform_perms = list(itervalues(data))
 
-        cache.set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
+        safe_cache_set(f"{XFORM_PERMISSIONS_CACHE}{obj.pk}", xform_perms)
 
         return xform_perms
 
@@ -231,7 +232,7 @@ class XFormMixin:
         Returns Enketo URL for given ``obj``.
         """
         if obj:
-            _enketo_url = cache.get(f"{ENKETO_URL_CACHE}{obj.pk}")
+            _enketo_url = safe_cache_get(f"{ENKETO_URL_CACHE}{obj.pk}")
             if _enketo_url:
                 return _enketo_url
 
@@ -249,7 +250,7 @@ class XFormMixin:
         Returns single submit Enketo URL for given ``obj``.
         """
         if obj:
-            _enketo_single_submit_url = cache.get(
+            _enketo_single_submit_url = safe_cache_get(
                 f"{ENKETO_SINGLE_SUBMIT_URL_CACHE}{obj.pk}"
             )
             if _enketo_single_submit_url:
@@ -269,7 +270,7 @@ class XFormMixin:
         Returns preview Enketo URL for given ``obj``.
         """
         if obj:
-            _enketo_preview_url = cache.get(f"{ENKETO_PREVIEW_URL_CACHE}{obj.pk}")
+            _enketo_preview_url = safe_cache_get(f"{ENKETO_PREVIEW_URL_CACHE}{obj.pk}")
             if _enketo_preview_url:
                 return _enketo_preview_url
 
@@ -290,7 +291,7 @@ class XFormMixin:
         """Returns a list of filtered datasets linked to the form."""
         if obj:
             key = f"{XFORM_LINKED_DATAVIEWS}{obj.pk}"
-            data_views = cache.get(key)
+            data_views = safe_cache_get(key)
             if data_views:
                 return data_views
 
@@ -300,7 +301,7 @@ class XFormMixin:
                 context=self.context,
             ).data
 
-            cache.set(key, list(data_views))
+            safe_cache_set(key, list(data_views))
 
             return data_views
         return []
@@ -311,13 +312,13 @@ class XFormMixin:
         """
         if obj:
             key = f"{XFORM_COUNT}{obj.pk}"
-            count = cache.get(key)
+            count = safe_cache_get(key)
             if count:
                 return count
 
             count = obj.submission_count(obj.is_merged_dataset)
 
-            cache.set(key, count)
+            safe_cache_set(key, count)
             return count
         return 0
 
@@ -525,7 +526,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         """
         xform_metadata = []
         if obj:
-            xform_metadata = cache.get(f"{XFORM_METADATA_CACHE}{obj.pk}")
+            xform_metadata = safe_cache_get(f"{XFORM_METADATA_CACHE}{obj.pk}")
             if xform_metadata:
                 return xform_metadata
 
@@ -534,7 +535,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
                     obj.metadata_set.all(), many=True, context=self.context
                 ).data
             )
-            cache.set(f"{XFORM_METADATA_CACHE}{obj.pk}", xform_metadata)
+            safe_cache_set(f"{XFORM_METADATA_CACHE}{obj.pk}", xform_metadata)
 
         return xform_metadata
 
@@ -579,7 +580,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         """
         versions = []
         if obj:
-            versions = cache.get(f"{XFORM_DATA_VERSIONS}{obj.pk}")
+            versions = safe_cache_get(f"{XFORM_DATA_VERSIONS}{obj.pk}")
 
             if versions:
                 return versions
@@ -593,7 +594,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             )
 
             if versions:
-                cache.set(f"{XFORM_DATA_VERSIONS}{obj.pk}", list(versions))
+                safe_cache_set(f"{XFORM_DATA_VERSIONS}{obj.pk}", list(versions))
 
         return versions
 

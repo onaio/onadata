@@ -8,7 +8,6 @@ List, Retrieve, Update, Create/Register Organizations.
 import json
 
 from django.conf import settings
-from django.core.cache import cache
 from django.utils.module_loading import import_string
 
 from rest_framework import status
@@ -38,7 +37,11 @@ from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer,
     RotateOrganizationKeySerializer,
 )
-from onadata.libs.utils.cache_tools import safe_delete
+from onadata.libs.utils.cache_tools import (
+    safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
+)
 from onadata.libs.utils.common_tools import merge_dicts
 
 BaseViewset = get_baseviewset_class()
@@ -82,13 +85,13 @@ class OrganizationProfileViewSet(
         """Get organization from cache or db"""
         organization = self.get_object()
         cache_key = get_org_profile_cache_key(request.user, organization)
-        cached_org = cache.get(cache_key)
+        cached_org = safe_cache_get(cache_key)
 
         if cached_org:
             return Response(cached_org)
 
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data)
+        safe_cache_set(cache_key, response.data)
         return response
 
     def create(self, request, *args, **kwargs):
@@ -98,20 +101,20 @@ class OrganizationProfileViewSet(
         username = organization.get("org")
         organization_profile = OrganizationProfile.objects.get(user__username=username)
         cache_key = get_org_profile_cache_key(request.user, organization_profile)
-        cache.set(cache_key, organization)
+        safe_cache_set(cache_key, organization)
         return response
 
     def destroy(self, request, *args, **kwargs):
         """Clear cache and destroy organization"""
         cache_key = get_org_profile_cache_key(request.user, self.get_object())
-        safe_delete(cache_key)
+        safe_cache_delete(cache_key)
         return super().destroy(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """Update org in cache and db"""
         response = super().update(request, *args, **kwargs)
         cache_key = get_org_profile_cache_key(request.user, self.get_object())
-        cache.set(cache_key, response.data)
+        safe_cache_set(cache_key, response.data)
         return response
 
     @action(methods=["DELETE", "GET", "POST", "PUT"], detail=True)
