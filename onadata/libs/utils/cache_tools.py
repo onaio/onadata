@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CACHE_TIMEOUT = cache.default_timeout
+DEFAULT_TIMEOUT = cache.default_timeout
 
 # Cache names used in project serializer
 PROJ_PERM_CACHE = "ps-project_permissions-"
@@ -146,7 +146,7 @@ def _safe_cache_operation(operation, default_return=None):
         return default_return
 
 
-def safe_cache_set(key, value, timeout=DEFAULT_CACHE_TIMEOUT):
+def safe_cache_set(key, value, timeout=DEFAULT_TIMEOUT):
     """
     Safely set a value in the cache.
 
@@ -173,7 +173,7 @@ def safe_cache_get(key, default=None):
     return _safe_cache_operation(lambda: cache.get(key, default), default)
 
 
-def safe_cache_add(key, value, timeout=DEFAULT_CACHE_TIMEOUT):
+def safe_cache_add(key, value, timeout=DEFAULT_TIMEOUT):
     """
     Safely add a value to the cache.
 
@@ -262,7 +262,7 @@ def with_cache_lock(cache_key, lock_expire=30, lock_timeout=10):
 def set_cache_with_lock(
     cache_key,
     modify_callback,
-    cache_timeout=DEFAULT_CACHE_TIMEOUT,
+    cache_timeout=DEFAULT_TIMEOUT,
     lock_expire=30,
     lock_timeout=10,
 ):

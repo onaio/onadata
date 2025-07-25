@@ -200,10 +200,12 @@ def _increment_cached_counter(
         current_ids.add(pk)
         return current_ids
 
+    # We set the cache with no expiration (timeout=None). The cache will
+    # be cleared when commiting the cached counters to the database.
     set_cache_with_lock(
         cache_key=tracked_ids_key,
         modify_callback=add_to_modified_ids,
-        cache_timeout=None,
+        cache_timeout=None,  # No expiration
     )
     cache.add(created_at_key, timezone.now(), timeout=None)
 
