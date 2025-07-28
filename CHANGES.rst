@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.2.3(2025-07-28)
+------------------
+- Use safe cache operations
+  `PR #2874 <https://github.com/onaio/onadata/pull/2874>`
+  [@kelvin-muchiri]
+
 v5.2.2(2025-07-23)
 ------------------
 - Update Ona-OIDC
@@ -24,16 +30,16 @@ v5.2.0 (2025-07-22)*
   `PR #2859 <https://github.com/onaio/onadata/pull/2859>`
   [@kelvin-muchiri]
 - Fix submission marked as duplicate if IntegrityError is thrown
-  `PR 2860 https://github.com/onaio/onadata/pull/2860`
+  `PR #2860 https://github.com/onaio/onadata/pull/2860`
   [@kelvin-muchiri]
 - Fix media signed url missing content type header
- `PR 2862 https://github.com/onaio/onadata/pull/2862`
+ `PR #2862 https://github.com/onaio/onadata/pull/2862`
   [@kelvin-muchiri]
 - Handle None bind attributes in ExportBuilder survey processing
-  `PR 2864 https://github.com/onaio/onadata/pull/2864`
+  `PR #2864 https://github.com/onaio/onadata/pull/2864`
   [@FrankApiyo]
 - Remove CSV export headers register
-  `PR 2863 https://github.com/onaio/onadata/pull/2863`
+  `PR #2863 https://github.com/onaio/onadata/pull/2863`
   [@kelvin-muchiri]
 - fix: Ensure organization serializer in settings is applied for organization admins
   `PR #2865 <https://github.com/onaio/onadata/pull/2865>`
