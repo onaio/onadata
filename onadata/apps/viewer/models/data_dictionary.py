@@ -35,11 +35,7 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.cache_tools import (
-    PROJ_BASE_FORMS_CACHE,
-    PROJ_FORMS_CACHE,
-    safe_cache_delete,
-)
+from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_cache_delete
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
 from onadata.libs.utils.model_tools import get_columns_with_hxl, set_uuid
 
@@ -445,7 +441,6 @@ def invalidate_caches(sender, instance=None, created=False, **kwargs):
     xform = XForm.objects.get(pk=instance.pk)
 
     safe_cache_delete(f"{PROJ_FORMS_CACHE}{instance.project.pk}")
-    safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{instance.project.pk}")
     api_tools.invalidate_xform_list_cache(xform)
 
 
