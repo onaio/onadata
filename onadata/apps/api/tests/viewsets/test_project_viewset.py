@@ -177,35 +177,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                         },
                     ),
                     ("starred", False),
-                    (
-                        "users",
-                        [
-                            {
-                                "is_org": False,
-                                "metadata": {},
-                                "first_name": "Bob",
-                                "last_name": "erama",
-                                "user": "bob",
-                                "role": "owner",
-                            }
-                        ],
-                    ),
-                    (
-                        "forms",
-                        [
-                            OrderedDict(
-                                [
-                                    ("name", "transportation_2011_07_25"),
-                                    ("formid", self.xform.pk),
-                                    ("id_string", "transportation_2011_07_25"),
-                                    ("is_merged_dataset", False),
-                                    ("encrypted", False),
-                                    ("contributes_entities_to", None),
-                                    ("consumes_entities_from", []),
-                                ]
-                            )
-                        ],
-                    ),
                     ("public", False),
                     ("tags", []),
                     ("num_datasets", 1),
@@ -305,47 +276,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                 shared_project_in_response = True
                 break
         self.assertTrue(shared_project_in_response)
-
-    # pylint: disable=invalid-name
-    def test_project_list_returns_users_own_project_is_shared_to(self):
-        """
-        Ensure that the project list responses for project owners
-        contains all the users the project has been shared too
-        """
-        self._project_create()
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        alice_profile = self._create_user_profile(alice_data)
-
-        share_project = ShareProject(self.project, "alice", "manager")
-        share_project.save()
-
-        # Ensure alice is in the list of users
-        # When an owner requests for the project data
-        req = self.factory.get("/", **self.extra)
-        resp = self.view(req)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.data[0]["users"]), 2)
-        shared_users = [user["user"] for user in resp.data[0]["users"]]
-        self.assertIn(alice_profile.user.username, shared_users)
-
-        # Ensure project managers can view all users the project was shared to
-        davis_data = {"username": "davis", "email": "davis@localhost.com"}
-        davis_profile = self._create_user_profile(davis_data)
-        dave_extras = {"HTTP_AUTHORIZATION": f"Token {davis_profile.user.auth_token}"}
-        share_project = ShareProject(
-            self.project, davis_profile.user.username, "manager"
-        )
-        share_project.save()
-
-        req = self.factory.get("/", **dave_extras)
-        resp = self.view(req)
-
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(len(resp.data[0]["users"]), 3)
-        shared_users = [user["user"] for user in resp.data[0]["users"]]
-        self.assertIn(alice_profile.user.username, shared_users)
-        self.assertIn(self.user.username, shared_users)
 
     def test_projects_get(self):
         self._project_create()
@@ -2815,50 +2745,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         # permissions have changed for both project and xform
         self.assertFalse(role_class.user_has_role(alice, self.project))
         self.assertFalse(role_class.user_has_role(alice, self.xform))
-
-    def test_project_list_by_owner(self):
-        # create project and publish form to project
-        sluggie_data = {"username": "sluggie", "email": "sluggie@localhost.com"}
-        self._login_user_and_profile(sluggie_data)
-        self._publish_xls_form_to_project()
-
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        alice_profile = self._create_user_profile(alice_data)
-
-        projectid = self.project.pk
-
-        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
-
-        data = {"username": "alice", "role": ReadOnlyRole.name}
-        request = self.factory.put("/", data=data, **self.extra)
-
-        view = ProjectViewSet.as_view({"put": "share", "get": "list"})
-        response = view(request, pk=projectid)
-
-        self.assertEqual(response.status_code, 204)
-        self.assertIsNone(cache.get(safe_key(f"{PROJ_OWNER_CACHE}{self.project.pk}")))
-
-        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
-        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
-
-        # Should list collaborators
-        data = {"owner": "sluggie"}
-        request = self.factory.get("/", data=data, **self.extra)
-        response = view(request)
-
-        users = response.data[0]["users"]
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(
-            {
-                "first_name": "Bob",
-                "last_name": "erama",
-                "is_org": False,
-                "role": "readonly",
-                "user": "alice",
-                "metadata": {},
-            },
-            users,
-        )
 
     def test_projects_soft_delete(self):
         self._project_create()
