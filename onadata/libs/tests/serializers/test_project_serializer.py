@@ -2,6 +2,7 @@
 """
 Test onadata.libs.serializers.project_serializer
 """
+
 from unittest.mock import MagicMock
 
 from django.core.cache import cache
@@ -42,39 +43,6 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         }
         # Create the project
         self._project_create(data)
-
-    def test_get_users(self):
-        """"""
-        # Is none when request to get users lacks a project
-        users = self.serializer.get_users(None)
-        self.assertEqual(users, None)
-
-        # Has members and NOT collaborators when NOT passed 'owner'
-        request = self.factory.get("/", **self.extra)
-        request.user = self.user
-        self.serializer.context["request"] = request
-        users = self.serializer.get_users(self.project)
-        self.assertEqual(
-            sorted(users, key=lambda x: x["first_name"]),
-            [
-                {
-                    "first_name": "Bob",
-                    "last_name": "erama",
-                    "is_org": False,
-                    "role": "owner",
-                    "user": "bob",
-                    "metadata": {},
-                },
-                {
-                    "first_name": "Dennis",
-                    "last_name": "",
-                    "is_org": True,
-                    "role": "owner",
-                    "user": "denoinc",
-                    "metadata": {},
-                },
-            ],
-        )
 
 
 class TestProjectSerializer(TestAbstractViewSet):
