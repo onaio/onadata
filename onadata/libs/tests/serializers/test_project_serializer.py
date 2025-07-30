@@ -5,6 +5,7 @@ Test onadata.libs.serializers.project_serializer
 
 from unittest.mock import MagicMock
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 
 from rest_framework import serializers
@@ -43,6 +44,17 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         }
         # Create the project
         self._project_create(data)
+
+    def test_get_current_user_role(self):
+        request = self.factory.get("/", **self.extra)
+        request.user = self.user
+        serializer = BaseProjectSerializer(self.project, context={"request": request})
+        self.assertEqual(serializer.data["current_user_role"], "owner")
+
+        # Is none if user is anonymous
+        request.user = AnonymousUser()
+        serializer = BaseProjectSerializer(self.project, context={"request": request})
+        self.assertIsNone(serializer.data["current_user_role"])
 
 
 class TestProjectSerializer(TestAbstractViewSet):
