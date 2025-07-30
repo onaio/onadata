@@ -59,6 +59,7 @@ from onadata.libs.utils.api_export_tools import (
 )
 from onadata.libs.utils.cache_tools import (
     ORG_PROFILE_CACHE,
+    PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
@@ -438,6 +439,7 @@ def publish_project_xform(request, project):
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))
         safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
+        safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{xform.project.pk}")
         if not ManagerRole.user_has_role(request.user, xform):

@@ -42,6 +42,7 @@ from taggit.managers import TaggableManager
 from onadata.apps.logger.xform_instance_parser import XLSFormError, clean_and_parse_xml
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
+    PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
@@ -1475,6 +1476,7 @@ def clear_project_cache(project_id):
     """Clear project cache"""
     safe_cache_delete(f"{PROJ_OWNER_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_FORMS_CACHE}{project_id}")
+    safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{project_id}")
 
