@@ -18,19 +18,18 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.logger.models import (
+    Attachment,
+    DataView,
     Instance,
+    MergedXForm,
     Project,
     XForm,
-    DataView,
-    MergedXForm,
-    Attachment,
 )
-from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
-from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.numeric import int_or_parse_error
 
 # pylint: disable=invalid-name
@@ -192,16 +191,7 @@ class DataFilter(ObjectPermissionsFilter):
         if request.user.is_anonymous:
             return queryset.filter(Q(shared_data=True))
 
-        # Check permissions for each XForm
-        allowed_xform_ids = []
-        for xform in queryset_iterator(queryset):
-            try:
-                if request.user.has_perm("view_xform_data", xform):
-                    allowed_xform_ids.append(xform.id)
-            except XForm.DoesNotExist:
-                continue
-
-        return queryset.filter(id__in=allowed_xform_ids)
+        return queryset
 
 
 class InstanceFilter(django_filter_filters.FilterSet):
