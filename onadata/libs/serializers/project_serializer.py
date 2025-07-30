@@ -450,7 +450,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
-    current_user_role = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
@@ -672,16 +671,3 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         safe_cache_set(project_dataview_cache_key, data_views)
 
         return data_views
-
-    def get_current_user_role(self, obj):
-        """
-        Return the role of the request user in the project.
-        """
-        if self.context["request"].user.is_anonymous:
-            return None
-
-        request_user = self.context["request"].user
-        perms = obj.projectuserobjectpermission_set.filter(
-            user=request_user
-        ).values_list("permission__codename", flat=True)
-        return get_role(perms, obj)
