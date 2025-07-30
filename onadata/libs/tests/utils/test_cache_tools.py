@@ -72,6 +72,7 @@ class TestCacheTools(TestCase):
             "created_by": "http://testserver/api/v1/users/bob",
             "metadata": {},
             "starred": False,
+            "current_user_role": "owner",
             "users": [
                 {
                     "is_org": False,
