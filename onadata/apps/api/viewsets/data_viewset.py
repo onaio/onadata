@@ -23,7 +23,10 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
+from onadata.apps.api.permissions import (
+    ConnectViewsetPermissions,
+    ViewXFormDataPermissions,
+)
 from onadata.apps.api.tasks import delete_xform_submissions_async
 from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
 from onadata.apps.logger.models import MergedXForm, OsmData
@@ -146,7 +149,7 @@ class DataViewSet(
         filters.DataFilter,
     )
     serializer_class = DataSerializer
-    permission_classes = (XFormPermissions,)
+    permission_classes = (ViewXFormDataPermissions,)
     lookup_field = "pk"
     lookup_fields = ("pk", "dataid")
     extra_lookup_fields = None
