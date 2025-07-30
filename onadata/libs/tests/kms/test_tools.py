@@ -906,6 +906,8 @@ class DecryptInstanceTestCase(TestBase):
         |         | video | forest | Take a video of forest|
         """
         self.xform = self._publish_markdown(md, self.user, id_string="nature")
+        self.xform.is_managed = True
+        self.xform.save(update_fields=["is_managed"])
         survey_type = SurveyType.objects.create(slug="slug-foo")
         self.instance = Instance.objects.create(
             xform=self.xform,
@@ -1079,7 +1081,7 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(instance.date_modified, old_date_modified)
 
     def test_key_disabled(self):
-        """Decryption fails of key is disabled."""
+        """Decryption fails if encryption key is disabled."""
         # Disable key
         self.kms_key.disabled_at = timezone.now()
         self.kms_key.save()
@@ -1104,7 +1106,7 @@ class DecryptInstanceTestCase(TestBase):
         )
 
     def test_encryption_key_not_found(self):
-        """Key that encrypted the Instance version not found."""
+        """Decryption fails if key that encrypted the Instance version not found."""
         xform_key = self.xform.kms_keys.first()
         xform_key.version = "202505131337"  # Update the version
         xform_key.save()
@@ -1153,6 +1155,27 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(
             self.instance.json.get("_decryption_error"), "INVALID_SUBMISSION"
         )
+
+    def test_unmanaged_xform(self):
+        """Decryption fails if XForm is not encrypted using managed keys."""
+        self.xform.is_managed = False
+        self.xform.save(update_fields=["is_managed"])
+        old_xml = self.instance.xml
+        old_date_modified = self.instance.date_modified
+        self.instance.refresh_from_db()
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(
+            str(exc_info.exception), "XForm is not encrypted using managed keys."
+        )
+
+        self.instance.refresh_from_db()
+
+        # No update was made to Instance
+        self.assertEqual(self.instance.xml, old_xml)
+        self.assertEqual(self.instance.date_modified, old_date_modified)
 
 
 class DisableXFormEncryptionTestCase(TestBase):
