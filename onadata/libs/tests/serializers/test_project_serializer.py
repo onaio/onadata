@@ -150,3 +150,16 @@ class TestProjectSerializer(TestAbstractViewSet):
 
         # clear cache
         cache.delete(safe_key(f"{PROJ_OWNER_CACHE}{self.project.pk}"))
+
+    def test_get_current_user_role(self):
+        self._publish_xls_form_to_project()
+
+        request = self.factory.get("/", **self.extra)
+        request.user = self.user
+        serializer = ProjectSerializer(self.project, context={"request": request})
+        self.assertEqual(serializer.data["current_user_role"], "owner")
+
+        # Is none if user is anonymous
+        request.user = AnonymousUser()
+        serializer = ProjectSerializer(self.project, context={"request": request})
+        self.assertIsNone(serializer.data["current_user_role"])
