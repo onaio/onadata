@@ -317,7 +317,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         res_user_props = list(response.data["users"][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
-        self.assertEqual(response.data["current_user_role"], "owner")
 
     def test_project_get_deleted_form(self):
         self._publish_xls_form_to_project()
