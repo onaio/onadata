@@ -871,6 +871,7 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
     if (
         created
         and getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
+        and instance.xform.is_managed
         and kms_tools.is_instance_encrypted(instance)
     ):
         transaction.on_commit(
