@@ -177,6 +177,26 @@ class TestProjectViewSet(TestAbstractViewSet):
                         },
                     ),
                     ("starred", False),
+                    (
+                        "current_user_role",
+                        "owner",
+                    ),
+                    (
+                        "forms",
+                        [
+                            OrderedDict(
+                                [
+                                    ("name", "transportation_2011_07_25"),
+                                    ("formid", self.xform.pk),
+                                    ("id_string", "transportation_2011_07_25"),
+                                    ("is_merged_dataset", False),
+                                    ("encrypted", False),
+                                    ("contributes_entities_to", None),
+                                    ("consumes_entities_from", []),
+                                ]
+                            )
+                        ],
+                    ),
                     ("public", False),
                     ("tags", []),
                     ("num_datasets", 1),
@@ -2745,6 +2765,39 @@ class TestProjectViewSet(TestAbstractViewSet):
         # permissions have changed for both project and xform
         self.assertFalse(role_class.user_has_role(alice, self.project))
         self.assertFalse(role_class.user_has_role(alice, self.xform))
+
+    def test_project_list_by_owner(self):
+        # create project and publish form to project
+        sluggie_data = {"username": "sluggie", "email": "sluggie@localhost.com"}
+        self._login_user_and_profile(sluggie_data)
+        self._publish_xls_form_to_project()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        data = {"username": "alice", "role": ReadOnlyRole.name}
+        request = self.factory.put("/", data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({"put": "share", "get": "list"})
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertIsNone(cache.get(safe_key(f"{PROJ_OWNER_CACHE}{self.project.pk}")))
+
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
+
+        # Should list collaborators
+        data = {"owner": "sluggie"}
+        request = self.factory.get("/", data=data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["current_user_role"], "owner")
 
     def test_projects_soft_delete(self):
         self._project_create()
