@@ -21,12 +21,14 @@ PROJ_PERM_CACHE = "ps-project_permissions-"
 PROJ_NUM_DATASET_CACHE = "ps-num_datasets-"
 PROJ_SUB_DATE_CACHE = "ps-last_submission_date-"
 PROJ_FORMS_CACHE = "ps-project_forms-"
+PROJ_BASE_FORMS_CACHE = "ps-project_base_forms-"
 PROJ_OWNER_CACHE = "ps-project_owner-"
 project_cache_prefixes = [
     PROJ_PERM_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJ_FORMS_CACHE,
+    PROJ_BASE_FORMS_CACHE,
     PROJ_OWNER_CACHE,
 ]
 

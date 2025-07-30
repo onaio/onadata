@@ -21,6 +21,7 @@ from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
+    PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
@@ -323,6 +324,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
+    current_user_role = serializers.SerializerMethodField()
+    forms = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField()
@@ -338,6 +341,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "created_by",
             "metadata",
             "starred",
+            "current_user_role",
+            "forms",
             "public",
             "tags",
             "num_datasets",
@@ -354,6 +359,40 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         Return True if request user has starred this project.
         """
         return is_starred(obj, self.context["request"])
+
+    def get_current_user_role(self, obj):
+        """
+        Return the role of the request user in the project.
+        """
+        if self.context["request"].user.is_anonymous:
+            return None
+
+        request_user = self.context["request"].user
+        perms = obj.projectuserobjectpermission_set.filter(
+            user=request_user
+        ).values_list("permission__codename", flat=True)
+
+        return get_role(perms, obj)
+
+    @check_obj
+    def get_forms(self, obj):
+        """
+        Return list of xforms in the project.
+        """
+        project_forms_cache_key = f"{PROJ_BASE_FORMS_CACHE}{obj.pk}"
+        forms = safe_cache_get(project_forms_cache_key)
+        if forms:
+            return forms
+
+        xforms = get_project_xforms(obj)
+        request = self.context.get("request")
+        serializer = BaseProjectXFormSerializer(
+            xforms, context={"request": request}, many=True
+        )
+        forms = list(serializer.data)
+        safe_cache_set(project_forms_cache_key, forms)
+
+        return forms
 
     def get_num_datasets(self, obj):
         """
