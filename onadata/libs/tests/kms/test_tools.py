@@ -1156,8 +1156,8 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.json.get("_decryption_error"), "INVALID_SUBMISSION"
         )
 
-    def test_unmanaged_xform(self):
-        """Decryption fails if XForm is not encrypted using managed keys."""
+    def test_encryption_unmanaged(self):
+        """Decryption fails if encryption is not managed."""
         self.xform.is_managed = False
         self.xform.save(update_fields=["is_managed"])
         old_xml = self.instance.xml
@@ -1168,7 +1168,7 @@ class DecryptInstanceTestCase(TestBase):
             decrypt_instance(self.instance)
 
         self.assertEqual(
-            str(exc_info.exception), "XForm is not encrypted using managed keys."
+            str(exc_info.exception), "Encryption is not using managed keys."
         )
 
         self.instance.refresh_from_db()

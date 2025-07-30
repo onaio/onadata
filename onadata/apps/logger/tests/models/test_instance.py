@@ -1213,7 +1213,7 @@ class TestInstance(TestBase):
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
-    def test_decrypt_instance_managed_xform(self, mock_decrypt):
+    def test_decrypt_instance_managed_encryption(self, mock_decrypt):
         """Instance is decrypted if encryption uses managed keys"""
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
@@ -1250,7 +1250,7 @@ class TestInstance(TestBase):
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
-    def test_decrypt_instance_unmanaged_xform(self, mock_decrypt):
+    def test_decrypt_instance_unmanaged_encryption(self, mock_decrypt):
         """Instance is not decrypted if encryption does not use managed keys"""
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"

@@ -54,12 +54,12 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.libs.utils.common_tags import (
     DECRYPTION_ERROR,
+    DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED,
     DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED,
     DECRYPTION_FAILURE_INVALID_SUBMISSION,
     DECRYPTION_FAILURE_KEY_DISABLED,
     DECRYPTION_FAILURE_KEY_NOT_FOUND,
     DECRYPTION_FAILURE_MESSAGES,
-    DECRYPTION_FAILURE_XFORM_UNMANAGED,
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
@@ -506,7 +506,7 @@ def decrypt_instance(instance: Instance) -> None:
 
     if not instance.xform.is_managed:
         raise DecryptionError(
-            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_XFORM_UNMANAGED]
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )
 
     try:
