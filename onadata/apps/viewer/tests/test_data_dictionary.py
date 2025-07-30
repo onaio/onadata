@@ -280,6 +280,7 @@ class DataDictionaryTestCase(TestBase):
         """Various caches are invalidated when form is created/replaced"""
         cache_keys = [
             f"ps-project_forms-{self.project.pk}",
+            f"ps-project_base_forms-{self.project.pk}",
             f"xfm-list-{self.project.pk}-Project-anon",
         ]
 
