@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.2.4(2025-07-31)
+------------------
+- Skip Instance decryption if encryption is not using managed keys
+- Fix slow response times on ``/api/v1/data endpoint`` due to enforcement of ``view_xform_data`` permission
+  `PR #2874 <https://github.com/onaio/onadata/pull/2878>`
+  [@kelvin-muchiri, @FrankApiyo]
+
 v5.2.3(2025-07-28)
 ------------------
 - Use safe cache operations
