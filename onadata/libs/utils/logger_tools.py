@@ -424,16 +424,24 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                 else instance.xml.find(filename) != -1
             )
         ]
+
         if media_in_submission:
-            Attachment.objects.get_or_create(
-                xform=xform,
-                instance=instance,
-                mimetype=content_type,
-                name=filename,
-                extension=extension,
-                user=instance.user,
-                defaults={"media_file": f},
-            )
+            lookup_kwargs = {
+                "xform": xform,
+                "instance": instance,
+                "mimetype": content_type,
+                "name": filename,
+                "extension": extension,
+                "user": instance.user,
+            }
+            attachment_qs = Attachment.objects.filter(**lookup_kwargs)
+
+            if not attachment_qs.exists():
+                # We avoid get_or_create to avoid the case where multiple
+                # attachments with the same name already exist which occurred
+                # in versions < v5.2.0
+                Attachment.objects.create(**lookup_kwargs, media_file=f)
+
     if remove_deleted_media:
         instance.soft_delete_attachments()
 
