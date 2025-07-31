@@ -552,6 +552,28 @@ def create_instance(
         #    has already been submitted for that user.
         return DuplicateInstance()
 
+    # get new and deprecated UUIDs
+    history = (
+        InstanceHistory.objects.filter(
+            xform_instance__xform_id=xform.pk,
+            xform_instance__deleted_at__isnull=True,
+            uuid=new_uuid,
+        )
+        .only("xform_instance")
+        .first()
+    )
+
+    if history:
+        duplicate_instance = history.xform_instance
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
+            save_attachments(
+                xform, duplicate_instance, media_files, remove_deleted_media=True
+            )
+            duplicate_instance.save()
+
+        return DuplicateInstance()
+
     checksum = sha256(xml).hexdigest()
 
     with transaction.atomic():
