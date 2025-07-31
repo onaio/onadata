@@ -1726,7 +1726,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Instance.objects.count(), 1)
         self.assertEqual(Attachment.objects.count(), 1)
 
-        # Duplicate submission
+        # Make duplicate submission
         # Extra attachment
         media_path_2 = os.path.join(
             self.main_directory,
@@ -1768,3 +1768,43 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.count(), 2)
         self.assertTrue(Attachment.objects.filter(name="1335783522563.jpg").exists())
         self.assertTrue(Attachment.objects.filter(name="1335783522564.JPG").exists())
+
+        # Simulate duplicate submission with multiple attachments with the same name
+        # which occurred in  versions < v5.2.0
+        instance = Instance.objects.first()
+        Attachment.objects.create(
+            xform=self.xform,
+            instance=instance,
+            mimetype="image/jpeg",
+            name="1335783522563.jpg",
+            extension="jpg",
+            user=self.user,
+            media_file="1335783522563.jpg",
+        )
+
+        # Make duplicate submission
+        with open(submission_path, "rb") as sf, open(media_path, "rb") as mf:
+            data = {"xml_submission_file": sf, "media_file": mf}
+            request = self.factory.post(f"/{self.user.username}/submission", data)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth("bob", "bobbob")
+            request.META.update(auth(request.META, response))
+            response = self.view(request, username=self.user.username)
+
+        self.assertContains(
+            response,
+            "Duplicate submission",
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/{self.user.username}/submission",
+        )
+        self.assertEqual(Instance.objects.count(), 1)
+        self.assertEqual(Attachment.objects.count(), 3)
+        self.assertEqual(Attachment.objects.filter(name="1335783522563.jpg").count(), 2)
