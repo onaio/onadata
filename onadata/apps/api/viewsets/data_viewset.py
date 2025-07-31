@@ -23,10 +23,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.permissions import (
-    ConnectViewsetPermissions,
-    ViewXFormDataPermissions,
-)
+from onadata.apps.api.permissions import ConnectViewsetPermissions, XFormPermissions
 from onadata.apps.api.tasks import delete_xform_submissions_async
 from onadata.apps.api.tools import add_tags_to_instance, get_baseviewset_class
 from onadata.apps.logger.models import MergedXForm, OsmData
@@ -144,12 +141,12 @@ class DataViewSet(
     ]
 
     filter_backends = (
-        filters.AnonDjangoObjectPermissionFilter,
+        filters.DataAnonDjangoObjectPermissionFilter,
         filters.XFormOwnerFilter,
         filters.DataFilter,
     )
     serializer_class = DataSerializer
-    permission_classes = (ViewXFormDataPermissions,)
+    permission_classes = (XFormPermissions,)
     lookup_field = "pk"
     lookup_fields = ("pk", "dataid")
     extra_lookup_fields = None
@@ -514,12 +511,12 @@ class DataViewSet(
 
         if (current_page * current_page_size) < num_of_records:
             next_page_url = (
-                f"{base_url}?page={current_page + 1}&" f"page_size={current_page_size}"
+                f"{base_url}?page={current_page + 1}&page_size={current_page_size}"
             )
 
         if current_page > 1:
             prev_page_url = (
-                f"{base_url}?page={current_page - 1}" f"&page_size={current_page_size}"
+                f"{base_url}?page={current_page - 1}&page_size={current_page_size}"
             )
 
         last_page = math.ceil(num_of_records / current_page_size)

@@ -194,6 +194,10 @@ class DataFilter(ObjectPermissionsFilter):
         return queryset
 
 
+class DataAnonDjangoObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
+    perm_format = "%(app_label)s.view_%(model_name)s_data"
+
+
 class InstanceFilter(django_filter_filters.FilterSet):
     """
     Instance FilterSet implemented using django-filter

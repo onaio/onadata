@@ -581,19 +581,3 @@ class DjangoObjectPermissionsIgnoreModelPerm(DjangoObjectPermissions):
             return False
 
         return True
-
-
-class ViewXFormDataPermissions(XFormPermissions):
-    """
-    Applies view_(model)_data permissions for GET requests.
-    """
-
-    perms_map = {
-        "GET": ["%(app_label)s.view_%(model_name)s_data"],
-        "OPTIONS": [],
-        "HEAD": [],
-        "POST": ["%(app_label)s.add_%(model_name)s"],
-        "PUT": ["%(app_label)s.change_%(model_name)s"],
-        "PATCH": ["%(app_label)s.change_%(model_name)s"],
-        "DELETE": ["%(app_label)s.delete_%(model_name)s"],
-    }
