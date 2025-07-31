@@ -1273,6 +1273,30 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/")
         response = view(request)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        self.xform.shared = True
+        self.xform.shared_data = True
+        self.xform.save()
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(len(response.data), 0)
+
+    def test_authenticated_user_data_list_private_form(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({"get": "list"})
+        self._create_user_and_login("alice", "alice")
+
+        request = self.factory.get("/")
+        request.user = self.user
+        response = view(request, pk=XForm.objects.all().first().id)
+        self.assertEqual(response.status_code, 404)
+
+        request = self.factory.get("/")
+        request.user = self.user
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
 
     def test_add_form_tag_propagates_to_data_tags(self):
         """Test that when a tag is applied on an xform,
