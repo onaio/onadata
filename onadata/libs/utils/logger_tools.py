@@ -477,12 +477,6 @@ def save_submission(
     return instance
 
 
-def get_filtered_instances(*args, **kwargs):
-    """Get filtered instances - mainly to allow mocking in tests"""
-
-    return Instance.objects.filter(*args, **kwargs)
-
-
 def check_encrypted_submission(xml, xform):
     """Validate encrypted submission"""
     submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
