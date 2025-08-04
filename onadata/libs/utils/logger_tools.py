@@ -541,12 +541,13 @@ def create_instance(
     check_submission_permissions(request, xform)
     check_encrypted_submission(xml, xform)
     new_uuid = get_uuid_from_xml(xml)
-    duplicate_exists = Instance.objects.filter(
-        xform_id=xform.pk, uuid=new_uuid
-    ).exists()
 
-    if duplicate_exists:
+    try:
         duplicate_instance = Instance.objects.get(xform_id=xform.pk, uuid=new_uuid)
+    except Instance.DoesNotExist:
+        pass
+
+    else:
         # ensure we have saved the extra attachments
         with transaction.atomic():
             save_attachments(
