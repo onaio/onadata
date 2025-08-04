@@ -437,9 +437,9 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                     defaults={"media_file": f},
                 )
             except Attachment.MultipleObjectsReturned:
-                # In pre v5.2.0, we had a bug where multiple attachments with the
-                # same name could be created. This is a workaround to avoid
-                # the issue.
+                # In pre v5.2.0, we had a bug where duplicate attachments could
+                # be created. This is a workaround to avoid raising an error for
+                # already existing multiple duplicates.
                 pass
 
     if remove_deleted_media:
