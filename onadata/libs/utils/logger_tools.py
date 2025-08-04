@@ -426,21 +426,21 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
         ]
 
         if media_in_submission:
-            lookup_kwargs = {
-                "xform": xform,
-                "instance": instance,
-                "mimetype": content_type,
-                "name": filename,
-                "extension": extension,
-                "user": instance.user,
-            }
-            attachment_qs = Attachment.objects.filter(**lookup_kwargs)
-
-            if not attachment_qs.exists():
-                # We avoid get_or_create to avoid the case where multiple
-                # attachments with the same name already exist which occurred
-                # in versions < v5.2.0
-                Attachment.objects.create(**lookup_kwargs, media_file=f)
+            try:
+                Attachment.objects.get_or_create(
+                    xform=xform,
+                    instance=instance,
+                    mimetype=content_type,
+                    name=filename,
+                    extension=extension,
+                    user=instance.user,
+                    defaults={"media_file": f},
+                )
+            except Attachment.MultipleObjectsReturned:
+                # In pre v5.2.0, we had a bug where multiple attachments with the
+                # same name could be created. This is a workaround to avoid
+                # the issue.
+                pass
 
     if remove_deleted_media:
         instance.soft_delete_attachments()
