@@ -234,17 +234,6 @@ def dict2xform(jsform, form_id, root=None, username=None, gen_uuid=False):
     return f"<?xml version='1.0' ?><{root} id='{form_id}'>{dict2xml(jsform)}</{root}>"
 
 
-def get_first_record(queryset):
-    """
-    Returns the first item in a queryset sorted by id.
-    """
-    records = sorted(list(queryset), key=lambda k: k.id)
-    if records:
-        return records[0]
-
-    return None
-
-
 def get_uuid_from_submission(xml):
     """Extracts and returns the UUID from a submission XML."""
     # parse UUID from uploaded XML
@@ -435,16 +424,24 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                 else instance.xml.find(filename) != -1
             )
         ]
+
         if media_in_submission:
-            Attachment.objects.get_or_create(
-                xform=xform,
-                instance=instance,
-                mimetype=content_type,
-                name=filename,
-                extension=extension,
-                user=instance.user,
-                defaults={"media_file": f},
-            )
+            try:
+                Attachment.objects.get_or_create(
+                    xform=xform,
+                    instance=instance,
+                    mimetype=content_type,
+                    name=filename,
+                    extension=extension,
+                    user=instance.user,
+                    defaults={"media_file": f},
+                )
+            except Attachment.MultipleObjectsReturned:
+                # In pre v5.2.0, we had a bug where duplicate attachments could
+                # be created. This is a workaround to avoid raising an error for
+                # already existing multiple duplicates.
+                pass
+
     if remove_deleted_media:
         instance.soft_delete_attachments()
 
@@ -486,12 +483,6 @@ def save_submission(
             pi.save()  # noqa
 
     return instance
-
-
-def get_filtered_instances(*args, **kwargs):
-    """Get filtered instances - mainly to allow mocking in tests"""
-
-    return Instance.objects.filter(*args, **kwargs)
 
 
 def check_encrypted_submission(xml, xform):
@@ -549,17 +540,20 @@ def create_instance(
     xform = get_xform_from_submission(xml, username, uuid, request=request)
     check_submission_permissions(request, xform)
     check_encrypted_submission(xml, xform)
-    checksum = sha256(xml).hexdigest()
     new_uuid = get_uuid_from_xml(xml)
-    filtered_instances = get_filtered_instances(uuid=new_uuid, xform_id=xform.pk)
-    existing_instance = get_first_record(filtered_instances.only("id"))
-    if existing_instance and (new_uuid or existing_instance.xform.has_start_time):
+
+    try:
+        duplicate_instance = Instance.objects.get(xform_id=xform.pk, uuid=new_uuid)
+    except Instance.DoesNotExist:
+        pass
+
+    else:
         # ensure we have saved the extra attachments
         with transaction.atomic():
             save_attachments(
-                xform, existing_instance, media_files, remove_deleted_media=True
+                xform, duplicate_instance, media_files, remove_deleted_media=True
             )
-            existing_instance.save(update_fields=["json", "date_modified"])
+            duplicate_instance.save(update_fields=["json", "date_modified"])
 
         # Ignore submission as a duplicate IFF
         #  * a submission's XForm collects start time
@@ -588,6 +582,8 @@ def create_instance(
             duplicate_instance.save()
 
         return DuplicateInstance()
+
+    checksum = sha256(xml).hexdigest()
 
     with transaction.atomic():
         if isinstance(xml, bytes):

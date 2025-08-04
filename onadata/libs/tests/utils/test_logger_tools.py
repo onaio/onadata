@@ -30,7 +30,6 @@ from onadata.libs.utils.logger_tools import (
     create_instance,
     delete_xform_submissions,
     generate_content_disposition_header,
-    get_first_record,
     get_storages_media_download_url,
     response_with_mimetype_and_name,
     safe_create_instance,
@@ -495,34 +494,6 @@ class TestLoggerTools(PyxformTestCase, TestBase):
         self.assertEqual(instance.json[TOTAL_MEDIA], instance.total_media)
         self.assertEqual(instance.json[MEDIA_COUNT], instance.media_count)
         self.assertEqual(instance.json[MEDIA_ALL_RECEIVED], instance.media_all_received)
-
-    def test_get_first_record(self):
-        """
-        Test get_first_record() function.
-        """
-        xform_md = """
-        | survey |       |        |       |
-        |        | type  | name   | label |
-        |        | text  | name   | Photo |
-        """
-        self._create_user_and_login()
-        xform = self._publish_markdown(xform_md, self.user)
-
-        self.assertIsNone(get_first_record(Instance.objects.all().only("id")))
-
-        xml_string = f"""
-        <data id="{xform.id_string}">
-            <name>Alice</name>
-        </data>
-        """
-        instance = create_instance(
-            self.user.username,
-            BytesIO(xml_string.strip().encode("utf-8")),
-            media_files=[],
-        )
-        record = get_first_record(Instance.objects.all().only("id"))
-        self.assertIsNotNone(record)
-        self.assertEqual(record.id, instance.id)
 
     def test_check_encryption_status(self):
         """
