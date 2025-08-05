@@ -1,6 +1,7 @@
 """Tests for onadata.libs.kms.kms_tools"""
 
 import base64
+import os
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import md5, sha256
@@ -831,6 +832,161 @@ class EncryptXFormTestCase(TestBase):
 
         self.assertEqual(self.xform.versions.count(), 1)
 
+    @patch("django.utils.timezone.now")
+    def test_choice_filter_xml_after_encryption(self, mock_now):
+        """The XML after encryption is correct for choice filters."""
+        mocked_now = datetime(2025, 8, 5, 14, tzinfo=tz.utc)
+        mock_now.return_value = mocked_now
+
+        xls_path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "cascading_selects",
+            "new_cascading_select.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_path, user=self.org.user)
+
+        encrypt_xform(self.xform, encrypted_by=self.user)
+
+        self.xform.refresh_from_db()
+        expected_xml = """
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" xmlns:odk="http://www.opendatakit.org/xforms">
+	<h:head>
+		<h:title>cascading select test</h:title>
+		<model odk:xforms-version="1.0.0">
+			<submission base64RsaPublicKey="fake-pub-key"/>
+			<instance>
+				<data id="cascading_select_test" version="202508051400">
+					<state/>
+					<county/>
+					<city/>
+					<meta>
+						<instanceID/>
+					</meta>
+				</data>
+			</instance>
+			<instance id="states">
+				<root>
+					<item>
+						<name>texas</name>
+						<label>Texas</label>
+					</item>
+					<item>
+						<name>washington</name>
+						<label>Washington</label>
+					</item>
+				</root>
+			</instance>
+			<instance id="counties">
+				<root>
+					<item>
+						<name>king</name>
+						<label>King</label>
+						<state>washington</state>
+					</item>
+					<item>
+						<name>pierce</name>
+						<label>Pierce</label>
+						<state>washington</state>
+					</item>
+					<item>
+						<name>king</name>
+						<label>King</label>
+						<state>texas</state>
+					</item>
+					<item>
+						<name>cameron</name>
+						<label>Cameron</label>
+						<state>texas</state>
+					</item>
+				</root>
+			</instance>
+			<instance id="cities">
+				<root>
+					<item>
+						<name>dumont</name>
+						<label>Dumont</label>
+						<state>texas</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>finney</name>
+						<label>Finney</label>
+						<state>texas</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>brownsville</name>
+						<label>brownsville</label>
+						<state>texas</state>
+						<county>cameron</county>
+					</item>
+					<item>
+						<name>harlingen</name>
+						<label>harlingen</label>
+						<state>texas</state>
+						<county>cameron</county>
+					</item>
+					<item>
+						<name>seattle</name>
+						<label>Seattle</label>
+						<state>washington</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>redmond</name>
+						<label>Redmond</label>
+						<state>washington</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>tacoma</name>
+						<label>Tacoma</label>
+						<state>washington</state>
+						<county>pierce</county>
+					</item>
+					<item>
+						<name>puyallup</name>
+						<label>Puyallup</label>
+						<state>washington</state>
+						<county>pierce</county>
+					</item>
+				</root>
+			</instance>
+			<bind nodeset="/data/state" type="string"/>
+			<bind nodeset="/data/county" type="string"/>
+			<bind nodeset="/data/city" type="string"/>
+			<bind nodeset="/data/meta/instanceID" type="string" readonly="true()" jr:preload="uid"/>
+		</model>
+	</h:head>
+	<h:body>
+		<select1 ref="/data/state">
+			<label>state</label>
+			<itemset nodeset="instance(\'states\')/root/item">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+		<select1 ref="/data/county">
+			<label>county</label>
+			<itemset nodeset="instance(\'counties\')/root/item[state= /data/state ]">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+		<select1 ref="/data/city">
+			<label>city</label>
+			<itemset nodeset="instance(\'cities\')/root/item[state= /data/state  and county= /data/county ]">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+	</h:body>
+</h:html>"""
+
+        self.assertEqual(self._clean_xml(self.xform.xml), self._clean_xml(expected_xml))
+
 
 @mock_aws
 @override_settings(
@@ -1205,6 +1361,7 @@ class DisableXFormEncryptionTestCase(TestBase):
         """Disabling XForm encryption works"""
         # Encrypt XForm
         self._encrypt_xform(self.xform, self.kms_key)
+        self.xform.refresh_from_db()
 
         old_hash = self.xform.hash
 
@@ -1299,6 +1456,167 @@ class DisableXFormEncryptionTestCase(TestBase):
         disable_xform_encryption(self.xform)
 
         mock_invalidate_xform_list_cache.assert_called_once_with(self.xform)
+
+    def test_choice_filter_xml_after_disabling_encryption(self):
+        """The XML after disabling encryption is correct for choice filters."""
+        xls_path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "cascading_selects",
+            "new_cascading_select.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_path, user=self.org.user)
+        self._encrypt_xform(self.xform, self.kms_key)
+        self.xform.refresh_from_db()
+
+        # Confirm that form was encrypted
+        self.assertTrue(self.xform.encrypted)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mocked_now = datetime(2025, 8, 5, 17, tzinfo=tz.utc)
+            mock_now.return_value = mocked_now
+
+            disable_xform_encryption(self.xform)
+
+        self.xform.refresh_from_db()
+        # Confirm encryption was disabled
+        self.assertFalse(self.xform.encrypted)
+        expected_xml = """
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms" xmlns:odk="http://www.opendatakit.org/xforms">
+	<h:head>
+		<h:title>cascading select test</h:title>
+		<model odk:xforms-version="1.0.0">
+			<instance>
+				<data id="cascading_select_test" version="202508051700">
+					<state/>
+					<county/>
+					<city/>
+					<meta>
+						<instanceID/>
+					</meta>
+				</data>
+			</instance>
+			<instance id="states">
+				<root>
+					<item>
+						<name>texas</name>
+						<label>Texas</label>
+					</item>
+					<item>
+						<name>washington</name>
+						<label>Washington</label>
+					</item>
+				</root>
+			</instance>
+			<instance id="counties">
+				<root>
+					<item>
+						<name>king</name>
+						<label>King</label>
+						<state>washington</state>
+					</item>
+					<item>
+						<name>pierce</name>
+						<label>Pierce</label>
+						<state>washington</state>
+					</item>
+					<item>
+						<name>king</name>
+						<label>King</label>
+						<state>texas</state>
+					</item>
+					<item>
+						<name>cameron</name>
+						<label>Cameron</label>
+						<state>texas</state>
+					</item>
+				</root>
+			</instance>
+			<instance id="cities">
+				<root>
+					<item>
+						<name>dumont</name>
+						<label>Dumont</label>
+						<state>texas</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>finney</name>
+						<label>Finney</label>
+						<state>texas</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>brownsville</name>
+						<label>brownsville</label>
+						<state>texas</state>
+						<county>cameron</county>
+					</item>
+					<item>
+						<name>harlingen</name>
+						<label>harlingen</label>
+						<state>texas</state>
+						<county>cameron</county>
+					</item>
+					<item>
+						<name>seattle</name>
+						<label>Seattle</label>
+						<state>washington</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>redmond</name>
+						<label>Redmond</label>
+						<state>washington</state>
+						<county>king</county>
+					</item>
+					<item>
+						<name>tacoma</name>
+						<label>Tacoma</label>
+						<state>washington</state>
+						<county>pierce</county>
+					</item>
+					<item>
+						<name>puyallup</name>
+						<label>Puyallup</label>
+						<state>washington</state>
+						<county>pierce</county>
+					</item>
+				</root>
+			</instance>
+			<bind nodeset="/data/state" type="string"/>
+			<bind nodeset="/data/county" type="string"/>
+			<bind nodeset="/data/city" type="string"/>
+			<bind nodeset="/data/meta/instanceID" type="string" readonly="true()" jr:preload="uid"/>
+		</model>
+	</h:head>
+	<h:body>
+		<select1 ref="/data/state">
+			<label>state</label>
+			<itemset nodeset="instance(\'states\')/root/item">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+		<select1 ref="/data/county">
+			<label>county</label>
+			<itemset nodeset="instance(\'counties\')/root/item[state= /data/state ]">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+		<select1 ref="/data/city">
+			<label>city</label>
+			<itemset nodeset="instance(\'cities\')/root/item[state= /data/state  and county= /data/county ]">
+				<value ref="name"/>
+				<label ref="label"/>
+			</itemset>
+		</select1>
+	</h:body>
+</h:html>"""
+
+        self.assertEqual(self._clean_xml(self.xform.xml), self._clean_xml(expected_xml))
 
 
 class CleanPublicKeyTestCase(TestBase):

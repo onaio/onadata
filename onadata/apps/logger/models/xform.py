@@ -27,7 +27,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
-from pyxform import SurveyElementBuilder, constants, create_survey_element_from_dict
+from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
@@ -1113,11 +1113,10 @@ class XForm(XFormMixin, BaseModel):
             self.encrypted = "public_key" in json_dict
 
     def _set_public_key_field(self):
-        if self.json and self.json != "":
+        if self.json and self.json != "" and not self.is_managed:
             if self.num_of_submissions == 0 and self.public_key:
-                json_dict = self.json_dict()
-                json_dict["public_key"] = self.public_key
-                survey = create_survey_element_from_dict(json_dict)
+                survey = self.get_survey_from_xlsform()
+                survey.public_key = self.public_key
                 self.json = survey.to_json_dict()
                 self.xml = survey.to_xml()
                 self._set_encrypted_field()
