@@ -1116,7 +1116,6 @@ class XForm(XFormMixin, BaseModel):
         if self.public_key and self.num_of_submissions == 0:
             survey = self.get_survey_from_xlsform()
             survey.public_key = self.public_key
-            survey.version = self.version
             self.json = survey.to_json_dict()
             self.xml = survey.to_xml()
             self._set_encrypted_field()
