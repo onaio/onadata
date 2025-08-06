@@ -1288,10 +1288,17 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.json.get("_decryption_error"), "KMS_KEY_NOT_FOUND"
         )
 
+    def _mock_decrypt_submission(*args, **kwargs):
+        def _gen():
+            raise InvalidSubmissionException("Invalid signature.")
+            yield  # unreachable, but needed to make it a generator
+
+        return _gen()
+
     @patch("onadata.libs.kms.tools.decrypt_submission")
-    def test_decryption_failure(self, mock_decrypt):
+    def test_decryption_failure(self, mock_decrypt_submission):
         """Decryption failure is handled."""
-        mock_decrypt.side_effect = InvalidSubmissionException("Invalid signature.")
+        mock_decrypt_submission.side_effect = self._mock_decrypt_submission
 
         old_xml = self.instance.xml
 
