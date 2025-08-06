@@ -1113,14 +1113,10 @@ class XForm(XFormMixin, BaseModel):
             self.encrypted = "public_key" in json_dict
 
     def _set_public_key_field(self):
-        if (
-            not self.is_managed
-            and self.public_key
-            and self.num_of_submissions == 0
-            and self.json
-        ):
+        if self.public_key and self.num_of_submissions == 0:
             survey = self.get_survey_from_xlsform()
             survey.public_key = self.public_key
+            survey.version = self.version
             self.json = survey.to_json_dict()
             self.xml = survey.to_xml()
             self._set_encrypted_field()
