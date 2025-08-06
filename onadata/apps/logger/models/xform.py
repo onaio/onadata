@@ -1118,7 +1118,6 @@ class XForm(XFormMixin, BaseModel):
             and self.public_key
             and self.num_of_submissions == 0
             and self.json
-            and self.json != ""
         ):
             survey = self.get_survey_from_xlsform()
             survey.public_key = self.public_key
