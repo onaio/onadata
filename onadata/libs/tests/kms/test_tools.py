@@ -21,6 +21,7 @@ import boto3
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from moto import mock_aws
+from pyxform.builder import create_survey_element_from_dict
 from valigetta.decryptor import _get_submission_iv
 from valigetta.exceptions import (
     AliasAlreadyExistsException,
@@ -32,7 +33,6 @@ from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType, XForm
-from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.kms.clients import AWSKMSClient
