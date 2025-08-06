@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.2.5(2025-08-06)
+------------------
+- Fix bug where encrypted XLSForm with choice filter has invalid XML
+  `PR #2881 <https://github.com/onaio/onadata/pull/2881>`
+  [@kelvin-muchiri]
+- Make duplicate submission check efficient
+  `PR #2879 <https://github.com/onaio/onadata/pull/2879>`
+  [@kelvin-muchiri]
+
 v5.2.4(2025-07-31)
 ------------------
 - Skip Instance decryption if encryption is not using managed keys
