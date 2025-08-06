@@ -21,7 +21,7 @@
     "karma": "^6.4.1",
     "load-grunt-tasks": "^5.1.0",
     "sinon": "^15.0.3",
-    "tmp": "0.2.1"
+    "tmp": "0.2.4"
   },
   "engines": {
     "node": ">=0.8.0"
