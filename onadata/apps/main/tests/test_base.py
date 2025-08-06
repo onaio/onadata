@@ -21,6 +21,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
+from django.utils.encoding import smart_str
 
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
@@ -152,9 +153,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         # make sure publishing the survey worked
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    def _publish_xls_file_and_set_xform(self, path):
+    def _publish_xls_file_and_set_xform(self, path, user=None):
         count = XForm.objects.count()
-        self._publish_xls_file(path)
+        self._publish_xls_file(path, user)
         self.assertEqual(XForm.objects.count(), count + 1)
         # pylint: disable=attribute-defined-outside-init
         self.xform = XForm.objects.order_by("pk").reverse()[0]
@@ -652,18 +653,20 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _encrypt_xform(self, xform, kms_key, encrypted_by=None):
         version = timezone.now().strftime("%Y%m%d%H%M")
 
-        json_dict = xform.json_dict()
-        json_dict["public_key"] = kms_key.public_key
-        json_dict["version"] = version
-
-        survey = create_survey_element_from_dict(json_dict)
+        survey = xform.get_survey_from_xlsform()
+        survey.public_key = kms_key.public_key
+        survey.version = version
 
         xform.json = survey.to_json_dict()
         xform.xml = survey.to_xml()
         xform.version = version
         xform.public_key = kms_key.public_key
         xform.encrypted = True
+        xform.is_managed = True
         xform.save()
         xform.kms_keys.create(
             version=version, kms_key=kms_key, encrypted_by=encrypted_by
         )
+
+    def _clean_xml(self, xml):
+        return re.sub(r">\s+<", "><", smart_str(xml.strip()))

@@ -42,7 +42,6 @@ from onadata.apps.logger.models import (
     XForm,
     XFormKey,
 )
-from onadata.apps.logger.models.xform import create_survey_element_from_dict
 from onadata.libs.exceptions import DecryptionError, EncryptionError
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
@@ -310,11 +309,9 @@ def _invalidate_xform_list_cache(xform: XForm):
 def _encrypt_xform(xform, kms_key, encrypted_by=None):
     version = timezone.now().strftime("%Y%m%d%H%M")
 
-    json_dict = xform.json_dict()
-    json_dict["public_key"] = kms_key.public_key
-    json_dict["version"] = version
-
-    survey = create_survey_element_from_dict(json_dict)
+    survey = xform.get_survey_from_xlsform()
+    survey.public_key = kms_key.public_key
+    survey.version = version
 
     xform.json = survey.to_json_dict()
     xform.xml = survey.to_xml()
@@ -615,11 +612,9 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
 
     new_version = timezone.now().strftime("%Y%m%d%H%M")
 
-    json_dict = xform.json_dict()
-    json_dict["version"] = new_version
-    del json_dict["public_key"]
-
-    survey = create_survey_element_from_dict(json_dict)
+    survey = xform.get_survey_from_xlsform()
+    survey.public_key = None
+    survey.version = new_version
 
     xform.json = survey.to_json_dict()
     xform.xml = survey.to_xml()
