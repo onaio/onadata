@@ -483,6 +483,7 @@ def decrypt_instance(instance: Instance) -> None:
     """
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    incr_task = logger_tasks.adjust_xform_num_of_decrypted_submissions_async
 
     def get_encrypted_files(attachment_qs):
         """Get Instance's encrypted media files"""
@@ -579,11 +580,7 @@ def decrypt_instance(instance: Instance) -> None:
                 deleted_at=timezone.now()
             )
             # Increment XForm num_of_decrypted_submissions
-            transaction.on_commit(
-                lambda: logger_tasks.adjust_xform_num_of_decrypted_submissions_async.delay(
-                    instance.xform_id, delta=1
-                )
-            )
+            transaction.on_commit(lambda: incr_task.delay(instance.xform_id, delta=1))
 
     except InvalidSubmissionException as exc:
         save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
