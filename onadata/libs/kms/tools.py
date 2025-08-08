@@ -483,6 +483,7 @@ def decrypt_instance(instance: Instance) -> None:
     """
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    incr_task = logger_tasks.adjust_xform_num_of_decrypted_submissions_async
 
     def get_encrypted_files(attachment_qs):
         """Get Instance's encrypted media files"""
@@ -526,19 +527,12 @@ def decrypt_instance(instance: Instance) -> None:
     kms_client = get_kms_client()
     # Decrypt submission files
     attachment_qs = instance.attachments.all()
-
-    try:
-        decrypted_files = decrypt_submission(
-            kms_client=kms_client,
-            key_id=xform_key.kms_key.key_id,
-            submission_xml=submission_xml,
-            enc_files=get_encrypted_files(attachment_qs),
-        )
-
-    except InvalidSubmissionException as exc:
-        save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
-        raise DecryptionError(str(exc)) from exc
-
+    decrypted_files = decrypt_submission(
+        kms_client=kms_client,
+        key_id=xform_key.kms_key.key_id,
+        submission_xml=submission_xml,
+        enc_files=get_encrypted_files(attachment_qs),
+    )
     # Replace encrypted submission with decrypted submission
     # Initialize InstanceHistory before replacement
     history = InstanceHistory(
@@ -551,44 +545,46 @@ def decrypt_instance(instance: Instance) -> None:
     )
     decrypted_attachment_ids = []
 
-    with transaction.atomic():
-        for original_name, decrypted_file in decrypted_files:
-            if original_name.lower() == "submission.xml":
-                # Replace submission with decrypted submission
-                xml = decrypted_file.getvalue()
+    try:
+        with transaction.atomic():
+            for original_name, decrypted_file in decrypted_files:
+                if original_name.lower() == "submission.xml":
+                    # Replace submission with decrypted submission
+                    xml = decrypted_file.getvalue()
 
-                instance.xml = xml.decode("utf-8")
-                instance.checksum = sha256(xml).hexdigest()
-                instance.is_encrypted = False
-                instance.decryption_status = Instance.DecryptionStatus.SUCCESS
-                instance.save()
+                    instance.xml = xml.decode("utf-8")
+                    instance.checksum = sha256(xml).hexdigest()
+                    instance.is_encrypted = False
+                    instance.decryption_status = Instance.DecryptionStatus.SUCCESS
+                    instance.save()
 
-            else:
-                # Save decrypted media file
-                media_file = File(decrypted_file, name=original_name)
-                mimetype, _ = mimetypes.guess_type(original_name)
-                _, extension = os.path.splitext(original_name)
-                attachment = instance.attachments.create(
-                    xform=instance.xform,
-                    media_file=media_file,
-                    name=original_name,
-                    mimetype=mimetype or "application/octet-stream",
-                    extension=extension.lstrip("."),
-                    file_size=len(decrypted_file.getbuffer()),
-                )
-                decrypted_attachment_ids.append(attachment.id)
-        # Commit history after saving decrypted files
-        history.save()
-        # Soft delete encrypted attachments
-        attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
-            deleted_at=timezone.now()
-        )
-        # Increment XForm num_of_decrypted_submissions
-        transaction.on_commit(
-            lambda: logger_tasks.adjust_xform_num_of_decrypted_submissions_async.delay(
-                instance.xform_id, delta=1
+                else:
+                    # Save decrypted media file
+                    media_file = File(decrypted_file, name=original_name)
+                    mimetype, _ = mimetypes.guess_type(original_name)
+                    _, extension = os.path.splitext(original_name)
+                    attachment = instance.attachments.create(
+                        xform=instance.xform,
+                        media_file=media_file,
+                        name=original_name,
+                        mimetype=mimetype or "application/octet-stream",
+                        extension=extension.lstrip("."),
+                        file_size=len(decrypted_file.getbuffer()),
+                    )
+                    decrypted_attachment_ids.append(attachment.id)
+
+            # Commit history after saving decrypted files
+            history.save()
+            # Soft delete encrypted attachments
+            attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
+                deleted_at=timezone.now()
             )
-        )
+            # Increment XForm num_of_decrypted_submissions
+            transaction.on_commit(lambda: incr_task.delay(instance.xform_id, delta=1))
+
+    except InvalidSubmissionException as exc:
+        save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
+        raise DecryptionError(str(exc)) from exc
 
 
 @transaction.atomic()
