@@ -597,7 +597,7 @@ class Instance(models.Model, InstanceBaseClass):
     """
 
     class DecryptionStatus(models.TextChoices):
-        PLAINTEXT = "plaintext", _("Never encrypted")
+        UNMANAGED = "unmanaged", _("Does not use managed keys")
         PENDING = "pending", _("Pending decryption")
         SUCCESS = "success", _("Decryption successful")
         FAILED = "failed", _("Decryption failed")
@@ -661,7 +661,7 @@ class Instance(models.Model, InstanceBaseClass):
     decryption_status = models.CharField(
         max_length=20,
         choices=DecryptionStatus.choices,
-        default=DecryptionStatus.PLAINTEXT,
+        default=DecryptionStatus.UNMANAGED,
     )
 
     tags = TaggableManager()
@@ -885,7 +885,11 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
     # Avoid cyclic dependency errors
     kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
-    if kms_tools.is_instance_encrypted(instance) and not instance.is_encrypted:
+    if (
+        instance.xform.is_managed
+        and kms_tools.is_instance_encrypted(instance)
+        and not instance.is_encrypted
+    ):
         update_fields_directly(
             instance,
             is_encrypted=True,
