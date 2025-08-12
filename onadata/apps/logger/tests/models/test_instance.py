@@ -1321,7 +1321,7 @@ class TestInstance(TestBase):
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
-        # Encrypted Instance whose encryption is not by managed keys is false
+        # Encrypted Instance whose encryption is not by managed keys (custom encryption)
         xform.is_managed = False
         xform.save(update_fields=["is_managed"])
         metadata_xml = metadata_xml.replace(
@@ -1335,12 +1335,12 @@ class TestInstance(TestBase):
             survey_type=survey_type,
         )
         instance.refresh_from_db()
-        self.assertFalse(instance.is_encrypted)
+        self.assertTrue(instance.is_encrypted)
         self.assertEqual(
             instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
         )
 
-        # Unencrypted Instance value is false
+        # Unencrypted Instance
         self._publish_transportation_form_and_submit_instance()
 
         instance = Instance.objects.order_by("-pk").first()

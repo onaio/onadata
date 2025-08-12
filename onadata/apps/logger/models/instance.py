@@ -885,16 +885,13 @@ def set_is_encrypted(sender, instance, created=False, **kwargs):
     # Avoid cyclic dependency errors
     kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
-    if (
-        instance.xform.is_managed
-        and kms_tools.is_instance_encrypted(instance)
-        and not instance.is_encrypted
-    ):
-        update_fields_directly(
-            instance,
-            is_encrypted=True,
-            decryption_status=Instance.DecryptionStatus.PENDING,
-        )
+    if kms_tools.is_instance_encrypted(instance) and not instance.is_encrypted:
+        fields = {"is_encrypted": True}
+
+        if instance.xform.is_managed:
+            fields["decryption_status"] = Instance.DecryptionStatus.PENDING
+
+        update_fields_directly(instance, **fields)
 
 
 def _decr_xform_num_of_decrypted_submissions(instance: Instance):
