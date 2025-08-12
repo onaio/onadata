@@ -14,12 +14,9 @@ def rename_plaintext_to_unmanaged(apps, schema_editor):
 
 def reverse_rename_plaintext_to_unmanaged(apps, schema_editor):
     Instance = apps.get_model("logger", "Instance")
-    Instance.objects.filter(decryption_status="unmanaged", is_encrypted=False).update(
-        decryption_status="plaintext"
-    )
-    Instance.objects.filter(decryption_status="unmanaged", is_encrypted=True).update(
-        decryption_status="pending"
-    )
+    qs = Instance.objects.filter(decryption_status="unmanaged")
+    qs.filter(is_encrypted=False).update(decryption_status="plaintext")
+    qs.filter(is_encrypted=True).update(decryption_status="pending")
 
 
 class Migration(migrations.Migration):
