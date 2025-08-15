@@ -105,7 +105,7 @@ def update_xform_schema(apps, schema_editor):
         processed += 1
         print(f"processed {processed} xforms")
 
-        if xform.public_key:
+        if xform.encrypted:
             continue
 
         try:
