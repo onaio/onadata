@@ -98,7 +98,6 @@ def update_xform_schema():
     fixes the schema of all XForms after the PyXForm upgrade.
     """
     processed = 0
-    failed = set()
     xform_qs = XForm.objects.filter(deleted_at__isnull=True).only(
         "id", "public_key", "json"
     )
@@ -127,10 +126,7 @@ def update_xform_schema():
             pass
         except Exception as e:
             print(x.pk, x, e, type(e))
-            failed.add(x.pk)
             break
-
-    print(f"failed to process {len(failed)} xforms: {failed}")
 
 
 class Migration(migrations.Migration):
