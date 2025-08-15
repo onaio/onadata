@@ -433,3 +433,32 @@ class TestXForm(TestBase):
         self.xform.refresh_from_db()
 
         self.assertEqual(self.xform.num_of_pending_decryption_submissions, 0)
+
+    def test_get_media_survey_xpaths(self):
+        """Test that get_media_survey_xpaths includes all media-type elements"""
+        md = """
+        | survey |
+        |        | type            | name         | label        |
+        |        | photo           | photo1       | Photo        |
+        |        | audio           | audio1       | Audio        |
+        |        | background-audio| bg_audio1    | Background Audio |
+        |        | video           | video1       | Video        |
+        |        | file            | file1        | File         |
+        |        | image           | image1       | Image        |
+        """
+
+        xform = self._publish_markdown(md, self.user, id_string="media_test")
+        media_xpaths = xform.get_media_survey_xpaths()
+
+        # Verify all media types are included
+        self.assertIn("photo1", media_xpaths)
+        self.assertIn("audio1", media_xpaths)
+        self.assertIn("bg_audio1", media_xpaths)
+        self.assertIn("video1", media_xpaths)
+        self.assertIn("file1", media_xpaths)
+        self.assertIn("image1", media_xpaths)
+
+        # Verify background-audio is specifically detected
+        bg_audio_elements = xform.get_survey_elements_of_type("background-audio")
+        self.assertEqual(len(bg_audio_elements), 1)
+        self.assertEqual(bg_audio_elements[0].name, "bg_audio1")

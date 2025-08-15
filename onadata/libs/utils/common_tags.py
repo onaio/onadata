@@ -111,7 +111,7 @@ OWNER_TEAM_NAME = "Owners"
 
 API_TOKEN = "api-token"  # nosec
 ONADATA_KOBOCAT_AUTH_HEADER = "X-ONADATA-KOBOCAT-AUTH"
-KNOWN_MEDIA_TYPES = ["photo", "image", "audio", "video", "file"]
+KNOWN_MEDIA_TYPES = ["photo", "image", "background-audio", "audio", "video", "file"]
 MEDIA_FILE_TYPES = {
     "image": ["image/png", "image/jpeg", "image/jpg"],
     "audio": ["audio/mp3", "audio/mp4"],
