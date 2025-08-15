@@ -1307,6 +1307,8 @@ class TestInstance(TestBase):
         |         | video | forest | Take a video of forest|
         """
         xform = self._publish_markdown(md, self.user, id_string="nature")
+        xform.is_managed = True
+        xform.save(update_fields=["is_managed"])
         survey_type = SurveyType.objects.create(slug="slug-foo")
         instance = Instance.objects.create(
             xform=xform,
@@ -1319,14 +1321,33 @@ class TestInstance(TestBase):
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
-        # Unencrypted Instance value is false
+        # Encrypted Instance whose encryption is not by managed keys (custom encryption)
+        xform.is_managed = False
+        xform.save(update_fields=["is_managed"])
+        metadata_xml = metadata_xml.replace(
+            "uuid:a10ead67-7415-47da-b823-0947ab8a8ef0",
+            "uuid:a10ead67-7415-47da-b823-0947ab8a8ef1",
+        )
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+        )
+        instance.refresh_from_db()
+        self.assertTrue(instance.is_encrypted)
+        self.assertEqual(
+            instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
+        )
+
+        # Unencrypted Instance
         self._publish_transportation_form_and_submit_instance()
 
         instance = Instance.objects.order_by("-pk").first()
 
         self.assertFalse(instance.is_encrypted)
         self.assertEqual(
-            instance.decryption_status, Instance.DecryptionStatus.PLAINTEXT
+            instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
         )
 
     @patch(
