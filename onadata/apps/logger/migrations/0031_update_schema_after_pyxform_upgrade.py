@@ -90,7 +90,7 @@ def process_children(children_list, choices):
             process_children(child["children"], choices)
 
 
-def update_xform_schema(from_pk=0):
+def update_xform_schema():
     """Update the schema of all XForms after the PyXForm upgrade.
 
     This migration is necessary because the PyXForm upgrade introduced a bug
@@ -98,7 +98,8 @@ def update_xform_schema(from_pk=0):
     fixes the schema of all XForms after the PyXForm upgrade.
     """
     processed = 0
-    xform_qs = XForm.objects.filter(pk__gt=from_pk, deleted_at__isnull=True).only(
+    failed = set()
+    xform_qs = XForm.objects.filter(deleted_at__isnull=True).only(
         "id", "public_key", "json"
     )
 
@@ -126,7 +127,10 @@ def update_xform_schema(from_pk=0):
             pass
         except Exception as e:
             print(x.pk, x, e, type(e))
+            failed.add(x.pk)
             break
+
+    print(f"failed to process {len(failed)} xforms: {failed}")
 
 
 class Migration(migrations.Migration):
