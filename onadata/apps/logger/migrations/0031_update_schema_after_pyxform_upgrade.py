@@ -102,30 +102,34 @@ def update_xform_schema():
         "id", "public_key", "json"
     )
 
-    for x in xform_qs.iterator(chunk_size=100):
+    for xform in xform_qs.iterator(chunk_size=100):
         processed += 1
         print(f"processed {processed} xforms")
 
-        if x.public_key:
+        if xform.public_key:
             continue
 
         try:
-            json_data = json.loads(x.json) if isinstance(x.json, str) else x.json
+            json_data = (
+                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
+            )
             _ = create_survey_element_from_dict(json_data)
         except (KeyError, PyXFormError):
-            json_data = json.loads(x.json) if isinstance(x.json, str) else x.json
+            json_data = (
+                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
+            )
             process_children(json_data["children"], ensure_choices_exist(json_data))
 
             try:
                 # Save back as JSON string
-                x.json = json.dumps(json_data)
-                x.save(update_fields=["json"])
+                xform.json = json.dumps(json_data)
+                xform.save(update_fields=["json"])
             except (LimitExceededError, TypeError):
                 pass
         except TypeError:
             pass
         except Exception as e:
-            print(x.pk, x, e, type(e))
+            print(xform.pk, xform, e, type(e))
             break
 
 
