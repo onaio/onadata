@@ -9,8 +9,6 @@ from django.db import migrations
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 
-from onadata.apps.logger.models import XForm
-
 # Handle optional pricing import
 try:
     from pricing.exceptions import LimitExceededError
@@ -90,13 +88,14 @@ def process_children(children_list, choices):
             process_children(child["children"], choices)
 
 
-def update_xform_schema():
+def update_xform_schema(apps, schema_editor):
     """Update the schema of all XForms after the PyXForm upgrade.
 
     This migration is necessary because the PyXForm upgrade introduced a bug
     that caused the schema of some XForms to be incorrect. This migration
     fixes the schema of all XForms after the PyXForm upgrade.
     """
+    XForm = apps.get_model("logger", "XForm")
     processed = 0
     xform_qs = XForm.objects.filter(deleted_at__isnull=True).only(
         "id", "public_key", "json"
