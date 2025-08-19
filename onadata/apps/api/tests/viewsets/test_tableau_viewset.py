@@ -19,6 +19,7 @@ from onadata.apps.api.viewsets.v2.tableau_viewset import (
     unpack_gps_data,
     unpack_select_multiple_data,
 )
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.renderers.renderers import pairing
@@ -112,9 +113,9 @@ class TestTableauViewSet(TestBase):
                         "alias": "browsers_safari",
                     },
                     {
-                        "id": "meta_instanceID",
+                        "id": "instanceID",
                         "dataType": "string",
-                        "alias": "meta_instanceID",
+                        "alias": "instanceID",
                     },
                 ],
             },
@@ -217,7 +218,6 @@ class TestTableauViewSet(TestBase):
         picked_choices = ["firefox", "chrome", "ie", "safari"]
         list_name = "browsers"
         choices_names = ["firefox", "chrome", "ie", "safari"]
-        prefix = ""
 
         expected_data = {
             "browsers_chrome": "TRUE",
@@ -227,7 +227,7 @@ class TestTableauViewSet(TestBase):
         }
 
         select_multiple_data = unpack_select_multiple_data(
-            picked_choices, list_name, choices_names, prefix
+            picked_choices, list_name, choices_names
         )
         self.assertEqual(select_multiple_data, expected_data)
 
@@ -235,7 +235,7 @@ class TestTableauViewSet(TestBase):
         picked_choices = ["firefox", "safari"]
 
         select_multiple_data = unpack_select_multiple_data(
-            picked_choices, list_name, choices_names, prefix
+            picked_choices, list_name, choices_names
         )
 
         expected_data = {
@@ -257,8 +257,7 @@ class TestTableauViewSet(TestBase):
         gps_data = "26.431228 58.157921 0 0"
 
         qstn_name = "gps"
-        prefix = ""
-        data = unpack_gps_data(gps_data, qstn_name, prefix)
+        data = unpack_gps_data(gps_data, qstn_name)
         expected_data = {
             "_gps_latitude": "26.431228",
             "_gps_longitude": "58.157921",
@@ -406,14 +405,50 @@ class TestTableauViewSet(TestBase):
         row_data = streaming_data(response)
         self.assertEqual(len(row_data), 0)
 
-    def test_tableau_get_nested_repeat_group_schema(self):
-        """Schema received from nested repeat groups is correct"""
-        self.view = TableauViewSet.as_view({"get": "schema"})
-        xls_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../main/tests/fixtures/transportation/transportation_1.xlsx",
+    def test_tableau_get_data_w_repeat_within_group(self):
+        """Data with repeat within group is correct"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | internet_use | Internet Use      |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+
+        self.xform = self._publish_markdown(
+            md_xform, self.user, id_string="internet_use"
         )
-        self._publish_xls_file_and_set_xform(xls_file_path)
+        submssion_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="internet_use" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<name>Tom</name>"
+            "<age>32</age>"
+            "<internet_use>"
+            "<browser_use>"
+            "<year>2020</year>"
+            "<browsers>firefox chrome</browsers>"
+            "</browser_use>"
+            "</internet_use>"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xform=self.xform, xml=submssion_xml)
+        # Confirm schema is correct
+        self.view = TableauViewSet.as_view({"get": "schema"})
         _open_data = get_or_create_opendata(self.xform)
         uuid = _open_data[0].uuid
         request = self.factory.get("/", **self.extra)
@@ -421,49 +456,21 @@ class TestTableauViewSet(TestBase):
         expected_schema = [
             {
                 "table_alias": "data",
-                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",  # noqa pylint: disable=line-too-long
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",
                 "column_headers": [
                     {"id": "_id", "dataType": "int", "alias": "_id"},
+                    {"id": "name", "dataType": "string", "alias": "name"},
+                    {"id": "age", "dataType": "int", "alias": "age"},
                     {
-                        "id": "hospital_name",
+                        "id": "instanceID",
                         "dataType": "string",
-                        "alias": "hospital_name",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_food_cake",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_food_cake",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_food_cheese",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_food_cheese",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_food_ham",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_food_ham",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_food_vegetables",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_food_vegetables",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_have_hiv_medication",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_have_hiv_medication",
-                    },
-                    {
-                        "id": "meta_instanceID",
-                        "dataType": "string",
-                        "alias": "meta_instanceID",
+                        "alias": "instanceID",
                     },
                 ],
             },
             {
-                "table_alias": "person_repeat",
-                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_person_repeat",  # noqa pylint: disable=line-too-long
+                "table_alias": "browser_use",
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_browser_use",
                 "column_headers": [
                     {"id": "_id", "dataType": "int", "alias": "_id"},
                     {"id": "__parent_id", "dataType": "int", "alias": "__parent_id"},
@@ -473,85 +480,49 @@ class TestTableauViewSet(TestBase):
                         "alias": "__parent_table",
                     },
                     {
-                        "id": "hospital_hiv_medication_person_first_name",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_person_first_name",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_person_last_name",
-                        "dataType": "string",
-                        "alias": "hospital_hiv_medication_person_last_name",
-                    },
-                    {
-                        "id": "hospital_hiv_medication_person_age",
+                        "id": "year",
                         "dataType": "int",
-                        "alias": "hospital_hiv_medication_person_age",
+                        "alias": "year",
+                    },
+                    {
+                        "id": "browsers_firefox",
+                        "dataType": "string",
+                        "alias": "browsers_firefox",
+                    },
+                    {
+                        "id": "browsers_chrome",
+                        "dataType": "string",
+                        "alias": "browsers_chrome",
+                    },
+                    {
+                        "id": "browsers_ie",
+                        "dataType": "string",
+                        "alias": "browsers_ie",
+                    },
+                    {
+                        "id": "browsers_safari",
+                        "dataType": "string",
+                        "alias": "browsers_safari",
                     },
                 ],
             },
         ]
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, expected_schema)
-
-    def test_tableau_get_nested_repeat_group_data(self):
-        """Data received from nested repeat groups is flattened"""
+        # Confirm data is correct
         self.view = TableauViewSet.as_view({"get": "data"})
-        # Publish xls file
-        xls_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../main/tests/fixtures/transportation/transportation_1.xlsx",
-        )
-        self._publish_xls_file_and_set_xform(xls_file_path)
-        # Create submission
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../..",
-            "main",
-            "tests",
-            "fixtures",
-            "transportation",
-            "transportation_w_nested_repeat_groups.xml",
-        )
-        self._make_submission(xml_submission_file_path)
-
-        _open_data = get_or_create_opendata(self.xform)
-        uuid = _open_data[0].uuid
         request = self.factory.get("/", **self.extra)
         response = self.view(request, uuid=uuid)
-
-        self.assertEqual(response.status_code, 200)
         row_data = streaming_data(response)
 
-        self.assertEqual(row_data[0]["hospital_name"], "Pam Pam")
-        self.assertEqual(row_data[0]["hospital_hiv_medication_food_cake"], "TRUE")
-        self.assertEqual(row_data[0]["hospital_hiv_medication_food_cheese"], "TRUE")
-        self.assertEqual(row_data[0]["hospital_hiv_medication_food_ham"], "TRUE")
-        self.assertEqual(row_data[0]["hospital_hiv_medication_food_vegetables"], "TRUE")
+        self.assertEqual(row_data[0]["name"], "Tom")
+        self.assertEqual(row_data[0]["age"], 32)
+        self.assertEqual(row_data[0]["browser_use"][0]["year"], 2020)
+        self.assertEqual(row_data[0]["browser_use"][0]["browsers_firefox"], "TRUE")
+        self.assertEqual(row_data[0]["browser_use"][0]["browsers_chrome"], "TRUE")
+        self.assertEqual(row_data[0]["browser_use"][0]["browsers_ie"], "FALSE")
+        self.assertEqual(row_data[0]["browser_use"][0]["browsers_safari"], "FALSE")
         self.assertEqual(
-            row_data[0]["person_repeat"][0]["hospital_hiv_medication_person_last_name"],
-            "Kalan",
-        )
-        self.assertEqual(
-            row_data[0]["person_repeat"][0]["hospital_hiv_medication_person_age"],
-            23,
-        )
-        self.assertEqual(
-            row_data[0]["person_repeat"][0][
-                "hospital_hiv_medication_person_first_name"
-            ],
-            "Timburt",
-        )
-        self.assertEqual(
-            row_data[0]["person_repeat"][1]["hospital_hiv_medication_person_last_name"],
-            "Katan",
-        )
-        self.assertEqual(
-            row_data[0]["person_repeat"][1][
-                "hospital_hiv_medication_person_first_name"
-            ],
-            "Babam",
-        )
-        self.assertEqual(
-            row_data[0]["person_repeat"][1]["hospital_hiv_medication_person_age"],
-            34,
+            row_data[0]["instanceID"], "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b"
         )
