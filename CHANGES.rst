@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.3.1(2025-08-19)
+------------------
+- Update Dockerfile
+  `PR #2891 <https://github.com/onaio/onadata/pull/2891>`
+  [@FrankApiyo]
+
 v5.3.0(2025-08-19)*
 ------------------
 - Resolve corrupted submission decryption failure reason and status not saved
