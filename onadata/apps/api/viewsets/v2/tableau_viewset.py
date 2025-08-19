@@ -2,6 +2,7 @@
 """
 Implements the /api/v2/tableau endpoint
 """
+
 import re
 from collections import defaultdict
 from typing import List
@@ -69,7 +70,15 @@ def process_tableau_data(
                         and hasattr(parent_elem, "type")
                         and parent_elem.type == "group"
                     ):
-                        prefix = "_".join(prefix_parts[:-1])
+                        prefix_parts = prefix_parts[:-1]
+
+                        if parent_id is not None:
+                            # Remove repeat question name from prefix
+                            prefix_parts = filter(
+                                lambda part: part != current_table, prefix_parts
+                            )
+
+                        prefix = "_".join(prefix_parts)
 
                     if qstn_type == REPEAT_SELECT_TYPE:
                         repeat_data = process_tableau_data(

@@ -2,6 +2,7 @@
 """
 OpenData tests.
 """
+
 import json
 import os
 import sys
@@ -404,3 +405,153 @@ class TestTableauViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         row_data = streaming_data(response)
         self.assertEqual(len(row_data), 0)
+
+    def test_tableau_get_nested_repeat_group_schema(self):
+        """Schema received from nested repeat groups is correct"""
+        self.view = TableauViewSet.as_view({"get": "schema"})
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../../main/tests/fixtures/transportation/transportation_1.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, uuid=uuid)
+        expected_schema = [
+            {
+                "table_alias": "data",
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",  # noqa pylint: disable=line-too-long
+                "column_headers": [
+                    {"id": "_id", "dataType": "int", "alias": "_id"},
+                    {
+                        "id": "hospital_name",
+                        "dataType": "string",
+                        "alias": "hospital_name",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_food_cake",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_food_cake",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_food_cheese",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_food_cheese",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_food_ham",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_food_ham",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_food_vegetables",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_food_vegetables",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_have_hiv_medication",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_have_hiv_medication",
+                    },
+                    {
+                        "id": "meta_instanceID",
+                        "dataType": "string",
+                        "alias": "meta_instanceID",
+                    },
+                ],
+            },
+            {
+                "table_alias": "person_repeat",
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_person_repeat",  # noqa pylint: disable=line-too-long
+                "column_headers": [
+                    {"id": "_id", "dataType": "int", "alias": "_id"},
+                    {"id": "__parent_id", "dataType": "int", "alias": "__parent_id"},
+                    {
+                        "id": "__parent_table",
+                        "dataType": "string",
+                        "alias": "__parent_table",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_person_first_name",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_person_first_name",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_person_last_name",
+                        "dataType": "string",
+                        "alias": "hospital_hiv_medication_person_last_name",
+                    },
+                    {
+                        "id": "hospital_hiv_medication_person_age",
+                        "dataType": "int",
+                        "alias": "hospital_hiv_medication_person_age",
+                    },
+                ],
+            },
+        ]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_schema)
+
+    def test_tableau_get_nested_repeat_group_data(self):
+        """Data received from nested repeat groups is flattened"""
+        self.view = TableauViewSet.as_view({"get": "data"})
+        # Publish xls file
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../../main/tests/fixtures/transportation/transportation_1.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+        # Create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../..",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation_w_nested_repeat_groups.xml",
+        )
+        self._make_submission(xml_submission_file_path)
+
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, uuid=uuid)
+
+        self.assertEqual(response.status_code, 200)
+        row_data = streaming_data(response)
+
+        self.assertEqual(row_data[0]["hospital_name"], "Pam Pam")
+        self.assertEqual(row_data[0]["hospital_hiv_medication_food_cake"], "TRUE")
+        self.assertEqual(row_data[0]["hospital_hiv_medication_food_cheese"], "TRUE")
+        self.assertEqual(row_data[0]["hospital_hiv_medication_food_ham"], "TRUE")
+        self.assertEqual(row_data[0]["hospital_hiv_medication_food_vegetables"], "TRUE")
+        self.assertEqual(
+            row_data[0]["person_repeat"][0]["hospital_hiv_medication_person_last_name"],
+            "Kalan",
+        )
+        self.assertEqual(
+            row_data[0]["person_repeat"][0]["hospital_hiv_medication_person_age"],
+            23,
+        )
+        self.assertEqual(
+            row_data[0]["person_repeat"][0][
+                "hospital_hiv_medication_person_first_name"
+            ],
+            "Timburt",
+        )
+        self.assertEqual(
+            row_data[0]["person_repeat"][1]["hospital_hiv_medication_person_last_name"],
+            "Katan",
+        )
+        self.assertEqual(
+            row_data[0]["person_repeat"][1][
+                "hospital_hiv_medication_person_first_name"
+            ],
+            "Babam",
+        )
+        self.assertEqual(
+            row_data[0]["person_repeat"][1]["hospital_hiv_medication_person_age"],
+            34,
+        )
