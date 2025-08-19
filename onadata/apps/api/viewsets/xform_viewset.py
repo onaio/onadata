@@ -75,6 +75,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormSerializer,
     XFormVersionListSerializer,
 )
+from onadata.libs.throttle import UserIDThrottle
 from onadata.libs.utils.api_export_tools import (
     _get_export_type,
     custom_response_handler,
@@ -324,6 +325,12 @@ class XFormViewSet(
     filterset_fields = ("instances_with_osm",)
 
     public_forms_endpoint = "public"
+
+    def get_throttles(self):
+        """Apply UserIDThrottle only to the list action."""
+        if self.action == "list":
+            return [UserIDThrottle()]
+        return super().get_throttles()
 
     def get_serializer_class(self):
         if self.action == "list":

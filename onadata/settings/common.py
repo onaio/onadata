@@ -2,6 +2,7 @@
 """
 Base Django settings module.
 """
+
 # this system uses structured settings as defined in
 # http://www.slideshare.net/jacobian/the-best-and-worst-of-django
 #
@@ -18,9 +19,10 @@ import socket
 import sys
 from importlib import reload
 
-from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
+
+from celery.signals import after_setup_logger
 
 # setting default encoding to utf-8
 if sys.version[0] == "2":
@@ -305,7 +307,7 @@ REST_FRAMEWORK = {
         "rest_framework_csv.renderers.CSVRenderer",
     ),
     "DEFAULT_THROTTLE_CLASSES": ["onadata.libs.throttle.RequestHeaderThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"header": "100/minute"},
+    "DEFAULT_THROTTLE_RATES": {"header": "100/minute", "user": "10/minute"},
 }
 
 SWAGGER_SETTINGS = {
