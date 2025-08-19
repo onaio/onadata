@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.3.0(2025-08-19)*
+------------------
+- Resolve corrupted submission decryption failure reason and status not saved
+  `PR #2883 <https://github.com/onaio/onadata/pull/2883>`
+  [@kelvin-muchiri]
+- Rename Instance decryption_status plaintext to unmanaged
+  `PR #2886 <https://github.com/onaio/onadata/pull/2886>`
+  [@kelvin-muchiri]
+- fix (xform): Update XForm schema after PyXForm upgrade
+  `PR #2888 <https://github.com/onaio/onadata/pull/2888>`
+  [@kelvin-muchiri]
+- Add background-audio media type support
+  `PR #2887 <https://github.com/onaio/onadata/pull/2887>`
+  [@FrankApiyo]
+
 v5.2.5(2025-08-06)
 ------------------
 - Fix bug where encrypted XLSForm with choice filter has invalid XML
