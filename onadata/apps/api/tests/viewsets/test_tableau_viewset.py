@@ -536,3 +536,141 @@ class TestTableauViewSet(TestBase):
         self.assertEqual(
             row_data[0]["meta_instanceID"], "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b"
         )
+
+    def test_tableau_get_data_w_repeat_within_nested_group(self):
+        """Data with repeat within nested group is correct"""
+        md_xform = """
+        | survey  |                          |              |                   |
+        |         | type                     | name         | label             |
+        |         | begin group              | person       | Person            |
+        |         | text                     | name         | Name              |
+        |         | integer                  | age          | Age               |
+        |         | begin group              | internet_use | Internet Use      |
+        |         | begin repeat             | browser_use  | Browser Use       |
+        |         | integer                  | year         | Year              |
+        |         | select_multiple browsers | browsers     | Browsers          |
+        |         | end repeat               |              |                   |
+        |         | end group                |              |                   |
+        |         | end group                |              |                   |
+        | choices |                          |              |                   |
+        |         | list_name                | name         | label             |
+        |         | browsers                 | firefox      | Firefox           |
+        |         | browsers                 | chrome       | Chrome            |
+        |         | browsers                 | ie           | Internet Explorer |
+        |         | browsers                 | safari       | Safari            |"""
+        # pylint: disable=attribute-defined-outside-init
+        self.xform = self._publish_markdown(
+            md_xform, self.user, id_string="internet_use"
+        )
+        submssion_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="internet_use" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<person>"
+            "<name>Tom</name>"
+            "<age>32</age>"
+            "<internet_use>"
+            "<browser_use>"
+            "<year>2020</year>"
+            "<browsers>firefox chrome</browsers>"
+            "</browser_use>"
+            "</internet_use>"
+            "</person>"
+            "<meta>"
+            "<instanceID>uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        Instance.objects.create(xform=self.xform, xml=submssion_xml)
+        # Confirm schema is correct
+        self.view = TableauViewSet.as_view({"get": "schema"})
+        _open_data = get_or_create_opendata(self.xform)
+        uuid = _open_data[0].uuid
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, uuid=uuid)
+        expected_schema = [
+            {
+                "table_alias": "data",
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}",
+                "column_headers": [
+                    {"id": "_id", "dataType": "int", "alias": "_id"},
+                    {"id": "person_name", "dataType": "string", "alias": "person_name"},
+                    {"id": "person_age", "dataType": "int", "alias": "person_age"},
+                    {
+                        "id": "meta_instanceID",
+                        "dataType": "string",
+                        "alias": "meta_instanceID",
+                    },
+                ],
+            },
+            {
+                "table_alias": "browser_use",
+                "connection_name": f"{self.xform.project_id}_{self.xform.id_string}_browser_use",
+                "column_headers": [
+                    {"id": "_id", "dataType": "int", "alias": "_id"},
+                    {"id": "__parent_id", "dataType": "int", "alias": "__parent_id"},
+                    {
+                        "id": "__parent_table",
+                        "dataType": "string",
+                        "alias": "__parent_table",
+                    },
+                    {
+                        "id": "person_internet_use_year",
+                        "dataType": "int",
+                        "alias": "person_internet_use_year",
+                    },
+                    {
+                        "id": "person_internet_use_browsers_firefox",
+                        "dataType": "string",
+                        "alias": "person_internet_use_browsers_firefox",
+                    },
+                    {
+                        "id": "person_internet_use_browsers_chrome",
+                        "dataType": "string",
+                        "alias": "person_internet_use_browsers_chrome",
+                    },
+                    {
+                        "id": "person_internet_use_browsers_ie",
+                        "dataType": "string",
+                        "alias": "person_internet_use_browsers_ie",
+                    },
+                    {
+                        "id": "person_internet_use_browsers_safari",
+                        "dataType": "string",
+                        "alias": "person_internet_use_browsers_safari",
+                    },
+                ],
+            },
+        ]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_schema)
+        # Confirm data is correct
+        self.view = TableauViewSet.as_view({"get": "data"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, uuid=uuid)
+        row_data = streaming_data(response)
+
+        self.assertEqual(row_data[0]["person_name"], "Tom")
+        self.assertEqual(row_data[0]["person_age"], 32)
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["person_internet_use_year"], 2020
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["person_internet_use_browsers_firefox"],
+            "TRUE",
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["person_internet_use_browsers_chrome"], "TRUE"
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["person_internet_use_browsers_ie"], "FALSE"
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["person_internet_use_browsers_safari"],
+            "FALSE",
+        )
+        self.assertEqual(
+            row_data[0]["meta_instanceID"], "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b"
+        )
