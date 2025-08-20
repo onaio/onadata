@@ -26,6 +26,7 @@ from onadata.libs.utils.common_tags import (
     PARENT_TABLE,
     REPEAT_SELECT_TYPE,
 )
+from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 DEFAULT_TABLE_NAME = "data"
 GPS_PARTS = ["latitude", "longitude", "altitude", "precision"]
@@ -60,6 +61,17 @@ def process_tableau_data(
                 if qstn:
                     qstn_type = qstn.get("type")
                     qstn_name = qstn.get("name")
+                    # Get the ancestors, build prefix from those that are of type group
+                    ancestors = get_abbreviated_xpath(qstn.get_xpath()).split("/")[:-1]
+                    prefix_parts = filter(
+                        lambda name: xform.get_survey_element(name).get("type")
+                        == "group",
+                        ancestors,
+                    )
+                    prefix = ""
+
+                    if prefix_parts:
+                        prefix = "_".join(prefix_parts)
 
                     if qstn_type == REPEAT_SELECT_TYPE:
                         repeat_data = process_tableau_data(
@@ -78,23 +90,28 @@ def process_tableau_data(
                         ]
                         list_name = qstn.get("list_name")
                         select_multiple_data = unpack_select_multiple_data(
-                            picked_choices, list_name, choice_names
+                            picked_choices, list_name, choice_names, prefix
                         )
                         flat_dict.update(select_multiple_data)
                     elif qstn_type == "geopoint":
-                        gps_parts = unpack_gps_data(value, qstn_name)
+                        gps_parts = unpack_gps_data(value, qstn_name, prefix)
                         flat_dict.update(gps_parts)
                     else:
+                        if prefix:
+                            qstn_name = f"{prefix}_{qstn_name}"
                         flat_dict[qstn_name] = value
             result.append(dict(flat_dict))
     return result
 
 
-def unpack_select_multiple_data(picked_choices, list_name, choice_names):
+def unpack_select_multiple_data(picked_choices, list_name, choice_names, prefix):
     """Unpacks select multiple data and returns a dictionary of selected choices."""
     unpacked_data = {}
     for choice in choice_names:
         qstn_name = f"{list_name}_{choice}"
+
+        if prefix:
+            qstn_name = prefix + "_" + qstn_name
 
         if choice in picked_choices:
             unpacked_data[qstn_name] = "TRUE"
@@ -121,12 +138,14 @@ def unpack_repeat_data(repeat_data, flat_dict):
     return cleaned_data
 
 
-def unpack_gps_data(value, qstn_name):
+def unpack_gps_data(value, qstn_name, prefix):
     """Prepares GPS data."""
     value_parts = value.split(" ")
     gps_xpath_parts = []
     for part in GPS_PARTS:
         name = f"_{qstn_name}_{part}"
+        if prefix:
+            name = prefix + "_" + name
         gps_xpath_parts.append((name, None))
     if len(value_parts) == 4:
         gps_parts = dict(zip(dict(gps_xpath_parts), value_parts))
@@ -241,7 +260,9 @@ class TableauViewSet(OpenDataViewSet):
         return Response(data)
 
     # pylint: disable=arguments-differ,too-many-locals
-    def flatten_xform_columns(self, json_of_columns_fields, table: str = None):
+    def flatten_xform_columns(
+        self, json_of_columns_fields, table: str = None, field_prefix: str = None
+    ):
         """
         Flattens a json of column fields while splitting columns into separate
         table names for each repeat
@@ -249,14 +270,17 @@ class TableauViewSet(OpenDataViewSet):
         ret = defaultdict(list)
         for field in json_of_columns_fields:
             table_name = table or DEFAULT_TABLE_NAME
+            prefix = field_prefix or ""
             field_type = field.get("type")
 
             if field_type in [REPEAT_SELECT_TYPE, "group"]:
                 if field_type == "repeat":
                     table_name = field.get("name")
+                else:
+                    prefix = prefix + f"{field['name']}_"
 
                 columns = self.flatten_xform_columns(
-                    field.get("children"), table=table_name
+                    field.get("children"), table=table_name, field_prefix=prefix
                 )
                 for key, val in columns.items():
                     ret[key].extend(val)
@@ -266,20 +290,22 @@ class TableauViewSet(OpenDataViewSet):
                     option_name = option.get("name")
                     ret[table_name].append(
                         {
-                            "name": f"{list_name}_{option_name}",
+                            "name": f"{prefix}{list_name}_{option_name}",
                             "type": self.get_tableau_type("text"),
                         }
                     )
             elif field_type == "geopoint":
                 for part in GPS_PARTS:
                     name = f'_{field["name"]}_{part}'
+                    if prefix:
+                        name = prefix + name
                     ret[table_name].append(
                         {"name": name, "type": self.get_tableau_type(field.get("type"))}
                     )
             else:
                 ret[table_name].append(
                     {
-                        "name": field.get("name"),
+                        "name": prefix + field.get("name"),
                         "type": self.get_tableau_type(field.get("type")),
                     }
                 )

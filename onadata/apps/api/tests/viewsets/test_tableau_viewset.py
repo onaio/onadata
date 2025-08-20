@@ -113,9 +113,9 @@ class TestTableauViewSet(TestBase):
                         "alias": "browsers_safari",
                     },
                     {
-                        "id": "instanceID",
+                        "id": "meta_instanceID",
                         "dataType": "string",
-                        "alias": "instanceID",
+                        "alias": "meta_instanceID",
                     },
                 ],
             },
@@ -218,6 +218,7 @@ class TestTableauViewSet(TestBase):
         picked_choices = ["firefox", "chrome", "ie", "safari"]
         list_name = "browsers"
         choices_names = ["firefox", "chrome", "ie", "safari"]
+        prefix = ""
 
         expected_data = {
             "browsers_chrome": "TRUE",
@@ -227,7 +228,7 @@ class TestTableauViewSet(TestBase):
         }
 
         select_multiple_data = unpack_select_multiple_data(
-            picked_choices, list_name, choices_names
+            picked_choices, list_name, choices_names, prefix
         )
         self.assertEqual(select_multiple_data, expected_data)
 
@@ -235,7 +236,7 @@ class TestTableauViewSet(TestBase):
         picked_choices = ["firefox", "safari"]
 
         select_multiple_data = unpack_select_multiple_data(
-            picked_choices, list_name, choices_names
+            picked_choices, list_name, choices_names, prefix
         )
 
         expected_data = {
@@ -257,7 +258,8 @@ class TestTableauViewSet(TestBase):
         gps_data = "26.431228 58.157921 0 0"
 
         qstn_name = "gps"
-        data = unpack_gps_data(gps_data, qstn_name)
+        prefix = ""
+        data = unpack_gps_data(gps_data, qstn_name, prefix)
         expected_data = {
             "_gps_latitude": "26.431228",
             "_gps_longitude": "58.157921",
@@ -462,9 +464,9 @@ class TestTableauViewSet(TestBase):
                     {"id": "name", "dataType": "string", "alias": "name"},
                     {"id": "age", "dataType": "int", "alias": "age"},
                     {
-                        "id": "instanceID",
+                        "id": "meta_instanceID",
                         "dataType": "string",
-                        "alias": "instanceID",
+                        "alias": "meta_instanceID",
                     },
                 ],
             },
@@ -480,29 +482,29 @@ class TestTableauViewSet(TestBase):
                         "alias": "__parent_table",
                     },
                     {
-                        "id": "year",
+                        "id": "internet_use_year",
                         "dataType": "int",
-                        "alias": "year",
+                        "alias": "internet_use_year",
                     },
                     {
-                        "id": "browsers_firefox",
+                        "id": "internet_use_browsers_firefox",
                         "dataType": "string",
-                        "alias": "browsers_firefox",
+                        "alias": "internet_use_browsers_firefox",
                     },
                     {
-                        "id": "browsers_chrome",
+                        "id": "internet_use_browsers_chrome",
                         "dataType": "string",
-                        "alias": "browsers_chrome",
+                        "alias": "internet_use_browsers_chrome",
                     },
                     {
-                        "id": "browsers_ie",
+                        "id": "internet_use_browsers_ie",
                         "dataType": "string",
-                        "alias": "browsers_ie",
+                        "alias": "internet_use_browsers_ie",
                     },
                     {
-                        "id": "browsers_safari",
+                        "id": "internet_use_browsers_safari",
                         "dataType": "string",
-                        "alias": "browsers_safari",
+                        "alias": "internet_use_browsers_safari",
                     },
                 ],
             },
@@ -518,11 +520,19 @@ class TestTableauViewSet(TestBase):
 
         self.assertEqual(row_data[0]["name"], "Tom")
         self.assertEqual(row_data[0]["age"], 32)
-        self.assertEqual(row_data[0]["browser_use"][0]["year"], 2020)
-        self.assertEqual(row_data[0]["browser_use"][0]["browsers_firefox"], "TRUE")
-        self.assertEqual(row_data[0]["browser_use"][0]["browsers_chrome"], "TRUE")
-        self.assertEqual(row_data[0]["browser_use"][0]["browsers_ie"], "FALSE")
-        self.assertEqual(row_data[0]["browser_use"][0]["browsers_safari"], "FALSE")
+        self.assertEqual(row_data[0]["browser_use"][0]["internet_use_year"], 2020)
         self.assertEqual(
-            row_data[0]["instanceID"], "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b"
+            row_data[0]["browser_use"][0]["internet_use_browsers_firefox"], "TRUE"
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["internet_use_browsers_chrome"], "TRUE"
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["internet_use_browsers_ie"], "FALSE"
+        )
+        self.assertEqual(
+            row_data[0]["browser_use"][0]["internet_use_browsers_safari"], "FALSE"
+        )
+        self.assertEqual(
+            row_data[0]["meta_instanceID"], "uuid:9d3f042e-cfec-4d2a-8b5b-212e3b04802b"
         )
