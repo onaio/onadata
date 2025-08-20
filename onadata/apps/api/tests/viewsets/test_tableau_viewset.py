@@ -424,7 +424,7 @@ class TestTableauViewSet(TestBase):
         |         | browsers                 | chrome       | Chrome            |
         |         | browsers                 | ie           | Internet Explorer |
         |         | browsers                 | safari       | Safari            |"""
-
+        # pylint: disable=attribute-defined-outside-init
         self.xform = self._publish_markdown(
             md_xform, self.user, id_string="internet_use"
         )
