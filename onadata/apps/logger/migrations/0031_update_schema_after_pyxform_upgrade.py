@@ -86,6 +86,11 @@ def update_xform_schema(apps, schema_editor):
     that caused the schema of some XForms to be incorrect. This migration
     fixes the schema of all XForms after the PyXForm upgrade.
     """
+    # Live model with latest methods. This is needed because
+    # apps.get_model("logger", "XForm") returns a frozen version of XForm
+    # that has only the fields known at that migration
+    from logger.models import XForm as LiveXForm
+
     XForm = apps.get_model("logger", "XForm")
     processed = 0
     xform_qs = XForm.objects.filter(deleted_at__isnull=True, encrypted=False).only(
@@ -94,7 +99,6 @@ def update_xform_schema(apps, schema_editor):
 
     for xform in xform_qs.iterator(chunk_size=50):
         processed += 1
-
         print(f"processed {processed} xforms")
 
         try:
@@ -105,16 +109,19 @@ def update_xform_schema(apps, schema_editor):
 
         except (KeyError, PyXFormError):
             try:
-                survey = xform.get_survey_from_xlsform()
+                # Try to recreate the full schema from the xlsform
+                survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
                 XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
 
             except PyXFormError:
+                # If the full schema creation fails, try to patch the JSON
                 print(f"recreating {xform.id} failed, perfoming patch")
                 process_children(json_data["children"], ensure_choices_exist(json_data))
                 XForm.objects.filter(id=xform.id).update(json=json_data)
 
         except TypeError:
             pass
+
         except Exception as e:
             print(xform.pk, xform, e, type(e))
             break
