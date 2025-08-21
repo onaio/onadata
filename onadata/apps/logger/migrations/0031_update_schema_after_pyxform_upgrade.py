@@ -137,5 +137,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(update_xform_schema),
+        migrations.RunPython(
+            update_xform_schema,
+            reverse_code=migrations.RunPython.noop,  # migration is irreversible
+        ),
     ]
