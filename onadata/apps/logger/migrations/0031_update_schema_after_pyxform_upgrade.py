@@ -9,15 +9,6 @@ from django.db import migrations
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 
-# Handle optional pricing import
-try:
-    from pricing.exceptions import LimitExceededError
-except ImportError:
-    # Create a dummy exception class if pricing is not available
-    class LimitExceededError(Exception):
-        pass
-
-
 SELECT_TYPES = ["select one", "select all that apply"]
 CONTAINER_TYPES = ["group", "repeat"]
 REQUIRED_FIELDS = ["name", "children"]
@@ -97,34 +88,31 @@ def update_xform_schema(apps, schema_editor):
     """
     XForm = apps.get_model("logger", "XForm")
     processed = 0
-    xform_qs = XForm.objects.filter(deleted_at__isnull=True).only(
+    xform_qs = XForm.objects.filter(deleted_at__isnull=True, encrypted=False).only(
         "id", "encrypted", "json"
     )
 
-    for xform in xform_qs.iterator(chunk_size=100):
+    for xform in xform_qs.iterator(chunk_size=50):
         processed += 1
-        print(f"processed {processed} xforms")
 
-        if xform.encrypted:
-            continue
+        print(f"processed {processed} xforms")
 
         try:
             json_data = (
                 json.loads(xform.json) if isinstance(xform.json, str) else xform.json
             )
             _ = create_survey_element_from_dict(json_data)
-        except (KeyError, PyXFormError):
-            json_data = (
-                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
-            )
-            process_children(json_data["children"], ensure_choices_exist(json_data))
 
+        except (KeyError, PyXFormError):
             try:
-                # Save back as JSON string
-                xform.json = json.dumps(json_data)
-                xform.save(update_fields=["json"])
-            except (LimitExceededError, TypeError):
-                pass
+                survey = xform.get_survey_from_xlsform()
+                XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
+
+            except PyXFormError:
+                print(f"recreating {xform.id} failed, perfoming patch")
+                process_children(json_data["children"], ensure_choices_exist(json_data))
+                XForm.objects.filter(id=xform.id).update(json=json_data)
+
         except TypeError:
             pass
         except Exception as e:
