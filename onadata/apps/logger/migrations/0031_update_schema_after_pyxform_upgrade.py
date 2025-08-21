@@ -86,7 +86,7 @@ def update_xform_schema(apps, schema_editor):
     that caused the schema of some XForms to be incorrect. This migration
     fixes the schema of all XForms after the PyXForm upgrade.
     """
-    # Live model with latest methods. This is needed because
+    # Use live model for method get_survey_from_xlsform. This is needed because
     # apps.get_model("logger", "XForm") returns a frozen version of XForm
     # that has only the fields known at that migration
     from onadata.apps.logger.models.xform import XForm as LiveXForm
@@ -117,7 +117,7 @@ def update_xform_schema(apps, schema_editor):
 
             except (KeyError, PyXFormError):
                 # If the full schema creation fails, try to patch the JSON
-                print(f"recreating {xform.id} failed, perfoming patch")
+                print(f"recreating XForm {xform.id} failed, perfoming patch")
                 process_children(json_data["children"], ensure_choices_exist(json_data))
                 XForm.objects.filter(id=xform.id).update(json=json_data)
                 patched += 1

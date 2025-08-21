@@ -419,7 +419,11 @@ class XFormMixin:
 
         survey = get_survey_from_file_object(
             self.xls,
-            name=self.json["name"],
+            name=(
+                self.json["name"]
+                if isinstance(self.json, dict)
+                else json.loads(self.json)["name"]
+            ),
             id_string=self.id_string,
             title=self.title,
             version=self.version,
