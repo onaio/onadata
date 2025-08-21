@@ -2,6 +2,7 @@
 """
 Implements the /api/v2/tableau endpoint
 """
+
 import re
 from collections import defaultdict
 from typing import List
@@ -60,16 +61,17 @@ def process_tableau_data(
                 if qstn:
                     qstn_type = qstn.get("type")
                     qstn_name = qstn.get("name")
-
-                    prefix_parts = get_abbreviated_xpath(qstn.get_xpath()).split("/")
-                    parent_elem = xform.get_element("/".join(prefix_parts[:-1]))
+                    # Get the ancestors, build prefix from those that are of type group
+                    ancestors = get_abbreviated_xpath(qstn.get_xpath()).split("/")[:-1]
+                    prefix_parts = filter(
+                        lambda name: xform.get_survey_element(name).get("type")
+                        == "group",
+                        ancestors,
+                    )
                     prefix = ""
-                    if (
-                        parent_elem
-                        and hasattr(parent_elem, "type")
-                        and parent_elem.type == "group"
-                    ):
-                        prefix = "_".join(prefix_parts[:-1])
+
+                    if prefix_parts:
+                        prefix = "_".join(prefix_parts)
 
                     if qstn_type == REPEAT_SELECT_TYPE:
                         repeat_data = process_tableau_data(
