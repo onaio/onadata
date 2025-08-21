@@ -93,9 +93,8 @@ def update_xform_schema(apps, schema_editor):
 
     XForm = apps.get_model("logger", "XForm")
     xform_qs = XForm.objects.filter(deleted_at__isnull=True, encrypted=False).only(
-        "id", "encrypted", "json"
+        "id", "json"
     )
-
     processed = 0
     patched = 0
 
