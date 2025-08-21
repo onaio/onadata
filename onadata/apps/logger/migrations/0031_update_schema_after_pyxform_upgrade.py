@@ -92,10 +92,12 @@ def update_xform_schema(apps, schema_editor):
     from onadata.apps.logger.models.xform import XForm as LiveXForm
 
     XForm = apps.get_model("logger", "XForm")
-    processed = 0
     xform_qs = XForm.objects.filter(deleted_at__isnull=True, encrypted=False).only(
         "id", "encrypted", "json"
     )
+
+    processed = 0
+    patched = 0
 
     for xform in xform_qs.iterator(chunk_size=50):
         processed += 1
@@ -113,11 +115,12 @@ def update_xform_schema(apps, schema_editor):
                 survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
                 XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
 
-            except PyXFormError:
+            except (KeyError, PyXFormError):
                 # If the full schema creation fails, try to patch the JSON
                 print(f"recreating {xform.id} failed, perfoming patch")
                 process_children(json_data["children"], ensure_choices_exist(json_data))
                 XForm.objects.filter(id=xform.id).update(json=json_data)
+                patched += 1
 
         except TypeError:
             pass
@@ -125,6 +128,8 @@ def update_xform_schema(apps, schema_editor):
         except Exception as e:
             print(xform.pk, xform, e, type(e))
             break
+
+    print(f"patched {patched} xforms")
 
 
 class Migration(migrations.Migration):
