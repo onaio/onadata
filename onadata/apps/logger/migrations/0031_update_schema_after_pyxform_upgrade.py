@@ -89,7 +89,7 @@ def update_xform_schema(apps, schema_editor):
     # Live model with latest methods. This is needed because
     # apps.get_model("logger", "XForm") returns a frozen version of XForm
     # that has only the fields known at that migration
-    from logger.models import XForm as LiveXForm
+    from onadata.apps.logger.models.xform import XForm as LiveXForm
 
     XForm = apps.get_model("logger", "XForm")
     processed = 0
