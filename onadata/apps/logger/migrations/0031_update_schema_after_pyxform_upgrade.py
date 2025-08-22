@@ -80,6 +80,7 @@ def process_children(children_list, choices):
             process_children(child["children"], choices)
 
 
+@use_master
 def update_xform_schema(apps, schema_editor):
     """Update the schema of all XForms after the PyXForm upgrade.
 
@@ -97,44 +98,37 @@ def update_xform_schema(apps, schema_editor):
     processed = 0
     patched = 0
 
-    with use_master:
-        for xform in xform_qs.iterator(chunk_size=100):
-            processed += 1
-            print(f"processed {processed} xforms")
+    for xform in xform_qs.iterator(chunk_size=100):
+        processed += 1
+        print(f"processed {processed} xforms")
 
+        try:
+            json_data = (
+                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
+            )
+            _ = create_survey_element_from_dict(json_data)
+
+        except (KeyError, PyXFormError):
             try:
-                json_data = (
-                    json.loads(xform.json)
-                    if isinstance(xform.json, str)
-                    else xform.json
-                )
-                _ = create_survey_element_from_dict(json_data)
+                # Try to recreate the full schema from the xlsform
+                survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
+                XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
 
             except (KeyError, PyXFormError):
-                try:
-                    # Try to recreate the full schema from the xlsform
-                    survey = LiveXForm.objects.get(
-                        id=xform.id
-                    ).get_survey_from_xlsform()
-                    XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
+                # If the full schema creation fails, try to patch the JSON
+                print(
+                    f"regenerating schema for XForm {xform.id} failed, perfoming patch"
+                )
+                process_children(json_data["children"], ensure_choices_exist(json_data))
+                XForm.objects.filter(id=xform.id).update(json=json_data)
+                patched += 1
 
-                except (KeyError, PyXFormError):
-                    # If the full schema creation fails, try to patch the JSON
-                    print(
-                        f"regenerating schema for XForm {xform.id} failed, perfoming patch"
-                    )
-                    process_children(
-                        json_data["children"], ensure_choices_exist(json_data)
-                    )
-                    XForm.objects.filter(id=xform.id).update(json=json_data)
-                    patched += 1
+        except TypeError:
+            pass
 
-            except TypeError:
-                pass
-
-            except Exception as e:
-                print(xform.pk, xform, e, type(e))
-                break
+        except Exception as e:
+            print(xform.pk, xform, e, type(e))
+            break
 
     print(f"patched {patched} xforms")
 
