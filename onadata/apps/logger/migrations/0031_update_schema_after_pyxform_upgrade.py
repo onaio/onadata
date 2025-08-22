@@ -6,7 +6,6 @@ import logging
 
 from django.db import migrations
 
-from multidb.pinning import use_master
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 
@@ -80,7 +79,6 @@ def process_children(children_list, choices):
             process_children(child["children"], choices)
 
 
-@use_master
 def update_xform_schema(apps, schema_editor):
     """Update the schema of all XForms after the PyXForm upgrade.
 
