@@ -120,7 +120,9 @@ def update_xform_schema(apps, schema_editor):
 
                 except (KeyError, PyXFormError):
                     # If the full schema creation fails, try to patch the JSON
-                    print(f"recreating XForm {xform.id} failed, perfoming patch")
+                    print(
+                        f"regenerating schema for XForm {xform.id} failed, perfoming patch"
+                    )
                     process_children(
                         json_data["children"], ensure_choices_exist(json_data)
                     )
