@@ -97,7 +97,7 @@ def update_xform_schema(apps, schema_editor):
     processed = 0
     patched = 0
 
-    with use_master():
+    with use_master:
         for xform in xform_qs.iterator(chunk_size=100):
             processed += 1
             print(f"processed {processed} xforms")
