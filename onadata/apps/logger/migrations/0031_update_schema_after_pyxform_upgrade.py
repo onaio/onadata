@@ -112,7 +112,7 @@ def update_xform_schema(apps, schema_editor):
                 survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
                 XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
 
-            except (KeyError, PyXFormError):
+            except (KeyError, PyXFormError, TypeError):
                 # If the full schema creation fails, try to patch the JSON
                 print(
                     f"regenerating schema for XForm {xform.id} failed, performing patch"
