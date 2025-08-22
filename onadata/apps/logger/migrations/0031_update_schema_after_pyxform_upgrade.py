@@ -9,15 +9,6 @@ from django.db import migrations
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 
-# Handle optional pricing import
-try:
-    from pricing.exceptions import LimitExceededError
-except ImportError:
-    # Create a dummy exception class if pricing is not available
-    class LimitExceededError(Exception):
-        pass
-
-
 SELECT_TYPES = ["select one", "select all that apply"]
 CONTAINER_TYPES = ["group", "repeat"]
 REQUIRED_FIELDS = ["name", "children"]
@@ -95,41 +86,49 @@ def update_xform_schema(apps, schema_editor):
     that caused the schema of some XForms to be incorrect. This migration
     fixes the schema of all XForms after the PyXForm upgrade.
     """
-    XForm = apps.get_model("logger", "XForm")
-    processed = 0
-    xform_qs = XForm.objects.filter(deleted_at__isnull=True).only(
-        "id", "encrypted", "json"
-    )
+    # Use live model for method get_survey_from_xlsform. This is needed because
+    # apps.get_model("logger", "XForm") returns a frozen version of XForm
+    # that has only the fields known at that migration
+    from onadata.apps.logger.models.xform import XForm as LiveXForm
 
-    for xform in xform_qs.iterator(chunk_size=100):
+    XForm = apps.get_model("logger", "XForm")
+    xform_qs = XForm.objects.filter(deleted_at__isnull=True, encrypted=False).only(
+        "id", "json"
+    )
+    processed = 0
+    patched = 0
+
+    for xform in xform_qs.iterator(chunk_size=50):
         processed += 1
         print(f"processed {processed} xforms")
-
-        if xform.encrypted:
-            continue
 
         try:
             json_data = (
                 json.loads(xform.json) if isinstance(xform.json, str) else xform.json
             )
             _ = create_survey_element_from_dict(json_data)
-        except (KeyError, PyXFormError):
-            json_data = (
-                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
-            )
-            process_children(json_data["children"], ensure_choices_exist(json_data))
 
+        except (KeyError, PyXFormError):
             try:
-                # Save back as JSON string
-                xform.json = json.dumps(json_data)
-                xform.save(update_fields=["json"])
-            except (LimitExceededError, TypeError):
-                pass
+                # Try to recreate the full schema from the xlsform
+                survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
+                XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
+
+            except (KeyError, PyXFormError):
+                # If the full schema creation fails, try to patch the JSON
+                print(f"recreating XForm {xform.id} failed, perfoming patch")
+                process_children(json_data["children"], ensure_choices_exist(json_data))
+                XForm.objects.filter(id=xform.id).update(json=json_data)
+                patched += 1
+
         except TypeError:
             pass
+
         except Exception as e:
             print(xform.pk, xform, e, type(e))
             break
+
+    print(f"patched {patched} xforms")
 
 
 class Migration(migrations.Migration):
@@ -138,5 +137,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(update_xform_schema),
+        migrations.RunPython(
+            update_xform_schema,
+            reverse_code=migrations.RunPython.noop,  # migration is irreversible
+        ),
     ]
