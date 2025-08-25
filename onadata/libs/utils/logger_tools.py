@@ -820,7 +820,10 @@ def response_with_mimetype_and_name(
         extension = mimetype
 
     if not full_mime:
-        mimetype = f"application/{mimetype}"
+        if extension == "csv":
+            mimetype = "text/csv"
+        else:
+            mimetype = f"application/{mimetype}"
 
     content_disposition = generate_content_disposition_header(
         name, extension, show_date
