@@ -3,6 +3,25 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.3.2(2025-08-25)
+------------------
+- fix: resolve mismatch between tableau schema and data if repeat section is within group section
+  [@kelvin-muchiri]
+  `PR #2894 https://github.com/onaio/onadata/pull/2894`
+- Bump ona-oidc to v2.2.0
+  `PR #2896 https://github.com/onaio/onadata/pull/2896`
+  [@FrankApiyo]
+- feat: prioritise regenerating XForm schema to fix broken schema after PyXForm upgrade
+  `PR #2897 https://github.com/onaio/onadata/pull/2897`
+  [@kelvin-muchiri]
+- perf: Improve performance for migration
+  `PR #2898 https://github.com/onaio/onadata/pull/2898`
+  [@kelvin-muchiri]
+- Update onadata base image version
+  `PR #2899 https://github.com/onaio/onadata/pull/2899`
+  [@FrankApiyo]
+
+
 v5.3.1(2025-08-19)
 ------------------
 - Update Dockerfile
