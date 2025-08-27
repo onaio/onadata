@@ -6,12 +6,12 @@ Entities serializer module.
 from django.utils.translation import gettext as _
 
 from pyxform.constants import ENTITIES_RESERVED_PREFIX
-
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import (
     Entity,
+    EntityHistory,
     EntityList,
     FollowUpForm,
     Project,
@@ -274,14 +274,20 @@ class EntitySerializer(serializers.ModelSerializer):
         """Override `create`"""
         data = {key: val for key, val in validated_data.pop("data").items() if val}
         label = validated_data.pop("label")
-
-        return super().create(
+        entity = super().create(
             {
                 **validated_data,
                 "json": {"label": label, **data},
                 "entity_list": self.context["entity_list"],
             }
         )
+        entity.history.create(
+            json=entity.json,
+            created_by=self.context["request"].user,
+            mutation_type=EntityHistory.MutationType.CREATE,
+        )
+
+        return entity
 
     def update(self, instance, validated_data):
         """Override `update`"""
@@ -303,6 +309,11 @@ class EntitySerializer(serializers.ModelSerializer):
 
         instance.uuid = validated_data.get("uuid", instance.uuid)
         instance.save()
+        instance.history.create(
+            json=instance.json,
+            created_by=self.context["request"].user,
+            mutation_type=EntityHistory.MutationType.UPDATE,
+        )
 
         return instance
 
@@ -311,14 +322,6 @@ class EntitySerializer(serializers.ModelSerializer):
         instance_json = data.pop("json")
 
         return {**data, "data": instance_json}
-
-    def save(self, **kwargs):
-        instance = super().save(**kwargs)
-        instance.history.create(
-            json=instance.json, created_by=self.context["request"].user
-        )
-
-        return instance
 
     class Meta:
         model = Entity

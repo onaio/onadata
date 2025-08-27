@@ -15,10 +15,10 @@ def populate_entityhistory_mutation_type(apps, schema_editor):
 
         if entity_node:
             if entity_node.getAttribute("update") in mutation_success_checks:
-                entity_history.mutation_type = EntityHistory.MutationType.UPDATE
+                entity_history.mutation_type = "update"
 
             elif entity_node.getAttribute("create") in mutation_success_checks:
-                entity_history.mutation_type = EntityHistory.MutationType.CREATE
+                entity_history.mutation_type = "create"
 
             entity_history.save(update_fields=["mutation_type"])
 
@@ -26,9 +26,7 @@ def populate_entityhistory_mutation_type(apps, schema_editor):
 def reverse_populate_entityhistory_mutation_type(apps, schema_editor):
     EntityHistory = apps.get_model("logger", "EntityHistory")
     # Reverse the migration by setting all mutation_type to the default value
-    EntityHistory.objects.filter(instance__isnull=False).update(
-        mutation_type=EntityHistory.MutationType.CREATE
-    )
+    EntityHistory.objects.filter(instance__isnull=False).update(mutation_type="create")
 
 
 class Migration(migrations.Migration):
