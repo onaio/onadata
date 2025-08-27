@@ -80,7 +80,9 @@ RUN apt-get install -y --no-install-recommends \
   gdal-bin \
   git-core \
   openjdk-11-jre-headless \
+  libxml2 \
   libxml2-dev \
+  libxslt1.1 \
   libxslt1-dev \
   && apt-get autoremove -y \
   && apt-get clean -y \
