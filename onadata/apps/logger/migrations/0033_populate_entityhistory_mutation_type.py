@@ -2,29 +2,28 @@
 
 from django.db import migrations
 
+CREATE_MUTATION_TYPE_SQL = """
+UPDATE logger_entityhistory h
+SET mutation_type = 'create'
+FROM (
+  SELECT MIN(id) AS id
+  FROM logger_entityhistory
+  GROUP BY entity_id
+) firsts
+WHERE h.id = firsts.id;
+"""
 
-def populate_entityhistory_mutation_type(apps, schema_editor):
-    Entity = apps.get_model("logger", "Entity")
-    entity_qs = Entity.objects.all()
+UPDATE_MUTATION_TYPE_SQL = """
+UPDATE logger_entityhistory
+SET mutation_type = 'update'
+WHERE id NOT IN (
+  SELECT MIN(id)
+  FROM logger_entityhistory
+  GROUP BY entity_id
+);
+"""
 
-    # The first EntityHistory for each Entity is the creation of the Entity
-    # the rest are the updates of the Entity
-    for entity in entity_qs.iterator(chunk_size=100):
-        history_qs = entity.history.order_by("pk")
-
-        for history in history_qs.iterator(chunk_size=100):
-            if history.pk == history_qs.first().pk:
-                history.mutation_type = "create"
-            else:
-                history.mutation_type = "update"
-
-            history.save(update_fields=["mutation_type"])
-
-
-def reverse_populate_entityhistory_mutation_type(apps, schema_editor):
-    EntityHistory = apps.get_model("logger", "EntityHistory")
-    # Reverse the migration by setting all mutation_type to the default value
-    EntityHistory.objects.filter(instance__isnull=False).update(mutation_type="create")
+REVERSE_MUTATION_TYPE_SQL = "UPDATE logger_entityhistory SET mutation_type = 'create';"
 
 
 class Migration(migrations.Migration):
@@ -33,6 +32,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(populate_entityhistory_mutation_type),
-        migrations.RunPython(reverse_populate_entityhistory_mutation_type),
+        migrations.RunSQL(CREATE_MUTATION_TYPE_SQL, REVERSE_MUTATION_TYPE_SQL),
+        migrations.RunSQL(UPDATE_MUTATION_TYPE_SQL, REVERSE_MUTATION_TYPE_SQL),
     ]
