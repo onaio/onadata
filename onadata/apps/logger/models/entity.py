@@ -54,6 +54,7 @@ class Entity(BaseModel):
         )
 
 
+# pylint: disable=too-many-ancestors
 class EntityHistory(BaseModel):
     """Maintains a history of Entity updates
 
@@ -61,6 +62,8 @@ class EntityHistory(BaseModel):
     """
 
     class MutationType(models.TextChoices):
+        """Choices for mutation type"""
+
         CREATE = "create", _("Create")
         UPDATE = "update", _("Update")
 
