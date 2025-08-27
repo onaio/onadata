@@ -2,25 +2,23 @@
 
 from django.db import migrations
 
-from onadata.apps.logger.xform_instance_parser import get_meta_from_xml
-
 
 def populate_entityhistory_mutation_type(apps, schema_editor):
-    EntityHistory = apps.get_model("logger", "EntityHistory")
-    queryset = EntityHistory.objects.filter(instance__isnull=False)
+    Entity = apps.get_model("logger", "Entity")
+    entity_qs = Entity.objects.all()
 
-    for entity_history in queryset.iterator(chunk_size=100):
-        entity_node = get_meta_from_xml(entity_history.xml, "entity")
-        mutation_success_checks = ["1", "true"]
+    # The first EntityHistory for each Entity is the creation of the Entity
+    # the rest are the updates of the Entity
+    for entity in entity_qs.iterator(chunk_size=100):
+        history_qs = entity.history.order_by("pk")
 
-        if entity_node:
-            if entity_node.getAttribute("update") in mutation_success_checks:
-                entity_history.mutation_type = "update"
+        for history in history_qs.iterator(chunk_size=100):
+            if history.pk == history_qs.first().pk:
+                history.mutation_type = "create"
+            else:
+                history.mutation_type = "update"
 
-            elif entity_node.getAttribute("create") in mutation_success_checks:
-                entity_history.mutation_type = "create"
-
-            entity_history.save(update_fields=["mutation_type"])
+            history.save(update_fields=["mutation_type"])
 
 
 def reverse_populate_entityhistory_mutation_type(apps, schema_editor):
