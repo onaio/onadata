@@ -2,6 +2,10 @@
 
 from django.db import migrations
 
+# Backfill mutation_type:
+# For each Entity, the first EntityHistory row (lowest id) is marked as "create"
+# and all subsequent history rows are marked as "update".
+
 CREATE_MUTATION_TYPE_SQL = """
 UPDATE logger_entityhistory h
 SET mutation_type = 'create'
