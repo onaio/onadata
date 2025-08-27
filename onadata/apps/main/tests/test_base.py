@@ -32,7 +32,14 @@ from six.moves.urllib.request import urlopen
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Instance, MergedXForm, XForm, XFormVersion
+from onadata.apps.logger.models import (
+    Entity,
+    EntityList,
+    Instance,
+    MergedXForm,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import UserProfile
@@ -649,6 +656,24 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         latest_form = XForm.objects.all().order_by("-pk").first()
 
         return latest_form
+
+    def _simulate_existing_entity(self):
+        if not hasattr(self, "project"):
+            self.project = get_user_default_project(self.user)
+
+        self.entity_list, _ = EntityList.objects.get_or_create(
+            name="trees", project=self.project
+        )
+        self.entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
 
     def _encrypt_xform(self, xform, kms_key, encrypted_by=None):
         version = timezone.now().strftime("%Y%m%d%H%M")

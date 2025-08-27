@@ -24,6 +24,7 @@ from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
+    update_entity_from_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -99,6 +100,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
         self.assertEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, self.xform.version)
         self.assertEqual(entity_history.created_by, self.instance.user)
+        self.assertEqual(entity_history.mutation_type, "create")
 
     def test_grouped_section(self):
         """Entity properties within grouped section"""
@@ -157,6 +159,68 @@ class CreateEntityFromInstanceTestCase(TestBase):
 
         self.assertEqual(Entity.objects.count(), 1)
         self.assertCountEqual(entity.json, expected_json)
+
+
+class UpdateEntityFromInstanceTestCase(TestBase):
+    """Tests for method `update_entity_from_instance`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._simulate_existing_entity()
+        self.xform = self._publish_entity_update_form(self.user)
+        self.xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference>30</circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48" update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        self.instance = Instance.objects.create(
+            xml=self.xml, user=self.user, xform=self.xform
+        )
+        self.registration_form = RegistrationForm.objects.filter(
+            xform=self.xform
+        ).first()
+
+    def test_entity_updated(self):
+        """Entity is updated successfully"""
+        update_entity_from_instance(
+            self.entity.uuid, self.instance, self.registration_form
+        )
+        # No new Entity created
+        self.assertEqual(Entity.objects.count(), 1)
+
+        entity = Entity.objects.first()
+        expected_json = {
+            "species": "purpleheart",
+            "geometry": "-1.286905 36.772845 0 0",
+            "latest_visit": "2024-05-28",
+            "circumference_cm": 30,
+            "label": "300cm purpleheart",
+        }
+
+        self.assertDictEqual(entity.json, expected_json)
+
+        entity_history = entity.history.first()
+
+        self.assertEqual(entity_history.registration_form, self.registration_form)
+        self.assertEqual(entity_history.instance, self.instance)
+        self.assertEqual(entity_history.xml, self.xml)
+        self.assertDictEqual(entity_history.json, expected_json)
+        self.assertEqual(entity_history.form_version, self.xform.version)
+        self.assertEqual(entity_history.created_by, self.instance.user)
+        self.assertEqual(entity_history.mutation_type, "update")
+        # New property is part of EntityList properties
+        self.assertTrue("latest_visit" in entity.entity_list.properties)
 
 
 class EntityListNumEntitiesBase(TestBase):
