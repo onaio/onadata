@@ -3,7 +3,13 @@ from typing import Any
 
 from django.db.models import QuerySet
 
-from onadata.apps.logger.models import Entity, EntityList, Instance, RegistrationForm
+from onadata.apps.logger.models import (
+    Entity,
+    EntityHistory,
+    EntityList,
+    Instance,
+    RegistrationForm,
+)
 from onadata.apps.logger.xform_instance_parser import (
     get_entity_uuid_from_xml,
     get_meta_from_xml,
@@ -100,6 +106,7 @@ def create_entity_from_instance(
         form_version=instance.version,
         json=entity_json,
         created_by=instance.user,
+        mutation_type=EntityHistory.MutationType.CREATE,
     )
 
     return entity
@@ -132,6 +139,7 @@ def update_entity_from_instance(
         form_version=instance.version,
         json=entity.json,
         created_by=instance.user,
+        mutation_type=EntityHistory.MutationType.UPDATE,
     )
 
     return entity

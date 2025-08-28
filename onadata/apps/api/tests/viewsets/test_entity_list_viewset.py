@@ -16,11 +16,9 @@ from django.utils import timezone
 import boto3
 from moto import mock_aws
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.logger.models import (Entity, EntityHistory, EntityList,
-                                        Project)
+from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
@@ -1021,6 +1019,7 @@ class CreateEntityTestCase(TestAbstractViewSet):
         self.assertIsNone(history.form_version)
         self.assertDictEqual(history.json, expected_json)
         self.assertEqual(history.created_by, self.user)
+        self.assertEqual(history.mutation_type, "create")
 
     def test_label_required(self):
         """`label` field is required"""
@@ -1288,6 +1287,7 @@ class UpdateEntityTestCase(TestAbstractViewSet):
         self.assertIsNone(history.form_version)
         self.assertDictEqual(history.json, expected_json)
         self.assertEqual(history.created_by, self.user)
+        self.assertEqual(history.mutation_type, "update")
 
     def test_invalid_entity(self):
         """Invalid Entity is handled"""
@@ -1803,8 +1803,8 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
             AWS_STORAGE_BUCKET_NAME="testing",
         ):
             with mock_aws():
-                s3 = boto3.resource("s3", region_name='us-east-1')
-                bucket = s3.Bucket('testing')
+                s3 = boto3.resource("s3", region_name="us-east-1")
+                bucket = s3.Bucket("testing")
                 bucket.create()
                 response = self.view(request, pk=self.entity_list.pk)
                 self.assertEqual(response.status_code, 302)

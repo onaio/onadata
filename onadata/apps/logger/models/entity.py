@@ -7,6 +7,7 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.instance import Instance
@@ -53,11 +54,18 @@ class Entity(BaseModel):
         )
 
 
+# pylint: disable=too-many-ancestors
 class EntityHistory(BaseModel):
     """Maintains a history of Entity updates
 
     An Entity can be created/updated from a form or via API
     """
+
+    class MutationType(models.TextChoices):
+        """Choices for mutation type"""
+
+        CREATE = "create", _("Create")
+        UPDATE = "update", _("Update")
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
@@ -92,4 +100,9 @@ class EntityHistory(BaseModel):
     form_version = models.CharField(max_length=255, null=True, blank=True)
     created_by = models.ForeignKey(
         User, null=True, on_delete=models.SET_NULL, db_index=False
+    )
+    mutation_type = models.CharField(
+        max_length=20,
+        choices=MutationType.choices,
+        default=MutationType.CREATE,
     )

@@ -611,24 +611,6 @@ class TestInstance(TestBase):
 
         self.assertEqual(Entity.objects.count(), 0)
 
-    def _simulate_existing_entity(self):
-        if not hasattr(self, "project"):
-            self.project = get_user_default_project(self.user)
-
-        self.entity_list, _ = EntityList.objects.get_or_create(
-            name="trees", project=self.project
-        )
-        self.entity = Entity.objects.create(
-            entity_list=self.entity_list,
-            json={
-                "species": "purpleheart",
-                "geometry": "-1.286905 36.772845 0 0",
-                "circumference_cm": 300,
-                "label": "300cm purpleheart",
-            },
-            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
-        )
-
     def test_update_entity(self):
         """An Entity is updated from a submission"""
         self._simulate_existing_entity()
@@ -674,6 +656,7 @@ class TestInstance(TestBase):
         self.assertDictEqual(entity_history.json, expected_json)
         self.assertEqual(entity_history.form_version, xform.version)
         self.assertEqual(entity_history.created_by, instance.user)
+        self.assertEqual(entity_history.mutation_type, "update")
         # New property is part of EntityList properties
         self.assertTrue("latest_visit" in entity.entity_list.properties)
 

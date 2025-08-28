@@ -179,6 +179,7 @@ class EntityHistoryTestCase(TestBase):
             json=entity_json,
             form_version=self.xform.version,
             created_by=self.user,
+            mutation_type="create",
         )
         self.assertEqual(history.entity, self.entity)
         self.assertEqual(history.registration_form, registration_form)
@@ -187,6 +188,7 @@ class EntityHistoryTestCase(TestBase):
         self.assertEqual(history.form_version, self.xform.version)
         self.assertEqual(history.created_by, self.user)
         self.assertEqual(history.date_created, self.mocked_now)
+        self.assertEqual(history.mutation_type, "create")
 
     def test_optional_fields(self):
         """Default for optional fields are correct"""
@@ -197,3 +199,4 @@ class EntityHistoryTestCase(TestBase):
         self.assertIsNone(history.xml)
         self.assertIsNone(history.form_version)
         self.assertIsNone(history.created_by)
+        self.assertEqual(history.mutation_type, "create")
