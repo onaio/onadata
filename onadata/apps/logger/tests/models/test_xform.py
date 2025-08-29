@@ -5,13 +5,18 @@ test_xform module
 
 import os
 from builtins import str as text
+from io import BytesIO
 from unittest.mock import call, patch
 
 from django.core.cache import cache
 from django.utils import timezone
 
 from onadata.apps.logger.models import DataView, Instance, XForm
-from onadata.apps.logger.models.xform import DuplicateUUIDError, check_xform_uuid
+from onadata.apps.logger.models.xform import (
+    DuplicateUUIDError,
+    check_xform_uuid,
+    get_survey_from_file_object,
+)
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
@@ -462,3 +467,42 @@ class TestXForm(TestBase):
         bg_audio_elements = xform.get_survey_elements_of_type("background-audio")
         self.assertEqual(len(bg_audio_elements), 1)
         self.assertEqual(bg_audio_elements[0].name, "bg_audio1")
+
+    def test_get_survey_from_file_object_file_pointer_reset(self):
+        """Test that get_survey_from_file_object resets file pointer before reading"""
+        # Create a simple XLS form content
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../..",
+            "fixtures",
+            "tutorial",
+            "tutorial.xlsx",
+        )
+
+        with open(xls_file_path, "rb") as f:
+            file_content = f.read()
+
+        # Create a BytesIO object and simulate that it has been read before
+        file_object = BytesIO(file_content)
+        file_object.name = "tutorial.xlsx"
+
+        # Read some data to move the file pointer away from the beginning
+        file_object.read(100)
+
+        # Verify the file pointer is not at the beginning
+        self.assertNotEqual(file_object.tell(), 0)
+
+        # Call get_survey_from_file_object - it should work even with file pointer moved
+        survey = get_survey_from_file_object(file_object)
+
+        # Verify we got a valid survey object
+        self.assertIsNotNone(survey)
+        self.assertTrue(hasattr(survey, "name"))
+
+        # Test again with file pointer at arbitrary position
+        file_object.seek(50)
+        survey2 = get_survey_from_file_object(file_object)
+
+        # Should still work and produce the same result
+        self.assertIsNotNone(survey2)
+        self.assertEqual(survey.name, survey2.name)
