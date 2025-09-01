@@ -96,6 +96,8 @@ def get_survey_from_file_object(
     file_object, name=None, id_string=None, title=None, version=None
 ):
     """Returns a PyXForm object from an XLSForm file object."""
+    # reset file pointer to make sure it's at the file start
+    file_object.seek(0)
     xlsform_file_object = BytesIO(file_object.read())
     xlsform_file_object.name = file_object.name
     file_path = Path(file_object.name)
