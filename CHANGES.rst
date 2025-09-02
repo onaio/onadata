@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.4.0(2025-09-01)
+------------------
+- feat: track mutation type when creating/updating Entity
+  [@kelvin-muchiri]
+  `PR #2901 https://github.com/onaio/onadata/pull/2901`
+- Fix form replacement error
+  `PR #2902 https://github.com/onaio/onadata/pull/2902`
+  [@FrankApiyo]
+
+
 v5.3.2(2025-08-25)
 ------------------
 - fix: resolve mismatch between tableau schema and data if repeat section is within group section
