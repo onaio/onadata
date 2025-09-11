@@ -2,33 +2,6 @@
 
 from django.db import migrations
 
-PLAIN_TO_UNMANAGED_SQL = """
-UPDATE logger_instance
-SET decryption_status = 'unmanaged'
-WHERE decryption_status = 'plaintext';
-"""
-
-PENDING_NOT_MANAGED_TO_UNMANAGED_SQL = """
-UPDATE logger_instance i
-SET decryption_status = 'unmanaged'
-FROM logger_xform x
-WHERE i.decryption_status = 'pending'
-  AND i.xform_id = x.id
-  AND x.is_managed = FALSE;
-"""
-
-REVERSE_TO_PLAINTEXT_SQL = """
-UPDATE logger_instance
-SET decryption_status = 'plaintext'
-WHERE decryption_status = 'unmanaged' AND is_encrypted = FALSE;
-"""
-
-REVERSE_TO_PENDING_SQL = """
-UPDATE logger_instance
-SET decryption_status = 'pending'
-WHERE decryption_status = 'unmanaged' AND is_encrypted = TRUE;
-"""
-
 
 class Migration(migrations.Migration):
     atomic = False
@@ -37,7 +10,4 @@ class Migration(migrations.Migration):
         ("logger", "0029_alter_instance_decryption_status"),
     ]
 
-    operations = [
-        migrations.RunSQL(PLAIN_TO_UNMANAGED_SQL, REVERSE_TO_PLAINTEXT_SQL),
-        migrations.RunSQL(PENDING_NOT_MANAGED_TO_UNMANAGED_SQL, REVERSE_TO_PENDING_SQL),
-    ]
+    operations = [migrations.RunPython.noop]
