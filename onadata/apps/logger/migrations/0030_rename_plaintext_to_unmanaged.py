@@ -10,4 +10,7 @@ class Migration(migrations.Migration):
         ("logger", "0029_alter_instance_decryption_status"),
     ]
 
-    operations = [migrations.RunPython.noop]
+    operations = [
+        migrations.RunPython(migrations.RunPython.noop),
+        migrations.RunPython(migrations.RunPython.noop),
+    ]
