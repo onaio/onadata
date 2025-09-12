@@ -22,12 +22,12 @@ class Migration(migrations.Migration):
             name="decryption_status",
             field=models.CharField(
                 choices=[
-                    ("plaintext", "Never encrypted"),
+                    ("unmanaged", "Does not use managed keys"),
                     ("pending", "Pending decryption"),
                     ("success", "Decryption successful"),
                     ("failed", "Decryption failed"),
                 ],
-                default="plaintext",
+                default="unmanaged",
                 max_length=20,
             ),
         ),
