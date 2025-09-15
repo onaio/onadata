@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.5.0(2025-09-15)
+------------------
+- fix: bump valigetta to v0.2.1 to resolve uncaught incorrect padding error
+  [@kelvin-muchiri]
+  `PR #2907 https://github.com/onaio/onadata/pull/2907`
+- perf: rename default decryption status migration
+  [@kelvin-muchiri]
+  `PR #2908 https://github.com/onaio/onadata/pull/2908`
+- feat: bump oidc to add support for auth code + PKCE
+  [@kelvin-muchiri]
+  `PR #2909 https://github.com/onaio/onadata/pull/2909`
+
 v5.4.0(2025-09-01)
 ------------------
 - feat: track mutation type when creating/updating Entity
@@ -11,7 +23,6 @@ v5.4.0(2025-09-01)
 - Fix form replacement error
   `PR #2902 https://github.com/onaio/onadata/pull/2902`
   [@FrankApiyo]
-
 
 v5.3.2(2025-08-25)
 ------------------
@@ -30,7 +41,6 @@ v5.3.2(2025-08-25)
 - Update onadata base image version
   `PR #2899 https://github.com/onaio/onadata/pull/2899`
   [@FrankApiyo]
-
 
 v5.3.1(2025-08-19)
 ------------------
