@@ -90,3 +90,5 @@ sonar-project.properties
 .scannerwork
 
 *.er
+.env
+*.csv
