@@ -66,8 +66,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "creator_username": "creator",
                 "creator_email": "creator@example.com",
                 "creator_date_joined": "2019-12-01",
-                "creator_last_login": "2021-01-01",
-                "last_submission_date": "2021-06-01",
+                "creator_last_login": "2020-01-01",
+                "last_submission_date": "2020-06-01",
                 "project_count": 2,
                 "form_count": 5,
                 "total_submissions": 100,
@@ -145,8 +145,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "creator_username": "creator",
                 "creator_email": "creator@example.com",
                 "creator_date_joined": "2019-12-01",
-                "creator_last_login": "2021-01-01",
-                "last_submission_date": "2021-06-01",
+                "creator_last_login": "2020-01-01",
+                "last_submission_date": "2020-06-01",
                 "project_count": 2,
                 "form_count": 5,
                 "total_submissions": 100,
@@ -487,8 +487,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "creator_username": "creator",
                 "creator_email": "creator@example.com",
                 "creator_date_joined": "2019-12-01",
-                "creator_last_login": "2021-01-01",
-                "last_submission_date": "2021-06-01",
+                "creator_last_login": "2020-01-01",
+                "last_submission_date": "2020-06-01",
                 "project_count": 2,
                 "form_count": 5,
                 "total_submissions": 100,
@@ -551,8 +551,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "creator_username": f"creator{i}",
                 "creator_email": f"creator{i}@example.com",
                 "creator_date_joined": "2019-12-01",
-                "creator_last_login": "2021-01-01",
-                "last_submission_date": "2021-06-01",
+                "creator_last_login": "2020-01-01",
+                "last_submission_date": "2020-06-01",
                 "project_count": 1,
                 "form_count": 2,
                 "total_submissions": 10,
@@ -614,8 +614,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "creator_username": "creator",
                 "creator_email": "creator@example.com",
                 "creator_date_joined": "2019-12-01",
-                "creator_last_login": "2021-01-01",
-                "last_submission_date": "2021-06-01",
+                "creator_last_login": "2020-01-01",
+                "last_submission_date": "2020-06-01",
                 "project_count": 2,
                 "form_count": 5,
                 "total_submissions": 100,
@@ -794,3 +794,72 @@ class TestExportInactiveUsersOrgs(TestCase):
         result = command.get_storage_size_for_user("test_user")
         self.assertEqual(result["total_size_mb"], 0)
         self.assertEqual(result["storage_breakdown"], "{}")
+
+    @patch(
+        "onadata.apps.api.management.commands.export_inactive_users_orgs.Command.get_inactive_users"
+    )
+    @patch(
+        "onadata.apps.api.management.commands.export_inactive_users_orgs.Command.get_inactive_organizations"
+    )
+    def test_organization_creator_login_requirement(self, mock_orgs, mock_users):
+        """Test that organizations require both old submissions AND old creator login"""
+        # Mock no users for this test
+        mock_users.return_value = []
+
+        # Test organization with old submissions but recent creator login (should NOT be exported)
+        # The mock should return empty list to simulate the SQL filtering effect
+        mock_orgs.return_value = []
+
+        # Run command
+        call_command(
+            "export_inactive_users_orgs",
+            output_dir=self.temp_dir,
+            verbosity=0,
+            include_storage=False,
+        )
+
+        # Check that no organization file was created (no inactive organizations found)
+        files = os.listdir(self.temp_dir)
+        org_files = [f for f in files if "organizations" in f and f.endswith(".csv")]
+        self.assertEqual(len(org_files), 0)  # No organization file should be created
+
+        # Now test with both old submissions AND old creator login (should be exported)
+        mock_orgs.return_value = [
+            {
+                "org_name": "Fully Inactive Org",
+                "org_username": "inactive_org",
+                "org_email": "inactive@example.com",
+                "date_created": "2020-01-01",
+                "creator_username": "inactive_creator",
+                "creator_email": "inactivecreator@example.com",
+                "creator_date_joined": "2019-12-01",
+                "creator_last_login": "2020-01-01",  # Old login (over 2 years)
+                "last_submission_date": "2020-06-01",  # Old submissions (over 2 years)
+                "project_count": 2,
+                "form_count": 5,
+                "total_submissions": 100,
+            }
+        ]
+
+        # Clear temp directory for second test
+        for file in os.listdir(self.temp_dir):
+            os.remove(os.path.join(self.temp_dir, file))
+
+        # Run command again
+        call_command(
+            "export_inactive_users_orgs",
+            output_dir=self.temp_dir,
+            verbosity=0,
+            include_storage=False,
+        )
+
+        # Check that organization was exported this time
+        files = os.listdir(self.temp_dir)
+        org_csv = [f for f in files if "organizations" in f and f.endswith(".csv")][0]
+
+        with open(os.path.join(self.temp_dir, org_csv), "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            # Should have exactly 1 data row
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["org_name"], "Fully Inactive Org")
