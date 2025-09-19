@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.6.0(2025-09-19)
+------------------
+- feat: bump oidc to add ability to import user
+  [@kelvin-muchiri]
+  `PR #2911 https://github.com/onaio/onadata/pull/2911`
+
 v5.5.0(2025-09-15)
 ------------------
 - fix: bump valigetta to v0.2.1 to resolve uncaught incorrect padding error
