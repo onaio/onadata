@@ -207,7 +207,9 @@ class Command(BaseCommand):
         )
         SELECT * FROM org_activity
         WHERE (last_submission_date < %s
-           OR last_submission_date IS NULL)"""
+           OR last_submission_date IS NULL)
+          AND (creator_last_login < %s
+           OR creator_last_login IS NULL)"""
 
         # Add exclusion clause if needed
         if excluded_usernames:
@@ -228,7 +230,7 @@ class Command(BaseCommand):
         threshold_date = timezone.now() - timedelta(days=years * 365)
 
         with connection.cursor() as cursor:
-            params = [threshold_date]
+            params = [threshold_date, threshold_date]
             if excluded_usernames:
                 params.append(tuple(excluded_usernames))
             cursor.execute(query, params)
