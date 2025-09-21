@@ -2,6 +2,7 @@
 """
 Test cases for export_inactive_users_orgs management command
 """
+
 import csv
 import json
 import os
@@ -54,6 +55,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "Test Org",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -133,6 +136,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "Test Org",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -182,6 +187,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name",
                 "organization",
                 "num_of_submissions",
+                "project_count",
+                "form_count",
             ]
 
             for header in expected_headers:
@@ -200,7 +207,7 @@ class TestExportInactiveUsersOrgs(TestCase):
 
             expected_headers = [
                 "org_name",
-                "name",
+                "org_username",
                 "email",
                 "domain",
                 "date_created",
@@ -326,6 +333,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "Test Org",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -410,6 +419,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "Test Org",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -475,6 +486,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "Test Org",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -537,6 +550,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": f"Test User {i}",
                 "organization": "",
                 "num_of_submissions": 0,
+                "project_count": 0,
+                "form_count": 0,
             }
             for i in range(5)  # 5 users
         ]
@@ -601,6 +616,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "Test User",
                 "organization": "",
                 "num_of_submissions": 10,
+                "project_count": 2,
+                "form_count": 5,
             }
         ]
 
@@ -680,6 +697,8 @@ class TestExportInactiveUsersOrgs(TestCase):
                 "profile_name": "New User",
                 "organization": "",
                 "num_of_submissions": 3,
+                "project_count": 1,
+                "form_count": 2,
             }
         ]
 
