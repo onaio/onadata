@@ -8,15 +8,14 @@ import json
 import os
 from datetime import datetime, timedelta
 
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils import timezone
 from django.utils.translation import gettext as _
-
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
@@ -320,7 +319,7 @@ class Command(BaseCommand):
         # Define CSV headers
         headers = [
             "org_name",
-            "name",
+            "org_username",
             "email",
             "domain",
             "date_created",
@@ -346,8 +345,7 @@ class Command(BaseCommand):
                 # Format dates for CSV
                 row = {
                     "org_name": org["org_name"],
-                    # Same as org_name for consistency
-                    "name": org["org_name"],
+                    "org_username": org["org_username"],
                     "email": org["org_email"] or "",
                     "domain": self._extract_domain(org["org_email"]),
                     "date_created": self._format_datetime(org["date_created"]),
@@ -510,9 +508,7 @@ class Command(BaseCommand):
         if self.verbosity >= 1:
             self.stdout.write(
                 self.style.WARNING(
-                    _(
-                        "No supported storage backend found, skipping storage calculation"
-                    )
+                    _("No supported storage backend found, skipping calculation")
                 )
             )
 
@@ -530,7 +526,7 @@ class Command(BaseCommand):
                 if self.verbosity >= 1:
                     self.stdout.write(
                         self.style.WARNING(
-                            _("S3 Bucket not configured, skipping storage calculation")
+                            _("S3 Bucket not configured, skipping calculation")
                         )
                     )
                 self.storage_client = None
@@ -559,15 +555,16 @@ class Command(BaseCommand):
                 if self.verbosity >= 1:
                     self.stdout.write(
                         self.style.WARNING(
-                            _(
-                                "Azure storage not configured, skipping storage calculation"
-                            )
+                            _("Azure storage not configured, skipping calculation")
                         )
                     )
                 self.storage_client = None
                 return
 
-            connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+            connection_string = (
+                "DefaultEndpointsProtocol=https;AccountName={};"
+                "AccountKey={};EndpointSuffix=core.windows.net"
+            ).format(account_name, account_key)
             self.storage_client = BlobServiceClient.from_connection_string(
                 connection_string
             )
