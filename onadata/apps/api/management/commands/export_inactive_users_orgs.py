@@ -8,14 +8,15 @@ import json
 import os
 from datetime import datetime, timedelta
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
@@ -261,10 +262,16 @@ class Command(BaseCommand):
             u.is_active,
             up.name as profile_name,
             up.organization,
-            COALESCE(up.num_of_submissions, 0) as num_of_submissions
+            COALESCE(up.num_of_submissions, 0) as num_of_submissions,
+            COUNT(DISTINCT p.id) as project_count,
+            COUNT(DISTINCT xf.id) as form_count
         FROM auth_user u
         LEFT JOIN main_userprofile up ON up.user_id = u.id
         LEFT JOIN api_organizationprofile op ON op.userprofile_ptr_id = up.id
+        LEFT JOIN logger_project p ON p.created_by_id = u.id
+            AND p.deleted_at IS NULL
+        LEFT JOIN logger_xform xf ON xf.project_id = p.id
+            AND xf.deleted_at IS NULL
         WHERE op.userprofile_ptr_id IS NULL  -- Exclude organization accounts
           AND u.is_active = true
           AND (u.last_login < %s OR u.last_login IS NULL)"""
@@ -275,6 +282,9 @@ class Command(BaseCommand):
           AND u.username NOT IN %s"""
 
         query += """
+        GROUP BY u.id, u.username, u.email, u.first_name, u.last_name,
+                 u.last_login, u.date_joined, u.is_active, up.name,
+                 up.organization, up.num_of_submissions
         ORDER BY u.last_login DESC NULLS LAST"""
 
         # Add LIMIT and OFFSET if specified
@@ -422,6 +432,8 @@ class Command(BaseCommand):
             "profile_name",
             "organization",
             "num_of_submissions",
+            "project_count",
+            "form_count",
         ]
 
         if include_storage:
@@ -450,6 +462,8 @@ class Command(BaseCommand):
                     "profile_name": user["profile_name"] or "",
                     "organization": user["organization"] or "",
                     "num_of_submissions": user["num_of_submissions"] or 0,
+                    "project_count": user["project_count"] or 0,
+                    "form_count": user["form_count"] or 0,
                 }
 
                 # Add storage information if included
