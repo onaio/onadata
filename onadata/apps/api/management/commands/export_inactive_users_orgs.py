@@ -348,7 +348,7 @@ class Command(BaseCommand):
             headers.extend(["storage_size_mb", "storage_breakdown"])
 
         with open(filename, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer = csv.DictWriter(csvfile, fieldnames=headers, quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
             for org in organizations:
@@ -440,7 +440,7 @@ class Command(BaseCommand):
             headers.extend(["storage_size_mb", "storage_breakdown"])
 
         with open(filename, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer = csv.DictWriter(csvfile, fieldnames=headers, quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
             for user in users:
