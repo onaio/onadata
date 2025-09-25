@@ -2,6 +2,7 @@
 """
 Password reset serializer.
 """
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -15,6 +16,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from six.moves.urllib.parse import urlparse
 
+from onadata.apps.main.models.user_profile import UserProfile
+from onadata.libs.permissions import is_organization
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 # pylint: disable=invalid-name
@@ -146,7 +149,13 @@ class PasswordReset:
         """
         email = self.email
         reset_url = self.reset_url
-        active_users = User.objects.filter(email__iexact=email, is_active=True)
+        active_users = [
+            profile.user
+            for profile in UserProfile.objects.filter(
+                user__email__iexact=email, user__is_active=True
+            )
+            if not is_organization(profile)
+        ]
 
         for user in active_users:
             # Make sure that no email is sent to a user that actually has
