@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Inactive Export Tracker for tracking exported inactive users and organizations using temporary files.
+Inactive Export Tracker for exported inactive users and organizations.
 """
+
 import json
 import os
 import tempfile
@@ -17,14 +18,14 @@ class InactiveExportTracker:
         self.tracking_file = self._get_or_create_tracking_file()
         self.data = self._load_data()
 
-    def _get_tracking_file_path(self, session_id):
+    def get_tracking_file_path(self, session_id):
         """Get the tracking file path for inactive exports session"""
         temp_dir = tempfile.gettempdir()
         return os.path.join(temp_dir, f"inactive_export_tracking_{session_id}.json")
 
     def _get_or_create_tracking_file(self):
         """Get existing or create new tracking file for inactive exports"""
-        file_path = self._get_tracking_file_path(self.session_id)
+        file_path = self.get_tracking_file_path(self.session_id)
         if not os.path.exists(file_path):
             # Create new file with initial structure for inactive exports
             initial_data = {
@@ -39,14 +40,14 @@ class InactiveExportTracker:
                     "export_completed": False,
                 },
             }
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(initial_data, f, indent=2)
         return file_path
 
     def _load_data(self):
         """Load data from tracking file"""
         try:
-            with open(self.tracking_file, "r") as f:
+            with open(self.tracking_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             # Return default structure if file doesn't exist or is corrupted
@@ -66,7 +67,7 @@ class InactiveExportTracker:
     def _save_data(self):
         """Save data to tracking file"""
         self.data["last_updated"] = datetime.now().isoformat()
-        with open(self.tracking_file, "w") as f:
+        with open(self.tracking_file, "w", encoding="utf-8") as f:
             json.dump(self.data, f, indent=2)
 
     def add_inactive_record(self, export_type, record_id, username, years_threshold):
@@ -98,13 +99,13 @@ class InactiveExportTracker:
     def get_inactive_session_stats(session_id):
         """Get statistics for an inactive export session"""
         tracker = InactiveExportTracker(session_id)
-        file_path = tracker._get_tracking_file_path(session_id)
+        file_path = tracker.get_tracking_file_path(session_id)
 
         if not os.path.exists(file_path):
             return None
 
         try:
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             stats = {}
@@ -145,10 +146,6 @@ class InactiveExportTracker:
         """Mark the export session as completed"""
         self.data["summary"]["export_completed"] = True
         self._save_data()
-
-    def get_tracking_file_path(self):
-        """Get the path of the current tracking file"""
-        return self.tracking_file
 
     def get_summary(self):
         """Get export summary statistics"""
