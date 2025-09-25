@@ -89,6 +89,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        self._verbosity = options.get("verbosity", 1)
         years = options["years"]
         output_dir = options["output_dir"]
         include_storage = options["include_storage"]
@@ -364,7 +365,6 @@ class Command(BaseCommand):
             writer.writeheader()
 
             for org in organizations:
-                # Format dates for CSV
                 row = {
                     "org_name": org["org_name"],
                     "org_username": org["org_username"],
@@ -533,6 +533,17 @@ class Command(BaseCommand):
         except (ModuleNotFoundError, ImportError):
             pass
 
+        # Check if FileSystem storage is configured (fallback for local dev/testing)
+        try:
+            filesystem_class = storages.create_storage(
+                {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+            )
+            if isinstance(default_storage, type(filesystem_class)):
+                self._init_filesystem_client()
+                return
+        except (ModuleNotFoundError, ImportError):
+            pass
+
         if self.verbosity >= 1:
             self.stdout.write(
                 self.style.WARNING(
@@ -615,6 +626,8 @@ class Command(BaseCommand):
             return self._get_s3_storage_size(username)
         if getattr(self, "storage_backend", None) == "azure":
             return self._get_azure_storage_size(username)
+        if getattr(self, "storage_backend", None) == "filesystem":
+            return self._get_filesystem_storage_size(username)
         return {"total_size_mb": 0, "storage_breakdown": "{}"}
 
     def _get_s3_storage_size(self, username):
@@ -708,6 +721,87 @@ class Command(BaseCommand):
                         _("Failed to calculate Azure storage for {}: {}").format(
                             username, e
                         )
+                    )
+                )
+            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+
+    def _init_filesystem_client(self):
+        """Initialize filesystem client for storage size calculations"""
+        try:
+            # Use MEDIA_ROOT from settings for filesystem storage
+            self.storage_container = getattr(settings, "MEDIA_ROOT", None)
+            if not self.storage_container:
+                if self.verbosity >= 1:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            _("MEDIA_ROOT not configured, skipping calculation")
+                        )
+                    )
+                self.storage_client = None
+                return
+            self.storage_backend = "filesystem"
+            self.storage_client = "filesystem"
+        except (ImportError, AttributeError, KeyError) as e:
+            if self.verbosity >= 1:
+                self.stdout.write(
+                    self.style.WARNING(
+                        _("Failed to initialize filesystem client: {}").format(e)
+                    )
+                )
+            self.storage_client = None
+
+    def _get_filesystem_storage_size(self, username):
+        """Calculate storage size for filesystem backend"""
+        if not self.storage_container:
+            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+
+        try:
+            user_dir = os.path.join(self.storage_container, username)
+            if not os.path.exists(user_dir):
+                return {"total_size_mb": 0, "storage_breakdown": "{}"}
+
+            folder_sizes = {}
+            total_size = 0
+
+            # Walk through all files in user directory
+            for root, _dirs, files in os.walk(user_dir):
+                # dirs not used but required by os.walk
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    try:
+                        file_size = os.path.getsize(file_path)
+                        total_size += file_size
+
+                        # Determine folder category based on path
+                        relative_path = os.path.relpath(root, user_dir)
+                        if relative_path == ".":
+                            folder_name = "root"
+                        else:
+                            folder_name = relative_path.split(os.sep)[0]
+
+                        if folder_name not in folder_sizes:
+                            folder_sizes[folder_name] = 0
+                        folder_sizes[folder_name] += file_size
+                    except OSError:
+                        # Skip files we can't read
+                        continue
+
+            # Convert to MB
+            total_size_mb = total_size / (1024 * 1024)
+            folder_sizes_mb = {
+                folder: size / (1024 * 1024) for folder, size in folder_sizes.items()
+            }
+
+            return {
+                "total_size_mb": round(total_size_mb, 2),
+                "storage_breakdown": json.dumps(folder_sizes_mb),
+            }
+
+        except (OSError, IOError) as e:
+            if self.verbosity >= 2:
+                self.stdout.write(
+                    self.style.WARNING(
+                        _(f"Failed to calculate filesystem storage for {username}: {e}")
                     )
                 )
             return {"total_size_mb": 0, "storage_breakdown": "{}"}
