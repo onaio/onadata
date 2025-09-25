@@ -8,6 +8,10 @@ import json
 import os
 from datetime import datetime, timedelta
 
+import boto3
+from azure.core.exceptions import AzureError
+from azure.storage.blob import BlobServiceClient
+from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
@@ -15,16 +19,31 @@ from django.db import connection
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
-
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
 
+# pylint: disable=too-many-instance-attributes
 class Command(BaseCommand):
     """Export inactive users and organizations (2+ years of inactivity)"""
 
     help = _("Export inactive users and organizations to CSV files")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._verbosity = 1
+
+        # Initialize tracking attributes
+        self.session_id = None
+        self.track_exports = False
+        self.tracker = None
+
+        # default two years inactive
+        self.years_threshold = 2
+
+        # storage initializations
+        self.storage_backend = None
+        self.storage_client = None
+        self.storage_container = None
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -38,12 +57,6 @@ class Command(BaseCommand):
             type=str,
             default=".",
             help=_("Directory for output CSV files (default: current directory)"),
-        )
-        parser.add_argument(
-            "--batch-size",
-            type=int,
-            default=1000,
-            help=_("Batch size for streaming results (default: 1000)"),
         )
         parser.add_argument(
             "--include-storage",
@@ -78,7 +91,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         years = options["years"]
         output_dir = options["output_dir"]
-        batch_size = options["batch_size"]
         include_storage = options["include_storage"]
         limit = options.get("limit")
         offset = options.get("offset", 0)
@@ -93,31 +105,17 @@ class Command(BaseCommand):
         if resume_session:
             self.session_id = resume_session
             track_exports = True  # Always track when resuming
-            if self.verbosity >= 1:
-                self.stdout.write(
-                    _("Resuming export session: {}").format(self.session_id)
-                )
-
-            # Get session stats
-            stats = InactiveExportTracker.get_inactive_session_stats(self.session_id)
-            if stats:
-                for export_type, stat in stats.items():
-                    self.stdout.write(
-                        _("  - {}: {} records already exported").format(
-                            export_type, stat["count"]
-                        )
-                    )
+            self._get_session_stats()
         elif track_exports:
-            if export_session:
-                self.session_id = export_session
-            else:
-                self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.session_id = (
+                export_session
+                if export_session
+                else datetime.now().strftime("%Y%m%d_%H%M%S")
+            )
             if self.verbosity >= 1:
                 self.stdout.write(
-                    _("Starting tracked export session: {}").format(self.session_id)
+                    _(f"Starting tracked export session: {self.session_id}")
                 )
-        else:
-            self.session_id = None
 
         # Store tracking options for use in export methods
         self.track_exports = track_exports
@@ -144,12 +142,12 @@ class Command(BaseCommand):
 
         # Export inactive organizations
         org_count = self.export_inactive_organizations(
-            years, output_dir, batch_size, include_storage, limit, offset
+            years, output_dir, include_storage, limit, offset
         )
 
         # Export inactive users
         user_count = self.export_inactive_users(
-            years, output_dir, batch_size, include_storage, limit, offset
+            years, output_dir, include_storage, limit, offset
         )
 
         if self.verbosity >= 1:
@@ -165,6 +163,19 @@ class Command(BaseCommand):
                     ).format(self.session_id)
 
             self.stdout.write(self.style.SUCCESS(success_msg))
+
+    def _get_session_stats(self):
+        if self.verbosity >= 1:
+            self.stdout.write(_("Resuming export session: {}").format(self.session_id))
+        # Get session stats
+        stats = InactiveExportTracker.get_inactive_session_stats(self.session_id)
+        if stats:
+            for export_type, stat in stats.items():
+                self.stdout.write(
+                    _("  - {}: {} records already exported").format(
+                        export_type, stat["count"]
+                    )
+                )
 
     def get_inactive_organizations(self, years=2, limit=None, offset=0):
         """Get inactive organizations using SQL query for performance"""
@@ -310,8 +321,9 @@ class Command(BaseCommand):
 
         return results
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def export_inactive_organizations(
-        self, years, output_dir, batch_size, include_storage=False, limit=None, offset=0
+        self, years, output_dir, include_storage=False, limit=None, offset=0
     ):
         """Export inactive organizations to CSV"""
 
@@ -402,8 +414,10 @@ class Command(BaseCommand):
 
         return len(organizations)
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
+    # pylint: disable=too-many-locals
     def export_inactive_users(
-        self, years, output_dir, batch_size, include_storage=False, limit=None, offset=0
+        self, years, output_dir, include_storage=False, limit=None, offset=0
     ):
         """Export inactive users to CSV"""
 
@@ -558,9 +572,6 @@ class Command(BaseCommand):
     def _init_azure_client(self):
         """Initialize Azure client for storage size calculations"""
         try:
-            # pylint: disable=import-outside-toplevel
-            from azure.storage.blob import BlobServiceClient
-
             account_name = getattr(settings, "AZURE_ACCOUNT_NAME", None)
             account_key = getattr(settings, "AZURE_ACCOUNT_KEY", None)
             container_name = getattr(settings, "AZURE_CONTAINER", None)
@@ -576,16 +587,15 @@ class Command(BaseCommand):
                 return
 
             connection_string = (
-                "DefaultEndpointsProtocol=https;AccountName={};"
-                "AccountKey={};EndpointSuffix=core.windows.net"
-            ).format(account_name, account_key)
+                f"DefaultEndpointsProtocol=https;AccountName={account_name};"
+                f"AccountKey={account_key};EndpointSuffix=core.windows.net"
+            )
             self.storage_client = BlobServiceClient.from_connection_string(
                 connection_string
             )
             self.storage_container = container_name
             self.storage_backend = "azure"
-
-        except (ImportError, Exception) as e:
+        except ImportError as e:
             if self.verbosity >= 1:
                 self.stdout.write(
                     self.style.WARNING(
@@ -603,10 +613,9 @@ class Command(BaseCommand):
 
         if getattr(self, "storage_backend", None) == "s3":
             return self._get_s3_storage_size(username)
-        elif getattr(self, "storage_backend", None) == "azure":
+        if getattr(self, "storage_backend", None) == "azure":
             return self._get_azure_storage_size(username)
-        else:
-            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+        return {"total_size_mb": 0, "storage_breakdown": "{}"}
 
     def _get_s3_storage_size(self, username):
         """Calculate storage size for S3 backend"""
@@ -658,11 +667,7 @@ class Command(BaseCommand):
 
     def _get_azure_storage_size(self, username):
         """Calculate storage size for Azure backend"""
-        AzureError = Exception  # Default fallback
         try:
-            # pylint: disable=import-outside-toplevel
-            from azure.core.exceptions import AzureError
-
             container_client = self.storage_client.get_container_client(
                 self.storage_container
             )
@@ -696,7 +701,7 @@ class Command(BaseCommand):
                 "storage_breakdown": json.dumps(folder_sizes_mb),
             }
 
-        except (AzureError, Exception) as e:
+        except AzureError as e:
             if self.verbosity >= 2:
                 self.stdout.write(
                     self.style.WARNING(
@@ -725,11 +730,3 @@ class Command(BaseCommand):
     def verbosity(self):
         """Get verbosity level from options"""
         return getattr(self, "_verbosity", 1)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._verbosity = 1
-        # Initialize tracking attributes
-        self.track_exports = False
-        self.session_id = None
-        self.years_threshold = 2
