@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
+from guardian.shortcuts import get_perms
 from rest_framework import serializers
 from six import itervalues
 
@@ -324,7 +325,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
-    users = serializers.SerializerMethodField()
+    current_user_role = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
     tags = TagListSerializer(read_only=True)
@@ -341,7 +342,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "created_by",
             "metadata",
             "starred",
-            "users",
+            "current_user_role",
             "forms",
             "public",
             "tags",
@@ -360,15 +361,16 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         """
         return is_starred(obj, self.context["request"])
 
-    def get_users(self, obj):
+    def get_current_user_role(self, obj):
         """
-        Return a list of users and organizations that have access to the
-        project.
+        Return the role of the request user in the project.
         """
-        owner_query_param_in_request = (
-            "request" in self.context and "owner" in self.context["request"].GET
-        )
-        return get_users(obj, self.context, owner_query_param_in_request)
+        if self.context["request"].user.is_anonymous:
+            return None
+
+        perms = get_perms(self.context["request"].user, obj)
+
+        return get_role(perms, obj)
 
     @check_obj
     def get_forms(self, obj):
