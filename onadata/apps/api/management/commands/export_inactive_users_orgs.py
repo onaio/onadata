@@ -22,6 +22,135 @@ from django.utils.translation import gettext as _
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
 
+def calculate_azure_storage_size(storage_client, storage_container, username):
+    """Calculate storage size for Azure backend as standalone function"""
+    try:
+        container_client = storage_client.get_container_client(storage_container)
+
+        total_size = 0
+        folder_sizes = {}
+
+        # List blobs with the username prefix
+        blobs = container_client.list_blobs(name_starts_with=f"{username}/")
+
+        for blob in blobs:
+            size = blob.size or 0
+            total_size += size
+
+            # Extract top-level folder
+            name_parts = blob.name.split("/")
+            if len(name_parts) > 1:
+                # Skip username, get first folder
+                folder = name_parts[1]
+                folder_sizes[folder] = folder_sizes.get(folder, 0) + size
+
+        # Convert to MB and format
+        total_size_mb = round(total_size / (1024 * 1024), 2)
+        folder_sizes_mb = {
+            folder: round(size / (1024 * 1024), 2)
+            for folder, size in folder_sizes.items()
+        }
+
+        return {
+            "total_size_mb": total_size_mb,
+            "storage_breakdown": json.dumps(folder_sizes_mb),
+        }
+
+    except (AzureError, AttributeError, KeyError, ImportError) as e:
+        return {"total_size_mb": 0, "storage_breakdown": "{}", "error": str(e)}
+
+
+def calculate_s3_storage_size(storage_client, storage_container, username):
+    """Calculate storage size for S3 backend as standalone function"""
+    try:
+        # List all objects with the username prefix
+        paginator = storage_client.get_paginator("list_objects_v2")
+        page_iterator = paginator.paginate(
+            Bucket=storage_container, Prefix=f"{username}/"
+        )
+
+        total_size = 0
+        folder_sizes = {}
+
+        for page in page_iterator:
+            if "Contents" in page:
+                for obj in page["Contents"]:
+                    size = obj["Size"]
+                    total_size += size
+
+                    # Extract top-level folder
+                    key_parts = obj["Key"].split("/")
+                    if len(key_parts) > 1:
+                        # Skip username, get first folder
+                        folder = key_parts[1]
+                        folder_sizes[folder] = folder_sizes.get(folder, 0) + size
+
+        # Convert to MB and format
+        total_size_mb = round(total_size / (1024 * 1024), 2)
+        folder_sizes_mb = {
+            folder: round(size / (1024 * 1024), 2)
+            for folder, size in folder_sizes.items()
+        }
+
+        return {
+            "total_size_mb": total_size_mb,
+            "storage_breakdown": json.dumps(folder_sizes_mb),
+        }
+
+    except (BotoCoreError, ClientError) as e:
+        return {"total_size_mb": 0, "storage_breakdown": "{}", "error": str(e)}
+
+
+def calculate_filesystem_storage_size(storage_container, username):
+    """Calculate storage size for filesystem backend as standalone function"""
+    if not storage_container:
+        return {"total_size_mb": 0, "storage_breakdown": "{}"}
+
+    try:
+        user_dir = os.path.join(storage_container, username)
+        if not os.path.exists(user_dir):
+            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+
+        folder_sizes = {}
+        total_size = 0
+
+        # Walk through all files in user directory
+        for root, _dirs, files in os.walk(user_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                try:
+                    file_size = os.path.getsize(file_path)
+                    total_size += file_size
+
+                    # Determine folder category based on path
+                    relative_path = os.path.relpath(root, user_dir)
+                    if relative_path == ".":
+                        folder_name = "root"
+                    else:
+                        folder_name = relative_path.split(os.sep)[0]
+
+                    if folder_name not in folder_sizes:
+                        folder_sizes[folder_name] = 0
+                    folder_sizes[folder_name] += file_size
+                except OSError:
+                    # Skip files we can't read
+                    continue
+
+        # Convert to MB
+        total_size_mb = total_size / (1024 * 1024)
+        folder_sizes_mb = {
+            folder: size / (1024 * 1024) for folder, size in folder_sizes.items()
+        }
+
+        return {
+            "total_size_mb": round(total_size_mb, 2),
+            "storage_breakdown": json.dumps(folder_sizes_mb),
+        }
+
+    except (OSError, IOError) as e:
+        return {"total_size_mb": 0, "storage_breakdown": "{}", "error": str(e)}
+
+
 # pylint: disable=too-many-instance-attributes
 class Command(BaseCommand):
     """Export inactive users and organizations (2+ years of inactivity)"""
@@ -632,98 +761,37 @@ class Command(BaseCommand):
 
     def _get_s3_storage_size(self, username):
         """Calculate storage size for S3 backend"""
-        try:
-            # List all objects with the username prefix
-            paginator = self.storage_client.get_paginator("list_objects_v2")
-            page_iterator = paginator.paginate(
-                Bucket=self.storage_container, Prefix=f"{username}/"
+        result = calculate_s3_storage_size(
+            self.storage_client, self.storage_container, username
+        )
+
+        # Handle error reporting if needed
+        if "error" in result and self.verbosity >= 2:
+            self.stdout.write(
+                self.style.WARNING(
+                    _(f"Failed to calculate storage for {username}: {result['error']}")
+                )
             )
 
-            total_size = 0
-            folder_sizes = {}
-
-            for page in page_iterator:
-                if "Contents" in page:
-                    for obj in page["Contents"]:
-                        size = obj["Size"]
-                        total_size += size
-
-                        # Extract top-level folder
-                        key_parts = obj["Key"].split("/")
-                        if len(key_parts) > 1:
-                            # Skip username, get first folder
-                            folder = key_parts[1]
-                            folder_sizes[folder] = folder_sizes.get(folder, 0) + size
-
-            # Convert to MB and format
-            total_size_mb = round(total_size / (1024 * 1024), 2)
-            folder_sizes_mb = {
-                folder: round(size / (1024 * 1024), 2)
-                for folder, size in folder_sizes.items()
-            }
-
-            return {
-                "total_size_mb": total_size_mb,
-                "storage_breakdown": json.dumps(folder_sizes_mb),
-            }
-
-        except (BotoCoreError, ClientError) as e:
-            if self.verbosity >= 2:
-                self.stdout.write(
-                    self.style.WARNING(
-                        _("Failed to calculate S3 storage for {}: {}").format(
-                            username, e
-                        )
-                    )
-                )
-            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+        # Remove error key from result if present
+        return {k: v for k, v in result.items() if k != "error"}
 
     def _get_azure_storage_size(self, username):
         """Calculate storage size for Azure backend"""
-        try:
-            container_client = self.storage_client.get_container_client(
-                self.storage_container
+        result = calculate_azure_storage_size(
+            self.storage_client, self.storage_container, username
+        )
+
+        # Handle error reporting if needed
+        if "error" in result and self.verbosity >= 2:
+            self.stdout.write(
+                self.style.WARNING(
+                    _(f"Failed to calculate storage for {username}: {result['error']}")
+                )
             )
 
-            total_size = 0
-            folder_sizes = {}
-
-            # List blobs with the username prefix
-            blobs = container_client.list_blobs(name_starts_with=f"{username}/")
-
-            for blob in blobs:
-                size = blob.size or 0
-                total_size += size
-
-                # Extract top-level folder
-                name_parts = blob.name.split("/")
-                if len(name_parts) > 1:
-                    # Skip username, get first folder
-                    folder = name_parts[1]
-                    folder_sizes[folder] = folder_sizes.get(folder, 0) + size
-
-            # Convert to MB and format
-            total_size_mb = round(total_size / (1024 * 1024), 2)
-            folder_sizes_mb = {
-                folder: round(size / (1024 * 1024), 2)
-                for folder, size in folder_sizes.items()
-            }
-
-            return {
-                "total_size_mb": total_size_mb,
-                "storage_breakdown": json.dumps(folder_sizes_mb),
-            }
-
-        except AzureError as e:
-            if self.verbosity >= 2:
-                self.stdout.write(
-                    self.style.WARNING(
-                        _("Failed to calculate Azure storage for {}: {}").format(
-                            username, e
-                        )
-                    )
-                )
-            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+        # Remove error key from result if present
+        return {k: v for k, v in result.items() if k != "error"}
 
     def _init_filesystem_client(self):
         """Initialize filesystem client for storage size calculations"""
@@ -752,59 +820,18 @@ class Command(BaseCommand):
 
     def _get_filesystem_storage_size(self, username):
         """Calculate storage size for filesystem backend"""
-        if not self.storage_container:
-            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+        result = calculate_filesystem_storage_size(self.storage_container, username)
 
-        try:
-            user_dir = os.path.join(self.storage_container, username)
-            if not os.path.exists(user_dir):
-                return {"total_size_mb": 0, "storage_breakdown": "{}"}
-
-            folder_sizes = {}
-            total_size = 0
-
-            # Walk through all files in user directory
-            for root, _dirs, files in os.walk(user_dir):
-                # dirs not used but required by os.walk
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    try:
-                        file_size = os.path.getsize(file_path)
-                        total_size += file_size
-
-                        # Determine folder category based on path
-                        relative_path = os.path.relpath(root, user_dir)
-                        if relative_path == ".":
-                            folder_name = "root"
-                        else:
-                            folder_name = relative_path.split(os.sep)[0]
-
-                        if folder_name not in folder_sizes:
-                            folder_sizes[folder_name] = 0
-                        folder_sizes[folder_name] += file_size
-                    except OSError:
-                        # Skip files we can't read
-                        continue
-
-            # Convert to MB
-            total_size_mb = total_size / (1024 * 1024)
-            folder_sizes_mb = {
-                folder: size / (1024 * 1024) for folder, size in folder_sizes.items()
-            }
-
-            return {
-                "total_size_mb": round(total_size_mb, 2),
-                "storage_breakdown": json.dumps(folder_sizes_mb),
-            }
-
-        except (OSError, IOError) as e:
-            if self.verbosity >= 2:
-                self.stdout.write(
-                    self.style.WARNING(
-                        _(f"Failed to calculate filesystem storage for {username}: {e}")
-                    )
+        # Handle error reporting if needed
+        if "error" in result and self.verbosity >= 2:
+            self.stdout.write(
+                self.style.WARNING(
+                    _(f"Failed to calculate storage for {username}: {result['error']}")
                 )
-            return {"total_size_mb": 0, "storage_breakdown": "{}"}
+            )
+
+        # Remove error key from result if present
+        return {k: v for k, v in result.items() if k != "error"}
 
     def _format_datetime(self, dt):
         """Format datetime for CSV output"""
