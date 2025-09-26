@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
+from guardian.shortcuts import get_perms
 from rest_framework import serializers
 from six import itervalues
 
@@ -24,7 +25,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
-    PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJ_TEAM_USERS_CACHE,
@@ -367,11 +367,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         if self.context["request"].user.is_anonymous:
             return None
 
-        request_user = self.context["request"].user
-        perms = obj.projectuserobjectpermission_set.filter(
-            user=request_user
-        ).values_list("permission__codename", flat=True)
-
+        perms = get_perms(self.context["request"].user, obj)
         return get_role(perms, obj)
 
     @check_obj
@@ -450,6 +446,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
+    current_user_role = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
@@ -586,10 +583,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         project.xform_set.exclude(shared=project.shared).update(
             shared=project.shared, shared_data=project.shared
         )
-        request = self.context.get("request")
-        serializer = ProjectSerializer(project, context={"request": request})
-        response = serializer.data
-        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
         return project
 
     def get_users(self, obj):
@@ -671,3 +664,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         safe_cache_set(project_dataview_cache_key, data_views)
 
         return data_views
+
+    def get_current_user_role(self, obj):
+        """
+        Return the role of the request user in the project.
+        """
+        if self.context["request"].user.is_anonymous:
+            return None
+
+        perms = get_perms(self.context["request"].user, obj)
+        return get_role(perms, obj)

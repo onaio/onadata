@@ -437,7 +437,7 @@ def publish_project_xform(request, project):
 
     if "formid" in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+        invalidate_project_cache(xform.project)
         safe_cache_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
@@ -847,3 +847,35 @@ def invalidate_xform_list_cache(xform):
 
     safe_cache_delete(f"{xform_cache_key_prefix}-anon")
     safe_cache_delete(f"{project_cache_key_prefix}-anon")
+
+
+def get_project_cache_key(user, project):
+    """Get the cache key for the Project by user's role
+
+    :param user: User making request
+    :param project: Project instance
+    :return: cache key based on role assigned to project
+    """
+    key_prefix = f"{PROJ_OWNER_CACHE}{project.id}-"
+
+    if user.is_anonymous:
+        return f"{key_prefix}anon"
+
+    perms = get_perms(user, project)
+    user_role = get_role(perms, project)
+
+    return f"{key_prefix}{user_role}"
+
+
+def invalidate_project_cache(project):
+    """Invalidate the cache for the Project by user's role
+
+    :param project: Project instance
+    :return: None
+    """
+    key_prefix = f"{PROJ_OWNER_CACHE}{project.id}-"
+
+    for role in ROLES_ORDERED:
+        safe_cache_delete(f"{key_prefix}{role.name}")
+
+    safe_cache_delete(f"{key_prefix}anon")

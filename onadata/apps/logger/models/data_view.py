@@ -23,7 +23,6 @@ from onadata.libs.models.sorting import (  # noqa pylint: disable=unused-import
 from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-import
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
-    PROJ_OWNER_CACHE,
     XFORM_LINKED_DATAVIEWS,
     safe_cache_delete,
 )
@@ -453,7 +452,11 @@ def clear_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
 
 def clear_dataview_cache(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """Post Save handler for clearing dataview cache on serialized fields."""
-    safe_cache_delete(f"{PROJ_OWNER_CACHE}{instance.project.pk}")
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.api.tools import invalidate_project_cache
+
+    invalidate_project_cache(instance.project)
+
     safe_cache_delete(f"{DATAVIEW_COUNT}{instance.xform.pk}")
     safe_cache_delete(f"{DATAVIEW_LAST_SUBMISSION_TIME}{instance.xform.pk}")
     safe_cache_delete(f"{XFORM_LINKED_DATAVIEWS}{instance.xform.pk}")

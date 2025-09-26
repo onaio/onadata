@@ -15,7 +15,7 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import DataViewViewsetPermissions
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import get_baseviewset_class, invalidate_project_cache
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
@@ -34,11 +34,7 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
-from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
-    PROJECT_LINKED_DATAVIEWS,
-    safe_cache_delete,
-)
+from onadata.libs.utils.cache_tools import PROJECT_LINKED_DATAVIEWS, safe_cache_delete
 from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
@@ -338,7 +334,7 @@ class DataViewViewSet(
         dataview = self.get_object()
         user = request.user
         dataview.soft_delete(user)
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{dataview.project.pk}")
+        invalidate_project_cache(dataview.project)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -6,6 +6,7 @@ The XForm model
 # pylint: disable=too-many-lines
 import hashlib
 import json
+import logging
 import os
 import re
 from datetime import datetime
@@ -46,7 +47,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
-    PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_COUNT,
     XFORM_DEC_SUBMISSION_COUNT,
@@ -76,6 +76,8 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.mongo import _encode_for_mongo
+
+logger = logging.getLogger(__name__)
 
 QUESTION_TYPES_TO_EXCLUDE = [
     "note",
@@ -1432,7 +1434,19 @@ post_delete.connect(
 
 def clear_project_cache(project_id):
     """Clear project cache"""
-    safe_cache_delete(f"{PROJ_OWNER_CACHE}{project_id}")
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.api.tools import invalidate_project_cache
+    from onadata.apps.logger.models.project import Project
+
+    try:
+        project = Project.objects.get(pk=project_id)
+
+    except Project.DoesNotExist as exc:
+        logger.exception(exc)
+
+    else:
+        invalidate_project_cache(project)
+
     safe_cache_delete(f"{PROJ_FORMS_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{project_id}")

@@ -16,7 +16,11 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import (
+    get_baseviewset_class,
+    get_project_cache_key,
+    invalidate_project_cache,
+)
 from onadata.apps.logger.models import Project, ProjectInvitation, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
@@ -46,12 +50,7 @@ from onadata.libs.serializers.xform_serializer import (
     XFormCreateSerializer,
     XFormSerializer,
 )
-from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
-    safe_cache_delete,
-    safe_cache_get,
-    safe_cache_set,
-)
+from onadata.libs.utils.cache_tools import safe_cache_get, safe_cache_set
 from onadata.libs.utils.common_tools import merge_dicts, report_exception
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.project_utils import propagate_project_permissions_async
@@ -117,21 +116,25 @@ class ProjectViewSet(
 
     def update(self, request, *args, **kwargs):
         """Updates project properties and set's cache with the updated records."""
-        project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
-        safe_cache_set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+        # clear cache
+        invalidate_project_cache(self.get_object())
+
         return response
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve single project"""
-        project_id = kwargs.get("pk")
-        project = safe_cache_get(f"{PROJ_OWNER_CACHE}{project_id}")
-        if project:
-            return Response(project)
-        # pylint: disable=attribute-defined-outside-init
-        self.object = self.get_object()
-        serializer = ProjectSerializer(self.object, context={"request": request})
-        return Response(serializer.data)
+        project = self.get_object()
+        cached_project = safe_cache_get(get_project_cache_key(request.user, project))
+
+        if cached_project is not None:
+            return Response(cached_project)
+
+        response = super().retrieve(request, *args, **kwargs)
+        # Set cache
+        safe_cache_set(get_project_cache_key(request.user, project), response.data)
+
+        return response
 
     def list(self, request, *args, **kwargs):
         """Returns a list of projects"""
@@ -170,6 +173,8 @@ class ProjectViewSet(
                     propagate_project_permissions_async.apply_async(
                         args=[project.id], countdown=30
                     )
+                # clear cache
+                invalidate_project_cache(project)
 
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             if survey["type"] and survey["text"]:
@@ -230,7 +235,7 @@ class ProjectViewSet(
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # clear cache
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
+        invalidate_project_cache(self.object)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -331,5 +336,7 @@ class ProjectViewSet(
         project = self.get_object()
         user = request.user
         project.soft_delete(user)
+        # clear cache
+        invalidate_project_cache(project)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

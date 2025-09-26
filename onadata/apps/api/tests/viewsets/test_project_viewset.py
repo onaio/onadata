@@ -43,7 +43,6 @@ from onadata.apps.logger.models import (
     XFormVersion,
 )
 from onadata.apps.main.models import MetaData
-from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.permissions import (
     ROLES_ORDERED,
@@ -57,6 +56,7 @@ from onadata.libs.permissions import (
     OwnerRole,
     ReadOnlyRole,
     ReadOnlyRoleNoDownload,
+    get_object_users_with_permissions,
 )
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
@@ -1669,32 +1669,81 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
 
-    # pylint: disable=invalid-name
-    def test_cache_updated_on_project_update(self):
-        view = ProjectViewSet.as_view({"get": "retrieve", "patch": "partial_update"})
+    def test_cache_invalidation_on_project_update(self):
+        """Cache is invalidated on project update"""
+        view = ProjectViewSet.as_view({"patch": "partial_update"})
         self._project_create()
+
+        # Simulate existing cached project
+        for role in ROLES_ORDERED:
+            cache.set(f"{PROJ_OWNER_CACHE}{self.project.pk}-{role.name}", "test")
+
+        cache.set(f"{PROJ_OWNER_CACHE}{self.project.pk}-anon", "test")
+
+        request = self.factory.patch("/", data={"name": "updated name"}, **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        # Check cache is invalidated
+        for role in ROLES_ORDERED:
+            cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-{role.name}"
+            self.assertIsNone(cache.get(cache_key))
+
+        cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-anon"
+        self.assertIsNone(cache.get(cache_key))
+
+    def test_cache_set_on_project_retrieve(self):
+        """Cache is set on project retrieve"""
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        self._project_create()
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-owner"
+        cached_project = cache.get(cache_key)
+        self.assertEqual(cached_project, response.data)
+
+        # Cache data is unique to role
+        ShareProject(self.project, self.user.username, "manager").save()
+        self.assertTrue(ManagerRole.user_has_role(self.user, self.project))
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(False, response.data.get("public"))
-        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-manager"
+        cached_project = cache.get(cache_key)
         self.assertEqual(cached_project, response.data)
 
-        projectid = self.project.pk
-        data = {"public": True}
-        request = self.factory.patch("/", data=data, **self.extra)
-        response = view(request, pk=projectid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(True, response.data.get("public"))
-        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
-
-        request = self.factory.get("/", **self.extra)
+        # Anonymous user cache
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(True, response.data.get("public"))
-        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}-anon")
         self.assertEqual(cached_project, response.data)
+
+    def test_cache_invalidation_on_project_delete(self):
+        """Cache is invalidated on project delete"""
+        view = ProjectViewSet.as_view({"delete": "destroy"})
+        self._project_create()
+        # Simulate existing cached project
+        for role in ROLES_ORDERED:
+            cache.set(f"{PROJ_OWNER_CACHE}{self.project.pk}-{role.name}", "test")
+
+        cache.set(f"{PROJ_OWNER_CACHE}{self.project.pk}-anon", "test")
+
+        request = self.factory.delete("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 204)
+        # Check cache is invalidated
+        for role in ROLES_ORDERED:
+            cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-{role.name}"
+            self.assertIsNone(cache.get(cache_key))
+
+        cache_key = f"{PROJ_OWNER_CACHE}{self.project.pk}-anon"
+        self.assertIsNone(cache.get(cache_key))
 
     def test_project_put_updates(self):
         self._project_create()
@@ -2013,7 +2062,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for role_name, role_class in iteritems(role.ROLES):
+        for role_name, role_class in iteritems(ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertTrue(role_class.user_has_role(self.user, self.project))
@@ -2198,7 +2247,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
         self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
 
-        perms = role.get_object_users_with_permissions(self.project)
+        perms = get_object_users_with_permissions(self.project)
         for p in perms:
             user = p.get("user")
 
@@ -2540,7 +2589,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for role_name, role_class in iteritems(role.ROLES):
+        for role_name, role_class in iteritems(ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2591,7 +2640,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({"put": "share"})
 
         data = {"username": "alice", "remove": True}
-        for role_name, role_class in iteritems(role.ROLES):
+        for role_name, role_class in iteritems(ROLES):
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2977,8 +3026,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         )
         self.assertEqual(response.data["num_datasets"], 1)
 
-    def test_get_project_w_registration_form(self):
-        """Retrieve project with Entity registtraton form"""
+    def test_get_project_w_reg_form(self):
+        """Retrieve project with a form contributing Entities"""
         self._publish_registration_form(self.user)
         view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
@@ -2994,8 +3043,14 @@ class TestProjectViewSet(TestAbstractViewSet):
                 "is_active": True,
             },
         )
+
+    def test_get_project_w_reg_form_dataset_deleted(self):
+        """Retrieve project with form contributing Entities to deleted dataset"""
+        self._publish_registration_form(self.user)
+        entity_list = EntityList.objects.first()
         # Soft delete dataset
         entity_list.soft_delete()
+        view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
 
@@ -3003,7 +3058,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertIsNone(response.data["forms"][0]["contributes_entities_to"])
 
     def test_get_project_w_follow_up_form(self):
-        """Retrieve project with Entity follow up form"""
+        """Retrieve project with a form consuming Entities"""
         self.project = get_user_default_project(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         self._publish_follow_up_form(self.user)
@@ -3021,8 +3076,15 @@ class TestProjectViewSet(TestAbstractViewSet):
                 }
             ],
         )
+
+    def test_get_project_w_follow_up_form_dataset_deleted(self):
+        """Retrieve project with a form consuming Entities from deleted dataset"""
+        self.project = get_user_default_project(self.user)
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        self._publish_follow_up_form(self.user)
         # Soft delete dataset
         entity_list.soft_delete()
+        view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
 
