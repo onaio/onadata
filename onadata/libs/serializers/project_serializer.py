@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
+from guardian.shortcuts import get_perms
 from rest_framework import serializers
 from six import itervalues
 
@@ -367,10 +368,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         if self.context["request"].user.is_anonymous:
             return None
 
-        request_user = self.context["request"].user
-        perms = obj.projectuserobjectpermission_set.filter(
-            user=request_user
-        ).values_list("permission__codename", flat=True)
+        perms = get_perms(self.context["request"].user, obj)
 
         return get_role(perms, obj)
 
