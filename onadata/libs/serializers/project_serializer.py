@@ -669,3 +669,23 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         safe_cache_set(project_dataview_cache_key, data_views)
 
         return data_views
+
+
+class ProjectPrivateSerializer(serializers.ModelSerializer):
+    """User specific fields for a Project"""
+
+    current_user_role = serializers.SerializerMethodField()
+
+    def get_current_user_role(self, obj):
+        """
+        Return the role of the request user in the project.
+        """
+        if self.context["request"].user.is_anonymous:
+            return None
+
+        perms = get_perms(self.context["request"].user, obj)
+        return get_role(perms, obj)
+
+    class Meta:
+        model = Project
+        fields = ("current_user_role",)
