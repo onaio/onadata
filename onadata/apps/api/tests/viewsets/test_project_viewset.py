@@ -61,6 +61,7 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
+    ProjectPrivateSerializer,
     ProjectSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
@@ -309,11 +310,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         # test serialized data
-        serializer = ProjectSerializer(self.project, context={"request": request})
-        self.assertEqual(response.data, serializer.data)
+        public_data = ProjectSerializer(self.project, context={"request": request}).data
+        private_data = ProjectPrivateSerializer(
+            self.project, context={"request": request}
+        ).data
+        self.assertEqual(response.data, {**public_data, **private_data})
 
         self.assertIsNotNone(self.project_data)
-        self.assertEqual(response.data, self.project_data)
+        self.assertEqual(response.data, {**self.project_data, **private_data})
         res_user_props = list(response.data["users"][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
@@ -1678,7 +1682,10 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(False, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        # Response without user specific fields
+        res_wo_private = {**response.data}
+        res_wo_private.pop("current_user_role")
+        self.assertEqual(cached_project, res_wo_private)
 
         projectid = self.project.pk
         data = {"public": True}
@@ -1694,7 +1701,10 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        # Response without user specific fields
+        res_wo_private = {**response.data}
+        res_wo_private.pop("current_user_role")
+        self.assertEqual(cached_project, res_wo_private)
 
     def test_project_put_updates(self):
         self._project_create()
