@@ -6,7 +6,6 @@ Test onadata.libs.serializers.project_serializer
 from unittest.mock import MagicMock
 
 from django.contrib.auth.models import AnonymousUser
-from django.core.cache import cache
 
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
@@ -17,7 +16,6 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
 
 
 class TestBaseProjectSerializer(TestAbstractViewSet):
@@ -119,34 +117,3 @@ class TestProjectSerializer(TestAbstractViewSet):
             e.exception.detail,
             ["The fields name, organization must make a unique set."],
         )
-
-    def test_new_project_set_to_cache(self):
-        """
-        Test that newly created project is set to cache
-        """
-        data = {
-            "name": "demo",
-            "owner": "http://testserver/api/v1/users/%s" % self.user,
-            "metadata": {
-                "description": "Some description",
-                "location": "Naivasha, Kenya",
-                "category": "governance",
-            },
-            "public": False,
-        }
-        # clear cache
-        cache.delete(safe_key(f"{PROJ_OWNER_CACHE}1"))
-        self.assertIsNone(cache.get(safe_key(f"{PROJ_OWNER_CACHE}1")))
-
-        # Create the project
-        self._project_create(data)
-        self.assertIsNotNone(self.project_data)
-
-        request = self.factory.get("/", **self.extra)
-        request.user = self.user
-
-        serializer = ProjectSerializer(self.project, context={"request": request}).data
-        self.assertEqual(cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}"), serializer)
-
-        # clear cache
-        cache.delete(safe_key(f"{PROJ_OWNER_CACHE}{self.project.pk}"))

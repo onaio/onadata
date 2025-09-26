@@ -49,7 +49,7 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import tasks
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import get_baseviewset_class, invalidate_project_cache
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -83,7 +83,6 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_cache_delete
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -838,7 +837,7 @@ class XFormViewSet(
             }
 
             # clear project from cache
-            safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+            invalidate_project_cache(xform.project)
             resp_code = status.HTTP_202_ACCEPTED
 
         if request.method == "GET":
