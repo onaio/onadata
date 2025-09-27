@@ -39,92 +39,91 @@ class TestExportInactiveUsersOrgs(TestBase):
         one_year_ago = timezone.now() - timedelta(days=365)  # Active threshold
 
         # Create inactive user with old last_login
-        self.inactive_user = self._create_user(
+        inactive_user = self._create_user(
             "inactive_user", "password", create_profile=True
         )
-        self.inactive_user.last_login = two_years_ago
-        self.inactive_user.date_joined = two_years_ago
-        self.inactive_user.first_name = "Inactive"
-        self.inactive_user.last_name = "User"
-        self.inactive_user.email = "inactive@example.com"
-        self.inactive_user.save()
+        inactive_user.last_login = two_years_ago
+        inactive_user.date_joined = two_years_ago
+        inactive_user.first_name = "Inactive"
+        inactive_user.last_name = "User"
+        inactive_user.email = "inactive@example.com"
+        inactive_user.save()
 
         # Create inactive organization with old submission date and creator login
-        self.inactive_org_creator = self._create_user(
+        inactive_org_creator = self._create_user(
             "inactive_org_creator", "password", create_profile=True
         )
-        self.inactive_org_creator.date_joined = two_years_ago
-        self.inactive_org_creator.last_login = two_years_ago
-        self.inactive_org_creator.save()
+        inactive_org_creator.date_joined = two_years_ago
+        inactive_org_creator.last_login = two_years_ago
+        inactive_org_creator.save()
 
-        self.inactive_org = self._create_organization(
-            "inactive_org", "Inactive Organization", self.inactive_org_creator
+        _inactive_org = self._create_organization(
+            "inactive_org", "Inactive Organization", inactive_org_creator
         )
 
         # Create organization with old submissions but recent creator login
         # (should NOT be exported)
-        self.recent_creator = self._create_user(
+        recent_creator = self._create_user(
             "recent_creator", "password", create_profile=True
         )
-        self.recent_creator.date_joined = two_years_ago
-        self.recent_creator.last_login = one_year_ago  # Recent login
-        self.recent_creator.save()
+        recent_creator.date_joined = two_years_ago
+        recent_creator.last_login = one_year_ago  # Recent login
+        recent_creator.save()
 
-        self.org_recent_creator = self._create_organization(
-            "org_recent_creator", "Org with Recent Creator", self.recent_creator
+        _org_recent_creator = self._create_organization(
+            "org_recent_creator", "Org with Recent Creator", recent_creator
         )
 
         # Create organization with recent submissions but old creator login
         # (should NOT be exported)
         # Note: We can't easily create submissions in setUp,
         #       so this tests the creator login requirement
-        self.old_creator_no_submissions = self._create_user(
+        old_creator_no_submissions = self._create_user(
             "old_creator_no_subs", "password", create_profile=True
         )
-        self.old_creator_no_submissions.date_joined = two_years_ago
-        self.old_creator_no_submissions.last_login = two_years_ago  # Old login
-        self.old_creator_no_submissions.save()
 
-        self.org_old_creator_no_subs = self._create_organization(
+        old_creator_no_submissions.date_joined = two_years_ago
+        old_creator_no_submissions.last_login = two_years_ago  # Old login
+        old_creator_no_submissions.save()
+
+        _org_old_creator_no_subs = self._create_organization(
             "org_old_creator_no_subs",
             "Org Old Creator No Submissions",
-            self.old_creator_no_submissions,
+            old_creator_no_submissions,
         )
 
         # Create active user (for contrast)
-        self.active_user = self._create_user(
-            "active_user", "password", create_profile=True
-        )
-        self.active_user.last_login = one_year_ago  # Recent enough to be active
-        self.active_user.date_joined = one_year_ago
-        self.active_user.first_name = "Active"
-        self.active_user.last_name = "User"
-        self.active_user.email = "active@example.com"
-        self.active_user.save()
+        active_user = self._create_user("active_user", "password", create_profile=True)
+        active_user.last_login = one_year_ago  # Recent enough to be active
+        active_user.date_joined = one_year_ago
+        active_user.first_name = "Active"
+        active_user.last_name = "User"
+        active_user.email = "active@example.com"
+        active_user.save()
 
         # Create user inactive for 2.5 years (for testing custom years parameter)
         two_and_half_years_ago = timezone.now() - timedelta(days=912)  # ~2.5 years
-        self.user_2_5_years = self._create_user(
+        user_2_5_years = self._create_user(
             "user_2_5_years", "password", create_profile=True
         )
-        self.user_2_5_years.last_login = two_and_half_years_ago
-        self.user_2_5_years.date_joined = two_and_half_years_ago
-        self.user_2_5_years.first_name = "TwoHalf"
-        self.user_2_5_years.last_name = "Years"
-        self.user_2_5_years.email = "twohalf@example.com"
-        self.user_2_5_years.save()
+        user_2_5_years.last_login = two_and_half_years_ago
+        user_2_5_years.date_joined = two_and_half_years_ago
+        user_2_5_years.first_name = "TwoHalf"
+        user_2_5_years.last_name = "Years"
+        user_2_5_years.email = "twohalf@example.com"
+        user_2_5_years.save()
 
         # Create user inactive for 3.5 years (for testing custom years parameter)
         three_and_half_years_ago = timezone.now() - timedelta(days=1277)  # ~3.5 years
-        self.user_3_5_years = self._create_user(
+        user_3_5_years = self._create_user(
             "user_3_5_years", "password", create_profile=True
         )
-        self.user_3_5_years.last_login = three_and_half_years_ago
-        self.user_3_5_years.date_joined = three_and_half_years_ago
-        self.user_3_5_years.first_name = "ThreeHalf"
-        self.user_3_5_years.last_name = "Years"
-        self.user_3_5_years.email = "threehalf@example.com"
-        self.user_3_5_years.save()
+        user_3_5_years.last_login = three_and_half_years_ago
+        user_3_5_years.date_joined = three_and_half_years_ago
+        user_3_5_years.first_name = "ThreeHalf"
+        user_3_5_years.last_name = "Years"
+        user_3_5_years.email = "threehalf@example.com"
+        user_3_5_years.save()
 
     def tearDown(self):
         """Clean up test files"""
@@ -335,7 +334,7 @@ class TestExportInactiveUsersOrgs(TestBase):
             "onadata.apps.api.management.commands.export_inactive_users_orgs.settings"
         ) as mock_settings:
             mock_settings.AWS_ACCESS_KEY_ID = "fake-id"
-            mock_settings.AWS_SECRET_ACCESS_KEY = "fake-secret"
+            mock_settings.AWS_SECRET_ACCESS_KEY = "fake-secret"  # nosec
             mock_settings.AWS_STORAGE_BUCKET_NAME = "test_bucket"
             mock_settings.AWS_S3_REGION_NAME = "us-east-1"
 
