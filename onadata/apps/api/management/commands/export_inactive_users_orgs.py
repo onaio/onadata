@@ -101,6 +101,36 @@ def calculate_s3_storage_size(storage_client, storage_container, username):
         return {"total_size_mb": 0, "storage_breakdown": "{}", "error": str(e)}
 
 
+def _process_user_directory(user_dir):
+    """Helper function to process directory and calculate sizes"""
+    folder_sizes = {}
+    total_size = 0
+
+    # Walk through all files in user directory
+    for root, _dirs, files in os.walk(user_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            try:
+                file_size = os.path.getsize(file_path)
+                total_size += file_size
+
+                # Determine folder category based on path
+                relative_path = os.path.relpath(root, user_dir)
+                if relative_path == ".":
+                    folder_name = "root"
+                else:
+                    folder_name = relative_path.split(os.sep)[0]
+
+                if folder_name not in folder_sizes:
+                    folder_sizes[folder_name] = 0
+                folder_sizes[folder_name] += file_size
+            except OSError:
+                # Skip files we can't read
+                continue
+
+    return total_size, folder_sizes
+
+
 def calculate_filesystem_storage_size(storage_container, username):
     """Calculate storage size for filesystem backend as standalone function"""
     if not storage_container:
@@ -111,30 +141,7 @@ def calculate_filesystem_storage_size(storage_container, username):
         if not os.path.exists(user_dir):
             return {"total_size_mb": 0, "storage_breakdown": "{}"}
 
-        folder_sizes = {}
-        total_size = 0
-
-        # Walk through all files in user directory
-        for root, _dirs, files in os.walk(user_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                try:
-                    file_size = os.path.getsize(file_path)
-                    total_size += file_size
-
-                    # Determine folder category based on path
-                    relative_path = os.path.relpath(root, user_dir)
-                    if relative_path == ".":
-                        folder_name = "root"
-                    else:
-                        folder_name = relative_path.split(os.sep)[0]
-
-                    if folder_name not in folder_sizes:
-                        folder_sizes[folder_name] = 0
-                    folder_sizes[folder_name] += file_size
-                except OSError:
-                    # Skip files we can't read
-                    continue
+        total_size, folder_sizes = _process_user_directory(user_dir)
 
         # Convert to MB
         total_size_mb = total_size / (1024 * 1024)
