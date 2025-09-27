@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.test.utils import override_settings
 from django.utils import timezone
 
 from onadata.apps.api.management.commands.export_inactive_users_orgs import (
@@ -307,6 +308,15 @@ class TestExportInactiveUsersOrgs(TestBase):
     @patch(
         "onadata.apps.api.management.commands.export_inactive_users_orgs.boto3.client"
     )
+    @override_settings(
+        AWS_ACCESS_KEY_ID="fake-id",
+        AWS_SECRET_ACCESS_KEY="fake-secret",  # nosec
+        AWS_STORAGE_BUCKET_NAME="test_bucket",
+        AWS_S3_REGION_NAME="us-east-1",
+        STORAGES={
+            "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+        }
+    )
     def test_storage_size_calculation(self, mock_boto3_client):
         """Test that storage size calculation works correctly"""
         # Mock S3 client
@@ -330,20 +340,12 @@ class TestExportInactiveUsersOrgs(TestBase):
         mock_paginator.paginate.return_value = mock_page_iterator
 
         # Run command with storage calculation enabled
-        with patch(
-            "onadata.apps.api.management.commands.export_inactive_users_orgs.settings"
-        ) as mock_settings:
-            mock_settings.AWS_ACCESS_KEY_ID = "fake-id"
-            mock_settings.AWS_SECRET_ACCESS_KEY = "fake-secret"  # nosec
-            mock_settings.AWS_STORAGE_BUCKET_NAME = "test_bucket"
-            mock_settings.AWS_S3_REGION_NAME = "us-east-1"
-
-            call_command(
-                "export_inactive_users_orgs",
-                output_dir=self.temp_dir,
-                verbosity=0,
-                include_storage=True,
-            )
+        call_command(
+            "export_inactive_users_orgs",
+            output_dir=self.temp_dir,
+            verbosity=0,
+            include_storage=True,
+        )
 
         # Check that CSV contains storage information
         files = os.listdir(self.temp_dir)
