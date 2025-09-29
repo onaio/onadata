@@ -1,6 +1,31 @@
 # -*- coding: utf-8 -*-
 """
 Management command to export inactive users and organizations
+
+USAGE:
+    python manage.py export_inactive_users_orgs [OPTIONS]
+
+EXAMPLES:
+
+    Basic export (2+ years inactive):
+        python manage.py export_inactive_users_orgs
+
+    Export with 3 years threshold and storage sizes:
+        python manage.py export_inactive_users_orgs --years=3 --include-storage
+
+    Continue pagination (next 1000 records):
+        python manage.py export_inactive_users_orgs --limit=1000 --offset=1000
+
+    Combine options for comprehensive export:
+        python manage.py export_inactive_users_orgs --years=3 --include-storage \
+            --track-exports --limit=500 --output-dir=/exports
+
+OUTPUT:
+    - inactive_users_YYYYMMDD_HHMMSS.csv: Contains inactive users
+    - inactive_organizations_YYYYMMDD_HHMMSS.csv: Contains inactive organizations
+
+NOTES:
+    - Use --include-storage cautiously as it significantly increases runtime
 """
 
 import csv
