@@ -58,7 +58,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         inactive_org_creator.last_login = two_years_ago
         inactive_org_creator.save()
 
-        _inactive_org = self._create_organization(
+        self._create_organization(
             "inactive_org", "Inactive Organization", inactive_org_creator
         )
 
@@ -71,7 +71,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         recent_creator.last_login = one_year_ago  # Recent login
         recent_creator.save()
 
-        _org_recent_creator = self._create_organization(
+        self._create_organization(
             "org_recent_creator", "Org with Recent Creator", recent_creator
         )
 
@@ -87,7 +87,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         old_creator_no_submissions.last_login = two_years_ago  # Old login
         old_creator_no_submissions.save()
 
-        _org_old_creator_no_subs = self._create_organization(
+        self._create_organization(
             "org_old_creator_no_subs",
             "Org Old Creator No Submissions",
             old_creator_no_submissions,
@@ -313,9 +313,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         AWS_SECRET_ACCESS_KEY="fake-secret",  # nosec
         AWS_STORAGE_BUCKET_NAME="test_bucket",
         AWS_S3_REGION_NAME="us-east-1",
-        STORAGES={
-            "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
-        }
+        STORAGES={"default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}},
     )
     def test_storage_size_calculation(self, mock_boto3_client):
         """Test that storage size calculation works correctly"""
