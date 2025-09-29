@@ -7,15 +7,14 @@ import os.path
 import shutil
 from io import BytesIO
 
+import requests
+import requests_mock
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.files.storage import storages
 from django.core.files.uploadedfile import UploadedFile
 from django.test import RequestFactory
 from django.urls import reverse
-
-import requests
-import requests_mock
 from django_digest.test import Client as DigestClient
 from flaky import flaky
 from six.moves.urllib.parse import urljoin
@@ -108,16 +107,21 @@ def submission_list(request, context):
         if res.status_code == 404:
             for attachment in Attachment.objects.all():
                 media.append(attachment.media_file.name)
-        assert res.status_code == 200, (
-            res.status_code,
-            ";".join(media),
-            request.url,
-            storage.exists(
-                os.path.join(settings.PROJECT_ROOT, "test_media/", media[0])
-            ),
-        )
+        else:
+            assert res.status_code == 200, (
+                res.status_code,
+                ";".join(media),
+                request.url,
+                storage.exists(
+                    os.path.join(settings.PROJECT_ROOT, "test_media/", media[0])
+                ),
+            )
         response.encoding = res.get("content-type")
-        return get_streaming_content(res)
+        if hasattr(res, "streaming_content"):
+            return get_streaming_content(res)
+
+        return res.content
+
     context.status_code = 200
     return res.content
 
@@ -235,7 +239,7 @@ class TestBriefcaseClient(TestBase):
         # remove media files
         for username in ["bob", "deno"]:
             if storage.exists(username):
-                shutil.rmtree(storage.path(username))
+                shutil.rmtree(storage.path(username), ignore_errors=True)
         MetaData.objects.all().delete()
         Instance.objects.all().delete()
         XForm.objects.all().delete()

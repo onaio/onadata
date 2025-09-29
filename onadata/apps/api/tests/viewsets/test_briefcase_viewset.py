@@ -2,6 +2,7 @@
 """
 Test BriefcaseViewset
 """
+
 import codecs
 import os
 import shutil
@@ -12,7 +13,6 @@ from django.core.files.storage import storages
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-
 from django_digest.test import DigestAuth
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -723,7 +723,7 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
             self.assertNotIn(
                 'transportation id="transportation_2011_07_25"'
                 ' instanceID="uuid:5b2cc313-fc09-437e-8149-fcd32f695d41"'
-                f' submissionDate="{ instance.date_created.isoformat() }" '
+                f' submissionDate="{instance.date_created.isoformat()}" '
                 'xlmns="http://opendatakit.org/submission"',
                 text,
             )
@@ -740,7 +740,7 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
                 'transportation xlmns="http://opendatakit.org/submission"'
                 ' id="transportation_2011_07_25"'
                 ' instanceID="uuid:5b2cc313-fc09-437e-8149-fcd32f695d41"'
-                f' submissionDate="{ instance.date_created.isoformat() }"',
+                f' submissionDate="{instance.date_created.isoformat()}"',
                 response.content.decode("utf-8"),
             )
 
@@ -793,8 +793,8 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
         op_sql_query = (
             'SELECT "logger_instance"."id", "logger_instance"."uuid" FROM "logger_instance"'
             f' WHERE "logger_instance"."id" IN ({optimized_instances[0].get("pk")},'
-            f' {optimized_instances[1].get("pk")}, {optimized_instances[2].get("pk")},'
-            f' {optimized_instances[3].get("pk")})'
+            f" {optimized_instances[1].get('pk')}, {optimized_instances[2].get('pk')},"
+            f" {optimized_instances[3].get('pk')})"
         )
         self.assertEqual(str(optimized_instances.query), op_sql_query)
 
@@ -802,4 +802,4 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
         # remove media files
         if self.user:
             if storage.exists(self.user.username):
-                shutil.rmtree(storage.path(self.user.username))
+                shutil.rmtree(storage.path(self.user.username), ignore_errors=True)
