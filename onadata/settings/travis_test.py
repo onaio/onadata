@@ -55,7 +55,7 @@ else:
 
 PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
 
-DEBUG = False
+DEBUG = True
 TEMPLATES[0]["OPTIONS"]["debug"] = DEBUG
 MIDDLEWARE = (
     "django.middleware.common.CommonMiddleware",
