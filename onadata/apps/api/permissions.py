@@ -554,7 +554,7 @@ class IsAuthenticatedSubmission(BasePermission):
                 user = form.user
             elif project_pk:
                 project = get_object_or_404(Project, pk=project_pk)
-                user = project.user
+                user = project.organization
             else:
                 # Raises a permission denied exception, forces authentication
                 return False
