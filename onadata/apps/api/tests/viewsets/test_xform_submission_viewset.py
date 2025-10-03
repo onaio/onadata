@@ -1238,6 +1238,222 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     Instance.objects.filter(xform=self.xform).count(), count + 1
                 )
 
+    def test_submission_by_anon_w_username_w_require_auth_on(self):
+        """Submission by anon user using username with require auth on is rejected"""
+        # Turn on user's require auth
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(f"/{self.user.username}/submission", data)
+                request.user = AnonymousUser()
+                response = self.view(request, username=self.user.username)
+
+                self.assertContains(
+                    response,
+                    "Authentication credentials were not provided",
+                    status_code=401,
+                )
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/{self.user.username}/submission",
+                )
+
+    def test_submission_by_anon_w_form_pk_w_require_auth_on(self):
+        """Submission by anon user using the xforms's pk with require auth on is rejected"""
+        # Turn on forms's owner require auth
+        owner_profile = self.xform.user.profile
+        owner_profile.require_auth = True
+        owner_profile.save()
+
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(f"/forms/{self.xform.pk}/submission", data)
+                request.user = AnonymousUser()
+                response = self.view(request, xform_pk=self.xform.pk)
+
+                self.assertContains(
+                    response,
+                    "Authentication credentials were not provided",
+                    status_code=401,
+                )
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/forms/{self.xform.pk}/submission",
+                )
+
+    def test_submission_by_anon_w_project_pk_w_require_auth_on(self):
+        """Submission by anon user using the project's pk with require auth on is rejected"""
+        # Turn on project's owner require auth
+        owner_profile = self.project.organization.profile
+        owner_profile.require_auth = True
+        owner_profile.save()
+
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(
+                    f"/projects/{self.xform.project.pk}/submission", data
+                )
+                request.user = AnonymousUser()
+                response = self.view(request, project_pk=self.project.pk)
+
+                self.assertContains(
+                    response,
+                    "Authentication credentials were not provided",
+                    status_code=401,
+                )
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/projects/{self.xform.project.pk}/submission",
+                )
+
+    def test_project_creator_require_auth_status_ignored(self):
+        """A project creator's require auth status is ignored
+
+        If a different user other than the project's owner created the
+        project, require auth status on their profile should not
+        affect require auth status for the project
+        """
+        # Turn on project's owner require auth
+        org_profile = self.project.organization.profile
+        org_profile.require_auth = True
+        org_profile.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+        alice = alice_profile.user
+        # Alice created the project, but Bob is the owner
+        self.project.created_by = alice
+        self.project.save()
+
+        # Project creator's require auth is disabled
+        self.assertFalse(alice_profile.require_auth)
+
+        s = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            s,
+            media_file,
+        )
+        with open(path, "rb") as f:
+            f = InMemoryUploadedFile(
+                f, "media_file", media_file, "image/jpg", os.path.getsize(path), None
+            )
+            submission_path = os.path.join(
+                self.main_directory,
+                "fixtures",
+                "transportation",
+                "instances",
+                s,
+                s + ".xml",
+            )
+            with open(submission_path, "rb") as sf:
+                data = {"xml_submission_file": sf, "media_file": f}
+                request = self.factory.post(
+                    f"/projects/{self.xform.project.pk}/submission", data
+                )
+                request.user = AnonymousUser()
+                response = self.view(request, project_pk=self.project.pk)
+                # Submission by anonymous user is rejected because the project's
+                # require auth status is determined by the owner's require auth
+                # status and not the project's creator's require auth status
+                self.assertContains(
+                    response,
+                    "Authentication credentials were not provided",
+                    status_code=401,
+                )
+                self.assertTrue(response.has_header("X-OpenRosa-Version"))
+                self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+                self.assertTrue(response.has_header("Date"))
+                self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+                self.assertEqual(
+                    response["Location"],
+                    f"http://testserver/projects/{self.xform.project.pk}/submission",
+                )
+
     def test_post_submission_using_project_pk_exceptions(self):
         """
         Test that one is able to submit data using the project
