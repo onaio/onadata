@@ -1374,3 +1374,23 @@ class TestInstance(TestBase):
         instance.delete()
 
         mock_adjust.assert_called_once_with(self.xform.pk, delta=-1)
+
+    def test_dynamic_metadata_preserved(self):
+        """Existing dynamic metadata is preserved when saving Instance"""
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.order_by("-pk").first()
+
+        # Add dynamic metadata field for decryption error
+        Instance.objects.filter(pk=instance.pk).update(
+            decryption_status=Instance.DecryptionStatus.FAILED,
+            json={**instance.json, "_decryption_error": "INVALID_SUBMISSION"},
+        )
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.json.get("_decryption_error"), "INVALID_SUBMISSION")
+
+        # Re-saving Instance preserves dynamic metadata fields
+        instance.save()
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.json.get("_decryption_error"), "INVALID_SUBMISSION")

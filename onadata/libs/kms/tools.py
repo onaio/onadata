@@ -466,7 +466,8 @@ def save_decryption_error(instance: Instance, error_name: str):
     :param instance: Instance
     :param error_name: Error code
     """
-    json = instance.json
+    # Create a copy that we'll mutate
+    json = dict(instance.json or {})
     json[DECRYPTION_ERROR] = error_name
     update_fields_directly(
         instance,

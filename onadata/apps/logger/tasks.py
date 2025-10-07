@@ -182,6 +182,8 @@ def update_project_date_modified_async(instance_id):
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
     """Custom task class for decrypting instances with auto-retry"""
 
+    autoretry_for = AutoRetryTask.autoretry_for + (ValigettaConnectionException,)
+
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """Override `on_failure` to save decryption error if max retries exceeded"""
@@ -204,11 +206,7 @@ class DecryptInstanceAutoRetryTask(AutoRetryTask):
         return None
 
 
-@app.task(
-    base=DecryptInstanceAutoRetryTask,
-    bind=True,
-    autoretry_for=AutoRetryTask.autoretry_for + (ValigettaConnectionException,),
-)
+@app.task(base=DecryptInstanceAutoRetryTask, bind=True)
 @use_master
 def decrypt_instance_async(self, instance_id: int):
     """Decrypt encrypted Instance asynchronously.

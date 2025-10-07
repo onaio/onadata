@@ -54,6 +54,7 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     BAMBOO_DATASET_ID,
     DATE_MODIFIED,
+    DECRYPTION_ERROR,
     DELETEDAT,
     DURATION,
     EDITED,
@@ -345,7 +346,16 @@ def save_full_json(instance, include_related=True):
     Args:
         include_related (bool): Whether to include related objects
     """
-    update_fields_directly(instance, json=instance.get_full_dict(include_related))
+    json = instance.get_full_dict(include_related)
+
+    # Preserve dynamic metadata fields if present
+    if (
+        instance.decryption_status == Instance.DecryptionStatus.FAILED
+        and instance.json.get(DECRYPTION_ERROR) is not None
+    ):
+        json[DECRYPTION_ERROR] = instance.json[DECRYPTION_ERROR]
+
+    update_fields_directly(instance, json=json)
 
 
 def update_project_date_modified(instance):
