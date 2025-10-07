@@ -3,8 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.7.0(2025-10-07)
+------------------
+- Bug fix: Only send password reset emails to non-organizations
+  [@FrankApiyo]
+  `PR #2914 https://github.com/onaio/onadata/pull/2914`
+- Add a management command to export inactive users
+  [@ukanga]
+  `PR #2913 https://github.com/onaio/onadata/pull/2913`
+- fix: submission using project pk uses creator's `require auth` status
+  [@kelvin-muchiri]
+  `PR #2917 https://github.com/onaio/onadata/pull/2917`
+
 v5.6.0(2025-09-19)
 ------------------
+
 - feat: bump oidc to add ability to import user
   [@kelvin-muchiri]
   `PR #2911 https://github.com/onaio/onadata/pull/2911`
