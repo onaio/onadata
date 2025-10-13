@@ -2,6 +2,7 @@
 """
 Test /user API endpoint
 """
+
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -23,10 +24,11 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.utils.cache_tools import safe_key
+from onadata.libs.utils.cache_tools import USER_PROFILE_PREFIX, safe_cache_get, safe_key
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -666,3 +668,102 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(len(ODKToken.objects.filter(status=ODKToken.ACTIVE)), 1)
         self.assertNotEqual(response.data["odk_token"], token_1.raw_key)
         self.assertNotEqual(response.data["odk_token"], token_3_key)
+
+    def test_user_profile_with_hasattr_existing_profile(self):
+        """
+        Test that when a user has an existing profile, the hasattr check
+        correctly identifies it and returns the profile without creating a new one
+        """
+        view = ConnectViewSet.as_view({"get": "list"})
+
+        # Ensure user has a profile
+        self.assertTrue(hasattr(self.user, "profile"))
+        profile_count_before = UserProfile.objects.filter(user=self.user).count()
+        self.assertEqual(profile_count_before, 1)
+
+        request = self.factory.get("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        # Ensure no new profile was created
+        profile_count_after = UserProfile.objects.filter(user=self.user).count()
+        self.assertEqual(profile_count_after, 1)
+        self.assertEqual(profile_count_before, profile_count_after)
+
+    def test_user_profile_with_hasattr_no_profile(self):
+        """
+        Test that when a user doesn't have a profile, the hasattr check
+        correctly identifies this and creates a new profile using get_or_create
+        """
+
+        # Create a user without a profile
+        new_user = User.objects.create(username="charlie")
+        new_user.set_password("charlie123")
+        new_user.save()
+        Token.objects.get_or_create(user=new_user)
+
+        # Verify user has no profile
+        self.assertFalse(hasattr(new_user, "profile"))
+        profile_count_before = UserProfile.objects.filter(user=new_user).count()
+        self.assertEqual(profile_count_before, 0)
+
+        view = ConnectViewSet.as_view({"get": "list"})
+        extra = {"HTTP_AUTHORIZATION": f"Token {new_user.auth_token.key}"}
+        request = self.factory.get("/", **extra)
+        request.session = self.client.session
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        # Ensure a profile was created
+        profile_count_after = UserProfile.objects.filter(user=new_user).count()
+        self.assertEqual(profile_count_after, 1)
+        # Refresh the user to get the profile relationship
+        new_user.refresh_from_db()
+        self.assertTrue(hasattr(new_user, "profile"))
+
+    def test_user_profile_cache_set_on_creation(self):
+        """
+        Test that when a user profile is created, it is properly cached
+        """
+        # Create a user without a profile
+        new_user = User.objects.create(username="david")
+        new_user.set_password("david123")
+        new_user.save()
+        Token.objects.get_or_create(user=new_user)
+
+        # Clear cache to ensure clean state
+        cache.clear()
+
+        # Verify cache is empty for this user
+        cache_key = f"{USER_PROFILE_PREFIX}{new_user.username}"
+        cached_profile = safe_cache_get(cache_key)
+        self.assertIsNone(cached_profile)
+
+        view = ConnectViewSet.as_view({"get": "list"})
+        extra = {"HTTP_AUTHORIZATION": f"Token {new_user.auth_token.key}"}
+        request = self.factory.get("/", **extra)
+        request.session = self.client.session
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify cache was set
+        cached_profile = safe_cache_get(cache_key)
+        self.assertIsNotNone(cached_profile)
+
+    def test_user_profile_response_with_post_create(self):
+        """
+        Test that the create endpoint also properly handles user profiles
+        using hasattr check
+        """
+        view = ConnectViewSet.as_view({"post": "create"})
+
+        # Test with existing profile user
+        request = self.factory.post("/", **self.extra)
+        request.session = self.client.session
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("username", response.data)
+        self.assertEqual(response.data["username"], self.user.username)
