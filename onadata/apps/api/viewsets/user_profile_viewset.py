@@ -173,6 +173,7 @@ class UserProfileViewSet(
     lookup_field = "user"
     permission_classes = [UserProfilePermissions]
     filter_backends = (filters.UserProfileFilter, OrderingFilter)
+    lookup_value_regex = r"(?:[^/.]|\.(?!json|csv|xls|xlsx|kml(?:/|$)))+"
     ordering = ("user__username",)
 
     def get_object(self, queryset=None):
