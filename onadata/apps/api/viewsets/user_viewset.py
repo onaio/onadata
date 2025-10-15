@@ -39,7 +39,7 @@ class UserViewSet(
     )
     serializer_class = UserSerializer
     lookup_field = "username"
-    lookup_value_regex = r"(?:[^/.]|\.(?!json|csv|xls|xlsx|kml(?:/|$)))+"
+    lookup_value_regex = r"(?:[^/.]|\.(?!(?:json|csv|xls|xlsx|kml)(?:/|$)))+"
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (
         filters.SearchFilter,
