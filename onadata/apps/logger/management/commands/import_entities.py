@@ -1,17 +1,13 @@
 """
 Management command to import Entities from a CSV file.
 
-CSV requirements:
-- A required column named "label" for the Entity label
-- An optional column named "uuid" for the Entity uuid
-- All other columns are treated as dataset properties and must exist in the
-  target `EntityList.properties` (columns that don't exist will cause a row
-  error via serializer validation)
-
 Usage:
-    python manage.py import_entities --entity-list <id> [--created-by <username>] path/to/file.csv
+    python manage.py import_entities --entity-list <id>
+    [--created-by <username>] [--dry-run] path/to/file.csv
 
 Options:
+- --entity-list: the id of the EntityList to import entities to
+- --created-by: optional username of the user to attribute the entities to
 - --dry-run: validate and report without saving anything
 """
 
@@ -54,6 +50,7 @@ class Command(BaseCommand):
             help="Validate only; do not create any Entities",
         )
 
+    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def handle(self, *args, **options):
         csv_path = options["csv_path"]
         entity_list_id = options["entity_list_id"]
@@ -131,7 +128,7 @@ class Command(BaseCommand):
                         data=data,
                         context={
                             "entity_list": entity_list,
-                            # Minimal request-like object to satisfy serializer history creation
+                            # Minimal request-like object
                             "request": SimpleNamespace(user=user),
                         },
                     )
