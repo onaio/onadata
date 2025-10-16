@@ -22,15 +22,16 @@ class ImportEntitiesCommandTestCase(TestBase):
         self.entity_list = EntityList.objects.get(name="trees", project=self.project)
 
     def _write_csv(self, header, rows):
-        tmp = NamedTemporaryFile(delete=False, mode="w", encoding="utf-8", newline="")
-        try:
+        with NamedTemporaryFile(
+            delete=False, mode="w", encoding="utf-8", newline=""
+        ) as tmp:
             tmp.write(",".join(header) + "\n")
             for r in rows:
                 tmp.write(",".join(r) + "\n")
-        finally:
-            tmp.close()
-        self.addCleanup(lambda: os.path.exists(tmp.name) and os.unlink(tmp.name))
-        return tmp.name
+            tmp_name = tmp.name
+
+        self.addCleanup(lambda: os.path.exists(tmp_name) and os.unlink(tmp_name))
+        return tmp_name
 
     def test_import_entities_success(self):
         """Successfully imports entities from CSV using allowed properties"""
