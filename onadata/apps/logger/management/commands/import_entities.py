@@ -112,7 +112,7 @@ class Command(BaseCommand):
                     uuid_value = (row.get("uuid") or "").strip() or None
 
                     # Extract properties: everything except label/uuid
-                    data = {}
+                    properties = {}
                     for k, v in row.items():
                         if k in {"label", "uuid"}:
                             continue
@@ -120,10 +120,15 @@ class Command(BaseCommand):
                         if value == "":
                             # Skip empty values; create() will drop falsy values anyway
                             continue
-                        data[k] = value
+                        properties[k] = value
+
+                    data = {"label": label, "data": properties}
+
+                    if uuid_value:
+                        data["uuid"] = uuid_value
 
                     serializer = EntitySerializer(
-                        data={"label": label, "uuid": uuid_value, "data": data},
+                        data=data,
                         context={
                             "entity_list": entity_list,
                             # Minimal request-like object to satisfy serializer history creation
