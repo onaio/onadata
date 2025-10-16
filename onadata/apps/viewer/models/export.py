@@ -311,14 +311,15 @@ class Export(ExportBaseModel):
             ).latest("created_on")
         except cls.DoesNotExist:
             return True
-        if (
-            latest_export.time_of_last_submission is not None
-            and xform.time_of_last_submission_update() is not None
-        ):
-            return (
-                latest_export.time_of_last_submission
-                < xform.time_of_last_submission_update()
-            )
+
+        if latest_export.time_of_last_submission is not None:
+            xform_time_of_last_submission = xform.time_of_last_submission_update()
+
+            if xform_time_of_last_submission:
+                return (
+                    latest_export.time_of_last_submission
+                    < xform_time_of_last_submission
+                )
 
         # return true if we can't determine the status, to force
         # auto-generation
