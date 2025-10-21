@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 
-from onadata.apps.logger.models import EntityList
+from onadata.apps.logger.models import Entity, EntityList
 from onadata.libs.serializers.entity_serializer import EntitySerializer
 
 
@@ -72,6 +72,7 @@ class Command(BaseCommand):
                 raise CommandError(_(f"Invalid username {created_by}")) from error
 
         created_count = 0
+        updated_count = 0
         error_rows: list[tuple[int, str]] = []
 
         try:
@@ -134,7 +135,20 @@ class Command(BaseCommand):
                     if uuid_value:
                         data["uuid"] = uuid_value
 
+                    # Check if Entity already exists with this uuid
+                    existing_entity = None
+                    if uuid_value:
+                        try:
+                            existing_entity = Entity.objects.get(
+                                entity_list=entity_list,
+                                uuid=uuid_value,
+                                deleted_at__isnull=True,
+                            )
+                        except Entity.DoesNotExist:
+                            pass
+
                     serializer = EntitySerializer(
+                        instance=existing_entity,
                         data=data,
                         context={
                             "entity_list": entity_list,
@@ -147,7 +161,10 @@ class Command(BaseCommand):
                         serializer.is_valid(raise_exception=True)
                         if not dry_run:
                             serializer.save()
-                        created_count += 1
+                        if existing_entity:
+                            updated_count += 1
+                        else:
+                            created_count += 1
                     except Exception as exc:  # pylint: disable=broad-except
                         error_rows.append((row_index, str(exc)))
 
@@ -163,8 +180,19 @@ class Command(BaseCommand):
             if len(error_rows) > 50:
                 self.stdout.write(_(f"  ... and {len(error_rows) - 50} more"))
 
-        action = "validated" if dry_run else "created"
-        self.stdout.write(_(f"Successfully {action} {created_count} row(s)."))
+        if dry_run:
+            self.stdout.write(
+                _(f"Successfully validated {created_count + updated_count} row(s).")
+            )
+        else:
+            if created_count > 0:
+                self.stdout.write(
+                    _(f"Successfully created {created_count} entity(ies).")
+                )
+            if updated_count > 0:
+                self.stdout.write(
+                    _(f"Successfully updated {updated_count} entity(ies).")
+                )
 
         if error_rows:
             # Non-zero exit to signal partial failure
