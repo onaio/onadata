@@ -159,3 +159,56 @@ class ImportEntitiesCommandTestCase(TestBase):
         self.assertEqual(entities[0].json.get("species"), "purpleheart")
         self.assertEqual(entities[0].json.get("circumference_cm"), "300")
         self.assertEqual(str(entities[0].uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
+
+    def test_import_entities_updates_existing(self):
+        """Updates existing entity when uuid matches"""
+        # Create an existing entity
+        existing_entity = Entity.objects.create(
+            entity_list=self.entity_list,
+            json={
+                "label": "old label",
+                "species": "old_species",
+                "circumference_cm": "100",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+
+        # Import CSV with same uuid but different data
+        csv_path = self._write_csv(
+            ["label", "species", "circumference_cm", "uuid"],
+            [
+                [
+                    "updated label",
+                    "updated_species",
+                    "400",
+                    "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                ]
+            ],
+        )
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            "--created-by",
+            self.user.username,
+            csv_path,
+            stdout=out,
+        )
+
+        # Should still have only 1 entity (updated, not duplicated)
+        entities = Entity.objects.filter(entity_list=self.entity_list)
+        self.assertEqual(entities.count(), 1)
+
+        # Entity should have updated data
+        updated_entity = entities[0]
+        self.assertEqual(updated_entity.json.get("label"), "updated label")
+        self.assertEqual(updated_entity.json.get("species"), "updated_species")
+        self.assertEqual(updated_entity.json.get("circumference_cm"), "400")
+        self.assertEqual(
+            str(updated_entity.uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        )
+
+        # Should be the same entity instance (not a new one)
+        self.assertEqual(updated_entity.pk, existing_entity.pk)

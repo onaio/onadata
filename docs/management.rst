@@ -68,7 +68,7 @@ CSV format
 ^^^^^^^^^^
 
 - A required column named ``label`` used as the Entity label.
-- An optional column named ``uuid``. If provided, it must be unique per Entity within the EntityList.
+- An optional column named ``uuid``. If provided, it must be unique per Entity within the EntityList. If an Entity with the same uuid already exists, it will be updated instead of creating a new one.
 - All other columns are treated as dataset properties and must be defined by forms that create the EntityList (see ``EntityList.properties``). Unknown property columns are silently ignored.
 - Empty property values are ignored (not saved).
 
@@ -100,4 +100,5 @@ Notes
 
 - If the ``label`` column is missing, the command fails with an error.
 - Unknown property columns are silently ignored (not saved to entities).
+- If an Entity with the same uuid already exists, it will be updated instead of creating a new one.
 - Errors are reported with row numbers; when any row fails, the command exits with a non-zero status.
