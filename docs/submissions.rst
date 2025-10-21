@@ -25,6 +25,8 @@ Example
 
 .. note:: Authentication may be required depending on your form's permissions. Add ``-u username:password`` to the curl command if needed.
 
+.. important:: If your form is in an organization account and you receive the error ``{"detail":"No XForm matches the given query."}``, use the project-specific submission endpoint instead: ``https://api.ona.io/projects/<project_id>/submission``
+
 Submit a JSON XForm submission
 --------------------------------
 
@@ -40,6 +42,8 @@ Example
     curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} https://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
 
 .. note:: The ``[id_string]`` here is in the name of your form as exposed in the Ona UI and the ``id_string`` as per the `Forms API <forms.html#get-form-information>`_.
+
+.. important:: If your form is in an organization account and you receive the error ``{"detail":"No XForm matches the given query."}``, use the project-specific submission endpoint instead: ``https://api.ona.io/projects/<project_id>/submission``
 
 Here is some example JSON, it would replace `[the JSON]` above:
 ::
@@ -68,6 +72,107 @@ Here is some example JSON, it would replace `[the JSON]` above:
                "instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
            }
        }
+
+Submit a JSON XForm submission using Python
+--------------------------------------------
+
+This example demonstrates how to submit JSON data to a form using Python. First, here's an example XLSForm structure:
+
+**Survey worksheet:**
+
++---------------+--------+----------------------+
+| type          | name   | label                |
++===============+========+======================+
+| today         | today  |                      |
++---------------+--------+----------------------+
+| select_one    | gender | Respondent's gender? |
+| gender        |        |                      |
++---------------+--------+----------------------+
+| integer       | age    | Respondent's age?    |
++---------------+--------+----------------------+
+
+**Settings worksheet:**
+
++---------------+---------------+
+| form_title    | form_id       |
++===============+===============+
+| Sample Survey | sample_survey |
++---------------+---------------+
+
+.. note:: You can download this complete XLSForm example from |SampleXLSForm|.
+
+.. |SampleXLSForm| raw:: html
+
+    <a href="https://docs.google.com/spreadsheets/d/1SNACjATRAAkLvO7WaOrV-JGJhve1hIH4/edit?usp=sharing&ouid=111645668347905426096&rtpof=true&sd=true"
+    target="_blank">Google Sheets</a>
+
+**Choices worksheet:**
+
++-----------+-------------+-------------+
+| list_name | name        | label       |
++===========+=============+=============+
+| gender    | transgender | Transgender |
++-----------+-------------+-------------+
+| gender    | female      | Female      |
++-----------+-------------+-------------+
+| gender    | male        | Male        |
++-----------+-------------+-------------+
+| gender    | other       | Other       |
++-----------+-------------+-------------+
+
+Python Example
+^^^^^^^^^^^^^^
+
+This example uses the ``requests`` library to submit JSON data:
+
+.. important:: If your form is in an organization account and you receive the error ``{"detail":"No XForm matches the given query."}``, use the project-specific submission endpoint instead: ``https://api.ona.io/projects/<project_id>/submission``
+
+::
+
+    import requests
+    import uuid
+    from datetime import datetime
+    from requests.auth import HTTPDigestAuth
+
+    # API endpoint and credentials
+    url = "https://api.ona.io/api/v1/submissions"
+    username = "your_username"
+    password = "your_password"
+
+    # Form ID (id_string) - must match the form_id from the settings worksheet
+    form_id = "sample_survey"
+
+    # Prepare the submission data
+    submission_data = {
+        "id": form_id,
+        "submission": {
+            "today": datetime.now().strftime("%Y-%m-%d"),
+            "gender": "female",
+            "age": 28,
+            "meta": {
+                "instanceID": f"uuid:{uuid.uuid4()}"
+            }
+        }
+    }
+
+    # Make the POST request with digest authentication
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(
+        url,
+        json=submission_data,
+        auth=HTTPDigestAuth(username, password),
+        headers=headers
+    )
+
+    # Check the response
+    if response.status_code == 201:
+        print("Submission successful!")
+        print(f"Response: {response.json()}")
+    else:
+        print(f"Submission failed with status code: {response.status_code}")
+        print(f"Error: {response.text}")
+
+.. note:: Make sure to install the requests library first: ``pip install requests``
 
 Submit a FLOIP XForm submission
 -------------------------------
@@ -127,6 +232,8 @@ Example
 
     <a href="https://bitbucket.org/javarosa/javarosa/wiki/OpenRosaMetaDataSchema"
     target="_blank">OpenRosa MetaData Schema</a>
+
+.. important:: If your form is in an organization account and you receive the error ``{"detail":"No XForm matches the given query."}``, use the project-specific submission endpoint instead: ``https://api.ona.io/projects/<project_id>/submission``
 
 Here is some example JSON provided for updating an existing instance, it would
 replace `[the JSON]` above:
