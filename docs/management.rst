@@ -55,7 +55,7 @@ Usage
 
 .. code-block:: bash
 
-    python manage.py import_entities --entity-list <id> [--created-by <username>] [--dry-run] [--label-column <column_name>] /path/to/entities.csv
+    python manage.py import_entities --entity-list <id> [--created-by <username>] [--dry-run] [--label-column <column_name>] [--uuid-column <column_name>] /path/to/entities.csv
 
 Options
 ^^^^^^^
@@ -64,12 +64,13 @@ Options
 - ``--created-by``: Optional username to attribute creation in Entity history. If omitted, history is attributed to no user.
 - ``--dry-run``: Validate and report without creating Entities.
 - ``--label-column``: Column name to use as Entity label (default: 'label').
+- ``--uuid-column``: Column name to use as Entity UUID (default: 'uuid').
 
 CSV format
 ^^^^^^^^^^
 
 - A required column for the Entity label. By default, this should be named ``label``, but you can specify a different column name using ``--label-column``.
-- An optional column named ``uuid``. If provided, it must be unique per Entity within the EntityList. If an Entity with the same uuid already exists, it will be updated instead of creating a new one.
+- An optional column for the Entity UUID. By default, this should be named ``uuid``, but you can specify a different column name using ``--uuid-column``. If provided, it must be unique per Entity within the EntityList. If an Entity with the same uuid already exists, it will be updated instead of creating a new one.
 - All other columns are treated as dataset properties and must be defined by forms that create the EntityList (see ``EntityList.properties``). Unknown property columns are silently ignored.
 - Empty property values are ignored (not saved).
 
@@ -90,11 +91,11 @@ Validate only (no writes):
 
     python manage.py import_entities --entity-list 123 --dry-run ./trees.csv
 
-Create entities using a custom label column:
+Create entities using custom column names:
 
 .. code-block:: bash
 
-    python manage.py import_entities --entity-list 123 --label-column tree_name ./trees.csv
+    python manage.py import_entities --entity-list 123 --label-column tree_name --uuid-column entity_id ./trees.csv
 
 Notes
 ^^^^^
