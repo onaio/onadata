@@ -3,6 +3,7 @@
 import os
 from io import StringIO
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -314,3 +315,28 @@ class ImportEntitiesCommandTestCase(TestBase):
         self.assertEqual(entities.count(), 1)
         self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
         self.assertEqual(str(entities[0].uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
+
+    @patch("onadata.apps.logger.management.commands.import_entities.send_message")
+    def test_audit_log_created(self, mock_send_message):
+        """Creates an audit log when entities are imported"""
+        csv_path = self._write_csv(
+            ["label", "species", "circumference_cm"],
+            [["300cm purpleheart", "purpleheart", "300"]],
+        )
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            csv_path,
+            stdout=out,
+        )
+
+        mock_send_message.assert_called_once_with(
+            instance_id=self.entity_list.pk,
+            target_id=self.entity_list.pk,
+            target_type="entitylist",
+            user=None,
+            message_verb="entitylist_imported",
+        )

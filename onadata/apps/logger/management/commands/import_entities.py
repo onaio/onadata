@@ -19,6 +19,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import Entity, EntityList
+from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.serializers.entity_serializer import EntitySerializer
 
 
@@ -210,6 +212,16 @@ class Command(BaseCommand):
             if updated_count > 0:
                 self.stdout.write(
                     _(f"Successfully updated {updated_count} entity(ies).")
+                )
+
+            # Send message if import was successful and not dry-run
+            if created_count > 0 or updated_count > 0:
+                send_message(
+                    instance_id=entity_list.pk,
+                    target_id=entity_list.pk,
+                    target_type=ENTITY_LIST,
+                    user=user,
+                    message_verb=ENTITY_LIST_IMPORTED,
                 )
 
         if error_rows:
