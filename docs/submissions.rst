@@ -23,6 +23,8 @@ Example
 
     curl -X POST -F xml_submission_file=@/path/to/submission.xml https://api.ona.io/api/v1/submissions
 
+.. note:: Authentication may be required depending on your form's permissions. Add ``-u username:password`` to the curl command if needed.
+
 Submit a JSON XForm submission
 --------------------------------
 
@@ -35,7 +37,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
+    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} https://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
 
 .. note:: The ``[id_string]`` here is in the name of your form as exposed in the Ona UI and the ``id_string`` as per the `Forms API <forms.html#get-form-information>`_.
 
@@ -94,7 +96,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST http://api.ona.io/[user]/[pk]/submission -H "Content-Type: application/vnd.org.flowinterop.results+json" -d '[FLOIP data]'
+    curl -X POST https://api.ona.io/[user]/[pk]/submission -H "Content-Type: application/vnd.org.flowinterop.results+json" -d '[FLOIP data]'
 
 Here is an example of what will replace ``[FLOIP data]``:
 ::
@@ -117,7 +119,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
+    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} https://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
 
 .. important:: When editing an existing submission, ``deprecatedID`` needs to be provided as one of the meta fields. ``deprecatedID`` is the instanceID of the submission which is being updated and ``instanceID`` is the newly generated ``instanceID``. See |OpenRosaMetaDataSchema| for more details.
 
@@ -126,7 +128,7 @@ Example
     <a href="https://bitbucket.org/javarosa/javarosa/wiki/OpenRosaMetaDataSchema"
     target="_blank">OpenRosa MetaData Schema</a>
 
-Here is some example JSON provided for updating an exisiting instance, it would
+Here is some example JSON provided for updating an existing instance, it would
 replace `[the JSON]` above:
 ::
 
