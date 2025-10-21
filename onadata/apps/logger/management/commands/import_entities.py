@@ -49,6 +49,13 @@ class Command(BaseCommand):
             dest="dry_run",
             help="Validate only; do not create any Entities",
         )
+        parser.add_argument(
+            "--label-column",
+            type=str,
+            required=False,
+            dest="label_column",
+            help="Column name to use as Entity label (default: 'label')",
+        )
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def handle(self, *args, **options):
@@ -56,6 +63,7 @@ class Command(BaseCommand):
         entity_list_id = options["entity_list_id"]
         created_by = options["created_by"]
         dry_run = options["dry_run"]
+        label_column = options["label_column"] or "label"
 
         try:
             entity_list = EntityList.objects.get(
@@ -85,16 +93,18 @@ class Command(BaseCommand):
                 # Normalize headers: strip whitespace
                 headers = [h.strip() for h in reader.fieldnames]
 
-                # label is required; uuid optional; others treated as properties
-                if "label" not in [h.lower() for h in headers]:
-                    raise CommandError(_("CSV must include a 'label' column."))
+                # Check if the specified label column exists
+                if label_column.lower() not in [h.lower() for h in headers]:
+                    raise CommandError(
+                        _(f"CSV must include a '{label_column}' column.")
+                    )
 
                 # Map original header names to canonical keys
                 # Preserve case for properties, but detect label/uuid case-insensitively
                 def header_key(key: str) -> str:
                     k = key.strip()
                     lower = k.lower()
-                    if lower == "label":
+                    if lower == label_column.lower():
                         return "label"
                     if lower == "uuid":
                         return "uuid"
