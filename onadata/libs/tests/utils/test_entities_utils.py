@@ -690,3 +690,24 @@ class ImportEntitiesFromCSVTestCase(TestBase):
         self.assertEqual(self.entity.json.get("label"), "450cm purpleheart")
         self.assertEqual(self.entity.json.get("species"), "purpleheart")
         self.assertEqual(self.entity.json.get("circumference_cm"), "450")
+
+    @patch("onadata.libs.serializers.entity_serializer.EntitySerializer.is_valid")
+    def test_errors(self, mock_is_valid):
+        """Errors are recorded for invalid rows"""
+        mock_is_valid.side_effect = ValueError("Invalid data")
+        csv_content = (
+            "label,species,circumference_cm\n"
+            "300cm purpleheart,purpleheart,300\n"
+            "200cm mora,mora,200\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+
+        created_count, updated_count, error_rows = import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+        )
+        self.assertEqual(created_count, 0)
+        self.assertEqual(updated_count, 0)
+        self.assertEqual(len(error_rows), 2)
+        self.assertEqual(error_rows[0], (2, "Invalid data"))
+        self.assertEqual(error_rows[1], (3, "Invalid data"))
