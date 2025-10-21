@@ -111,20 +111,28 @@ class ImportEntitiesCommandTestCase(TestBase):
                 csv_path,
             )
 
-    def test_invalid_property_column(self):
-        """Unknown property should cause row validation error and abort with CommandError"""
+    def test_unknown_property_column_ignored(self):
+        """Unknown property columns are silently ignored"""
         csv_path = self._write_csv(
-            ["label", "unknown_property"],
-            [["some label", "value"]],
+            ["label", "species", "unknown_property"],
+            [["300cm purpleheart", "purpleheart", "ignored_value"]],
         )
-        with self.assertRaises(CommandError):
-            call_command(
-                "import_entities",
-                "--entity-list",
-                str(self.entity_list.pk),
-                csv_path,
-            )
-        self.assertEqual(Entity.objects.filter(entity_list=self.entity_list).count(), 0)
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            csv_path,
+            stdout=out,
+        )
+
+        entities = Entity.objects.filter(entity_list=self.entity_list)
+        self.assertEqual(entities.count(), 1)
+        self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
+        self.assertEqual(entities[0].json.get("species"), "purpleheart")
+        # unknown_property should not be in the entity data
+        self.assertNotIn("unknown_property", entities[0].json)
 
     def test_import_entities_with_uuid(self):
         """Imports entities with uuid"""

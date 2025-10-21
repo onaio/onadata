@@ -109,14 +109,24 @@ class Command(BaseCommand):
                     uuid_value = (row.get("uuid") or "").strip() or None
 
                     # Extract properties: everything except label/uuid
+                    # Only include properties that are valid for this EntityList
+                    valid_properties = set(entity_list.properties)
                     properties = {}
+
                     for k, v in row.items():
                         if k in {"label", "uuid"}:
                             continue
+
+                        # Skip unknown properties silently
+                        if k not in valid_properties:
+                            continue
+
                         value = None if v is None else str(v).strip()
+
                         if value == "":
                             # Skip empty values; create() will drop falsy values anyway
                             continue
+
                         properties[k] = value
 
                     data = {"label": label, "data": properties}
