@@ -13,12 +13,14 @@ XFORM = text("xform")
 PROJECT = text("project")
 USER = text("user")
 KMS_KEY = text("kmskey")
+ENTITY_LIST = text("entitylist")
 
 APP_LABEL_MAPPING = {
     XFORM: "logger",
     PROJECT: "logger",
     USER: "auth",
     KMS_KEY: "logger",
+    ENTITY_LIST: "logger",
 }
 
 MESSAGE = "message"
@@ -31,6 +33,7 @@ EXPORT_CREATED = "export_created"
 EXPORT_DOWNLOADED = "export_downloaded"
 FORM_UPDATED = "form_updated"
 KMS_KEY_ROTATED = "kmskey_rotated"
+ENTITY_LIST_IMPORTED = "entitylist_imported"
 MESSAGE_VERBS = [
     MESSAGE,
     SUBMISSION_REVIEWED,
@@ -41,6 +44,7 @@ MESSAGE_VERBS = [
     KMS_KEY_ROTATED,
     EXPORT_CREATED,
     EXPORT_DOWNLOADED,
+    ENTITY_LIST_IMPORTED,
 ]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",
@@ -49,4 +53,5 @@ VERB_TOPIC_DICT = {
     SUBMISSION_REVIEWED: "submission/reviewed",
     FORM_UPDATED: "form/updated",
     KMS_KEY_ROTATED: "kmskey/rotated",
+    ENTITY_LIST_IMPORTED: "entitylist/imported",
 }
