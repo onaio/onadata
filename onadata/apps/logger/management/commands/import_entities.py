@@ -11,17 +11,14 @@ Options:
 - --dry-run: validate and report without saving anything
 """
 
-import csv
-from types import SimpleNamespace
-
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import gettext as _
 
-from onadata.apps.logger.models import Entity, EntityList
+from onadata.apps.logger.models import EntityList
 from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
 from onadata.apps.messaging.serializers import send_message
-from onadata.libs.serializers.entity_serializer import EntitySerializer
+from onadata.libs.utils.entities_utils import import_entities_from_csv
 
 
 class Command(BaseCommand):
@@ -83,111 +80,28 @@ class Command(BaseCommand):
             raise CommandError(_(f"Invalid EntityList id {entity_list_id}")) from error
 
         user = None
+
         if created_by:
             try:
                 user = get_user_model().objects.get(username=created_by)
             except get_user_model().DoesNotExist as error:
                 raise CommandError(_(f"Invalid username {created_by}")) from error
 
-        created_count = 0
-        updated_count = 0
-        error_rows: list[tuple[int, str]] = []
+        created_count, updated_count, error_rows = 0, 0, []
 
         try:
             with open(csv_path, mode="r", encoding="utf-8-sig", newline="") as csv_file:
-                reader = csv.DictReader(csv_file)
-
-                if reader.fieldnames is None:
-                    raise CommandError(_(f"CSV file {csv_path} is missing headers."))
-
-                # Normalize headers: strip whitespace
-                headers = [h.strip() for h in reader.fieldnames]
-
-                # Check if the specified label column exists
-                if label_column.lower() not in [h.lower() for h in headers]:
-                    raise CommandError(
-                        _(f"CSV must include a '{label_column}' column.")
+                try:
+                    created_count, updated_count, error_rows = import_entities_from_csv(
+                        entity_list=entity_list,
+                        csv_file=csv_file,
+                        label_column=label_column,
+                        uuid_column=uuid_column,
+                        user=user,
+                        dry_run=dry_run,
                     )
-
-                # Map original header names to canonical keys
-                # Preserve case for properties, but detect label/uuid case-insensitively
-                def header_key(key: str) -> str:
-                    k = key.strip()
-                    lower = k.lower()
-                    if lower == label_column.lower():
-                        return "label"
-                    if lower == uuid_column.lower():
-                        return "uuid"
-                    return k
-
-                for row_index, raw_row in enumerate(
-                    reader, start=2
-                ):  # start=2 accounts for header row
-                    # Build normalized row dict
-                    row = {header_key(k): v for k, v in raw_row.items()}
-
-                    label = (row.get("label") or "").strip()
-                    uuid_value = (row.get("uuid") or "").strip() or None
-
-                    # Extract properties: everything except label/uuid
-                    # Only include properties that are valid for this EntityList
-                    valid_properties = set(entity_list.properties)
-                    properties = {}
-
-                    for k, v in row.items():
-                        if k in {"label", "uuid"}:
-                            continue
-
-                        # Skip unknown properties silently
-                        if k not in valid_properties:
-                            continue
-
-                        value = None if v is None else str(v).strip()
-
-                        if value == "":
-                            # Skip empty values; create() will drop falsy values anyway
-                            continue
-
-                        properties[k] = value
-
-                    data = {"label": label, "data": properties}
-
-                    if uuid_value:
-                        data["uuid"] = uuid_value
-
-                    # Check if Entity already exists with this uuid
-                    existing_entity = None
-                    if uuid_value:
-                        try:
-                            existing_entity = Entity.objects.get(
-                                entity_list=entity_list,
-                                uuid=uuid_value,
-                                deleted_at__isnull=True,
-                            )
-                        except Entity.DoesNotExist:
-                            pass
-
-                    serializer = EntitySerializer(
-                        instance=existing_entity,
-                        data=data,
-                        context={
-                            "entity_list": entity_list,
-                            # Minimal request-like object
-                            "request": SimpleNamespace(user=user),
-                        },
-                    )
-
-                    try:
-                        serializer.is_valid(raise_exception=True)
-                        if not dry_run:
-                            serializer.save()
-                        if existing_entity:
-                            updated_count += 1
-                        else:
-                            created_count += 1
-                    except Exception as exc:  # pylint: disable=broad-except
-                        error_rows.append((row_index, str(exc)))
-
+                except Exception as exc:  # pylint: disable=broad-except
+                    raise CommandError(str(exc)) from exc
         except FileNotFoundError as error:
             raise CommandError(_(f"CSV file not found: {csv_path}")) from error
 

@@ -61,6 +61,8 @@ class ImportEntitiesCommandTestCase(TestBase):
         self.assertEqual(entities[0].json.get("species"), "purpleheart")
         self.assertEqual(entities[0].json.get("circumference_cm"), "300")
         self.assertEqual(entities[1].json.get("label"), "200cm mora")
+        self.assertEqual(entities[1].json.get("species"), "mora")
+        self.assertEqual(entities[1].json.get("circumference_cm"), "200")
 
     def test_import_entities_dry_run(self):
         """Dry-run validates but does not create entities"""
