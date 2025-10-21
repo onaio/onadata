@@ -212,3 +212,43 @@ class ImportEntitiesCommandTestCase(TestBase):
 
         # Should be the same entity instance (not a new one)
         self.assertEqual(updated_entity.pk, existing_entity.pk)
+
+    def test_import_entities_custom_label_column(self):
+        """Imports entities using a custom label column name"""
+        csv_path = self._write_csv(
+            ["tree_name", "species", "circumference_cm"],
+            [
+                ["300cm purpleheart", "purpleheart", "300"],
+                ["200cm mora", "mora", "200"],
+            ],
+        )
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            "--label-column",
+            "tree_name",
+            csv_path,
+            stdout=out,
+        )
+
+        entities = Entity.objects.filter(entity_list=self.entity_list).order_by("pk")
+        self.assertEqual(entities.count(), 2)
+        self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
+        self.assertEqual(entities[0].json.get("species"), "purpleheart")
+        self.assertEqual(entities[1].json.get("label"), "200cm mora")
+
+    def test_missing_custom_label_column(self):
+        """CSV without specified label column raises CommandError"""
+        csv_path = self._write_csv(["species"], [["purpleheart"]])
+        with self.assertRaises(CommandError):
+            call_command(
+                "import_entities",
+                "--entity-list",
+                str(self.entity_list.pk),
+                "--label-column",
+                "tree_name",
+                csv_path,
+            )
