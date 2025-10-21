@@ -252,3 +252,65 @@ class ImportEntitiesCommandTestCase(TestBase):
                 "tree_name",
                 csv_path,
             )
+
+    def test_import_entities_custom_uuid_column(self):
+        """Imports entities using a custom UUID column name"""
+        csv_path = self._write_csv(
+            ["label", "species", "circumference_cm", "entity_id"],
+            [
+                [
+                    "300cm purpleheart",
+                    "purpleheart",
+                    "300",
+                    "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                ]
+            ],
+        )
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            "--uuid-column",
+            "entity_id",
+            csv_path,
+            stdout=out,
+        )
+
+        entities = Entity.objects.filter(entity_list=self.entity_list)
+        self.assertEqual(entities.count(), 1)
+        self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
+        self.assertEqual(str(entities[0].uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
+
+    def test_import_entities_custom_columns(self):
+        """Imports entities using custom label and UUID columns"""
+        csv_path = self._write_csv(
+            ["tree_name", "species", "circumference_cm", "entity_id"],
+            [
+                [
+                    "300cm purpleheart",
+                    "purpleheart",
+                    "300",
+                    "dbee4c32-a922-451c-9df7-42f40bf78f48",
+                ]
+            ],
+        )
+
+        out = StringIO()
+        call_command(
+            "import_entities",
+            "--entity-list",
+            str(self.entity_list.pk),
+            "--label-column",
+            "tree_name",
+            "--uuid-column",
+            "entity_id",
+            csv_path,
+            stdout=out,
+        )
+
+        entities = Entity.objects.filter(entity_list=self.entity_list)
+        self.assertEqual(entities.count(), 1)
+        self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
+        self.assertEqual(str(entities[0].uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")

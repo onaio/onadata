@@ -56,6 +56,13 @@ class Command(BaseCommand):
             dest="label_column",
             help="Column name to use as Entity label (default: 'label')",
         )
+        parser.add_argument(
+            "--uuid-column",
+            type=str,
+            required=False,
+            dest="uuid_column",
+            help="Column name to use as Entity UUID (default: 'uuid')",
+        )
 
     # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def handle(self, *args, **options):
@@ -64,6 +71,7 @@ class Command(BaseCommand):
         created_by = options["created_by"]
         dry_run = options["dry_run"]
         label_column = options["label_column"] or "label"
+        uuid_column = options["uuid_column"] or "uuid"
 
         try:
             entity_list = EntityList.objects.get(
@@ -106,7 +114,7 @@ class Command(BaseCommand):
                     lower = k.lower()
                     if lower == label_column.lower():
                         return "label"
-                    if lower == "uuid":
+                    if lower == uuid_column.lower():
                         return "uuid"
                     return k
 
