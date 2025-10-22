@@ -5,7 +5,7 @@
     </data>
     {% for media in media_files %}<mediaFile>
         <filename>{{ media.name|safe }}</filename>
-        <hash>md5:{{ media.file_hash }}</hash>
+        <hash>md5:{{ media.get_file_hash }}</hash>
         <downloadUrl>{{ host }}{% url "attachment_url" 'original' %}?media_file={{ media.media_file.name|safe }}&amp;attachment_id={{ media.pk|stringformat:"d" }}</downloadUrl>
     </mediaFile>{% endfor %}
 </submission>

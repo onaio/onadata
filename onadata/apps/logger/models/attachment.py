@@ -2,6 +2,7 @@
 """
 Attachment model.
 """
+
 import hashlib
 import mimetypes
 import os
@@ -69,6 +70,7 @@ class Attachment(models.Model):
     date_modified = models.DateTimeField(null=True, auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
     file_size = models.PositiveIntegerField(default=0)
+    file_hash = models.CharField(max_length=50, null=False, blank=True, default="")
     name = models.CharField(max_length=100, null=True, blank=True)
     deleted_by = models.ForeignKey(
         get_user_model(),
@@ -102,17 +104,50 @@ class Attachment(models.Model):
         except (OSError, AttributeError):
             pass
 
+        # Compute and store file hash if not already set
+        if self.media_file and not self.file_hash:
+            try:
+                # Reset file pointer before reading, may have been read elsewhere
+                self.media_file.seek(0)
+                file_content = self.media_file.read()
+                self.file_hash = hashlib.new(
+                    "md5", file_content, usedforsecurity=False
+                ).hexdigest()
+                # Reset file pointer after reading
+                self.media_file.seek(0)
+            except (OSError, AttributeError, IOError):
+                pass
+
         super().save(*args, **kwargs)
 
-    @property
-    def file_hash(self):
-        """Returns the MD5 hash of the file."""
-        md5_hash = ""
-        if self.media_file.storage.exists(self.media_file.name):
-            md5_hash = hashlib.new(
-                "md5", self.media_file.read(), usedforsecurity=False
-            ).hexdigest()
-        return md5_hash
+    def get_file_hash(self):
+        """
+        Returns the MD5 hash of the file.
+
+        If the hash is not already cached in the database, computes it,
+        saves it to the database, and returns it. This lazy approach avoids
+        expensive upfront migrations on large databases.
+        """
+        # Return cached hash if available
+        if self.file_hash:
+            return self.file_hash
+
+        # Compute hash if not cached
+        if self.media_file:
+            try:
+                if self.media_file.storage.exists(self.media_file.name):
+                    file_content = self.media_file.read()
+                    self.file_hash = hashlib.new(
+                        "md5", file_content, usedforsecurity=False
+                    ).hexdigest()
+                    # Save only the file_hash field to avoid triggering other logic
+                    type(self).objects.filter(pk=self.pk).update(
+                        file_hash=self.file_hash
+                    )
+            except (OSError, AttributeError, IOError):
+                pass
+
+        return self.file_hash
 
     @property
     def filename(self):
