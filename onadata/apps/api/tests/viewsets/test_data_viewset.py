@@ -4051,6 +4051,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 1)
 
 
+@override_settings(MEDIA_ROOT=os.path.join(settings.PROJECT_ROOT, "test_osm_media/"))
 class TestOSM(TestAbstractViewSet):
     """
     Test OSM endpoints in data_viewset.
