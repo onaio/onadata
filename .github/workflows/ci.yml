@@ -215,7 +215,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
           summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
-          if [ -z $summary ]
+          if [ -z "$summary" ]
           then
             summary="0 Issues"
           fi
