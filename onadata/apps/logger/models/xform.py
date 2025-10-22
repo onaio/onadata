@@ -25,7 +25,6 @@ from django.utils import timezone
 from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
-
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
@@ -82,6 +81,13 @@ QUESTION_TYPES_TO_EXCLUDE = [
 ]
 XFORM_TITLE_LENGTH = 255
 TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
+
+
+URL_PATTERN = (
+    r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\."
+    r"[a-zA-Z0-9()]{1,6}\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
+)
+
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -1094,10 +1100,7 @@ class XForm(XFormMixin, BaseModel):
             )
 
         # Capture urls within form title
-        if re.search(
-            r"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$",  # noqa
-            self.title,
-        ):
+        if re.findall(URL_PATTERN, self.title):
             raise XLSFormError(_("Invalid title value; value shouldn't match a URL"))
 
         self.title = title_xml
