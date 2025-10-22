@@ -29,7 +29,6 @@ import geojson
 import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
-from flaky import flaky
 from httmock import HTTMock, urlmatch
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
@@ -4065,7 +4064,6 @@ class TestOSM(TestAbstractViewSet):
         self.logger = logging.getLogger("console_logger")
 
     # pylint: disable=invalid-name,too-many-locals
-    @flaky(max_runs=15)
     def test_data_retrieve_instance_osm_format(self):
         """Test /data endpoint OSM format."""
         filenames = [

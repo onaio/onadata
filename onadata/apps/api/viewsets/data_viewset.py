@@ -445,7 +445,7 @@ class DataViewSet(
         if _format == "geojson":
             return super().retrieve(request, *args, **kwargs)
         if _format == Attachment.OSM:
-            serializer = self.get_serializer(instance.osm_data.all())
+            serializer = self.get_serializer(instance.osm_data.order_by("id"))
 
             return Response(serializer.data)
 
