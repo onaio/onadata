@@ -1,6 +1,7 @@
 """Tests for module onadata.apps.logger.tasks"""
 
 import sys
+from io import StringIO
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -18,6 +19,7 @@ from onadata.apps.logger.tasks import (
     commit_cached_xform_num_of_decrypted_submissions_async,
     decrypt_instance_async,
     disable_expired_keys_async,
+    import_entities_from_csv_async,
     rotate_expired_keys_async,
     send_key_grace_expiry_reminder_async,
     send_key_rotation_reminder_async,
@@ -431,4 +433,109 @@ class DecryptInstanceAsyncTestCase(TestBase):
 
         mock_save_decryption_error.assert_called_once_with(
             self.instance, "MAX_RETRIES_EXCEEDED"
+        )
+
+
+@patch("onadata.apps.logger.tasks.default_storage.open")
+@patch("onadata.apps.logger.tasks.import_entities_from_csv")
+class ImportEntitiesFromCSVAsyncTestCase(TestBase):
+    """Tests for import_entities_from_csv_async"""
+
+    def setUp(self):
+        super().setUp()
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        self.csv_file = StringIO(
+            "label,species,circumference_cm\n300cm purpleheart,purpleheart,300"
+        )
+
+    def test_import_entities_from_csv(self, mock_import, mock_open):
+        """Import entities from CSV"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            label_column="tree_name",
+            uuid_column="tree_id",
+        )
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="tree_name",
+            uuid_column="tree_id",
+        )
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_exceptions(self, mock_retry, mock_import, mock_open):
+        """ConnectionError and DatabaseError exceptions are retried"""
+        mock_open.return_value = self.csv_file
+        test_cases = [
+            (ConnectionError, "ConnectionError"),
+            (DatabaseError, "DatabaseError"),
+            (OperationalError, "OperationalError"),
+        ]
+
+        for exception_class, exception_name in test_cases:
+            with self.subTest(exception=exception_name):
+                mock_import.side_effect = exception_class
+                import_entities_from_csv_async.delay(
+                    "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+                )
+                self.assertTrue(mock_retry.called)
+                _, kwargs = mock_retry.call_args_list[0]
+                self.assertTrue(isinstance(kwargs["exc"], exception_class))
+                mock_retry.reset_mock()
+                mock_import.reset_mock()
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_entity_list_pk(self, mock_logger, mock_import, mock_open):
+        """Invalid EntityList primary key is handled"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay("csv_file.csv", sys.maxsize)
+        mock_import.assert_not_called()
+        mock_logger.assert_called_once()
+
+    @patch("onadata.apps.logger.tasks.logger.exception")
+    def test_invalid_user_id(self, mock_logger, mock_import, mock_open):
+        """Invalid User primary key is handled"""
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=sys.maxsize
+        )
+        mock_import.assert_not_called()
+        mock_logger.assert_called_once()
+
+    def test_default_label_column(self, mock_import, mock_open):
+        """Default label column is 'label' if not provided"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            uuid_column="tree_id",
+        )
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="label",
+            uuid_column="tree_id",
+        )
+
+    def test_default_uuid_column(self, mock_import, mock_open):
+        """Default uuid column is 'uuid' if not provided"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            label_column="tree_name",
+        )
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="tree_name",
+            uuid_column="uuid",
         )
