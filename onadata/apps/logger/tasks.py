@@ -3,6 +3,7 @@
 import logging
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from django.db import DatabaseError, OperationalError
 
 from celery.exceptions import MaxRetriesExceededError
@@ -36,6 +37,7 @@ from onadata.libs.utils.common_tags import DECRYPTION_FAILURE_MAX_RETRIES
 from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
+    import_entities_from_csv,
     soft_delete_entities_bulk,
 )
 
@@ -182,7 +184,7 @@ def update_project_date_modified_async(instance_id):
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
     """Custom task class for decrypting instances with auto-retry"""
 
-    autoretry_for = AutoRetryTask.autoretry_for + (ValigettaConnectionException,)
+    autoretry_for = (*AutoRetryTask.autoretry_for, ValigettaConnectionException)
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -289,3 +291,30 @@ def commit_cached_xform_num_of_decrypted_submissions_async():
 def send_key_grace_expiry_reminder_async():
     """Send key grace expiry reminder asynchronously."""
     send_key_grace_expiry_reminder()
+
+
+@app.task(base=AutoRetryTask)
+@use_master
+def import_entities_from_csv_async(
+    file_path: str,
+    entity_list_id: int,
+    label_column: str = "label",
+    uuid_column: str = "uuid",
+    user_id: int | None = None,
+):
+    """Import entities from CSV asynchronously."""
+    with default_storage.open(file_path) as csv_file:
+        try:
+            entity_list = EntityList.objects.get(pk=entity_list_id)
+            user = User.objects.get(pk=user_id) if user_id else None
+        except (EntityList.DoesNotExist, User.DoesNotExist) as exc:
+            logger.exception(exc)
+            return
+
+        import_entities_from_csv(
+            entity_list,
+            csv_file,
+            user=user,
+            label_column=label_column,
+            uuid_column=uuid_column,
+        )
