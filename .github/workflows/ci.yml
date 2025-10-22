@@ -205,6 +205,14 @@ jobs:
           scanners: "vuln"
           output: "trivy_results.sarif"
 
+      - name: Upload Trivy SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          name: trivy-sarif-results
+          path: trivy_results.sarif
+          retention-days: 30
+
       - name: Upload vulnerability scan results
         uses: github/codeql-action/upload-sarif@v3
         if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
