@@ -1,4 +1,5 @@
 import csv
+import importlib
 import logging
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -253,8 +254,9 @@ def import_entities_from_csv(
     :return: tuple of created_count, updated_count, error_rows
     :raises ValueError: If CSV file is missing headers or label column is missing
     """
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.serializers.entity_serializer import EntitySerializer
+    EntitySerializer = importlib.import_module(
+        "onadata.libs.serializers.entity_serializer"
+    ).EntitySerializer
 
     reader = csv.DictReader(csv_file)
     # Normalize headers: strip whitespace
