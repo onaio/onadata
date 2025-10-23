@@ -213,14 +213,6 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: sarif html -o trivy_results.html trivy_results.sarif
 
-      - name: Upload Trivy SARIF as artifact
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        with:
-          name: trivy-sarif-results
-          path: trivy_results.sarif
-          retention-days: 30
-
       - name: Upload Trivy HTML report as artifact
         uses: actions/upload-artifact@v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
