@@ -89,7 +89,7 @@ class Command(BaseCommand):
             except get_user_model().DoesNotExist as error:
                 raise CommandError(_(f"Invalid username {created_by}")) from error
 
-        created, updated = 0
+        created = updated = 0
         errors = []
 
         try:
