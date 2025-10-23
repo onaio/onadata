@@ -75,6 +75,7 @@ class EntityListViewSet(
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
     entities_search_fields = ["uuid", "json"]
 
+    # pylint: disable=too-many-return-statements
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
         if self.action == "list":
@@ -257,7 +258,7 @@ class EntityListViewSet(
 
         return super().retrieve(request, format, *args, **kwargs)
 
-    # pylint: disable=too-many-locals, too-many-return-statements
+    # pylint: disable=too-many-locals
     @action(methods=["POST", "GET"], detail=True, url_path="import-entities")
     def import_entities(self, request, *args, **kwargs):
         """Imports entities from a CSV file"""
