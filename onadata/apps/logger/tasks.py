@@ -295,6 +295,7 @@ def send_key_grace_expiry_reminder_async():
 
 @app.task(base=AutoRetryTask, bind=True)
 @use_master
+# pylint: disable=too-many-positional-arguments, too-many-arguments
 def import_entities_from_csv_async(
     self,
     file_path: str,
