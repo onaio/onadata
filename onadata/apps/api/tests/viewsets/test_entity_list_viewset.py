@@ -7,9 +7,10 @@ import sys
 import uuid
 from datetime import datetime
 from datetime import timezone as tz
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
@@ -19,6 +20,7 @@ from moto import mock_aws
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
 from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
+from onadata.libs.exceptions import CSVImportError
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
@@ -1814,3 +1816,222 @@ class DownloadEntityListTestCase(TestAbstractViewSet):
                 response = self.view(request, pk=self.entity_list.pk)
                 self.assertEqual(response.status_code, 302)
                 self.assertIn("response-content-disposition", response.url)
+
+
+class ImportEntitiesTestCase(TestAbstractViewSet):
+    """Tests for import entities"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"post": "import_entities"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+
+    def _create_csv_file(self, content):
+        return SimpleUploadedFile(
+            "trees.csv", content.encode("utf-8"), content_type="text/csv"
+        )
+
+    @patch("onadata.apps.api.viewsets.entity_list_viewset.default_storage.save")
+    @patch(
+        "onadata.apps.api.viewsets.entity_list_viewset.import_entities_from_csv_async.delay"
+    )
+    def test_import(self, mock_import, mock_storage_save):
+        """Importing entities via CSV works"""
+        async_result = Mock()
+        async_result.task_id = "2335468b-646d-4831-b874-028431c1d339"
+        mock_import.return_value = async_result
+        mock_storage_save.return_value = "/bob/csv_imports/trees.csv"
+
+        content = (
+            "label,species,circumference_cm\n"
+            "300cm purpleheart,purpleheart,300\n"
+            "200cm mora,mora,200\n"
+        )
+        csv_file = self._create_csv_file(content)
+        request = self.factory.post(
+            "/",
+            data={"csv_file": csv_file},
+            format="multipart",
+            **self.extra,
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(
+            response.data, {"task_id": "2335468b-646d-4831-b874-028431c1d339"}
+        )
+        mock_import.assert_called_once_with(
+            "/bob/csv_imports/trees.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            label_column="label",
+            uuid_column="uuid",
+        )
+        self.assertEqual(
+            mock_storage_save.call_args.args[0], "bob/csv_imports/trees.csv"
+        )
+        self.assertIsInstance(mock_storage_save.call_args.args[1], InMemoryUploadedFile)
+
+    def test_anonymous_user(self):
+        """Authentication is required to import entities"""
+        # Anonymous user cannot import into private EntityList
+        request = self.factory.post("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+        # Anonymous user cannot into import public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.post("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+
+
+class ImportStatusTestCase(TestAbstractViewSet):
+    """Tests for import entities job status check"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"get": "import_entities"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+
+    @patch("onadata.apps.api.viewsets.entity_list_viewset.AsyncResult")
+    def test_import_success(self, mock_async_result):
+        """Response for success status is correct"""
+        mock_async = Mock()
+        mock_async.state = "SUCCESS"
+        mock_async.result = {
+            "processed": 300,
+            "created": 275,
+            "updated": 25,
+            "errors": [],
+        }
+        mock_async_result.return_value = mock_async
+
+        request = self.factory.get(
+            "/",
+            data={"task_id": "2335468b-646d-4831-b874-028431c1d339"},
+            **self.extra,
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            {
+                "task_id": "2335468b-646d-4831-b874-028431c1d339",
+                "state": "SUCCESS",
+                "result": {
+                    "processed": 300,
+                    "created": 275,
+                    "updated": 25,
+                    "errors": [],
+                },
+            },
+        )
+
+    @patch("onadata.apps.api.viewsets.entity_list_viewset.AsyncResult")
+    def test_import_in_progress(self, mock_async_result):
+        """Response for in progress status is correct"""
+        mock_async = Mock()
+        mock_async.state = "PROGRESS"
+        mock_async.info = {
+            "processed": 4,
+            "created": 1,
+            "updated": 0,
+            "errors": [],
+        }
+        mock_async_result.return_value = mock_async
+
+        request = self.factory.get(
+            "/",
+            data={"task_id": "2335468b-646d-4831-b874-028431c1d339"},
+            **self.extra,
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(
+            response.data,
+            {
+                "task_id": "2335468b-646d-4831-b874-028431c1d339",
+                "state": "PROGRESS",
+                "result": {
+                    "processed": 4,
+                    "created": 1,
+                    "updated": 0,
+                    "errors": [],
+                },
+            },
+        )
+
+    @patch("onadata.apps.api.viewsets.entity_list_viewset.AsyncResult")
+    def test_import_failure(self, mock_async_result):
+        """Response for failure status is correct"""
+        mock_async = Mock()
+        mock_async.state = "FAILURE"
+        mock_async.result = ValueError("error")
+        mock_async_result.return_value = mock_async
+
+        request = self.factory.get(
+            "/",
+            data={"task_id": "2335468b-646d-4831-b874-028431c1d339"},
+            **self.extra,
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.data,
+            {
+                "task_id": "2335468b-646d-4831-b874-028431c1d339",
+                "state": "FAILURE",
+                "result": {"error": "The job failed. Please try again."},
+            },
+        )
+
+        # Failure as a result of CSV structure error
+        mock_async_result.reset_mock()
+        mock_async.state = "FAILURE"
+        mock_async.result = CSVImportError("Missing label column.")
+        mock_async_result.return_value = mock_async
+
+        request = self.factory.get(
+            "/",
+            data={"task_id": "2335468b-646d-4831-b874-028431c1d339"},
+            **self.extra,
+        )
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "task_id": "2335468b-646d-4831-b874-028431c1d339",
+                "state": "FAILURE",
+                "result": {"error": "Missing label column."},
+            },
+        )
+
+    def test_anonymous_user(self):
+        """Authentication is required to check status"""
+        # Anonymous user cannot import into private EntityList
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+        # Anonymous user cannot into import public EntityList
+        self.project.shared = True
+        self.project.save()
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 401)
+
+    def test_task_id_required(self):
+        """Query param `task_id` is required"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertContains(response, "task_id is required", status_code=400)

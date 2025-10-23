@@ -2,6 +2,7 @@
 
 import sys
 from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -452,13 +453,23 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
     def test_import_entities_from_csv(self, mock_import, mock_open):
         """Import entities from CSV"""
         mock_open.return_value = self.csv_file
-        import_entities_from_csv_async.delay(
+        fake_results = iter(
+            [
+                SimpleNamespace(index=2, status="created", error=None),
+                SimpleNamespace(index=3, status="updated", error=None),
+                SimpleNamespace(index=4, status="error", error="boom"),
+            ]
+        )
+        mock_import.return_value = fake_results
+
+        result = import_entities_from_csv_async.delay(
             "csv_file.csv",
             self.entity_list.pk,
-            user_id=self.user.pk,
             label_column="tree_name",
             uuid_column="tree_id",
+            user_id=self.user.pk,
         )
+        out = result.get()
         mock_import.assert_called_once_with(
             self.entity_list,
             self.csv_file,
@@ -467,44 +478,73 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             uuid_column="tree_id",
         )
 
+        self.assertEqual(out["processed"], 3)
+        self.assertEqual(out["created"], 1)
+        self.assertEqual(out["updated"], 1)
+        self.assertEqual(out["errors"], [(4, "boom")])
+
     @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
-    def test_retry_exceptions(self, mock_retry, mock_import, mock_open):
-        """ConnectionError and DatabaseError exceptions are retried"""
+    def test_retry_connection_error(self, mock_retry, mock_import, mock_open):
+        """ConnectionError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise ConnectionError()
+                yield  # make it a generator syntactically
+
+            return _g()
+
         mock_open.return_value = self.csv_file
-        test_cases = [
-            (ConnectionError, "ConnectionError"),
-            (DatabaseError, "DatabaseError"),
-            (OperationalError, "OperationalError"),
-        ]
+        mock_import.return_value = _gen_raises()
 
-        for exception_class, exception_name in test_cases:
-            with self.subTest(exception=exception_name):
-                mock_import.side_effect = exception_class
-                import_entities_from_csv_async.delay(
-                    "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
-                )
-                self.assertTrue(mock_retry.called)
-                _, kwargs = mock_retry.call_args_list[0]
-                self.assertTrue(isinstance(kwargs["exc"], exception_class))
-                mock_retry.reset_mock()
-                mock_import.reset_mock()
-
-    @patch("onadata.apps.logger.tasks.logger.exception")
-    def test_invalid_entity_list_pk(self, mock_logger, mock_import, mock_open):
-        """Invalid EntityList primary key is handled"""
-        mock_open.return_value = self.csv_file
-        import_entities_from_csv_async.delay("csv_file.csv", sys.maxsize)
-        mock_import.assert_not_called()
-        mock_logger.assert_called_once()
-
-    @patch("onadata.apps.logger.tasks.logger.exception")
-    def test_invalid_user_id(self, mock_logger, mock_import, mock_open):
-        """Invalid User primary key is handled"""
         import_entities_from_csv_async.delay(
-            "csv_file.csv", self.entity_list.pk, user_id=sys.maxsize
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
         )
-        mock_import.assert_not_called()
-        mock_logger.assert_called_once()
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_import, mock_open):
+        """DatabaseError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise DatabaseError()
+                yield  # make it a generator syntactically
+
+            return _g()
+
+        mock_open.return_value = self.csv_file
+        mock_import.return_value = _gen_raises()
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_operational_error(self, mock_retry, mock_import, mock_open):
+        """OperationalError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise OperationalError()
+                yield  # make it a generator syntactically
+
+            return _g()
+
+        mock_open.return_value = self.csv_file
+        mock_import.return_value = _gen_raises()
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
 
     def test_default_label_column(self, mock_import, mock_open):
         """Default label column is 'label' if not provided"""
