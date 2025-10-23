@@ -4,7 +4,7 @@ import shutil
 import requests
 from django.core.files.storage import storages
 from django.test.testcases import SerializeMixin
-from httmock import urlmatch, HTTMock
+from httmock import HTTMock, urlmatch
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.main.tests.test_base import TestBase
@@ -13,7 +13,7 @@ from onadata.libs.utils.image_tools import resize
 storage = storages["default"]
 
 
-@urlmatch(netloc=r'(.*\.)?localhost:8000$', path='/media/test.jpg')
+@urlmatch(netloc=r"(.*\.)?localhost:8000$", path="/media/test.jpg")
 def image_url_mock(url, request):
     response = requests.Response()
     response.status_code = 200
@@ -25,15 +25,17 @@ class TestImageTools(SerializeMixin, TestBase):
     """
     Test class for image utility functions
     """
+
     lockfile = __file__
 
     def test_resize_exception_is_handled(self):
         with HTTMock(image_url_mock):
             with self.assertRaises(Exception) as io_error:
-                resize('test.jpg', 'jpg')
+                resize("test.jpg", "jpg")
 
-        self.assertEqual(str(io_error.exception),
-                         u'The image file couldn\'t be identified')
+        self.assertEqual(
+            str(io_error.exception), "The image file couldn't be identified"
+        )
 
     def test_resize(self):
         self._publish_transportation_form()
@@ -42,19 +44,16 @@ class TestImageTools(SerializeMixin, TestBase):
         media_filename = attachment.media_file.name
         resize(media_filename, attachment.extension)
         # small
-        path = os.path.join(
-            storage.path(''), media_filename[0:-4] + '-small.jpg')
+        path = os.path.join(storage.path(""), media_filename[0:-4] + "-small.jpg")
         assert os.path.exists(path)
         # medium
-        path = os.path.join(
-            storage.path(''), media_filename[0:-4] + '-medium.jpg')
+        path = os.path.join(storage.path(""), media_filename[0:-4] + "-medium.jpg")
         assert os.path.exists(path)
         # large
-        path = os.path.join(
-            storage.path(''), media_filename[0:-4] + '-large.jpg')
+        path = os.path.join(storage.path(""), media_filename[0:-4] + "-large.jpg")
         assert os.path.exists(path)
 
     def tearDown(self):
         if self.user:
             if storage.exists(self.user.username):
-                shutil.rmtree(storage.path(self.user.username))
+                shutil.rmtree(storage.path(self.user.username), ignore_errors=True)
