@@ -87,49 +87,54 @@ class Command(BaseCommand):
             except get_user_model().DoesNotExist as error:
                 raise CommandError(_(f"Invalid username {created_by}")) from error
 
-        created_count, updated_count, error_rows = 0, 0, []
+        created, updated = 0
+        errors = []
 
         try:
             with open(csv_path, mode="r", encoding="utf-8-sig", newline="") as csv_file:
                 try:
-                    created_count, updated_count, error_rows = import_entities_from_csv(
+                    for row_result in import_entities_from_csv(
                         entity_list=entity_list,
                         csv_file=csv_file,
                         label_column=label_column,
                         uuid_column=uuid_column,
                         user=user,
                         dry_run=dry_run,
-                    )
+                    ):
+                        if row_result.status == "created":
+                            created += 1
+
+                        elif row_result.status == "updated":
+                            updated += 1
+
+                        else:
+                            errors.append(
+                                (row_result.index, row_result.error or "Unknown error")
+                            )
                 except Exception as exc:  # pylint: disable=broad-except
                     raise CommandError(str(exc)) from exc
         except FileNotFoundError as error:
             raise CommandError(_(f"CSV file not found: {csv_path}")) from error
 
         # Output summary
-        if error_rows:
+        if errors:
             self.stdout.write("")
-            self.stdout.write(_(f"Encountered {len(error_rows)} error(s):"))
-            for line_no, err in error_rows[:50]:  # cap printed errors
+            self.stdout.write(_(f"Encountered {len(errors)} error(s):"))
+            for line_no, err in errors[:50]:  # cap printed errors
                 self.stdout.write(_(f"  Row {line_no}: {err}"))
-            if len(error_rows) > 50:
-                self.stdout.write(_(f"  ... and {len(error_rows) - 50} more"))
+            if len(errors) > 50:
+                self.stdout.write(_(f"  ... and {len(errors) - 50} more"))
 
         if dry_run:
-            self.stdout.write(
-                _(f"Successfully validated {created_count + updated_count} row(s).")
-            )
+            self.stdout.write(_(f"Successfully validated {created + updated} row(s)."))
         else:
-            if created_count > 0:
-                self.stdout.write(
-                    _(f"Successfully created {created_count} entity(ies).")
-                )
-            if updated_count > 0:
-                self.stdout.write(
-                    _(f"Successfully updated {updated_count} entity(ies).")
-                )
+            if created > 0:
+                self.stdout.write(_(f"Successfully created {created} entity(ies)."))
+            if updated > 0:
+                self.stdout.write(_(f"Successfully updated {updated} entity(ies)."))
 
             # Send message if import was successful and not dry-run
-            if created_count > 0 or updated_count > 0:
+            if created > 0 or updated > 0:
                 send_message(
                     instance_id=entity_list.pk,
                     target_id=entity_list.pk,
@@ -138,6 +143,6 @@ class Command(BaseCommand):
                     message_verb=ENTITY_LIST_IMPORTED,
                 )
 
-        if error_rows:
+        if errors:
             # Non-zero exit to signal partial failure
-            raise CommandError(_(f"{len(error_rows)} row(s) failed."))
+            raise CommandError(_(f"{len(errors)} row(s) failed."))

@@ -293,9 +293,10 @@ def send_key_grace_expiry_reminder_async():
     send_key_grace_expiry_reminder()
 
 
-@app.task(base=AutoRetryTask)
+@app.task(base=AutoRetryTask, bind=True)
 @use_master
 def import_entities_from_csv_async(
+    self,
     file_path: str,
     entity_list_id: int,
     label_column: str = "label",
@@ -303,18 +304,45 @@ def import_entities_from_csv_async(
     user_id: int | None = None,
 ):
     """Import entities from CSV asynchronously."""
-    with default_storage.open(file_path) as csv_file:
-        try:
-            entity_list = EntityList.objects.get(pk=entity_list_id)
-            user = User.objects.get(pk=user_id) if user_id else None
-        except (EntityList.DoesNotExist, User.DoesNotExist) as exc:
-            logger.exception(exc)
-            return
+    self.update_state(state="STARTED", meta={"processed": 0})
+    created = updated = processed = 0
+    errors: list[tuple[int, str]] = []
+    entity_list = EntityList.objects.get(pk=entity_list_id)
+    user = User.objects.get(pk=user_id) if user_id else None
 
-        import_entities_from_csv(
+    with default_storage.open(file_path) as csv_file:
+        for row_result in import_entities_from_csv(
             entity_list,
             csv_file,
             user=user,
             label_column=label_column,
             uuid_column=uuid_column,
-        )
+        ):
+            processed += 1
+
+            if row_result.status == "created":
+                created += 1
+
+            elif row_result.status == "updated":
+                updated += 1
+
+            else:
+                errors.append((row_result.index, row_result.error or "Unknown error"))
+
+            if processed % 25 == 0:
+                self.update_state(
+                    state="PROGRESS",
+                    meta={
+                        "processed": processed,
+                        "created": created,
+                        "updated": updated,
+                        "errors": errors[-5:],
+                    },
+                )
+
+    return {
+        "processed": processed,
+        "created": created,
+        "updated": updated,
+        "errors": errors[:50],
+    }

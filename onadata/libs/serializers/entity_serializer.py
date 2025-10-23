@@ -393,3 +393,17 @@ class EntityDeleteSerializer(serializers.Serializer):
         delete_entities_bulk_async.delay(
             entity_ids, self.context["request"].user.username
         )
+
+
+class ImportEntitiesSerializer(serializers.Serializer):
+    """Serializer for importing entities"""
+
+    csv_file = serializers.FileField()
+    label_column = serializers.CharField(required=False)
+    uuid_column = serializers.CharField(required=False)
+
+    def validate_csv_file(self, value):
+        """Validate `csv_file` field"""
+        if not value.name.lower().endswith(".csv"):
+            raise serializers.ValidationError("CSV file is required.")
+        return value

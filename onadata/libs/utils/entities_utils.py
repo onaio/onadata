@@ -1,5 +1,6 @@
 import csv
 import logging
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, TextIO
 
@@ -18,6 +19,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_entity_uuid_from_xml,
     get_meta_from_xml,
 )
+from onadata.libs.exceptions import CSVImportError
 from onadata.libs.utils.cache_tools import (
     ELIST_FAILOVER_REPORT_SENT,
     ELIST_NUM_ENTITIES,
@@ -224,6 +226,13 @@ def commit_cached_elist_num_entities() -> None:
     )
 
 
+@dataclass
+class RowResult:
+    index: int  # Row index
+    status: str  # "created" | "updated" | "error"
+    error: str | None = None  # error message if status == "error"
+
+
 def import_entities_from_csv(
     entity_list: EntityList,
     csv_file: TextIO,
@@ -247,16 +256,12 @@ def import_entities_from_csv(
     from onadata.libs.serializers.entity_serializer import EntitySerializer
 
     reader = csv.DictReader(csv_file)
-
-    if reader.fieldnames is None:
-        raise ValueError("CSV file is missing headers.")
-
     # Normalize headers: strip whitespace
     headers = [h.strip() for h in reader.fieldnames]
 
     # Check if the specified label column exists
     if label_column.lower() not in [h.lower() for h in headers]:
-        raise ValueError(_(f"CSV must include a '{label_column}' column."))
+        raise CSVImportError(_(f"CSV must include a '{label_column}' column."))
 
     # Map original header names to canonical keys
     # Preserve case for properties, but detect label/uuid case-insensitively
@@ -269,10 +274,6 @@ def import_entities_from_csv(
         if lower == uuid_column.lower():
             return "uuid"
         return k
-
-    error_rows: list[tuple[int, str]] = []
-    created_count = 0
-    updated_count = 0
 
     for row_index, raw_row in enumerate(
         reader, start=2
@@ -338,11 +339,10 @@ def import_entities_from_csv(
             if not dry_run:
                 serializer.save()
 
-            if existing_entity:
-                updated_count += 1
-            else:
-                created_count += 1
-        except Exception as exc:  # pylint: disable=broad-except
-            error_rows.append((row_index, str(exc)))
+            yield RowResult(
+                index=row_index,
+                status="updated" if existing_entity else "created",
+            )
 
-    return created_count, updated_count, error_rows
+        except Exception as exc:  # pylint: disable=broad-except
+            yield RowResult(index=row_index, status="error", error=str(exc))
