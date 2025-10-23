@@ -254,9 +254,9 @@ def import_entities_from_csv(
     :return: tuple of created_count, updated_count, error_rows
     :raises ValueError: If CSV file is missing headers or label column is missing
     """
-    EntitySerializer = importlib.import_module(
+    entity_serializer_module = importlib.import_module(
         "onadata.libs.serializers.entity_serializer"
-    ).EntitySerializer
+    )
 
     reader = csv.DictReader(csv_file)
     # Normalize headers: strip whitespace
@@ -326,7 +326,7 @@ def import_entities_from_csv(
             except Entity.DoesNotExist:
                 pass
 
-        serializer = EntitySerializer(
+        serializer = entity_serializer_module.EntitySerializer(
             instance=existing_entity,
             data=data,
             context={
