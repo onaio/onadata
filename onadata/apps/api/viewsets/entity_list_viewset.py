@@ -257,6 +257,7 @@ class EntityListViewSet(
 
         return super().retrieve(request, format, *args, **kwargs)
 
+    # pylint: disable=too-many-locals
     @action(methods=["POST", "GET"], detail=True, url_path="import-entities")
     def import_entities(self, request, *args, **kwargs):
         """Imports entities from a CSV file"""

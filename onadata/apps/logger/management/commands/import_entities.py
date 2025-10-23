@@ -6,9 +6,11 @@ Usage:
     [--created-by <username>] [--dry-run] path/to/file.csv
 
 Options:
-- --entity-list: the id of the EntityList to import entities to
-- --created-by: optional username of the user to attribute the entities to
-- --dry-run: validate and report without saving anything
+--entity-list: the id of the EntityList to import entities to
+--created-by: optional username of the user to attribute the entities to
+--dry-run: validate and report without saving anything
+--label-column: column name to use as Entity label (default: 'label')
+--uuid-column: column name to use as Entity UUID (default: 'uuid')
 """
 
 from django.contrib.auth import get_user_model

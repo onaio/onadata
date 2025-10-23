@@ -490,7 +490,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
         def _gen_raises():
             def _g():
                 raise ConnectionError()
-                yield  # make it a generator syntactically
+                yield  # pylint: disable=unreachable
 
             return _g()
 
@@ -511,7 +511,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
         def _gen_raises():
             def _g():
                 raise DatabaseError()
-                yield  # make it a generator syntactically
+                yield  # pylint: disable=unreachable
 
             return _g()
 
@@ -532,7 +532,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
         def _gen_raises():
             def _g():
                 raise OperationalError()
-                yield  # make it a generator syntactically
+                yield  # pylint: disable=unreachable
 
             return _g()
 
