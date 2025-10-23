@@ -1,7 +1,7 @@
 ---
 name: AWS ECR Build Image with ARM Runner
 
-on:  # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
   release:
     types:
       - "released"
@@ -20,7 +20,7 @@ jobs:
       matrix:
         platforms:
           - [linux/amd64, ubuntu-latest]
-          - [linux/arm64, ubuntu-arm64-runner]
+          - [linux/arm64, ubuntu-24.04-arm]
     runs-on: ${{ matrix.platforms[1] }}
     steps:
       - name: Prepare
@@ -101,11 +101,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           outputs: >
-             type=image,
-             name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,
-             push-by-digest=true,
-             name-canonical=true,
-             push=true
+            type=image,
+            name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,
+            push-by-digest=true,
+            name-canonical=true,
+            push=true
 
       - name: Export digest
         run: |
@@ -176,13 +176,13 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.docker_repo }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: Upload Trivy scan result to Github security lab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner for Slack
@@ -190,7 +190,7 @@ jobs:
         with:
           image-ref: ${{ env.docker_repo }}
           format: json
-          output: 'trivy-results.json'
+          output: "trivy-results.json"
 
       - name: Create summary of trivy issues
         run: |
