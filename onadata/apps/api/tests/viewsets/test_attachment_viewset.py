@@ -7,8 +7,6 @@ import os
 
 from django.utils import timezone
 
-from flaky import flaky
-
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.logger.import_tools import django_file
@@ -34,7 +32,6 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         self._publish_xls_form_to_project()
 
-    @flaky(max_runs=10)
     def test_retrieve_view(self):
         self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
 
@@ -54,19 +51,19 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get("/", **self.extra)
         response = self.retrieve_view(request, pk=pk)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, dict))
         self.assertEqual(response.data, data)
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # file download
         filename = data["filename"]
         ext = filename[filename.rindex(".") + 1 :]
         request = self.factory.get("/", **self.extra)
         response = self.retrieve_view(request, pk=pk, format=ext)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, "image/jpeg")
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         self.attachment.instance.xform.deleted_at = timezone.now()
         self.attachment.instance.xform.save()
@@ -102,20 +99,20 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         # not using pagination params
         request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # valid page and page_size
         request = self.factory.get(
             "/", data={"xform": self.xform.pk, "page": 1, "page_size": 1}, **self.extra
         )
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # invalid page type
         request = self.factory.get(
@@ -190,10 +187,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # test when the submission is soft deleted
         self.attachment.instance.deleted_at = timezone.now()
@@ -209,9 +206,9 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+        self.assertNotEqual(response.get("Cache-Control"), None)
         initial_count = len(response.data)
 
         self.xform.deleted_at = timezone.now()
@@ -227,9 +224,9 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data = {"xform": self.xform.pk}
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         data["xform"] = 10000000
         request = self.factory.get("/", data, **self.extra)
@@ -255,9 +252,9 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data = {"instance": self.attachment.instance.pk}
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         data["instance"] = 10000000
         request = self.factory.get("/", data, **self.extra)
@@ -340,19 +337,19 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 6)
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # Apply image Filter
         data["type"] = "image"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["mimetype"], "image/jpeg")
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # Apply audio filter
         data["type"] = "audio"
@@ -369,22 +366,22 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["mimetype"], "video/mp4")
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         # Apply file filter
         data["type"] = "document"
         request = self.factory.get("/", data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 3)
         self.assertEqual(response.data[0]["mimetype"], "application/pdf")
         self.assertEqual(response.data[1]["mimetype"], "text/plain")
         self.assertEqual(response.data[2]["mimetype"], "application/geo+json")
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
     def test_direct_image_link(self):
         self._submit_transport_instance_w_attachment()
@@ -392,10 +389,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data = {"filename": self.attachment.media_file.name}
         request = self.factory.get("/", data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.pk)
-        self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, str))
         self.assertEqual(response.data, attachment_url(self.attachment))
+        self.assertNotEqual(response.get("Cache-Control"), None)
 
         data["filename"] = 10000000
         request = self.factory.get("/", data, **self.extra)
