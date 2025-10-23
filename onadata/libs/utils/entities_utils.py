@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, TextIO
 
-from django.contrib.auth.models import User
 from django.db.models import QuerySet
 from django.utils.translation import gettext as _
 
@@ -233,12 +232,13 @@ class RowResult:
     error: str | None = None  # error message if status == "error"
 
 
+# pylint: disable=too-many-locals,too-many-positional-arguments,too-many-arguments
 def import_entities_from_csv(
     entity_list: EntityList,
     csv_file: TextIO,
     label_column: str = "label",
     uuid_column: str = "uuid",
-    user: User | None = None,
+    user: None = None,
     dry_run: bool = False,
 ) -> tuple[int, int, list[tuple[int, str]]]:
     """Import Entities from a CSV file
