@@ -695,7 +695,7 @@ The import status endpoint returns different states depending on the progress of
 
 - ``PENDING`` - Task is queued but not yet started
 - ``STARTED`` - Task has begun processing
-- ``PROGRESS`` - Task is actively processing rows (updates every 25 rows)
+- ``PROGRESS`` - Task is actively processing rows
 - ``SUCCESS`` - Task completed successfully
 - ``FAILURE`` - Task failed with an error
 - ``RETRY`` - Task is being retried due to a temporary error
