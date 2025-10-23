@@ -1,9 +1,10 @@
+---
 name: AWS ECR Build Image
 
-on:
+on: # yamllint disable-line rule:truthy
   release:
-      types:
-          - "released"
+    types:
+      - "released"
   push:
     branches:
       - "main"
@@ -11,32 +12,24 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
-    buildAlpine:
-      description: Whether to build an Alpine based image
-      required: false
-      type: boolean
-      default: false
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
+        platforms:
+          - [linux/amd64, ubuntu-latest]
+          - [linux/arm64, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.platforms[1] }}
     steps:
       - name: Prepare
         run: |
-          platform=${{ matrix.platform }}
+          platform=${{ matrix.platforms[0] }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -77,8 +70,17 @@ jobs:
 
       - name: Get the branch name
         id: get-branch-name
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: >
+          github.event_name == 'push'
+          || github.event_name == 'workflow_dispatch'
         run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Get docker repository URL
+        id: get-repo-url
+        run: |
+          echo "docker_repo=${{ steps.login-ecr.outputs.registry }}\
+               /onaio/onadata:${{ env.version || github.ref_name }}"\
+               | sed 's/ //g' >> $GITHUB_ENV
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
@@ -86,25 +88,32 @@ jobs:
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
-          platforms: ${{ matrix.platform }}
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}
+          platforms: ${{ matrix.platforms[0] }}
+          cache-from: type=registry,ref=${{ env.docker_repo }}
           cache-to: type=inline
           ssh: |
             default=/tmp/ssh-agent.sock
-          build-args: |
-            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
+          build-args: >
+            optional_packages=PyYAML
+            django-redis
+            ${{ secrets.ECR_OPTIONAL_PACKAGES }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          outputs: type=image,name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,push-by-digest=true,name-canonical=true,push=true
-      -
-        name: Export digest
+          outputs: >
+            type=image,
+            name=${{ steps.login-ecr.outputs.registry }}/onaio/onadata,
+            push-by-digest=true,
+            name-canonical=true,
+            push=true
+
+      - name: Export digest
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.docker-build-ubuntu.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
-      -
-        name: Upload digest
+
+      - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -112,30 +121,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: (Alpine) Build and push
-        id: docker-build-alpine
-        uses: docker/build-push-action@v5
-        if: github.event.inputs.buildAlpine
-        with:
-          context: .
-          file: ./docker/onadata-uwsgi/Dockerfile.alpine
-          platforms: ${{ matrix.platform }}
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version }}
-          cache-to: type=inline
-          ssh: |
-            default=/tmp/ssh-agent.sock
-          build-args: |
-            optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ env.version || github.ref_name }}-alpine
-
-      - name: (Ubuntu) Image digest
-        run: echo ${{ steps.docker-build-ubuntu.outputs.digest }}
-
-      - name: (Alpine) Image digest
-        if: github.event.inputs.buildAlpine
-        run: echo ${{ steps.docker-build-alpine.outputs.digest }}
   merge:
     runs-on: ubuntu-latest
     needs:
@@ -171,43 +156,91 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
 
+      - name: Get docker repository URL
+        id: get-repo-url
+        run: |
+          echo "docker_repo=${{ steps.login-ecr.outputs.registry }}\
+               /onaio/onadata:${{ steps.meta.outputs.version }}"\
+               | sed 's/ //g' >> $GITHUB_ENV
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ steps.login-ecr.outputs.registry }}/onaio/onadata@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ steps.login-ecr.outputs.registry }}/onaio/onadata@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.docker_repo }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          image-ref: ${{ env.docker_repo }}
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: Upload Trivy scan result to Github security lab
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
+        continue-on-error: true
 
-      - name: Run Trivy vulnerability scanner for Slack
-        uses: aquasecurity/trivy-action@master
+      - name: Install SARIF tools
+        run: pip install sarif-tools
+
+      - name: Convert SARIF to HTML
+        run: sarif html -o trivy-results.html trivy-results.sarif
+
+      - name: Upload Trivy SARIF as artifact
+        uses: actions/upload-artifact@v4
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata:${{ steps.meta.outputs.version }}
-          format: json
-          output: 'trivy-results.json'
+          name: trivy-sarif-results
+          path: trivy-results.sarif
+          retention-days: 30
+
+      - name: Upload Trivy HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-html-report
+          path: trivy-results.html
+          retention-days: 30
 
       - name: Create summary of trivy issues
         run: |
-          summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy-results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
-          if [ -z $summary ]
+          summary=$(jq -r '.runs[0].tool.driver.rules as $rules | [.runs[0].results[] | $rules[.ruleIndex].properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW" or . == "UNKNOWN")] | group_by(.) | map({Severity: .[0], Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy-results.sarif | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
+          if [ -z "$summary" ]
           then
             summary="0 Issues"
           fi
           echo "SUMMARY=$summary" >> $GITHUB_ENV
+
+      - name: Extract detailed vulnerabilities
+        run: |
+          details=$(jq -r '
+            .runs[0].tool.driver.rules as $rules |
+            .runs[0].results[0:10] |
+            map(
+              . as $result |
+              $rules[.ruleIndex] as $rule |
+              ($rule.properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW")) as $severity |
+              ($result.locations[0].message.text | split(":")[0] | if contains("site-packages/") then split("site-packages/")[1] elif contains("usr/lib/") then split("usr/lib/")[1] else (split("/") | .[-4:] | join("/")) end) as $location |
+              ($result.message.text | capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
+              ($result.message.text | capture("Installed Version: (?<ver>[^\n]+)") | .ver) as $installed |
+              ($result.message.text | capture("Fixed Version: (?<fix>[^\n]+)") | .fix // "Not available") as $fixed |
+              (if $severity == "CRITICAL" then "🔴" elif $severity == "HIGH" then "🟠" elif $severity == "MEDIUM" then "🟡" else "⚪" end) as $icon |
+              "\($icon) *\($result.ruleId)* (\($severity))\nPackage: `\($package)@\($installed)`\nLocation: `\($location)`\nFixed: `\($fixed)`\n<\($rule.helpUri)|View Details>\n"
+            ) | join("\n")
+          ' trivy-results.sarif)
+
+          if [ -z "$details" ]
+          then
+            details="No vulnerabilities found in the scanned severity levels."
+          fi
+
+          # Escape for GitHub Actions environment
+          echo "DETAILS<<EOF" >> $GITHUB_ENV
+          echo "$details" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.26.0
@@ -220,14 +253,34 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "[Ona Data] Trivy scan results: ${{ env.SUMMARY }}"
+                    "text": "[Ona Data] Trivy scan results for ${{ steps.meta.outputs.version }}: ${{ env.SUMMARY }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🔍 *Found Vulnerabilities (Top 10):*"
                   }
                 },
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ env.version || github.ref_name }}+is:open++"
+                    "text": ${{ toJSON(env.DETAILS) }}
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "📊 *View Full Reports:*\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Download HTML Report>\n• <https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ env.version || github.ref_name }}+is:open++|GitHub Code Scanning>"
                   }
                 }
               ]
