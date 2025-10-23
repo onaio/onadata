@@ -84,7 +84,7 @@ TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 
 
 URL_PATTERN = (
-    r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\."
+    r"(?:https?://)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\."
     r"[a-zA-Z0-9()]{1,6}\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
 )
 
