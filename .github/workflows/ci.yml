@@ -205,6 +205,14 @@ jobs:
           scanners: "vuln"
           output: "trivy_results.sarif"
 
+      - name: Install SARIF tools
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: pip install sarif-tools
+
+      - name: Convert SARIF to HTML
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: sarif html -o trivy_results.html trivy_results.sarif
+
       - name: Upload Trivy SARIF as artifact
         uses: actions/upload-artifact@v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -213,32 +221,58 @@ jobs:
           path: trivy_results.sarif
           retention-days: 30
 
+      - name: Upload Trivy HTML report as artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          name: trivy-html-report
+          path: trivy_results.html
+          retention-days: 30
+
       - name: Upload vulnerability scan results
         uses: github/codeql-action/upload-sarif@v3
         if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
 
-      - name: Run Trivy vulnerability for Slack summary
-        uses: aquasecurity/trivy-action@0.33.1
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
-        with:
-          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
-          format: json
-          ignore-unfixed: false
-          severity: "CRITICAL,HIGH"
-          scanners: "vuln"
-          output: "trivy_results.json"
-
       - name: Create summary of trivy issues
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
-          summary=$(jq -r '.Results[] | select(.Vulnerabilities) | .Vulnerabilities | group_by(.Severity) | map({Severity: .[0].Severity, Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.json | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
+          summary=$(jq -r '.runs[0].tool.driver.rules as $rules | [.runs[0].results[] | $rules[.ruleIndex].properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW" or . == "UNKNOWN")] | group_by(.) | map({Severity: .[0], Count: length}) | .[] | [.Severity, .Count] | join(": ")' trivy_results.sarif | awk 'NR > 1 { printf(" | ") } {printf "%s",$0}')
           if [ -z "$summary" ]
           then
             summary="0 Issues"
           fi
           echo "SUMMARY=$summary" >> $GITHUB_ENV
+
+      - name: Extract detailed vulnerabilities
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: |
+          details=$(jq -r '
+            .runs[0].tool.driver.rules as $rules |
+            .runs[0].results[0:10] |
+            map(
+              . as $result |
+              $rules[.ruleIndex] as $rule |
+              ($rule.properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW")) as $severity |
+              ($result.locations[0].message.text | split(":")[0] | if contains("site-packages/") then split("site-packages/")[1] elif contains("usr/lib/") then split("usr/lib/")[1] else (split("/") | .[-4:] | join("/")) end) as $location |
+              ($result.message.text | capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
+              ($result.message.text | capture("Installed Version: (?<ver>[^\n]+)") | .ver) as $installed |
+              ($result.message.text | capture("Fixed Version: (?<fix>[^\n]+)") | .fix // "Not available") as $fixed |
+              (if $severity == "CRITICAL" then "🔴" elif $severity == "HIGH" then "🟠" elif $severity == "MEDIUM" then "🟡" else "⚪" end) as $icon |
+              "\($icon) *\($result.ruleId)* (\($severity))\nPackage: `\($package)@\($installed)`\nLocation: `\($location)`\nFixed: `\($fixed)`\n<\($rule.helpUri)|View Details>\n"
+            ) | join("\n")
+          ' trivy_results.sarif)
+
+          if [ -z "$details" ]
+          then
+            details="No vulnerabilities found in the scanned severity levels."
+          fi
+
+          # Escape for GitHub Actions environment
+          echo "DETAILS<<EOF" >> $GITHUB_ENV
+          echo "$details" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.23.0
@@ -256,10 +290,30 @@ jobs:
                   }
                 },
                 {
+                  "type": "divider"
+                },
+                {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "View scan results: https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ github.head_ref || github.base_ref || env.version }}+is:open++"
+                    "text": "🔍 *Found Vulnerabilities (Top 10):*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ${{ toJSON(env.DETAILS) }}
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "📊 *View Full Reports:*\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Download HTML Report>\n• <https://github.com/${{ github.repository }}/security/code-scanning?query=branch:${{ github.head_ref || github.base_ref || env.version }}+is:open++|GitHub Code Scanning>"
                   }
                 }
               ]
