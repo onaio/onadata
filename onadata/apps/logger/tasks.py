@@ -311,7 +311,7 @@ def import_entities_from_csv_async(
     entity_list = EntityList.objects.get(pk=entity_list_id)
     user = User.objects.get(pk=user_id) if user_id else None
 
-    with default_storage.open(file_path) as csv_file:
+    with default_storage.open(file_path, mode="r") as csv_file:
         for row_result in import_entities_from_csv(
             entity_list,
             csv_file,
