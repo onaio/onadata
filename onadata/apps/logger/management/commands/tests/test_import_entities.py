@@ -1,4 +1,6 @@
-"""Tests for management command import_entities"""
+"""
+Tests for management command import_entities
+"""
 
 import os
 from io import StringIO
