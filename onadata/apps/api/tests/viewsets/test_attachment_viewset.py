@@ -51,7 +51,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get("/", **self.extra)
         response = self.retrieve_view(request, pk=pk)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
         self.assertTrue(isinstance(response.data, dict))
         self.assertEqual(response.data, data)
         self.assertNotEqual(response.get("Cache-Control"), None)
@@ -61,7 +61,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         ext = filename[filename.rindex(".") + 1 :]
         request = self.factory.get("/", **self.extra)
         response = self.retrieve_view(request, pk=pk, format=ext)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.content_type, "image/jpeg")
         self.assertNotEqual(response.get("Cache-Control"), None)
 

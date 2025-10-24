@@ -10,12 +10,11 @@ import subprocess
 import warnings
 from tempfile import NamedTemporaryFile
 
+import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
-
-import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock
@@ -342,7 +341,7 @@ class TestAbstractViewSet(TestBase, TestCase):
                 post_data = {"xls_file": xls_file}
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
-                self.assertEqual(response.status_code, 201)
+                self.assertEqual(response.status_code, 201, response.data)
                 # pylint: disable=attribute-defined-outside-init
                 self.xform = XForm.objects.all().order_by("pk").reverse()[0]
                 data.update({"url": f"http://testserver/api/v1/forms/{self.xform.pk}"})
@@ -488,7 +487,10 @@ class TestAbstractViewSet(TestBase, TestCase):
         if delete_existing_attachments:
             try:
                 media_file_name = media_file.split(".")[0]
-                cmd = f"rm {settings.MEDIA_ROOT}{self.profile_data['username']}/attachments/*/{media_file_name}*"
+                cmd = (
+                    f"rm {settings.MEDIA_ROOT}"
+                    f"{self.profile_data['username']}/attachments/*/{media_file_name}*"
+                )
                 subprocess.run(cmd, shell=True, check=True)
             except subprocess.CalledProcessError:
                 pass
