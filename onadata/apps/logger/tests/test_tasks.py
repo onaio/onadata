@@ -589,6 +589,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
         )
 
+        mock_import.assert_called_once()
         mock_send_message.assert_called_once_with(
             instance_id=self.entity_list.pk,
             target_id=self.entity_list.pk,
