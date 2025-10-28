@@ -30,6 +30,8 @@ except ImportError:
     SPSSIOError = Exception
 
 from onadata.apps.main.models import TokenStorageModel
+from onadata.apps.messaging.constants import EXPORT_CREATED, XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import (
@@ -492,7 +494,12 @@ def process_async_export(request, xform, export_type, options=None):
     ):
         resp = {
             "job_uuid": create_export_async(
-                xform, export_type, query, force_xlsx, options=options
+                xform,
+                export_type,
+                query,
+                force_xlsx,
+                options=options,
+                user=request.user,
             )
         }
     else:
@@ -503,7 +510,12 @@ def process_async_export(request, xform, export_type, options=None):
             # tends to happen when using newest_export_for.
             resp = {
                 "job_uuid": create_export_async(
-                    xform, export_type, query, force_xlsx, options=options
+                    xform,
+                    export_type,
+                    query,
+                    force_xlsx,
+                    options=options,
+                    user=request.user,
                 )
             }
         else:
@@ -512,7 +524,9 @@ def process_async_export(request, xform, export_type, options=None):
     return resp
 
 
-def create_export_async(xform, export_type, query=None, force_xlsx=False, options=None):
+def create_export_async(
+    xform, export_type, query=None, force_xlsx=False, options=None, user=None
+):
     """
     Creates async exports
     :param xform:
@@ -529,13 +543,25 @@ def create_export_async(xform, export_type, query=None, force_xlsx=False, option
         return export.task_id
 
     try:
-        export, async_result = viewer_task.create_async_export(
+        result = viewer_task.create_async_export(
             xform, export_type, query, force_xlsx, options=options
         )
+        if result:
+            export, async_result = result
+            send_message(
+                instance_id=export.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=user,
+                message_verb=EXPORT_CREATED,
+                message_description=export_type,
+            )
     except ExportConnectionError as e:
         raise ServiceUnavailable from e
 
-    return async_result.task_id
+    if result:
+        export, async_result = result
+        return async_result.task_id
 
 
 def export_async_export_response(request, export):
