@@ -2,6 +2,7 @@
 """
 Tests the onadata.libs.utils.csv_import module
 """
+
 from __future__ import unicode_literals
 
 import os
@@ -186,6 +187,7 @@ class CSVImportTestCase(TestBase):
             target_id=xform.id,
             target_type=XFORM,
             message_verb=SUBMISSION_EDITED,
+            message_description="imported_via_csv",
             user=self.user,
         )
 
@@ -446,6 +448,7 @@ class CSVImportTestCase(TestBase):
             target_id=xform.id,
             target_type=XFORM,
             message_verb=SUBMISSION_CREATED,
+            message_description="imported_via_csv",
             user=self.user,
         )
 
