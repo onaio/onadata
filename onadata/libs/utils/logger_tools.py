@@ -907,7 +907,8 @@ def publish_form(callback):
             "type": "alert-error",
             "text": _("Form validation timeout, please try again."),
         }
-    except (MemoryError, OSError, BadStatusLine):
+    except (MemoryError, OSError, BadStatusLine) as e:
+        report_exception(f"System error: {e}", text(e), sys.exc_info())
         return {
             "type": "alert-error",
             "text": _(
