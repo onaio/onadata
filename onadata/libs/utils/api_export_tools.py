@@ -562,6 +562,7 @@ def create_export_async(
     if result:
         export, async_result = result
         return async_result.task_id
+    return None
 
 
 def export_async_export_response(request, export):

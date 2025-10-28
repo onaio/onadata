@@ -138,6 +138,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return instance
 
 
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def send_message(
     instance_id: Union[list, int],
     target_id: int,
@@ -184,4 +185,7 @@ def send_message(
 
 
 def create_description_map(message_description):
+    """
+    Create a description map if message is provided
+    """
     return {"description": message_description} if message_description else {}
