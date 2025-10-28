@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.8.0(2025-10-16)
+------------------
+- fix: Ensure decryption error metadata is not lost if Instance re-saved
+  [@kelvin-muchiri]
+  `PR #2920 https://github.com/onaio/onadata/pull/2920`
+- perf: Improve export outdated check performance
+  [@kelvin-muchiri]
+  `PR #2926 https://github.com/onaio/onadata/pull/2926`
+- Improve JSON submission docs
+  [@ukanga]
+  `PR #2929 https://github.com/onaio/onadata/pull/2929`
+- Security updates
+  [@ukanga]
+  `PR #2930 https://github.com/onaio/onadata/pull/2930`
+- Expose system errors to Sentry when uploading a form
+  [@FrankApiyo]
+  `PR #2935 https://github.com/onaio/onadata/pull/2935`
+- Bump ona-oidc version to v2.5.1
+  [@FrankApiyo]
+  `PR #2935 https://github.com/onaio/onadata/pull/2935`
+
 v5.7.0(2025-10-07)
 ------------------
 - Bug fix: Only send password reset emails to non-organizations
