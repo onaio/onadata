@@ -751,8 +751,8 @@ Even when the overall import succeeds, individual rows may have errors. These ar
          "state": "SUCCESS",
          "result": {
             "processed": 325,
-            "created": 300,
-            "updated": 25,
+            "created": 322,
+            "updated": 0,
             "errors": [
                [4, "Invalid UUID format"],
                [7, "Label cannot be empty"],
