@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
+from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
@@ -863,17 +864,23 @@ def response_with_mimetype_and_name(
 
 
 def generate_content_disposition_header(name, extension, show_date=True):
-    """Returns the a Content-Description header formatting string,"""
+    """Returns the a Content-Disposition header formatting string,"""
     if name is None:
         return "attachment;"
     if show_date:
         timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         name = f"{name}-{timestamp}"
+    # Older browsers that don't understand filename*
+    fallback_filename = f"download.{extension}"
+    encoded_filename = quote(f"{name}.{extension}")
     # The filename is enclosed in quotes because it ensures that special characters,
     # spaces, or punctuation in the filename are correctly interpreted by browsers
     # and clients. This is particularly important for filenames that may contain
     # spaces or non-ASCII characters.
-    return f'attachment; filename="{name}.{extension}"'
+    return (
+        f'attachment; filename="{fallback_filename}"; '
+        f"filename*=UTF-8''{encoded_filename}"
+    )
 
 
 def store_temp_file(data):

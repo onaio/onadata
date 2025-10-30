@@ -70,6 +70,18 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             re.search(file_name_pattern, return_value_with_name_and_false_show_date)
         )
 
+    def test_generate_content_disposition_w_non_ascii_name(self):
+        """Content disposition header is generated correctly for non-ASCII name."""
+        file_name = "exporté"
+        extension = "csv"
+        return_value = generate_content_disposition_header(
+            file_name, extension, show_date=False
+        )
+        self.assertEqual(
+            return_value,
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''export%C3%A9.csv",
+        )
+
     def test_attachment_tracking(self):
         """
         Test that when a submission with many attachments is made,
@@ -781,7 +793,10 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
         )
         self.assertEqual(response.status_code, 302)
         mock_download_url.assert_called_once_with(
-            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+            "test.csv",
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
+            "text/csv",
+            3600,
         )
 
     @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
@@ -798,7 +813,10 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
         )
         self.assertEqual(response.status_code, 302)
         mock_download_url.assert_called_once_with(
-            "test.csv", 'attachment; filename="test.csv"', "application/csv", 3600
+            "test.csv",
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
+            "application/csv",
+            3600,
         )
 
 
