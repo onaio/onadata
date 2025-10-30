@@ -2,13 +2,12 @@ import os
 
 from django.test import RequestFactory
 
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestLegacyExports(TestBase):
-
     def setUp(self):
         super(self.__class__, self).setUp()
         self._create_user_and_login()
@@ -34,7 +33,7 @@ class TestLegacyExports(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers["Content-Type"], "application/csv")
-        self.assertEqual(ext, '.csv"')
+        self.assertEqual(ext, ".csv")
 
         # xls
         request = self.factory.get("/", **self.extra)
@@ -45,7 +44,7 @@ class TestLegacyExports(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers["Content-Type"], "application/vnd.openxmlformats")
-        self.assertEqual(ext, '.xlsx"')
+        self.assertEqual(ext, ".xlsx")
 
     def test_data_export(self):
         self._make_submissions()
@@ -61,7 +60,7 @@ class TestLegacyExports(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers["Content-Type"], "application/csv")
-        self.assertEqual(ext, '.csv"')
+        self.assertEqual(ext, ".csv")
 
         # xls
         request = self.factory.get("/", **self.extra)
@@ -72,7 +71,7 @@ class TestLegacyExports(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers["Content-Type"], "application/vnd.openxmlformats")
-        self.assertEqual(ext, '.xlsx"')
+        self.assertEqual(ext, ".xlsx")
 
         # kml
         request = self.factory.get("/", **self.extra)
@@ -85,4 +84,4 @@ class TestLegacyExports(TestBase):
         self.assertEqual(
             headers["Content-Type"], "application/vnd.google-earth.kml+xml"
         )
-        self.assertEqual(ext, '.kml"')
+        self.assertEqual(ext, ".kml")

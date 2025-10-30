@@ -794,7 +794,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, '.csv"')
+        self.assertEqual(ext, ".csv")
 
         content = get_response_content(response)
         test_file_path = os.path.join(
@@ -876,7 +876,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, '.zip"')
+        self.assertEqual(ext, ".zip")
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -1616,7 +1616,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, '.csv"')
+        self.assertEqual(ext, ".csv")
 
         content = get_response_content(response)
 
@@ -1999,7 +1999,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content_disposition = headers["Content-Disposition"]
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
-        self.assertEqual(ext, '.csv"')
+        self.assertEqual(ext, ".csv")
 
         content = get_response_content(response)
         self.assertEqual(content, "name,age,gender\nDennis Wambua,28,male\n")
