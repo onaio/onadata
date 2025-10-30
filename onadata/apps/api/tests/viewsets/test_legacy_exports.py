@@ -44,7 +44,7 @@ class TestLegacyExports(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers["Content-Type"], "application/vnd.openxmlformats")
-        self.assertEqual(ext, '.xlsx"')
+        self.assertEqual(ext, ".xlsx")
 
     def test_data_export(self):
         self._make_submissions()
