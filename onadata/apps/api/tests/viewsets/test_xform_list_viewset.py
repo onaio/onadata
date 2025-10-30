@@ -993,7 +993,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
+            response["Content-Disposition"],
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''transportation.csv",
         )
 
     def test_retrieve_xform_media_linked_xform_delimiters(self):
@@ -1046,7 +1047,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], 'attachment; filename="transportation.csv"'
+            response["Content-Disposition"],
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''transportation.csv",
         )
         content = "".join([i.decode("utf-8") for i in response.streaming_content])
         first_line = content.split("\n")[0]
@@ -1098,7 +1100,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], 'attachment; filename="trees.csv"'
+            response["Content-Disposition"],
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''trees.csv",
         )
 
     def test_retrieve_xform_manifest_linked_form(self):
