@@ -793,7 +793,10 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
         )
         self.assertEqual(response.status_code, 302)
         mock_download_url.assert_called_once_with(
-            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+            "test.csv",
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
+            "text/csv",
+            3600,
         )
 
     @patch("onadata.libs.utils.logger_tools.get_storages_media_download_url")
@@ -810,7 +813,10 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
         )
         self.assertEqual(response.status_code, 302)
         mock_download_url.assert_called_once_with(
-            "test.csv", 'attachment; filename="test.csv"', "application/csv", 3600
+            "test.csv",
+            "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
+            "application/csv",
+            3600,
         )
 
 

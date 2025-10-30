@@ -2,6 +2,7 @@
 """
 Test form views.
 """
+
 import os
 from unittest import skip
 from unittest.mock import patch
@@ -82,7 +83,8 @@ class TestFormShow(TestBase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response["Content-Disposition"], 'attachment; filename="exp_one.xlsx"'
+            response["Content-Disposition"],
+            "attachment; filename=\"download.xlsx\"; filename*=UTF-8''exp_one.xlsx",
         )
 
         # test with unavailable id_string
@@ -125,7 +127,7 @@ class TestFormShow(TestBase):
                     "id_string": self.xform.id_string,
                 },
             ),
-            **extra
+            **extra,
         )
         self.assertEqual(response.status_code, 200)
 
@@ -188,7 +190,7 @@ class TestFormShow(TestBase):
                     "id_string": self.xform.id_string,
                 },
             ),
-            **extra
+            **extra,
         )
         self.assertEqual(response.status_code, 200)
 
@@ -237,7 +239,7 @@ class TestFormShow(TestBase):
                     "id_string": self.xform.id_string,
                 },
             ),
-            **extra
+            **extra,
         )
         self.assertEqual(response.status_code, 200)
 
