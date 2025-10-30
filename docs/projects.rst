@@ -46,22 +46,73 @@ Response
 ^^^^^^^^^
 ::
 
-       [
-           {
-               "url": "https://api.ona.io/api/v1/projects/1",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 1",
-               "date_created": "2013-07-24T13:37:39Z",
-               "date_modified": "2013-07-24T13:37:39Z"
-           },
-           {
-               "url": "https://api.ona.io/api/v1/projects/4",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 2",
-               "date_created": "2013-07-24T13:59:10Z",
-               "date_modified": "2013-07-24T13:59:10Z"
-           }, ...
-       ]
+        [
+            {
+                "url": "https://api.ona.io/api/v1/projects/21001",
+                "projectid": 21001,
+                "owner": "https://api.ona.io/api/v1/users/jdoe",
+                "created_by": "https://api.ona.io/api/v1/users/jdoe",
+                "metadata": {
+                "name": "Health Survey",
+                "category": "health"
+                },
+                "starred": true,
+                "current_user_role": "owner",
+                "forms": [
+                {
+                    "name": "Community Health Check",
+                    "formid": 30045,
+                    "id_string": "Community_Health_Check",
+                    "is_merged_dataset": false,
+                    "encrypted": true,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": false,
+                "tags": ["survey", "health"],
+                "num_datasets": 2,
+                "last_submission_date": "2025-09-10T10:15:22.123456Z",
+                "teams": [],
+                "name": "Health Survey",
+                "date_created": "2025-09-05T09:00:00.000000Z",
+                "date_modified": "2025-09-08T14:22:11.000000Z",
+                "deleted_at": null
+            },
+            {
+                "url": "https://api.ona.io/api/v1/projects/21002",
+                "projectid": 21002,
+                "owner": "https://api.ona.io/api/v1/users/asanchez",
+                "created_by": "https://api.ona.io/api/v1/users/asanchez",
+                "metadata": {
+                "name": "Wildlife Tracking",
+                "category": "conservation"
+                },
+                "starred": false,
+                "current_user_role": "editor",
+                "forms": [
+                {
+                    "name": "Animal Sighting Log",
+                    "formid": 30078,
+                    "id_string": "Animal_Sighting_Log",
+                    "is_merged_dataset": false,
+                    "encrypted": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": true,
+                "tags": ["wildlife", "tracking"],
+                "num_datasets": 1,
+                "last_submission_date": "2025-09-20T17:45:30.654321Z",
+                "teams": [],
+                "name": "Wildlife Tracking",
+                "date_created": "2025-09-15T12:30:00.000000Z",
+                "date_modified": "2025-09-21T09:40:55.000000Z",
+                "deleted_at": null
+            }
+        ]
+
 
 Get a paginated list of Projects
 ---------------------------------
@@ -84,22 +135,72 @@ Response
 ^^^^^^^^^
 ::
 
-       [
-           {
-               "url": "https://api.ona.io/api/v1/projects/1",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 1",
-               "date_created": "2013-07-24T13:37:39Z",
-               "date_modified": "2013-07-24T13:37:39Z"
-           },
-           {
-               "url": "https://api.ona.io/api/v1/projects/4",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 2",
-               "date_created": "2013-07-24T13:59:10Z",
-               "date_modified": "2013-07-24T13:59:10Z"
-           }, ...
-       ]
+        [
+            {
+                "url": "https://api.ona.io/api/v1/projects/21001",
+                "projectid": 21001,
+                "owner": "https://api.ona.io/api/v1/users/jdoe",
+                "created_by": "https://api.ona.io/api/v1/users/jdoe",
+                "metadata": {
+                "name": "Health Survey",
+                "category": "health"
+                },
+                "starred": true,
+                "current_user_role": "owner",
+                "forms": [
+                {
+                    "name": "Community Health Check",
+                    "formid": 30045,
+                    "id_string": "Community_Health_Check",
+                    "is_merged_dataset": false,
+                    "encrypted": true,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": false,
+                "tags": ["survey", "health"],
+                "num_datasets": 2,
+                "last_submission_date": "2025-09-10T10:15:22.123456Z",
+                "teams": [],
+                "name": "Health Survey",
+                "date_created": "2025-09-05T09:00:00.000000Z",
+                "date_modified": "2025-09-08T14:22:11.000000Z",
+                "deleted_at": null
+            },
+            {
+                "url": "https://api.ona.io/api/v1/projects/21002",
+                "projectid": 21002,
+                "owner": "https://api.ona.io/api/v1/users/asanchez",
+                "created_by": "https://api.ona.io/api/v1/users/asanchez",
+                "metadata": {
+                "name": "Wildlife Tracking",
+                "category": "conservation"
+                },
+                "starred": false,
+                "current_user_role": "editor",
+                "forms": [
+                {
+                    "name": "Animal Sighting Log",
+                    "formid": 30078,
+                    "id_string": "Animal_Sighting_Log",
+                    "is_merged_dataset": false,
+                    "encrypted": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": true,
+                "tags": ["wildlife", "tracking"],
+                "num_datasets": 1,
+                "last_submission_date": "2025-09-20T17:45:30.654321Z",
+                "teams": [],
+                "name": "Wildlife Tracking",
+                "date_created": "2025-09-15T12:30:00.000000Z",
+                "date_modified": "2025-09-21T09:40:55.000000Z",
+                "deleted_at": null
+            }
+        ]
 
 List of Projects filter by owner/organization
 ----------------------------------------------
@@ -137,82 +238,86 @@ Response
 ::
 
         {
-            "url":"https://api.ona.io/api/v1/projects/1",
-            "projectid":1,
-            "owner":"https://api.ona.io/api/v1/users/ona",
-            "created_by":"https://api.ona.io/api/v1/users/ona",
-            "metadata":{
-                "name":"Entities",
-                "category":"agriculture"
+            "url": "https://api.ona.io/api/v1/projects/1",
+            "projectid": 1,
+            "owner": "https://api.ona.io/api/v1/users/jdoe",
+            "created_by": "https://api.ona.io/api/v1/users/jdoe",
+            "metadata": {
+                "name": "Urban Water Access",
+                "category": "infrastructure"
             },
-            "starred":false,
-            "users":[
+            "starred": true,
+            "users": [
                 {
-                    "is_org":false,
-                    "metadata":{
-                        "is_email_verified":false
+                    "is_org": false,
+                    "metadata": {
+                        "is_email_verified": true,
+                        "last_password_edit": "2024-10-22T13:12:55.987654+00:00"
                     },
-                    "first_name":"Ona",
-                    "last_name":"",
-                    "user":"ona",
-                    "role":"owner"
-                }
-            ],
-            "forms":[
-                {
-                    "name":"Trees registration",
-                    "formid":1,
-                    "id_string":"trees_registration",
-                    "num_of_submissions":7,
-                    "downloadable":true,
-                    "encrypted":false,
-                    "published_by_formbuilder":null,
-                    "last_submission_time":"2024-06-18T14:34:57.987361Z",
-                    "date_created":"2024-05-28T12:08:07.993820Z",
-                    "url":"https://api.ona.io/api/v1/forms/1",
-                    "last_updated_at":"2024-06-21T08:13:06.436449Z",
-                    "is_merged_dataset":false,
-                    "contributes_entities_to":{
-                        "id":100,
-                        "name":"trees",
-                        "is_active":true
-                    },
-                    "consumes_entities_from":[]
+                    "first_name": "Jane",
+                    "last_name": "Doe",
+                    "user": "jdoe",
+                    "role": "owner"
                 },
                 {
-                    "name":"Trees follow-up",
-                    "formid":18421,
-                    "id_string":"trees_follow_up",
-                    "num_of_submissions":0,
-                    "downloadable":true,
-                    "encrypted":false,
-                    "published_by_formbuilder":null,
-                    "last_submission_time":null,
-                    "date_created":"2024-05-28T12:08:39.909235Z",
-                    "url":"https://api.ona.io/api/v1/forms/2",
-                    "last_updated_at":"2024-06-21T08:13:58.963836Z",
-                    "is_merged_dataset":false,
-                    "contributes_entities_to":null,
-                    "consumes_entities_from":[
-                        {
-                            "id":100,
-                            "name":"trees",
-                            "is_active":true
-                        }
-                    ]
+                    "is_org": false,
+                    "metadata": {
+                        "is_email_verified": false,
+                        "last_password_edit": "2024-08-15T10:30:45.000000+00:00"
+                    },
+                    "first_name": "Alex",
+                    "last_name": "Sanchez",
+                    "user": "asanchez",
+                    "role": "editor"
                 }
             ],
-            "public":false,
-            "tags":[],
-            "num_datasets":2,
-            "last_submission_date":"2024-06-18T14:50:32.755792Z",
-            "teams":[],
-            "data_views":[],
-            "name":"Entities",
-            "date_created":"2023-11-07T07:02:09.655836Z",
-            "date_modified":"2024-06-21T08:15:12.634454Z",
-            "deleted_at":null
+            "forms": [
+                {
+                    "name": "Water Point Survey",
+                    "formid": 31012,
+                    "id_string": "Water_Point_Survey",
+                    "num_of_submissions": 145,
+                    "downloadable": true,
+                    "encrypted": true,
+                    "published_by_formbuilder": null,
+                    "last_submission_time": "2025-09-18T15:20:45.321000Z",
+                    "date_created": "2025-09-10T07:15:00.000000Z",
+                    "url": "https://api.ona.io/api/v1/forms/31012",
+                    "last_updated_at": "2025-09-18T15:22:30.000000Z",
+                    "is_merged_dataset": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                },
+                {
+                    "name": "Household Feedback",
+                    "formid": 31013,
+                    "id_string": "Household_Feedback",
+                    "num_of_submissions": 67,
+                    "downloadable": true,
+                    "encrypted": false,
+                    "published_by_formbuilder": "asanchez",
+                    "last_submission_time": "2025-09-20T11:05:12.000000Z",
+                    "date_created": "2025-09-12T09:30:00.000000Z",
+                    "url": "https://api.ona.io/api/v1/forms/31013",
+                    "last_updated_at": "2025-09-21T08:00:00.000000Z",
+                    "is_merged_dataset": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+            ],
+            "public": true,
+            "tags": ["infrastructure", "survey", "urban"],
+            "num_datasets": 2,
+            "last_submission_date": "2025-09-20T11:05:12.000000Z",
+            "teams": [],
+            "data_views": [],
+            "name": "Urban Water Access",
+            "date_created": "2025-09-10T07:10:00.000000Z",
+            "date_modified": "2025-09-21T08:05:00.000000Z",
+            "deleted_at": null,
+            "current_user_role": "editor"
         }
+
 
 Update Project Information
 ------------------------------
@@ -231,18 +336,87 @@ Response
 ^^^^^^^^^
 ::
 
-    {
-        "url": "https://api.ona.io/api/v1/projects/1",
-        "owner": "https://api.ona.io/api/v1/users/ona",
-        "name": "project 1",
-        "metadata": {
-            "description": "Lorem ipsum",
-            "location": "Nakuru, Kenya",
-            "category": "water"
-        },
-        "date_created": "2013-07-24T13:37:39Z",
-        "date_modified": "2013-07-24T13:37:39Z"
-    }
+        {
+            "url": "https://api.ona.io/api/v1/projects/1",
+            "projectid": 1,
+            "owner": "https://api.ona.io/api/v1/users/jdoe",
+            "created_by": "https://api.ona.io/api/v1/users/jdoe",
+            "metadata": {
+                "description": "Lorem ipsum",
+                "location": "Nakuru, Kenya",
+                "category": "water"
+            },
+            "starred": true,
+            "users": [
+                {
+                    "is_org": false,
+                    "metadata": {
+                        "is_email_verified": true,
+                        "last_password_edit": "2024-10-22T13:12:55.987654+00:00"
+                    },
+                    "first_name": "Jane",
+                    "last_name": "Doe",
+                    "user": "jdoe",
+                    "role": "owner"
+                },
+                {
+                    "is_org": false,
+                    "metadata": {
+                        "is_email_verified": false,
+                        "last_password_edit": "2024-08-15T10:30:45.000000+00:00"
+                    },
+                    "first_name": "Alex",
+                    "last_name": "Sanchez",
+                    "user": "asanchez",
+                    "role": "editor"
+                }
+            ],
+            "forms": [
+                {
+                    "name": "Water Point Survey",
+                    "formid": 31012,
+                    "id_string": "Water_Point_Survey",
+                    "num_of_submissions": 145,
+                    "downloadable": true,
+                    "encrypted": true,
+                    "published_by_formbuilder": null,
+                    "last_submission_time": "2025-09-18T15:20:45.321000Z",
+                    "date_created": "2025-09-10T07:15:00.000000Z",
+                    "url": "https://api.ona.io/api/v1/forms/31012",
+                    "last_updated_at": "2025-09-18T15:22:30.000000Z",
+                    "is_merged_dataset": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                },
+                {
+                    "name": "Household Feedback",
+                    "formid": 31013,
+                    "id_string": "Household_Feedback",
+                    "num_of_submissions": 67,
+                    "downloadable": true,
+                    "encrypted": false,
+                    "published_by_formbuilder": "asanchez",
+                    "last_submission_time": "2025-09-20T11:05:12.000000Z",
+                    "date_created": "2025-09-12T09:30:00.000000Z",
+                    "url": "https://api.ona.io/api/v1/forms/31013",
+                    "last_updated_at": "2025-09-21T08:00:00.000000Z",
+                    "is_merged_dataset": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+            ],
+            "public": true,
+            "tags": ["infrastructure", "survey", "urban"],
+            "num_datasets": 2,
+            "last_submission_date": "2025-09-20T11:05:12.000000Z",
+            "teams": [],
+            "data_views": [],
+            "name": "Urban Water Access",
+            "date_created": "2025-09-10T07:10:00.000000Z",
+            "date_modified": "2025-09-21T08:05:00.000000Z",
+            "deleted_at": null,
+            "current_user_role": "editor"
+        }
 
 Available Permission Roles
 --------------------------
