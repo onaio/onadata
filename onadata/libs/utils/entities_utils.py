@@ -234,8 +234,7 @@ class RowResult:
     error: str | None = None  # error message if status == "error"
 
 
-# pylint: disable=line-too-long
-# pylint: disable=too-many-locals,too-many-positional-arguments,too-many-arguments,too-many-branches
+# pylint: disable=too-many-locals,too-many-positional-arguments,too-many-arguments,too-many-branches  # pylint: disable=line-too-long
 def import_entities_from_csv(
     entity_list: EntityList,
     csv_file: TextIO,
