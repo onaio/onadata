@@ -313,10 +313,10 @@ def import_entities_from_csv(
         if uuid_value:
             data["uuid"] = uuid_value
 
-        # Check if Entity already exists with this uuid
         existing_entity = None
 
         if uuid_value:
+            # Check if Entity already exists with this uuid
             try:
                 existing_entity = Entity.objects.get(
                     entity_list=entity_list,
@@ -325,6 +325,14 @@ def import_entities_from_csv(
                 )
             except Entity.DoesNotExist:
                 pass
+
+        if not existing_entity and not properties:
+            yield RowResult(
+                index=row_index,
+                status="error",
+                error="At least 1 property required to create Entity",
+            )
+            continue
 
         serializer = entity_serializer_module.EntitySerializer(
             instance=existing_entity,

@@ -597,8 +597,10 @@ class ImportEntitiesFromCSVTestCase(TestBase):
         csv_content = "species,circumference_cm\npurpleheart,300\nmora,200\n"
         csv_file = self._create_csv_file(csv_content)
 
-        with self.assertRaises(CSVImportError):
+        with self.assertRaises(CSVImportError) as exc_info:
             list(import_entities_from_csv(self.entity_list, csv_file))
+
+        self.assertEqual(str(exc_info.exception), "CSV must include a 'label' column.")
 
     def test_custom_label_column(self):
         """Custom label column is used if provided"""
@@ -646,7 +648,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
             "300cm purpleheart,purpleheart,300,unknown\n"
         )
         csv_file = self._create_csv_file(csv_content)
-        # Consume generatot by casting into list
+        # Consume generator by casting into list
         list(
             import_entities_from_csv(
                 self.entity_list,
@@ -702,3 +704,19 @@ class ImportEntitiesFromCSVTestCase(TestBase):
             if row_result.index in [2, 3]:
                 self.assertEqual(row_result.status, "error")
                 self.assertEqual(row_result.error, "Invalid data")
+
+    def test_properties_required_for_create(self):
+        """At least one property must be provided for create."""
+        csv_content = "label\n" "300cm\n"
+        csv_file = self._create_csv_file(csv_content)
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+        ):
+            if row_result.index in [2]:
+                self.assertEqual(row_result.status, "error")
+                self.assertEqual(
+                    row_result.error,
+                    "At least 1 property required to create Entity",
+                )
