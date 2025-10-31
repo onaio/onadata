@@ -720,3 +720,16 @@ class ImportEntitiesFromCSVTestCase(TestBase):
                     row_result.error,
                     "At least 1 property required to create Entity",
                 )
+
+    def test_dataset_must_have_properties(self):
+        """Entity List must have properties defined prior to import."""
+        entity_list = EntityList.objects.create(name="hospitals", project=self.project)
+        csv_content = "label,county\n" "Makini,Nairobi\n"
+        csv_file = self._create_csv_file(csv_content)
+
+        with self.assertRaises(CSVImportError) as exc_info:
+            list(import_entities_from_csv(entity_list, csv_file))
+
+        self.assertEqual(
+            str(exc_info.exception), "EntityList has no properties defined."
+        )
