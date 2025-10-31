@@ -2,9 +2,10 @@
 """
 Test api_export_tools module.
 """
+
 import datetime
 from collections import OrderedDict, defaultdict
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.http import Http404
 from django.test.utils import override_settings
@@ -89,9 +90,9 @@ class TestApiExportTools(TestBase):
         request.user = self.user
         request.query_params = {}
         request.data = {}
-        self.google_credential[
-            "expiry"
-        ] = datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
+        self.google_credential["expiry"] = (
+            datetime.datetime.utcnow() + datetime.timedelta(seconds=300)
+        )
         credential = self.google_credential
         t = TokenStorageModel(
             id=self.user, credential=Credentials(**credential, token="token")
@@ -297,3 +298,81 @@ class TestApiExportTools(TestBase):
 
         result = get_async_response("job_uuid", request, self.xform)
         self.assertEqual(result, {"job_status": "PENDING", "progress": "1"})
+
+    # pylint: disable=invalid-name
+    @patch("onadata.libs.utils.api_export_tools.send_message")
+    @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
+    @patch("onadata.libs.utils.api_export_tools.check_pending_export")
+    def test_create_export_async_sends_message(
+        self, mock_check_pending, mock_create_async_export, mock_send_message
+    ):
+        """
+        Test that create_export_async sends a message when export is created.
+        """
+        from onadata.libs.utils.api_export_tools import create_export_async
+
+        self._publish_transportation_form_and_submit_instance()
+
+        # Mock no pending export
+        mock_check_pending.return_value = None
+
+        # Mock the export and async result
+        mock_export = Export(id=123)
+        mock_async_result = Mock()
+        mock_async_result.task_id = "test-task-id"
+        mock_create_async_export.return_value = (mock_export, mock_async_result)
+
+        export_type = "csv"
+        options = {}
+        task_id = create_export_async(
+            self.xform,
+            export_type,
+            query=None,
+            force_xlsx=False,
+            options=options,
+            user=self.user,
+        )
+
+        self.assertEqual(task_id, "test-task-id")
+        mock_send_message.assert_called_once_with(
+            instance_id=123,
+            target_id=self.xform.id,
+            target_type="xform",
+            user=self.user,
+            message_verb="export_created",
+            message_description="csv",
+        )
+
+    # pylint: disable=invalid-name
+    @patch("onadata.libs.utils.api_export_tools.send_message")
+    @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
+    @patch("onadata.libs.utils.api_export_tools.check_pending_export")
+    def test_create_export_async_no_message_when_export_fails(
+        self, mock_check_pending, mock_create_async_export, mock_send_message
+    ):
+        """
+        Test that create_export_async doesn't send a message when export creation returns None.
+        """
+        from onadata.libs.utils.api_export_tools import create_export_async
+
+        self._publish_transportation_form_and_submit_instance()
+
+        # Mock no pending export
+        mock_check_pending.return_value = None
+
+        # Mock the create_async_export to return None
+        mock_create_async_export.return_value = None
+
+        export_type = "csv"
+        options = {}
+        task_id = create_export_async(
+            self.xform,
+            export_type,
+            query=None,
+            force_xlsx=False,
+            options=options,
+            user=self.user,
+        )
+
+        self.assertIsNone(task_id)
+        mock_send_message.assert_not_called()
