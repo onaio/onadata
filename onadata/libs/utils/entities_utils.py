@@ -333,7 +333,7 @@ def import_entities_from_csv(
             yield RowResult(
                 index=row_index,
                 status="error",
-                error="At least 1 property required to create Entity",
+                error="At least 1 property is required to create Entity",
             )
             continue
 

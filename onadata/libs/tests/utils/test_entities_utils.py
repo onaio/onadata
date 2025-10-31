@@ -718,7 +718,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
                 self.assertEqual(row_result.status, "error")
                 self.assertEqual(
                     row_result.error,
-                    "At least 1 property required to create Entity",
+                    "At least 1 property is required to create Entity",
                 )
 
     def test_dataset_must_have_properties(self):
