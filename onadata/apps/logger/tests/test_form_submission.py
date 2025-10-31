@@ -2,6 +2,7 @@
 """
 Test data submissions.
 """
+
 import os
 import re
 from contextlib import contextmanager
@@ -21,6 +22,11 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.constants import (
+    SUBMISSION_CREATED,
+    SUBMISSION_EDITED,
+    XFORM,
+)
 from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
@@ -264,7 +270,8 @@ class TestFormSubmission(TestBase):
         self.assertEqual(inst.xml, anothe_inst.xml)
 
     # @patch('onadata.apps.viewer.signals.process_submission')
-    def test_edited_submission(self):
+    @patch("onadata.libs.utils.logger_tools.send_message")
+    def test_edited_submission(self, send_message_mock):
         """
         Test submissions that have been edited
         """
@@ -284,6 +291,7 @@ class TestFormSubmission(TestBase):
         num_instances = Instance.objects.count()
         query_args = {"xform": self.xform}
         num_data_instances = query_count(**query_args)
+
         # make first submission
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
@@ -300,7 +308,27 @@ class TestFormSubmission(TestBase):
         # check count of mongo instances after first submission
         count = query_count(**query_args)
         self.assertEqual(count, num_data_instances + 1)
-        # edited submission
+
+        # Verify send_message was called for submission creation with the creator (bob)
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=initial_instance.id,
+            target_id=self.xform.id,
+            target_type=XFORM,
+            user=self.user,  # bob - the original submitter
+            message_verb=SUBMISSION_CREATED,
+            message_description="submitted_via_web",
+        )
+
+        # Reset mock for the edit
+        send_message_mock.reset_mock()
+
+        # Create a different user (alice) who will edit the submission
+        alice = self._create_user("alice", "alice", create_profile=True)
+        # Give alice permission to submit to this form
+        assign_perm("logger.change_xform", alice, self.xform)
+
+        # edited submission by alice
         xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..",
@@ -309,10 +337,10 @@ class TestFormSubmission(TestBase):
             "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml",
         )
-        client = DigestClient()
-        client.set_authorization("bob", "bob", "Digest")
+        # Create DigestAuth for alice
+        alice_auth = DigestAuth("alice", "alice")
         with catch_signal(process_submission) as handler:
-            self._make_submission(xml_edit_submission_file_path, client=client)
+            self._make_submission(xml_edit_submission_file_path, auth=alice_auth)
         self.assertEqual(self.response.status_code, 201)
         # we must have the same number of instances
         self.assertEqual(Instance.objects.count(), num_instances + 1)
@@ -321,6 +349,17 @@ class TestFormSubmission(TestBase):
 
         instance_history_1 = InstanceHistory.objects.first()
         edited_instance = self.xform.instances.first()
+
+        # Verify send_message was called for the EDIT with Alice (the editor), NOT Bob (the creator)
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=edited_instance.id,
+            target_id=self.xform.id,
+            target_type=XFORM,
+            user=alice,
+            message_verb=SUBMISSION_EDITED,
+            message_description="submitted_via_web",
+        )
 
         self.assertDictEqual(initial_instance.get_dict(), instance_history_1.get_dict())
         handler.assert_called_once_with(
@@ -346,6 +385,10 @@ class TestFormSubmission(TestBase):
         xml_str = clean_and_parse_xml(xml_str).toxml()
         edited_name = re.match(r"^.+?<name>(.+?)</name>", xml_str).groups()[0]
         self.assertEqual(record["name"], edited_name)
+
+        # Reset mock for second edit
+        send_message_mock.reset_mock()
+
         instance_before_second_edit = edited_instance
         xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -355,6 +398,7 @@ class TestFormSubmission(TestBase):
             "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_edited_again.xml",
         )
+        # Second edit by bob (original creator)
         self._make_submission(xml_edit_submission_file_path)
         record = [item for item in query_data(**query_args)][0]
         edited_instance = self.xform.instances.first()
@@ -362,6 +406,18 @@ class TestFormSubmission(TestBase):
         self.assertEqual(
             instance_before_second_edit.last_edited, instance_history_2.submission_date
         )
+
+        # Verify send_message was called for the second EDIT with bob (the second editor)
+        self.assertTrue(send_message_mock.called)
+        send_message_mock.assert_called_with(
+            instance_id=edited_instance.id,
+            target_id=self.xform.id,
+            target_type=XFORM,
+            user=self.user,
+            message_verb=SUBMISSION_EDITED,
+            message_description="submitted_via_web",
+        )
+
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
         self.assertEqual(record["name"], "Tom and Jerry")
