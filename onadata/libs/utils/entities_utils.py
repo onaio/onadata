@@ -3,7 +3,7 @@ import importlib
 import logging
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, TextIO
+from typing import Any, Iterator, TextIO
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import QuerySet
@@ -242,7 +242,7 @@ def import_entities_from_csv(
     uuid_column: str = "uuid",
     user: AbstractBaseUser | None = None,
     dry_run: bool = False,
-) -> tuple[int, int, list[tuple[int, str]]]:
+) -> Iterator[RowResult]:
     """Import Entities from a CSV file
 
     :param entity_list: EntityList to import Entities to
@@ -257,6 +257,9 @@ def import_entities_from_csv(
     entity_serializer_module = importlib.import_module(
         "onadata.libs.serializers.entity_serializer"
     )
+
+    if not entity_list.properties:
+        raise CSVImportError("EntityList has no properties defined.")
 
     reader = csv.DictReader(csv_file)
     # Normalize headers: strip whitespace
