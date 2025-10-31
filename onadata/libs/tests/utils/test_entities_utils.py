@@ -5,6 +5,7 @@ Test entities_utils utility functions.
 
 from datetime import datetime, timedelta
 from datetime import timezone as dtz
+from io import StringIO
 from unittest.mock import call, patch
 
 from django.core.cache import cache
@@ -13,6 +14,7 @@ from django.utils import timezone
 
 from onadata.apps.logger.models import (
     Entity,
+    EntityHistory,
     EntityList,
     Instance,
     RegistrationForm,
@@ -20,10 +22,12 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.exceptions import CSVImportError
 from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
     create_entity_from_instance,
+    import_entities_from_csv,
     update_entity_from_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -459,3 +463,273 @@ class CommitCachedEListNumEntitiesTestCase(EntityListNumEntitiesBase):
         self.assertIsNotNone(cache.get(self.ids_key))
         self.assertIsNotNone(cache.get(self.counter_key))
         self.assertIsNotNone(cache.get(self.created_at_key))
+
+
+class ImportEntitiesFromCSVTestCase(TestBase):
+    """Tests for method `import_entities_from_csv`"""
+
+    def setUp(self):
+        super().setUp()
+
+        # Create a registration form which will create an EntityList with properties
+        self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees", project=self.project)
+
+    def _create_csv_file(self, content):
+        """Helper to create a CSV file from content string"""
+        return StringIO(content)
+
+    def test_import_success(self):
+        """Successfully imports entities from CSV with valid data"""
+        csv_content = (
+            "label,species,circumference_cm\n"
+            "300cm purpleheart,purpleheart,300\n"
+            "200cm mora,mora,200\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+            label_column="label",
+            user=self.user,
+            dry_run=False,
+        ):
+            for row_result.index in [2, 3]:
+                self.assertEqual(row_result.status, "created")
+                self.assertIsNotNone(row_result)
+
+        entities = Entity.objects.filter(entity_list=self.entity_list).order_by("pk")
+
+        self.assertEqual(entities.count(), 2)
+        self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
+        self.assertEqual(entities[0].json.get("species"), "purpleheart")
+        self.assertEqual(entities[0].json.get("circumference_cm"), "300")
+        self.assertEqual(entities[1].json.get("label"), "200cm mora")
+        self.assertEqual(entities[1].json.get("species"), "mora")
+        self.assertEqual(entities[1].json.get("circumference_cm"), "200")
+        self.assertEqual(EntityHistory.objects.count(), 2)
+        self.assertEqual(EntityHistory.objects.first().created_by, self.user)
+        self.assertEqual(EntityHistory.objects.last().created_by, self.user)
+        self.assertEqual(EntityHistory.objects.first().mutation_type, "create")
+        self.assertEqual(EntityHistory.objects.last().mutation_type, "create")
+
+    def test_dry_run(self):
+        """Dry-run validates but does not create entities"""
+        csv_content = (
+            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        pre_count = Entity.objects.count()
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+            label_column="label",
+            user=self.user,
+            dry_run=True,
+        ):
+            self.assertEqual(row_result.index, 2)
+            self.assertEqual(row_result.status, "created")
+            self.assertIsNone(row_result.error)
+
+        post_count = Entity.objects.count()
+
+        self.assertEqual(pre_count, post_count)
+
+    def test_default_label_column(self):
+        """Default label column is 'label' if not provided"""
+        csv_content = (
+            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertEqual(Entity.objects.first().json.get("label"), "300cm purpleheart")
+
+    def test_default_uuid_column(self):
+        """Default uuid column is 'uuid' if not provided"""
+        csv_content = (
+            "label,species,circumference_cm,uuid\n"
+            "300cm purpleheart,purpleheart,300,dbee4c32-a922-451c-9df7-42f40bf78f48\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertEqual(
+            str(Entity.objects.first().uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        )
+
+    def test_default_user(self):
+        """Default user is None if not provided"""
+        csv_content = (
+            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        entity = Entity.objects.first()
+        self.assertIsNone(EntityHistory.objects.get(entity=entity).created_by)
+
+    def test_missing_label_column(self):
+        """Missing label column raises ValueError"""
+        csv_content = "species,circumference_cm\npurpleheart,300\nmora,200\n"
+        csv_file = self._create_csv_file(csv_content)
+
+        with self.assertRaises(CSVImportError) as exc_info:
+            list(import_entities_from_csv(self.entity_list, csv_file))
+
+        self.assertEqual(str(exc_info.exception), "CSV must include a 'label' column.")
+
+    def test_custom_label_column(self):
+        """Custom label column is used if provided"""
+        csv_content = (
+            "tree_name,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+                label_column="tree_name",
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertEqual(Entity.objects.first().json.get("label"), "300cm purpleheart")
+
+    def test_custom_uuid_column(self):
+        """Custom uuid column is used if provided"""
+        csv_content = (
+            "label,species,circumference_cm,entity_id\n"
+            "300cm purpleheart,purpleheart,300,dbee4c32-a922-451c-9df7-42f40bf78f48\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+                uuid_column="entity_id",
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.assertEqual(
+            str(Entity.objects.first().uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48"
+        )
+
+    def test_unknown_property_column_ignored(self):
+        """Unknown property columns are ignored"""
+        csv_content = (
+            "label,species,circumference_cm,unknown_property\n"
+            "300cm purpleheart,purpleheart,300,unknown\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+        # Consume generator by casting into list
+        list(
+            import_entities_from_csv(
+                self.entity_list,
+                csv_file,
+            )
+        )
+
+        self.assertEqual(Entity.objects.count(), 1)
+        entity = Entity.objects.first()
+        self.assertEqual(Entity.objects.first().json.get("label"), "300cm purpleheart")
+        self.assertEqual(entity.json.get("species"), "purpleheart")
+        self.assertEqual(entity.json.get("circumference_cm"), "300")
+        self.assertNotIn("unknown_property", entity.json)
+
+    def test_existing_entity_updated(self):
+        """Existing entity is updated if uuid is provided"""
+        self._simulate_existing_entity()
+        csv_content = (
+            "label,species,circumference_cm,uuid\n"
+            f"450cm purpleheart,purpleheart,450,{self.entity.uuid}\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+        ):
+            self.assertEqual(row_result.index, 2)
+            self.assertEqual(row_result.status, "updated")
+            self.assertIsNone(row_result.error)
+
+        self.assertEqual(Entity.objects.count(), 1)
+        self.entity.refresh_from_db()
+        self.assertEqual(self.entity.json.get("label"), "450cm purpleheart")
+        self.assertEqual(self.entity.json.get("species"), "purpleheart")
+        self.assertEqual(self.entity.json.get("circumference_cm"), "450")
+
+    @patch("onadata.libs.serializers.entity_serializer.EntitySerializer.is_valid")
+    def test_errors(self, mock_is_valid):
+        """Errors are recorded for invalid rows"""
+        mock_is_valid.side_effect = Exception("Invalid data")
+        csv_content = (
+            "label,species,circumference_cm\n"
+            "300cm purpleheart,purpleheart,300\n"
+            "200cm mora,mora,200\n"
+        )
+        csv_file = self._create_csv_file(csv_content)
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+        ):
+            if row_result.index in [2, 3]:
+                self.assertEqual(row_result.status, "error")
+                self.assertEqual(row_result.error, "Invalid data")
+
+    def test_properties_required_for_create(self):
+        """At least one property must be provided for create."""
+        csv_content = "label\n" "300cm\n"
+        csv_file = self._create_csv_file(csv_content)
+
+        for row_result in import_entities_from_csv(
+            self.entity_list,
+            csv_file,
+        ):
+            if row_result.index in [2]:
+                self.assertEqual(row_result.status, "error")
+                self.assertEqual(
+                    row_result.error,
+                    "At least 1 property is required to create Entity",
+                )
+
+    def test_dataset_must_have_properties(self):
+        """Entity List must have properties defined prior to import."""
+        entity_list = EntityList.objects.create(name="hospitals", project=self.project)
+        csv_content = "label,county\n" "Makini,Nairobi\n"
+        csv_file = self._create_csv_file(csv_content)
+
+        with self.assertRaises(CSVImportError) as exc_info:
+            list(import_entities_from_csv(entity_list, csv_file))
+
+        self.assertEqual(
+            str(exc_info.exception), "EntityList has no properties defined."
+        )

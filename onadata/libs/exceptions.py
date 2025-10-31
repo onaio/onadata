@@ -50,3 +50,7 @@ class EncryptionError(Exception):
 
 class DecryptionError(Exception):
     """Raised when XForm decryption fails."""
+
+
+class CSVImportError(Exception):
+    """Raised when importing entities fails."""
