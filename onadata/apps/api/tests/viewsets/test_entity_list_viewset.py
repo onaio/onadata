@@ -1227,6 +1227,15 @@ class CreateEntityTestCase(TestAbstractViewSet):
             str(response.data["uuid"][0]),
         )
 
+    def test_entity_list_must_have_properties(self):
+        """Entity List must have properties defined"""
+        entity_list = EntityList.objects.create(name="hospitals", project=self.project)
+        OwnerRole.add(self.user, entity_list)
+        request = self.factory.post("/", data={}, format="json", **self.extra)
+        response = self.view(request, pk=entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "EntityList has no properties defined")
+
 
 @override_settings(TIME_ZONE="UTC")
 class UpdateEntityTestCase(TestAbstractViewSet):
@@ -1826,7 +1835,8 @@ class ImportEntitiesTestCase(TestAbstractViewSet):
 
         self.view = EntityListViewSet.as_view({"post": "import_entities"})
         self.project = get_user_default_project(self.user)
-        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        self._publish_registration_form(self.user, self.project)
+        self.entity_list = EntityList.objects.get(name="trees", project=self.project)
         OwnerRole.add(self.user, self.entity_list)
 
     def _create_csv_file(self, content):
@@ -1886,6 +1896,26 @@ class ImportEntitiesTestCase(TestAbstractViewSet):
         request = self.factory.post("/")
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 401)
+
+    def test_entity_list_must_have_properties(self):
+        """EntityList must have properties defined."""
+        entity_list = EntityList.objects.create(name="hospitals", project=self.project)
+        OwnerRole.add(self.user, entity_list)
+        content = (
+            "label,species,circumference_cm\n"
+            "300cm purpleheart,purpleheart,300\n"
+            "200cm mora,mora,200\n"
+        )
+        csv_file = self._create_csv_file(content)
+        request = self.factory.post(
+            "/",
+            data={"csv_file": csv_file},
+            format="multipart",
+            **self.extra,
+        )
+        response = self.view(request, pk=entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "EntityList has no properties defined")
 
 
 class ImportStatusTestCase(TestAbstractViewSet):

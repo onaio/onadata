@@ -8,6 +8,7 @@ import uuid
 from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 from celery.result import AsyncResult
 from celery.states import FAILURE, PENDING, RETRY, STARTED, SUCCESS
@@ -143,7 +144,7 @@ class EntityListViewSet(
             return self._bulk_delete_entities(request)
 
         if method == "POST":
-            return self._create_entity(request)
+            return self._create_entity(entity_list, request)
 
         return self._list_entities(entity_list, request)
 
@@ -159,8 +160,14 @@ class EntityListViewSet(
         serializer.save()
         return Response(serializer.data)
 
-    def _create_entity(self, request):
+    def _create_entity(self, entity_list, request):
         """Creates a new entity."""
+        if not entity_list.properties:
+            return Response(
+                {"error": _("EntityList has no properties defined")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -291,7 +298,7 @@ class EntityListViewSet(
             if result.state == FAILURE:
                 exc = result.result
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-                error = {"error": "The job failed. Please try again."}
+                error = {"error": _("The job failed. Please try again.")}
 
                 if isinstance(exc, CSVImportError):
                     status_code = status.HTTP_400_BAD_REQUEST
@@ -302,6 +309,12 @@ class EntityListViewSet(
 
             # Unknown/custom state → treat as in-progress
             return Response(payload, status=status.HTTP_202_ACCEPTED)
+
+        if not entity_list.properties:
+            return Response(
+                {"error": _("EntityList has no properties defined")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
