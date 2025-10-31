@@ -428,6 +428,14 @@ Create Entity
 
 This endpoint is used for creating a single Entity in the Entity List.
 
+.. note::
+
+   The EntityList must have properties defined before you can create Entities.
+   If the EntityList has no properties, the request will fail with:
+
+   - Status: ``400 Bad Request``
+   - Body: ``{"error": "EntityList has no properties defined"}``
+
 The data is passed as JSON in the request body. The following keys are available:
 
 - ``label`` - A user-friendly label for forms that use Entities.
@@ -618,6 +626,14 @@ The CSV file must contain columns that match the properties defined in the Entit
 - First row should contain column headers
 - UUID column values must be unique within the EntityList
 - Label column values must be non-empty strings
+
+.. note::
+
+   The EntityList must have properties defined before you can import Entities.
+   If the EntityList has no properties, the import request will fail with:
+
+   - Status: ``400 Bad Request``
+   - Body: ``{"error": "EntityList has no properties defined"}``
 
 **Example**
 
