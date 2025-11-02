@@ -769,10 +769,13 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
         from io import BytesIO
 
+        request = HttpRequest()
+        request.user = self.user
         instance = create_instance(
             self.user.username,
             BytesIO(xml_string.strip().encode("utf-8")),
             media_files=[],
+            request=request,
         )
 
         # Verify send_message was called with message_description
@@ -781,7 +784,7 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.assertEqual(call_kwargs["instance_id"], instance.id)
         self.assertEqual(call_kwargs["target_id"], instance.xform.id)
         self.assertEqual(call_kwargs["target_type"], "xform")
-        self.assertEqual(call_kwargs["user"], instance.user or instance.xform.user)
+        self.assertEqual(call_kwargs["user"], self.user)
         self.assertEqual(call_kwargs["message_verb"], "submission_created")
         self.assertEqual(call_kwargs["message_description"], "submitted_via_web")
 
