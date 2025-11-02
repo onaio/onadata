@@ -464,7 +464,11 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
 
                     try:
                         request = HttpRequest()
-                        request.user = User.objects.get(username=username)
+                        request.user = (
+                            User.objects.get(username=username)
+                            if User.objects.filter(username=username).exists()
+                            else None
+                        )
                         error, instance = safe_create_instance(
                             username,
                             xml_file,
