@@ -747,6 +747,47 @@ class DeleteXFormSubmissionsTestCase(TestBase):
             message_verb="submission_deleted",
         )
 
+    @patch("onadata.libs.utils.logger_tools.send_message")
+    def test_send_message_includes_status_description(self, mock_send_message):
+        """Test that send_message is called with message_description parameter"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(md, self.user)
+
+        xml_string = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:test123456789</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """
+
+        from io import BytesIO
+
+        request = HttpRequest()
+        request.user = self.user
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode("utf-8")),
+            media_files=[],
+            request=request,
+        )
+
+        # Verify send_message was called with message_description
+        mock_send_message.assert_called_once()
+        call_kwargs = mock_send_message.call_args.kwargs
+        self.assertEqual(call_kwargs["instance_id"], instance.id)
+        self.assertEqual(call_kwargs["target_id"], instance.xform.id)
+        self.assertEqual(call_kwargs["target_type"], "xform")
+        self.assertEqual(call_kwargs["user"], self.user)
+        self.assertEqual(call_kwargs["message_verb"], "submission_created")
+        self.assertEqual(call_kwargs["message_description"], "submitted_via_web")
+
     def test_hard_delete_enabled(self):
         """Hard delete should be enabled for hard delete to be successful"""
         with self.assertRaises(PermissionDenied):

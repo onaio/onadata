@@ -27,6 +27,8 @@ SUBMISSION_CREATED = "submission_created"
 SUBMISSION_EDITED = "submission_edited"
 SUBMISSION_DELETED = "submission_deleted"
 SUBMISSION_REVIEWED = "submission_reviewed"
+EXPORT_CREATED = "export_created"
+EXPORT_DOWNLOADED = "export_downloaded"
 FORM_UPDATED = "form_updated"
 KMS_KEY_ROTATED = "kmskey_rotated"
 MESSAGE_VERBS = [
@@ -37,6 +39,8 @@ MESSAGE_VERBS = [
     SUBMISSION_DELETED,
     FORM_UPDATED,
     KMS_KEY_ROTATED,
+    EXPORT_CREATED,
+    EXPORT_DOWNLOADED,
 ]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",

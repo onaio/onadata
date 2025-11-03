@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
+from django.http import HttpRequest
 from django.utils import timezone
 
 import unicodecsv as ucsv
@@ -462,12 +463,17 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
                     )
 
                     try:
+                        request = HttpRequest()
+                        try:
+                            request.user = User.objects.get(username=username)
+                        except User.DoesNotExist:
+                            request.user = None
                         error, instance = safe_create_instance(
                             username,
                             xml_file,
                             [],
                             xform.uuid,
-                            None,
+                            request,
                             instance_status="imported_via_csv",
                         )
                     except ValueError as e:

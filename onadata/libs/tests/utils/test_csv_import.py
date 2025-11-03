@@ -2,6 +2,7 @@
 """
 Tests the onadata.libs.utils.csv_import module
 """
+
 from __future__ import unicode_literals
 
 import os
@@ -92,7 +93,7 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(
             safe_create_args[3], self.xform.uuid, "Wrong xform uuid passed"
         )
-        self.assertEqual(safe_create_args[4], None)
+        self.assertNotEqual(safe_create_args[4], None)
 
     @patch("onadata.libs.utils.csv_import.safe_create_instance")
     @patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
@@ -129,6 +130,7 @@ class CSVImportTestCase(TestBase):
         self.xform = XForm.objects.get()
 
         count = Instance.objects.count()
+        self._create_user("tori", "tori")
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
         self.assertEqual(Instance.objects.count(), count + 9, "submit_csv test Failed!")
         # Check that correct # of submissions belong to our user
@@ -186,6 +188,7 @@ class CSVImportTestCase(TestBase):
             target_id=xform.id,
             target_type=XFORM,
             message_verb=SUBMISSION_EDITED,
+            message_description="imported_via_csv",
             user=self.user,
         )
 
@@ -446,6 +449,7 @@ class CSVImportTestCase(TestBase):
             target_id=xform.id,
             target_type=XFORM,
             message_verb=SUBMISSION_CREATED,
+            message_description="imported_via_csv",
             user=self.user,
         )
 
