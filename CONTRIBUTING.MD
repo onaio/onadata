@@ -33,6 +33,13 @@ Feature and enhancement requests are always welcome! We ask you ensure the follo
 
 This section will help you set up the Ona Data project locally for development and testing.
 
+Ona Data is built with **[Django](https://www.djangoproject.com/)** and the **[Django REST Framework (DRF)](https://www.django-rest-framework.org/)**. If you're new to either of these frameworks, we recommend reviewing their official documentation to understand how models, views, serializers, and APIs are structured within this project.
+
+Forms within Ona Data are authored using the **[XLSForm](https://xlsform.org/en/)** standard. Before contributing to form-related modules or APIs, please take some time to familiarize yourself with XLSForm syntax and how it maps to form structures within Ona Data.
+
+You can explore the **official Ona Data API documentation** to understand the available endpoints and their usage:
+👉 [https://api.ona.io/static/docs/](https://api.ona.io/static/docs/index.html)
+
 #### 3.1 Setting up the development environment 🧩
 
 Before you begin, make sure you have the following prerequisites installed:
@@ -40,8 +47,6 @@ Before you begin, make sure you have the following prerequisites installed:
 - Python 3.10+
 - An active python virtual environment. [Learn how to activate virtual environments using Pyenv](https://realpython.com/intro-to-pyenv/#virtual-environments-and-pyenv)
 - [Docker](https://docs.docker.com/engine/install/) and [Docker Compose v2](https://docs.docker.com/compose/migrate/) installed.
-
-If you're not familiar with using XLSForm, please review the reference at [XLSForm.org](https://xlsform.org/en/). Ona Data forms are authored using XLSForm syntax.
 
 Then, clone the repository and navigate into the project directory:
 
@@ -122,6 +127,8 @@ To run tests on a specific module
 ```sh
 docker compose exec -e DB_HOST=database api python manage.py test onadata.apps.api.tests.viewsets.test_entity_list_viewset --settings=onadata.settings.github_actions_test
 ```
+
+Any custom Django management command added must be accompanied by documentation in `docs/management.rst`.
 
 ### 4. Code contributions / Pull requests 💻
 
