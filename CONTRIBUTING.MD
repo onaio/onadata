@@ -35,9 +35,9 @@ This section will help you set up the Ona Data project locally for development a
 
 Ona Data is built with **[Django](https://www.djangoproject.com/)** and the **[Django REST Framework (DRF)](https://www.django-rest-framework.org/)**. If you're new to either of these frameworks, we recommend reviewing their official documentation to understand how models, views, serializers, and APIs are structured within this project.
 
-Forms within Ona Data are authored using the **[XLSForm](https://xlsform.org/en/)** standard. Before contributing to form-related modules or APIs, please take some time to familiarize yourself with XLSForm syntax and how it maps to form structures within Ona Data.
+To understand how forms are uploaded, processed, and published on the platform, refer to the **[Ona Data guide on publishing forms](https://help.ona.io/knowledge-base/guide-my-first-project/)**.
 
-To understand how forms are uploaded, processed, and published on the platform, refer to the **[Ona Data Help Center guide on publishing forms](https://help.ona.io/knowledge-base/guide-my-first-project/)**.
+Forms within Ona Data are authored using the **[XLSForm](https://xlsform.org/en/)** standard. Before contributing to form-related modules or APIs, please take some time to familiarize yourself with XLSForm syntax and how it maps to form structures within Ona Data.
 
 You can explore the **official Ona Data API documentation** to understand the available endpoints and their usage:
 👉 [https://api.ona.io/static/docs/](https://api.ona.io/static/docs/index.html)
