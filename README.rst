@@ -34,10 +34,7 @@ Install `Docker <https://www.docker.com/get-docker>`_ and `Docker Compose <https
 
     # create super user
     # -----------------
-    docker exec -it onadata_web_1 bash
-
-    # activate virtual envirenment
-    source /srv/.virtualenv/bin/activate
+    docker compose exec api bash
 
     python manage.py createsuperuser
 
@@ -54,21 +51,6 @@ Contributing
 If you would like to contribute code please read
 `Contributing Code to Ona Data <CONTRIBUTING.MD>`_.
 
-Edit top level requirements in the file `requirements/base.in <requirements/base.in>`_. Use
- `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_.
- You will need to update `requirements.pip` and set `lxml==3.6.0`, for some unknown reason `pip-compile` seems to
- pick a lower version of lxml when `openpyxl` requires `lxml>=3.3.4`.
-
-.. code-block:: sh
-
-    pip-compile --output-file requirements/base.pip requirements/base.in
-
-Install the pre-commit hooks by running:
-
-.. code-block:: sh
-
-    pre-commit install
-
 **Security Acknowledgments**
 
 We would like to thank the following security researchers for responsibly disclosing security issues:
@@ -79,20 +61,6 @@ We would like to thank the following security researchers for responsibly disclo
 Danish Tariq   1st April 2018     Medium     `Users able to create projects in other user accounts <https://github.com/onaio/onadata/commit/bdcd53922940739d71bc554ca86ab484de5feab8>`_
 ============= ================  ==========  ==============
 
-Code Structure
---------------
-
-* **api** - This app provides the API functionality mostly made up of viewsets
-
-* **logger** - This app serves XForms to and receives submissions from
-  ODK Collect and Enketo.
-
-* **viewer** - This app provides a csv and xls export of the data stored in
-  logger. This app uses a data dictionary as produced by pyxform. It also
-  provides a map and single survey view.
-
-* **main** - This app is the glue that brings logger and viewer
-  together.
 
 Localization
 ------------
