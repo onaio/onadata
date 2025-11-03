@@ -22,6 +22,7 @@ from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.api_export_tools import (
     _get_google_credential,
+    create_export_async,
     get_async_response,
     get_existing_file_format,
     get_metadata_format,
@@ -309,7 +310,6 @@ class TestApiExportTools(TestBase):
         """
         Test that create_export_async sends a message when export is created.
         """
-        from onadata.libs.utils.api_export_tools import create_export_async
 
         self._publish_transportation_form_and_submit_instance()
 
@@ -353,8 +353,6 @@ class TestApiExportTools(TestBase):
         """
         Test that create_export_async doesn't send a message when export creation returns None.
         """
-        from onadata.libs.utils.api_export_tools import create_export_async
-
         self._publish_transportation_form_and_submit_instance()
 
         # Mock no pending export

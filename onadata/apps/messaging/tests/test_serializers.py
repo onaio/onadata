@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from onadata.apps.messaging.constants import EXPORT_CREATED, XFORM
+from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 
 User = get_user_model()
@@ -40,7 +40,7 @@ class TestSendMessage(TestCase):
                     target_id=100,
                     target_type=XFORM,
                     user=self.user,
-                    message_verb=EXPORT_CREATED,
+                    message_verb=SUBMISSION_CREATED,
                     message_description="imported_via_csv",
                 )
 
