@@ -41,6 +41,8 @@ Before you begin, make sure you have the following prerequisites installed:
 - An active python virtual environment. [Learn how to activate virtual environments using Pyenv](https://realpython.com/intro-to-pyenv/#virtual-environments-and-pyenv)
 - [Docker](https://docs.docker.com/engine/install/) and [Docker Compose v2](https://docs.docker.com/compose/migrate/) installed.
 
+If you're not familiar with using XLSForm, please review the reference at [XLSForm.org](https://xlsform.org/en/). Ona Data forms are authored using XLSForm syntax.
+
 Then, clone the repository and navigate into the project directory:
 
 ```sh
@@ -71,6 +73,8 @@ Run the database migrations by running
 ```sh
 docker compose exec api python manage.py migrate
 ```
+
+You can now visit `http://localhost:8000`.
 
 #### 3.2 Adding a new package
 
