@@ -34,10 +34,7 @@ Install `Docker <https://www.docker.com/get-docker>`_ and `Docker Compose <https
 
     # create super user
     # -----------------
-    docker exec -it onadata_web_1 bash
-
-    # activate virtual envirenment
-    source /srv/.virtualenv/bin/activate
+    docker compose exec api bash
 
     python manage.py createsuperuser
 
@@ -53,21 +50,6 @@ Contributing
 
 If you would like to contribute code please read
 `Contributing Code to Ona Data <CONTRIBUTING.MD>`_.
-
-Edit top level requirements in the file `requirements/base.in <requirements/base.in>`_. Use
- `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_.
- You will need to update `requirements.pip` and set `lxml==3.6.0`, for some unknown reason `pip-compile` seems to
- pick a lower version of lxml when `openpyxl` requires `lxml>=3.3.4`.
-
-.. code-block:: sh
-
-    pip-compile --output-file requirements/base.pip requirements/base.in
-
-Install the pre-commit hooks by running:
-
-.. code-block:: sh
-
-    pre-commit install
 
 **Security Acknowledgments**
 
