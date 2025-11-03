@@ -40,7 +40,7 @@ To understand how forms are uploaded, processed, and published on the platform, 
 Forms within Ona Data are authored using the **[XLSForm](https://xlsform.org/en/)** standard. Before contributing to form-related modules or APIs, please take some time to familiarize yourself with XLSForm syntax and how it maps to form structures within Ona Data.
 
 You can explore the **official Ona Data API documentation** to understand the available endpoints and their usage:
-👉 [https://api.ona.io/static/docs/](https://api.ona.io/static/docs/index.html)
+👉 [https://api.ona.io/static/docs/index.html](https://api.ona.io/static/docs/index.html)
 
 #### 3.1 Setting up the development environment 🧩
 
