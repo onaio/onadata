@@ -74,7 +74,7 @@ Run the database migrations by running
 docker compose exec api python manage.py migrate
 ```
 
-You can now visit `http://localhost:8000`.
+You can now visit http://localhost:8000.
 
 #### 3.2 Adding a new package
 
