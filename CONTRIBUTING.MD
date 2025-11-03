@@ -148,6 +148,4 @@ Git commits help communicate what has changed within the project. Making it easi
 
 All python code should follow the [PEP 8 Style guide](https://www.python.org/dev/peps/pep-0008/).
 
-#### Code formatting
-
 All code is automatically formatted on commit using [pre-commit hooks](https://pre-commit.com/). This ensures consistent styling and formatting across all code contributions.
