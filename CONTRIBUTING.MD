@@ -37,6 +37,8 @@ Ona Data is built with **[Django](https://www.djangoproject.com/)** and the **[D
 
 Forms within Ona Data are authored using the **[XLSForm](https://xlsform.org/en/)** standard. Before contributing to form-related modules or APIs, please take some time to familiarize yourself with XLSForm syntax and how it maps to form structures within Ona Data.
 
+To understand how forms are uploaded, processed, and published on the platform, refer to the **[Ona Data Help Center guide on publishing forms](https://help.ona.io/knowledge-base/guide-my-first-project/)**.
+
 You can explore the **official Ona Data API documentation** to understand the available endpoints and their usage:
 👉 [https://api.ona.io/static/docs/](https://api.ona.io/static/docs/index.html)
 
