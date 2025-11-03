@@ -61,20 +61,6 @@ We would like to thank the following security researchers for responsibly disclo
 Danish Tariq   1st April 2018     Medium     `Users able to create projects in other user accounts <https://github.com/onaio/onadata/commit/bdcd53922940739d71bc554ca86ab484de5feab8>`_
 ============= ================  ==========  ==============
 
-Code Structure
---------------
-
-* **api** - This app provides the API functionality mostly made up of viewsets
-
-* **logger** - This app serves XForms to and receives submissions from
-  ODK Collect and Enketo.
-
-* **viewer** - This app provides a csv and xls export of the data stored in
-  logger. This app uses a data dictionary as produced by pyxform. It also
-  provides a map and single survey view.
-
-* **main** - This app is the glue that brings logger and viewer
-  together.
 
 Localization
 ------------
