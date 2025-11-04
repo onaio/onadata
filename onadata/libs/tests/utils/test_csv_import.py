@@ -770,3 +770,47 @@ class CSVImportTestCase(TestBase):
 
         # The empty date cell should remain as empty string or None representation
         self.assertIn(rows[2]["date_field"], ["", "None", None])
+
+    def test_csv_import_duplicate_submission_no_crash(self):
+        """
+        Test that CSV import handles duplicate submissions gracefully.
+
+        During CSV import, a plain HttpRequest() is created without META data.
+        When a duplicate submission is detected, the code tries to call
+        request.build_absolute_uri() which would raise KeyError('SERVER_NAME').
+        This test verifies the import completes without crashing.
+
+        This simulates a race condition where get_submission_meta_dict's
+        duplicate check passes, but create_instance finds a duplicate.
+        """
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        # First import - should succeed
+        single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
+        result = csv_import.submit_csv(self.user.username, xform, single_csv)
+        self.assertEqual(result.get("additions"), 1)
+        self.assertEqual(result.get("duplicates"), 0)
+        self.assertEqual(Instance.objects.count(), 1)
+
+        # Patch get_submission_meta_dict to bypass duplicate pre-check
+        # This simulates a race condition where two workers process the same
+        # submission and both pass the pre-check before either commits
+        _original_func = csv_import.get_submission_meta_dict
+
+        def patched_get_submission_meta_dict(xform, instance_id):
+            # Return the original instance_id without checking for duplicates
+            uuid_arg = instance_id or f"uuid:{__import__('uuid').uuid4()}"
+            return [{"instanceID": uuid_arg}, 0]
+
+        with patch.object(
+            csv_import, "get_submission_meta_dict", patched_get_submission_meta_dict
+        ):
+            # Second import with same UUID - should handle duplicate without crashing
+            single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
+            result = csv_import.submit_csv(self.user.username, xform, single_csv)
+
+        # Should report duplicate, not crash with KeyError
+        self.assertEqual(result.get("additions"), 0)
+        self.assertEqual(result.get("duplicates"), 1)
+        self.assertEqual(Instance.objects.count(), 1)
