@@ -363,7 +363,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
     }
 
     if overwrite:
-        instance_ids = [i["id"] for i in xform.instances.values("id")]
+        instance_ids = list(xform.instances.values_list("id", flat=True))
         xform.instances.filter(deleted_at__isnull=True).update(
             deleted_at=timezone.now(), deleted_by=User.objects.get(username=username)
         )
