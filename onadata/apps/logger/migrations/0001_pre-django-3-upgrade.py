@@ -12,10 +12,7 @@ from django.db import migrations, models
 
 import taggit.managers
 
-import onadata.apps.logger.models.attachment
-import onadata.apps.logger.models.xform
 import onadata.libs.utils.common_tools
-from onadata.apps.logger.models import Instance
 from onadata.libs.utils.logger_tools import create_xform_version
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -57,6 +54,8 @@ def regenerate_instance_json(apps, schema_editor):
     """
     Regenerate Instance JSON
     """
+    Instance = apps.get_model("logger", "Instance")
+
     for inst in Instance.objects.filter(
         deleted_at__isnull=True,
         xform__downloadable=True,
@@ -71,9 +70,10 @@ def create_initial_xform_version(apps, schema_editor):
     Creates an XFormVersion object for an XForm that has no
     Version
     """
-    queryset = onadata.apps.logger.models.xform.XForm.objects.filter(
-        downloadable=True, deleted_at__isnull=True
-    )
+    XForm = apps.get_model("logger", "XForm")
+
+    queryset = XForm.objects.filter(downloadable=True, deleted_at__isnull=True)
+
     for xform in queryset.iterator():
         if xform.version:
             create_xform_version(xform, xform.user)
@@ -1006,7 +1006,7 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
-        # migrations.RunPython(recalculate_xform_hash),
+        migrations.RunPython(recalculate_xform_hash),
         migrations.AddField(
             model_name="instance",
             name="deleted_by",
@@ -1226,8 +1226,8 @@ class Migration(migrations.Migration):
             name="uuid",
             field=models.CharField(db_index=True, default="", max_length=36),
         ),
-        # migrations.RunPython(generate_uuid_if_missing),
-        # migrations.RunPython(regenerate_instance_json),
+        migrations.RunPython(generate_uuid_if_missing),
+        migrations.RunPython(regenerate_instance_json),
         migrations.CreateModel(
             name="XFormVersion",
             fields=[
@@ -1267,5 +1267,5 @@ class Migration(migrations.Migration):
                 "unique_together": {("xform", "version")},
             },
         ),
-        # migrations.RunPython(create_initial_xform_version),
+        migrations.RunPython(create_initial_xform_version),
     ]
