@@ -6,12 +6,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, transaction
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
-
-from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 from guardian.compat import user_model_label
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import clear_project_cache
@@ -48,23 +47,8 @@ class EntityList(BaseModel):
 
     @property
     def properties(self) -> list[str]:
-        """All dataset properties
-
-        Multiple forms can define matching or different properties for the same
-        dataset
-
-        Returns:
-            list: properties defined by all forms creating Entities for
-            the dataset
-        """
-        registration_forms_qs = self.registration_forms.filter(is_active=True)
-        dataset_properties = set()
-
-        for form in registration_forms_qs:
-            form_properties = set(form.get_save_to().keys())
-            dataset_properties.update(form_properties)
-
-        return list(dataset_properties)
+        """All dataset properties"""
+        return list(self.props.values_list("name", flat=True))
 
     @transaction.atomic()
     def soft_delete(self, deleted_by=None):
@@ -90,11 +74,31 @@ class EntityList(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        unique_together = (
-            "name",
-            "project",
-        )
+        unique_together = ("name", "project")
         indexes = [models.Index(fields=["deleted_at"])]
+
+
+class EntityListProperty(BaseModel):
+    """EntityList properties"""
+
+    class Source(models.TextChoices):
+        XFORM = "xform", _("XForm")
+        API = "api", _("API")
+
+    name = models.CharField(max_length=255)
+    entity_list = models.ForeignKey(
+        EntityList, on_delete=models.CASCADE, related_name="props"
+    )
+    created_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    source = models.CharField(
+        max_length=20, choices=Source.choices, default=Source.XFORM
+    )
+
+    class Meta(BaseModel.Meta):
+        app_label = "logger"
+        unique_together = ("name", "entity_list")
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):

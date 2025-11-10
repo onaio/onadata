@@ -75,3 +75,8 @@ class RegistrationForm(BaseModel):
             result[alias] = field["name"]
 
         return result
+
+    @property
+    def properties(self) -> list:
+        """All EntityList properties the form contributes to"""
+        return self.get_save_to().keys()

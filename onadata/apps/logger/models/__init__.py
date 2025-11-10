@@ -7,6 +7,7 @@ from onadata.apps.logger.models.attachment import Attachment  # noqa
 from onadata.apps.logger.models.data_view import DataView  # noqa
 from onadata.apps.logger.models.entity import Entity, EntityHistory  # noqa
 from onadata.apps.logger.models.entity_list import EntityList  # noqa
+from onadata.apps.logger.models.entity_list import EntityListProperty  # noqa
 from onadata.apps.logger.models.follow_up_form import FollowUpForm  # noqa
 from onadata.apps.logger.models.instance import Instance, InstanceHistory  # noqa
 from onadata.apps.logger.models.kms import KMSKey, XFormKey  # noqa
