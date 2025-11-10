@@ -82,6 +82,8 @@ class EntityListProperty(BaseModel):
     """EntityList properties"""
 
     class Source(models.TextChoices):
+        """Choices for source"""
+
         XFORM = "xform", _("XForm")
         API = "api", _("API")
 
