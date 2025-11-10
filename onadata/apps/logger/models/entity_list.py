@@ -101,6 +101,9 @@ class EntityListProperty(BaseModel):
     class Meta(BaseModel.Meta):
         app_label = "logger"
         unique_together = ("name", "entity_list")
+        indexes = [
+            models.Index(fields=["name", "entity_list"]),
+        ]
 
 
 class EntityListUserObjectPermission(UserObjectPermissionBase):
