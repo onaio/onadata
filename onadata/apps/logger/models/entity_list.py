@@ -81,7 +81,7 @@ class EntityList(BaseModel):
 class EntityListProperty(BaseModel):
     """EntityList properties"""
 
-    class Source(models.TextChoices):
+    class Source(models.TextChoices):  # pylint: disable=too-many-ancestors
         """Choices for source"""
 
         XFORM = "xform", _("XForm")
