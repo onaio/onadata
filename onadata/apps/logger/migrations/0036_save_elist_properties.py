@@ -11,20 +11,35 @@ def populate_elist_properties(apps, schema_editor):
     elist_qs = EntityList.objects.all()
 
     for elist in elist_qs.iterator(chunk_size=100):
+        # Get registration forms for the current EntityList
         reg_forms_qs = elist.registration_forms.filter(is_active=True)
+        to_create = []
+        existing_props = {
+            name.lower()
+            for name in EntityListProperty.objects.filter(
+                entity_list=elist
+            ).values_list("name", flat=True)
+        }
+        pending_props = set()
 
         for reg_form in reg_forms_qs.iterator(chunk_size=100):
-            props = set(reg_form.get_save_to().keys())
+            for prop in reg_form.properties:
+                prop_lc = prop.lower()
 
-            for prop in props:
-                if not EntityListProperty.objects.filter(
-                    name__iexact=prop, entity_list=elist
-                ).exists():
-                    EntityListProperty.objects.create(
+                if prop_lc in existing_props or prop_lc in pending_props:
+                    continue
+
+                pending_props.add(prop_lc)
+                to_create.append(
+                    EntityListProperty(
                         name=prop,
                         entity_list=elist,
                         created_by=reg_form.xform.created_by,
                     )
+                )
+
+        if to_create:
+            EntityListProperty.objects.bulk_create(to_create)
 
 
 class Migration(migrations.Migration):
