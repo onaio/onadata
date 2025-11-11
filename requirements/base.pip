@@ -91,7 +91,7 @@ deprecated==1.2.18
     # via onadata
 dict2xml==1.7.6
     # via onadata
-django==5.1.13
+django==5.1.14
     # via
     #   django-activity-stream
     #   django-cors-headers
