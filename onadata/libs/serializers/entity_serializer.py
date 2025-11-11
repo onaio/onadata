@@ -5,14 +5,16 @@ Entities serializer module.
 
 from django.utils.translation import gettext as _
 
-from pyxform.constants import ENTITIES_RESERVED_PREFIX
+from pyxform.constants import ENTITIES_RESERVED_PREFIX, LABEL, NAME
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from rest_framework.validators import UniqueTogetherValidator
 
 from onadata.apps.logger.models import (
     Entity,
     EntityHistory,
     EntityList,
+    EntityListProperty,
     FollowUpForm,
     Project,
     RegistrationForm,
@@ -407,3 +409,55 @@ class ImportEntitiesSerializer(serializers.Serializer):
         if not value.name.lower().endswith(".csv"):
             raise serializers.ValidationError("CSV file is required.")
         return value
+
+
+class PropertySerializer(serializers.ModelSerializer):
+    """Serializer for EntityList property"""
+
+    def validate_name(self, value: str) -> str:
+        """Validate `name` field
+
+        Uses the same validation rules as PyXForm rules for field name
+        """
+        if value.startswith(ENTITIES_RESERVED_PREFIX):
+            err_msg = f"May not start with reserved prefix {ENTITIES_RESERVED_PREFIX}."
+            raise serializers.ValidationError(_(err_msg))
+
+        if value in {NAME, LABEL}:
+            err_msg = f"{value} is reserved."
+            raise serializers.ValidationError(_(err_msg))
+
+        return value
+
+    def validate(self, attrs):
+        # Properties should be case-senstive
+        exists = EntityListProperty.objects.filter(
+            name__iexact=attrs["name"], entity_list=attrs["entity_list"]
+        ).exists()
+
+        if exists:
+            raise serializers.ValidationError(_("Property already exists."))
+
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        data = {
+            **validated_data,
+            "source": EntityListProperty.Source.API,
+            "created_by": self.context["request"].user,
+        }
+        return super().create(data)
+
+    class Meta:
+        model = EntityListProperty
+        fields = (
+            "name",
+            "entity_list",
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=EntityListProperty.objects.all(),
+                fields=["name", "entity_list"],
+                message=_("Property already exists."),
+            )
+        ]
