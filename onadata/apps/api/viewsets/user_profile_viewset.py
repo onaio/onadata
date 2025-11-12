@@ -353,7 +353,7 @@ class UserProfileViewSet(
 
     @action(detail=False)
     def verify_email(self, request, *args, **kwargs):
-        """Accpet's email verification token and marks the profile as verified."""
+        """Accepts email verification token and marks the profile as verified."""
         verified_key_text = getattr(settings, "VERIFIED_KEY_TEXT", None)
 
         if not verified_key_text:

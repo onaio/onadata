@@ -251,6 +251,13 @@ class UserProfilePermissions(DjangoObjectPermissions):
             if view.action == "send_verification_email":
                 return request.user.username == request.data.get("username")
 
+            # Allow anonymous users to verify their email
+            if view.action == "verify_email":
+                return True
+
+        if request.user.is_anonymous:
+            raise exceptions.NotAuthenticated()
+
         return super().has_permission(request, view)
 
 
@@ -392,7 +399,7 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
     """
 
     def has_permission(self, request, view):
-        if request.user.is_anonymous and view.action == "list":
+        if request.user.is_anonymous:
             raise exceptions.NotAuthenticated()
 
         return super().has_permission(request, view)
