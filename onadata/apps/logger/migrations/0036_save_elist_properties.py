@@ -4,7 +4,7 @@ from django.db import migrations
 
 
 def get_reg_form_properties(reg_form) -> list[str]:
-    properties = {}
+    properties = set()
     children = reg_form.xform.json.get("children", [])
 
     def get_entity_property_fields(form_fields):
