@@ -218,7 +218,7 @@ class UserProfileViewSet(
     def retrieve(self, request, *args, **kwargs):
         """Get user profile from cache or db"""
         username = kwargs.get("user")
-        request_username = request.user.username or "-public-"
+        request_username = request.user.username
         cached_user = safe_cache_get(
             f"{USER_PROFILE_PREFIX}{username}{request_username}"
         )

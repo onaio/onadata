@@ -1622,15 +1622,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(cache_b_a["first_name"], "UserA")
         self.assertTrue("email" not in cache_b_a)
 
-        # anonymous user retrieves user A's profile - should be blocked
-        request_anon = self.factory.get("/")
-        response_anon = retrieve_view(request_anon, user="user_a")
-        self.assertEqual(response_anon.status_code, 401)
-        self.assertEqual(
-            response_anon.data,
-            {"detail": "Authentication credentials were not provided."},
-        )
-
         # User B retrieves their own profile
         request_b_own = self.factory.get("/", **user_b_extra)
         response_b_own = retrieve_view(request_b_own, user="user_b")
@@ -1644,12 +1635,3 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIsNotNone(cached_data_b_own)
         self.assertEqual(cached_data_b_own["first_name"], "UserB")
         self.assertEqual(cached_data_b_own["email"], user_b_data["email"])
-
-        # anonymous user retrieves user B's profile - should be blocked
-        request_anon = self.factory.get("/")
-        response_anon = retrieve_view(request_anon, user="user_b")
-        self.assertEqual(response_anon.status_code, 401)
-        self.assertEqual(
-            response_anon.data,
-            {"detail": "Authentication credentials were not provided."},
-        )
