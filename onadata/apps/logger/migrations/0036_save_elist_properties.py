@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def get_reg_form_properties(reg_form) -> list[str]:
+def get_reg_form_properties(reg_form) -> set[str]:
     properties = set()
     children = reg_form.xform.json.get("children", [])
 
@@ -18,7 +18,7 @@ def get_reg_form_properties(reg_form) -> list[str]:
 
     get_entity_property_fields(children)
 
-    return list(properties)
+    return properties
 
 
 def populate_elist_properties(apps, schema_editor):
