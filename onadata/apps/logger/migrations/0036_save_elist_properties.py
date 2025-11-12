@@ -10,8 +10,7 @@ def get_reg_form_properties(reg_form) -> set[str]:
     def get_entity_property_fields(form_fields):
         for field in form_fields:
             if "bind" in field and "entities:saveto" in field["bind"]:
-                alias = field["bind"]["entities:saveto"]
-                properties.add(alias)
+                properties.add(field["bind"]["entities:saveto"])
 
             elif field.get("children", []):
                 get_entity_property_fields(field["children"])
