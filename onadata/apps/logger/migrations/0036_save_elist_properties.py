@@ -3,6 +3,24 @@
 from django.db import migrations
 
 
+def get_reg_form_properties(reg_form) -> list[str]:
+    properties = {}
+    children = reg_form.xform.json.get("children", [])
+
+    def get_entity_property_fields(form_fields):
+        for field in form_fields:
+            if "bind" in field and "entities:saveto" in field["bind"]:
+                alias = field["bind"]["entities:saveto"]
+                properties.add(alias)
+
+            elif field.get("children", []):
+                get_entity_property_fields(field["children"])
+
+    get_entity_property_fields(children)
+
+    return list(properties)
+
+
 def populate_elist_properties(apps, schema_editor):
     """Create EntityListProperty from RegistrationForms"""
     EntityList = apps.get_model("logger", "EntityList")
@@ -23,7 +41,7 @@ def populate_elist_properties(apps, schema_editor):
         pending_props = set()
 
         for reg_form in reg_forms_qs.iterator(chunk_size=100):
-            for prop in reg_form.properties:
+            for prop in get_reg_form_properties(reg_form):
                 prop_lc = prop.lower()
 
                 if prop_lc in existing_props or prop_lc in pending_props:
