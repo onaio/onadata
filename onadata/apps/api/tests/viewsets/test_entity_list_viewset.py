@@ -1890,7 +1890,7 @@ class ImportEntitiesTestCase(TestAbstractViewSet):
         request = self.factory.post("/")
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 401)
-        # Anonymous user cannot into import public EntityList
+        # Anonymous user cannot import into public EntityList
         self.project.shared = True
         self.project.save()
         request = self.factory.post("/")
