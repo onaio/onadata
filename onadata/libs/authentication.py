@@ -5,6 +5,8 @@ Authentication classes.
 
 from __future__ import unicode_literals
 
+import logging
+
 from datetime import datetime
 from typing import Optional, Tuple
 
@@ -43,7 +45,11 @@ from onadata.libs.utils.cache_tools import (
     safe_key,
 )
 from onadata.libs.utils.common_tags import API_TOKEN
+from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.email import get_account_lockout_email_data
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 ENKETO_AUTH_COOKIE = getattr(settings, "ENKETO_AUTH_COOKIE", "__enketo")
 TEMP_TOKEN_EXPIRY_TIME = getattr(
@@ -122,14 +128,23 @@ class DigestAuthentication(BaseAuthentication):
             remaining_attempts = getattr(settings, "MAX_LOGIN_ATTEMPTS", 10) - attempts
             # pylint: disable=unused-variable
             lockout_time = getattr(settings, "LOCKOUT_TIME", 1800) // 60  # noqa
-            raise AuthenticationFailed(
-                _(
-                    "Invalid username/password. "
-                    f"For security reasons, after {remaining_attempts} more failed "
-                    f"login attempts you'll have to wait {lockout_time} minutes "
-                    "before trying again."
-                )
+            ip_address, username = retrieve_user_identification(request)
+            user_agent = request.META.get("HTTP_USER_AGENT", None)
+            info_str = (
+                f"IP: {ip_address}, USERNAME: {username}, "
+                f"REMAINING_ATTEMPTS: {remaining_attempts}, USER_AGENT: {user_agent}"
             )
+            logger.debug(info_str)
+            error_str = _(
+                "Invalid username/password. "
+                f"For security reasons, after {remaining_attempts} more failed "
+                f"login attempts you'll have to wait {lockout_time} minutes "
+                "before trying again."
+            )
+            # log to sentry
+            report_exception("Authentication Failure", error_str)
+            raise AuthenticationFailed(error_str)
+
         except (AttributeError, ValueError, DataError) as e:
             raise AuthenticationFailed(e) from e
 
