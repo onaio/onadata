@@ -588,3 +588,13 @@ class DjangoObjectPermissionsIgnoreModelPerm(DjangoObjectPermissions):
             return False
 
         return True
+
+
+class EntityListPermissions(DjangoObjectPermissionsIgnoreModelPerm):
+    """Custom permissions to check for EntityListViewSet"""
+
+    def has_permission(self, request, view):
+        if view.action == "import_entities" and request.user.is_anonymous:
+            return False
+
+        return super().has_permission(request, view)

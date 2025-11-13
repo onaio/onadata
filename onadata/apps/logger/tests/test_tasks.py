@@ -1,6 +1,8 @@
 """Tests for module onadata.apps.logger.tasks"""
 
 import sys
+from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -18,6 +20,7 @@ from onadata.apps.logger.tasks import (
     commit_cached_xform_num_of_decrypted_submissions_async,
     decrypt_instance_async,
     disable_expired_keys_async,
+    import_entities_from_csv_async,
     rotate_expired_keys_async,
     send_key_grace_expiry_reminder_async,
     send_key_rotation_reminder_async,
@@ -431,4 +434,166 @@ class DecryptInstanceAsyncTestCase(TestBase):
 
         mock_save_decryption_error.assert_called_once_with(
             self.instance, "MAX_RETRIES_EXCEEDED"
+        )
+
+
+@patch("onadata.apps.logger.tasks.default_storage.open")
+@patch("onadata.apps.logger.tasks.import_entities_from_csv")
+class ImportEntitiesFromCSVAsyncTestCase(TestBase):
+    """Tests for import_entities_from_csv_async"""
+
+    def setUp(self):
+        super().setUp()
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        self.csv_file = StringIO(
+            "label,species,circumference_cm\n300cm purpleheart,purpleheart,300"
+        )
+
+    def test_import_entities_from_csv(self, mock_import, mock_open):
+        """Import entities from CSV"""
+        mock_open.return_value = self.csv_file
+        fake_results = iter(
+            [
+                SimpleNamespace(index=2, status="created", error=None),
+                SimpleNamespace(index=3, status="updated", error=None),
+                SimpleNamespace(index=4, status="error", error="boom"),
+            ]
+        )
+        mock_import.return_value = fake_results
+
+        result = import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            label_column="tree_name",
+            uuid_column="tree_id",
+            user_id=self.user.pk,
+        )
+        out = result.get()
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="tree_name",
+            uuid_column="tree_id",
+        )
+
+        self.assertEqual(out["processed"], 3)
+        self.assertEqual(out["created"], 1)
+        self.assertEqual(out["updated"], 1)
+        self.assertEqual(out["errors"], [(4, "boom")])
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_connection_error(self, mock_retry, mock_import, mock_open):
+        """ConnectionError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise ConnectionError()
+                yield  # pylint: disable=unreachable
+
+            return _g()
+
+        mock_open.return_value = self.csv_file
+        mock_import.return_value = _gen_raises()
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], ConnectionError))
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_database_error(self, mock_retry, mock_import, mock_open):
+        """DatabaseError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise DatabaseError()
+                yield  # pylint: disable=unreachable
+
+            return _g()
+
+        mock_open.return_value = self.csv_file
+        mock_import.return_value = _gen_raises()
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], DatabaseError))
+
+    @patch("onadata.apps.logger.tasks.import_entities_from_csv_async.retry")
+    def test_retry_operational_error(self, mock_retry, mock_import, mock_open):
+        """OperationalError exception is retried"""
+
+        def _gen_raises():
+            def _g():
+                raise OperationalError()
+                yield  # pylint: disable=unreachable
+
+            return _g()
+
+        mock_open.return_value = self.csv_file
+        mock_import.return_value = _gen_raises()
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+        self.assertTrue(mock_retry.called)
+        _, kwargs = mock_retry.call_args_list[0]
+        self.assertTrue(isinstance(kwargs["exc"], OperationalError))
+
+    def test_default_label_column(self, mock_import, mock_open):
+        """Default label column is 'label' if not provided"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            uuid_column="tree_id",
+        )
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="label",
+            uuid_column="tree_id",
+        )
+
+    def test_default_uuid_column(self, mock_import, mock_open):
+        """Default uuid column is 'uuid' if not provided"""
+        mock_open.return_value = self.csv_file
+        import_entities_from_csv_async.delay(
+            "csv_file.csv",
+            self.entity_list.pk,
+            user_id=self.user.pk,
+            label_column="tree_name",
+        )
+        mock_import.assert_called_once_with(
+            self.entity_list,
+            self.csv_file,
+            user=self.user,
+            label_column="tree_name",
+            uuid_column="uuid",
+        )
+
+    @patch("onadata.apps.logger.tasks.send_message")
+    def test_audit_log_created(self, mock_send_message, mock_import, mock_open):
+        """Creates an audit log when entities are imported"""
+        mock_open.return_value = self.csv_file
+
+        import_entities_from_csv_async.delay(
+            "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
+        )
+
+        mock_import.assert_called_once()
+        mock_send_message.assert_called_once_with(
+            instance_id=self.entity_list.pk,
+            target_id=self.entity_list.pk,
+            target_type="entitylist",
+            user=self.user,
+            message_verb="entitylist_imported",
         )

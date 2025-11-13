@@ -4,9 +4,11 @@ Entities
 
 Entities allow you to share information between forms, enabling the collection of longitudinal data, management of cases over time, and support for other complex workflows.
 
-The following endpoints provides access to Entities related data: Where:
+The following endpoints provides access to Entities related data.
 
-- ``Entity`` - Each item that gets managed by an ODK workflow. Entities are automatically created from submissions receieved from a form that contains entity definitions.
+Where:
+
+- ``Entity`` - Each item that gets managed by an ODK workflow. Entities are automatically created from submissions received from a form that contains entity definitions.
 - ``EntityList`` - a dataset that contains Entities of the same type.
 - ``entity_list_id`` - An EntityList's unique identifier
 - ``entity_id`` - An Entity's unique identifier
@@ -241,7 +243,7 @@ Download EntityList
 
 	   <pre class="prettyprint"><b>GET</b> api/v2/entity-lists/&lt;entity_list_id&gt;/download</pre>
 
-or 
+or
 
 .. raw:: html
 
@@ -428,6 +430,14 @@ Create Entity
 
 This endpoint is used for creating a single Entity in the Entity List.
 
+.. note::
+
+   The EntityList must have properties defined before you can create Entities.
+   If the EntityList has no properties, the request will fail with:
+
+   - Status: ``400 Bad Request``
+   - Body: ``{"error": "EntityList has no properties defined"}``
+
 The data is passed as JSON in the request body. The following keys are available:
 
 - ``label`` - A user-friendly label for forms that use Entities.
@@ -580,7 +590,7 @@ The endpoint is used to delete a single Entity or multiple Entities. The IDs of 
       {
          "entity_ids": [1, 2, 3]
       }
-   
+
 `entity_ids` must be provided and cannot be an empty list. The items in the list must be valid IDs of Entities that are in the EntityList.
 
 **Example**
@@ -596,3 +606,177 @@ The endpoint is used to delete a single Entity or multiple Entities. The IDs of 
 **Response**
 
 Status: ``204 No Content``
+
+Import Entities from CSV
+-------------------------
+
+.. raw:: html
+
+	   <pre class="prettyprint"><b>POST</b> /api/v2/entity-lists/&lt;entity_list_id&gt;/import-entities</pre>
+
+This endpoint is used to import multiple entities from a CSV file into an EntityList dataset. The import process is asynchronous and returns a task ID that can be used to check the import status.
+
+The CSV file must contain columns that match the properties defined in the EntityList dataset. The following parameters are supported:
+
+- ``csv_file`` - The CSV file to import (required)
+- ``label_column`` - The name of the column containing entity labels (optional, defaults to "label")
+- ``uuid_column`` - The name of the column containing entity UUIDs (optional, defaults to "uuid")
+
+**CSV File Requirements:**
+
+- Must be a valid CSV file with `.csv` extension
+- First row should contain column headers
+- UUID column values must be unique within the EntityList
+- Label column values must be non-empty strings
+
+.. note::
+
+   The EntityList must have properties defined before you can import Entities.
+   If the EntityList has no properties, the import request will fail with:
+
+   - Status: ``400 Bad Request``
+   - Body: ``{"error": "EntityList has no properties defined"}``
+
+**Example**
+
+.. code-block:: bash
+
+      curl -X POST https://api.ona.io/api/v2/entity-lists/1/import-entities \
+      -H "Authorization: Token ACCESS_TOKEN" \
+      -F "csv_file=@trees.csv" \
+      -F "label_column=label" \
+      -F "uuid_column=uuid"
+
+**CSV File Content Example (trees.csv):**
+
+.. code-block:: csv
+
+      label,species,circumference_cm,uuid
+      300cm purpleheart,purpleheart,300,dbee4c32-a922-451c-9df7-42f40bf78f48
+      200cm mora,mora,200,517185b4-bc06-450c-a6ce-44605dec5480
+      100cm wallaba,wallaba,100,8f2e1a3b-9c4d-4e5f-8a7b-1c2d3e4f5a6b
+
+**Response**
+
+Status: ``202 Accepted``
+
+Body:
+
+.. code-block:: json
+
+      {
+         "task_id": "2335468b-646d-4831-b874-028431c1d339"
+      }
+
+Check Import Status
+~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+	   <pre class="prettyprint"><b>GET</b> /api/v2/entity-lists/&lt;entity_list_id&gt;/import-entities?task_id=&lt;task_id&gt;</pre>
+
+This endpoint is used to check the status of an ongoing CSV import operation. Use the `task_id` returned from the import request to monitor progress.
+
+**Parameters:**
+
+- ``task_id`` - The task ID returned from the import request (required)
+
+**Example**
+
+.. code-block:: bash
+
+      curl -X GET https://api.ona.io/api/v2/entity-lists/1/import-entities?task_id=2335468b-646d-4831-b874-028431c1d339 \
+      -H "Authorization: Token ACCESS_TOKEN"
+
+**Response**
+
+Status: ``200 OK``
+
+Body:
+
+.. code-block:: json
+
+      {
+      "task_id": "d7b1e80b",
+      "state": "SUCCESS",
+      "result": {
+         "processed": 325,
+         "created": 300,
+         "updated": 25,
+         "errors": []
+      }
+   }
+
+**Task States**
+
+The import status endpoint returns different states depending on the progress of the import operation:
+
+- ``PENDING`` - Task is queued but not yet started
+- ``STARTED`` - Task has begun processing
+- ``PROGRESS`` - Task is actively processing rows
+- ``SUCCESS`` - Task completed successfully
+- ``FAILURE`` - Task failed with an error
+- ``RETRY`` - Task is being retried due to a temporary error
+
+**Error Handling**
+
+When the import task fails, the response will include error details:
+
+**CSV Validation Errors (400 Bad Request)**
+
+When CSV validation fails, the response includes specific error messages:
+
+.. code-block:: json
+
+      {
+         "task_id": "d7b1e80b",
+         "state": "FAILURE",
+         "result": {
+            "error": "CSV must include a 'label' column."
+         }
+      }
+
+Common CSV validation errors include:
+
+- Missing required columns (label column)
+- Invalid CSV format
+- Empty label values
+- Duplicate UUIDs within the CSV
+- Invalid property values
+
+**General Import Errors (500 Internal Server Error)**
+
+For other types of failures (database errors, connection issues, etc.):
+
+.. code-block:: json
+
+      {
+         "task_id": "d7b1e80b",
+         "state": "FAILURE",
+         "result": {
+            "error": "The job failed. Please try again."
+         }
+      }
+
+**Row-Level Errors**
+
+Even when the overall import succeeds, individual rows may have errors. These are included in the success response:
+
+.. code-block:: json
+
+      {
+         "task_id": "d7b1e80b",
+         "state": "SUCCESS",
+         "result": {
+            "processed": 325,
+            "created": 322,
+            "updated": 0,
+            "errors": [
+               [4, "Invalid UUID format"],
+               [7, "Label cannot be empty"],
+               [12, "Property 'species' is required"]
+            ]
+         }
+      }
+
+The errors array contains tuples of ``[row_number, error_message]`` for rows that failed to import. Row numbers start from 2 (accounting for the header row). Only the first 50 errors are included in the response.

@@ -3,6 +3,7 @@
 import logging
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from django.db import DatabaseError, OperationalError
 
 from celery.exceptions import MaxRetriesExceededError
@@ -15,6 +16,8 @@ from onadata.apps.logger.models.instance import (
     update_project_date_modified,
     update_xform_submission_count,
 )
+from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
+from onadata.apps.messaging.serializers import send_message
 from onadata.celeryapp import app
 from onadata.libs.kms.tools import (
     adjust_xform_num_of_decrypted_submissions,
@@ -36,6 +39,7 @@ from onadata.libs.utils.common_tags import DECRYPTION_FAILURE_MAX_RETRIES
 from onadata.libs.utils.entities_utils import (
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
+    import_entities_from_csv,
     soft_delete_entities_bulk,
 )
 
@@ -182,7 +186,7 @@ def update_project_date_modified_async(instance_id):
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
     """Custom task class for decrypting instances with auto-retry"""
 
-    autoretry_for = AutoRetryTask.autoretry_for + (ValigettaConnectionException,)
+    autoretry_for = (*AutoRetryTask.autoretry_for, ValigettaConnectionException)
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -289,3 +293,67 @@ def commit_cached_xform_num_of_decrypted_submissions_async():
 def send_key_grace_expiry_reminder_async():
     """Send key grace expiry reminder asynchronously."""
     send_key_grace_expiry_reminder()
+
+
+@app.task(base=AutoRetryTask, bind=True)
+@use_master
+# pylint: disable=too-many-positional-arguments, too-many-arguments
+def import_entities_from_csv_async(
+    self,
+    file_path: str,
+    entity_list_id: int,
+    label_column: str = "label",
+    uuid_column: str = "uuid",
+    user_id: int | None = None,
+):
+    """Import entities from CSV asynchronously."""
+    self.update_state(state="STARTED", meta={"processed": 0})
+    created = updated = processed = 0
+    errors: list[tuple[int, str]] = []
+    entity_list = EntityList.objects.get(pk=entity_list_id)
+    user = User.objects.get(pk=user_id) if user_id else None
+
+    with default_storage.open(file_path, mode="r") as csv_file:
+        for row_result in import_entities_from_csv(
+            entity_list,
+            csv_file,
+            user=user,
+            label_column=label_column,
+            uuid_column=uuid_column,
+        ):
+            processed += 1
+
+            if row_result.status == "created":
+                created += 1
+
+            elif row_result.status == "updated":
+                updated += 1
+
+            else:
+                errors.append((row_result.index, row_result.error or "Unknown error"))
+
+            if processed % 25 == 0:
+                self.update_state(
+                    state="PROGRESS",
+                    meta={
+                        "processed": processed,
+                        "created": created,
+                        "updated": updated,
+                        "errors": errors[-5:],
+                    },
+                )
+
+    send_message(
+        instance_id=entity_list.pk,
+        target_id=entity_list.pk,
+        target_type=ENTITY_LIST,
+        user=user,
+        message_verb=ENTITY_LIST_IMPORTED,
+    )
+
+    return {
+        "processed": processed,
+        "created": created,
+        "updated": updated,
+        "errors": errors[:50],
+    }

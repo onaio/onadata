@@ -2,44 +2,50 @@
 ViewSet for EntityList actions
 """
 
+import os
 import uuid
+
+from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
+from celery.result import AsyncResult
+from celery.states import FAILURE, PENDING, RETRY, STARTED, SUCCESS
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.mixins import (
+    CreateModelMixin,
+    DestroyModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+)
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.mixins import (
-    CreateModelMixin,
-    RetrieveModelMixin,
-    DestroyModelMixin,
-    ListModelMixin,
-)
 
-from onadata.apps.api.permissions import DjangoObjectPermissionsIgnoreModelPerm
+from onadata.apps.api.permissions import EntityListPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
+from onadata.apps.logger.tasks import import_entities_from_csv_async
+from onadata.libs.exceptions import CSVImportError
 from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.pagination import (
-    StandardPageNumberPagination,
-)
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import CAN_ADD_PROJECT_ENTITYLIST
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.entity_serializer import (
     EntityArraySerializer,
-    EntitySerializer,
-    EntityListSerializer,
+    EntityDeleteSerializer,
     EntityListArraySerializer,
     EntityListDetailSerializer,
-    EntityDeleteSerializer,
+    EntityListSerializer,
+    EntitySerializer,
+    ImportEntitiesSerializer,
 )
 from onadata.libs.utils.api_export_tools import get_entity_list_export_response
-
 
 BaseViewset = get_baseviewset_class()
 
@@ -65,11 +71,12 @@ class EntityListViewSet(
         )
     )
     serializer_class = EntityListSerializer
-    permission_classes = (DjangoObjectPermissionsIgnoreModelPerm,)
+    permission_classes = (EntityListPermissions,)
     pagination_class = StandardPageNumberPagination
     filter_backends = (AnonUserEntityListFilter, EntityListProjectFilter)
     entities_search_fields = ["uuid", "json"]
 
+    # pylint: disable=too-many-return-statements
     def get_serializer_class(self):
         """Override `get_serializer_class` method"""
         if self.action == "list":
@@ -86,6 +93,9 @@ class EntityListViewSet(
                 return EntityArraySerializer
 
             return EntitySerializer
+
+        if self.action == "import_entities":
+            return ImportEntitiesSerializer
 
         return super().get_serializer_class()
 
@@ -134,7 +144,7 @@ class EntityListViewSet(
             return self._bulk_delete_entities(request)
 
         if method == "POST":
-            return self._create_entity(request)
+            return self._create_entity(entity_list, request)
 
         return self._list_entities(entity_list, request)
 
@@ -150,8 +160,14 @@ class EntityListViewSet(
         serializer.save()
         return Response(serializer.data)
 
-    def _create_entity(self, request):
+    def _create_entity(self, entity_list, request):
         """Creates a new entity."""
+        if not entity_list.properties:
+            return Response(
+                {"error": _("EntityList has no properties defined")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -248,3 +264,69 @@ class EntityListViewSet(
             return get_entity_list_export_response(request, instance, instance.name)
 
         return super().retrieve(request, format, *args, **kwargs)
+
+    # pylint: disable=too-many-locals
+    @action(methods=["POST", "GET"], detail=True, url_path="import-entities")
+    def import_entities(self, request, *args, **kwargs):
+        """Imports entities from a CSV file"""
+        entity_list = self.get_object()
+
+        if request.method == "GET":
+            task_id = request.query_params.get("task_id")
+
+            if task_id is None:
+                raise ParseError("task_id is required")
+
+            result = AsyncResult(task_id)
+            payload = {
+                "task_id": task_id,
+                "state": result.state,
+                "result": result.info or {},
+            }
+            in_progress = (
+                result.state in (PENDING, STARTED, RETRY)
+                or str(result.state).upper() == "PROGRESS"
+            )
+
+            if in_progress:
+                return Response(payload, status=status.HTTP_202_ACCEPTED)
+
+            if result.state == SUCCESS:
+                payload["result"] = result.result
+                return Response(payload, status=status.HTTP_200_OK)
+
+            if result.state == FAILURE:
+                exc = result.result
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+                error = {"error": _("The job failed. Please try again.")}
+
+                if isinstance(exc, CSVImportError):
+                    status_code = status.HTTP_400_BAD_REQUEST
+                    error["error"] = str(exc)
+
+                payload["result"] = error
+                return Response(payload, status=status_code)
+
+            # Unknown/custom state → treat as in-progress
+            return Response(payload, status=status.HTTP_202_ACCEPTED)
+
+        if not entity_list.properties:
+            return Response(
+                {"error": _("EntityList has no properties defined")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        csv_file = serializer.validated_data["csv_file"]
+        csv_file.seek(0)
+        upload_to = os.path.join(request.user.username, "csv_imports", csv_file.name)
+        file_name = default_storage.save(upload_to, csv_file)
+        task = import_entities_from_csv_async.delay(
+            file_name,
+            entity_list.pk,
+            user_id=request.user.pk,
+            label_column=serializer.validated_data.get("label_column", "label"),
+            uuid_column=serializer.validated_data.get("uuid_column", "uuid"),
+        )
+        return Response(data={"task_id": task.task_id}, status=status.HTTP_202_ACCEPTED)
