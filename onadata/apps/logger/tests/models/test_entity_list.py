@@ -1,14 +1,14 @@
 """Tests for module onadata.apps.logger.models.entity_list"""
 
 import os
-from datetime import datetime, timezone as tz
+from datetime import datetime
+from datetime import timezone as tz
 from unittest.mock import patch
 
-from django.db.utils import IntegrityError, DataError
-from django.utils import timezone
+from django.db.utils import DataError, IntegrityError
 
+from onadata.apps.logger.models import EntityList, EntityListProperty, Project
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import EntityList, Project
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -191,3 +191,54 @@ class EntityListTestCase(TestBase):
         self.assertFalse(
             follow_up_form.metadata_set.filter(data_value=data_value).exists()
         )
+
+
+class EntityListPropertyTestCase(TestBase):
+    """Tests for model EntityListProprty"""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.mocked_now = datetime(2025, 11, 10, 15, 34, tzinfo=tz.utc)
+        self.entity_list = EntityList.objects.create(
+            name="trees",
+            project=self.project,
+            num_entities=2,
+        )
+
+    @patch("django.utils.timezone.now")
+    def test_creation(self, mock_now):
+        """We can create an EntityListProperty."""
+        mock_now.return_value = self.mocked_now
+        prop = EntityListProperty.objects.create(
+            name="geometry",
+            entity_list=self.entity_list,
+            created_by=self.user,
+            source="xform",
+        )
+
+        self.assertEqual(prop.name, "geometry")
+        self.assertEqual(prop.entity_list, self.entity_list)
+        self.assertEqual(prop.date_created, self.mocked_now)
+        self.assertEqual(prop.date_modified, self.mocked_now)
+        self.assertEqual(prop.source, "xform")
+
+    def test_optional_fields(self):
+        """Defaults for optional fields are correct."""
+        prop = EntityListProperty.objects.create(
+            name="geometry",
+            entity_list=self.entity_list,
+        )
+
+        self.assertIsNone(prop.created_by)
+        self.assertEqual(prop.source, "xform")
+
+    def test_name_entity_list_unique(self):
+        """`name` and `entity_list` are unique together."""
+        EntityListProperty.objects.create(name="geometry", entity_list=self.entity_list)
+
+        with self.assertRaises(IntegrityError):
+            EntityListProperty.objects.create(
+                name="geometry", entity_list=self.entity_list
+            )

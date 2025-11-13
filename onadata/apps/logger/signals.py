@@ -9,7 +9,14 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from onadata.apps.logger.models import Entity, EntityList, Instance, SubmissionReview
+from onadata.apps.logger.models import (
+    Entity,
+    EntityList,
+    EntityListProperty,
+    Instance,
+    RegistrationForm,
+    SubmissionReview,
+)
 from onadata.apps.logger.models.xform import clear_project_cache
 from onadata.apps.logger.tasks import (
     adjust_elist_num_entities_async,
@@ -131,3 +138,17 @@ def delete_entity_list_metadata(sender, instance, **kwargs):
         data_type="media",
         data_value=f"entity_list {instance.pk} {entity_list_name}",
     ).delete()
+
+
+@receiver(post_save, sender=RegistrationForm, dispatch_uid="create_elist_properties")
+def create_elist_properties(sender, instance, **kwargs):
+    """Create EntityListProperty from RegistrationForm"""
+    for prop in instance.properties:
+        if not EntityListProperty.objects.filter(
+            name__iexact=prop, entity_list=instance.entity_list
+        ).exists():
+            EntityListProperty.objects.create(
+                name=prop,
+                entity_list=instance.entity_list,
+                created_by=instance.xform.created_by,
+            )

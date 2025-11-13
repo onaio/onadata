@@ -26,7 +26,7 @@ EntityList name must not include ``.`` or start with ``__``
 
 EntityList name is unique per project.
 
-The EntityList by default has no properties.
+The EntityList by default has no properties. See :ref:`Create EntityList Property <create-entitylist-property>` to add properties.
 
 **Example**
 
@@ -282,6 +282,47 @@ This endpoint is used to delete a single EntityList dataset.
 **Response**
 
 Status: ``204 No Content``
+
+.. _create-entitylist-property:
+
+Create EntityList Property
+---------------------------
+
+.. raw:: html
+
+	   <pre class="prettyprint"><b>POST</b> /api/v2/entity-lists/&lt;entity_list_id&gt;/properties</pre>
+
+This endpoint is used to create a property for an EntityList dataset. Properties define the fields that can be used when creating or updating Entities in the dataset.
+
+The following validation rules apply to property names:
+
+- Property name must not start with ``__`` (reserved prefix)
+- Property name cannot be ``name`` or ``label`` (reserved names)
+- Property name must be unique per EntityList (case-sensitive)
+
+**Example**
+
+.. code-block:: bash
+
+      curl -X POST "https://api.ona.io/api/v2/entity-lists/1/properties" \
+      -H "Authorization: Token ACCESS_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+               "name": "height_cm"
+         }'
+
+**Response**
+
+Status: ``201 Created``
+
+Body:
+
+.. code-block:: json
+
+      {
+         "name": "height_cm",
+         "entity_list": 1
+      }
 
 Get a list of Entities
 ----------------------
