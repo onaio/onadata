@@ -19,8 +19,6 @@ from moto import mock_aws
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
-from onadata.libs.exceptions import CSVImportError
 from onadata.apps.logger.models import (
     Entity,
     EntityHistory,
@@ -28,6 +26,7 @@ from onadata.apps.logger.models import (
     EntityListProperty,
     Project,
 )
+from onadata.libs.exceptions import CSVImportError
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.permissions import ROLES, OwnerRole
