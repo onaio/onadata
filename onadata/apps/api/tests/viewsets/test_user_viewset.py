@@ -63,7 +63,7 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_user_anon(self):
-        """Test anonymous user can access user info(except for list endpoint)"""
+        """Test anonymous users are blocked from all user endpoints"""
         request = self.factory.get("/")
 
         # users list endpoint returns 401 for anonymous users
@@ -74,16 +74,20 @@ class TestUserViewSet(TestAbstractViewSet):
             response.data, {"detail": "Authentication credentials were not provided."}
         )
 
-        # user with username bob
+        # user retrieve endpoint also returns 401 for anonymous users
         view = UserViewSet.as_view({"get": "retrieve"})
         response = view(request, username="bob")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.data)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
-        # Test with primary key
+        # Test with primary key also returns 401
         response = view(request, username=self.user.pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.data)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
     def test_get_user_using_email(self):
         alice_data = {

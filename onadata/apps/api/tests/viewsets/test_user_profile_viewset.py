@@ -145,11 +145,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
 
-        # anonymous user gets empty response
+        # anonymous user gets 401
         request = self.factory.get("/")
         response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
         # authenicated user without users query param only gets his/her profile
         request = self.factory.get("/", **self.extra)
@@ -224,33 +226,26 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, self.user_profile_data())
 
     def test_profiles_get_anon(self):
+        """Test that anonymous users are blocked from retrieving profiles"""
         view = UserProfileViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/")
-        response = view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data, {"detail": "Expected URL keyword argument `user`."}
-        )
-        request = self.factory.get("/")
         response = view(request, user="bob")
-        data = self.user_profile_data()
-        del data["email"]
-        del data["metadata"]
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
-        self.assertNotIn("email", response.data)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
     def test_profiles_get_org_anon(self):
+        """Test that anonymous users are blocked from retrieving org profiles"""
         self._org_create()
         self.client.logout()
         view = UserProfileViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/")
         response = view(request, user=self.company_data["org"])
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["first_name"], self.company_data["name"])
-        self.assertIn("is_org", response.data)
-        self.assertEqual(response.data["is_org"], True)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data, {"detail": "Authentication credentials were not provided."}
+        )
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @override_settings(ENABLE_EMAIL_VERIFICATION=True)
@@ -1627,20 +1622,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(cache_b_a["first_name"], "UserA")
         self.assertTrue("email" not in cache_b_a)
 
-        # anonymous user retrieves user A's profile
-        request_anon = self.factory.get("/")
-        response_anon = retrieve_view(request_anon, user="user_a")
-        self.assertEqual(response_anon.status_code, 200)
-        self.assertEqual(response_anon.data["first_name"], "UserA")
-        self.assertTrue("email" not in response_anon)
-
-        # Verify anonymous user profile cache
-        anonymous_user_cache_key = f"{USER_PROFILE_PREFIX}user_a-public-"
-        anonymous_user_cache = cache.get(anonymous_user_cache_key)
-        self.assertIsNotNone(anonymous_user_cache)
-        self.assertEqual(anonymous_user_cache["first_name"], "UserA")
-        self.assertTrue("email" not in anonymous_user_cache)
-
         # User B retrieves their own profile
         request_b_own = self.factory.get("/", **user_b_extra)
         response_b_own = retrieve_view(request_b_own, user="user_b")
@@ -1654,17 +1635,3 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIsNotNone(cached_data_b_own)
         self.assertEqual(cached_data_b_own["first_name"], "UserB")
         self.assertEqual(cached_data_b_own["email"], user_b_data["email"])
-
-        # anonymous user retrieves user B's profile
-        request_anon = self.factory.get("/")
-        response_anon = retrieve_view(request_anon, user="user_b")
-        self.assertEqual(response_anon.status_code, 200)
-        self.assertEqual(response_anon.data["first_name"], "UserB")
-        self.assertTrue("email" not in response_anon)
-
-        # Verify anonymous user profile cache
-        anonymous_user_cache_key = f"{USER_PROFILE_PREFIX}user_b-public-"
-        anonymous_user_cache = cache.get(anonymous_user_cache_key)
-        self.assertIsNotNone(anonymous_user_cache)
-        self.assertEqual(anonymous_user_cache["first_name"], "UserB")
-        self.assertTrue("email" not in anonymous_user_cache)
