@@ -84,12 +84,24 @@ def create_partitioned_structure(apps, schema_editor):
     auto_detect_top_forms = getattr(settings, "PARTITION_AUTO_DETECT_TOP_FORMS", True)
     explicit_form_ids = getattr(settings, "PARTITION_EXPLICIT_FORM_IDS", [])
 
+    # Shared partition settings
+    enable_shared = getattr(settings, "PARTITION_ENABLE_SHARED", False)
+    shared_count = getattr(settings, "PARTITION_SHARED_COUNT", 5)
+
+    # Validate shared partition settings
+    if enable_shared and shared_count < 1:
+        logger.warning(f"Invalid PARTITION_SHARED_COUNT: {shared_count}. Must be >= 1. Disabling shared partitions.")
+        enable_shared = False
+
     logger.info("Starting creation of partitioned table structure...")
     logger.info("Partition configuration:")
     logger.info(f"  - Threshold: {form_threshold:,} instances")
     logger.info(f"  - Max individual partitions: {max_individual}")
     logger.info(f"  - Auto-detect top forms: {auto_detect_top_forms}")
     logger.info(f"  - Explicit form IDs: {explicit_form_ids}")
+    logger.info(f"  - Enable shared partitions: {enable_shared}")
+    if enable_shared:
+        logger.info(f"  - Shared partition count: {shared_count}")
 
     try:
         # Get forms for partitioning
@@ -138,13 +150,59 @@ def create_partitioned_structure(apps, schema_editor):
 
         logger.info(f"Creating {len(forms_to_partition)} individual partitions")
 
+        # Get remaining forms for shared partitions (if enabled)
+        shared_distribution = {}
+        if enable_shared:
+            individual_form_ids = [f[0] for f in forms_to_partition]
+            logger.info("Querying remaining forms for shared partition distribution...")
+
+            with schema_editor.connection.cursor() as cursor:
+                # Get all forms that are NOT getting individual partitions
+                exclude_clause = ""
+                params = []
+                if individual_form_ids:
+                    placeholders = ",".join(["%s"] * len(individual_form_ids))
+                    exclude_clause = f"WHERE xform_id NOT IN ({placeholders})"
+                    params = individual_form_ids
+
+                cursor.execute(
+                    f"""
+                    SELECT xform_id, COUNT(*) as instance_count
+                    FROM logger_instance
+                    {exclude_clause}
+                    GROUP BY xform_id
+                    ORDER BY xform_id
+                    """,
+                    params,
+                )
+                remaining_forms = cursor.fetchall()
+
+            # Distribute remaining forms via hash across shared partitions
+            shared_distribution = {i: [] for i in range(shared_count)}
+            for xform_id, count in remaining_forms:
+                partition_id = xform_id % shared_count
+                shared_distribution[partition_id].append((xform_id, count))
+
+            # Log distribution statistics
+            total_shared_forms = len(remaining_forms)
+            total_shared_instances = sum(count for _, count in remaining_forms)
+            logger.info(f"Distributing {total_shared_forms} remaining forms to {shared_count} shared partitions")
+            logger.info(f"  Total instances in shared partitions: {total_shared_instances:,}")
+
+            for partition_id in range(shared_count):
+                forms_in_partition = shared_distribution[partition_id]
+                if forms_in_partition:
+                    form_count = len(forms_in_partition)
+                    instance_count = sum(count for _, count in forms_in_partition)
+                    logger.info(f"  Shared partition {partition_id}: {form_count} forms, {instance_count:,} instances")
+
         with schema_editor.connection.cursor() as cursor:
             # 1. Create the new partitioned table structure
             logger.info("Creating partitioned table logger_instance_partitioned...")
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS logger_instance_partitioned (
-                    id integer NOT NULL,
+                    id integer NOT NULL DEFAULT nextval('logger_instance_id_seq'::regclass),
                     xml text NOT NULL,
                     user_id integer,
                     xform_id integer NOT NULL,
@@ -185,8 +243,44 @@ def create_partitioned_structure(apps, schema_editor):
                 """
                 )
 
-            # 3. Create default partition for all other forms
-            logger.info("Creating default partition for remaining forms...")
+            # 3. Create shared partitions (if enabled)
+            if enable_shared:
+                logger.info(f"Creating {shared_count} shared partitions...")
+                for partition_id in range(shared_count):
+                    forms_in_partition = shared_distribution[partition_id]
+                    if forms_in_partition:
+                        partition_name = f"logger_instance_p_shared_{partition_id}"
+                        xform_ids = [str(xform_id) for xform_id, _ in forms_in_partition]
+                        form_count = len(xform_ids)
+                        instance_count = sum(count for _, count in forms_in_partition)
+
+                        logger.info(
+                            f"Creating partition {partition_name} "
+                            f"with {form_count} forms ({instance_count:,} instances)"
+                        )
+
+                        # Create partition with all xform_ids for this hash bucket
+                        values_list = ", ".join(xform_ids)
+                        cursor.execute(
+                            f"""
+                            CREATE TABLE IF NOT EXISTS {partition_name}
+                            PARTITION OF logger_instance_partitioned
+                            FOR VALUES IN ({values_list})
+                        """
+                        )
+                    else:
+                        # Create empty shared partition (for future forms)
+                        # Note: Cannot create empty LIST partition, skip for now
+                        # Future forms will be added via ALTER TABLE or go to default
+                        logger.info(
+                            f"Skipping shared partition {partition_id} (no forms assigned)"
+                        )
+
+            # 4. Create default partition for all other forms
+            if enable_shared:
+                logger.info("Creating default partition (catch-all for future new forms)...")
+            else:
+                logger.info("Creating default partition for remaining forms...")
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS logger_instance_p_default
@@ -195,7 +289,7 @@ def create_partitioned_structure(apps, schema_editor):
             """
             )
 
-            # 4. Create constraints on partitioned table
+            # 5. Create constraints on partitioned table
             logger.info("Adding constraints to partitioned table...")
 
             # Primary key (must include partition key xform_id)
@@ -248,7 +342,7 @@ def create_partitioned_structure(apps, schema_editor):
             """
             )
 
-            # 5. Create indexes (will be created on each partition)
+            # 6. Create indexes (will be created on each partition)
             logger.info("Creating indexes on partitioned table...")
 
             # Critical performance indexes
@@ -447,9 +541,16 @@ def create_partitioned_structure(apps, schema_editor):
 
             result = cursor.fetchone()
             if result:
+                partition_count = result[2]
                 logger.info(
-                    f"Success - created partitioned table with {result[2]} partitions"
+                    f"Success - created partitioned table with {partition_count} partitions"
                 )
+                logger.info("Partition breakdown:")
+                logger.info(f"  - Individual partitions: {len(forms_to_partition)}")
+                if enable_shared:
+                    shared_with_forms = sum(1 for forms in shared_distribution.values() if forms)
+                    logger.info(f"  - Shared partitions: {shared_with_forms}")
+                logger.info("  - Default partition: 1")
 
     except Exception as e:
         logger.error(f"Error creating partitioned structure: {e}")
