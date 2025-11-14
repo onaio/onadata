@@ -73,3 +73,4 @@ AUTH_PASSWORD_VALIDATORS = []
 
 # disable user creation
 DISABLE_CREATING_USERS = False
+ENABLE_TABLE_PARTITIONING = False  # Set to False to skip partitioning
