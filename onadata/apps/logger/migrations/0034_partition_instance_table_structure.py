@@ -581,7 +581,7 @@ class Migration(migrations.Migration):
     atomic = False  # Required for CREATE INDEX CONCURRENTLY
 
     dependencies = [
-        ("logger", "0033_populate_entityhistory_mutation_type"),
+        ("logger", "0034_add_attachment_file_hash"),
     ]
 
     operations = [
