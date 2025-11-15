@@ -84,24 +84,42 @@ def create_partitioned_structure(apps, schema_editor):
     auto_detect_top_forms = getattr(settings, "PARTITION_AUTO_DETECT_TOP_FORMS", True)
     explicit_form_ids = getattr(settings, "PARTITION_EXPLICIT_FORM_IDS", [])
 
-    # Shared partition settings
+    # Shared partition settings (HASH sub-partitioning strategy)
     enable_shared = getattr(settings, "PARTITION_ENABLE_SHARED", False)
-    shared_count = getattr(settings, "PARTITION_SHARED_COUNT", 5)
+    shared_min_threshold = getattr(settings, "PARTITION_SHARED_MIN_THRESHOLD", 50000)
+    hash_modulus = getattr(settings, "PARTITION_HASH_MODULUS", 20)
 
     # Validate shared partition settings
-    if enable_shared and shared_count < 1:
-        logger.warning(f"Invalid PARTITION_SHARED_COUNT: {shared_count}. Must be >= 1. Disabling shared partitions.")
-        enable_shared = False
+    if enable_shared:
+        if shared_min_threshold < 1:
+            logger.warning(
+                f"Invalid PARTITION_SHARED_MIN_THRESHOLD: {shared_min_threshold}. Must be >= 1. Disabling shared partitions."
+            )
+            enable_shared = False
+        elif hash_modulus < 1:
+            logger.warning(
+                f"Invalid PARTITION_HASH_MODULUS: {hash_modulus}. Must be >= 1. Disabling shared partitions."
+            )
+            enable_shared = False
+        elif shared_min_threshold >= form_threshold:
+            logger.warning(
+                f"PARTITION_SHARED_MIN_THRESHOLD ({shared_min_threshold}) must be < "
+                f"PARTITION_FORM_THRESHOLD ({form_threshold}). Disabling shared partitions."
+            )
+            enable_shared = False
 
     logger.info("Starting creation of partitioned table structure...")
     logger.info("Partition configuration:")
-    logger.info(f"  - Threshold: {form_threshold:,} instances")
+    logger.info(f"  - Individual partition threshold: {form_threshold:,} instances")
     logger.info(f"  - Max individual partitions: {max_individual}")
     logger.info(f"  - Auto-detect top forms: {auto_detect_top_forms}")
     logger.info(f"  - Explicit form IDs: {explicit_form_ids}")
     logger.info(f"  - Enable shared partitions: {enable_shared}")
     if enable_shared:
-        logger.info(f"  - Shared partition count: {shared_count}")
+        logger.info(
+            f"  - Shared partition min threshold: {shared_min_threshold:,} instances"
+        )
+        logger.info(f"  - HASH sub-partition count (modulus): {hash_modulus}")
 
     try:
         # Get forms for partitioning
@@ -150,51 +168,52 @@ def create_partitioned_structure(apps, schema_editor):
 
         logger.info(f"Creating {len(forms_to_partition)} individual partitions")
 
-        # Get remaining forms for shared partitions (if enabled)
-        shared_distribution = {}
+        # Get medium-volume forms for shared partition with HASH sub-partitioning (if enabled)
+        medium_volume_forms = []
         if enable_shared:
             individual_form_ids = [f[0] for f in forms_to_partition]
-            logger.info("Querying remaining forms for shared partition distribution...")
+            logger.info(
+                f"Querying medium-volume forms ({shared_min_threshold:,} - {form_threshold:,} instances) "
+                f"for shared partition with HASH sub-partitioning..."
+            )
 
             with schema_editor.connection.cursor() as cursor:
-                # Get all forms that are NOT getting individual partitions
+                # Get forms in the medium-volume range (shared_min_threshold <= count < form_threshold)
+                # Exclude forms already getting individual partitions
                 exclude_clause = ""
-                params = []
+                params = [shared_min_threshold, form_threshold]
                 if individual_form_ids:
                     placeholders = ",".join(["%s"] * len(individual_form_ids))
-                    exclude_clause = f"WHERE xform_id NOT IN ({placeholders})"
-                    params = individual_form_ids
+                    exclude_clause = f"AND xform_id NOT IN ({placeholders})"
+                    params.extend(individual_form_ids)
 
                 cursor.execute(
                     f"""
                     SELECT xform_id, COUNT(*) as instance_count
                     FROM logger_instance
-                    {exclude_clause}
                     GROUP BY xform_id
+                    HAVING COUNT(*) >= %s AND COUNT(*) < %s
+                    {exclude_clause}
                     ORDER BY xform_id
                     """,
                     params,
                 )
-                remaining_forms = cursor.fetchall()
+                medium_volume_forms = cursor.fetchall()
 
-            # Distribute remaining forms via hash across shared partitions
-            shared_distribution = {i: [] for i in range(shared_count)}
-            for xform_id, count in remaining_forms:
-                partition_id = xform_id % shared_count
-                shared_distribution[partition_id].append((xform_id, count))
-
-            # Log distribution statistics
-            total_shared_forms = len(remaining_forms)
-            total_shared_instances = sum(count for _, count in remaining_forms)
-            logger.info(f"Distributing {total_shared_forms} remaining forms to {shared_count} shared partitions")
-            logger.info(f"  Total instances in shared partitions: {total_shared_instances:,}")
-
-            for partition_id in range(shared_count):
-                forms_in_partition = shared_distribution[partition_id]
-                if forms_in_partition:
-                    form_count = len(forms_in_partition)
-                    instance_count = sum(count for _, count in forms_in_partition)
-                    logger.info(f"  Shared partition {partition_id}: {form_count} forms, {instance_count:,} instances")
+            # Log shared partition statistics
+            if medium_volume_forms:
+                total_medium_forms = len(medium_volume_forms)
+                total_medium_instances = sum(count for _, count in medium_volume_forms)
+                logger.info(
+                    f"Found {total_medium_forms} medium-volume forms with "
+                    f"{total_medium_instances:,} instances for shared partition"
+                )
+                logger.info(
+                    f"  Will create 1 shared parent partition with {hash_modulus} HASH sub-partitions"
+                )
+                logger.info(f"  VALUES IN list size: {total_medium_forms} form IDs")
+            else:
+                logger.info("No medium-volume forms found for shared partitions")
 
         with schema_editor.connection.cursor() as cursor:
             # 1. Create the new partitioned table structure
@@ -243,42 +262,52 @@ def create_partitioned_structure(apps, schema_editor):
                 """
                 )
 
-            # 3. Create shared partitions (if enabled)
-            if enable_shared:
-                logger.info(f"Creating {shared_count} shared partitions...")
-                for partition_id in range(shared_count):
-                    forms_in_partition = shared_distribution[partition_id]
-                    if forms_in_partition:
-                        partition_name = f"logger_instance_p_shared_{partition_id}"
-                        xform_ids = [str(xform_id) for xform_id, _ in forms_in_partition]
-                        form_count = len(xform_ids)
-                        instance_count = sum(count for _, count in forms_in_partition)
+            # 3. Create shared partition with HASH sub-partitioning (if enabled)
+            if enable_shared and medium_volume_forms:
+                # Build VALUES IN list with all medium-volume form IDs
+                xform_ids = [str(xform_id) for xform_id, _ in medium_volume_forms]
+                values_list = ", ".join(xform_ids)
+                form_count = len(xform_ids)
+                instance_count = sum(count for _, count in medium_volume_forms)
 
-                        logger.info(
-                            f"Creating partition {partition_name} "
-                            f"with {form_count} forms ({instance_count:,} instances)"
-                        )
+                # Create parent shared partition with HASH sub-partitioning
+                logger.info(
+                    f"Creating shared parent partition logger_instance_p_shared "
+                    f"with {form_count} forms ({instance_count:,} instances)"
+                )
+                cursor.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS logger_instance_p_shared
+                    PARTITION OF logger_instance_partitioned
+                    FOR VALUES IN ({values_list})
+                    PARTITION BY HASH (xform_id)
+                """
+                )
 
-                        # Create partition with all xform_ids for this hash bucket
-                        values_list = ", ".join(xform_ids)
-                        cursor.execute(
-                            f"""
-                            CREATE TABLE IF NOT EXISTS {partition_name}
-                            PARTITION OF logger_instance_partitioned
-                            FOR VALUES IN ({values_list})
-                        """
-                        )
-                    else:
-                        # Create empty shared partition (for future forms)
-                        # Note: Cannot create empty LIST partition, skip for now
-                        # Future forms will be added via ALTER TABLE or go to default
-                        logger.info(
-                            f"Skipping shared partition {partition_id} (no forms assigned)"
-                        )
+                # Create HASH sub-partitions
+                logger.info(f"Creating {hash_modulus} HASH sub-partitions...")
+                for i in range(hash_modulus):
+                    partition_name = f"logger_instance_p_shared_h{i}"
+                    logger.info(
+                        f"  Creating {partition_name} (MODULUS {hash_modulus}, REMAINDER {i})"
+                    )
+                    cursor.execute(
+                        f"""
+                        CREATE TABLE IF NOT EXISTS {partition_name}
+                        PARTITION OF logger_instance_p_shared
+                        FOR VALUES WITH (MODULUS {hash_modulus}, REMAINDER {i})
+                    """
+                    )
+
+                logger.info(
+                    f"Shared partition structure created: 1 parent + {hash_modulus} HASH children"
+                )
 
             # 4. Create default partition for all other forms
             if enable_shared:
-                logger.info("Creating default partition (catch-all for future new forms)...")
+                logger.info(
+                    "Creating default partition (catch-all for future new forms)..."
+                )
             else:
                 logger.info("Creating default partition for remaining forms...")
             cursor.execute(
@@ -547,9 +576,10 @@ def create_partitioned_structure(apps, schema_editor):
                 )
                 logger.info("Partition breakdown:")
                 logger.info(f"  - Individual partitions: {len(forms_to_partition)}")
-                if enable_shared:
-                    shared_with_forms = sum(1 for forms in shared_distribution.values() if forms)
-                    logger.info(f"  - Shared partitions: {shared_with_forms}")
+                if enable_shared and medium_volume_forms:
+                    logger.info(f"  - Shared parent partition: 1")
+                    logger.info(f"  - Shared HASH sub-partitions: {hash_modulus}")
+                    logger.info(f"  - Total shared: {hash_modulus + 1}")
                 logger.info("  - Default partition: 1")
 
     except Exception as e:

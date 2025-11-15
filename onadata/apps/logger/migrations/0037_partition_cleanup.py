@@ -101,12 +101,14 @@ def create_partition_maintenance_functions(apps, schema_editor):
     logger.info("Creating partition maintenance functions...")
 
     with schema_editor.connection.cursor() as cursor:
-        # Function to analyze partition distribution
+        # Function to analyze partition distribution (supports multi-level partitioning)
         cursor.execute(
             """
             CREATE OR REPLACE FUNCTION analyze_partition_distribution()
             RETURNS TABLE(
                 partition_name text,
+                partition_level integer,
+                partition_type text,
                 row_count bigint,
                 total_size text,
                 table_size text,
@@ -115,21 +117,49 @@ def create_partition_maintenance_functions(apps, schema_editor):
             ) AS $$
             BEGIN
                 RETURN QUERY
+                WITH RECURSIVE partition_tree AS (
+                    -- Base case: direct children of logger_instance
+                    SELECT
+                        c.oid,
+                        c.relname,
+                        c.relkind,
+                        1 as level
+                    FROM pg_inherits i
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE i.inhparent = 'logger_instance'::regclass
+
+                    UNION ALL
+
+                    -- Recursive case: children of partitioned tables
+                    SELECT
+                        c.oid,
+                        c.relname,
+                        c.relkind,
+                        pt.level + 1
+                    FROM partition_tree pt
+                    JOIN pg_inherits i ON i.inhparent = pt.oid
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE pt.relkind = 'p'  -- Only traverse partitioned tables
+                )
                 SELECT
-                    c.relname::text as partition_name,
+                    pt.relname::text as partition_name,
+                    pt.level as partition_level,
+                    CASE
+                        WHEN pt.relkind = 'p' THEN 'PARTITIONED'
+                        WHEN pt.relkind = 'r' THEN 'LEAF'
+                        ELSE 'OTHER'
+                    END::text as partition_type,
                     c.reltuples::bigint as row_count,
                     pg_size_pretty(pg_total_relation_size(c.oid)) as total_size,
                     pg_size_pretty(pg_relation_size(c.oid)) as table_size,
                     pg_size_pretty(pg_indexes_size(c.oid)) as index_size,
                     CASE
-                        WHEN c.relname LIKE 'logger_instance_p_%' THEN
-                            SUBSTRING(c.relname FROM 'logger_instance_p_(.+)')
+                        WHEN pt.relname LIKE 'logger_instance_p_%' THEN
+                            SUBSTRING(pt.relname FROM 'logger_instance_p_(.+)')
                         ELSE 'multiple'
                     END as xform_ids
-                FROM pg_inherits i
-                JOIN pg_class parent ON i.inhparent = parent.oid
-                JOIN pg_class c ON i.inhrelid = c.oid
-                WHERE parent.relname = 'logger_instance'
+                FROM partition_tree pt
+                JOIN pg_class c ON c.oid = pt.oid
                 ORDER BY c.reltuples DESC;
             END;
             $$ LANGUAGE plpgsql;
@@ -181,20 +211,62 @@ def create_partition_maintenance_functions(apps, schema_editor):
             ) AS $$
             DECLARE
                 part_count integer;
+                direct_children integer;
+                leaf_count integer;
                 total_rows bigint;
                 default_rows bigint;
                 default_percent numeric;
             BEGIN
-                -- Count partitions
-                SELECT COUNT(*) INTO part_count
+                -- Count all partitions recursively (supports multi-level partitioning)
+                WITH RECURSIVE partition_tree AS (
+                    -- Base case: direct children
+                    SELECT c.oid, c.relkind, 1 as level
+                    FROM pg_inherits i
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE i.inhparent = 'logger_instance'::regclass
+
+                    UNION ALL
+
+                    -- Recursive case: children of partitioned tables
+                    SELECT c.oid, c.relkind, pt.level + 1
+                    FROM partition_tree pt
+                    JOIN pg_inherits i ON i.inhparent = pt.oid
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE pt.relkind = 'p'
+                )
+                SELECT COUNT(*) INTO part_count FROM partition_tree;
+
+                -- Count direct children only
+                SELECT COUNT(*) INTO direct_children
                 FROM pg_inherits
                 WHERE inhparent = 'logger_instance'::regclass;
+
+                -- Count leaf partitions only
+                WITH RECURSIVE partition_tree AS (
+                    SELECT c.oid, c.relkind
+                    FROM pg_inherits i
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE i.inhparent = 'logger_instance'::regclass
+
+                    UNION ALL
+
+                    SELECT c.oid, c.relkind
+                    FROM partition_tree pt
+                    JOIN pg_inherits i ON i.inhparent = pt.oid
+                    JOIN pg_class c ON i.inhrelid = c.oid
+                    WHERE pt.relkind = 'p'
+                )
+                SELECT COUNT(*) INTO leaf_count
+                FROM partition_tree
+                WHERE relkind = 'r';
 
                 RETURN QUERY
                 SELECT
                     'Partition Count'::text,
                     'INFO'::text,
-                    'Total partitions: ' || part_count::text;
+                    'Total: ' || part_count::text ||
+                    ' (Direct children: ' || direct_children::text ||
+                    ', Leaf partitions: ' || leaf_count::text || ')';
 
                 -- Check total rows
                 SELECT COUNT(*) INTO total_rows FROM logger_instance;

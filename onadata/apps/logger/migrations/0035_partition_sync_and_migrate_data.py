@@ -85,29 +85,50 @@ def create_sync_mechanism(apps, schema_editor):
                     RETURN NEW;
 
                 ELSIF TG_OP = 'UPDATE' THEN
-                    -- Update partitioned table
-                    UPDATE logger_instance_partitioned SET
-                        xml = NEW.xml,
-                        user_id = NEW.user_id,
-                        survey_type_id = NEW.survey_type_id,
-                        date_created = NEW.date_created,
-                        date_modified = NEW.date_modified,
-                        status = NEW.status,
-                        uuid = NEW.uuid,
-                        deleted_at = NEW.deleted_at,
-                        json = NEW.json,
-                        geom = NEW.geom,
-                        version = NEW.version,
-                        last_edited = NEW.last_edited,
-                        media_all_received = NEW.media_all_received,
-                        media_count = NEW.media_count,
-                        total_media = NEW.total_media,
-                        checksum = NEW.checksum,
-                        deleted_by_id = NEW.deleted_by_id,
-                        has_a_review = NEW.has_a_review,
-                        is_encrypted = NEW.is_encrypted,
-                        decryption_status = NEW.decryption_status
-                    WHERE id = NEW.id;
+                    -- Check if partition key (xform_id) changed
+                    IF OLD.xform_id != NEW.xform_id THEN
+                        -- Partition key changed: need to move row to different partition
+                        -- Delete from old partition and insert into new partition
+                        DELETE FROM logger_instance_partitioned WHERE id = OLD.id;
+                        INSERT INTO logger_instance_partitioned (
+                            id, xml, user_id, xform_id, survey_type_id, date_created,
+                            date_modified, status, uuid, deleted_at, json, geom, version,
+                            last_edited, media_all_received, media_count, total_media,
+                            checksum, deleted_by_id, has_a_review, is_encrypted, decryption_status
+                        )
+                        VALUES (
+                            NEW.id, NEW.xml, NEW.user_id, NEW.xform_id, NEW.survey_type_id,
+                            NEW.date_created, NEW.date_modified, NEW.status, NEW.uuid,
+                            NEW.deleted_at, NEW.json, NEW.geom, NEW.version, NEW.last_edited,
+                            NEW.media_all_received, NEW.media_count, NEW.total_media,
+                            NEW.checksum, NEW.deleted_by_id, NEW.has_a_review, NEW.is_encrypted,
+                            NEW.decryption_status
+                        );
+                    ELSE
+                        -- Normal update: partition key unchanged
+                        UPDATE logger_instance_partitioned SET
+                            xml = NEW.xml,
+                            user_id = NEW.user_id,
+                            survey_type_id = NEW.survey_type_id,
+                            date_created = NEW.date_created,
+                            date_modified = NEW.date_modified,
+                            status = NEW.status,
+                            uuid = NEW.uuid,
+                            deleted_at = NEW.deleted_at,
+                            json = NEW.json,
+                            geom = NEW.geom,
+                            version = NEW.version,
+                            last_edited = NEW.last_edited,
+                            media_all_received = NEW.media_all_received,
+                            media_count = NEW.media_count,
+                            total_media = NEW.total_media,
+                            checksum = NEW.checksum,
+                            deleted_by_id = NEW.deleted_by_id,
+                            has_a_review = NEW.has_a_review,
+                            is_encrypted = NEW.is_encrypted,
+                            decryption_status = NEW.decryption_status
+                        WHERE id = NEW.id;
+                    END IF;
                     RETURN NEW;
 
                 ELSIF TG_OP = 'DELETE' THEN

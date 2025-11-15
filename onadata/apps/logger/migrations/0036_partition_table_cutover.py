@@ -193,15 +193,17 @@ def perform_cutover(apps, schema_editor):
             logger.info("Creating unique indexes on id for each partition...")
             cursor.execute(
                 """
-                SELECT tablename
-                FROM pg_tables
-                WHERE schemaname = 'public'
-                AND tablename LIKE 'logger_instance_p_%'
+                SELECT t.tablename
+                FROM pg_tables t
+                JOIN pg_class c ON c.relname = t.tablename
+                WHERE t.schemaname = 'public'
+                AND t.tablename LIKE 'logger_instance_p_%'
+                AND c.relkind = 'r'
             """
             )
 
             partitions = [row[0] for row in cursor.fetchall()]
-            logger.info(f"Found {len(partitions)} partitions to index")
+            logger.info(f"Found {len(partitions)} leaf partitions to index")
 
             for partition_name in partitions:
                 index_name = f"{partition_name}_id_unique"
@@ -448,17 +450,22 @@ def perform_cutover(apps, schema_editor):
             logger.info("Configuring autovacuum settings...")
             cursor.execute(
                 """
-                SELECT tablename
-                FROM pg_tables
-                WHERE schemaname = 'public'
-                AND tablename LIKE 'logger_instance_p_%'
-                ORDER BY tablename
-                LIMIT 10
+                SELECT t.tablename
+                FROM pg_tables t
+                JOIN pg_class c ON c.relname = t.tablename
+                WHERE t.schemaname = 'public'
+                AND t.tablename LIKE 'logger_instance_p_%'
+                AND c.relkind = 'r'
+                ORDER BY t.tablename
             """
             )
 
-            for (partition_name,) in cursor.fetchall():
+            leaf_partitions = cursor.fetchall()
+            logger.info(f"Found {len(leaf_partitions)} leaf partitions to configure")
+
+            for (partition_name,) in leaf_partitions:
                 try:
+                    sid_autovac = transaction.savepoint()
                     cursor.execute(
                         f"""
                         ALTER TABLE {partition_name} SET (
@@ -467,7 +474,10 @@ def perform_cutover(apps, schema_editor):
                         )
                     """
                     )
+                    transaction.savepoint_commit(sid_autovac)
+                    logger.info(f"Configured autovacuum for {partition_name}")
                 except Exception as e:
+                    transaction.savepoint_rollback(sid_autovac)
                     logger.warning(
                         f"Could not configure autovacuum for {partition_name}: {e}"
                     )
@@ -561,15 +571,29 @@ def reverse_cutover(apps, schema_editor):
             )
 
             # Restore foreign keys
+            fk_restored = 0
+            fk_skipped = 0
             for conname, table_name, column_name in foreign_keys:
-                cursor.execute(
-                    f"""
-                    ALTER TABLE {table_name}
-                    ADD CONSTRAINT {conname}
-                    FOREIGN KEY ({column_name}) REFERENCES logger_instance(id) DEFERRABLE INITIALLY DEFERRED
-                """
-                )
+                try:
+                    sid_fk = transaction.savepoint()
+                    cursor.execute(
+                        f"""
+                        ALTER TABLE {table_name}
+                        ADD CONSTRAINT {conname}
+                        FOREIGN KEY ({column_name}) REFERENCES logger_instance(id) DEFERRABLE INITIALLY DEFERRED
+                    """
+                    )
+                    transaction.savepoint_commit(sid_fk)
+                    fk_restored += 1
+                    logger.info(f"Restored FK: {conname} on {table_name}")
+                except Exception as e:
+                    transaction.savepoint_rollback(sid_fk)
+                    fk_skipped += 1
+                    logger.warning(
+                        f"Could not restore FK {conname} on {table_name}: {e}"
+                    )
 
+            logger.info(f"FK restoration: {fk_restored} restored, {fk_skipped} skipped")
             logger.info("Successfully reversed cutover")
 
         except Exception as e:
