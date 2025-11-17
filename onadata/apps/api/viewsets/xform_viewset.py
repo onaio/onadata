@@ -818,7 +818,7 @@ class XFormViewSet(
         ):
             if self.object.encrypted:
                 return Response(
-                    {"error": _("This form is encrypted and cannot be replaced.")},
+                    {"message": _("This form is encrypted and cannot be replaced.")},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
