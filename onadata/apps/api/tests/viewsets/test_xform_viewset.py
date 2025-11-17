@@ -5458,11 +5458,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 200)
         mock_disable_enc.assert_not_called()
 
-    def test_retrive_kms_encrypted_form(self):
-        """Retrieving a KMS enecrypted form is correct."""
+    def test_retrive_managed_form(self):
+        """Retrieving a form using managed encryption works."""
         self._publish_transportation_form()
         self.xform.public_key = "fake-public-key"
-        self.xform.encrypted = True
         self.xform.is_managed = True
         self.xform.save()
 
@@ -5472,19 +5471,54 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["is_managed"])
-
-    def test_retrieve_managed_form(self):
-        """Retrieving a managed form is correct."""
-        self._publish_transportation_form()
-        self.xform.is_managed = True
-        self.xform.save()
-
-        self.view = XFormViewSet.as_view({"get": "retrieve"})
-        request = self.factory.get("/", **self.extra)
-        response = self.view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 200)
-
         self.assertEqual(response.data["num_of_pending_decryption_submissions"], 0)
+
+    def test_update_xform_rejected_for_encrypted_xform(self):
+        """Replacing a form is not allowed for encrypted form."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            # Mark form as encrypted
+            self.xform.public_key = "fake-public-key"
+            self.xform.encrypted = True
+            self.xform.save()
+
+            self.assertIsNotNone(self.xform.version)
+
+            version = self.xform.version
+            xform_json = self.xform.json
+            xform_xml = self.xform.xml
+
+            view = XFormViewSet.as_view(
+                {
+                    "patch": "partial_update",
+                }
+            )
+
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_updated.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                post_data = {"xls_file": xls_file}
+                request = self.factory.patch("/", data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(
+                    response.data["error"],
+                    "This form is encrypted and cannot be replaced",
+                )
+
+            self.xform.refresh_from_db()
+
+            self.assertEqual(version, self.xform.version)
+            self.assertEqual(xform_json, self.xform.json)
+            self.assertEqual(xform_xml, self.xform.xml)
 
 
 class ExportAsyncTestCase(XFormViewSetBaseTestCase):
