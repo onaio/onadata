@@ -3,7 +3,40 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v5.8.0(2025-10-16)
+v5.9.0 (2025-11-18)
+-------------------
+- fix: export download fails if filename contains non-ascii
+  [@kelvin-muchiri]
+  `PR #2938 https://github.com/onaio/onadata/pull/2938`
+- Add actstream message when an export is created
+  [@FrankApiyo]
+  `PR #2934 https://github.com/onaio/onadata/pull/2934`
+- docs: add set up guide for local development
+  [@kelvin-muchiri]
+  `PR #2939 https://github.com/onaio/onadata/pull/2939`
+- Update to python-deps:3.10.19-20251025
+  [@ukanga]
+  `PR #2936 https://github.com/onaio/onadata/pull/2936`
+- refactor: use values_list to get single field
+  [@kelvin-muchiri]
+  `PR #2943 https://github.com/onaio/onadata/pull/2943`
+- fix: column X does not exist when running migration
+  [@kelvin-muchiri]
+  `PR #2944 https://github.com/onaio/onadata/pull/2944`
+- Update to Django 5.1.14
+  [@ukanga]
+  `PR #2946 https://github.com/onaio/onadata/pull/2946`
+- Block /users/<username> & /profiles/<username> for anonymous
+  [@FrankApiyo]
+  `PR #2948 https://github.com/onaio/onadata/pull/2948`
+- feat: import entities via CSV
+  [@kelvin-muchiri]
+  `PR #2928 https://github.com/onaio/onadata/pull/2928`
+- feat: API endpoint to add EntityList properties
+  [@kelvin-muchiri]
+  `PR #2945 https://github.com/onaio/onadata/pull/2945`
+
+v5.8.0 (2025-10-16)
 ------------------
 - fix: Ensure decryption error metadata is not lost if Instance re-saved
   [@kelvin-muchiri]
@@ -24,7 +57,7 @@ v5.8.0(2025-10-16)
   [@FrankApiyo]
   `PR #2935 https://github.com/onaio/onadata/pull/2935`
 
-v5.7.0(2025-10-07)
+v5.7.0 (2025-10-07)
 ------------------
 - Bug fix: Only send password reset emails to non-organizations
   [@FrankApiyo]
@@ -43,7 +76,7 @@ v5.6.0(2025-09-19)
   [@kelvin-muchiri]
   `PR #2911 https://github.com/onaio/onadata/pull/2911`
 
-v5.5.0(2025-09-15)
+v5.5.0 (2025-09-15)
 ------------------
 - fix: bump valigetta to v0.2.1 to resolve uncaught incorrect padding error
   [@kelvin-muchiri]
@@ -55,7 +88,7 @@ v5.5.0(2025-09-15)
   [@kelvin-muchiri]
   `PR #2909 https://github.com/onaio/onadata/pull/2909`
 
-v5.4.0(2025-09-01)
+v5.4.0 (2025-09-01)
 ------------------
 - feat: track mutation type when creating/updating Entity
   [@kelvin-muchiri]
@@ -64,7 +97,7 @@ v5.4.0(2025-09-01)
   `PR #2902 https://github.com/onaio/onadata/pull/2902`
   [@FrankApiyo]
 
-v5.3.2(2025-08-25)
+v5.3.2 (2025-08-25)
 ------------------
 - fix: resolve mismatch between tableau schema and data if repeat section is within group section
   [@kelvin-muchiri]
@@ -82,13 +115,13 @@ v5.3.2(2025-08-25)
   `PR #2899 https://github.com/onaio/onadata/pull/2899`
   [@FrankApiyo]
 
-v5.3.1(2025-08-19)
+v5.3.1 (2025-08-19)
 ------------------
 - Update Dockerfile
   `PR #2891 <https://github.com/onaio/onadata/pull/2891>`
   [@FrankApiyo]
 
-v5.3.0(2025-08-19)*
+v5.3.0 (2025-08-19)*
 ------------------
 - Resolve corrupted submission decryption failure reason and status not saved
   `PR #2883 <https://github.com/onaio/onadata/pull/2883>`
