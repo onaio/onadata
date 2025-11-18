@@ -719,3 +719,5 @@ CSP_STYLE_SRC = [
     "'sha256-52i34Zg+qg4/kTYjnNHEmW8jhzGRxjt77FX9aveiXqw='",
 ]
 CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
+
+USER_ACTIVE_BY_DEFAULT = True
