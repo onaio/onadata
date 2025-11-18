@@ -17,9 +17,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.mixins import (
     CreateModelMixin,
-    DestroyModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
+    DestroyModelMixin,
 )
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -44,6 +44,7 @@ from onadata.libs.serializers.entity_serializer import (
     EntityListSerializer,
     EntitySerializer,
     ImportEntitiesSerializer,
+    PropertySerializer,
 )
 from onadata.libs.utils.api_export_tools import get_entity_list_export_response
 
@@ -96,6 +97,9 @@ class EntityListViewSet(
 
         if self.action == "import_entities":
             return ImportEntitiesSerializer
+
+        if self.action == "properties":
+            return PropertySerializer
 
         return super().get_serializer_class()
 
@@ -330,3 +334,18 @@ class EntityListViewSet(
             uuid_column=serializer.validated_data.get("uuid_column", "uuid"),
         )
         return Response(data={"task_id": task.task_id}, status=status.HTTP_202_ACCEPTED)
+
+    @action(methods=["POST"], detail=True)
+    def properties(self, request, *args, **kwargs):
+        """Provides `properties` action for dataset."""
+        entity_list = self.get_object()
+        data = request.data.copy()
+        data["entity_list"] = entity_list.pk
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )

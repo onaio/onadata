@@ -1,14 +1,21 @@
 """Tests for module onadata.apps.logger.models.registration_form"""
 
 import json
-import pytz
 from datetime import datetime
 from unittest.mock import patch
 
 from django.db.utils import IntegrityError
 
+import pytz
+
+from onadata.apps.logger.models import (
+    EntityList,
+    EntityListProperty,
+    RegistrationForm,
+    XForm,
+    XFormVersion,
+)
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import RegistrationForm, EntityList, XForm, XFormVersion
 
 
 class RegistrationFormTestCase(TestBase):
@@ -20,8 +27,9 @@ class RegistrationFormTestCase(TestBase):
         self.mocked_now = datetime(2023, 11, 8, 13, 17, 0, tzinfo=pytz.utc)
         self.xform = self._publish_registration_form(self.user)
         self.entity_list = EntityList.objects.first()
-        # Delete RegistrationForm created when form is published
+        # Delete RegistrationForm and EntityListProperty created when form is published
         RegistrationForm.objects.all().delete()
+        EntityListProperty.objects.all().delete()
 
     @patch("django.utils.timezone.now")
     def test_creation(self, mock_now):
@@ -184,3 +192,62 @@ class RegistrationFormTestCase(TestBase):
             xform=self.xform,
         )
         self.assertTrue(reg_form.is_active)
+
+    def test_properties(self):
+        """Returns correct properties form contributes to"""
+        reg_form = RegistrationForm.objects.create(
+            entity_list=self.entity_list,
+            xform=self.xform,
+            is_active=True,
+        )
+        self.assertCountEqual(
+            reg_form.properties, ["geometry", "circumference_cm", "species"]
+        )
+
+    def test_elist_properties_created(self):
+        """EntityList properties are created on creating RegistrationForm"""
+        RegistrationForm.objects.create(
+            entity_list=self.entity_list,
+            xform=self.xform,
+            is_active=True,
+        )
+
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="geometry", entity_list=self.entity_list
+            ).exists()
+        )
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="circumference_cm", entity_list=self.entity_list
+            ).exists()
+        )
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="species", entity_list=self.entity_list
+            ).exists()
+        )
+
+    def test_elist_property_case_sensitive(self):
+        """Property names are case-senstive and duplicates are ignored"""
+        # Simulate existing property
+        EntityListProperty.objects.create(name="GEOMETRY", entity_list=self.entity_list)
+
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="GEOMETRY", entity_list=self.entity_list
+            ).exists()
+        )
+
+        RegistrationForm.objects.create(
+            entity_list=self.entity_list,
+            xform=self.xform,
+            is_active=True,
+        )
+
+        # geometry is not created because GEOMETRY exists
+        self.assertFalse(
+            EntityListProperty.objects.filter(
+                name="geometry", entity_list=self.entity_list
+            ).exists()
+        )

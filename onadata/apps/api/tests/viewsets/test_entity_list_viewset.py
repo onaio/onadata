@@ -19,7 +19,13 @@ from moto import mock_aws
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.logger.models import Entity, EntityHistory, EntityList, Project
+from onadata.apps.logger.models import (
+    Entity,
+    EntityHistory,
+    EntityList,
+    EntityListProperty,
+    Project,
+)
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
@@ -2065,3 +2071,160 @@ class ImportStatusTestCase(TestAbstractViewSet):
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertContains(response, "task_id is required", status_code=400)
+
+
+class CreateEntityListPropTestCase(TestAbstractViewSet):
+    """Tests for creating an EntityList property"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.view = EntityListViewSet.as_view({"post": "properties"})
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+        OwnerRole.add(self.user, self.entity_list)
+        self.data = {"name": "height_cm"}
+
+    def test_create(self):
+        """EntityList is created"""
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data, {"name": "height_cm", "entity_list": self.entity_list.pk}
+        )
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="height_cm", entity_list=self.entity_list
+            ).exists()
+        )
+        prop = EntityListProperty.objects.get(
+            name="height_cm", entity_list=self.entity_list
+        )
+
+        self.assertEqual(prop.source, EntityListProperty.Source.API)
+        self.assertEqual(prop.created_by, self.user)
+        self.assertIsNotNone(prop.date_modified)
+        self.assertIsNotNone(prop.date_created)
+
+    def test_auth_required(self):
+        """Authentication is required to create property."""
+        request = self.factory.post("/", data=self.data)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_name_required(self):
+        """`name` field is required"""
+        request = self.factory.post("/", data={}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "This field is required.")
+
+    def test_name_not_blank(self):
+        """`name` cannot be blank"""
+        request = self.factory.post("/", data={"name": ""}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["name"][0]), "This field may not be blank.")
+
+    def test_prop_unique(self):
+        """Property is unique per EntityList."""
+        prop = EntityListProperty.objects.create(
+            name="height_cm", entity_list=self.entity_list
+        )
+
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["non_field_errors"][0]), "Property already exists."
+        )
+
+        # Check should case sensitive
+        prop.name = "HEIGHT_CM"
+        prop.save()
+
+        self.assertTrue(
+            EntityListProperty.objects.filter(
+                name="HEIGHT_CM", entity_list=self.entity_list
+            ).exists()
+        )
+
+        request = self.factory.post("/", data=self.data, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["non_field_errors"][0]), "Property already exists."
+        )
+
+    def test_reserved_names(self):
+        """Property cannot be a reserved name
+        `name`, `label` are reserved names
+        """
+        reserved = {"name", "label"}
+
+        for prop in reserved:
+            request = self.factory.post("/", data={"name": prop}, **self.extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(str(response.data["name"][0]), f"{prop} is reserved.")
+
+    def test_reserved_prefixes(self):
+        """Property cannot start with reserved prefix"""
+        request = self.factory.post("/", data={"name": "__height_cm"}, **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["name"][0]), "May not start with reserved prefix __."
+        )
+
+    def test_object_permissions(self):
+        """User must have object create level permissions"""
+        alice_data = {
+            "username": "alice",
+            "email": "aclie@example.com",
+            "password1": "password12345",
+            "password2": "password12345",
+            "first_name": "Alice",
+            "last_name": "Hughes",
+        }
+        alice_profile = self._create_user_profile(alice_data)
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        # Public project, project NOT shared with user
+        self.project.shared = True
+        self.project.save()
+
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+        # Private project, project NOT shared with user
+        self.project.shared = False
+        self.project.save()
+
+        request = self.factory.post("/", data=self.data, **extra)
+        response = self.view(request, pk=self.entity_list.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+        # Project shared with user
+        for role in ROLES:
+            ShareProject(self.project, "alice", role).save()
+
+            request = self.factory.post("/", data={}, **extra)
+            response = self.view(request, pk=self.entity_list.pk)
+
+            if role in ["owner", "manager"]:
+                self.assertEqual(response.status_code, 400)
+
+            else:
+                self.assertEqual(response.status_code, 404)
