@@ -2,6 +2,7 @@
 """
 Base Django settings module.
 """
+
 # this system uses structured settings as defined in
 # http://www.slideshare.net/jacobian/the-best-and-worst-of-django
 #
@@ -719,3 +720,5 @@ CSP_STYLE_SRC = [
     "'sha256-52i34Zg+qg4/kTYjnNHEmW8jhzGRxjt77FX9aveiXqw='",
 ]
 CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
+
+ENABLE_TABLE_PARTITIONING = False
