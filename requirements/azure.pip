@@ -4,46 +4,45 @@
 #
 #    pip-compile --output-file=requirements/azure.pip --strip-extras requirements/azure.in
 #
-asgiref==3.8.1
+asgiref==3.10.0
     # via django
-azure-core==1.33.0
+azure-core==1.36.0
     # via
     #   azure-storage-blob
     #   django-storages
-azure-storage-blob==12.25.1
+azure-storage-blob==12.27.1
     # via django-storages
-certifi==2025.1.31
+certifi==2025.11.12
     # via requests
-cffi==1.17.1
+cffi==2.0.0
     # via cryptography
-charset-normalizer==3.4.1
+charset-normalizer==3.4.4
     # via requests
-cryptography==44.0.2
+cryptography==46.0.3
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==5.1.14
+django==5.2.8
     # via
     #   -r requirements/azure.in
     #   django-storages
 django-storages==1.14.6
     # via -r requirements/azure.in
-idna==3.10
+idna==3.11
     # via requests
 isodate==0.7.2
     # via azure-storage-blob
-pycparser==2.22
+pycparser==2.23
     # via cffi
-requests==2.32.4
-    # via azure-core
-six==1.17.0
+requests==2.32.5
     # via azure-core
 sqlparse==0.5.3
     # via django
-typing-extensions==4.13.1
+typing-extensions==4.15.0
     # via
     #   asgiref
     #   azure-core
     #   azure-storage-blob
+    #   cryptography
 urllib3==2.5.0
     # via requests
