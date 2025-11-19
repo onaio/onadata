@@ -23,7 +23,7 @@ def cleanup_old_table(apps, schema_editor):
     Only drops the original table if explicitly configured to do so.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         logger.info("Table partitioning is disabled. Skipping cleanup.")
         return
 
@@ -95,7 +95,7 @@ def create_partition_maintenance_functions(apps, schema_editor):
     Create functions for ongoing partition maintenance.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         return
 
     logger.info("Creating partition maintenance functions...")
@@ -340,7 +340,7 @@ def create_partition_monitoring_views(apps, schema_editor):
     Create views for easy partition monitoring.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         return
 
     logger.info("Creating partition monitoring views...")

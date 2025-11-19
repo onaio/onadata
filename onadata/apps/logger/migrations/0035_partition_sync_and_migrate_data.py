@@ -18,7 +18,7 @@ def create_sync_mechanism(apps, schema_editor):
     during the migration process.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         logger.info("Table partitioning is disabled. Skipping.")
         return
 
@@ -162,7 +162,7 @@ def migrate_existing_data(apps, schema_editor):
     This is done in batches to avoid locking the table for too long.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         return
 
     batch_size = getattr(settings, "PARTITION_MIGRATION_BATCH_SIZE", 10000)
@@ -324,7 +324,7 @@ def verify_data_integrity(apps, schema_editor):
     Verify that data in the partitioned table matches the original.
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         return
 
     logger.info("Verifying data integrity...")

@@ -61,7 +61,7 @@ def create_partitioned_structure(apps, schema_editor):
     """
 
     # Skip if partitioning is disabled
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         logger.info("Table partitioning is disabled in settings. Skipping.")
         return
 

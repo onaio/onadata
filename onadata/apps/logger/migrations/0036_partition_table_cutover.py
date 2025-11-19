@@ -24,7 +24,7 @@ def perform_cutover(apps, schema_editor):
     4. Update foreign key constraints
     """
 
-    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", True):
+    if not getattr(settings, "ENABLE_TABLE_PARTITIONING", False):
         logger.info("Table partitioning is disabled. Skipping cutover.")
         return
 
