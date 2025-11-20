@@ -78,6 +78,7 @@ class MessageSerializer(serializers.ModelSerializer):
             for field in extra_fields:
                 self.fields.pop(field)
 
+    # pylint: disable=too-many-locals
     def create(self, validated_data):
         """
         Creates the Message in the Action model
