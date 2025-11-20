@@ -680,7 +680,12 @@ def safe_create_instance(  # noqa C901
         response = OpenRosaResponse(_("Duplicate submission"))
         response.status_code = 202
         if request:
-            response["Location"] = request.build_absolute_uri(request.path)
+            try:
+                response["Location"] = request.build_absolute_uri(request.path)
+            except KeyError:
+                # Handle cases where request doesn't have required META data
+                # (e.g., synthetic requests from background tasks)
+                pass
         error = response
         instance = None
     return [error, instance]
