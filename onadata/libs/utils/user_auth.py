@@ -166,7 +166,7 @@ def get_xform_users_with_perms(xform):
         .select_related("user", "permission")
         .only("user", "permission__codename", "content_object_id")
     ):
-        if p.user.username not in user_perms:
+        if p.user not in user_perms:
             user_perms[p.user] = []
         user_perms[p.user].append(p.permission.codename)
 
