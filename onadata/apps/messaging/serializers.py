@@ -17,7 +17,7 @@ from actstream.models import Action
 from actstream.signals import action
 from rest_framework import exceptions, serializers
 
-from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS
+from onadata.apps.messaging.constants import MESSAGE, MESSAGE_VERBS, SUBMISSION_CREATED
 from onadata.apps.messaging.utils import TargetDoesNotExist, get_target
 from onadata.libs.utils.common_tools import report_exception
 
@@ -108,6 +108,42 @@ class MessageSerializer(serializers.ModelSerializer):
                 % target_object
             )
             raise exceptions.PermissionDenied(detail=message)
+
+        # Check if we should fold this message into an existing action
+        a = Action.objects.filter(
+            target_content_type=content_type, target_object_id=target_id
+        ).first()
+        if a is not None and a.verb == SUBMISSION_CREATED:
+            a_json = json.loads(a.description)
+            description = a_json.get("description")
+            a_ids = a_json.get("id", [])
+            message_id_limit = getattr(settings, "NOTIFICATION_ID_LIMIT", 100)
+
+            # Parse the incoming description to check if it's also imported_via_csv
+            description_data = validated_data.get("description")
+            if isinstance(description_data, str):
+                description_data = json.loads(description_data)
+            incoming_description = (
+                description_data.get("description")
+                if isinstance(description_data, dict)
+                else None
+            )
+
+            if (
+                description == "imported_via_csv"
+                and incoming_description == "imported_via_csv"
+                and len(a_ids) < message_id_limit
+            ):
+                submission_id = description_data.get("id")
+
+                # Add the new submission ID to the existing list
+                if submission_id is not None:
+                    a_ids.append(submission_id)
+                    a_json["id"] = a_ids
+                    a.description = json.dumps(a_json)
+                    a.save()
+                    return a
+
         results = action.send(
             request.user,
             verb=verb,
