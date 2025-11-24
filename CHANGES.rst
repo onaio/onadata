@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.10.0 (2025-11-24)*
+-------------------
+- dependency: Django 5.2.8
+  [@ukanga]
+  `PR #2955 https://github.com/onaio/onadata/pull/2955`
+- feat: Add submission table partitioning
+  [@ukanga]
+  `PR #2952 https://github.com/onaio/onadata/pull/2952`
+
+
 v5.9.0 (2025-11-18)
 -------------------
 - fix: export download fails if filename contains non-ascii
