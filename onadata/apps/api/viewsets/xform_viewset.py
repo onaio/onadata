@@ -336,7 +336,7 @@ class XFormViewSet(
         try:
             owner = _get_owner(request)
         except ValidationError as e:
-            raise ValidationError(e.messages[0])
+            raise ValidationError(e.messages[0]) from e
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
@@ -376,7 +376,7 @@ class XFormViewSet(
             try:
                 owner = _get_owner(request)
             except ValidationError as e:
-                raise ValidationError(e.messages[0])
+                raise ValidationError(e.messages[0]) from e
 
             fname = request.FILES.get("xls_file").name
             if isinstance(request.FILES.get("xls_file"), InMemoryUploadedFile):
