@@ -5510,7 +5510,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(
-                    response.data["detail"],
+                    response.data["message"],
                     "This form is encrypted and cannot be replaced.",
                 )
 

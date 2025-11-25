@@ -11,6 +11,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -40,7 +41,7 @@ from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json import parse_file_to_json
 from rest_framework import exceptions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
@@ -336,7 +337,9 @@ class XFormViewSet(
         try:
             owner = _get_owner(request)
         except ValidationError as e:
-            raise ValidationError(e.messages[0]) from e
+            return Response(
+                {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
@@ -376,7 +379,9 @@ class XFormViewSet(
             try:
                 owner = _get_owner(request)
             except ValidationError as e:
-                raise ValidationError(e.messages[0]) from e
+                return Response(
+                    {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+                )
 
             fname = request.FILES.get("xls_file").name
             if isinstance(request.FILES.get("xls_file"), InMemoryUploadedFile):
@@ -812,8 +817,9 @@ class XFormViewSet(
             request.data
         ):
             if self.object.encrypted:
-                raise ValidationError(
-                    _("This form is encrypted and cannot be replaced.")
+                return Response(
+                    {"message": _("This form is encrypted and cannot be replaced.")},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             return _try_update_xlsform(request, self.object, owner)
