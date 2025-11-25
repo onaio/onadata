@@ -223,30 +223,58 @@ def perform_cutover(apps, schema_editor):
                         f"Could not create unique index on {partition_name}: {e}"
                     )
 
-            # 5. Rename constraints to match original names
+            # 5. Rename constraints to match original names (idempotent)
             logger.info("Renaming constraints...")
 
-            # Primary key
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                RENAME CONSTRAINT logger_instance_partitioned_pkey TO odk_logger_instance_pkey
-            """
-            )
+            # Define constraint renames (old_name, new_name)
+            constraint_renames = [
+                ("logger_instance_partitioned_pkey", "odk_logger_instance_pkey"),
+                (
+                    "logger_instance_partitioned_media_count_check",
+                    "logger_instance_media_count_check",
+                ),
+                (
+                    "logger_instance_partitioned_total_media_check",
+                    "logger_instance_total_media_check",
+                ),
+            ]
 
-            # Check constraints
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                RENAME CONSTRAINT logger_instance_partitioned_media_count_check TO logger_instance_media_count_check
-            """
-            )
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                RENAME CONSTRAINT logger_instance_partitioned_total_media_check TO logger_instance_total_media_check
-            """
-            )
+            for old_name, new_name in constraint_renames:
+                # Check if constraint exists
+                cursor.execute(
+                    """
+                    SELECT constraint_name
+                    FROM information_schema.table_constraints
+                    WHERE table_schema = 'public'
+                    AND table_name = 'logger_instance'
+                    AND constraint_name IN (%s, %s)
+                    """,
+                    [old_name, new_name],
+                )
+                existing = [row[0] for row in cursor.fetchall()]
+
+                if old_name in existing and new_name not in existing:
+                    # Source exists, target doesn't - do the rename
+                    try:
+                        sid_con = transaction.savepoint()
+                        cursor.execute(
+                            f"ALTER TABLE logger_instance RENAME CONSTRAINT {old_name} TO {new_name}"
+                        )
+                        transaction.savepoint_commit(sid_con)
+                        logger.info(f"Renamed constraint: {old_name} → {new_name}")
+                    except Exception as e:
+                        transaction.savepoint_rollback(sid_con)
+                        logger.warning(
+                            f"Could not rename constraint {old_name} to {new_name}: {e}"
+                        )
+                elif new_name in existing:
+                    # Target already exists - already renamed
+                    logger.info(
+                        f"Constraint {new_name} already exists, skipping rename"
+                    )
+                else:
+                    # Neither exists - unexpected but continue
+                    logger.warning(f"Constraint {old_name} not found, skipping rename")
 
             # 6. Rename indexes to match original pattern
             logger.info("Renaming indexes...")
@@ -315,45 +343,55 @@ def perform_cutover(apps, schema_editor):
 
             for old_name, new_name in index_renames:
                 try:
+                    sid_idx = transaction.savepoint()
                     cursor.execute(f"ALTER INDEX {old_name} RENAME TO {new_name}")
+                    transaction.savepoint_commit(sid_idx)
                 except Exception as e:
+                    transaction.savepoint_rollback(sid_idx)
                     logger.warning(f"Could not rename index {old_name}: {e}")
 
             # 7. Recreate foreign key constraints
             logger.info("Recreating foreign key constraints...")
 
             # Add foreign keys FROM logger_instance to other tables
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                ADD CONSTRAINT logger_instance_xform_id_ebcfcca3_fk_logger_xform_id
-                FOREIGN KEY (xform_id) REFERENCES logger_xform(id) DEFERRABLE INITIALLY DEFERRED
-            """
-            )
+            instance_fk_constraints = [
+                (
+                    "logger_instance_xform_id_ebcfcca3_fk_logger_xform_id",
+                    "xform_id",
+                    "logger_xform(id)",
+                ),
+                (
+                    "survey_type_id_refs_id_921d431d",
+                    "survey_type_id",
+                    "logger_surveytype(id)",
+                ),
+                (
+                    "user_id_refs_id_872f51db",
+                    "user_id",
+                    "auth_user(id)",
+                ),
+                (
+                    "logger_instance_deleted_by_id_8bd3fe97_fk_auth_user_id",
+                    "deleted_by_id",
+                    "auth_user(id)",
+                ),
+            ]
 
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                ADD CONSTRAINT survey_type_id_refs_id_921d431d
-                FOREIGN KEY (survey_type_id) REFERENCES logger_surveytype(id) DEFERRABLE INITIALLY DEFERRED
-            """
-            )
-
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                ADD CONSTRAINT user_id_refs_id_872f51db
-                FOREIGN KEY (user_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
-            """
-            )
-
-            cursor.execute(
-                """
-                ALTER TABLE logger_instance
-                ADD CONSTRAINT logger_instance_deleted_by_id_8bd3fe97_fk_auth_user_id
-                FOREIGN KEY (deleted_by_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED
-            """
-            )
+            for constraint_name, column, reference in instance_fk_constraints:
+                try:
+                    sid_fk = transaction.savepoint()
+                    cursor.execute(
+                        f"""
+                        ALTER TABLE logger_instance
+                        ADD CONSTRAINT {constraint_name}
+                        FOREIGN KEY ({column}) REFERENCES {reference} DEFERRABLE INITIALLY DEFERRED
+                    """
+                    )
+                    transaction.savepoint_commit(sid_fk)
+                    logger.info(f"Created FK: {constraint_name}")
+                except Exception as e:
+                    transaction.savepoint_rollback(sid_fk)
+                    logger.warning(f"Could not create FK {constraint_name}: {e}")
 
             # Update foreign keys TO logger_instance from other tables
             fk_created_count = 0
