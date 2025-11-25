@@ -816,6 +816,12 @@ class XFormViewSet(
         if request.FILES or set(["xls_url", "dropbox_xls_url", "text_xls_form"]) & set(
             request.data
         ):
+            if self.object.encrypted:
+                return Response(
+                    {"message": _("This form is encrypted and cannot be replaced.")},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             return _try_update_xlsform(request, self.object, owner)
 
         try:
