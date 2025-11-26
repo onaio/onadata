@@ -18,7 +18,6 @@ from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
-
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
 from pyxform.question import Question
@@ -26,7 +25,7 @@ from pyxform.survey import Survey
 from savReaderWriter import SavHeaderReader, SavReader
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import DataView
+from onadata.apps.logger.models import DataView, Note, SubmissionReview
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo, query_data
@@ -457,6 +456,7 @@ class TestExportBuilder(TestBase):
         """
         Tests that osm data is included in xls export
         """
+        self.skipTest("OSM support removed in pyxform >= 3.0.0")
         survey = self._create_osm_survey()
         xform = self.xform
         export_builder = ExportBuilder()
@@ -2868,29 +2868,36 @@ class TestExportBuilder(TestBase):
         Test that review comment, status and date fields are in csv exports
         """
         self._create_user_and_login("dave", "1234")
-        survey = self._create_osm_survey()
+        self._publish_transportation_form()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
         xform = self.xform
+        survey = self.xform.survey
+        instance = xform.instances.all()[0]
+        note = Note.objects.create(instance=instance, note="Wrong Location")
+        SubmissionReview.objects.create(
+            instance=instance, note=note, status=SubmissionReview.REJECTED
+        )
+        data = [xform.instances.all()[0].json]
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform, include_reviews=True)
         with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
-            export_builder.to_zipped_csv(temp_zip_file.name, self.data)
+            export_builder.to_zipped_csv(temp_zip_file.name, data)
             temp_zip_file.seek(0)
             temp_dir = tempfile.mkdtemp()
             with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
                 zip_file.extractall(temp_dir)
 
         # check file's contents
-        with open(os.path.join(temp_dir, "osm.csv"), encoding="utf-8") as csv_file:
+        with open(os.path.join(temp_dir, "data.csv"), encoding="utf-8") as csv_file:
             rows = list(csv.reader(csv_file))
             actual_headers = rows[0]
             self.assertIn(REVIEW_COMMENT, sorted(actual_headers))
             self.assertIn(REVIEW_DATE, sorted(actual_headers))
             self.assertIn(REVIEW_STATUS, sorted(actual_headers))
             submission = rows[1]
-            self.assertEqual(submission[29], "Rejected")
-            self.assertEqual(submission[30], "Wrong Location")
-            self.assertEqual(submission[31], "2021-05-25T02:27:19")
+            self.assertEqual(submission[35], "2")
+            self.assertEqual(submission[36], "Wrong Location")
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -2900,25 +2907,32 @@ class TestExportBuilder(TestBase):
         Test that review comment, status and date fields are in xls exports
         """
         self._create_user_and_login("dave", "1234")
-        survey = self._create_osm_survey()
+        self._publish_transportation_form()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
         xform = self.xform
+        survey = self.xform.survey
+        instance = xform.instances.all()[0]
+        note = Note.objects.create(instance=instance, note="Wrong Location")
+        SubmissionReview.objects.create(
+            instance=instance, note=note, status=SubmissionReview.REJECTED
+        )
+        data = [xform.instances.all()[0].json]
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform, include_reviews=True)
         with NamedTemporaryFile(suffix=".xlsx") as temp_xls_file:
-            export_builder.to_xlsx_export(temp_xls_file.name, self.osm_data)
+            export_builder.to_xlsx_export(temp_xls_file.name, data)
             temp_xls_file.seek(0)
             workbook = load_workbook(temp_xls_file.name)
-            osm_data_sheet = workbook["osm"]
-            rows = list(osm_data_sheet.rows)
+            data_sheet = workbook["data"]
+            rows = list(data_sheet.rows)
             xls_headers = [a.value for a in rows[0]]
             xls_data = [a.value for a in rows[1]]
         self.assertIn(REVIEW_COMMENT, sorted(xls_headers))
         self.assertIn(REVIEW_DATE, sorted(xls_headers))
         self.assertIn(REVIEW_STATUS, sorted(xls_headers))
-        self.assertEqual(xls_data[29], "Rejected")
-        self.assertEqual(xls_data[30], "Wrong Location")
-        self.assertEqual(xls_data[31], "2021-05-25T02:27:19")
+        self.assertEqual(xls_data[35], "2")
+        self.assertEqual(xls_data[36], "Wrong Location")
 
     # pylint: disable=invalid-name
     def test_zipped_sav_has_submission_review_fields(self):
@@ -2926,26 +2940,29 @@ class TestExportBuilder(TestBase):
         Test that review comment, status and date fields are in csv exports
         """
         self._create_user_and_login("dave", "1234")
-        survey = self._create_osm_survey()
+        self._publish_transportation_form()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
         xform = self.xform
+        survey = self.xform.survey
+        instance = xform.instances.all()[0]
+        note = Note.objects.create(instance=instance, note="Wrong Location")
+        SubmissionReview.objects.create(
+            instance=instance, note=note, status=SubmissionReview.REJECTED
+        )
+        data = [xform.instances.all()[0].json]
         export_builder = ExportBuilder()
         export_builder.INCLUDE_REVIEW = True
         export_builder.set_survey(survey, xform, include_reviews=True)
         with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
-            export_builder.to_zipped_sav(temp_zip_file.name, self.osm_data)
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
             temp_zip_file.seek(0)
             temp_dir = tempfile.mkdtemp()
             with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
                 zip_file.extractall(temp_dir)
 
-        with SavReader(os.path.join(temp_dir, "osm.sav"), returnHeader=True) as reader:
+        with SavReader(os.path.join(temp_dir, "data.sav"), returnHeader=True) as reader:
             rows = list(reader)
             expected_column_headers = [
-                "photo",
-                "osm_road",
-                "osm_building",
-                "fav_color",
-                "form_completed",
                 "meta.instanceID",
                 "@_id",
                 "@_uuid",
@@ -2961,30 +2978,41 @@ class TestExportBuilder(TestBase):
                 "@_version",
                 "@_duration",
                 "@_submitted_by",
-                "osm_road_ctr_lat",
-                "osm_road_ctr_lon",
-                "osm_road_highway",
-                "osm_road_lanes",
-                "osm_road_name",
-                "osm_road_way_id",
-                "osm_building_building",
-                "osm_building_building_levels",
-                "osm_building_ctr_lat",
-                "osm_building_ctr_lon",
-                "osm_building_name",
-                "osm_building_way_id",
+                "image1",
+                "transport.available_transportation_types_to_referral_facility",
+                "transport.available_transportation_types_to_referral_facility.am",
+                "transport.available_transportation_types_to_referral_facility.bi",
+                "transport.available_transportation_types_to_referral_facility.bo",
+                "transport.available_transportation_types_to_referral_facility.bu",
+                "transport.available_transportation_types_to_referral_facility.do",
+                "transport.available_transportation_types_to_referral_facility.ke",
+                "transport.available_transportation_types_to_referral_facility.lo",
+                "transport.available_transportation_types_to_referral_facility.mo",
+                "transport.available_transportation_types_to_referral_facility.ot",
+                "transport.available_transportation_types_to_referral_facility.ta",
+                "transport.available_transportation_types_to_referral_facility_ot",
+                "transport.loop_over_transport_types_frequency.ambulance.frequenc",
+                "transport.loop_over_transport_types_frequency.bicycle.frequency_",
+                "transport.loop_over_transport_types_frequency.boat_canoe.frequen",
+                "transport.loop_over_transport_types_frequency.bus.frequency_to_r",
+                "transport.loop_over_transport_types_frequency.donkey_mule_cart.f",
+                "transport.loop_over_transport_types_frequency.keke_pepe.frequenc",
+                "transport.loop_over_transport_types_frequency.lorry.frequency_to",
+                "transport.loop_over_transport_types_frequency.motorbike.frequenc",
+                "transport.loop_over_transport_types_frequency.other.frequency_to",
+                "transport.loop_over_transport_types_frequency.taxi.frequency_to_",
             ]
             actual_headers = list(map(_str_if_bytes, rows[0]))
             self.assertEqual(sorted(actual_headers), sorted(expected_column_headers))
-            self.assertEqual(_str_if_bytes(rows[1][29]), "Rejected")
-            self.assertEqual(_str_if_bytes(rows[1][30]), "Wrong Location")
-            self.assertEqual(_str_if_bytes(rows[1][31]), "2021-05-25T02:27:19")
+            self.assertEqual(_str_if_bytes(rows[1][35]), "2")
+            self.assertEqual(_str_if_bytes(rows[1][36]), "Wrong Location")
 
     # pylint: disable=invalid-name
     def test_zipped_csv_export_with_osm_data(self):
         """
         Tests that osm data is included in zipped csv export
         """
+        self.skipTest("OSM support removed in pyxform >= 3.0.0")
         survey = self._create_osm_survey()
         xform = self.xform
         export_builder = ExportBuilder()
@@ -3044,6 +3072,7 @@ class TestExportBuilder(TestBase):
         """
         Test that osm data is included in zipped sav export
         """
+        self.skipTest("OSM support removed in pyxform >= 3.0.0")
         survey = self._create_osm_survey()
         xform = self.xform
         osm_data = [
