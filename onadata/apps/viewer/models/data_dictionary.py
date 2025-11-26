@@ -366,12 +366,13 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
         instance_json = json.loads(instance_json)
 
     children = instance_json.get("children", [])
-    active_entity_datasets: list[str] = []
+    active_entity_datasets = set()
     xform = XForm.objects.get(pk=instance.pk)
+    candidate_survey_types = {"select one", "select all that apply"}
 
     def link_dataset(children):
         for child in children:
-            if child["type"] == "select one" and "itemset" in child:
+            if child["type"] in candidate_survey_types and "itemset" in child:
                 dataset_name = child["itemset"].split(".")[0]
 
                 try:
@@ -384,7 +385,7 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
                     # name, we simply do nothing
                     continue
 
-                active_entity_datasets.append(entity_list.name)
+                active_entity_datasets.add(entity_list.name)
                 follow_up_form, created = FollowUpForm.objects.get_or_create(
                     entity_list=entity_list, xform=instance
                 )

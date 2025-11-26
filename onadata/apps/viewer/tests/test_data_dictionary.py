@@ -142,7 +142,7 @@ class DataDictionaryTestCase(TestBase):
             ).exists()
         )
 
-    def test_created_follow_up_w_props_within_group(self):
+    def test_create_follow_up_w_props_within_group(self):
         """Follow up form with dataset within group works"""
         md = """
         | survey  |
@@ -150,6 +150,31 @@ class DataDictionaryTestCase(TestBase):
         |         | begin_group                    | tree_details    | Tree Details                    |          |
         |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
         |         | end_group                      |                 |                                  |          |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+        # Simulate existing trees dataset
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(
+            FollowUpForm.objects.filter(entity_list__name="trees", xform=xform).exists()
+        )
+        self.assertTrue(
+            MetaData.objects.filter(
+                object_id=xform.pk,
+                data_type="media",
+                data_value=f"entity_list {entity_list.pk} trees",
+            ).exists()
+        )
+
+    def test_create_follow_w_select_multiple(self):
+        """A form with select multiple form EntityList works"""
+        md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | select_multiple trees.csv      | trees           | Select the trees you are visiting | yes      |
         | settings|                                |                 |                                  |          |
         |         | form_title                     | form_id         |  version                         |          |
         |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
