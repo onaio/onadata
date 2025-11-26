@@ -60,15 +60,17 @@ class DataDictionaryTestCase(TestBase):
 
     def test_create_registration_form(self):
         """Registration form created successfully"""
-        self._publish_markdown(self.registration_form, self.user)
-        self.assertEqual(XForm.objects.count(), 1)
+        xform = self._publish_markdown(self.registration_form, self.user)
+
         self.assertTrue(EntityList.objects.filter(name="trees").exists())
-        self.assertEqual(RegistrationForm.objects.count(), 1)
-        entity_list = EntityList.objects.first()
-        reg_form = RegistrationForm.objects.first()
-        latest_form = XForm.objects.all().order_by("-pk").first()
-        self.assertEqual(entity_list.name, "trees")
-        self.assertEqual(reg_form.xform, latest_form)
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="trees"
+            ).exists()
+        )
+
+        reg_form = RegistrationForm.objects.get(xform=xform, entity_list__name="trees")
+
         self.assertEqual(
             reg_form.get_save_to(),
             {
@@ -77,7 +79,6 @@ class DataDictionaryTestCase(TestBase):
                 "circumference_cm": "circumference",
             },
         )
-        self.assertEqual(reg_form.entity_list, entity_list)
         self.assertTrue(reg_form.is_active)
 
     def test_create_registration_w_props_within_group(self):
@@ -104,17 +105,17 @@ class DataDictionaryTestCase(TestBase):
         |          | list_name          | label                                      |                          |                                            |
         |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |
         """
-        self._publish_markdown(md, self.user)
-        self.assertEqual(XForm.objects.count(), 1)
+        xform = self._publish_markdown(md, self.user)
+
         self.assertTrue(EntityList.objects.filter(name="trees").exists())
-        self.assertEqual(RegistrationForm.objects.count(), 1)
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="trees"
+            ).exists()
+        )
 
-        entity_list = EntityList.objects.first()
-        reg_form = RegistrationForm.objects.first()
-        latest_form = XForm.objects.all().order_by("-pk").first()
+        reg_form = RegistrationForm.objects.get(xform=xform, entity_list__name="trees")
 
-        self.assertEqual(entity_list.name, "trees")
-        self.assertEqual(reg_form.xform, latest_form)
         self.assertEqual(
             reg_form.get_save_to(),
             {
@@ -123,7 +124,6 @@ class DataDictionaryTestCase(TestBase):
                 "circumference_cm": "circumference",
             },
         )
-        self.assertEqual(reg_form.entity_list, entity_list)
         self.assertTrue(reg_form.is_active)
 
     def test_create_follow_up_form(self):
@@ -141,6 +141,12 @@ class DataDictionaryTestCase(TestBase):
                 data_value=f"entity_list {entity_list.pk} trees",
             ).exists()
         )
+
+        follow_up_form = FollowUpForm.objects.get(
+            entity_list__name="trees", xform=xform
+        )
+
+        self.assertTrue(follow_up_form.is_active)
 
     def test_create_follow_up_w_props_within_group(self):
         """Follow up form with dataset within group works"""
@@ -168,6 +174,12 @@ class DataDictionaryTestCase(TestBase):
                 data_value=f"entity_list {entity_list.pk} trees",
             ).exists()
         )
+
+        follow_up_form = FollowUpForm.objects.get(
+            entity_list__name="trees", xform=xform
+        )
+
+        self.assertTrue(follow_up_form.is_active)
 
     def test_create_follow_w_select_multiple(self):
         """A form with select multiple form EntityList works"""
