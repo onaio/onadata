@@ -86,7 +86,7 @@ jobs:
       DJANGO_SETTINGS_MODULE: onadata.settings.github_actions_test
     services:
       postgres:
-        image: postgis/postgis:13-3.0
+        image: postgis/postgis:15-3.5
         env:
           POSTGRES_PASSWORD: onadata
           POSTGRES_DB: onadata
