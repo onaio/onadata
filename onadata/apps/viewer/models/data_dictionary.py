@@ -372,7 +372,7 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
 
     def link_dataset(children):
         for child in children:
-            if child["type"] in candidate_survey_types and "itemset" in child:
+            if child.get("type") in candidate_survey_types and "itemset" in child:
                 dataset_name = child["itemset"].split(".")[0]
 
                 try:
