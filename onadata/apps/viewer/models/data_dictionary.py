@@ -369,37 +369,42 @@ def create_follow_up_form(sender, instance=None, created=False, **kwargs):
     active_entity_datasets: list[str] = []
     xform = XForm.objects.get(pk=instance.pk)
 
-    for child in children:
-        if child["type"] == "select one" and "itemset" in child:
-            dataset_name = child["itemset"].split(".")[0]
+    def link_dataset(children):
+        for child in children:
+            if child["type"] == "select one" and "itemset" in child:
+                dataset_name = child["itemset"].split(".")[0]
 
-            try:
-                entity_list = EntityList.objects.get(
-                    name=dataset_name, project=instance.project
+                try:
+                    entity_list = EntityList.objects.get(
+                        name=dataset_name, project=instance.project
+                    )
+
+                except EntityList.DoesNotExist:
+                    # No EntityList dataset was found with the specified
+                    # name, we simply do nothing
+                    continue
+
+                active_entity_datasets.append(entity_list.name)
+                follow_up_form, created = FollowUpForm.objects.get_or_create(
+                    entity_list=entity_list, xform=instance
                 )
 
-            except EntityList.DoesNotExist:
-                # No EntityList dataset was found with the specified
-                # name, we simply do nothing
-                continue
+                if not created and not follow_up_form.is_active:
+                    # If previously deactivated, re-activate
+                    follow_up_form.is_active = True
+                    follow_up_form.save()
 
-            active_entity_datasets.append(entity_list.name)
-            follow_up_form, created = FollowUpForm.objects.get_or_create(
-                entity_list=entity_list, xform=instance
-            )
+                content_type = ContentType.objects.get_for_model(xform)
+                MetaData.objects.get_or_create(
+                    object_id=xform.pk,
+                    content_type=content_type,
+                    data_type="media",
+                    data_value=f"entity_list {entity_list.pk} {entity_list.name}",
+                )
+            elif child.get("children", []):
+                link_dataset(child["children"])
 
-            if not created and not follow_up_form.is_active:
-                # If previously deactivated, re-activate
-                follow_up_form.is_active = True
-                follow_up_form.save()
-
-            content_type = ContentType.objects.get_for_model(xform)
-            MetaData.objects.get_or_create(
-                object_id=xform.pk,
-                content_type=content_type,
-                data_type="media",
-                data_value=f"entity_list {entity_list.pk} {entity_list.name}",
-            )
+    link_dataset(children)
 
     # Deactivate the XForm's FollowUpForms whose EntityList are not
     # referenced by the updated XForm version
