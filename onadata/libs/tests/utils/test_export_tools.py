@@ -20,7 +20,6 @@ from django.db.models.signals import post_save
 from django.test import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
-
 from pyxform.builder import create_survey_from_xls
 from rest_framework import exceptions
 from rest_framework.authtoken.models import Token
@@ -112,6 +111,7 @@ class TestExportTools(TestAbstractViewSet):
         self.assertEqual(integer_value, 1)
 
     def test_generate_osm_export(self):
+        self.skipTest("OSM support removed in pyxform >= 3.0.0")
         filenames = [
             "OSMWay234134797.osm",
             "OSMWay34298972.osm",
@@ -157,20 +157,10 @@ class TestExportTools(TestAbstractViewSet):
             self.assertEqual(content, b"")
 
     def test_generate_attachments_zip_export(self):
-        filenames = [
-            "OSMWay234134797.osm",
-            "OSMWay34298972.osm",
-        ]
-        osm_fixtures_dir = os.path.realpath(
-            os.path.join(os.path.dirname(api_tests.__file__), "fixtures", "osm")
-        )
-        paths = [os.path.join(osm_fixtures_dir, filename) for filename in filenames]
-        xlsform_path = os.path.join(osm_fixtures_dir, "osm.xlsx")
-        self._publish_xls_file_and_set_xform(xlsform_path)
-        submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
-        count = Attachment.objects.filter(extension="osm").count()
-        self._make_submission_w_attachment(submission_path, paths)
-        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
+        self._publish_xls_form_to_project()
+        count = Attachment.objects.filter(extension="jpg").count()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
+        self.assertTrue(Attachment.objects.filter(extension="jpg").count() > count)
 
         options = {"extension": Export.ZIP_EXPORT}
 
@@ -1054,7 +1044,7 @@ class TestExportTools(TestAbstractViewSet):
 
     def test_sav_duplicate_columns(self):
         more_than_64_char = (
-            "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" "adsasdasgdsahdsahdsadgsdf"
+            "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsjadsasdasgdsahdsahdsadgsd"
         )
         md = """
         | survey |
@@ -1078,7 +1068,10 @@ class TestExportTools(TestAbstractViewSet):
         |         | fts       | mango  | Mango  | 1      |
         """
         md = md.format(
-            more_than_64_char, more_than_64_char, more_than_64_char, more_than_64_char
+            more_than_64_char + "a",
+            more_than_64_char + "b",
+            more_than_64_char + "c",
+            more_than_64_char + "d",
         )
         survey = self.md_to_pyxform_survey(md)
         export_builder = ExportBuilder()
@@ -1150,21 +1143,11 @@ class TestExportTools(TestAbstractViewSet):
 
     def test_generate_filtered_attachments_zip_export(self):
         """Test media zip file export filters attachments"""
-        filenames = [
-            "OSMWay234134797.osm",
-            "OSMWay34298972.osm",
-        ]
-        osm_fixtures_dir = os.path.realpath(
-            os.path.join(os.path.dirname(api_tests.__file__), "fixtures", "osm")
-        )
-        paths = [os.path.join(osm_fixtures_dir, filename) for filename in filenames]
-        xlsform_path = os.path.join(osm_fixtures_dir, "osm.xlsx")
-        self._publish_xls_file_and_set_xform(xlsform_path)
-        submission_path = os.path.join(osm_fixtures_dir, "instance_a.xml")
-        count = Attachment.objects.filter(extension="osm").count()
-        self._make_submission_w_attachment(submission_path, paths)
-        self._make_submission_w_attachment(submission_path, paths)
-        self.assertTrue(Attachment.objects.filter(extension="osm").count() > count)
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        count = Attachment.objects.filter(extension="jpg").count()
+        self._submit_transport_instance_w_attachment(delete_existing_attachments=True)
+        self.assertTrue(Attachment.objects.filter(extension="jpg").count() > count)
 
         options = {
             "extension": Export.ZIP_EXPORT,
