@@ -1616,7 +1616,7 @@ class GenericExportTestCase(TestBase):
         self.assertEqual(export.time_of_last_submission, instance.date_modified)
 
     def test_entity_list_export_time_of_last_submission(self):
-        """EntityList `time_of_last_submission` matches last last modified Entity"""
+        """EntityList `time_of_last_submission` matches last modified Entity"""
         self.project = get_user_default_project(self.user)
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         EntityListProperty.objects.create(name="height_cm", entity_list=entity_list)
