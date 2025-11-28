@@ -7,7 +7,7 @@ import csv
 import datetime
 import json
 import os
-from datetime import timedelta
+from datetime import timezone as tz
 from io import StringIO
 from time import sleep
 from unittest.mock import patch
@@ -17,7 +17,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.files.storage import storages
 from django.http import Http404
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import openpyxl
@@ -1646,16 +1645,31 @@ class GenericExportTestCase(TestBase):
         entity_list = EntityList.objects.create(
             name="trees",
             project=self.project,
-            last_entity_update_time=timezone.now() - timedelta(days=1),
         )
-        GenericExport.objects.create(
+
+        # Simulate outdated EntityList
+        mocked_now = datetime.datetime(2025, 11, 27, tzinfo=tz.utc)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = mocked_now
+            Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
+
+        entity_list.refresh_from_db()
+        export = GenericExport.objects.create(
             export_type=GenericExport.CSV_EXPORT,
             object_id=entity_list.id,
             content_type=ContentType.objects.get_for_model(entity_list),
             internal_status=GenericExport.SUCCESSFUL,
         )
-        # Update EntityList time of last update
-        entity_list.last_entity_update_time = timezone.now()
+
+        self.assertEqual(export.time_of_last_submission, mocked_now)
+        self.assertFalse(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )
+
+        # Update EntityList by creating a new Entity
+        Entity.objects.create(entity_list=entity_list, json={"height_cm": 20})
+        entity_list.refresh_from_db()
 
         self.assertTrue(
             GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
@@ -1663,18 +1677,22 @@ class GenericExportTestCase(TestBase):
 
     def test_export_outdated_false_if_entity_list_not_updated(self):
         """`exports_outdated` returns False if EntityList not updated"""
-        entity_list = EntityList.objects.create(
-            name="trees",
-            project=self.project,
-            last_entity_update_time=timezone.now() - timedelta(days=1),
-        )
-        GenericExport.objects.create(
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        mocked_now = datetime.datetime(2025, 11, 27, tzinfo=tz.utc)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = mocked_now
+            Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
+
+        entity_list.refresh_from_db()
+        export = GenericExport.objects.create(
             export_type=GenericExport.CSV_EXPORT,
             object_id=entity_list.id,
             content_type=ContentType.objects.get_for_model(entity_list),
             internal_status=GenericExport.SUCCESSFUL,
         )
 
+        self.assertEqual(export.time_of_last_submission, mocked_now)
         self.assertFalse(
             GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
         )
