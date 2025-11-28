@@ -7,11 +7,13 @@ import csv
 import datetime
 import json
 import os
+from datetime import timezone as tz
 from io import StringIO
 from time import sleep
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.storage import storages
 from django.http import Http404
 from django.urls import reverse
@@ -20,11 +22,15 @@ from django.utils.dateparse import parse_datetime
 import openpyxl
 from celery import current_app
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Entity, EntityList, EntityListProperty, Instance
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import delete_data
-from onadata.apps.viewer.models.export import Export, get_export_options_query_kwargs
+from onadata.apps.viewer.models.export import (
+    Export,
+    GenericExport,
+    get_export_options_query_kwargs,
+)
 from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.tasks import create_xlsx_export
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
@@ -43,6 +49,7 @@ from onadata.libs.utils.export_tools import (
     generate_export,
     increment_index_in_filename,
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 
 AMBULANCE_KEY = (
     "transport/available_transportation_types_to_referral_facility/ambulance"
@@ -1587,3 +1594,105 @@ class TestGetExportOptionsQueryKwargs(TestBase):
         }
         query_kwargs = get_export_options_query_kwargs(options)
         self.assertEqual(query_kwargs, expected_query_kwargs)
+
+
+class GenericExportTestCase(TestBase):
+    """Tests for model GenericExport"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+
+    def test_xform_export_time_of_last_submission(self):
+        """XForm export `time_of_last_submission` matches last modified Instance"""
+        self._publish_transportation_form()
+        self._make_submissions()
+
+        # Re-save first instance to update its `date_modified` to be the latest
+        instance = Instance.objects.filter(xform=self.xform).order_by("pk").first()
+        instance.save()
+        instance.refresh_from_db()
+        export = GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
+        )
+
+        self.assertEqual(export.time_of_last_submission, instance.date_modified)
+
+    def test_entity_list_export_time_of_last_submission(self):
+        """EntityList export `time_of_last_submission` matches last modified Entity"""
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        EntityListProperty.objects.create(name="height_cm", entity_list=entity_list)
+        Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
+        Entity.objects.create(entity_list=entity_list, json={"height_cm": 20})
+
+        # Re-save first Entity to update its `date_modified` to be the latest
+        entity = Entity.objects.filter(entity_list=entity_list).order_by("pk").first()
+        entity.save()
+        entity.refresh_from_db()
+        export = GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=entity_list.id,
+            content_type=ContentType.objects.get_for_model(entity_list),
+        )
+
+        self.assertEqual(export.time_of_last_submission, entity.date_modified)
+
+    def test_exports_outdated_if_entity_list_updated(self):
+        """`exports_outdated` returns True if EntityList has been updated"""
+        entity_list = EntityList.objects.create(
+            name="trees",
+            project=self.project,
+        )
+
+        # Simulate outdated EntityList
+        mocked_now = datetime.datetime(2025, 11, 27, tzinfo=tz.utc)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = mocked_now
+            Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
+
+        entity_list.refresh_from_db()
+        export = GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=entity_list.id,
+            content_type=ContentType.objects.get_for_model(entity_list),
+            internal_status=GenericExport.SUCCESSFUL,
+        )
+
+        self.assertEqual(export.time_of_last_submission, mocked_now)
+        self.assertFalse(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )
+
+        # Update EntityList by creating a new Entity
+        Entity.objects.create(entity_list=entity_list, json={"height_cm": 20})
+        entity_list.refresh_from_db()
+
+        self.assertTrue(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )
+
+    def test_export_outdated_false_if_entity_list_not_updated(self):
+        """`exports_outdated` returns False if EntityList not updated"""
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        mocked_now = datetime.datetime(2025, 11, 27, tzinfo=tz.utc)
+
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = mocked_now
+            Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
+
+        entity_list.refresh_from_db()
+        export = GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=entity_list.id,
+            content_type=ContentType.objects.get_for_model(entity_list),
+            internal_status=GenericExport.SUCCESSFUL,
+        )
+
+        self.assertEqual(export.time_of_last_submission, mocked_now)
+        self.assertFalse(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )

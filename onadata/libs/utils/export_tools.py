@@ -549,7 +549,6 @@ def generate_attachments_zip_export(
         f".{export_type.lower()}"
     )
     file_path = os.path.join(username, "exports", id_string, export_type, filename)
-    zip_file = None
 
     with NamedTemporaryFile() as zip_file:
         create_attachments_zipfile(attachment_qs, zip_file)
@@ -1117,8 +1116,18 @@ def get_repeat_index_tags(index_tags):
     return index_tags
 
 
-def generate_entity_list_export(entity_list: EntityList) -> GenericExport:
-    """Generates a CSV for an EntityList dataset"""
+def generate_entity_list_export(entity_list: EntityList, export=None) -> GenericExport:
+    """Generates a CSV for an EntityList dataset
+
+    :param entity_list: EntityList to generate export for
+    :param export: The GenericExport to update
+    :returns: A GenericExport
+    """
+    if not export:
+        export = GenericExport.objects.create(
+            content_object=entity_list, export_type=Export.CSV_EXPORT
+        )
+
     username = entity_list.project.organization.username
     records = get_entity_list_dataset(entity_list)
     export_builder = ExportBuilder()
@@ -1143,14 +1152,11 @@ def generate_entity_list_export(entity_list: EntityList) -> GenericExport:
     export_filename = default_storage.save(file_path, File(temp_file, file_path))
     temp_file.close()
     dir_name, basename = os.path.split(export_filename)
-    # Create export object
-    export = GenericExport.objects.create(
-        content_object=entity_list,
-        export_type=Export.CSV_EXPORT,
-        filedir=dir_name,
-        filename=basename,
-        internal_status=Export.SUCCESSFUL,
-    )
+    export.filedir = dir_name
+    export.filename = basename
+    export.internal_status = Export.SUCCESSFUL
+    export.save()
+
     return export
 
 
