@@ -334,9 +334,7 @@ class TestMetaData(TestBase):
 
     @patch("onadata.apps.viewer.tasks.generate_entity_list_export_async.delay")
     def test_generate_linked_entity_csv_export(self, mock_gen_export):
-        """
-        Export is generated if linked CSV dataset is created from an XForm.
-        """
+        """Export is generated if linked dataset is a EntityList."""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         MetaData.objects.create(
             data_type="media",
