@@ -5,10 +5,9 @@ Test MetaData model.
 
 from unittest.mock import patch
 
-from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 
-from onadata.apps.logger.models import DataView, Instance, Project, XForm
+from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
 from onadata.apps.main.models.meta_data import MetaData, unique_type_for_form, upload_to
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tags import (
@@ -207,9 +206,8 @@ class TestMetaData(TestBase):
         """
         MetaData.objects.create(
             data_type="media",
-            object_id=self.xform.id,
             data_value=f"xform {self.xform.pk} transportation",
-            content_type=ContentType.objects.get_for_model(XForm),
+            content_object=self.xform,
         )
 
         args, kwargs = mock_export_async.call_args
@@ -227,7 +225,7 @@ class TestMetaData(TestBase):
         """
         MetaData.objects.create(
             data_type="media",
-            object_id=self.xform.id,
+            content_object=self.xform,
             data_value=f"xform_geojson {self.xform.pk} transportation",
             extra_data={
                 "data_geo_field": "geo_field_1",
@@ -259,8 +257,8 @@ class TestMetaData(TestBase):
         )
         MetaData.objects.create(
             data_type="media",
-            object_id=self.xform.id,
             data_value=f"dataview {data_view.pk} transportation",
+            content_object=self.xform,
         )
 
         args, kwargs = mock_export_async.call_args
@@ -284,9 +282,8 @@ class TestMetaData(TestBase):
         )
         MetaData.objects.create(
             data_type="media",
-            object_id=self.xform.id,
             data_value=f"dataview_geojson {data_view.pk} transportation",
-            content_type=ContentType.objects.get_for_model(XForm),
+            content_object=self.xform,
             extra_data={
                 "data_geo_field": "geo_field_1",
                 "data_simple_style": True,
@@ -323,8 +320,8 @@ class TestMetaData(TestBase):
         )
         MetaData.objects.create(
             data_type="media",
-            object_id=self.xform.id,
             data_value=f"dataview {data_view.pk} transportation",
+            content_object=self.xform,
         )
 
         _, kwargs = mock_export_async.call_args
@@ -334,3 +331,17 @@ class TestMetaData(TestBase):
         mock_hxl_row.assert_called_once_with(
             data_view.columns, mock_get_hxl_cols.return_value
         )
+
+    @patch("onadata.apps.viewer.tasks.generate_entity_list_export_async.delay")
+    def test_generate_linked_entity_csv_export(self, mock_gen_export):
+        """
+        Export is generated if linked CSV dataset is created from an XForm.
+        """
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        MetaData.objects.create(
+            data_type="media",
+            data_value=f"entity_list {entity_list.pk} trees",
+            content_object=self.xform,
+        )
+
+        mock_gen_export.assert_called_once_with(entity_list.pk)

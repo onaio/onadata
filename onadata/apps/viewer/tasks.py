@@ -14,16 +14,19 @@ from kombu.exceptions import OperationalError
 from multidb.pinning import use_master
 from six import iteritems
 
+from onadata.apps.logger.models import EntityList
 from onadata.apps.viewer.models.export import (
     Export,
     ExportConnectionError,
     ExportTypeError,
+    GenericExport,
 )
 from onadata.celeryapp import app
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tools import get_boolean_value, report_exception
 from onadata.libs.utils.export_tools import (
     generate_attachments_zip_export,
+    generate_entity_list_export,
     generate_export,
     generate_external_export,
     generate_geojson_export,
@@ -497,3 +500,15 @@ def delete_expired_failed_exports():
         internal_status=Export.FAILED, created_on__lt=time_threshold
     )
     exports.delete()
+
+
+@app.task(track_started=True)
+def generate_entity_list_export_async(elist_pk):
+    entity_list = EntityList.objects.get(pk=elist_pk)
+    export = GenericExport.objects.create(
+        content_object=entity_list,
+        export_type=Export.CSV_EXPORT,
+    )
+    generate_entity_list_export(entity_list, export=export)
+
+    return export.id

@@ -1,17 +1,22 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.conf import settings
 from django.utils import timezone
 
 from celery import current_app
 
+from onadata.apps.logger.models import EntityList
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models import GenericExport
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import (
     create_async_export,
     delete_expired_failed_exports,
+    generate_entity_list_export_async,
     mark_expired_pending_exports_as_failed,
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestExportTasks(TestBase):
@@ -79,3 +84,24 @@ class TestExportTasks(TestBase):
         pk = export.pk
         delete_expired_failed_exports()
         self.assertEqual(Export.objects.filter(pk=pk).first(), None)
+
+
+@patch("onadata.apps.viewer.tasks.generate_entity_list_export")
+class GenEntityListExportTestCase(TestBase):
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+        self.entity_list = EntityList.objects.create(name="trees", project=self.project)
+
+    def test_entity_list_export_gen(self, mock_gen):
+        """EntityList export is generated"""
+        generate_entity_list_export_async.delay(self.entity_list.pk)
+
+        self.assertTrue(
+            GenericExport.objects.filter(object_id=self.entity_list.pk).exists()
+        )
+
+        export = GenericExport.objects.get(object_id=self.entity_list.pk)
+
+        mock_gen.assert_called_once_with(self.entity_list, export=export)

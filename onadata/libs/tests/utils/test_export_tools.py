@@ -1217,13 +1217,14 @@ class TestExportTools(TestAbstractViewSet):
 class GenerateExportTestCase(TestAbstractViewSet):
     """Tests for method `generate_export`"""
 
-    def test_generate_export_entity_list(self):
-        """Generate export for EntityList dataset works"""
+    def setUp(self):
+        super().setUp()
+
         # Publish registration form and create "trees" Entitylist dataset
-        self._publish_registration_form(self.user)
-        entity_list = EntityList.objects.get(name="trees")
+        self.xform = self._publish_registration_form(self.user)
+        self.entity_list = EntityList.objects.get(name="trees")
         Entity.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             json={
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
@@ -1233,7 +1234,7 @@ class GenerateExportTestCase(TestAbstractViewSet):
             uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
         )
         Entity.objects.create(
-            entity_list=entity_list,
+            entity_list=self.entity_list,
             json={
                 "species": "purpleheart",
                 "geometry": "-1.286905 36.772845 0 0",
@@ -1244,10 +1245,14 @@ class GenerateExportTestCase(TestAbstractViewSet):
             deleted_at=timezone.now(),  # deleted Entity should be ignored
         )
 
-        export = generate_entity_list_export(entity_list)
+    def test_generate_export_entity_list(self):
+        """Generate export for EntityList dataset works"""
+        export = generate_entity_list_export(self.entity_list)
+
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         self.assertEqual(GenericExport.objects.count(), 1)
+
         export = GenericExport.objects.first()
 
         with open(export.full_filepath, "r") as csv_file:
@@ -1275,5 +1280,19 @@ class GenerateExportTestCase(TestAbstractViewSet):
 
     def test_get_columns_with_hxl_w_entity_forms(self):
         """Test that get_columns_with_hxl() function on a form with entities."""
-        xform = self._publish_registration_form(self.user)
-        self.assertEqual(get_columns_with_hxl(xform.survey_elements), {})
+        self.assertEqual(get_columns_with_hxl(self.xform.survey_elements), {})
+
+    def test_use_given_export(self):
+        """Export passed as argument is used"""
+        export = GenericExport.objects.create(
+            content_object=self.entity_list, export_type="csv"
+        )
+
+        self.assertEqual(export.internal_status, GenericExport.PENDING)
+        self.assertIsNone(export.filename)
+
+        generate_entity_list_export(self.entity_list, export=export)
+        export.refresh_from_db()
+
+        self.assertEqual(export.internal_status, GenericExport.SUCCESSFUL)
+        self.assertIsNotNone(export.filename)
