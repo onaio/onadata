@@ -5,6 +5,7 @@ Test MetaData model.
 
 from unittest.mock import patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 
 from onadata.apps.logger.models import DataView, EntityList, Instance, Project, XForm
@@ -207,7 +208,8 @@ class TestMetaData(TestBase):
         MetaData.objects.create(
             data_type="media",
             data_value=f"xform {self.xform.pk} transportation",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
         )
 
         args, kwargs = mock_export_async.call_args
@@ -225,7 +227,8 @@ class TestMetaData(TestBase):
         """
         MetaData.objects.create(
             data_type="media",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
             data_value=f"xform_geojson {self.xform.pk} transportation",
             extra_data={
                 "data_geo_field": "geo_field_1",
@@ -258,7 +261,8 @@ class TestMetaData(TestBase):
         MetaData.objects.create(
             data_type="media",
             data_value=f"dataview {data_view.pk} transportation",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
         )
 
         args, kwargs = mock_export_async.call_args
@@ -283,7 +287,8 @@ class TestMetaData(TestBase):
         MetaData.objects.create(
             data_type="media",
             data_value=f"dataview_geojson {data_view.pk} transportation",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
             extra_data={
                 "data_geo_field": "geo_field_1",
                 "data_simple_style": True,
@@ -321,7 +326,8 @@ class TestMetaData(TestBase):
         MetaData.objects.create(
             data_type="media",
             data_value=f"dataview {data_view.pk} transportation",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
         )
 
         _, kwargs = mock_export_async.call_args
@@ -339,7 +345,8 @@ class TestMetaData(TestBase):
         MetaData.objects.create(
             data_type="media",
             data_value=f"entity_list {entity_list.pk} trees",
-            content_object=self.xform,
+            object_id=self.xform.id,
+            content_type=ContentType.objects.get_for_model(self.xform),
         )
 
         mock_gen_export.assert_called_once_with(entity_list.pk)
