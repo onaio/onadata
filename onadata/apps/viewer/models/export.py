@@ -390,7 +390,7 @@ class GenericExport(ExportBaseModel):
                 )
 
             if (
-                instance_ct.model == "entity_list"
+                instance_ct.model == "entitylist"
                 and instance.last_entity_update_time is not None
             ):
                 return export_last_submission_time < instance.last_entity_update_time
