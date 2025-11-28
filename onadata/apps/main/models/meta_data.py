@@ -679,7 +679,7 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
         elif entity_list and export_tools.should_create_new_export(
             entity_list, export_type, {}, is_generic=True
         ):
-            viewer_tasks.generate_entity_list_export_async.delay(entity_list.pk)
+            viewer_tasks.create_entity_list_export_async.delay(entity_list.pk)
 
 
 post_save.connect(
