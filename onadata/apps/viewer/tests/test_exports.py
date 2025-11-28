@@ -7,6 +7,7 @@ import csv
 import datetime
 import json
 import os
+from datetime import timedelta
 from io import StringIO
 from time import sleep
 from unittest.mock import patch
@@ -16,6 +17,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.files.storage import storages
 from django.http import Http404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import openpyxl
@@ -1598,6 +1600,11 @@ class TestGetExportOptionsQueryKwargs(TestBase):
 class GenericExportTestCase(TestBase):
     """Tests for model GenericExport"""
 
+    def setUp(self):
+        super().setUp()
+
+        self.project = get_user_default_project(self.user)
+
     def test_xform_export_time_of_last_submission(self):
         """XForm export `time_of_last_submission` matches last modified Instance"""
         self._publish_transportation_form()
@@ -1616,8 +1623,7 @@ class GenericExportTestCase(TestBase):
         self.assertEqual(export.time_of_last_submission, instance.date_modified)
 
     def test_entity_list_export_time_of_last_submission(self):
-        """EntityList `time_of_last_submission` matches last modified Entity"""
-        self.project = get_user_default_project(self.user)
+        """EntityList export `time_of_last_submission` matches last modified Entity"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         EntityListProperty.objects.create(name="height_cm", entity_list=entity_list)
         Entity.objects.create(entity_list=entity_list, json={"height_cm": 10})
@@ -1634,3 +1640,41 @@ class GenericExportTestCase(TestBase):
         )
 
         self.assertEqual(export.time_of_last_submission, entity.date_modified)
+
+    def test_exports_outdated_if_entity_list_updated(self):
+        """`exports_outdated` returns True if EntityList has been updated"""
+        entity_list = EntityList.objects.create(
+            name="trees",
+            project=self.project,
+            last_entity_update_time=timezone.now() - timedelta(days=1),
+        )
+        GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=entity_list.id,
+            content_type=ContentType.objects.get_for_model(entity_list),
+            internal_status=GenericExport.SUCCESSFUL,
+        )
+        # Update EntityList time of last update
+        entity_list.last_entity_update_time = timezone.now()
+
+        self.assertTrue(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )
+
+    def test_export_outdated_false_if_entity_list_not_updated(self):
+        """`exports_outdated` returns False if EntityList not updated"""
+        entity_list = EntityList.objects.create(
+            name="trees",
+            project=self.project,
+            last_entity_update_time=timezone.now() - timedelta(days=1),
+        )
+        GenericExport.objects.create(
+            export_type=GenericExport.CSV_EXPORT,
+            object_id=entity_list.id,
+            content_type=ContentType.objects.get_for_model(entity_list),
+            internal_status=GenericExport.SUCCESSFUL,
+        )
+
+        self.assertFalse(
+            GenericExport.exports_outdated(entity_list, GenericExport.CSV_EXPORT)
+        )
