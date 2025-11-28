@@ -60,15 +60,17 @@ class DataDictionaryTestCase(TestBase):
 
     def test_create_registration_form(self):
         """Registration form created successfully"""
-        self._publish_markdown(self.registration_form, self.user)
-        self.assertEqual(XForm.objects.count(), 1)
+        xform = self._publish_markdown(self.registration_form, self.user)
+
         self.assertTrue(EntityList.objects.filter(name="trees").exists())
-        self.assertEqual(RegistrationForm.objects.count(), 1)
-        entity_list = EntityList.objects.first()
-        reg_form = RegistrationForm.objects.first()
-        latest_form = XForm.objects.all().order_by("-pk").first()
-        self.assertEqual(entity_list.name, "trees")
-        self.assertEqual(reg_form.xform, latest_form)
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="trees"
+            ).exists()
+        )
+
+        reg_form = RegistrationForm.objects.get(xform=xform, entity_list__name="trees")
+
         self.assertEqual(
             reg_form.get_save_to(),
             {
@@ -77,25 +79,128 @@ class DataDictionaryTestCase(TestBase):
                 "circumference_cm": "circumference",
             },
         )
-        self.assertEqual(reg_form.entity_list, entity_list)
+        self.assertTrue(reg_form.is_active)
+
+    def test_create_registration_w_props_within_group(self):
+        """Registration form with properties within group works"""
+        md = """
+        | survey   |
+        |          | type               | name                                       | label                    | save_to                                    |
+        |          | begin_group       | tree_details                                | Tree Details             |                                            |
+        |          | geopoint           | location                                   | Tree location            | geometry                                   |
+        |          | select_one species | species                                    | Tree species             | species                                    |
+        |          | integer            | circumference                              | Tree circumference in cm | circumference_cm                           |
+        |          | end_group         |                                             |                          |                                            |
+        |          | text               | intake_notes                               | Intake notes             |                                            |
+        | choices  |                    |                                            |                          |                                            |
+        |          | list_name          | name                                       | label                    |                                            |
+        |          | species            | wallaba                                    | Wallaba                  |                                            |
+        |          | species            | mora                                       | Mora                     |                                            |
+        |          | species            | purpleheart                                | Purpleheart              |                                            |
+        |          | species            | greenheart                                 | Greenheart               |                                            |
+        | settings |                    |                                            |                          |                                            |
+        |          | form_title         | form_id                                    | version                  | instance_name                              |
+        |          | Trees registration | trees_registration                         | 2022110901               | concat(${circumference}, "cm ", ${species})|
+        | entities |                    |                                            |                          |                                            |
+        |          | list_name          | label                                      |                          |                                            |
+        |          | trees              | concat(${circumference}, "cm ", ${species})|                          |                                            |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(EntityList.objects.filter(name="trees").exists())
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="trees"
+            ).exists()
+        )
+
+        reg_form = RegistrationForm.objects.get(xform=xform, entity_list__name="trees")
+
+        self.assertEqual(
+            reg_form.get_save_to(),
+            {
+                "geometry": "location",
+                "species": "species",
+                "circumference_cm": "circumference",
+            },
+        )
         self.assertTrue(reg_form.is_active)
 
     def test_create_follow_up_form(self):
         """Follow up form created successfully"""
-        # Simulate existing trees dataset
-        EntityList.objects.create(name="trees", project=self.project)
-        self._publish_markdown(self.follow_up_form, self.user)
-        self.assertEqual(XForm.objects.count(), 1)
-        latest_form = XForm.objects.all().order_by("-pk").first()
-        entity_list = EntityList.objects.first()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(self.follow_up_form, self.user)
+
         self.assertTrue(
-            FollowUpForm.objects.filter(
-                entity_list__name="trees", xform=latest_form
-            ).exists()
+            FollowUpForm.objects.filter(entity_list__name="trees", xform=xform).exists()
         )
         self.assertTrue(
             MetaData.objects.filter(
-                object_id=latest_form.pk,
+                object_id=xform.pk,
+                data_type="media",
+                data_value=f"entity_list {entity_list.pk} trees",
+            ).exists()
+        )
+
+        follow_up_form = FollowUpForm.objects.get(
+            entity_list__name="trees", xform=xform
+        )
+
+        self.assertTrue(follow_up_form.is_active)
+
+    def test_create_follow_up_w_props_within_group(self):
+        """Follow up form with dataset within group works"""
+        md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | begin_group                    | tree_details    | Tree Details                    |          |
+        |         | select_one_from_file trees.csv | tree            | Select the tree you are visiting | yes      |
+        |         | end_group                      |                 |                                  |          |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+        # Simulate existing trees dataset
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(
+            FollowUpForm.objects.filter(entity_list__name="trees", xform=xform).exists()
+        )
+        self.assertTrue(
+            MetaData.objects.filter(
+                object_id=xform.pk,
+                data_type="media",
+                data_value=f"entity_list {entity_list.pk} trees",
+            ).exists()
+        )
+
+        follow_up_form = FollowUpForm.objects.get(
+            entity_list__name="trees", xform=xform
+        )
+
+        self.assertTrue(follow_up_form.is_active)
+
+    def test_create_follow_w_select_multiple(self):
+        """A form with select multiple form EntityList works"""
+        md = """
+        | survey  |
+        |         | type                           | name            | label                            | required |
+        |         | select_multiple trees.csv      | trees           | Select the trees you are visiting | yes      |
+        | settings|                                |                 |                                  |          |
+        |         | form_title                     | form_id         |  version                         |          |
+        |         | Trees follow-up                | trees_follow_up |  2022111801                      |          |
+        """
+        # Simulate existing trees dataset
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(
+            FollowUpForm.objects.filter(entity_list__name="trees", xform=xform).exists()
+        )
+        self.assertTrue(
+            MetaData.objects.filter(
+                object_id=xform.pk,
                 data_type="media",
                 data_value=f"entity_list {entity_list.pk} trees",
             ).exists()

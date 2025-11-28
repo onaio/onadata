@@ -73,6 +73,6 @@ class RegistrationForm(BaseModel):
         return result
 
     @property
-    def properties(self) -> list:
+    def properties(self) -> list[str]:
         """All EntityList properties the form contributes to"""
-        return self.get_save_to().keys()
+        return list(self.get_save_to().keys())
