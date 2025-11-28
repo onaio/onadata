@@ -444,7 +444,7 @@ class GenericExport(ExportBaseModel):
                     self.content_object.time_of_last_submission_update()
                 )
 
-            elif instance_ct.model == "entity_list":
+            elif instance_ct.model == "entitylist":
                 self.time_of_last_submission = (
                     self.content_object.last_entity_update_time
                 )
