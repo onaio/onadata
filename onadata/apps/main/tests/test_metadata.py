@@ -338,7 +338,7 @@ class TestMetaData(TestBase):
             data_view.columns, mock_get_hxl_cols.return_value
         )
 
-    @patch("onadata.apps.viewer.tasks.generate_entity_list_export_async.delay")
+    @patch("onadata.apps.viewer.tasks.create_entity_list_export_async.delay")
     def test_generate_linked_entity_csv_export(self, mock_gen_export):
         """Export is generated if linked dataset is a EntityList."""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
