@@ -12,8 +12,8 @@ from onadata.apps.viewer.models import GenericExport
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import (
     create_async_export,
+    create_entity_list_export_async,
     delete_expired_failed_exports,
-    generate_entity_list_export_async,
     mark_expired_pending_exports_as_failed,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -87,7 +87,7 @@ class TestExportTasks(TestBase):
 
 
 @patch("onadata.apps.viewer.tasks.generate_entity_list_export")
-class GenEntityListExportTestCase(TestBase):
+class CreateEntityListExportTestCase(TestBase):
     def setUp(self):
         super().setUp()
 
@@ -96,7 +96,7 @@ class GenEntityListExportTestCase(TestBase):
 
     def test_entity_list_export_gen(self, mock_gen):
         """EntityList export is generated"""
-        generate_entity_list_export_async.delay(self.entity_list.pk)
+        create_entity_list_export_async.delay(self.entity_list.pk)
 
         self.assertTrue(
             GenericExport.objects.filter(object_id=self.entity_list.pk).exists()
