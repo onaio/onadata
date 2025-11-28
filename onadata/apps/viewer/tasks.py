@@ -504,6 +504,12 @@ def delete_expired_failed_exports():
 
 @app.task(track_started=True)
 def generate_entity_list_export_async(elist_pk):
+    """Generate EntityList export asynchronously.
+
+    :param elist_pk: Primary key of the EntityList to export.
+    :return: ID of the created GenericExport.
+    """
+
     entity_list = EntityList.objects.get(pk=elist_pk)
     export = GenericExport.objects.create(
         content_object=entity_list,

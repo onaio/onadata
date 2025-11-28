@@ -52,6 +52,7 @@ class EntityList(BaseModel):
     @transaction.atomic()
     def soft_delete(self, deleted_by=None):
         """Soft delete EntityList"""
+        # pylint: disable=import-outside-toplevel
         from onadata.apps.main.models.meta_data import MetaData
 
         if self.deleted_at is None:
