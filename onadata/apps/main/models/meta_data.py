@@ -622,6 +622,11 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
 def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
     """
     Generate dataset if the MetaData instance is a linked dataset.
+
+
+    Improves download speed for follow up forms by generating
+    the linked dataset export as soon as the MetaData is created and prior to
+    the form download request.
     """
     # Avoid circular import
     export_tools = importlib.import_module("onadata.libs.utils.export_tools")
