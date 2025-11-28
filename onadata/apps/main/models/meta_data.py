@@ -618,6 +618,7 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
         instance.content_object.save()
 
 
+# pylint: disable=too-many-locals
 def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
     """
     Generate dataset if the MetaData instance is a linked dataset.
