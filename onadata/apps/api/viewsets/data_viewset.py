@@ -187,10 +187,17 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def get_object(self, queryset=None):
         """Returns the appropriate object based on context."""
-        obj = super().get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
         form_pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
+
+        # Cache key based on whether we're fetching XForm or Instance
+        cache_attr = "_cached_instance" if dataid else "_cached_xform"
+
+        if hasattr(self, cache_attr):
+            return getattr(self, cache_attr)
+
+        obj = super().get_object()
 
         if form_pk is not None and dataid is not None:
             try:
@@ -210,6 +217,7 @@ class DataViewSet(
                     Instance, pk=dataid, xform_id__in=pks, deleted_at__isnull=True
                 )
 
+        setattr(self, cache_attr, obj)
         return obj
 
     def _get_public_forms_queryset(self):
