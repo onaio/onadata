@@ -588,9 +588,20 @@ class DataViewSet(
             else:
                 num_of_submissions = XForm.objects.get(id=xform_id).num_of_submissions
             # pylint: disable=attribute-defined-outside-init
-            self.object_list = Instance.objects.filter(
-                xform_id__in=pks, deleted_at=None
-            ).only("json")
+            # Include geom and xform_id fields for geojson format to avoid N+1 queries
+            if export_type == "geojson":
+                self.object_list = Instance.objects.filter(
+                    xform_id__in=pks, deleted_at=None
+                ).only("id", "json", "geom", "xform_id")
+                # Add select_related for xform when geo_field param is present
+                # as the serializer needs to access xform.geotrace_xpaths() etc.
+                geo_field = request.GET.get("geo_field")
+                if geo_field:
+                    self.object_list = self.object_list.select_related("xform")
+            else:
+                self.object_list = Instance.objects.filter(
+                    xform_id__in=pks, deleted_at=None
+                ).only("json")
 
             if is_encrypted is not None:
                 self.object_list = self.object_list.filter(is_encrypted=is_encrypted)
