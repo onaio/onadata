@@ -2,6 +2,8 @@
 EntityList model
 """
 
+import importlib
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
@@ -14,7 +16,6 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import clear_project_cache
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.models import BaseModel
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -53,6 +54,9 @@ class EntityList(BaseModel):
     @transaction.atomic()
     def soft_delete(self, deleted_by=None):
         """Soft delete EntityList"""
+        # Avoid circular import
+        meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
+
         if self.deleted_at is None:
             deletion_time = timezone.now()
             deletion_suffix = deletion_time.strftime("-deleted-at-%s")
@@ -63,8 +67,8 @@ class EntityList(BaseModel):
             self.name = self.name[:255]  # Only first 255 characters
             self.save()
             clear_project_cache(self.project.pk)
-            # Soft deleted follow up forms MetaData
-            metadata_qs = MetaData.objects.filter(
+            # Soft delete follow up forms link
+            metadata_qs = meta_data.MetaData.objects.filter(
                 data_type="media",
                 data_value=f"entity_list {self.pk} {original_name}",
             )

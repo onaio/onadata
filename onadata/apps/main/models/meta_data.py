@@ -25,8 +25,8 @@ from django.utils import timezone
 
 import requests
 
+from onadata.apps.logger.models import EntityList, XForm
 from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.cache_tools import (
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
@@ -566,6 +566,7 @@ class MetaData(models.Model):
         return isinstance(self.data_value, str) and (
             self.data_value.startswith("xform")
             or self.data_value.startswith("dataview")
+            or self.data_value.startswith("entity_list")
         )
 
     @staticmethod
@@ -617,13 +618,20 @@ def update_attached_object(sender, instance=None, created=False, **kwargs):
         instance.content_object.save()
 
 
+# pylint: disable=too-many-locals
 def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
     """
     Generate dataset if the MetaData instance is a linked dataset.
+
+
+    Improves download speed for follow up forms by generating
+    the linked dataset export as soon as the MetaData is created and prior to
+    the form download request.
     """
     # Avoid circular import
     export_tools = importlib.import_module("onadata.libs.utils.export_tools")
     api_export_tools = importlib.import_module("onadata.libs.utils.api_export_tools")
+    viewer_tasks = importlib.import_module("onadata.apps.viewer.tasks")
 
     if created and instance.is_linked_dataset:
         export_type = api_export_tools.get_metadata_format(instance.data_value)
@@ -646,6 +654,7 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
             "dataview_pk": False,
         }
         xform = None
+        entity_list = None
 
         if instance.data_value.startswith("xform"):
             _, xform_id, _ = instance.data_value.split()
@@ -657,12 +666,20 @@ def generate_linked_dataset(sender, instance=None, created=False, **kwargs):
             xform = dataview.xform
             export_options.update(export_tools.get_dataview_export_options(dataview))
 
+        elif instance.data_value.startswith("entity_list"):
+            _, elist_id, _ = instance.data_value.split()
+            entity_list = EntityList.objects.get(pk=elist_id)
+
         if xform and export_tools.should_create_new_export(
             xform, export_type, export_options
         ):
             api_export_tools.create_export_async(
                 xform, export_type, options=export_options
             )
+        elif entity_list and export_tools.should_create_new_export(
+            entity_list, export_type, {}, is_generic=True
+        ):
+            viewer_tasks.create_entity_list_export_async.delay(entity_list.pk)
 
 
 post_save.connect(
