@@ -444,7 +444,12 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         """
         This should return a valid temp token for this user profile.
         """
-        token, created = TempToken.objects.get_or_create(user=obj.user)
+        try:
+            token = obj.user.temptoken
+            created = False
+        except (TempToken.DoesNotExist, AttributeError):
+            token, created = TempToken.objects.get_or_create(user=obj.user)
+
         check_expired = getattr(settings, "CHECK_EXPIRED_TEMP_TOKEN", True)
 
         try:
@@ -452,7 +457,8 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
                 with transaction.atomic():
                     TempToken.objects.get(user=obj.user).delete()
                     token = TempToken.objects.create(user=obj.user)
-        except IntegrityError:
-            pass
+        except (IntegrityError, TempToken.DoesNotExist):
+            # Fallback to get_or_create if something went wrong
+            token, created = TempToken.objects.get_or_create(user=obj.user)
 
         return token.key
