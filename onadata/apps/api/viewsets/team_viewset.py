@@ -45,9 +45,7 @@ class TeamViewSet(
     This endpoint allows you to create, update and view team information.
     """
 
-    queryset = Team.objects.select_related(
-        "organization", "created_by"
-    ).prefetch_related("user_set", "projects")
+    queryset = Team.objects.select_related("organization", "created_by")
     serializer_class = TeamSerializer
     lookup_field = "pk"
     extra_lookup_fields = None

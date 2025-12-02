@@ -88,13 +88,13 @@ class PrefetchManager(models.Manager):
                     queryset=EntityList.objects.filter(deleted_at__isnull=True)
                     .prefetch_related(
                         Prefetch(
-                            "registrationform_set",
+                            "registration_forms",
                             queryset=RegistrationForm.objects.select_related("xform"),
                         )
                     )
                     .prefetch_related(
                         Prefetch(
-                            "followupform_set",
+                            "follow_up_forms",
                             queryset=FollowUpForm.objects.select_related("xform"),
                         )
                     ),

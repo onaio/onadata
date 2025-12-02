@@ -39,7 +39,7 @@ class MessagingViewSet(
 
     serializer_class = MessageSerializer
     queryset = Action.objects.filter(verb__in=MESSAGE_VERBS).select_related(
-        "actor", "target_content_type"
+        "actor_content_type", "target_content_type"
     )
     permission_classes = [IsAuthenticated, TargetObjectPermissions]
     filter_backends = (

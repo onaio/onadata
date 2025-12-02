@@ -191,6 +191,12 @@ class ProjectViewSet(
             survey = utils.publish_project_xform(request, project)
 
             if isinstance(survey, XForm):
+                # Clear prefetch cache since we modified the forms
+                if hasattr(project, "xforms_prefetch"):
+                    delattr(project, "xforms_prefetch")
+                # Clear the project cache since forms changed
+                safe_cache_delete(f"{PROJ_OWNER_CACHE}{project.pk}")
+
                 if "formid" in request.data:
                     serializer_cls = XFormSerializer
                 else:

@@ -22,11 +22,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
-from onadata.libs.permissions import (
-    CAN_ADD_ORGANIZATION_PROJECT,
-    get_role_in_org_cached,
-    get_users_org_permissions_cache,
-)
+from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
@@ -179,12 +175,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         if owners and members:
             members = members.exclude(username__in=[user.username for user in owners])
 
-        # Combine all users and prefetch profiles to avoid N+1
-        all_users = list(owners) + list(members)
-
-        # Bulk fetch all permissions at once to avoid N+1 queries
-        permissions_cache = get_users_org_permissions_cache(all_users, obj)
-
         def _create_user_list(user_list):
             users_list = []
             for u in user_list:
@@ -196,7 +186,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 users_list.append(
                     {
                         "user": u.username,
-                        "role": get_role_in_org_cached(u, obj, permissions_cache),
+                        "role": get_role_in_org(u, obj),
                         "first_name": u.first_name,
                         "last_name": u.last_name,
                         "gravatar": profile.gravatar,
