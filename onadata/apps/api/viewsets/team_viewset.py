@@ -2,6 +2,7 @@
 """
 The /teams API endpoint implementation.
 """
+
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext as _
 
@@ -44,7 +45,9 @@ class TeamViewSet(
     This endpoint allows you to create, update and view team information.
     """
 
-    queryset = Team.objects.all()
+    queryset = Team.objects.select_related(
+        "organization", "created_by"
+    ).prefetch_related("user_set", "projects")
     serializer_class = TeamSerializer
     lookup_field = "pk"
     extra_lookup_fields = None

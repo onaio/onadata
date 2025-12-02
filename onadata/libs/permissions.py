@@ -525,6 +525,137 @@ def get_role_in_org(user, organization):
     return get_role(perms, organization) or MemberRole.name
 
 
+def get_role_in_org_cached(user, organization, permissions_cache):
+    """
+    Return the user role in the organization using a pre-fetched permissions cache.
+
+    :param user: User object
+    :param organization: OrganizationProfile object
+    :param permissions_cache: Dictionary mapping user pk to set of permission codenames
+    :return: Role name string
+    """
+    perms = permissions_cache.get(user.pk, set())
+
+    if "is_org_owner" in perms:
+        return OwnerRole.name
+
+    return get_role(perms, organization) or MemberRole.name
+
+
+def get_object_permissions_cache(user, objects):
+    """
+    Efficiently fetch permissions for multiple objects at once to avoid N+1 queries.
+
+    Returns a dictionary mapping object IDs to sets of permission codenames.
+    This should be used when checking permissions for multiple objects to avoid
+    N+1 query patterns.
+
+    :param user: User object to check permissions for
+    :param objects: Iterable of objects to fetch permissions for
+    :return: Dictionary mapping object pk to set of permission codenames
+    """
+    if not objects:
+        return {}
+
+    objects_list = list(objects)
+    if not objects_list:
+        return {}
+
+    first_obj = objects_list[0]
+    obj_type = type(first_obj)
+    object_ids = [obj.pk for obj in objects_list]
+
+    permissions_cache = {obj_id: set() for obj_id in object_ids}
+
+    # Get user object permissions
+    if obj_type == XForm:
+        user_perms = XFormUserObjectPermission.objects.filter(
+            content_object_id__in=object_ids, user=user
+        ).select_related("permission")
+
+        for perm in user_perms:
+            permissions_cache[perm.content_object_id].add(perm.permission.codename)
+
+        # Get group permissions
+        user_groups = user.groups.all()
+        group_perms = XFormGroupObjectPermission.objects.filter(
+            content_object_id__in=object_ids, group__in=user_groups
+        ).select_related("permission")
+
+        for perm in group_perms:
+            permissions_cache[perm.content_object_id].add(perm.permission.codename)
+
+    elif obj_type == Project:
+        user_perms = ProjectUserObjectPermission.objects.filter(
+            content_object_id__in=object_ids, user=user
+        ).select_related("permission")
+
+        for perm in user_perms:
+            permissions_cache[perm.content_object_id].add(perm.permission.codename)
+
+        # Get group permissions
+        user_groups = user.groups.all()
+        group_perms = ProjectGroupObjectPermission.objects.filter(
+            content_object_id__in=object_ids, group__in=user_groups
+        ).select_related("permission")
+
+        for perm in group_perms:
+            permissions_cache[perm.content_object_id].add(perm.permission.codename)
+
+    return permissions_cache
+
+
+def get_users_org_permissions_cache(users, organization):
+    """
+    Efficiently fetch organization permissions for multiple users at once
+    to avoid N+1 queries.
+
+    Returns a dictionary mapping user IDs to sets of permission codenames.
+
+    :param users: Iterable of User objects to check permissions for
+    :param organization: OrganizationProfile object
+    :return: Dictionary mapping user pk to set of permission codenames
+    """
+    # pylint: disable=invalid-name
+    OrgProfileGroupObjectPermission = apps.get_model(  # noqa: N806
+        "api", "OrgProfileGroupObjectPermission"
+    )
+    OrgProfileUserObjectPermission = apps.get_model(  # noqa: N806
+        "api", "OrgProfileUserObjectPermission"
+    )
+
+    users_list = list(users)
+    if not users_list:
+        return {}
+
+    user_ids = [u.pk for u in users_list]
+    permissions_cache = {user_id: set() for user_id in user_ids}
+
+    # Get user object permissions
+    user_perms = OrgProfileUserObjectPermission.objects.filter(
+        content_object_id=organization.pk, user_id__in=user_ids
+    ).select_related("permission")
+
+    for perm in user_perms:
+        permissions_cache[perm.user_id].add(perm.permission.codename)
+
+    # Get group permissions
+    group_perms = (
+        OrgProfileGroupObjectPermission.objects.filter(
+            content_object_id=organization.pk, group__user__id__in=user_ids
+        )
+        .select_related("permission", "group")
+        .prefetch_related("group__user_set")
+    )
+
+    for perm in group_perms:
+        for user in perm.group.user_set.all():
+            if user.pk in permissions_cache:
+                permissions_cache[user.pk].add(perm.permission.codename)
+
+    return permissions_cache
+
+
 def get_user_perms(obj):
     """
     Return XFormUserObjectPermission or ProjectUserObjectPermission queryset.
@@ -533,7 +664,11 @@ def get_user_perms(obj):
     model = ProjectUserObjectPermission if isinstance(obj, Project) else model
 
     return (
-        queryset_iterator(model.objects.filter(content_object_id=obj.pk))
+        queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk).select_related(
+                "permission", "user"
+            )
+        )
         if model
         else None
     )
@@ -547,7 +682,11 @@ def get_group_perms(obj):
     model = ProjectGroupObjectPermission if isinstance(obj, Project) else model
 
     return (
-        queryset_iterator(model.objects.filter(content_object_id=obj.pk))
+        queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk).select_related(
+                "permission", "group"
+            )
+        )
         if model
         else None
     )

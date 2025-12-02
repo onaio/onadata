@@ -33,6 +33,9 @@ class PrefetchManager(models.Manager):
         # pylint: disable=invalid-name
         Team = apps.get_model("api", "Team")  # noqa N806
         XForm = apps.get_model("logger", "XForm")  # noqa N806
+        EntityList = apps.get_model("logger", "EntityList")  # noqa N806
+        RegistrationForm = apps.get_model("logger", "RegistrationForm")  # noqa N806
+        FollowUpForm = apps.get_model("logger", "FollowUpForm")  # noqa N806
 
         # pylint: disable=no-member
         return (
@@ -44,9 +47,24 @@ class PrefetchManager(models.Manager):
                     "xform_set",
                     queryset=XForm.objects.filter(deleted_at__isnull=True)
                     .select_related("user")
-                    .prefetch_related("user")
                     .prefetch_related("dataview_set")
                     .prefetch_related("metadata_set")
+                    .prefetch_related(
+                        Prefetch(
+                            "registration_forms",
+                            queryset=RegistrationForm.objects.filter(
+                                entity_list__deleted_at__isnull=True
+                            ).select_related("entity_list"),
+                        )
+                    )
+                    .prefetch_related(
+                        Prefetch(
+                            "follow_up_forms",
+                            queryset=FollowUpForm.objects.filter(
+                                entity_list__deleted_at__isnull=True
+                            ).select_related("entity_list"),
+                        )
+                    )
                     .only(
                         "id",
                         "user",
@@ -54,12 +72,32 @@ class PrefetchManager(models.Manager):
                         "title",
                         "date_created",
                         "last_submission_time",
+                        "last_updated_at",
                         "num_of_submissions",
                         "downloadable",
                         "id_string",
                         "is_merged_dataset",
+                        "encrypted",
                     ),
                     to_attr="xforms_prefetch",
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "entity_lists",
+                    queryset=EntityList.objects.filter(deleted_at__isnull=True)
+                    .prefetch_related(
+                        Prefetch(
+                            "registrationform_set",
+                            queryset=RegistrationForm.objects.select_related("xform"),
+                        )
+                    )
+                    .prefetch_related(
+                        Prefetch(
+                            "followupform_set",
+                            queryset=FollowUpForm.objects.select_related("xform"),
+                        )
+                    ),
                 )
             )
             .prefetch_related("tags")
@@ -84,6 +122,15 @@ class PrefetchManager(models.Manager):
                 Prefetch(
                     "organization__team_set",
                     queryset=Team.objects.all().prefetch_related("user_set"),
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "dataview_set",
+                    queryset=apps.get_model("logger", "DataView").objects.filter(
+                        deleted_at__isnull=True
+                    ),
+                    to_attr="dataview_prefetch",
                 )
             )
         )

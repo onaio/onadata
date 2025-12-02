@@ -94,7 +94,9 @@ def is_starred(project, request):
     """
     Return True if the request.user has starred this project.
     """
-    return project.user_stars.filter(pk=request.user.pk).count() == 1
+    if request.user.is_anonymous:
+        return False
+    return project.user_stars.filter(pk=request.user.pk).exists()
 
 
 def get_team_permissions(team, project):
