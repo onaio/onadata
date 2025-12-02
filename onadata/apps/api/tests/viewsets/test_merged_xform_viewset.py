@@ -2,20 +2,21 @@
 """
 Test merged dataset functionality.
 """
+
 from __future__ import unicode_literals
 
 import csv
-import os
 import json
+import os
 from io import StringIO
 
-from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import File
+from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
@@ -27,9 +28,9 @@ from onadata.apps.logger.models.instance import FormIsMergedDatasetError
 from onadata.apps.logger.models.open_data import get_or_create_opendata
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
+from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.utils.export_tools import get_osm_data_kwargs
 from onadata.libs.utils.user_auth import get_user_default_project
-from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 
 MD = """
 | survey  |
@@ -145,7 +146,12 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
             "project_id": self.project.pk,
             "project_name": self.project.name,
         }
-        self.assertEqual(response.data["xforms"][0], expected_xforms_data)
+        # Find xform1 in the response by id_string (order is not guaranteed)
+        xform1_data = next(
+            (xf for xf in response.data["xforms"] if xf["id_string"] == "a"), None
+        )
+        self.assertIsNotNone(xform1_data, "xform1 not found in response")
+        self.assertEqual(xform1_data, expected_xforms_data)
         self.assertIsNotNone(response.data["uuid"])
         self.assertEqual(len(response.data["uuid"]), 32)
 
