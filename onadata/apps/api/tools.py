@@ -662,7 +662,7 @@ def check_inherit_permission_from_project(xform_id, user):
     xform = (
         XForm.objects.filter(pk=xform_id)
         .select_related("project")
-        .only("project_id", "id", "project__id")
+        .only("id", "project__id")
         .first()
     )
 

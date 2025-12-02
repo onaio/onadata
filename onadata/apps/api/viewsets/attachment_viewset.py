@@ -59,7 +59,7 @@ class AttachmentViewSet(
     lookup_field = "pk"
     queryset = Attachment.objects.filter(
         instance__deleted_at__isnull=True, deleted_at__isnull=True
-    ).select_related("instance__xform", "xform")
+    ).select_related("xform")
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
     pagination_class = StandardPageNumberPagination
