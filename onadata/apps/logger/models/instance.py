@@ -879,8 +879,7 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
     kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
     if (
-        created
-        and getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
+        getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
         and instance.xform.is_managed
         and kms_tools.is_instance_encrypted(instance)
     ):
