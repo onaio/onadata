@@ -6,6 +6,7 @@ The /projects API endpoint implementation.
 import logging
 
 from django.core.mail import send_mail
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
@@ -82,6 +83,27 @@ class ProjectViewSet(
         Project.objects.filter(deleted_at__isnull=True)
         .order_by("-date_created")
         .select_related()
+        .prefetch_related(
+            Prefetch(
+                "xform_set",
+                queryset=XForm.objects.filter(deleted_at__isnull=True)
+                .only(
+                    "id",
+                    "title",
+                    "id_string",
+                    "is_merged_dataset",
+                    "encrypted",
+                    "last_submission_time",
+                    "project_id",
+                )
+                .prefetch_related(
+                    "registration_forms__entity_list",
+                    "follow_up_forms__entity_list",
+                    "metadata_set",
+                ),
+                to_attr="xforms_prefetch",
+            )
+        )
     )
     serializer_class = ProjectSerializer
     lookup_field = "pk"
@@ -105,6 +127,19 @@ class ProjectViewSet(
             return ProjectInvitationResendSerializer
 
         return super().get_serializer_class()
+
+    def get_serializer_context(self):
+        """Pass starred projects to serializer context."""
+        context = super().get_serializer_context()
+        if (
+            self.action == "list"
+            and self.request
+            and not self.request.user.is_anonymous
+        ):
+            context["starred_projects"] = self.request.user.project_stars.values_list(
+                "pk", flat=True
+            )
+        return context
 
     def get_queryset(self):
         """Use 'prepared' prefetched queryset for GET requests."""

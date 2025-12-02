@@ -2,9 +2,11 @@
 """
 Messaging /messaging viewsets.
 """
+
 from __future__ import unicode_literals
 
 from django.conf import settings
+
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
@@ -36,7 +38,9 @@ class MessagingViewSet(
     """
 
     serializer_class = MessageSerializer
-    queryset = Action.objects.filter(verb__in=MESSAGE_VERBS)
+    queryset = Action.objects.filter(verb__in=MESSAGE_VERBS).select_related(
+        "actor", "target_content_type"
+    )
     permission_classes = [IsAuthenticated, TargetObjectPermissions]
     filter_backends = (
         TargetTypeFilterBackend,

@@ -68,7 +68,9 @@ class OrganizationProfileViewSet(
     List, Retrieve, Update, Create/Register Organizations.
     """
 
-    queryset = OrganizationProfile.objects.filter(user__is_active=True)
+    queryset = OrganizationProfile.objects.filter(user__is_active=True).select_related(
+        "user", "creator", "created_by"
+    )
     serializer_class = serializer_from_settings()
     lookup_field = "user"
     permission_classes = [permissions.OrganizationProfilePermissions]

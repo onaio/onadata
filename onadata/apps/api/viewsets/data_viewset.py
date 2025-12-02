@@ -187,6 +187,10 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def get_object(self, queryset=None):
         """Returns the appropriate object based on context."""
+        # Cache the object to avoid multiple queries in the same request
+        if not hasattr(self, "_cached_object"):
+            self._cached_object = super().get_object()
+        obj = self._cached_object
         pk_lookup, dataid_lookup = self.lookup_fields
         form_pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
@@ -227,13 +231,18 @@ class DataViewSet(
 
     def _filtered_or_shared_queryset(self, queryset, form_pk):
         filter_kwargs = {self.lookup_field: form_pk}
-        queryset = queryset.filter(**filter_kwargs).only("id", "shared")
+        # Don't override .only() - let the queryset keep its field restrictions
+        queryset = queryset.filter(**filter_kwargs)
 
-        if not queryset:
+        # Use .exists() to avoid executing the full query twice
+        if not queryset.exists():
             filter_kwargs["shared_data"] = True
-            queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
+            # Use the same field restrictions as the parent filter_queryset
+            queryset = XForm.objects.filter(**filter_kwargs).only(
+                "id", "shared", "num_of_submissions", "json", "is_merged_dataset"
+            )
 
-            if not queryset:
+            if not queryset.exists():
                 raise Http404(_("No data matches with given query."))
 
         return queryset
@@ -241,7 +250,14 @@ class DataViewSet(
     # pylint: disable=unused-argument
     def filter_queryset(self, queryset, view=None):
         """Returns and filters queryset based on context and query params."""
-        queryset = super().filter_queryset(queryset.only("id", "shared"))
+        # Fetch only the fields we need: id, shared (for permissions),
+        # num_of_submissions (for pagination), json (for survey structure),
+        # and is_merged_dataset (for query building)
+        queryset = super().filter_queryset(
+            queryset.only(
+                "id", "shared", "num_of_submissions", "json", "is_merged_dataset"
+            )
+        )
         form_pk = self.kwargs.get(self.lookup_field)
 
         if form_pk:
@@ -578,10 +594,11 @@ class DataViewSet(
             # pylint: disable=attribute-defined-outside-init
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
-            queryset = self.filter_queryset(self.get_queryset()).values_list(
-                "pk", "is_merged_dataset"
-            )
-            xform_id, is_merged_dataset = queryset[0] if queryset else (lookup, False)
+            # Use get_object() to leverage caching and maintain permission checks
+            # This replaces the separate filter_queryset() call to avoid duplicate queries
+            xform = self.get_object()
+            xform_id = xform.id
+            is_merged_dataset = xform.is_merged_dataset
             pks = [xform_id]
             if is_merged_dataset:
                 merged_form = MergedXForm.objects.get(pk=xform_id)
@@ -594,9 +611,9 @@ class DataViewSet(
                 except ValueError:
                     pks, num_of_submissions = [], 0
             else:
-                num_of_submissions = XForm.objects.get(id=xform_id).num_of_submissions
+                num_of_submissions = xform.num_of_submissions
             # pylint: disable=attribute-defined-outside-init
-            # Include geom and xform_id fields for geojson format to avoid N+1 queries
+            # For GeoJSON, we need id, json, xform_id(for xform relationship), and geom
             if export_type == "geojson":
                 self.object_list = Instance.objects.filter(
                     xform_id__in=pks, deleted_at=None
