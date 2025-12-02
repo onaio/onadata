@@ -1234,6 +1234,11 @@ class TestInstance(TestBase):
 
         mock_decrypt.assert_not_called()
 
+        # Saving again decrypts the submission if still encrypted
+        mock_decrypt.reset_mock()
+        instance.save()
+        mock_decrypt.assert_called_once_with(instance.pk)
+
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_unmanaged_encryption(self, mock_decrypt):
