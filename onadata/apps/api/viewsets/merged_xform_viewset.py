@@ -7,7 +7,8 @@ import json
 
 from django.db.models import Sum
 from django.http import HttpResponseBadRequest
-from rest_framework import viewsets, mixins
+
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -15,10 +16,10 @@ from rest_framework.settings import api_settings
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import Instance, MergedXForm
 from onadata.libs import filters
-from onadata.libs.renderers import renderers
-from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.renderers import renderers
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 
 
 # pylint: disable=too-many-ancestors
@@ -98,16 +99,20 @@ class MergedXFormViewSet(
         """Return data from the merged xforms"""
         merged_xform = self.get_object()
         export_type = self.kwargs.get("format", request.GET.get("format"))
-        queryset = Instance.objects.filter(
-            xform__in=merged_xform.xforms.all(),
-            deleted_at__isnull=True
-        ).order_by("pk")
+        queryset = (
+            Instance.objects.filter(
+                xform__in=merged_xform.xforms.all(), deleted_at__isnull=True
+            )
+            .only("id", "json", "geom", "xform_id")
+            .order_by("pk")
+        )
 
         if export_type == "geojson":
             page = self.paginate_queryset(queryset)
-            geojson_content_type = 'application/geo+json'
-            serializer = serializer = self.get_serializer(page, many=True)
-            return Response(serializer.data,
-                            headers={'Content-Type': geojson_content_type})
+            geojson_content_type = "application/geo+json"
+            serializer = self.get_serializer(page, many=True)
+            return Response(
+                serializer.data, headers={"Content-Type": geojson_content_type}
+            )
 
         return Response(queryset.values_list("json", flat=True))
