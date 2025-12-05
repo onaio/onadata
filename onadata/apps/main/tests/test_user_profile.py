@@ -2,6 +2,7 @@
 """
 Test user profile
 """
+
 from __future__ import unicode_literals
 
 from unittest.mock import patch
@@ -72,21 +73,7 @@ class TestUserProfile(TestCase):
         self.assertTrue(hasattr(user_profile, "metadata"))
 
     def test_disallow_non_alpha_numeric(self):
-        invalid_usernames = [
-            "b ob",
-            "b.o.b.",
-            "b-ob",
-            "b!",
-            "@bob",
-            "bob@bob.com",
-            "bob$",
-            "b&o&b",
-            "bob?",
-            "#bob",
-            "(bob)",
-            "b*ob",
-            "%s % bob",
-        ]
+        invalid_usernames = ["b ob.json", "b/ ob", "b\\ ob"]
         users_before = User.objects.count()
         for username in invalid_usernames:
             self._login_user_and_profile({"username": username})

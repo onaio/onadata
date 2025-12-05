@@ -2,6 +2,7 @@
 """
 forms module.
 """
+
 import os
 import random
 import re
@@ -204,7 +205,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
     RESERVED_USERNAMES = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-    legal_usernames_re = re.compile(r"^\w+$")
+    legal_usernames_re = re.compile(r"^(?!.*\.(?:json|csv|xls|xlsx|kml)$)[^/]+$")
 
     def clean_username(self):
         """
@@ -216,7 +217,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
             raise forms.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
             )
-        if not self.legal_usernames_re.search(username):
+        if not self.legal_usernames_re.match(username):
             raise forms.ValidationError(
                 _("username may only contain alpha-numeric characters and underscores")
             )
