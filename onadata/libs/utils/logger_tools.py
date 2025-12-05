@@ -75,6 +75,7 @@ from onadata.apps.logger.xform_instance_parser import (
     get_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
+    FORM_UPDATED,
     SUBMISSION_CREATED,
     SUBMISSION_DELETED,
     SUBMISSION_EDITED,
@@ -133,6 +134,14 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
                 created_by=user,
                 xml=xform.xml,
             )
+
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=user,
+            message_verb=FORM_UPDATED,
+        )
     except IntegrityError:
         pass
     return versioned_xform

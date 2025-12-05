@@ -135,7 +135,8 @@ class TestMessageFolding(TestBase):
         )
         initial_action = Action.objects.create(
             actor_content_type=self.xform_content_type,
-            actor_object_id=self.xform.pk,
+            actor_object_id=self.user.id,
+            actor=self.user,
             verb=SUBMISSION_CREATED,
             target_content_type=self.xform_content_type,
             target_object_id=self.xform.pk,
