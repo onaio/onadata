@@ -135,7 +135,7 @@ class MessageSerializer(serializers.ModelSerializer):
         ):
             submission_id = description_data.get("id")
             if submission_id is not None:
-                existing_ids.append(submission_id)
+                existing_ids += submission_id
                 action_json["id"] = existing_ids
                 action_to_fold.description = json.dumps(action_json)
                 action_to_fold.save()
