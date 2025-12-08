@@ -3,6 +3,36 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.11.0 (2025-11-24)
+-------------------
+- Handle failures during partitioning cutover in
+  [@ukanga]
+  `PR #2962 https://github.com/onaio/onadata/pull/2962`
+- fix: add validation to prevent replacing encrypted forms
+  [@kelvin-muchiri]
+  `PR #2953 https://github.com/onaio/onadata/pull/2953`
+- Fix bug in get_xform_users_with_perms fn
+  [@FrankApiyo]
+  `PR #2950 https://github.com/onaio/onadata/pull/2950`
+- feat: support select from dataset within group in follow up form
+  [@kelvin-muchiri]
+  `PR #2963 https://github.com/onaio/onadata/pull/2963`
+- Use PostgreSQL 15 in tests
+  [@ukanga]
+  `PR #2964 https://github.com/onaio/onadata/pull/2964`
+- feat: create EntityList export after linking follow up form
+  [@kelvin-muchiri]
+  `PR #2965 https://github.com/onaio/onadata/pull/2965`
+- For GeoJSON endpoint ensure all relevant fields are requested
+  [@ukanga]
+  `PR #2968 https://github.com/onaio/onadata/pull/2968`
+- Optimize merged dataset queries
+  [@FrankApiyo]
+  `PR #2967 https://github.com/onaio/onadata/pull/2967`
+- Add message folding for Actstream messages
+  [@FrankApiyo]
+  `PR #2967 https://github.com/onaio/onadata/pull/2956`
+
 v5.10.0 (2025-11-24)*
 -------------------
 - dependency: Django 5.2.8
@@ -11,7 +41,6 @@ v5.10.0 (2025-11-24)*
 - feat: Add submission table partitioning
   [@ukanga]
   `PR #2952 https://github.com/onaio/onadata/pull/2952`
-
 
 v5.9.0 (2025-11-18)
 -------------------
