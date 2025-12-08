@@ -134,14 +134,6 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
                 created_by=user,
                 xml=xform.xml,
             )
-
-        send_message(
-            instance_id=xform.id,
-            target_id=xform.id,
-            target_type=XFORM,
-            user=user,
-            message_verb=FORM_UPDATED,
-        )
     except IntegrityError:
         pass
     return versioned_xform
@@ -953,6 +945,13 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
         dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
+        send_message(
+            instance_id=dd.id,
+            target_id=dd.id,
+            target_type=XFORM,
+            user=user,
+            message_verb=FORM_UPDATED,
+        )
     else:
         dd = DataDictionary.objects.create(
             created_by=created_by or user, user=user, xls=xls_file, project=project
