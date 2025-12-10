@@ -30,7 +30,7 @@ from six import iteritems
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_message
 from onadata.celeryapp import app
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils import analytics
@@ -370,11 +370,11 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
         # updates the form count
         xform.submission_count(True)
         # send message
-        send_message(
+        send_message.delay(
             instance_id=instance_ids,
             target_id=xform.id,
             target_type=XFORM,
-            user=User.objects.get(username=username),
+            user=User.objects.get(username=username).id,
             message_verb=SUBMISSION_DELETED,
         )
 

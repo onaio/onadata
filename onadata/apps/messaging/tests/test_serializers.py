@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED, XFORM
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_message
 
 User = get_user_model()
 
@@ -26,10 +26,10 @@ class TestSendMessage(TestCase):
         """
         Test send_message uses custom message for large lists (exceeding limit)
         """
-        with patch("onadata.apps.messaging.serializers.settings") as mock_settings:
+        with patch("onadata.apps.messaging.tasks.settings") as mock_settings:
             mock_settings.NOTIFICATION_ID_LIMIT = 2
             with patch(
-                "onadata.apps.messaging.serializers.MessageSerializer"
+                "onadata.apps.messaging.tasks.MessageSerializer"
             ) as mock_serializer:
                 mock_instance = MagicMock()
                 mock_instance.is_valid.return_value = True
@@ -39,7 +39,7 @@ class TestSendMessage(TestCase):
                     instance_id=[1, 2, 3],
                     target_id=100,
                     target_type=XFORM,
-                    user=self.user,
+                    user=self.user.id,
                     message_verb=SUBMISSION_CREATED,
                     message_description="imported_via_csv",
                 )
@@ -58,9 +58,7 @@ class TestSendMessage(TestCase):
         """
         Test send_message uses default JSON message when custom message is None
         """
-        with patch(
-            "onadata.apps.messaging.serializers.MessageSerializer"
-        ) as mock_serializer:
+        with patch("onadata.apps.messaging.tasks.MessageSerializer") as mock_serializer:
             mock_instance = MagicMock()
             mock_instance.is_valid.return_value = True
             mock_serializer.return_value = mock_instance
@@ -69,7 +67,7 @@ class TestSendMessage(TestCase):
                 instance_id=1,
                 target_id=100,
                 target_type=XFORM,
-                user=self.user,
+                user=self.user.id,
                 message_verb=EXPORT_CREATED,
             )
 
@@ -82,9 +80,7 @@ class TestSendMessage(TestCase):
         """
         Test send_message handles list of IDs correctly
         """
-        with patch(
-            "onadata.apps.messaging.serializers.MessageSerializer"
-        ) as mock_serializer:
+        with patch("onadata.apps.messaging.tasks.MessageSerializer") as mock_serializer:
             mock_instance = MagicMock()
             mock_instance.is_valid.return_value = True
             mock_serializer.return_value = mock_instance
@@ -92,7 +88,7 @@ class TestSendMessage(TestCase):
                 instance_id=[1, 2, 3],
                 target_id=100,
                 target_type=XFORM,
-                user=self.user,
+                user=self.user.id,
                 message_verb=EXPORT_CREATED,
             )
 

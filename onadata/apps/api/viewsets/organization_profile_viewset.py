@@ -20,7 +20,7 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import get_baseviewset_class, get_org_profile_cache_key
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.messaging.constants import KMS_KEY, KMS_KEY_ROTATED
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_message
 from onadata.libs.filters import (
     OrganizationPermissionFilter,
     OrganizationsSharedWithUserFilter,
@@ -159,11 +159,11 @@ class OrganizationProfileViewSet(
         old_key = KMSKey.objects.get(id=serializer.validated_data["id"])
         new_key = serializer.save()
         # Capture audit log
-        send_message(
+        send_message.delay(
             instance_id=old_key.id,
             target_id=old_key.id,
             target_type=KMS_KEY,
-            user=request.user,
+            user=request.user.id,
             message_verb=KMS_KEY_ROTATED,
         )
         data = KMSKeyInlineSerializer(new_key).data

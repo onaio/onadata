@@ -1,6 +1,7 @@
 """
 Submission Review ViewSet Tests Module
 """
+
 from __future__ import unicode_literals
 
 from unittest.mock import patch
@@ -55,7 +56,7 @@ class TestSubmissionReviewViewSet(TestBase):
 
         return response.data
 
-    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message.delay")
     def test_submission_review_create(self, mock_send_message):
         """
         Test we can create a submission review
@@ -70,11 +71,11 @@ class TestSubmissionReviewViewSet(TestBase):
             instance_id=submission_review.instance_id,
             target_id=submission_review.instance.xform.id,
             target_type=XFORM,
-            user=submission_review.created_by,
+            user=submission_review.created_by.id,
             message_verb=SUBMISSION_REVIEWED,
         )
 
-    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message.delay")
     def test_bulk_create_submission_review(self, mock_send_message):
         """
         Test that we can bulk create submission reviews
@@ -105,7 +106,7 @@ class TestSubmissionReviewViewSet(TestBase):
             instance_id=[s.id for s in self.xform.instances.all()],
             target_id=self.xform.id,
             target_type=XFORM,
-            user=request.user,
+            user=request.user.id,
             message_verb=SUBMISSION_REVIEWED,
         )
         for item in response.data:

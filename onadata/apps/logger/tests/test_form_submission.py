@@ -270,7 +270,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(inst.xml, anothe_inst.xml)
 
     # @patch('onadata.apps.viewer.signals.process_submission')
-    @patch("onadata.libs.utils.logger_tools.send_message")
+    @patch("onadata.libs.utils.logger_tools.send_message.delay")
     def test_edited_submission(self, send_message_mock):
         """
         Test submissions that have been edited
@@ -315,7 +315,7 @@ class TestFormSubmission(TestBase):
             instance_id=initial_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
-            user=self.user,  # bob - the original submitter
+            user=self.user.id,  # bob - the original submitter
             message_verb=SUBMISSION_CREATED,
             message_description="submitted_via_web",
         )
@@ -356,7 +356,7 @@ class TestFormSubmission(TestBase):
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
-            user=alice,
+            user=alice.id,
             message_verb=SUBMISSION_EDITED,
             message_description="submitted_via_web",
         )
@@ -413,7 +413,7 @@ class TestFormSubmission(TestBase):
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
-            user=self.user,
+            user=self.user.id,
             message_verb=SUBMISSION_EDITED,
             message_description="submitted_via_web",
         )
