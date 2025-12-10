@@ -145,7 +145,7 @@ class TestMessageFolding(TestBase):
 
         # Create a new message that should be folded into the existing one
         view_data = {
-            "message": json.dumps({"id": 51, "description": "imported_via_csv"}),
+            "message": json.dumps({"id": [51], "description": "imported_via_csv"}),
             "target_id": self.xform.pk,
             "target_type": XFORM,
             "verb": SUBMISSION_CREATED,
