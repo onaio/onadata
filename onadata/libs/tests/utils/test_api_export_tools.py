@@ -301,7 +301,7 @@ class TestApiExportTools(TestBase):
         self.assertEqual(result, {"job_status": "PENDING", "progress": "1"})
 
     # pylint: disable=invalid-name
-    @patch("onadata.libs.utils.api_export_tools.send_message")
+    @patch("onadata.libs.utils.api_export_tools.send_message.delay")
     @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
     @patch("onadata.libs.utils.api_export_tools.check_pending_export")
     def test_create_export_async_sends_message(
@@ -312,6 +312,9 @@ class TestApiExportTools(TestBase):
         """
 
         self._publish_transportation_form_and_submit_instance()
+
+        # Reset the mock to ignore any send_message calls from setup
+        mock_send_message.reset_mock()
 
         # Mock no pending export
         mock_check_pending.return_value = None
@@ -338,13 +341,13 @@ class TestApiExportTools(TestBase):
             instance_id=123,
             target_id=self.xform.id,
             target_type="xform",
-            user=self.user,
+            user=self.user.id,
             message_verb="export_created",
             message_description="csv",
         )
 
     # pylint: disable=invalid-name
-    @patch("onadata.libs.utils.api_export_tools.send_message")
+    @patch("onadata.libs.utils.api_export_tools.send_message.delay")
     @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
     @patch("onadata.libs.utils.api_export_tools.check_pending_export")
     def test_create_export_async_no_message_when_export_fails(
@@ -354,6 +357,9 @@ class TestApiExportTools(TestBase):
         Test that create_export_async doesn't send a message when export creation returns None.
         """
         self._publish_transportation_form_and_submit_instance()
+
+        # Reset the mock to ignore any send_message calls from setup
+        mock_send_message.reset_mock()
 
         # Mock no pending export
         mock_check_pending.return_value = None

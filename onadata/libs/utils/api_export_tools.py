@@ -31,7 +31,7 @@ except ImportError:
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.messaging.constants import EXPORT_CREATED, XFORM
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_message
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.apps.viewer.models.export import Export, ExportConnectionError
 from onadata.libs.exceptions import (
@@ -548,11 +548,11 @@ def create_export_async(
         )
         if result:
             export, async_result = result
-            send_message(
+            send_message.delay(
                 instance_id=export.id,
                 target_id=xform.id,
                 target_type=XFORM,
-                user=user,
+                user=user.id if user else None,
                 message_verb=EXPORT_CREATED,
                 message_description=export_type,
             )

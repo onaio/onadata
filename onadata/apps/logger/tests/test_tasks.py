@@ -582,7 +582,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             uuid_column="uuid",
         )
 
-    @patch("onadata.apps.logger.tasks.send_message")
+    @patch("onadata.apps.logger.tasks.send_message.delay")
     def test_audit_log_created(self, mock_send_message, mock_import, mock_open):
         """Creates an audit log when entities are imported"""
         mock_open.return_value = self.csv_file
@@ -596,6 +596,6 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             instance_id=self.entity_list.pk,
             target_id=self.entity_list.pk,
             target_type="entitylist",
-            user=self.user,
+            user=self.user.id,
             message_verb="entitylist_imported",
         )

@@ -153,7 +153,7 @@ class CSVImportTestCase(TestBase):
             self.xform.refresh_from_db()
             self.assertEqual(initial_count, self.xform.num_of_submissions)
 
-    @patch("onadata.libs.utils.logger_tools.send_message")
+    @patch("onadata.libs.utils.logger_tools.send_message.delay")
     def test_submit_csv_edits(self, send_message_mock):
         xls_file_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures", "tutorial.xlsx"
@@ -189,7 +189,7 @@ class CSVImportTestCase(TestBase):
             target_type=XFORM,
             message_verb=SUBMISSION_EDITED,
             message_description="imported_via_csv",
-            user=self.user,
+            user=self.user.id,
         )
 
     def test_import_non_utf8_csv(self):
@@ -429,7 +429,7 @@ class CSVImportTestCase(TestBase):
             "Same uuid length in generated xml",
         )
 
-    @patch("onadata.libs.utils.logger_tools.send_message")
+    @patch("onadata.libs.utils.logger_tools.send_message.delay")
     def test_data_upload(self, send_message_mock):
         """Data upload for submissions with no uuids"""
         self._publish_xls_file(self.xls_file_path)
@@ -450,7 +450,7 @@ class CSVImportTestCase(TestBase):
             target_type=XFORM,
             message_verb=SUBMISSION_CREATED,
             message_description="imported_via_csv",
-            user=self.user,
+            user=self.user.id,
         )
 
     def test_excel_date_conversion(self):

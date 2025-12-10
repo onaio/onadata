@@ -708,7 +708,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             }
         )
 
-    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message.delay")
     @flaky
     def test_replace_form_with_external_choices(self, mock_send_message):
         with HTTMock(enketo_mock):
@@ -759,7 +759,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 instance_id=self.xform.id,
                 target_id=self.xform.id,
                 target_type=XFORM,
-                user=request.user,
+                user=request.user.id,
                 message_verb=FORM_UPDATED,
             )
 

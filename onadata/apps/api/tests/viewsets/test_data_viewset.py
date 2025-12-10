@@ -1752,7 +1752,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     @patch("onadata.apps.viewer.signals._post_process_submissions")
     def test_post_save_signal_on_submission_deletion(self, mock, send_message_mock):
         # test that post_save_submission signal is sent
@@ -1842,7 +1842,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     def test_submissions_permanent_deletion(self, send_message_mock):
         """
         Test that permanent submission deletions work
@@ -1881,7 +1881,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             instance_id=dataid,
             target_id=formid,
             target_type=XFORM,
-            user=request.user,
+            user=request.user.id,
             message_verb=SUBMISSION_DELETED,
         )
 
@@ -1936,7 +1936,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.instances.count(), 2)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     def test_permanent_instance_delete_inactive_form(self, send_message_mock):
         """
         Test that permanent submission deletions works on inactive forms
@@ -2002,7 +2002,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         error_msg = "Permanent submission deletion is not enabled for this server."
         self.assertEqual(response.data, {"error": error_msg})
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     def test_delete_submission_inactive_form(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
@@ -2099,7 +2099,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(delete_all_current_count, 0)
         self.assertEqual(self.xform.num_of_submissions, 0)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     def test_delete_submission_by_editor(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk
@@ -2128,7 +2128,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(len(response.data), 3)
         self.assertTrue(send_message_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
     def test_delete_submission_by_owner(self, send_message_mock):
         self._make_submissions()
         formid = self.xform.pk

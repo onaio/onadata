@@ -31,7 +31,7 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import FormInactiveError, Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.messaging.constants import SUBMISSION_DELETED, XFORM
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_message
 from onadata.apps.viewer.models.parsed_instance import (
     ParsedInstance,
     _get_sort_fields,
@@ -428,11 +428,11 @@ class DataViewSet(
                 self.object.xform.project.save(update_fields=["date_modified"])
 
                 # send message
-                send_message(
+                send_message.delay(
                     instance_id=instance_id,
                     target_id=self.object.xform.id,
                     target_type=XFORM,
-                    user=request.user,
+                    user=request.user.id,
                     message_verb=SUBMISSION_DELETED,
                 )
             else:
