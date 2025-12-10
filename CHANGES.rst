@@ -3,7 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
-v5.11.0 (2025-11-24)
+v5.11.1 (2025-12-10)
+-------------------
+- fix: Ensure that actstream messages are folded correctly
+  [@FrankApiyo]
+  `PR #2973 https://github.com/onaio/onadata/pull/2973`
+
+v5.11.0 (2025-12-08)
 -------------------
 - Handle failures during partitioning cutover in
   [@ukanga]
