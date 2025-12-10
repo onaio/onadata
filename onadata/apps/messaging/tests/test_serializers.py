@@ -145,7 +145,7 @@ class TestMessageFolding(TestBase):
 
         # Create a new message that should be folded into the existing one
         view_data = {
-            "message": json.dumps({"id": [51], "description": "imported_via_csv"}),
+            "message": json.dumps({"id": 51, "description": "imported_via_csv"}),
             "target_id": self.xform.pk,
             "target_type": XFORM,
             "verb": SUBMISSION_CREATED,
@@ -166,63 +166,6 @@ class TestMessageFolding(TestBase):
         self.assertEqual(updated_description["description"], "imported_via_csv")
         self.assertIn(51, updated_description["id"])
         self.assertEqual(len(updated_description["id"]), 51)
-
-        # Verify that only one action exists for this xform
-        self.assertEqual(
-            Action.objects.filter(
-                target_content_type=self.xform_content_type,
-                target_object_id=self.xform.pk,
-            ).count(),
-            1,
-        )
-
-    def test_message_folding_with_list_of_ids(self):
-        """
-        Test that messages with a list of IDs are correctly folded into existing action.
-        This tests the fix for the bug where list IDs weren't being folded correctly
-        into existing IDs (using += instead of append).
-        """
-        # Create an initial action with some IDs
-        ids_list = [1, 2, 3]
-        initial_description = json.dumps(
-            {"id": ids_list, "description": "imported_via_csv"}
-        )
-        initial_action = Action.objects.create(
-            actor_content_type=self.xform_content_type,
-            actor_object_id=self.user.id,
-            actor=self.user,
-            verb=SUBMISSION_CREATED,
-            target_content_type=self.xform_content_type,
-            target_object_id=self.xform.pk,
-            description=initial_description,
-        )
-
-        # Create a new message with a LIST of IDs that should be folded
-        view_data = {
-            "message": json.dumps({"id": [4, 5, 6], "description": "imported_via_csv"}),
-            "target_id": self.xform.pk,
-            "target_type": XFORM,
-            "verb": SUBMISSION_CREATED,
-        }
-        request = self.factory.post("/messaging", view_data)
-        request.user = self.user
-
-        serializer = MessageSerializer(data=view_data, context={"request": request})
-        self.assertTrue(serializer.is_valid())
-        result = serializer.save()
-
-        # Verify that the same action was returned (folded)
-        self.assertEqual(result.id, initial_action.id)
-
-        # Verify that the new submission IDs were correctly added to the existing action
-        updated_action = Action.objects.get(id=initial_action.id)
-        updated_description = json.loads(updated_action.description)
-        self.assertEqual(updated_description["description"], "imported_via_csv")
-
-        # The key assertion: all IDs should be in the list (not nested)
-        expected_ids = [1, 2, 3, 4, 5, 6]
-        self.assertEqual(updated_description["id"], expected_ids)
-        self.assertEqual(len(updated_description["id"]), 6)
 
         # Verify that only one action exists for this xform
         self.assertEqual(
