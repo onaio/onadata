@@ -16,11 +16,6 @@ class Migration(migrations.Migration):
             sql='CREATE COLLATION IF NOT EXISTS case_insensitive (provider = icu, locale = \'und-u-ks-level2\', deterministic = false);',
             reverse_sql='DROP COLLATION IF EXISTS case_insensitive;',
         ),
-        # Create deterministic collation for LIKE queries
-        migrations.RunSQL(
-            sql='CREATE COLLATION IF NOT EXISTS deterministic_unicode (provider = icu, locale = \'und-x-icu\', deterministic = true);',
-            reverse_sql='DROP COLLATION IF EXISTS deterministic_unicode;',
-        ),
         # Drop the existing index
         migrations.RunSQL(
             sql='DROP INDEX IF EXISTS auth_user_username_6821ab7c_like;',

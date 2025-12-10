@@ -25,11 +25,6 @@ class TestCaseInsensitiveUserQuery(TestCase):
                 (provider = icu, locale = 'und-u-ks-level2', deterministic = false);
             """)
             
-            cursor.execute("""
-                CREATE COLLATION IF NOT EXISTS deterministic_unicode 
-                (provider = icu, locale = 'und-x-icu', deterministic = true);
-            """)
-            
             # Drop the old index
             cursor.execute("DROP INDEX IF EXISTS auth_user_username_6821ab7c_like;")
             
