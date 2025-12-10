@@ -53,6 +53,8 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
+from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
@@ -151,6 +153,15 @@ def _try_update_xlsform(request, xform, owner):
 
     if isinstance(survey, XForm):
         serializer = XFormSerializer(xform, context={"request": request})
+
+        # send form update notification
+        send_message(
+            instance_id=xform.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=request.user or owner,
+            message_verb=FORM_UPDATED,
+        )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
