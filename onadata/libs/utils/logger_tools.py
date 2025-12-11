@@ -184,7 +184,12 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=
         # new submission
         message_verb = SUBMISSION_CREATED
         instance = Instance.objects.create(
-            xml=xml, user=submitted_by, status=status, xform=xform, checksum=checksum
+            xml=xml,
+            user=submitted_by,
+            status=status,
+            xform=xform,
+            checksum=checksum,
+            media_all_received=False,  # Will be set to True when all media is received
         )
 
     # send notification on submission creation
