@@ -45,7 +45,7 @@ from onadata.apps.logger.models import (
 from onadata.libs.exceptions import (
     DecryptionError,
     EncryptionError,
-    MediaNotAllReceivedError,
+    NotAllMediaReceivedError,
 )
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
@@ -62,8 +62,8 @@ from onadata.libs.utils.common_tags import (
     DECRYPTION_FAILURE_INVALID_SUBMISSION,
     DECRYPTION_FAILURE_KEY_DISABLED,
     DECRYPTION_FAILURE_KEY_NOT_FOUND,
-    DECRYPTION_FAILURE_MEDIA_NOT_ALL_RECEIVED,
     DECRYPTION_FAILURE_MESSAGES,
+    DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED,
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
@@ -530,9 +530,9 @@ def decrypt_instance(instance: Instance) -> None:
         )
 
     if not instance.media_all_received:
-        save_decryption_error(instance, DECRYPTION_FAILURE_MEDIA_NOT_ALL_RECEIVED)
-        raise MediaNotAllReceivedError(
-            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_MEDIA_NOT_ALL_RECEIVED]
+        save_decryption_error(instance, DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED)
+        raise NotAllMediaReceivedError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED]
         )
 
     submission_xml = BytesIO(instance.xml.encode("utf-8"))

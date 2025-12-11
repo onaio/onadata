@@ -37,7 +37,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import (
     DecryptionError,
     EncryptionError,
-    MediaNotAllReceivedError,
+    NotAllMediaReceivedError,
 )
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
@@ -1349,16 +1349,18 @@ class DecryptInstanceTestCase(TestBase):
         self.instance.media_all_received = False
         self.instance.save()
 
-        with self.assertRaises(MediaNotAllReceivedError) as exc_info:
+        with self.assertRaises(NotAllMediaReceivedError) as exc_info:
             decrypt_instance(self.instance)
 
-        self.assertEqual(str(exc_info.exception), "All media not received.")
+        self.assertEqual(
+            str(exc_info.exception), "Not all media files have been received."
+        )
         self.instance.refresh_from_db()
         self.assertEqual(
             self.instance.decryption_status, Instance.DecryptionStatus.FAILED
         )
         self.assertEqual(
-            self.instance.json.get("_decryption_error"), "MEDIA_NOT_ALL_RECEIVED"
+            self.instance.json.get("_decryption_error"), "NOT_ALL_MEDIA_RECEIVED"
         )
 
 

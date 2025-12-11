@@ -19,7 +19,7 @@ from onadata.apps.logger.models.instance import (
 from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
 from onadata.apps.messaging.serializers import send_message
 from onadata.celeryapp import app
-from onadata.libs.exceptions import MediaNotAllReceivedError
+from onadata.libs.exceptions import NotAllMediaReceivedError
 from onadata.libs.kms.tools import (
     adjust_xform_num_of_decrypted_submissions,
     commit_cached_xform_num_of_decrypted_submissions,
@@ -190,7 +190,7 @@ class DecryptInstanceAutoRetryTask(AutoRetryTask):
     autoretry_for = (
         *AutoRetryTask.autoretry_for,
         ValigettaConnectionException,
-        MediaNotAllReceivedError,
+        NotAllMediaReceivedError,
     )
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
