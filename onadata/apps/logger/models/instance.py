@@ -885,7 +885,10 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
         and kms_tools.is_instance_encrypted(instance)
     ):
         transaction.on_commit(
-            lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
+            lambda: logger_tasks.decrypt_instance_async.apply_async(
+                args=[instance.pk],
+                countdown=10,  # 10 seconds delay to allow media to be received
+            )
         )
 
 

@@ -1195,7 +1195,7 @@ class TestInstance(TestBase):
         self.assertEqual(Entity.objects.count(), 0)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
-    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.apply_async")
     def test_decrypt_instance_managed_encryption(self, mock_decrypt):
         """Instance is decrypted if encryption uses managed keys"""
         metadata_xml = """
@@ -1229,10 +1229,10 @@ class TestInstance(TestBase):
             user=self.user,
             survey_type=survey_type,
         )
-        mock_decrypt.assert_called_once_with(instance.pk)
+        mock_decrypt.assert_called_once_with(args=[instance.pk], countdown=10)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
-    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.apply_async")
     def test_decrypt_instance_unmanaged_encryption(self, mock_decrypt):
         """Instance is not decrypted if encryption does not use managed keys"""
         metadata_xml = """

@@ -27,6 +27,7 @@ from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.exceptions import MediaNotAllReceivedError
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -398,6 +399,7 @@ class DecryptInstanceAsyncTestCase(TestBase):
             (DatabaseError, "DatabaseError"),
             (OperationalError, "OperationalError"),
             (ValigettaConnectionException, "ValigettaConnectionException"),
+            (MediaNotAllReceivedError, "MediaNotAllReceivedError"),
         ]
 
         for exception_class, exception_name in test_cases:

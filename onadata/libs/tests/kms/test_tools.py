@@ -34,7 +34,11 @@ from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType, XForm
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.exceptions import DecryptionError, EncryptionError
+from onadata.libs.exceptions import (
+    DecryptionError,
+    EncryptionError,
+    MediaNotAllReceivedError,
+)
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     adjust_xform_num_of_decrypted_submissions,
@@ -1339,6 +1343,23 @@ class DecryptInstanceTestCase(TestBase):
         # No update was made to Instance
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
+
+    def test_media_not_all_received(self):
+        """Decryption fails if media is not all received."""
+        self.instance.media_all_received = False
+        self.instance.save()
+
+        with self.assertRaises(MediaNotAllReceivedError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(str(exc_info.exception), "All media not received.")
+        self.instance.refresh_from_db()
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"), "MEDIA_NOT_ALL_RECEIVED"
+        )
 
 
 class DisableXFormEncryptionTestCase(TestBase):

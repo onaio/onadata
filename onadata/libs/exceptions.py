@@ -52,5 +52,9 @@ class DecryptionError(Exception):
     """Raised when XForm decryption fails."""
 
 
+class MediaNotAllReceivedError(DecryptionError):
+    """Raised when all media required for decryption is not yet available."""
+
+
 class CSVImportError(Exception):
     """Raised when importing entities fails."""
