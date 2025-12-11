@@ -1229,21 +1229,22 @@ class TestInstance(TestBase):
             user=self.user,
             survey_type=survey_type,
         )
+        # Instance is decrypted after 10 seconds after creation
         mock_decrypt.assert_called_once_with(args=[instance.pk], countdown=10)
 
-        # Re-saving Instance triggers decryption only if all media is received
-        mock_decrypt.reset_mock()
-        instance.media_all_received = False
-        instance.save()
-        instance.refresh_from_db()
-
-        mock_decrypt.assert_not_called()
-
+        # Re-saving Instance triggers decryption if all media is received
         mock_decrypt.reset_mock()
         instance.media_all_received = True
         instance.save()
         instance.refresh_from_db()
         mock_decrypt.assert_called_once_with(args=[instance.pk], countdown=0)
+
+        # Re-saving Instance does not trigger decryption if not all media is received
+        mock_decrypt.reset_mock()
+        instance.media_all_received = False
+        instance.save()
+        instance.refresh_from_db()
+        mock_decrypt.assert_not_called()
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.apply_async")

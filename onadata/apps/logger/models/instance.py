@@ -882,16 +882,16 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
         getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
         and instance.xform.is_managed
         and kms_tools.is_instance_encrypted(instance)
+        and instance.media_all_received
     ):
-        if created or instance.media_all_received:
-            # 10 seconds delay to allow media to be received, if created
-            countdown = 10 if created else 0
-            transaction.on_commit(
-                lambda: logger_tasks.decrypt_instance_async.apply_async(
-                    args=[instance.pk],
-                    countdown=countdown,
-                )
+        # 10 seconds delay to allow media files to be received, if created
+        countdown = 10 if created else 0
+        transaction.on_commit(
+            lambda: logger_tasks.decrypt_instance_async.apply_async(
+                args=[instance.pk],
+                countdown=countdown,
             )
+        )
 
 
 @use_master
