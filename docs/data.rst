@@ -972,7 +972,7 @@ For submissions that have a status of ``failed``, there exists a ``_decryption_e
 - ``KMS_KEY_DISABLED``: Encryption key is disabled.
 - ``KMS_KEY_NOT_FOUND``: Encryption key used for encryption not found.
 - ``INVALID_SUBMISSION``: Data is corrupted.
-- ``MEDIA_NOT_ALL_RECEIVED``: Not all media files have been received.
+- ``NOT_ALL_MEDIA_RECEIVED``: Not all media files have been received.
 
 Tag a submission data point
 ----------------------------
