@@ -187,6 +187,8 @@ def update_project_date_modified_async(instance_id):
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
     """Custom task class for decrypting instances with auto-retry"""
 
+    retry_backoff = 5
+    max_retires = 8
     autoretry_for = (
         *AutoRetryTask.autoretry_for,
         ValigettaConnectionException,
