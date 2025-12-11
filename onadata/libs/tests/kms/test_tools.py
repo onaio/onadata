@@ -1345,7 +1345,7 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(self.instance.date_modified, old_date_modified)
 
     def test_media_not_all_received(self):
-        """Decryption fails if media is not all received."""
+        """Decryption fails if not all media files have been received."""
         self.instance.media_all_received = False
         self.instance.save()
 
