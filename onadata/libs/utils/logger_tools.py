@@ -75,7 +75,6 @@ from onadata.apps.logger.xform_instance_parser import (
     get_uuid_from_xml,
 )
 from onadata.apps.messaging.constants import (
-    FORM_UPDATED,
     SUBMISSION_CREATED,
     SUBMISSION_DELETED,
     SUBMISSION_EDITED,
@@ -945,13 +944,6 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
         dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
-        send_message(
-            instance_id=dd.id,
-            target_id=dd.id,
-            target_type=XFORM,
-            user=user,
-            message_verb=FORM_UPDATED,
-        )
     else:
         dd = DataDictionary.objects.create(
             created_by=created_by or user, user=user, xls=xls_file, project=project

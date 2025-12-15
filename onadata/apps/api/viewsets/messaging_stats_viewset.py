@@ -4,8 +4,7 @@ API Endpoint implementation for Messaging statistics
 
 import json
 
-from django.db.models import Sum
-from django.db.models.expressions import RawSQL
+from django.db.models import Count
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
 
@@ -97,24 +96,11 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             raise exceptions.ParseError(_("Parameter 'group_by' is not valid."))
 
         group_format = self.SUPPORTED_GROUP_BY[field]
-
-        # For PostgreSQL, use jsonb_array_length to count folded IDs
-        # If description is valid JSON with an 'id' array, count array length
-        # Otherwise, count as 1 (non-folded action)
-        id_count_sql = """
-            CASE
-                WHEN description::text ~ '^\\s*\\{'
-                AND description::jsonb ? 'id'
-                THEN jsonb_array_length(description::jsonb->'id')
-                ELSE 1
-            END
-        """
-
         return (
             queryset.extra(select={"group": f"TO_CHAR(timestamp, '{group_format}')"})
             .values("group", "verb")
             .order_by("-group")
-            .annotate(count=Sum(RawSQL(id_count_sql, [])))
+            .annotate(count=Count("verb"))
         )
 
     def list(

@@ -78,74 +78,6 @@ class MessageSerializer(serializers.ModelSerializer):
             for field in extra_fields:
                 self.fields.pop(field)
 
-    def _try_fold_into_existing_action(
-        self, content_type, target_id, validated_data, user
-    ):
-        """
-        Attempts to fold a new submission notification into an existing action.
-
-        For CSV imports, multiple submission notifications can be folded into a single
-        action to avoid notification spam. This method checks if an existing action
-        exists that meets the folding criteria and updates it with
-        the new submission ID.
-
-        Args:
-            content_type: The ContentType of the target object
-            target_id: The ID of the target object
-            validated_data: The validated data from the serializer
-            user: User who's sending message
-
-        Returns:
-            Action object if folding was successful, None otherwise
-        """
-        action_to_fold = Action.objects.filter(
-            target_content_type=content_type,
-            target_object_id=target_id,
-            actor_object_id=user.id,
-        ).first()
-
-        if action_to_fold is None:
-            return None
-
-        # Try to parse the description as JSON; if it fails, it's not foldable
-        try:
-            action_json = json.loads(action_to_fold.description)
-        except (json.JSONDecodeError, TypeError):
-            return None
-
-        existing_description = action_json.get("description")
-        existing_ids = action_json.get("id", [])
-        message_id_limit = getattr(settings, "NOTIFICATION_ID_LIMIT", 100)
-
-        # Parse the incoming description
-        description_data = validated_data.get("description")
-        if isinstance(description_data, str):
-            description_data = json.loads(description_data)
-        incoming_description = (
-            description_data.get("description")
-            if isinstance(description_data, dict)
-            else None
-        )
-
-        # can we fold?
-        if (
-            existing_description == incoming_description
-            and user == action_to_fold.actor
-            and len(existing_ids) < message_id_limit
-        ):
-            submission_id = description_data.get("id")
-            if submission_id is not None:
-                if isinstance(submission_id, list):
-                    existing_ids += submission_id
-                else:
-                    existing_ids += [submission_id]
-                action_json["id"] = existing_ids
-                action_to_fold.description = json.dumps(action_json)
-                action_to_fold.save()
-                return action_to_fold
-
-        return None
-
     def create(self, validated_data):
         """
         Creates the Message in the Action model
@@ -176,14 +108,6 @@ class MessageSerializer(serializers.ModelSerializer):
                 % target_object
             )
             raise exceptions.PermissionDenied(detail=message)
-
-        # Try to fold this message into an existing action
-        folded_action = self._try_fold_into_existing_action(
-            content_type, target_id, validated_data, request.user
-        )
-        if folded_action is not None:
-            return folded_action
-
         results = action.send(
             request.user,
             verb=verb,

@@ -708,7 +708,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             }
         )
 
-    @patch("onadata.libs.utils.logger_tools.send_message")
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_message")
     @flaky
     def test_replace_form_with_external_choices(self, mock_send_message):
         with HTTMock(enketo_mock):
