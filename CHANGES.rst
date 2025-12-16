@@ -3,14 +3,23 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.12.0 (2025-12-16)
+--------------------
+- Revert activity log folding implementation
+  [@FrankApiyo]
+  `PR #2976 https://github.com/onaio/onadata/pull/2976`
+- fix: delayed media submission causes decryption failure
+  [@kelvin-muchiri]
+  `PR #2979 https://github.com/onaio/onadata/pull/2979`
+
 v5.11.1 (2025-12-10)
--------------------
+--------------------
 - fix: Ensure that actstream messages are folded correctly
   [@FrankApiyo]
   `PR #2973 https://github.com/onaio/onadata/pull/2973`
 
 v5.11.0 (2025-12-08)
--------------------
+--------------------
 - Handle failures during partitioning cutover in
   [@ukanga]
   `PR #2962 https://github.com/onaio/onadata/pull/2962`
@@ -40,7 +49,7 @@ v5.11.0 (2025-12-08)
   `PR #2967 https://github.com/onaio/onadata/pull/2956`
 
 v5.10.0 (2025-11-24)*
--------------------
+--------------------
 - dependency: Django 5.2.8
   [@ukanga]
   `PR #2955 https://github.com/onaio/onadata/pull/2955`
