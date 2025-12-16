@@ -1233,6 +1233,44 @@ class TestInstance(TestBase):
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
+    def test_decrypt_instance_media_all_received(self, mock_decrypt):
+        """Instance is not decrypted if all media is not received"""
+        metadata_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        xform = self._publish_markdown(md, self.user, id_string="nature")
+        xform.is_managed = True
+        xform.save(update_fields=["is_managed"])
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        Instance.objects.create(
+            xform=xform,
+            xml=metadata_xml,
+            user=self.user,
+            survey_type=survey_type,
+            media_all_received=False,
+        )
+        mock_decrypt.assert_not_called()
+
+    @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
+    @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_unmanaged_encryption(self, mock_decrypt):
         """Instance is not decrypted if encryption does not use managed keys"""
         metadata_xml = """
