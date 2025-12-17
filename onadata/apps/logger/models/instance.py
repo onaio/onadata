@@ -8,7 +8,6 @@ import importlib
 import logging
 import math
 from datetime import datetime
-from xml.etree import ElementTree
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -22,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+import defusedxml.ElementTree as ET
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
@@ -754,9 +754,9 @@ class Instance(models.Model, InstanceBaseClass):
     def check_encrypted(self) -> bool:
         """Checks if submission XML is encrypted."""
         try:
-            tree = ElementTree.fromstring(self.xml)
+            tree = ET.fromstring(self.xml)
 
-        except ElementTree.ParseError:
+        except ET.ParseError:
             return False
 
         return tree.attrib.get("encrypted") == "yes"
