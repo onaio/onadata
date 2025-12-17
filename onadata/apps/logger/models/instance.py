@@ -21,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-import defusedxml.ElementTree as ET
+from defusedxml import ElementTree
 from deprecated import deprecated
 from multidb.pinning import use_master
 from taggit.managers import TaggableManager
@@ -602,6 +602,7 @@ class InstanceBaseClass:
             return None
 
 
+# pylint: disable=too-many-instance-attributes
 class Instance(models.Model, InstanceBaseClass):
     """
     Model representing a single submission to an XForm
@@ -754,9 +755,9 @@ class Instance(models.Model, InstanceBaseClass):
     def check_encrypted(self) -> bool:
         """Checks if submission XML is encrypted."""
         try:
-            tree = ET.fromstring(self.xml)
+            tree = ElementTree.fromstring(self.xml)
 
-        except ET.ParseError:
+        except ElementTree.ParseError:
             return False
 
         return tree.attrib.get("encrypted") == "yes"
