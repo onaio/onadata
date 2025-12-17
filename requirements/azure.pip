@@ -22,7 +22,7 @@ cryptography==46.0.3
     # via
     #   -r requirements/azure.in
     #   azure-storage-blob
-django==5.2.8
+django==5.2.9
     # via
     #   -r requirements/azure.in
     #   django-storages
@@ -44,5 +44,5 @@ typing-extensions==4.15.0
     #   azure-core
     #   azure-storage-blob
     #   cryptography
-urllib3==2.5.0
+urllib3==2.6.0
     # via requests

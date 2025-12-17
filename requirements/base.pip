@@ -91,7 +91,7 @@ deprecated==1.3.1
     # via onadata
 dict2xml==1.7.7
     # via onadata
-django==5.2.8
+django==5.2.9
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -379,7 +379,7 @@ unicodecsv==0.14.1
     #   datapackage
     #   onadata
     #   tableschema
-urllib3==2.5.0
+urllib3==2.6.0
     # via
     #   botocore
     #   requests
