@@ -44,10 +44,6 @@ class TestInstance(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.org = self._create_organization(
-            username="valigetta", name="Valigetta Inc", created_by=self.user
-        )
-
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
@@ -1203,7 +1199,7 @@ class TestInstance(TestBase):
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_managed_encryption(self, mock_decrypt):
         """Instance is decrypted if encryption uses managed keys"""
-        self._publish_managed_form(self.org)
+        self._publish_managed_form()
         instance = self._submit_encrypted_instance()
 
         mock_decrypt.assert_called_once_with(instance.pk)
@@ -1212,7 +1208,7 @@ class TestInstance(TestBase):
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_media_all_received(self, mock_decrypt):
         """Instance is not decrypted if all media is not received"""
-        self._publish_managed_form(self.org)
+        self._publish_managed_form()
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
@@ -1276,7 +1272,7 @@ class TestInstance(TestBase):
 
     def test_set_is_encrypted(self):
         """is_encrypted is set to True for encrypted Instance."""
-        self._publish_managed_form(self.org)
+        self._publish_managed_form()
         instance = self._submit_encrypted_instance()
 
         self.assertTrue(instance.is_encrypted)
@@ -1387,7 +1383,7 @@ class TestInstance(TestBase):
 
     def test_check_encrypted(self):
         """check_encrypted returns True if Instance encrypted"""
-        self._publish_managed_form(self.org)
+        self._publish_managed_form()
         instance = self._submit_encrypted_instance()
 
         self.assertTrue(instance.check_encrypted())
