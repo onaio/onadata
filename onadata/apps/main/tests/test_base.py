@@ -727,9 +727,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self._encrypt_xform(self.xform, self._create_kms_key(self.org), encrypted_by)
 
     def _submit_encrypted_instance(self):
-        manifest_xml = """
+        manifest_xml = f"""
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
-            id="test_valigetta" version="202502131337">
+            id="{self.xform.id_string}" version="{self.xform.version}">
             <base64EncryptedKey>fake-key</base64EncryptedKey>
             <meta xmlns="http://openrosa.org/xforms">
                 <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
