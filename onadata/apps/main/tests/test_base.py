@@ -39,6 +39,7 @@ from onadata.apps.logger.models import (
     Instance,
     KMSKey,
     MergedXForm,
+    SurveyType,
     XForm,
     XFormVersion,
 )
@@ -707,3 +708,46 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             object_id=org.pk,
             provider=KMSKey.KMSProvider.AWS,
         )
+
+    def _publish_managed_form(self, org=None, encrypted_by=None):
+        if org is None:
+            self.org = self._create_organization(
+                username="valigetta", name="Valigetta Inc", created_by=self.user
+            )
+        else:
+            self.org = org
+
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        self.xform = self._publish_markdown(md, self.org.user, id_string="nature")
+        self._encrypt_xform(self.xform, self._create_kms_key(self.org), encrypted_by)
+
+    def _submit_encrypted_instance(self):
+        manifest_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+
+        return Instance.objects.create(
+            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+        )
+
+    def _publish_managed_form_and_submit_instance(self):
+        self._publish_managed_form()
+        self._submit_encrypted_instance()

@@ -369,19 +369,7 @@ class TestXForm(TestBase):
 
         Returns and updates the count for decrypted submissions only.
         """
-        md = """
-        | survey  |
-        |         | type  | name   | label                |
-        |         | photo | sunset | Take photo of sunset |
-        |         | video | forest | Take a video of forest|
-        """
-        org = self._create_organization(
-            username="valigetta", name="Valigetta Inc", created_by=self.user
-        )
-        self.xform = self._publish_markdown(md, org.user, id_string="nature")
-        self._encrypt_xform(self.xform, self._create_kms_key(org))
-
-        self.xform.refresh_from_db()
+        self._publish_managed_form_and_submit_instance()
 
         self.assertTrue(self.xform.is_managed)
 
@@ -398,27 +386,10 @@ class TestXForm(TestBase):
             </meta>
         </data>
         """.strip()
-        enc_xml = """
-        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
-            id="test_valigetta" version="202502131337">
-            <base64EncryptedKey>fake-key</base64EncryptedKey>
-            <meta xmlns="http://openrosa.org/xforms">
-                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
-            </meta>
-            <media>
-                <file>sunset.png.enc</file>
-                <file>forest.mp4.enc</file>
-            </media>
-            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
-            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
-        </data>
-        """.strip()
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
         dec_instance = Instance.objects.create(
             xform=self.xform, xml=dec_xml, user=self.user, survey_type=survey_type
-        )
-        Instance.objects.create(
-            xform=self.xform, xml=enc_xml, user=self.user, survey_type=survey_type
         )
 
         result = self.xform.update_num_of_decrypted_submissions()
