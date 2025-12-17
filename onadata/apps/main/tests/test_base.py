@@ -709,13 +709,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             provider=KMSKey.KMSProvider.AWS,
         )
 
-    def _publish_managed_form(self, org=None, encrypted_by=None):
-        if org is None:
+    def _publish_managed_form(self, encrypted_by=None):
+        if not hasattr(self, "org"):
             self.org = self._create_organization(
                 username="valigetta", name="Valigetta Inc", created_by=self.user
             )
-        else:
-            self.org = org
 
         md = """
         | survey  |
