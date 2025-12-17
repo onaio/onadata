@@ -3921,22 +3921,32 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     def test_is_encrypted_query_param(self):
         """`is_encrypted` query param works."""
-        self._make_submissions()
-
-        # Mark the last as encrypted
-        instance = Instance.objects.order_by("-pk").first()
-        instance.is_encrypted = True
-        instance.save()
-        instance.refresh_from_db()
-
-        self.assertTrue(instance.is_encrypted)
+        self._publish_managed_form_and_submit_instance()
+        # Create decrypted Instance
+        dec_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <formhub>
+                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+            </formhub>
+            <sunset>sunset.png</sunset>
+            <forest>forest.mp4</forest>
+            <meta>
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+        </data>
+        """.strip()
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+        Instance.objects.create(
+            xform=self.xform, xml=dec_xml, user=self.user, survey_type=survey_type
+        )
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", data={"is_encrypted": False}, **self.extra)
         response = view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 1)
 
         request = self.factory.get("/", data={"is_encrypted": True}, **self.extra)
         response = view(request, pk=self.xform.pk)
@@ -3964,16 +3974,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
     def test_submissions_pending_decryption(self):
         """Submissions pending decryption are excluded by default"""
-        self._make_submissions()
-        # Mark the last as encrypted
-        instance = Instance.objects.order_by("-pk").first()
-        instance.is_encrypted = True
-        instance.save()
-
-        # Mark the form as KMS encrypted
-        self.xform.is_managed = True
-        self.xform.save()
-        self.xform.refresh_from_db()
+        self._publish_managed_form_and_submit_instance()
 
         view = DataViewSet.as_view({"get": "list"})
 
@@ -3981,7 +3982,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 0)
 
         # Works with raw SQL query
         request = self.factory.get(
@@ -3989,7 +3990,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
         response = view(request, pk=self.xform.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 0)
 
     def test_decryption_status_query_param(self):
         """`decryption_status` query param works."""
