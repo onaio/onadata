@@ -11,7 +11,7 @@ from unittest.mock import call, patch
 from django.core.cache import cache
 from django.utils import timezone
 
-from onadata.apps.logger.models import DataView, Instance, SurveyType, XForm
+from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
@@ -373,24 +373,7 @@ class TestXForm(TestBase):
 
         self.assertTrue(self.xform.is_managed)
 
-        dec_xml = f"""
-        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
-            id="{self.xform.id_string}" version="{self.xform.version}">
-            <formhub>
-                <uuid>76972fb82e41400c840019938b188ce8</uuid>
-            </formhub>
-            <sunset>sunset.png</sunset>
-            <forest>forest.mp4</forest>
-            <meta>
-                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
-            </meta>
-        </data>
-        """.strip()
-
-        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
-        dec_instance = Instance.objects.create(
-            xform=self.xform, xml=dec_xml, user=self.user, survey_type=survey_type
-        )
+        dec_instance = self._submit_decrypted_instance()
 
         result = self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()

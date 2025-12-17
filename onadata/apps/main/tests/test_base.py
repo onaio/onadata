@@ -748,6 +748,27 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
         )
 
+    def _submit_decrypted_instance(self):
+        manifest_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <formhub>
+                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+            </formhub>
+            <sunset>sunset.png</sunset>
+            <forest>forest.mp4</forest>
+            <meta>
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+        </data>
+        """.strip()
+
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+
+        return Instance.objects.create(
+            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+        )
+
     def _publish_managed_form_and_submit_instance(self):
         self._publish_managed_form()
         self._submit_encrypted_instance()
