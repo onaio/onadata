@@ -8,6 +8,7 @@ import importlib
 import logging
 import math
 from datetime import datetime
+from xml.etree import ElementTree
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -715,6 +716,16 @@ class Instance(models.Model, InstanceBaseClass):
         if self.xform and self.xform.is_merged_dataset:
             raise FormIsMergedDatasetError()
 
+    def _set_encryption_status(self):
+        """Sets the encryption status"""
+        if self.check_encrypted():
+            self.is_encrypted = True
+
+            if self.xform.is_managed:
+                self.decryption_status = Instance.DecryptionStatus.PENDING
+        else:
+            self.is_encrypted = False
+
     def get_expected_media(self):
         """
         Returns a list of expected media files from the submission data.
@@ -739,6 +750,16 @@ class Instance(models.Model, InstanceBaseClass):
             self._expected_media = list(set(media_list))
 
         return self._expected_media
+
+    def check_encrypted(self) -> bool:
+        """Checks if submission XML is encrypted."""
+        try:
+            tree = ElementTree.fromstring(self.xml)
+
+        except ElementTree.ParseError:
+            return False
+
+        return tree.attrib.get("encrypted") == "yes"
 
     @property
     def num_of_media(self):
@@ -775,6 +796,7 @@ class Instance(models.Model, InstanceBaseClass):
         self._set_geom()
         self._set_survey_type()
         self._set_uuid()
+        self._set_encryption_status()
 
         super().save(*args, **kwargs)
 
@@ -876,7 +898,6 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
     """Decrypt Instance if encrypted."""
     # Avoid cyclic dependency errors
     logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
-    kms_tools = importlib.import_module("onadata.libs.kms.tools")
 
     if (
         getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
@@ -885,27 +906,12 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
         # encrypted submissions were received. We therefore check if the
         # form was ever managed.
         and instance.xform.kms_keys.exists()
-        and kms_tools.is_instance_encrypted(instance)
+        and instance.is_encrypted
         and instance.media_all_received
     ):
         transaction.on_commit(
             lambda: logger_tasks.decrypt_instance_async.delay(instance.pk)
         )
-
-
-@use_master
-def set_is_encrypted(sender, instance, created=False, **kwargs):
-    """Set is_encrypted to True if Instance is encrypted"""
-    # Avoid cyclic dependency errors
-    kms_tools = importlib.import_module("onadata.libs.kms.tools")
-
-    if kms_tools.is_instance_encrypted(instance) and not instance.is_encrypted:
-        fields = {"is_encrypted": True}
-
-        if instance.xform.is_managed:
-            fields["decryption_status"] = Instance.DecryptionStatus.PENDING
-
-        update_fields_directly(instance, **fields)
 
 
 def _decr_xform_num_of_decrypted_submissions(instance: Instance):
@@ -976,8 +982,6 @@ pre_save.connect(
 )
 
 post_save.connect(decrypt_instance, sender=Instance, dispatch_uid="decrypt_instance")
-
-post_save.connect(set_is_encrypted, sender=Instance, dispatch_uid="set_is_encrypted")
 
 post_delete.connect(
     decr_xform_num_of_decrypted_submissions_on_hard_delete,
