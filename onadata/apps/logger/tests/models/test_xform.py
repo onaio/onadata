@@ -11,7 +11,7 @@ from unittest.mock import call, patch
 from django.core.cache import cache
 from django.utils import timezone
 
-from onadata.apps.logger.models import DataView, Instance, XForm
+from onadata.apps.logger.models import DataView, Instance, SurveyType, XForm
 from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
@@ -353,50 +353,100 @@ class TestXForm(TestBase):
         calls = [call(self.project.pk), call(self.project.pk)]
         mock_clear_project_cache.has_calls(calls, any_order=True)
 
-    def test_update_num_of_decrypted_submissions(self):
-        """Test XForm.decrypted_submission_count"""
+    def test_update_num_of_decrypted_submissions_unmanaged(self):
+        """update_num_of_decrypted_submissions() returns unmanaged form"""
         self._publish_transportation_form()
         self._make_submissions()
 
-        instance_qs = Instance.objects.filter(xform=self.xform)
-
-        instance = instance_qs[0]
-        instance.is_encrypted = True  # Encrypted submission
-        instance.save(update_fields=["is_encrypted"])
-
-        instance = instance_qs[1]
-        instance.deleted_at = timezone.now()  # Soft-deleted submission
-        instance.save(update_fields=["deleted_at"])
-
-        # Non-managed forms resets to 0
-        self.xform.num_of_decrypted_submissions = 10
-        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+        result = self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()
 
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
-
-        self.xform.update_num_of_decrypted_submissions()
-        self.xform.refresh_from_db()
-
+        self.assertEqual(result, 0)
         self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
 
-        # Managed forms updates the count
+    def test_update_num_of_decrypted_submissions_managed(self):
+        """update_num_of_decrypted_submissions() returns for managed form
+
+        Returns and updates the count for decrypted submissions only.
+        """
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+        self.xform = self._publish_markdown(md, org.user, id_string="nature")
+        self._encrypt_xform(self.xform, self._create_kms_key(org))
+
+        self.xform.refresh_from_db()
+
+        self.assertTrue(self.xform.is_managed)
+
+        dec_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <formhub>
+                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+            </formhub>
+            <sunset>sunset.png</sunset>
+            <forest>forest.mp4</forest>
+            <meta>
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+        </data>
+        """.strip()
+        enc_xml = """
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="test_valigetta" version="202502131337">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        survey_type = SurveyType.objects.create(slug="slug-foo")
+        dec_instance = Instance.objects.create(
+            xform=self.xform, xml=dec_xml, user=self.user, survey_type=survey_type
+        )
+        Instance.objects.create(
+            xform=self.xform, xml=enc_xml, user=self.user, survey_type=survey_type
+        )
+
+        result = self.xform.update_num_of_decrypted_submissions()
+        self.xform.refresh_from_db()
+
+        self.assertEqual(result, 1)
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 1)
+
+        # Deleted Instances are excluded
+        dec_instance.deleted_at = timezone.now()
+        dec_instance.save()
+
+        result = self.xform.update_num_of_decrypted_submissions()
+        self.xform.refresh_from_db()
+
+        self.assertEqual(result, 0)
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
+
+    def test_update_num_of_decrypted_submissions_clears_cache(self):
+        """update_num_of_decrypted_submissions() clears cached count"""
+        self._publish_transportation_form()
+
+        # Simulate cached count
         cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
         cache.set(cache_key, 10)
 
-        self.xform.num_of_decrypted_submissions = 10
-        self.xform.save(update_fields=["num_of_decrypted_submissions"])
-        self.xform.refresh_from_db()
-
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
-
-        self.xform.is_managed = True
         self.xform.update_num_of_decrypted_submissions()
-        self.xform.refresh_from_db()
 
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 2)
-
-        # Cached counter is deleted
         self.assertIsNone(cache.get(cache_key))
 
     def test_live_num_of_decrypted_submissions(self):
