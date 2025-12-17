@@ -1325,8 +1325,7 @@ class DecryptInstanceTestCase(TestBase):
 
     def test_encryption_unmanaged(self):
         """Decryption fails if encryption is not using managed keys."""
-        self.xform.is_managed = False
-        self.xform.save(update_fields=["is_managed"])
+        self.xform.kms_keys.all().delete()
         old_xml = self.instance.xml
         old_date_modified = self.instance.date_modified
         self.instance.refresh_from_db()

@@ -880,7 +880,11 @@ def decrypt_instance(sender, instance, created=False, **kwargs):
 
     if (
         getattr(settings, "KMS_AUTO_DECRYPT_INSTANCE", False)
-        and instance.xform.is_managed
+        # We can't rely on the current status of XForm.is_managed since the
+        # form could have been switched from managed to unmanaged before any
+        # encrypted submissions were received. We therefore check if the
+        # form was ever managed.
+        and instance.xform.kms_keys.exists()
         and kms_tools.is_instance_encrypted(instance)
         and instance.media_all_received
     ):

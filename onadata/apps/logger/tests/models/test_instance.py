@@ -43,6 +43,10 @@ class TestInstance(TestBase):
     def setUp(self):
         super().setUp()
 
+        self.org = self._create_organization(
+            username="valigetta", name="Valigetta Inc", created_by=self.user
+        )
+
     def test_stores_json(self):
         self._publish_transportation_form_and_submit_instance()
         instance = Instance.objects.first()
@@ -1219,15 +1223,13 @@ class TestInstance(TestBase):
         |         | photo | sunset | Take photo of sunset |
         |         | video | forest | Take a video of forest|
         """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        xform.is_managed = True
-        xform.save(update_fields=["is_managed"])
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+        xform = self._publish_markdown(md, self.org.user, id_string="nature")
+        self._encrypt_xform(xform, self._create_kms_key(self.org))
         instance = Instance.objects.create(
             xform=xform,
             xml=metadata_xml,
             user=self.user,
-            survey_type=survey_type,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
         )
         mock_decrypt.assert_called_once_with(instance.pk)
 
@@ -1256,17 +1258,16 @@ class TestInstance(TestBase):
         |         | photo | sunset | Take photo of sunset |
         |         | video | forest | Take a video of forest|
         """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        xform.is_managed = True
-        xform.save(update_fields=["is_managed"])
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+        xform = self._publish_markdown(md, self.org.user, id_string="nature")
+        self._encrypt_xform(xform, self._create_kms_key(self.org))
         Instance.objects.create(
             xform=xform,
             xml=metadata_xml,
             user=self.user,
-            survey_type=survey_type,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
             media_all_received=False,
         )
+
         mock_decrypt.assert_not_called()
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)

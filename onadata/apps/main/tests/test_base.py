@@ -17,6 +17,7 @@ from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
@@ -36,6 +37,7 @@ from onadata.apps.logger.models import (
     Entity,
     EntityList,
     Instance,
+    KMSKey,
     MergedXForm,
     XForm,
     XFormVersion,
@@ -695,3 +697,13 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _clean_xml(self, xml):
         return re.sub(r">\s+<", "><", smart_str(xml.strip()))
+
+    def _create_kms_key(self, org):
+        return KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
