@@ -6,6 +6,7 @@ Test Instance model.
 import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
+from xml.etree.ElementTree import ParseError
 
 from django.http.request import HttpRequest
 from django.test import override_settings
@@ -1198,43 +1199,16 @@ class TestInstance(TestBase):
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_managed_encryption(self, mock_decrypt):
         """Instance is decrypted if encryption uses managed keys"""
-        metadata_xml = """
-        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
-            id="test_valigetta" version="202502131337">
-            <base64EncryptedKey>fake-key</base64EncryptedKey>
-            <meta xmlns="http://openrosa.org/xforms">
-                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
-            </meta>
-            <media>
-                <file>sunset.png.enc</file>
-                <file>forest.mp4.enc</file>
-            </media>
-            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
-            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
-        </data>
-        """.strip()
-        md = """
-        | survey  |
-        |         | type  | name   | label                |
-        |         | photo | sunset | Take photo of sunset |
-        |         | video | forest | Take a video of forest|
-        """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        xform.is_managed = True
-        xform.save(update_fields=["is_managed"])
-        survey_type = SurveyType.objects.create(slug="slug-foo")
-        instance = Instance.objects.create(
-            xform=xform,
-            xml=metadata_xml,
-            user=self.user,
-            survey_type=survey_type,
-        )
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+
         mock_decrypt.assert_called_once_with(instance.pk)
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async.delay")
     def test_decrypt_instance_media_all_received(self, mock_decrypt):
         """Instance is not decrypted if all media is not received"""
+        self._publish_managed_form()
         metadata_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
@@ -1250,23 +1224,15 @@ class TestInstance(TestBase):
             <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
         </data>
         """.strip()
-        md = """
-        | survey  |
-        |         | type  | name   | label                |
-        |         | photo | sunset | Take photo of sunset |
-        |         | video | forest | Take a video of forest|
-        """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        xform.is_managed = True
-        xform.save(update_fields=["is_managed"])
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+
         Instance.objects.create(
-            xform=xform,
+            xform=self.xform,
             xml=metadata_xml,
             user=self.user,
-            survey_type=survey_type,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
             media_all_received=False,
         )
+
         mock_decrypt.assert_not_called()
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
@@ -1306,12 +1272,21 @@ class TestInstance(TestBase):
 
     def test_set_is_encrypted(self):
         """is_encrypted is set to True for encrypted Instance."""
-        metadata_xml = """
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+
+        self.assertTrue(instance.is_encrypted)
+        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
+
+        # Encrypted Instance whose encryption is not by managed keys (custom encryption)
+        self.xform.is_managed = False
+        self.xform.save(update_fields=["is_managed"])
+        manifest_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
-            <base64EncryptedKey>fake0key</base64EncryptedKey>
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
             <meta xmlns="http://openrosa.org/xforms">
-                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef1</instanceID>
             </meta>
             <media>
                 <file>sunset.png.enc</file>
@@ -1321,41 +1296,14 @@ class TestInstance(TestBase):
             <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
         </data>
         """.strip()
-        md = """
-        | survey  |
-        |         | type  | name   | label                |
-        |         | photo | sunset | Take photo of sunset |
-        |         | video | forest | Take a video of forest|
-        """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        xform.is_managed = True
-        xform.save(update_fields=["is_managed"])
-        survey_type = SurveyType.objects.create(slug="slug-foo")
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
         instance = Instance.objects.create(
-            xform=xform,
-            xml=metadata_xml,
+            xform=self.xform,
+            xml=manifest_xml,
             user=self.user,
             survey_type=survey_type,
         )
-        instance.refresh_from_db()
 
-        self.assertTrue(instance.is_encrypted)
-        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
-
-        # Encrypted Instance whose encryption is not by managed keys (custom encryption)
-        xform.is_managed = False
-        xform.save(update_fields=["is_managed"])
-        metadata_xml = metadata_xml.replace(
-            "uuid:a10ead67-7415-47da-b823-0947ab8a8ef0",
-            "uuid:a10ead67-7415-47da-b823-0947ab8a8ef1",
-        )
-        instance = Instance.objects.create(
-            xform=xform,
-            xml=metadata_xml,
-            user=self.user,
-            survey_type=survey_type,
-        )
-        instance.refresh_from_db()
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(
             instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
@@ -1432,3 +1380,20 @@ class TestInstance(TestBase):
         instance.refresh_from_db()
 
         self.assertEqual(instance.json.get("_decryption_error"), "INVALID_SUBMISSION")
+
+    def test_check_encrypted(self):
+        """check_encrypted returns True if Instance encrypted"""
+        self._publish_managed_form()
+        instance = self._submit_encrypted_instance()
+
+        self.assertTrue(instance.check_encrypted())
+
+        # Unecrypted Instance returns False
+        self._publish_transportation_form_and_submit_instance()
+        instance = Instance.objects.order_by("-pk").first()
+
+        self.assertFalse(instance.check_encrypted())
+
+        # Returns False if XML invalid
+        with patch("xml.etree.ElementTree.fromstring", side_effect=ParseError):
+            self.assertFalse(instance.check_encrypted())
