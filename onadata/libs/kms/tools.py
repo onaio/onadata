@@ -10,7 +10,6 @@ from contextlib import suppress
 from datetime import timedelta
 from hashlib import sha256
 from io import BytesIO
-from xml.etree import ElementTree
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -451,20 +450,6 @@ def encrypt_xform(xform, encrypted_by=None, override_encryption=False) -> None:
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
-def is_instance_encrypted(instance: Instance) -> bool:
-    """Return True if instance is encrypted
-
-    :param instance: Instance
-    """
-    try:
-        tree = ElementTree.fromstring(instance.xml)
-
-    except ElementTree.ParseError:
-        return False
-
-    return tree.attrib.get("encrypted") == "yes"
-
-
 def save_decryption_error(instance: Instance, error_name: str):
     """Add decryption error metadata to Instance json.
 
@@ -503,12 +488,16 @@ def decrypt_instance(instance: Instance) -> None:
 
         return enc_files
 
-    if not is_instance_encrypted(instance):
+    if not instance.check_encrypted():
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
         )
 
-    if not instance.xform.is_managed:
+    # We can't rely on the current status of XForm.is_managed since the
+    # form could have been switched from managed to unmanaged before any
+    # encrypted submissions were received. We therefore check if the
+    # form was ever managed.
+    if not instance.xform.kms_keys.exists():
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )

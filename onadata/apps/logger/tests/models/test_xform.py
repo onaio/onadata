@@ -353,50 +353,54 @@ class TestXForm(TestBase):
         calls = [call(self.project.pk), call(self.project.pk)]
         mock_clear_project_cache.has_calls(calls, any_order=True)
 
-    def test_update_num_of_decrypted_submissions(self):
-        """Test XForm.decrypted_submission_count"""
+    def test_update_num_of_decrypted_submissions_unmanaged(self):
+        """update_num_of_decrypted_submissions() returns unmanaged form"""
         self._publish_transportation_form()
         self._make_submissions()
 
-        instance_qs = Instance.objects.filter(xform=self.xform)
-
-        instance = instance_qs[0]
-        instance.is_encrypted = True  # Encrypted submission
-        instance.save(update_fields=["is_encrypted"])
-
-        instance = instance_qs[1]
-        instance.deleted_at = timezone.now()  # Soft-deleted submission
-        instance.save(update_fields=["deleted_at"])
-
-        # Non-managed forms resets to 0
-        self.xform.num_of_decrypted_submissions = 10
-        self.xform.save(update_fields=["num_of_decrypted_submissions"])
+        result = self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()
 
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
-
-        self.xform.update_num_of_decrypted_submissions()
-        self.xform.refresh_from_db()
-
+        self.assertEqual(result, 0)
         self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
 
-        # Managed forms updates the count
+    def test_update_num_of_decrypted_submissions_managed(self):
+        """update_num_of_decrypted_submissions() returns for managed form
+
+        Returns and updates the count for decrypted submissions only.
+        """
+        self._publish_managed_form_and_submit_instance()
+
+        self.assertTrue(self.xform.is_managed)
+
+        dec_instance = self._submit_decrypted_instance()
+
+        result = self.xform.update_num_of_decrypted_submissions()
+        self.xform.refresh_from_db()
+
+        self.assertEqual(result, 1)
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 1)
+
+        # Deleted Instances are excluded
+        dec_instance.deleted_at = timezone.now()
+        dec_instance.save()
+
+        result = self.xform.update_num_of_decrypted_submissions()
+        self.xform.refresh_from_db()
+
+        self.assertEqual(result, 0)
+        self.assertEqual(self.xform.num_of_decrypted_submissions, 0)
+
+    def test_update_num_of_decrypted_submissions_clears_cache(self):
+        """update_num_of_decrypted_submissions() clears cached count"""
+        self._publish_transportation_form()
+
+        # Simulate cached count
         cache_key = f"xfm-dec-submission-count-{self.xform.pk}"
         cache.set(cache_key, 10)
 
-        self.xform.num_of_decrypted_submissions = 10
-        self.xform.save(update_fields=["num_of_decrypted_submissions"])
-        self.xform.refresh_from_db()
-
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 10)
-
-        self.xform.is_managed = True
         self.xform.update_num_of_decrypted_submissions()
-        self.xform.refresh_from_db()
 
-        self.assertEqual(self.xform.num_of_decrypted_submissions, 2)
-
-        # Cached counter is deleted
         self.assertIsNone(cache.get(cache_key))
 
     def test_live_num_of_decrypted_submissions(self):

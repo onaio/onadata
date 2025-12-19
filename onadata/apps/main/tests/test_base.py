@@ -17,6 +17,7 @@ from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
@@ -36,7 +37,9 @@ from onadata.apps.logger.models import (
     Entity,
     EntityList,
     Instance,
+    KMSKey,
     MergedXForm,
+    SurveyType,
     XForm,
     XFormVersion,
 )
@@ -695,3 +698,75 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _clean_xml(self, xml):
         return re.sub(r">\s+<", "><", smart_str(xml.strip()))
+
+    def _create_kms_key(self, org):
+        return KMSKey.objects.create(
+            key_id="fake-key-id",
+            description="Key-2025-04-03",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(org),
+            object_id=org.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+
+    def _publish_managed_form(self, encrypted_by=None):
+        if not hasattr(self, "org"):
+            self.org = self._create_organization(
+                username="valigetta", name="Valigetta Inc", created_by=self.user
+            )
+
+        md = """
+        | survey  |
+        |         | type  | name   | label                |
+        |         | photo | sunset | Take photo of sunset |
+        |         | video | forest | Take a video of forest|
+        """
+        self.xform = self._publish_markdown(md, self.org.user, id_string="nature")
+        self._encrypt_xform(self.xform, self._create_kms_key(self.org), encrypted_by)
+
+    def _submit_encrypted_instance(self):
+        manifest_xml = f"""
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+                <file>forest.mp4.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+
+        return Instance.objects.create(
+            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+        )
+
+    def _submit_decrypted_instance(self):
+        manifest_xml = f"""
+        <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <formhub>
+                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+            </formhub>
+            <sunset>sunset.png</sunset>
+            <forest>forest.mp4</forest>
+            <meta>
+                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
+            </meta>
+        </data>
+        """.strip()
+
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+
+        return Instance.objects.create(
+            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+        )
+
+    def _publish_managed_form_and_submit_instance(self):
+        self._publish_managed_form()
+        self._submit_encrypted_instance()
