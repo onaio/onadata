@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 
 from onadata.apps.logger.models import EntityList
 from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
-from onadata.apps.messaging.tasks import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.libs.utils.entities_utils import import_entities_from_csv
 
 
@@ -137,7 +137,7 @@ class Command(BaseCommand):
 
             # Send message if import was successful and not dry-run
             if created > 0 or updated > 0:
-                send_message.delay(
+                send_actstream_message_async.delay(
                     instance_id=entity_list.pk,
                     target_id=entity_list.pk,
                     target_type=ENTITY_LIST,

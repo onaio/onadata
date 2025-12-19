@@ -14,7 +14,7 @@ from onadata.apps.api.permissions import SubmissionReviewPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import SubmissionReview
 from onadata.apps.messaging.constants import SUBMISSION_REVIEWED, XFORM
-from onadata.apps.messaging.tasks import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.bulk_create_mixin import BulkCreateMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -79,7 +79,7 @@ class SubmissionReviewViewSet(
             xform = SubmissionReview.objects.get(
                 id=serializer.data["id"]
             ).instance.xform
-        send_message.delay(
+        send_actstream_message_async.delay(
             instance_id=instance_ids,
             target_id=xform.id,
             target_type=XFORM,

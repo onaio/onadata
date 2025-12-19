@@ -54,7 +54,7 @@ from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
-from onadata.apps.messaging.tasks import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
@@ -157,7 +157,7 @@ def _try_update_xlsform(request, xform, owner):
         owner_id = owner.id if owner else None
 
         # send form update notification
-        send_message.delay(
+        send_actstream_message_async.delay(
             instance_id=xform.id,
             target_id=xform.id,
             target_type=XFORM,

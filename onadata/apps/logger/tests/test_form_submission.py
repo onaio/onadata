@@ -270,8 +270,8 @@ class TestFormSubmission(TestBase):
         self.assertEqual(inst.xml, anothe_inst.xml)
 
     # @patch('onadata.apps.viewer.signals.process_submission')
-    @patch("onadata.libs.utils.logger_tools.send_message.delay")
-    def test_edited_submission(self, send_message_mock):
+    @patch("onadata.libs.utils.logger_tools.send_actstream_message_async.delay")
+    def test_edited_submission(self, send_actstream_message_async_mock):
         """
         Test submissions that have been edited
         """
@@ -309,9 +309,9 @@ class TestFormSubmission(TestBase):
         count = query_count(**query_args)
         self.assertEqual(count, num_data_instances + 1)
 
-        # Verify send_message was called for submission creation with the creator (bob)
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
+        # Verify send_actstream_message_async was called for submission creation with the creator (bob)
+        self.assertTrue(send_actstream_message_async_mock.called)
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=initial_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
@@ -321,7 +321,7 @@ class TestFormSubmission(TestBase):
         )
 
         # Reset mock for the edit
-        send_message_mock.reset_mock()
+        send_actstream_message_async_mock.reset_mock()
 
         # Create a different user (alice) who will edit the submission
         alice = self._create_user("alice", "alice", create_profile=True)
@@ -350,9 +350,9 @@ class TestFormSubmission(TestBase):
         instance_history_1 = InstanceHistory.objects.first()
         edited_instance = self.xform.instances.first()
 
-        # Verify send_message was called for the EDIT with Alice (the editor), NOT Bob (the creator)
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
+        # Verify send_actstream_message_async was called for the EDIT with Alice (the editor), NOT Bob (the creator)
+        self.assertTrue(send_actstream_message_async_mock.called)
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
@@ -387,7 +387,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(record["name"], edited_name)
 
         # Reset mock for second edit
-        send_message_mock.reset_mock()
+        send_actstream_message_async_mock.reset_mock()
 
         instance_before_second_edit = edited_instance
         xml_edit_submission_file_path = os.path.join(
@@ -407,9 +407,9 @@ class TestFormSubmission(TestBase):
             instance_before_second_edit.last_edited, instance_history_2.submission_date
         )
 
-        # Verify send_message was called for the second EDIT with bob (the second editor)
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
+        # Verify send_actstream_message_async was called for the second EDIT with bob (the second editor)
+        self.assertTrue(send_actstream_message_async_mock.called)
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type=XFORM,
