@@ -301,11 +301,14 @@ class TestApiExportTools(TestBase):
         self.assertEqual(result, {"job_status": "PENDING", "progress": "1"})
 
     # pylint: disable=invalid-name
-    @patch("onadata.libs.utils.api_export_tools.send_message.delay")
+    @patch("onadata.libs.utils.api_export_tools.send_actstream_message_async.delay")
     @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
     @patch("onadata.libs.utils.api_export_tools.check_pending_export")
     def test_create_export_async_sends_message(
-        self, mock_check_pending, mock_create_async_export, mock_send_message
+        self,
+        mock_check_pending,
+        mock_create_async_export,
+        mock_send_actstream_message_async,
     ):
         """
         Test that create_export_async sends a message when export is created.
@@ -313,8 +316,8 @@ class TestApiExportTools(TestBase):
 
         self._publish_transportation_form_and_submit_instance()
 
-        # Reset the mock to ignore any send_message calls from setup
-        mock_send_message.reset_mock()
+        # Reset the mock to ignore any send_actstream_message_async calls from setup
+        mock_send_actstream_message_async.reset_mock()
 
         # Mock no pending export
         mock_check_pending.return_value = None
@@ -337,7 +340,7 @@ class TestApiExportTools(TestBase):
         )
 
         self.assertEqual(task_id, "test-task-id")
-        mock_send_message.assert_called_once_with(
+        mock_send_actstream_message_async.assert_called_once_with(
             instance_id=123,
             target_id=self.xform.id,
             target_type="xform",
@@ -347,19 +350,22 @@ class TestApiExportTools(TestBase):
         )
 
     # pylint: disable=invalid-name
-    @patch("onadata.libs.utils.api_export_tools.send_message.delay")
+    @patch("onadata.libs.utils.api_export_tools.send_actstream_message_async.delay")
     @patch("onadata.libs.utils.api_export_tools.viewer_task.create_async_export")
     @patch("onadata.libs.utils.api_export_tools.check_pending_export")
     def test_create_export_async_no_message_when_export_fails(
-        self, mock_check_pending, mock_create_async_export, mock_send_message
+        self,
+        mock_check_pending,
+        mock_create_async_export,
+        mock_send_actstream_message_async,
     ):
         """
         Test that create_export_async doesn't send a message when export creation returns None.
         """
         self._publish_transportation_form_and_submit_instance()
 
-        # Reset the mock to ignore any send_message calls from setup
-        mock_send_message.reset_mock()
+        # Reset the mock to ignore any send_actstream_message_async calls from setup
+        mock_send_actstream_message_async.reset_mock()
 
         # Mock no pending export
         mock_check_pending.return_value = None
@@ -379,4 +385,4 @@ class TestApiExportTools(TestBase):
         )
 
         self.assertIsNone(task_id)
-        mock_send_message.assert_not_called()
+        mock_send_actstream_message_async.assert_not_called()

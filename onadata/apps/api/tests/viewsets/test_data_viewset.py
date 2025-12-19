@@ -1752,9 +1752,11 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
     @patch("onadata.apps.viewer.signals._post_process_submissions")
-    def test_post_save_signal_on_submission_deletion(self, mock, send_message_mock):
+    def test_post_save_signal_on_submission_deletion(
+        self, mock, send_actstream_message_async_mock
+    ):
         # test that post_save_submission signal is sent
         # create form
         xls_file_path = os.path.join(
@@ -1791,7 +1793,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # check that call_count is still one after saving instance again
         instance.save()
         self.assertEqual(mock.call_count, 1)
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
 
     @patch("onadata.apps.api.viewsets.data_viewset.safe_cache_set")
     def test_deletion_of_bulk_submissions(self, mock_cache_set):
@@ -1842,8 +1844,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
-    def test_submissions_permanent_deletion(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
+    def test_submissions_permanent_deletion(self, send_actstream_message_async_mock):
         """
         Test that permanent submission deletions work
         """
@@ -1876,8 +1878,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         )
 
         # message sent upon delete
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
+        self.assertTrue(send_actstream_message_async_mock.called)
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=dataid,
             target_id=formid,
             target_type=XFORM,
@@ -1936,8 +1938,10 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.instances.count(), 2)
 
     @override_settings(ENABLE_SUBMISSION_PERMANENT_DELETE=True)
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
-    def test_permanent_instance_delete_inactive_form(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
+    def test_permanent_instance_delete_inactive_form(
+        self, send_actstream_message_async_mock
+    ):
         """
         Test that permanent submission deletions works on inactive forms
         """
@@ -1978,7 +1982,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         # test that xform submission count is updated
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_submissions, 2)
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
 
         # check number of instances and num_of_submissions field
         self.assertEqual(self.xform.instances.count(), 2)
@@ -2002,8 +2006,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         error_msg = "Permanent submission deletion is not enabled for this server."
         self.assertEqual(response.data, {"error": error_msg})
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
-    def test_delete_submission_inactive_form(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
+    def test_delete_submission_inactive_form(self, send_actstream_message_async_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by("id")[0].pk
@@ -2028,7 +2032,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 400)
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
 
     def test_delete_submissions(self):
         xls_file_path = os.path.join(
@@ -2099,8 +2103,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(delete_all_current_count, 0)
         self.assertEqual(self.xform.num_of_submissions, 0)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
-    def test_delete_submission_by_editor(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
+    def test_delete_submission_by_editor(self, send_actstream_message_async_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by("id")[0].pk
@@ -2126,10 +2130,10 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 3)
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
 
-    @patch("onadata.apps.api.viewsets.data_viewset.send_message.delay")
-    def test_delete_submission_by_owner(self, send_message_mock):
+    @patch("onadata.apps.api.viewsets.data_viewset.send_actstream_message_async.delay")
+    def test_delete_submission_by_owner(self, send_actstream_message_async_mock):
         self._make_submissions()
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by("id")[0].pk
@@ -2155,7 +2159,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 3)
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
 
     def test_geojson_pagination(self):
         self._publish_submit_geojson()

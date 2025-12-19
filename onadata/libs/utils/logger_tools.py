@@ -81,7 +81,7 @@ from onadata.apps.messaging.constants import (
     SUBMISSION_EDITED,
     XFORM,
 )
-from onadata.apps.messaging.tasks import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
@@ -236,7 +236,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=
 
     # send notification on submission creation
     if instance:
-        send_message.delay(
+        send_actstream_message_async.delay(
             instance_id=instance.id,
             target_id=instance.xform.id,
             target_type=XFORM,
@@ -1227,7 +1227,7 @@ def delete_xform_submissions(
     xform.project.save(update_fields=["date_modified"])
 
     safe_cache_delete(f"{XFORM_SUBMISSIONS_DELETING}{xform.pk}")
-    send_message.delay(
+    send_actstream_message_async.delay(
         instance_id=instance_ids or [],
         target_id=xform.id,
         target_type=XFORM,

@@ -153,8 +153,8 @@ class CSVImportTestCase(TestBase):
             self.xform.refresh_from_db()
             self.assertEqual(initial_count, self.xform.num_of_submissions)
 
-    @patch("onadata.libs.utils.logger_tools.send_message.delay")
-    def test_submit_csv_edits(self, send_message_mock):
+    @patch("onadata.libs.utils.logger_tools.send_actstream_message_async.delay")
+    def test_submit_csv_edits(self, send_actstream_message_async_mock):
         xls_file_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures", "tutorial.xlsx"
         )
@@ -181,9 +181,9 @@ class CSVImportTestCase(TestBase):
             Instance.objects.count(), count, "submit_csv edits #2 test Failed!"
         )
         # message sent upon submission edit
-        self.assertTrue(send_message_mock.called)
+        self.assertTrue(send_actstream_message_async_mock.called)
         instance_id = xform.instances.filter().order_by("date_modified").last().pk
-        send_message_mock.assert_called_with(
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=instance_id,
             target_id=xform.id,
             target_type=XFORM,
@@ -429,8 +429,8 @@ class CSVImportTestCase(TestBase):
             "Same uuid length in generated xml",
         )
 
-    @patch("onadata.libs.utils.logger_tools.send_message.delay")
-    def test_data_upload(self, send_message_mock):
+    @patch("onadata.libs.utils.logger_tools.send_actstream_message_async.delay")
+    def test_data_upload(self, send_actstream_message_async_mock):
         """Data upload for submissions with no uuids"""
         self._publish_xls_file(self.xls_file_path)
         xform = XForm.objects.get()
@@ -443,8 +443,8 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(xform.num_of_submissions, count + 1)
         instance_id = xform.instances.last().pk
         # message sent upon submission creation
-        self.assertTrue(send_message_mock.called)
-        send_message_mock.assert_called_with(
+        self.assertTrue(send_actstream_message_async_mock.called)
+        send_actstream_message_async_mock.assert_called_with(
             instance_id=instance_id,
             target_id=xform.id,
             target_type=XFORM,

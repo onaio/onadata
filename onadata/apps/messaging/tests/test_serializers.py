@@ -9,22 +9,22 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED, XFORM
-from onadata.apps.messaging.tasks import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 
 User = get_user_model()
 
 
 class TestSendMessage(TestCase):
     """
-    Test send_message function.
+    Test send_actstream_message_async function.
     """
 
     def setUp(self):
         self.user = User.objects.create(username="testuser")
 
-    def test_send_message_with_custom_message_large_list(self):
+    def test_send_actstream_message_async_with_custom_message_large_list(self):
         """
-        Test send_message uses custom message for large lists (exceeding limit)
+        Test send_actstream_message_async uses custom message for large lists (exceeding limit)
         """
         with patch("onadata.apps.messaging.tasks.settings") as mock_settings:
             mock_settings.NOTIFICATION_ID_LIMIT = 2
@@ -35,7 +35,7 @@ class TestSendMessage(TestCase):
                 mock_instance.is_valid.return_value = True
                 mock_serializer.return_value = mock_instance
 
-                send_message(
+                send_actstream_message_async(
                     instance_id=[1, 2, 3],
                     target_id=100,
                     target_type=XFORM,
@@ -54,16 +54,16 @@ class TestSendMessage(TestCase):
                         '{"id": [3], "description": "imported_via_csv"}',
                     )
 
-    def test_send_message_with_default_message(self):
+    def test_send_actstream_message_async_with_default_message(self):
         """
-        Test send_message uses default JSON message when custom message is None
+        Test send_actstream_message_async uses default JSON message when custom message is None
         """
         with patch("onadata.apps.messaging.tasks.MessageSerializer") as mock_serializer:
             mock_instance = MagicMock()
             mock_instance.is_valid.return_value = True
             mock_serializer.return_value = mock_instance
 
-            send_message(
+            send_actstream_message_async(
                 instance_id=1,
                 target_id=100,
                 target_type=XFORM,
@@ -76,15 +76,15 @@ class TestSendMessage(TestCase):
             self.assertEqual(call_args[1]["data"]["message"], '{"id": [1]}')
             mock_instance.save.assert_called_once()
 
-    def test_send_message_with_list_of_ids(self):
+    def test_send_actstream_message_async_with_list_of_ids(self):
         """
-        Test send_message handles list of IDs correctly
+        Test send_actstream_message_async handles list of IDs correctly
         """
         with patch("onadata.apps.messaging.tasks.MessageSerializer") as mock_serializer:
             mock_instance = MagicMock()
             mock_instance.is_valid.return_value = True
             mock_serializer.return_value = mock_instance
-            send_message(
+            send_actstream_message_async(
                 instance_id=[1, 2, 3],
                 target_id=100,
                 target_type=XFORM,

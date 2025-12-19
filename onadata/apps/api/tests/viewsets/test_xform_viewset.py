@@ -708,9 +708,11 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             }
         )
 
-    @patch("onadata.apps.api.viewsets.xform_viewset.send_message.delay")
+    @patch("onadata.apps.api.viewsets.xform_viewset.send_actstream_message_async.delay")
     @flaky
-    def test_replace_form_with_external_choices(self, mock_send_message):
+    def test_replace_form_with_external_choices(
+        self, mock_send_actstream_message_async
+    ):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT,
@@ -754,8 +756,8 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
             # send message upon form update
-            self.assertTrue(mock_send_message.called)
-            mock_send_message.assert_called_with(
+            self.assertTrue(mock_send_actstream_message_async.called)
+            mock_send_actstream_message_async.assert_called_with(
                 instance_id=self.xform.id,
                 target_id=self.xform.id,
                 target_type=XFORM,

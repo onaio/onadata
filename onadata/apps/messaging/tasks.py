@@ -42,7 +42,35 @@ class AutoRetryTask(app.Task):
 # pylint: disable=too-many-arguments,too-many-positional-arguments
 @app.task(base=AutoRetryTask)
 @use_master
-def send_message(
+def send_actstream_message_async(
+    instance_id: Union[list, int],
+    target_id: int,
+    target_type: str,
+    user: int,
+    message_verb: str,
+    message_description: Optional[str] = None,
+):
+    """
+    Send a message async.
+    :param id: A single ID or list of IDs that have been affected by an action
+    :param target_id: id of the target_type
+    :param target_type: any of these three ['xform', 'project', 'user']
+    :param user: User object or user ID
+    :param request: http request object
+    :return:
+    """
+    send_actstream_message(
+        instance_id,
+        target_id,
+        target_type,
+        user,
+        message_verb,
+        message_description,
+    )
+
+
+# pylint: disable=too-many-arguments,too-many-positional-arguments
+def send_actstream_message(
     instance_id: Union[list, int],
     target_id: int,
     target_type: str,

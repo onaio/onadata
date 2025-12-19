@@ -1104,12 +1104,12 @@ class DeleteXFormSubmissionsTestCase(TestBase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.date_modified, mocked_now)
 
-    @patch("onadata.libs.utils.logger_tools.send_message.delay")
-    def test_action_recorded(self, mock_send_message):
+    @patch("onadata.libs.utils.logger_tools.send_actstream_message_async.delay")
+    def test_action_recorded(self, mock_send_actstream_message_async):
         """Action is recorded in the audit log"""
         delete_xform_submissions(self.xform, self.user, [self.instances[0].pk])
 
-        mock_send_message.assert_called_once_with(
+        mock_send_actstream_message_async.assert_called_once_with(
             instance_id=[self.instances[0].pk],
             target_id=self.xform.id,
             target_type="xform",
@@ -1117,9 +1117,11 @@ class DeleteXFormSubmissionsTestCase(TestBase):
             message_verb="submission_deleted",
         )
 
-    @patch("onadata.libs.utils.logger_tools.send_message.delay")
-    def test_send_message_includes_status_description(self, mock_send_message):
-        """Test that send_message is called with message_description parameter"""
+    @patch("onadata.libs.utils.logger_tools.send_actstream_message_async.delay")
+    def test_send_actstream_message_async_includes_status_description(
+        self, mock_send_actstream_message_async
+    ):
+        """Test that send_actstream_message_async is called with message_description parameter"""
         md = """
         | survey |      |      |       |
         |        | type | name | label |
@@ -1148,9 +1150,9 @@ class DeleteXFormSubmissionsTestCase(TestBase):
             request=request,
         )
 
-        # Verify send_message was called with message_description
-        mock_send_message.assert_called_once()
-        call_kwargs = mock_send_message.call_args.kwargs
+        # Verify send_actstream_message_async was called with message_description
+        mock_send_actstream_message_async.assert_called_once()
+        call_kwargs = mock_send_actstream_message_async.call_args.kwargs
         self.assertEqual(call_kwargs["instance_id"], instance.id)
         self.assertEqual(call_kwargs["target_id"], instance.xform.id)
         self.assertEqual(call_kwargs["target_type"], "xform")
