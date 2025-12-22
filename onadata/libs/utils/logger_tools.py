@@ -63,6 +63,7 @@ from onadata.apps.logger.models.xform import DuplicateUUIDError, XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     AttachmentNameError,
     DuplicateInstance,
+    InstanceEditConflictError,
     InstanceEmptyError,
     InstanceEncryptionError,
     InstanceFormatError,
@@ -138,47 +139,84 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     return versioned_xform
 
 
+def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
+    """Edit an Instance.
+
+    :param instance: The Instance to edit.
+    :param old_uuid: The old UUID of the Instance.
+    :param new_uuid: The new UUID of the Instance.
+    :param submitted_by: The user who submitted the Instance.
+    :param checksum: The checksum of the Instance.
+    :param xml: The XML of the Instance.
+    """
+    check_edit_submission_permissions(submitted_by, instance.xform)
+
+    last_edited = timezone.now()
+    InstanceHistory.objects.create(
+        checksum=instance.checksum,
+        xml=instance.xml,
+        xform_instance=instance,
+        uuid=old_uuid,
+        user=submitted_by,
+        geom=instance.geom,
+        submission_date=instance.last_edited or instance.date_created,
+    )
+    instance.xml = xml
+    instance.last_edited = last_edited
+    instance.uuid = new_uuid
+    instance.checksum = checksum
+    instance.save()
+
+    # call webhooks
+    process_submission.send(sender=instance.__class__, instance=instance)
+
+
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
+    def handle_edit_conflict(instance, old_uuid):
+        resolution_strategy = getattr(
+            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", "last_write_wins"
+        )
+        if resolution_strategy == "last_write_wins":
+            _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
+        elif resolution_strategy == "reject":
+            raise InstanceEditConflictError()
+        else:
+            raise ValueError(f"Unsupported resolution strategy: {resolution_strategy}")
+
     history = None
     instance = None
     message_verb = SUBMISSION_EDITED
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
-    if old_uuid:
-        instance = Instance.objects.filter(uuid=old_uuid, xform_id=xform.pk).first()
-        history = (
-            InstanceHistory.objects.filter(
-                xform_instance__xform_id=xform.pk, uuid=new_uuid
-            )
+
+    def get_instance_history(uuid):
+        return (
+            InstanceHistory.objects.filter(xform_instance__xform_id=xform.pk, uuid=uuid)
             .only("xform_instance")
             .first()
         )
 
+    if old_uuid:
+        instance = Instance.objects.filter(uuid=old_uuid, xform_id=xform.pk).first()
+
         if instance:
-            # edits
-            check_edit_submission_permissions(submitted_by, xform)
+            _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
+        else:
+            history = get_instance_history(new_uuid)
 
-            last_edited = timezone.now()
-            InstanceHistory.objects.create(
-                checksum=instance.checksum,
-                xml=instance.xml,
-                xform_instance=instance,
-                uuid=old_uuid,
-                user=submitted_by,
-                geom=instance.geom,
-                submission_date=instance.last_edited or instance.date_created,
-            )
-            instance.xml = xml
-            instance.last_edited = last_edited
-            instance.uuid = new_uuid
-            instance.checksum = checksum
-            instance.save()
+            if history:
+                # Edit was already applied, ignore
+                instance = history.xform_instance
 
-            # call webhooks
-            process_submission.send(sender=instance.__class__, instance=instance)
-        elif history:
-            instance = history.xform_instance
+            else:
+                history = get_instance_history(old_uuid)
+
+                if history:
+                    # Conflict edit, resolve conflict
+                    instance = history.xform_instance
+                    handle_edit_conflict(instance, old_uuid)
+
     if old_uuid is None or (instance is None and history is None):
         # new submission
         message_verb = SUBMISSION_CREATED
@@ -681,6 +719,8 @@ def safe_create_instance(  # noqa C901
         )
     except DataError as e:
         error = OpenRosaResponseBadRequest((str(e)))
+    except InstanceEditConflictError:
+        error = OpenRosaResponseConflict(_("Submission edit conflict"))
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_("Duplicate submission"))
         response.status_code = 202
@@ -1066,6 +1106,12 @@ class OpenRosaResponseForbidden(OpenRosaResponse):
     """An HTTP response class with OpenRosa headers for the Forbidden response."""
 
     status_code = 403
+
+
+class OpenRosaResponseConflict(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Conflict response."""
+
+    status_code = 409
 
 
 class OpenRosaNotAuthenticated(Response):

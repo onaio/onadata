@@ -21,12 +21,14 @@ from azure.storage.blob import AccountSasPermissions
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, InstanceHistory
+from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
 from onadata.libs.utils.common_tags import MEDIA_ALL_RECEIVED, MEDIA_COUNT, TOTAL_MEDIA
 from onadata.libs.utils.logger_tools import (
+    InstanceEditConflictError,
     create_instance,
     delete_xform_submissions,
     generate_content_disposition_header,
@@ -668,6 +670,208 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             request=req,
         )
         self.assertEqual(instance.media_all_received, False)
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="reject")
+    def test_edit_conflict_resolution_reject(self):
+        """A conflict edit is rejected when the resolution strategy is set to reject"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(md, self.user)
+        old_uuid = "d37ba258-ca63-4773-9535-37c1e7198516"
+        latest_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:f793c627-ce05-4225-8426-b59b86416754</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 2</name>
+        </data>
+        """.strip()
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=latest_xml,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
+        )
+
+        # Simulate a previous successful edit
+        old_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:{old_uuid}</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """.strip()
+        InstanceHistory.objects.create(
+            xform_instance=instance,
+            uuid=old_uuid,
+            user=self.user,
+            xml=old_xml,
+        )
+
+        # Now edit Instance with the same old uuid
+        conflict_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:5feeba39-d3fc-422a-89a9-ecdbe6c0835d</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 3</name>
+        </data>
+        """.strip()
+        request = HttpRequest()
+        request.user = self.user
+
+        with self.assertRaises(InstanceEditConflictError):
+            create_instance(
+                self.user.username,
+                BytesIO(conflict_xml.strip().encode("utf-8")),
+                [],
+                request=request,
+            )
+
+        # No changes should be made to the instance
+        instance.refresh_from_db()
+        self.assertEqual(instance.xml, latest_xml)
+        self.assertEqual(instance.uuid, "f793c627-ce05-4225-8426-b59b86416754")
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="last_write_wins")
+    def test_edit_conflict_resolution_last_write_wins(self):
+        """An edit conflict is resolved by editing if the strategy is last write wins"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(md, self.user)
+        old_uuid = "d37ba258-ca63-4773-9535-37c1e7198516"
+        latest_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:f793c627-ce05-4225-8426-b59b86416754</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 2</name>
+        </data>
+        """.strip()
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=latest_xml,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
+        )
+
+        # Simulate a previous successful edit
+        old_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:{old_uuid}</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """.strip()
+        InstanceHistory.objects.create(
+            xform_instance=instance,
+            uuid=old_uuid,
+            user=self.user,
+            xml=old_xml,
+        )
+
+        # Now edit Instance with the same old uuid
+        conflict_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:5feeba39-d3fc-422a-89a9-ecdbe6c0835d</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 3</name>
+        </data>
+        """.strip()
+        request = HttpRequest()
+        request.user = self.user
+
+        create_instance(
+            self.user.username,
+            BytesIO(conflict_xml.strip().encode("utf-8")),
+            [],
+            request=request,
+        )
+        instance.refresh_from_db()
+
+        self.assertEqual(instance.xml, conflict_xml)
+        self.assertEqual(instance.uuid, "5feeba39-d3fc-422a-89a9-ecdbe6c0835d")
+
+    @override_settings(INSTANCE_EDIT_CONFLICT_RESOLUTION="unknown")
+    def test_edit_conflict_resolution_unknown(self):
+        """An edit conflict raises an error if the strategy is unknown"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(md, self.user)
+        old_uuid = "d37ba258-ca63-4773-9535-37c1e7198516"
+        latest_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:f793c627-ce05-4225-8426-b59b86416754</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 2</name>
+        </data>
+        """.strip()
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=latest_xml,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
+        )
+
+        # Simulate a previous successful edit
+        old_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:{old_uuid}</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """.strip()
+        InstanceHistory.objects.create(
+            xform_instance=instance,
+            uuid=old_uuid,
+            user=self.user,
+            xml=old_xml,
+        )
+
+        # Now edit Instance with the same old uuid
+        conflict_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:5feeba39-d3fc-422a-89a9-ecdbe6c0835d</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 3</name>
+        </data>
+        """.strip()
+        request = HttpRequest()
+        request.user = self.user
+
+        with self.assertRaises(ValueError):
+            create_instance(
+                self.user.username,
+                BytesIO(conflict_xml.strip().encode("utf-8")),
+                [],
+                request=request,
+            )
+
+        # No changes should be made to the instance
+        instance.refresh_from_db()
+        self.assertEqual(instance.xml, latest_xml)
+        self.assertEqual(instance.uuid, "f793c627-ce05-4225-8426-b59b86416754")
 
 
 class DeleteXFormSubmissionsTestCase(TestBase):
