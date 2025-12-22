@@ -268,7 +268,7 @@ replace `[the JSON]` above:
 Edit Conflict Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, edit conflicts are resolved using a *last-write-wins* strategy. This behavior can be customized via the ``INSTANCE_EDIT_CONFLICT_RESOLUTION``
+By default, edit conflicts are resolved using a *reject* strategy. This behavior can be customized via the ``INSTANCE_EDIT_CONFLICT_RESOLUTION``
 setting in your Django settings.
 
 An edit conflict occurs when an edit submission references the same ``deprecatedID`` as another edit submission, indicating that multiple edits
@@ -276,8 +276,8 @@ are targeting the same original instance.
 
 Supported values:
 
-* ``last_write_wins`` (default):
+* ``last_write_wins``:
   Applies the incoming edit to the existing instance, overwriting the previous state.
 
-* ``reject``:
+* ``reject`` (default):
   Rejects the edit when a conflict is detected. The server responds with HTTP ``409 Conflict``.

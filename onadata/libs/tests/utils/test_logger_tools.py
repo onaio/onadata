@@ -871,6 +871,73 @@ class CreateInstanceTestCase(PyxformTestCase, TestBase):
         self.assertEqual(instance.xml, latest_xml)
         self.assertEqual(instance.uuid, "f793c627-ce05-4225-8426-b59b86416754")
 
+    def test_default_edit_conflict_resolution(self):
+        """The default edit conflict resolution is reject"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._create_user_and_login()
+        xform = self._publish_markdown(md, self.user)
+        old_uuid = "d37ba258-ca63-4773-9535-37c1e7198516"
+        latest_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:f793c627-ce05-4225-8426-b59b86416754</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 2</name>
+        </data>
+        """.strip()
+        instance = Instance.objects.create(
+            xform=xform,
+            xml=latest_xml,
+            survey_type=SurveyType.objects.create(slug="slug-foo"),
+        )
+
+        # Simulate a previous successful edit
+        old_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:{old_uuid}</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """.strip()
+        InstanceHistory.objects.create(
+            xform_instance=instance,
+            uuid=old_uuid,
+            user=self.user,
+            xml=old_xml,
+        )
+
+        # Now edit Instance with the same old uuid
+        conflict_xml = f"""
+        <data id="{xform.id_string}">
+            <meta>
+                <instanceID>uuid:5feeba39-d3fc-422a-89a9-ecdbe6c0835d</instanceID>
+                <deprecatedID>uuid:{old_uuid}</deprecatedID>
+            </meta>
+            <name>Test Name 3</name>
+        </data>
+        """.strip()
+        request = HttpRequest()
+        request.user = self.user
+
+        with self.assertRaises(InstanceEditConflictError):
+            create_instance(
+                self.user.username,
+                BytesIO(conflict_xml.strip().encode("utf-8")),
+                [],
+                request=request,
+            )
+
+        # No changes should be made to the instance
+        instance.refresh_from_db()
+        self.assertEqual(instance.xml, latest_xml)
+        self.assertEqual(instance.uuid, "f793c627-ce05-4225-8426-b59b86416754")
+
 
 class SafeCreateInstanceTestCase(PyxformTestCase, TestBase):
     """Tests for safe_create_instance() function."""

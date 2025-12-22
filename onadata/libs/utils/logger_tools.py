@@ -176,7 +176,7 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     def handle_edit_conflict(instance, old_uuid):
         resolution_strategy = getattr(
-            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", "last_write_wins"
+            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", "reject"
         )
         if resolution_strategy == "last_write_wins":
             _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
