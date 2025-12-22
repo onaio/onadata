@@ -139,6 +139,7 @@ def create_xform_version(xform: XForm, user: User) -> XFormVersion:
     return versioned_xform
 
 
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
     """Edit an Instance.
 
