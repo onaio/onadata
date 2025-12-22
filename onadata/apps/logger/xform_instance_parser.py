@@ -64,8 +64,6 @@ class NonUniqueFormIdError(Exception):
 class InstanceEditConflictError(Exception):
     """Raise when a submission edit conflicts with an existing edit."""
 
-    pass
-
 
 def get_meta_from_xml(xml_str, meta_name):
     """
