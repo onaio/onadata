@@ -720,7 +720,9 @@ def safe_create_instance(  # noqa C901
     except DataError as e:
         error = OpenRosaResponseBadRequest((str(e)))
     except InstanceEditConflictError:
-        error = OpenRosaResponseConflict(_("Submission edit conflict"))
+        error = OpenRosaResponseConflict(
+            _("Submission has been modified since it was last fetched.")
+        )
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_("Duplicate submission"))
         response.status_code = 202
