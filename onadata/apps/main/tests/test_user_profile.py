@@ -10,6 +10,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import AnonymousUser, User
 from django.test import RequestFactory
 from django.urls import reverse
+from django.urls.exceptions import NoReverseMatch
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
@@ -201,3 +202,25 @@ class TestUserProfile(TestBase):
         self.user.profile.save()
         response = self.client.get(reverse(profile, kwargs={"username": "testuser"}))
         self.assertContains(response, ">@boberama")
+
+    def test_url_reverse_with_format_suffix(self):
+        """Test that URL reversing works with format suffixes like .json"""
+
+        # Create a simple user
+        self._login_user_and_profile({"username": "bob", "email": "bob@example.com"})
+
+        # This should work - reverse URL for user-detail without format
+        try:
+            url_no_format = reverse("user-detail", kwargs={"username": "bob"})
+            self.assertTrue(url_no_format.endswith("/bob"))
+        except NoReverseMatch as e:
+            self.fail(f"URL reverse without format failed: {e}")
+
+        # This should also work - reverse URL for user-detail with format=json
+        try:
+            url_with_format = reverse(
+                "user-detail", kwargs={"username": "bob", "format": "json"}
+            )
+            self.assertTrue(url_with_format.endswith("/bob.json"))
+        except NoReverseMatch as e:
+            self.fail(f"URL reverse with format='json' failed: {e}")

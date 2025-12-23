@@ -332,9 +332,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
             )
-        # Use fullmatch to ensure the entire username matches the pattern
-        match_result = LEGAL_USERNAMES_REGEX.fullmatch(username)
-        if not match_result:
+        # Use match() with the validation regex that includes ^ and $ anchors
+        if not LEGAL_USERNAMES_REGEX.match(username):
             raise serializers.ValidationError(
                 _(
                     "username may only contain alphanumeric characters, dots, hyphens, "
