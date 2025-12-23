@@ -42,6 +42,7 @@ class MergedXFormViewSet(
     queryset = (
         MergedXForm.objects.filter(deleted_at__isnull=True)
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
+        .prefetch_related("xforms__user", "xforms__project")
         .all()
     )
     pagination_class = StandardPageNumberPagination
@@ -50,6 +51,29 @@ class MergedXFormViewSet(
         renderers.StaticXMLRenderer,
         renderers.GeoJsonRenderer,
     ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cached_object = None
+
+    def get_object(self):
+        """
+        Get object - cache to avoid multiple queries during request
+        """
+        if self._cached_object is None:
+            self._cached_object = super().get_object()
+        return self._cached_object
+
+    def get_queryset(self):
+        """
+        Get queryset - optimize for specific actions
+        """
+        queryset = super().get_queryset()
+
+        if self.action == "data":
+            queryset = queryset.only("id", "shared")
+
+        return queryset
 
     def get_serializer_class(self):
         """

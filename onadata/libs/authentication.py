@@ -165,13 +165,27 @@ class TempTokenAuthentication(TokenAuthentication):
         try:
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
-            token = self.model.objects.select_related("user").get(key=key)
+            token = (
+                self.model.objects.select_related("user")
+                .only("key", "created", "user__id", "user__username", "user__is_active")
+                .get(key=key)
+            )
         except self.model.DoesNotExist as e:
             invalid_token = True
             if getattr(settings, "SLAVE_DATABASES", []):
                 try:
                     with use_master:
-                        token = self.model.objects.select_related("user").get(key=key)
+                        token = (
+                            self.model.objects.select_related("user")
+                            .only(
+                                "key",
+                                "created",
+                                "user__id",
+                                "user__username",
+                                "user__is_active",
+                            )
+                            .get(key=key)
+                        )
                 except self.model.DoesNotExist:
                     invalid_token = True
                 else:
@@ -341,7 +355,7 @@ def send_lockout_email(username, ip_address):
     Send locked out email
     """
     try:
-        user = User.objects.get(username=username)
+        user = User.objects.only("username", "email").get(username=username)
     except User.DoesNotExist:
         pass
     else:
@@ -397,17 +411,37 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
         )
 
         try:
-            access_token = AccessToken.objects.select_related(
-                "application", "user"
-            ).get(token=token)
+            access_token = (
+                AccessToken.objects.select_related("application", "user")
+                .only(
+                    "token",
+                    "expires",
+                    "scope",
+                    "application__id",
+                    "user__id",
+                    "user__username",
+                    "user__is_active",
+                )
+                .get(token=token)
+            )
         except AccessToken.DoesNotExist:
             # Try retrieving AccessToken from MasterDB if not available
             # in Read replica
             with use_master:
                 try:
-                    access_token = AccessToken.objects.select_related(
-                        "application", "user"
-                    ).get(token=token)
+                    access_token = (
+                        AccessToken.objects.select_related("application", "user")
+                        .only(
+                            "token",
+                            "expires",
+                            "scope",
+                            "application__id",
+                            "user__id",
+                            "user__username",
+                            "user__is_active",
+                        )
+                        .get(token=token)
+                    )
                 except AccessToken.DoesNotExist:
                     access_token = None
 
