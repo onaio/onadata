@@ -26,6 +26,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from six.moves.urllib.parse import urlencode
 
+from onadata.apps.api.constants import USERNAME_LOOKUP_REGEX
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
@@ -173,6 +174,7 @@ class UserProfileViewSet(
     lookup_field = "user"
     permission_classes = [UserProfilePermissions]
     filter_backends = (filters.UserProfileFilter, OrderingFilter)
+    lookup_value_regex = USERNAME_LOOKUP_REGEX
     ordering = ("user__username",)
 
     def get_object(self, queryset=None):

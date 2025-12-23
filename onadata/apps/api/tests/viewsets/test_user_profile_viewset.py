@@ -50,7 +50,7 @@ def _profile_data():
         "website": "deno.com",
         "twitter": "denoerama",
         "require_auth": False,
-        "password": "denodeno",
+        "password": "denodeno1443$",
         "is_org": False,
         "name": "Dennis erama",
     }
@@ -443,6 +443,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "username": "deno",
             "first_name": "Dennis",
             "email": "deno@columbia.edu",
+            "password": "denopass123",
         }
 
         request = self.factory.post(
@@ -483,7 +484,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "website": "nguyenquynh.com",
             "twitter": "nguyenquynh",
             "require_auth": False,
-            "password": "onademo",
+            "password": "somerandompass453",
             "is_org": False,
         }
 
@@ -874,7 +875,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "website": "deno.com",
             "twitter": "denoerama",
             "require_auth": False,
-            "password": "denodeno",
+            "password": "denodeno123",
             "is_org": False,
         }
         request = self.factory.post(
@@ -914,7 +915,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "website": "deno.com",
             "twitter": "denoerama",
             "require_auth": False,
-            "password": "denodeno",
+            "password": "denodeno123",
             "is_org": False,
         }
         request = self.factory.post(
@@ -937,7 +938,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "website": "deno.com",
             "twitter": "denoeramaddfsdsl8729320392ujijdswkp--22kwklskdsjs",
             "require_auth": False,
-            "password": "denodeno",
+            "password": "denodeno123",
             "is_org": False,
         }
         request = self.factory.post(
@@ -956,6 +957,314 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         user = User.objects.get(username="deno")
         self.assertTrue(user.is_active)
+
+    def test_email_username(self):
+        data = {
+            "username": "deno@columbia.edu",
+            "name": "Dennis deno",
+            "email": "deno@columbia.edu",
+            "city": "Denoville",
+            "country": "US",
+            "organization": "Dono Inc.",
+            "website": "deno.com",
+            "twitter": "denoerama",
+            "require_auth": False,
+            "password": "denodeno324$",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "deno@columbia.edu")
+
+        data = {
+            "username": "columbia.txt",
+            "name": "Dennis deno",
+            "email": "deno2@columbia.edu",
+            "city": "Denoville",
+            "country": "US",
+            "organization": "Dono Inc.",
+            "website": "deno.com",
+            "twitter": "denoerama",
+            "require_auth": False,
+            "password": "denodeno435$",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "columbia.txt")
+
+    def test_username_with_blocked_file_extensions(self):
+        """Test that usernames ending with blocked file extensions are rejected"""
+        blocked_extensions = ["json", "csv", "xls", "xlsx", "kml"]
+
+        for ext in blocked_extensions:
+            data = {
+                "username": f"username.{ext}",
+                "name": "Test User",
+                "email": f"test{ext}@example.com",
+                "city": "TestCity",
+                "country": "US",
+                "organization": "Test Inc.",
+                "password": "testpass123",
+                "is_org": False,
+            }
+            request = self.factory.post(
+                "/api/v1/profiles",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("username", response.data)
+
+    def test_username_with_forward_slash(self):
+        """Test that usernames with forward slashes are rejected"""
+        invalid_usernames = ["user/name", "path/to/user", "test/"]
+
+        for username in invalid_usernames:
+            data = {
+                "username": username,
+                "name": "Test User",
+                "email": f"{username.replace('/', '')}@example.com",
+                "city": "TestCity",
+                "country": "US",
+                "password": "testpass123",
+                "is_org": False,
+            }
+            request = self.factory.post(
+                "/api/v1/profiles",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("username", response.data)
+
+    def test_username_with_special_characters(self):
+        """Test that valid usernames with special characters are accepted"""
+        valid_usernames = [
+            "user-name",
+            "user_name",
+            "user.name",
+            "user.middle.name",
+            "user123",
+            "user-name_123.test",
+        ]
+
+        for idx, username in enumerate(valid_usernames):
+            data = {
+                "username": username,
+                "name": "Test User",
+                "email": f"test{idx}@example.com",
+                "city": "TestCity",
+                "country": "US",
+                "password": "testpass123",
+                "is_org": False,
+            }
+            request = self.factory.post(
+                "/api/v1/profiles",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request)
+
+            self.assertEqual(
+                response.status_code, 201, f"Failed for username: {username}"
+            )
+            self.assertEqual(response.data["username"], username)
+
+    def test_email_like_usernames(self):
+        """Test various email-like username formats"""
+        # Email with subdomain
+        data = {
+            "username": "user@mail.example.com",
+            "name": "Test User",
+            "email": "user@mail.example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "user@mail.example.com")
+
+        # Email with plus sign
+        data = {
+            "username": "user+tag@example.com",
+            "name": "Test User Plus",
+            "email": "user+tag@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "user+tag@example.com")
+
+    def test_username_case_sensitivity(self):
+        """Test that email usernames are normalized to lowercase"""
+        data = {
+            "username": "User@Example.COM",
+            "name": "Test User",
+            "email": "user@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        # Username should be normalized to lowercase
+        self.assertEqual(response.data["username"], "user@example.com")
+
+    def test_username_boundary_cases(self):
+        """Test boundary cases for username validation"""
+        # Username ending with .tx (not blocked)
+        data = {
+            "username": "data.tx",
+            "name": "Test User TX",
+            "email": "datatx@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "data.tx")
+
+        # Username like data.jsons (not exactly .json)
+        data = {
+            "username": "data.jsons",
+            "name": "Test User JSONS",
+            "email": "datajsons@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "data.jsons")
+
+        # Username with dots but not ending in blocked extension
+        data = {
+            "username": "test.user.name",
+            "name": "Test User Dots",
+            "email": "testdots@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "test.user.name")
+
+    def test_username_with_numbers_and_special_chars(self):
+        """Test usernames with mixed numbers and special characters"""
+        data = {
+            "username": "test123-user_456.name",
+            "name": "Test Mixed User",
+            "email": "testmixed@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "somerandompass453",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["username"], "test123-user_456.name")
+
+    def test_blocked_extension_case_insensitive(self):
+        """Test that blocked extensions work case-insensitively"""
+        # Note: The regex is case-sensitive, but Django normalizes usernames to lowercase
+        # So username.JSON becomes username.json before validation
+        data = {
+            "username": "Username.JSON",
+            "name": "Test User JSON Upper",
+            "email": "testjsonupper@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+
+        # Should be rejected after normalization to lowercase
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("username", response.data)
 
     def test_put_patch_method_on_names(self):
         data = _profile_data()
@@ -1104,7 +1413,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             "website": "bob.com",
             "twitter": "boberama",
             "require_auth": False,
-            "password": "bobbob",
+            "password": "bobbob123",
             "is_org": False,
             "name": "Bob Blender",
         }

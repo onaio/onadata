@@ -332,11 +332,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
             )
-        if not LEGAL_USERNAMES_REGEX.search(username):
+        # Use match() with the validation regex that includes ^ and $ anchors
+        if not LEGAL_USERNAMES_REGEX.match(username):
             raise serializers.ValidationError(
                 _(
-                    "username may only contain alpha-numeric characters and "
-                    "underscores"
+                    "username may only contain alphanumeric characters, dots, hyphens, "
+                    "underscores, emails, or phone numbers, and cannot end with "
+                    ".json, .csv, .xls, .xlsx, or .kml"
                 )
             )
         if len(username) < 3:

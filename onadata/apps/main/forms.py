@@ -2,6 +2,7 @@
 """
 forms module.
 """
+
 import os
 import random
 import re
@@ -21,6 +22,7 @@ from registration.forms import RegistrationFormUniqueEmail
 from six.moves.urllib.parse import urlparse
 
 # pylint: disable=ungrouped-imports
+from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
@@ -204,7 +206,7 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
     RESERVED_USERNAMES = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-    legal_usernames_re = re.compile(r"^\w+$")
+    legal_usernames_re = re.compile(USERNAME_VALIDATION_REGEX)
 
     def clean_username(self):
         """
@@ -216,9 +218,14 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
             raise forms.ValidationError(
                 _(f"{username} is a reserved name, please choose another")
             )
-        if not self.legal_usernames_re.search(username):
+        # Use match() with the validation regex that includes ^ and $ anchors
+        if not self.legal_usernames_re.match(username):
             raise forms.ValidationError(
-                _("username may only contain alpha-numeric characters and underscores")
+                _(
+                    "username may only contain alphanumeric characters, dots, hyphens, "
+                    "underscores, emails, or phone numbers, and cannot end with "
+                    ".json, .csv, .xls, .xlsx, or .kml"
+                )
             )
         try:
             User.objects.get(username=username)
