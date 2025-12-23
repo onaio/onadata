@@ -87,7 +87,11 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.signals import process_submission
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import XFORM_SUBMISSIONS_DELETING, safe_cache_delete
-from onadata.libs.utils.common_tags import METADATA_FIELDS
+from onadata.libs.utils.common_tags import (
+    INSTANCE_EDIT_CONFLICT_LAST_WINS,
+    INSTANCE_EDIT_CONFLICT_REJECT,
+    METADATA_FIELDS,
+)
 from onadata.libs.utils.common_tools import get_uuid, report_exception
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -176,11 +180,11 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
 def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum, request=None):
     def handle_edit_conflict(instance, old_uuid):
         resolution_strategy = getattr(
-            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", "reject"
+            settings, "INSTANCE_EDIT_CONFLICT_RESOLUTION", INSTANCE_EDIT_CONFLICT_REJECT
         )
-        if resolution_strategy == "last_write_wins":
+        if resolution_strategy == INSTANCE_EDIT_CONFLICT_LAST_WINS:
             _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml)
-        elif resolution_strategy == "reject":
+        elif resolution_strategy == INSTANCE_EDIT_CONFLICT_REJECT:
             raise InstanceEditConflictError()
         else:
             raise ValueError(f"Unsupported resolution strategy: {resolution_strategy}")
