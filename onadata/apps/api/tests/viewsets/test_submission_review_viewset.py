@@ -1,6 +1,7 @@
 """
 Submission Review ViewSet Tests Module
 """
+
 from __future__ import unicode_literals
 
 from unittest.mock import patch
@@ -55,8 +56,10 @@ class TestSubmissionReviewViewSet(TestBase):
 
         return response.data
 
-    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
-    def test_submission_review_create(self, mock_send_message):
+    @patch(
+        "onadata.apps.api.viewsets.submission_review_viewset.send_actstream_message_async.delay"
+    )
+    def test_submission_review_create(self, mock_send_actstream_message_async):
         """
         Test we can create a submission review
         """
@@ -65,17 +68,19 @@ class TestSubmissionReviewViewSet(TestBase):
             id=submission_review_data["id"]
         )
         # sends message upon saving the submission review
-        self.assertTrue(mock_send_message.called)
-        mock_send_message.assert_called_with(
+        self.assertTrue(mock_send_actstream_message_async.called)
+        mock_send_actstream_message_async.assert_called_with(
             instance_id=submission_review.instance_id,
             target_id=submission_review.instance.xform.id,
             target_type=XFORM,
-            user=submission_review.created_by,
+            user=submission_review.created_by.id,
             message_verb=SUBMISSION_REVIEWED,
         )
 
-    @patch("onadata.apps.api.viewsets.submission_review_viewset.send_message")
-    def test_bulk_create_submission_review(self, mock_send_message):
+    @patch(
+        "onadata.apps.api.viewsets.submission_review_viewset.send_actstream_message_async.delay"
+    )
+    def test_bulk_create_submission_review(self, mock_send_actstream_message_async):
         """
         Test that we can bulk create submission reviews
         """
@@ -100,12 +105,12 @@ class TestSubmissionReviewViewSet(TestBase):
         self.assertEqual(4, len(response.data))
         already_seen = []
         # sends message upon saving the submission review
-        self.assertTrue(mock_send_message.called)
-        mock_send_message.assert_called_with(
+        self.assertTrue(mock_send_actstream_message_async.called)
+        mock_send_actstream_message_async.assert_called_with(
             instance_id=[s.id for s in self.xform.instances.all()],
             target_id=self.xform.id,
             target_type=XFORM,
-            user=request.user,
+            user=request.user.id,
             message_verb=SUBMISSION_REVIEWED,
         )
         for item in response.data:
