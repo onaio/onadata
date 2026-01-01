@@ -3956,7 +3956,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         )
         response = view(request, pk=self.xform.pk, version_id=old_version)
         self.assertEqual(response.status_code, 200)
-        snelf.assertEqual(response.data, expected_json)
+        self.assertEqual(response.data, expected_json)
 
         response = view(request, pk=self.xform.pk, version_id=old_version, format="xml")
         self.assertEqual(response.status_code, 200)
