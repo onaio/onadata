@@ -1,10 +1,10 @@
 import glob
 import os
 
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
 
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -52,7 +52,8 @@ class TestInstanceCreation(TestCase):
         open_forms = open_all_files(absolute_path)
         self.json = (
             '{"default_language": "default", '
-            '"id_string": "Water_2011_03_17", "children": [], '
+            '"id_string": "Water_2011_03_17", "children": '
+            '[{"type": "text", "name": "location", "label": "Location"}], '
             '"name": "Water_2011_03_17", '
             '"title": "Water_2011_03_17", "type": "survey"}'
         )
