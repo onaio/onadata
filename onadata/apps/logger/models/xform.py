@@ -481,10 +481,15 @@ class XFormMixin:
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
 
+    def set_survey(self, survey):
+        """Set an XML XForm survey object."""
+        self._survey = survey
+
     def get_survey(self):
         """Returns an XML XForm survey object."""
         if not hasattr(self, "_survey"):
-            self._survey = self._get_survey()
+            self.set_survey(self._get_survey())
+
         return self._survey
 
     survey = property(get_survey)
@@ -1153,11 +1158,17 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_public_key_field(self):
         if self.public_key and self.num_of_submissions == 0:
-            self._survey, workbook_json = self.get_survey_and_json_from_xlsform()
+            survey, workbook_json = self.get_survey_and_json_from_xlsform()
+            # update survey object since _set_encrypted_field()
+            # uses it and needs to be updated.
+            self.set_survey(survey)
+
             self.survey.public_key = self.public_key
             workbook_json["public_key"] = self.public_key
             self.json = workbook_json
             self.xml = self.survey.to_xml()
+
+            # Update encrypted status
             self._set_encrypted_field()
 
     def json_dict(self):

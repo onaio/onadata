@@ -313,11 +313,15 @@ def _invalidate_xform_list_cache(xform: XForm):
 def _encrypt_xform(xform, kms_key, encrypted_by=None):
     version = timezone.now().strftime("%Y%m%d%H%M")
 
-    survey = xform.get_survey_from_xlsform()
+    survey, workbook_json = xform.get_survey_and_json_from_xlsform()
     survey.public_key = kms_key.public_key
     survey.version = version
+    # Update cached survey for _set_encrypted_field()
+    xform.set_survey(survey)
 
-    xform.json = survey.to_json_dict()
+    workbook_json["public_key"] = kms_key.public_key
+    workbook_json["version"] = version
+    xform.json = workbook_json
     xform.xml = survey.to_xml()
     xform.version = version
     xform.public_key = kms_key.public_key
@@ -609,11 +613,15 @@ def disable_xform_encryption(xform, disabled_by=None) -> None:
 
     new_version = timezone.now().strftime("%Y%m%d%H%M")
 
-    survey = xform.get_survey_from_xlsform()
+    survey, workbook_json = xform.get_survey_and_json_from_xlsform()
     survey.public_key = None
     survey.version = new_version
+    # Update cached survey for _set_encrypted_field()
+    xform.set_survey(survey)
 
-    xform.json = survey.to_json_dict()
+    workbook_json.pop("public_key", None)
+    workbook_json["version"] = new_version
+    xform.json = workbook_json
     xform.xml = survey.to_xml()
     xform.version = new_version
     xform.public_key = None

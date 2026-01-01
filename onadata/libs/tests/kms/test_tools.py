@@ -8,6 +8,9 @@ from hashlib import md5, sha256
 from io import BytesIO
 from unittest.mock import Mock, call, patch
 
+import boto3
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -15,10 +18,6 @@ from django.template.loader import render_to_string
 from django.test import override_settings
 from django.utils import timezone
 from django.utils.html import strip_tags
-
-import boto3
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
 from moto import mock_aws
 from pyxform.builder import create_survey_element_from_dict
 from valigetta.decryptor import _get_submission_iv
@@ -363,7 +362,7 @@ class RotateKeyTestCase(TestBase):
             "object_id": self.org.pk,
             "provider": KMSKey.KMSProvider.AWS,
         }
-        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+        self.friendly_date = lambda date: f"{date.strftime('%d %b, %Y %I:%M %p')} UTC"
 
     def create_mock_key(self):
         return KMSKey.objects.create(**self.mock_key_data)
@@ -1715,7 +1714,7 @@ class SendKeyRotationReminderTestCase(TestBase):
             provider=KMSKey.KMSProvider.AWS,
             expiry_date=timezone.now() + timedelta(weeks=2),
         )
-        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+        self.friendly_date = lambda date: f"{date.strftime('%d %b, %Y %I:%M %p')} UTC"
         self.html_message = render_to_string(
             "organization/key_rotation_reminder.html",
             {
@@ -1877,7 +1876,7 @@ class SendKeyGraceExpiryReminderTestCase(TestBase):
             provider=KMSKey.KMSProvider.AWS,
             grace_end_date=timezone.now() + timedelta(days=1),
         )
-        self.friendly_date = lambda date: f'{date.strftime("%d %b, %Y %I:%M %p")} UTC'
+        self.friendly_date = lambda date: f"{date.strftime('%d %b, %Y %I:%M %p')} UTC"
         self.html_message = render_to_string(
             "organization/key_grace_expiry_reminder.html",
             {

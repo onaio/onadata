@@ -684,11 +684,15 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _encrypt_xform(self, xform, kms_key, encrypted_by=None):
         version = timezone.now().strftime("%Y%m%d%H%M")
 
-        survey = xform.get_survey_from_xlsform()
+        survey, workbook_json = xform.get_survey_and_json_from_xlsform()
         survey.public_key = kms_key.public_key
         survey.version = version
+        # Update cached survey for _set_encrypted_field()
+        xform.set_survey(survey)
 
-        xform.json = survey.to_json_dict()
+        workbook_json["public_key"] = kms_key.public_key
+        workbook_json["version"] = version
+        xform.json = workbook_json
         xform.xml = survey.to_xml()
         xform.version = version
         xform.public_key = kms_key.public_key
