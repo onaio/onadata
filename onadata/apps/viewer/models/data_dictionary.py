@@ -61,7 +61,22 @@ def process_xlsform_survey(xls, default_name):
     """
     # FLOW Results package is a JSON file.
     if xls.name.endswith("json"):
-        return FloipSurvey(xls).survey.to_json_dict()
+        return FloipSurvey(xls).survey
+    survey, _ = get_survey_from_file_object(xls, name=default_name)
+    return survey
+
+
+def process_xlsform_survey_and_json(xls, default_name):
+    """
+    Process XLSForm file and return (pyxform.survey.Survey, workbook_json) tuple.
+
+    For FLOIP JSON files, workbook_json is survey.to_json_dict().
+    For XLS files, workbook_json is the reproducible output from workbook_to_json().
+    """
+    # FLOW Results package is a JSON file.
+    if xls.name.endswith("json"):
+        survey = FloipSurvey(xls).survey
+        return survey, survey.to_json_dict()
     return get_survey_from_file_object(xls, name=default_name)
 
 
@@ -137,11 +152,13 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
 
         if self.xls and not skip_xls_read:
             default_name = None if not self.pk else self.survey.xml_instance().tagName
-            survey = process_xlsform_survey(self.xls, default_name)
-            survey_dict = survey.to_json_dict()
-            if has_external_choices(survey_dict):
+            survey, workbook_json = process_xlsform_survey_and_json(
+                self.xls, default_name
+            )
+            if has_external_choices(workbook_json):
                 self.has_external_choices = True
             survey = check_version_set(survey)
+            workbook_json["version"] = survey.get("version")
             if get_columns_with_hxl(survey.get("children")):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness
@@ -149,6 +166,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 new_id_string = self.get_unique_id_string(survey.get("id_string"))
                 self._id_string_changed = new_id_string != survey.get("id_string")
                 survey["id_string"] = new_id_string
+                workbook_json["id_string"] = new_id_string
                 # For flow results packages use the user defined id/uuid
                 if self.xls.name.endswith("json"):
                     self.uuid = FloipSurvey(self.xls).descriptor.get("id")
@@ -169,9 +187,11 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 )
             elif default_name and default_name != survey.get("name"):
                 survey["name"] = default_name
+                workbook_json["name"] = default_name
             else:
                 survey["id_string"] = self.id_string
-            self.json = survey.to_json_dict()
+                workbook_json["id_string"] = self.id_string
+            self.json = workbook_json
             self.xml = survey.to_xml()
             self.version = survey.get("version")
             self.last_updated_at = timezone.now()

@@ -497,16 +497,19 @@ class TestXForm(TestBase):
         self.assertNotEqual(file_object.tell(), 0)
 
         # Call get_survey_from_file_object - it should work even with file pointer moved
-        survey = get_survey_from_file_object(file_object)
+        survey, workbook_json = get_survey_from_file_object(file_object)
 
-        # Verify we got a valid survey object
+        # Verify we got a valid survey object and workbook json
         self.assertIsNotNone(survey)
         self.assertTrue(hasattr(survey, "name"))
+        self.assertIsNotNone(workbook_json)
+        self.assertIsInstance(workbook_json, dict)
 
         # Test again with file pointer at arbitrary position
         file_object.seek(50)
-        survey2 = get_survey_from_file_object(file_object)
+        survey2, workbook_json2 = get_survey_from_file_object(file_object)
 
         # Should still work and produce the same result
         self.assertIsNotNone(survey2)
         self.assertEqual(survey.name, survey2.name)
+        self.assertEqual(workbook_json["name"], workbook_json2["name"])

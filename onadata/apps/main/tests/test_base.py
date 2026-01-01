@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import base64
 import csv
+import json
 import os
 import re
 import socket
@@ -23,7 +24,6 @@ from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
 from django.utils.encoding import smart_str
-
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from pyxform.builder import create_survey_element_from_dict
@@ -489,8 +489,11 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         Publishes a markdown XLSForm.
         """
         kwargs["name"] = "data"
-        survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
+        survey, workbook_json = self.md_to_pyxform_survey_and_json(
+            md_xlsform, kwargs=kwargs
+        )
         survey["sms_keyword"] = survey["id_string"]
+        workbook_json["sms_keyword"] = workbook_json["id_string"]
 
         if not project or not hasattr(self, "project"):
             project = get_user_default_project(user)
@@ -500,7 +503,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             created_by=user,
             user=user,
             xml=survey.to_xml(),
-            json=survey.to_json_dict(),
+            json=workbook_json,
             project=project,
             version=survey.get("version"),
         )
@@ -510,7 +513,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             xform=latest_form,
             version=survey.get("version"),
             xml=data_dict.xml,
-            json=survey.to_json(),
+            json=json.dumps(workbook_json),
         )
 
         return data_dict
