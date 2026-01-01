@@ -495,7 +495,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         survey["sms_keyword"] = survey["id_string"]
         workbook_json["sms_keyword"] = workbook_json["id_string"]
 
-        if not project or not hasattr(self, "project"):
+        if not project and not hasattr(self, "project"):
             project = get_user_default_project(user)
             self.project = project
 
