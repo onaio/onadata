@@ -444,6 +444,23 @@ class XFormMixin:
 
         return survey
 
+    def get_survey_and_json_from_xlsform(self):
+        """Returns (PyXForm Survey, workbook_json) tuple by re-reading the XLSForm"""
+        if not self.xls:
+            return self.get_survey(), self.json
+
+        return get_survey_from_file_object(
+            self.xls,
+            name=(
+                self.json["name"]
+                if isinstance(self.json, dict)
+                else json.loads(self.json)["name"]
+            ),
+            id_string=self.id_string,
+            title=self.title,
+            version=self.version,
+        )
+
     def _get_survey(self):
         try:
             builder = SurveyElementBuilder()
@@ -1136,10 +1153,11 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_public_key_field(self):
         if self.public_key and self.num_of_submissions == 0:
-            survey = self.get_survey_from_xlsform()
-            survey.public_key = self.public_key
-            self.json = survey.to_json_dict()
-            self.xml = survey.to_xml()
+            self._survey, workbook_json = self.get_survey_and_json_from_xlsform()
+            self.survey.public_key = self.public_key
+            workbook_json["public_key"] = self.public_key
+            self.json = workbook_json
+            self.xml = self.survey.to_xml()
             self._set_encrypted_field()
 
     def json_dict(self):

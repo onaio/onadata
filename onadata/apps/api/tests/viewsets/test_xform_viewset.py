@@ -18,6 +18,8 @@ from io import StringIO
 from unittest.mock import Mock, patch
 from xml.dom import Node
 
+import jwt
+from defusedxml import minidom
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -27,9 +29,6 @@ from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
-
-import jwt
-from defusedxml import minidom
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
@@ -3957,7 +3956,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         )
         response = view(request, pk=self.xform.pk, version_id=old_version)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, expected_json)
+        snelf.assertEqual(response.data, expected_json)
 
         response = view(request, pk=self.xform.pk, version_id=old_version, format="xml")
         self.assertEqual(response.status_code, 200)
