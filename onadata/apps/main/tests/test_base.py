@@ -498,6 +498,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         if not project and not hasattr(self, "project"):
             project = get_user_default_project(user)
             self.project = project
+        if not project and hasattr(self, "project"):
+            project = self.project
 
         data_dict = DataDictionary(
             created_by=user,

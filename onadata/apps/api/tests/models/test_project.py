@@ -71,37 +71,37 @@ class TestProject(TestAbstractModels, TestBase):
             '"name": "Water_2011_03_17", '
             '"title": "Water_2011_03_17", "type": "survey"}'
         )
-        f = open(
+        with open(
             os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
                 "../../../",
                 "logger/tests/",
                 "Water_Translated_2011_03_10.xml",
             )
-        )
-        xml = f.read()
-        f.close()
+        ) as f:
+            xml = f.read()
         xform = XForm.objects.create(
             xml=xml, user=self.user, json=sample_json, project=project
         )
 
-        f = open(
+        with open(
             os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
                 "../../../",
                 "logger/tests/",
                 "Water_Translated_2011_03_10_2011-03-10_14-38-28.xml",
             )
-        )
-        xml = f.read()
-        f.close()
+        ) as f:
+            xml = f.read()
         Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
         # try and slice the RawQueryset in order to have it evaluated
         try:
             XForm.objects.raw(
                 "UPDATE logger_xform SET id_string='a New ID String' \
-                WHERE id={};".format(xform.id)
+                WHERE id={};".format(
+                    xform.id
+                )
             )[0]
         except TypeError:
             pass

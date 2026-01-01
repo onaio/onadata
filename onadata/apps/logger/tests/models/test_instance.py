@@ -10,7 +10,6 @@ from xml.etree.ElementTree import ParseError
 
 from django.http.request import HttpRequest
 from django.test import override_settings
-
 from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
