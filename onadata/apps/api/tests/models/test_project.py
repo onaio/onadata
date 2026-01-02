@@ -77,7 +77,8 @@ class TestProject(TestAbstractModels, TestBase):
                 "../../../",
                 "logger/tests/",
                 "Water_Translated_2011_03_10.xml",
-            )
+            ),
+            encoding="utf-8",
         ) as f:
             xml = f.read()
         xform = XForm.objects.create(
@@ -90,21 +91,20 @@ class TestProject(TestAbstractModels, TestBase):
                 "../../../",
                 "logger/tests/",
                 "Water_Translated_2011_03_10_2011-03-10_14-38-28.xml",
-            )
+            ),
+            encoding="utf-8",
         ) as f:
             xml = f.read()
+
         Instance.objects.create(xml=xml, user=self.user, xform=xform)
 
+        sql = "UPDATE logger_xform SET id_string='a New ID String' WHERE id=%s;"
         # try and slice the RawQueryset in order to have it evaluated
         try:
-            XForm.objects.raw(
-                "UPDATE logger_xform SET id_string='a New ID String' \
-                WHERE id={};".format(
-                    xform.id
-                )
-            )[0]
+            XForm.objects.raw(sql, [xform.id])[0]
         except TypeError:
             pass
+
         xform_refetch = XForm.objects.all()[0]
         self.assertEqual("a New ID String", xform_refetch.id_string)
 
