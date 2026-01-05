@@ -17,6 +17,7 @@ from onadata.libs.utils.cache_tools import (
 )
 
 
+# pylint: disable=too-many-ancestors
 class ProjectViewSet(ProjectViewSetV1):
     """List, Retrieve, Update, Create Project and Project Forms."""
 

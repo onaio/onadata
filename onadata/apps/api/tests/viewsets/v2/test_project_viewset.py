@@ -96,7 +96,7 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
 
     def test_retrieve_project(self):
         """GET single project"""
-        self.xform = self._publish_registration_form(self.user, self.project)
+        xform = self._publish_registration_form(self.user, self.project)
         entity_list = EntityList.objects.get(name="trees", project=self.project)
         self.project.refresh_from_db()
 
@@ -137,18 +137,18 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
             "forms": [
                 {
                     "name": "Trees registration",
-                    "formid": self.xform.pk,
+                    "formid": xform.pk,
                     "id_string": "trees_registration",
                     "num_of_submissions": 0,
                     "downloadable": True,
                     "encrypted": False,
                     "published_by_formbuilder": None,
                     "last_submission_time": None,
-                    "date_created": self.xform.date_created.isoformat().replace(
+                    "date_created": xform.date_created.isoformat().replace(
                         "+00:00", "Z"
                     ),
-                    "url": f"http://testserver/api/v1/forms/{self.xform.pk}",
-                    "last_updated_at": self.xform.last_updated_at.isoformat().replace(
+                    "url": f"http://testserver/api/v1/forms/{xform.pk}",
+                    "last_updated_at": xform.last_updated_at.isoformat().replace(
                         "+00:00", "Z"
                     ),
                     "is_merged_dataset": False,
