@@ -5,10 +5,10 @@ Project viewset for v2 API
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
-from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.v2.project_serializer import (
     ProjectListSerializer,
     ProjectPrivateSerializer,
+    ProjectSerializer,
 )
 from onadata.libs.utils.cache_tools import (
     PROJ_OWNER_CACHE,
@@ -18,8 +18,10 @@ from onadata.libs.utils.cache_tools import (
 
 
 # pylint: disable=too-many-ancestors
-class ProjectViewSetV2(ProjectViewSetV1):
+class ProjectViewSet(ProjectViewSetV1):
     """List, Retrieve, Update, Create Project and Project Forms."""
+
+    serializer_class = ProjectSerializer
 
     def get_serializer_class(self):
         """Get serializer class based on action

@@ -12,6 +12,9 @@ from onadata.apps.logger.models.project import Project
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.project_serializer import (
+    ProjectSerializer as ProjectSerializerV1,
+)
+from onadata.libs.serializers.project_serializer import (
     get_last_submission_date,
     get_num_datasets,
     is_starred,
@@ -37,7 +40,7 @@ class ProjectListSerializer(serializers.HyperlinkedModelSerializer):
 
     projectid = serializers.ReadOnlyField(source="id")
     url = serializers.HyperlinkedIdentityField(
-        view_name="project-detail", lookup_field="pk"
+        view_name="project-v2-detail", lookup_field="pk"
     )
     owner = serializers.HyperlinkedRelatedField(
         view_name="user-detail",
@@ -114,3 +117,11 @@ class ProjectPrivateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ("current_user_role",)
+
+
+class ProjectSerializer(ProjectSerializerV1):
+    """Serializer for a Project"""
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="project-v2-detail", lookup_field="pk"
+    )

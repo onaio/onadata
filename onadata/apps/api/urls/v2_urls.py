@@ -4,7 +4,7 @@ Custom rest_framework Router V2
 """
 
 from onadata.apps.api.viewsets.entity_list_viewset import EntityListViewSet
-from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSetV2
+from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.v2.tableau_viewset import TableauViewSet
 
 from .v1_urls import MultiLookupRouter
@@ -12,4 +12,4 @@ from .v1_urls import MultiLookupRouter
 router = MultiLookupRouter(trailing_slash=False)
 router.register(r"entity-lists", EntityListViewSet, basename="entity_list")
 router.register(r"open-data", TableauViewSet, basename="open-data")
-router.register(r"projects", ProjectViewSetV2)
+router.register(r"projects", ProjectViewSet, basename="project-v2")
