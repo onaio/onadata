@@ -18,7 +18,7 @@ from onadata.libs.utils.cache_tools import (
 
 
 # pylint: disable=too-many-ancestors
-class ProjectViewSet(ProjectViewSetV1):
+class ProjectViewSetV2(ProjectViewSetV1):
     """List, Retrieve, Update, Create Project and Project Forms."""
 
     def get_serializer_class(self):

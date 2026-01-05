@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSetV2
 from onadata.apps.logger.models import EntityList, Project
 
 
@@ -28,7 +28,7 @@ class GetProjectListTestCase(TestAbstractViewSet):
         )
         self.project.tags.add("Agriculture")
         self.project.tags.add("Environment")
-        self.view = ProjectViewSet.as_view({"get": "list"})
+        self.view = ProjectViewSetV2.as_view({"get": "list"})
 
     def test_get_all(self):
         """GET all projects"""
@@ -87,7 +87,7 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         )
         self.project.tags.add("Agriculture")
         self.project.tags.add("Environment")
-        self.view = ProjectViewSet.as_view({"get": "retrieve"})
+        self.view = ProjectViewSetV2.as_view({"get": "retrieve"})
 
     def tearDown(self):
         cache.clear()
