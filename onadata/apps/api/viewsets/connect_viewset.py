@@ -52,7 +52,9 @@ def user_profile_w_token_response(request, status_code):
             session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
 
     try:
-        user_profile = request.user.profile
+        user_profile = UserProfile.objects.select_related(
+            "user", "user__auth_token", "user__temptoken"
+        ).get(user=request.user)
     except UserProfile.DoesNotExist:
         user_profile = safe_cache_get(f"{USER_PROFILE_PREFIX}{request.user.username}")
         if not user_profile:

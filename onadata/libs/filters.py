@@ -154,8 +154,16 @@ class OrganizationPermissionFilter(ObjectPermissionsFilter):
             return queryset.model.objects.all()
 
         filtered_queryset = super().filter_queryset(request, queryset, view)
+        # Optimize: Use select_related to avoid N+1 queries on team.organization
+        groups_with_teams = request.user.groups.select_related(
+            "team__organization"
+        ).all()
         org_users = set(
-            [group.team.organization for group in request.user.groups.all()]
+            [
+                group.team.organization
+                for group in groups_with_teams
+                if hasattr(group, "team")
+            ]
             + [o.user for o in filtered_queryset]
         )
 
