@@ -5,7 +5,6 @@ Test onadata.libs.serializers.project_serializer
 
 from unittest.mock import MagicMock
 
-from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 
 from rest_framework import serializers
@@ -45,16 +44,38 @@ class TestBaseProjectSerializer(TestAbstractViewSet):
         # Create the project
         self._project_create(data)
 
-    def test_get_current_user_role(self):
+    def test_get_users(self):
+        """"""
+        # Is none when request to get users lacks a project
+        users = self.serializer.get_users(None)
+        self.assertEqual(users, None)
+
+        # Has members and NOT collaborators when NOT passed 'owner'
         request = self.factory.get("/", **self.extra)
         request.user = self.user
-        serializer = BaseProjectSerializer(self.project, context={"request": request})
-        self.assertEqual(serializer.data["current_user_role"], "owner")
-
-        # Is none if user is anonymous
-        request.user = AnonymousUser()
-        serializer = BaseProjectSerializer(self.project, context={"request": request})
-        self.assertIsNone(serializer.data["current_user_role"])
+        self.serializer.context["request"] = request
+        users = self.serializer.get_users(self.project)
+        self.assertEqual(
+            sorted(users, key=lambda x: x["first_name"]),
+            [
+                {
+                    "first_name": "Bob",
+                    "last_name": "erama",
+                    "is_org": False,
+                    "role": "owner",
+                    "user": "bob",
+                    "metadata": {},
+                },
+                {
+                    "first_name": "Dennis",
+                    "last_name": "",
+                    "is_org": True,
+                    "role": "owner",
+                    "user": "denoinc",
+                    "metadata": {},
+                },
+            ],
+        )
 
 
 class TestProjectSerializer(TestAbstractViewSet):

@@ -9,7 +9,6 @@ from django.core.management import call_command
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 
-from guardian.shortcuts import get_perms
 from rest_framework import serializers
 from six import itervalues
 
@@ -325,7 +324,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
-    current_user_role = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
     tags = TagListSerializer(read_only=True)
@@ -342,7 +341,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             "created_by",
             "metadata",
             "starred",
-            "current_user_role",
+            "users",
             "forms",
             "public",
             "tags",
@@ -361,16 +360,15 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         """
         return is_starred(obj, self.context["request"])
 
-    def get_current_user_role(self, obj):
+    def get_users(self, obj):
         """
-        Return the role of the request user in the project.
+        Return a list of users and organizations that have access to the
+        project.
         """
-        if self.context["request"].user.is_anonymous:
-            return None
-
-        perms = get_perms(self.context["request"].user, obj)
-
-        return get_role(perms, obj)
+        owner_query_param_in_request = (
+            "request" in self.context and "owner" in self.context["request"].GET
+        )
+        return get_users(obj, self.context, owner_query_param_in_request)
 
     @check_obj
     def get_forms(self, obj):
@@ -459,7 +457,25 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ("shared", "user_stars", "deleted_by", "organization")
+        fields = [
+            "url",
+            "projectid",
+            "name",
+            "owner",
+            "created_by",
+            "metadata",
+            "starred",
+            "users",
+            "forms",
+            "public",
+            "tags",
+            "num_datasets",
+            "last_submission_date",
+            "teams",
+            "data_views",
+            "date_created",
+            "date_modified",
+        ]
 
     def validate(self, attrs):
         """Validate the project name does not exist and the user has the permissions to
@@ -669,23 +685,3 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         safe_cache_set(project_dataview_cache_key, data_views)
 
         return data_views
-
-
-class ProjectPrivateSerializer(serializers.ModelSerializer):
-    """User specific fields for a Project"""
-
-    current_user_role = serializers.SerializerMethodField()
-
-    def get_current_user_role(self, obj):
-        """
-        Return the role of the request user in the project.
-        """
-        if self.context["request"].user.is_anonymous:
-            return None
-
-        perms = get_perms(self.context["request"].user, obj)
-        return get_role(perms, obj)
-
-    class Meta:
-        model = Project
-        fields = ("current_user_role",)

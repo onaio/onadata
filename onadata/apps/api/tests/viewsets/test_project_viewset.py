@@ -61,7 +61,6 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
-    ProjectPrivateSerializer,
     ProjectSerializer,
 )
 from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
@@ -179,8 +178,17 @@ class TestProjectViewSet(TestAbstractViewSet):
                     ),
                     ("starred", False),
                     (
-                        "current_user_role",
-                        "owner",
+                        "users",
+                        [
+                            {
+                                "is_org": False,
+                                "metadata": {},
+                                "first_name": "Bob",
+                                "last_name": "erama",
+                                "user": "bob",
+                                "role": "owner",
+                            }
+                        ],
                     ),
                     (
                         "forms",
@@ -298,6 +306,47 @@ class TestProjectViewSet(TestAbstractViewSet):
                 break
         self.assertTrue(shared_project_in_response)
 
+    # pylint: disable=invalid-name
+    def test_project_list_returns_users_own_project_is_shared_to(self):
+        """
+        Ensure that the project list responses for project owners
+        contains all the users the project has been shared too
+        """
+        self._project_create()
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+
+        share_project = ShareProject(self.project, "alice", "manager")
+        share_project.save()
+
+        # Ensure alice is in the list of users
+        # When an owner requests for the project data
+        req = self.factory.get("/", **self.extra)
+        resp = self.view(req)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data[0]["users"]), 2)
+        shared_users = [user["user"] for user in resp.data[0]["users"]]
+        self.assertIn(alice_profile.user.username, shared_users)
+
+        # Ensure project managers can view all users the project was shared to
+        davis_data = {"username": "davis", "email": "davis@localhost.com"}
+        davis_profile = self._create_user_profile(davis_data)
+        dave_extras = {"HTTP_AUTHORIZATION": f"Token {davis_profile.user.auth_token}"}
+        share_project = ShareProject(
+            self.project, davis_profile.user.username, "manager"
+        )
+        share_project.save()
+
+        req = self.factory.get("/", **dave_extras)
+        resp = self.view(req)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data[0]["users"]), 3)
+        shared_users = [user["user"] for user in resp.data[0]["users"]]
+        self.assertIn(alice_profile.user.username, shared_users)
+        self.assertIn(self.user.username, shared_users)
+
     def test_projects_get(self):
         self._project_create()
         view = ProjectViewSet.as_view({"get": "retrieve"})
@@ -310,14 +359,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         # test serialized data
-        public_data = ProjectSerializer(self.project, context={"request": request}).data
-        private_data = ProjectPrivateSerializer(
-            self.project, context={"request": request}
-        ).data
-        self.assertEqual(response.data, {**public_data, **private_data})
+        serializer = ProjectSerializer(self.project, context={"request": request})
+        self.assertEqual(response.data, serializer.data)
 
         self.assertIsNotNone(self.project_data)
-        self.assertEqual(response.data, {**self.project_data, **private_data})
+        self.assertEqual(response.data, self.project_data)
         res_user_props = list(response.data["users"][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
@@ -1682,10 +1728,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(False, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        # Response without user specific fields
-        res_wo_private = {**response.data}
-        res_wo_private.pop("current_user_role")
-        self.assertEqual(cached_project, res_wo_private)
+        self.assertEqual(cached_project, response.data)
 
         projectid = self.project.pk
         data = {"public": True}
@@ -1701,10 +1744,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        # Response without user specific fields
-        res_wo_private = {**response.data}
-        res_wo_private.pop("current_user_role")
-        self.assertEqual(cached_project, res_wo_private)
+        self.assertEqual(cached_project, response.data)
 
     def test_project_put_updates(self):
         self._project_create()
@@ -2806,8 +2846,19 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get("/", data=data, **self.extra)
         response = view(request)
 
+        users = response.data[0]["users"]
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data[0]["current_user_role"], "owner")
+        self.assertIn(
+            {
+                "first_name": "Bob",
+                "last_name": "erama",
+                "is_org": False,
+                "role": "readonly",
+                "user": "alice",
+                "metadata": {},
+            },
+            users,
+        )
 
     def test_projects_soft_delete(self):
         self._project_create()

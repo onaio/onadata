@@ -35,7 +35,6 @@ from onadata.libs.serializers.project_invitation_serializer import (
 )
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
-    ProjectPrivateSerializer,
     ProjectSerializer,
 )
 from onadata.libs.serializers.share_project_serializer import (
@@ -125,18 +124,14 @@ class ProjectViewSet(
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve single project"""
-        project = self.get_object()
-        public_data = safe_cache_get(f"{PROJ_OWNER_CACHE}{project.pk}")
-
-        if not public_data:
-            public_data = ProjectSerializer(project, context={"request": request}).data
-
-        # Inject user specific fields
-        private_data = ProjectPrivateSerializer(
-            project, context={"request": request}
-        ).data
-
-        return Response({**public_data, **private_data})
+        project_id = kwargs.get("pk")
+        project = safe_cache_get(f"{PROJ_OWNER_CACHE}{project_id}")
+        if project:
+            return Response(project)
+        # pylint: disable=attribute-defined-outside-init
+        self.object = self.get_object()
+        serializer = ProjectSerializer(self.object, context={"request": request})
+        return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
         """Returns a list of projects"""
