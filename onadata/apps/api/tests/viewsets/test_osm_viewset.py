@@ -34,6 +34,7 @@ class TestOSMViewSet(TestAbstractViewSet):
     """
 
     def setUp(self):
+        self.skipTest("OSM support removed in pyxform >= 3.0.0")
         super(self.__class__, self).setUp()
         self._login_user_and_profile()
         self.factory = RequestFactory()

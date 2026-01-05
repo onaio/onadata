@@ -8,6 +8,8 @@ import json
 import os
 from io import BytesIO
 
+import openpyxl
+import unicodecsv as csv
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -15,9 +17,6 @@ from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
-
-import openpyxl
-import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.utils import has_external_choices
@@ -62,7 +61,22 @@ def process_xlsform_survey(xls, default_name):
     """
     # FLOW Results package is a JSON file.
     if xls.name.endswith("json"):
-        return FloipSurvey(xls).survey.to_json_dict()
+        return FloipSurvey(xls).survey
+    survey, _ = get_survey_from_file_object(xls, name=default_name)
+    return survey
+
+
+def process_xlsform_survey_and_json(xls, default_name):
+    """
+    Process XLSForm file and return (pyxform.survey.Survey, workbook_json) tuple.
+
+    For FLOIP JSON files, workbook_json is survey.to_json_dict().
+    For XLS files, workbook_json is the reproducible output from workbook_to_json().
+    """
+    # FLOW Results package is a JSON file.
+    if xls.name.endswith("json"):
+        survey = FloipSurvey(xls).survey
+        return survey, survey.to_json_dict()
     return get_survey_from_file_object(xls, name=default_name)
 
 
@@ -138,11 +152,13 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
 
         if self.xls and not skip_xls_read:
             default_name = None if not self.pk else self.survey.xml_instance().tagName
-            survey = process_xlsform_survey(self.xls, default_name)
-            survey_dict = survey.to_json_dict()
-            if has_external_choices(survey_dict):
+            survey, workbook_json = process_xlsform_survey_and_json(
+                self.xls, default_name
+            )
+            if has_external_choices(workbook_json):
                 self.has_external_choices = True
             survey = check_version_set(survey)
+            workbook_json["version"] = survey.get("version")
             if get_columns_with_hxl(survey.get("children")):
                 self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness
@@ -150,6 +166,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 new_id_string = self.get_unique_id_string(survey.get("id_string"))
                 self._id_string_changed = new_id_string != survey.get("id_string")
                 survey["id_string"] = new_id_string
+                workbook_json["id_string"] = new_id_string
                 # For flow results packages use the user defined id/uuid
                 if self.xls.name.endswith("json"):
                     self.uuid = FloipSurvey(self.xls).descriptor.get("id")
@@ -170,9 +187,11 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 )
             elif default_name and default_name != survey.get("name"):
                 survey["name"] = default_name
+                workbook_json["name"] = default_name
             else:
                 survey["id_string"] = self.id_string
-            self.json = survey.to_json_dict()
+                workbook_json["id_string"] = self.id_string
+            self.json = workbook_json
             self.xml = survey.to_xml()
             self.version = survey.get("version")
             self.last_updated_at = timezone.now()
@@ -298,6 +317,31 @@ pre_save.connect(
 )
 
 
+def _has_entity_definition(instance_json):
+    """Check if form defines entities (supports pyxform 3.x and 4.x)"""
+    return instance_json.get("entity_features") or instance_json.get("entity_version")
+
+
+def _get_entity_dataset(entity_child):
+    """Extract dataset name from entity definition (supports pyxform 3.x and 4.x)
+
+    pyxform 3.x: entity_child.get("parameters", {}).get("dataset")
+    pyxform 4.x: dataset is in entity_child["children"] where name='dataset'
+    """
+    # Try pyxform 3.x structure first
+    parameters = entity_child.get("parameters")
+    if parameters:
+        return parameters.get("dataset")
+
+    # Try pyxform 4.x structure
+    children = entity_child.get("children", [])
+    for child in children:
+        if child.get("name") == "dataset":
+            return child.get("value")
+
+    return None
+
+
 def create_registration_form(sender, instance=None, created=False, **kwargs):
     """Create a RegistrationForm for a form that defines entities
 
@@ -309,7 +353,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_features"):
+    if not _has_entity_definition(instance_json):
         return
 
     children = instance_json.get("children", [])
@@ -318,8 +362,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     for meta in meta_list:
         for child in meta.get("children", []):
             if child.get("name") == "entity":
-                parameters = child.get("parameters", {})
-                dataset = parameters.get("dataset")
+                dataset = _get_entity_dataset(child)
                 entity_list, _ = EntityList.objects.get_or_create(
                     name=dataset, project=instance.project
                 )
@@ -429,7 +472,7 @@ def disable_registration_form(sender, instance=None, created=False, **kwargs):
     if isinstance(instance_json, str):
         instance_json = json.loads(instance_json)
 
-    if not instance_json.get("entity_features"):
+    if not _has_entity_definition(instance_json):
         # If form creates entities, disable the registration forms
         for registration_form in instance.registration_forms.filter(is_active=True):
             registration_form.is_active = False

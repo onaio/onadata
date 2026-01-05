@@ -18,6 +18,8 @@ from io import StringIO
 from unittest.mock import Mock, patch
 from xml.dom import Node
 
+import jwt
+from defusedxml import minidom
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -27,9 +29,6 @@ from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
-
-import jwt
-from defusedxml import minidom
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock

@@ -53,9 +53,11 @@ class DataDictionaryTestCase(TestBase):
         """
 
     def _replace_form(self, markdown, data_dict):
-        survey = self.md_to_pyxform_survey(markdown, kwargs={"name": "data"})
+        survey, workbook_json = self.md_to_pyxform_survey_and_json(
+            markdown, kwargs={"name": "data"}
+        )
         data_dict.xml = survey.to_xml()
-        data_dict.json = json.loads(survey.to_json())
+        data_dict.json = workbook_json
         data_dict.save()
 
     def test_create_registration_form(self):

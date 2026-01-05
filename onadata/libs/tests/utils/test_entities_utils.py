@@ -517,7 +517,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
     def test_dry_run(self):
         """Dry-run validates but does not create entities"""
         csv_content = (
-            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+            "label,species,circumference_cm\n300cm purpleheart,purpleheart,300\n"
         )
         csv_file = self._create_csv_file(csv_content)
         pre_count = Entity.objects.count()
@@ -540,7 +540,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
     def test_default_label_column(self):
         """Default label column is 'label' if not provided"""
         csv_content = (
-            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+            "label,species,circumference_cm\n300cm purpleheart,purpleheart,300\n"
         )
         csv_file = self._create_csv_file(csv_content)
         # Consume generator by casting into list
@@ -577,7 +577,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
     def test_default_user(self):
         """Default user is None if not provided"""
         csv_content = (
-            "label,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+            "label,species,circumference_cm\n300cm purpleheart,purpleheart,300\n"
         )
         csv_file = self._create_csv_file(csv_content)
         # Consume generator by casting into list
@@ -605,7 +605,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
     def test_custom_label_column(self):
         """Custom label column is used if provided"""
         csv_content = (
-            "tree_name,species,circumference_cm\n" "300cm purpleheart,purpleheart,300\n"
+            "tree_name,species,circumference_cm\n300cm purpleheart,purpleheart,300\n"
         )
         csv_file = self._create_csv_file(csv_content)
         # Consume generator by casting into list
@@ -707,7 +707,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
 
     def test_properties_required_for_create(self):
         """At least one property must be provided for create."""
-        csv_content = "label\n" "300cm\n"
+        csv_content = "label\n300cm\n"
         csv_file = self._create_csv_file(csv_content)
 
         for row_result in import_entities_from_csv(
@@ -724,7 +724,7 @@ class ImportEntitiesFromCSVTestCase(TestBase):
     def test_dataset_must_have_properties(self):
         """Entity List must have properties defined prior to import."""
         entity_list = EntityList.objects.create(name="hospitals", project=self.project)
-        csv_content = "label,county\n" "Makini,Nairobi\n"
+        csv_content = "label,county\nMakini,Nairobi\n"
         csv_file = self._create_csv_file(csv_content)
 
         with self.assertRaises(CSVImportError) as exc_info:

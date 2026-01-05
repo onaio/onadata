@@ -2,6 +2,7 @@
 """
 PyxformTestCase base class using markdown to define the XLSForm.
 """
+
 import codecs
 import logging
 import os
@@ -49,8 +50,10 @@ class MatcherContext:
 class PyxformMarkdown:  # pylint: disable=too-few-public-methods
     """Transform markdown formatted XLSForm to a pyxform survey object"""
 
-    def md_to_pyxform_survey(self, md_raw, kwargs=None, autoname=True, warnings=None):
-        """Transform markdown formatted XLSForm to pyxform survey object."""
+    def md_to_pyxform_survey_and_json(
+        self, md_raw, kwargs=None, autoname=True, warnings=None
+    ):
+        """Transform markdown XLSForm to (pyxform Survey, workbook_json) tuple."""
         if kwargs is None:
             kwargs = {}
         if autoname:
@@ -65,7 +68,15 @@ class PyxformMarkdown:  # pylint: disable=too-few-public-methods
         )
         if "id_string" in kwargs:
             workbook_json["id_string"] = kwargs["id_string"]
-        return create_survey_element_from_dict(workbook_json)
+        survey = create_survey_element_from_dict(workbook_json)
+        return survey, workbook_json
+
+    def md_to_pyxform_survey(self, md_raw, kwargs=None, autoname=True, warnings=None):
+        """Transform markdown formatted XLSForm to pyxform survey object."""
+        survey, _ = self.md_to_pyxform_survey_and_json(
+            md_raw, kwargs, autoname, warnings
+        )
+        return survey
 
     @staticmethod
     def _run_odk_validate(xml):
@@ -497,7 +508,8 @@ def reorder_attributes(root):
 
 
 def xpath_clean_result_strings(
-    nsmap_subs: "NSMAPSubs", results: "Set[_Element]"  # noqa: F821
+    nsmap_subs: "NSMAPSubs",
+    results: "Set[_Element]",  # noqa: F821
 ) -> "Set[str]":
     """
     Clean XPath results: stringify, remove namespace declarations, clean up whitespace.

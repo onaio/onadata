@@ -1,8 +1,9 @@
 import os
 from builtins import str
+
 from pyxform.errors import PyXFormError
 
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
 
 
@@ -23,9 +24,9 @@ class TestInputs(TestBase):
         pre_count = XForm.objects.count()
         self._create_user_and_login()
         expected_message = (
-            "The name 'data' is the same as the form name. Use a "
-            "different section name (or change the form name in "
-            "the 'name' column of the settings sheet)."
+            "On the 'survey' sheet, the 'name' value 'data' is "
+            "invalid. Repeat names must not be the same as the survey root"
+            " (which defaults to 'data')."
         )
         self.assertRaisesMessage(
             PyXFormError,

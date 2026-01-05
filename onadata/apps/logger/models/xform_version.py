@@ -2,8 +2,11 @@
 """
 Module containing the XForm Version model
 """
+import json
+
 from django.db import models
 from django.contrib.auth import get_user_model
+from pyxform.builder import SurveyElementBuilder
 
 
 User = get_user_model()
@@ -32,6 +35,12 @@ class XFormVersion(models.Model):
 
     def __str__(self):
         return f"{self.xform.title}-{self.version}"
+
+    def json_dict(self):
+        """Returns the form JSON in survey.to_json_dict() format."""
+        json_data = json.loads(self.json) if isinstance(self.json, str) else self.json
+        survey = SurveyElementBuilder().create_survey_element_from_dict(json_data)
+        return survey.to_json_dict()
 
     class Meta:
         unique_together = ["xform", "version"]

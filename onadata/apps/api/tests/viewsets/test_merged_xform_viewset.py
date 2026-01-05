@@ -858,7 +858,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         error_message = (
             "There has been a problem trying to replace ${tunda} with the "
             "XPath to the survey element named 'tunda'. There is no survey "
-            "element with this name."
+            "element named 'tunda'."
         )
         self.assertIn("xforms", response.data)
         self.assertIn(error_message, response.data["xforms"])

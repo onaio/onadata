@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import base64
 import csv
+import json
 import os
 import re
 import socket
@@ -23,7 +24,6 @@ from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
 from django.utils.encoding import smart_str
-
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from pyxform.builder import create_survey_element_from_dict
@@ -489,18 +489,23 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         Publishes a markdown XLSForm.
         """
         kwargs["name"] = "data"
-        survey = self.md_to_pyxform_survey(md_xlsform, kwargs=kwargs)
+        survey, workbook_json = self.md_to_pyxform_survey_and_json(
+            md_xlsform, kwargs=kwargs
+        )
         survey["sms_keyword"] = survey["id_string"]
+        workbook_json["sms_keyword"] = workbook_json["id_string"]
 
-        if not project or not hasattr(self, "project"):
+        if not project and not hasattr(self, "project"):
             project = get_user_default_project(user)
             self.project = project
+        if not project and hasattr(self, "project"):
+            project = self.project
 
         data_dict = DataDictionary(
             created_by=user,
             user=user,
             xml=survey.to_xml(),
-            json=survey.to_json_dict(),
+            json=workbook_json,
             project=project,
             version=survey.get("version"),
         )
@@ -510,7 +515,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             xform=latest_form,
             version=survey.get("version"),
             xml=data_dict.xml,
-            json=survey.to_json(),
+            json=json.dumps(workbook_json),
         )
 
         return data_dict
@@ -681,11 +686,15 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _encrypt_xform(self, xform, kms_key, encrypted_by=None):
         version = timezone.now().strftime("%Y%m%d%H%M")
 
-        survey = xform.get_survey_from_xlsform()
+        survey, workbook_json = xform.get_survey_and_json_from_xlsform()
         survey.public_key = kms_key.public_key
         survey.version = version
+        # Update cached survey for _set_encrypted_field()
+        xform.set_survey(survey)
 
-        xform.json = survey.to_json_dict()
+        workbook_json["public_key"] = kms_key.public_key
+        workbook_json["version"] = version
+        xform.json = workbook_json
         xform.xml = survey.to_xml()
         xform.version = version
         xform.public_key = kms_key.public_key

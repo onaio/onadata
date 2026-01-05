@@ -101,7 +101,10 @@ def cmp(x, y):
 def get_survey_from_file_object(
     file_object, name=None, id_string=None, title=None, version=None
 ):
-    """Returns a PyXForm object from an XLSForm file object."""
+    """Returns a tuple of (PyXForm Survey, workbook_json) from an XLSForm file object.
+
+    The workbook_json is the reproducible JSON representation from workbook_to_json().
+    """
     # reset file pointer to make sure it's at the file start
     file_object.seek(0)
     xlsform_file_object = BytesIO(file_object.read())
@@ -125,7 +128,8 @@ def get_survey_from_file_object(
     if id_string and id_string != xlsform_json.get("id_string"):
         xlsform_json["id_string"] = id_string
 
-    return SurveyElementBuilder().create_survey_element_from_dict(xlsform_json)
+    survey = SurveyElementBuilder().create_survey_element_from_dict(xlsform_json)
+    return survey, xlsform_json
 
 
 def question_types_to_exclude(_type):
@@ -425,7 +429,7 @@ class XFormMixin:
         if hasattr(self, "_survey_from_xlsform"):
             return self._survey_from_xlsform
 
-        survey = get_survey_from_file_object(
+        survey, _ = get_survey_from_file_object(
             self.xls,
             name=(
                 self.json["name"]
@@ -439,6 +443,23 @@ class XFormMixin:
         self._survey_from_xlsform = survey
 
         return survey
+
+    def get_survey_and_json_from_xlsform(self):
+        """Returns (PyXForm Survey, workbook_json) tuple by re-reading the XLSForm"""
+        if not self.xls:
+            return self.get_survey(), self.json
+
+        return get_survey_from_file_object(
+            self.xls,
+            name=(
+                self.json["name"]
+                if isinstance(self.json, dict)
+                else json.loads(self.json)["name"]
+            ),
+            id_string=self.id_string,
+            title=self.title,
+            version=self.version,
+        )
 
     def _get_survey(self):
         try:
@@ -460,13 +481,27 @@ class XFormMixin:
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
 
+    def set_survey(self, survey):
+        """Set an XML XForm survey object."""
+        self._survey = survey
+
     def get_survey(self):
         """Returns an XML XForm survey object."""
         if not hasattr(self, "_survey"):
-            self._survey = self._get_survey()
+            self.set_survey(self._get_survey())
+
         return self._survey
 
     survey = property(get_survey)
+
+    @property
+    def survey_json(self):
+        """Return JSON in survey.to_json_dict() format for backward compatibility.
+
+        Use this when code requires the transformed survey format rather than
+        the raw workbook format stored in self.json.
+        """
+        return self.survey.to_json_dict()
 
     def get_survey_elements(self):
         """Returns an iterator of all survey elements."""
@@ -1123,18 +1158,22 @@ class XForm(XFormMixin, BaseModel):
 
     def _set_public_key_field(self):
         if self.public_key and self.num_of_submissions == 0:
-            survey = self.get_survey_from_xlsform()
-            survey.public_key = self.public_key
-            self.json = survey.to_json_dict()
-            self.xml = survey.to_xml()
+            survey, workbook_json = self.get_survey_and_json_from_xlsform()
+            # update survey object since _set_encrypted_field()
+            # uses it and needs to be updated.
+            self.set_survey(survey)
+
+            self.survey.public_key = self.public_key
+            workbook_json["public_key"] = self.public_key
+            self.json = workbook_json
+            self.xml = self.survey.to_xml()
+
+            # Update encrypted status
             self._set_encrypted_field()
 
     def json_dict(self):
-        """Returns the `self.json` field data as a dict."""
-        if isinstance(self.json, dict):
-            return self.json
-
-        return json.loads(self.json)
+        """Returns the form JSON in survey.to_json_dict() format."""
+        return self.survey.to_json_dict()
 
     def update(self, *args, **kwargs):
         """Persists the form to the DB."""
