@@ -39,17 +39,17 @@ class ProjectViewSet(ProjectViewSetV1):
         Overrides super().retrieve()
         """
         project = self.get_object()
-        public_data = safe_cache_get(f"{PROJ_OWNER_CACHE}{project.pk}")
+        base_data = safe_cache_get(f"{PROJ_OWNER_CACHE}{project.pk}")
 
-        if not public_data:
-            public_data = ProjectSerializer(project, context={"request": request}).data
+        if base_data is None:
+            base_data = ProjectSerializer(project, context={"request": request}).data
 
         # Cache data
-        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", public_data)
+        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", base_data)
 
         # Inject user specific fields
         private_data = ProjectPrivateSerializer(
             project, context={"request": request}
         ).data
 
-        return Response({**public_data, **private_data})
+        return Response({**base_data, **private_data})
