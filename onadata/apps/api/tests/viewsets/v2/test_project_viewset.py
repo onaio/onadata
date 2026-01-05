@@ -104,7 +104,7 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 200)
-        expected_data = {
+        expected = {
             "url": f"http://testserver/api/v2/projects/{self.project.pk}",
             "projectid": self.project.pk,
             "name": "Tree Monitoring",
@@ -185,14 +185,32 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
                 "+00:00", "Z"
             ),
         }
+        actual = response.data.copy()
 
-        self.assertEqual(response.data, expected_data)
+        # users: unique by `user`
+        actual["users"] = self.sort_by_keys(actual["users"], "user")
+        expected["users"] = self.sort_by_keys(expected["users"], "user")
+
+        # forms: unique by `formid`
+        actual["forms"] = self.sort_by_keys(actual["forms"], "formid")
+        expected["forms"] = self.sort_by_keys(expected["forms"], "formid")
+
+        # teams unique by `name`
+        actual["teams"] = self.sort_by_keys(actual["teams"], "name")
+        expected["teams"] = self.sort_by_keys(expected["teams"], "name")
+
+        # tags simple list
+        actual["tags"] = sorted(actual["tags"])
+        expected["tags"] = sorted(expected["tags"])
+
+        self.assertEqual(actual, expected)
 
         # Project data is cached
-        expected_cached_data = {**expected_data}
-        del expected_cached_data["current_user_role"]
+        expected_cache = {**response.data}
+        del expected_cache["current_user_role"]
+
         self.assertEqual(
-            cache.get(f"ps-project_owner-{self.project.pk}"), expected_cached_data
+            cache.get(f"ps-project_owner-{self.project.pk}"), expected_cache
         )
 
     def test_cache_hit(self):
