@@ -1,0 +1,55 @@
+"""
+Project viewset for v2 API
+"""
+
+from rest_framework.response import Response
+
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
+from onadata.libs.serializers.v2.project_serializer import (
+    ProjectListSerializer,
+    ProjectPrivateSerializer,
+    ProjectSerializer,
+)
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    safe_cache_get,
+    safe_cache_set,
+)
+
+
+# pylint: disable=too-many-ancestors
+class ProjectViewSet(ProjectViewSetV1):
+    """List, Retrieve, Update, Create Project and Project Forms."""
+
+    serializer_class = ProjectSerializer
+
+    def get_serializer_class(self):
+        """Get serializer class based on action
+
+        Overrides super().get_serializer_class()
+        """
+        if self.action == "list":
+            return ProjectListSerializer
+
+        return super().get_serializer_class()
+
+    def retrieve(self, request, *args, **kwargs):
+        """Retrive a single Project
+
+        Overrides super().retrieve()
+        """
+        project = self.get_object()
+        base_data = safe_cache_get(f"{PROJ_OWNER_CACHE}{project.pk}")
+
+        if base_data is None:
+            base_data = ProjectSerializer(project, context={"request": request}).data
+
+        # Cache data
+        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", base_data)
+
+        # Inject user specific fields
+        private_data = ProjectPrivateSerializer(
+            project, context={"request": request}
+        ).data
+
+        return Response({**base_data, **private_data})

@@ -46,22 +46,90 @@ Response
 ^^^^^^^^^
 ::
 
-       [
-           {
-               "url": "https://api.ona.io/api/v1/projects/1",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 1",
-               "date_created": "2013-07-24T13:37:39Z",
-               "date_modified": "2013-07-24T13:37:39Z"
-           },
-           {
-               "url": "https://api.ona.io/api/v1/projects/4",
-               "owner": "https://api.ona.io/api/v1/users/ona",
-               "name": "project 2",
-               "date_created": "2013-07-24T13:59:10Z",
-               "date_modified": "2013-07-24T13:59:10Z"
-           }, ...
-       ]
+        [
+            {
+                "url": "https://api.ona.io/api/v1/projects/21001",
+                "projectid": 21001,
+                "owner": "https://api.ona.io/api/v1/users/jdoe",
+                "created_by": "https://api.ona.io/api/v1/users/jdoe",
+                "metadata": {
+                "name": "Health Survey",
+                "category": "health"
+                },
+                "starred": true,
+                "users": [
+                    {
+                        "is_org": false,
+                        "metadata": {},
+                        "first_name": "John",
+                        "last_name": "Doe",
+                        "user": "jdoe",
+                        "role": "owner"
+                    }
+                ],
+                "forms": [
+                {
+                    "name": "Community Health Check",
+                    "formid": 30045,
+                    "id_string": "Community_Health_Check",
+                    "is_merged_dataset": false,
+                    "encrypted": true,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": false,
+                "tags": ["survey", "health"],
+                "num_datasets": 2,
+                "last_submission_date": "2025-09-10T10:15:22.123456Z",
+                "teams": [],
+                "name": "Health Survey",
+                "date_created": "2025-09-05T09:00:00.000000Z",
+                "date_modified": "2025-09-08T14:22:11.000000Z",
+                "deleted_at": null
+            },
+            {
+                "url": "https://api.ona.io/api/v1/projects/21002",
+                "projectid": 21002,
+                "owner": "https://api.ona.io/api/v1/users/asanchez",
+                "created_by": "https://api.ona.io/api/v1/users/asanchez",
+                "metadata": {
+                "name": "Wildlife Tracking",
+                "category": "conservation"
+                },
+                "starred": false,
+                "users": [
+                    {
+                        "is_org": false,
+                        "metadata": {},
+                        "first_name": "Alice",
+                        "last_name": "Smith",
+                        "user": "asanchez",
+                        "role": "editor"
+                    }
+                ],
+                "forms": [
+                {
+                    "name": "Animal Sighting Log",
+                    "formid": 30078,
+                    "id_string": "Animal_Sighting_Log",
+                    "is_merged_dataset": false,
+                    "encrypted": false,
+                    "contributes_entities_to": null,
+                    "consumes_entities_from": []
+                }
+                ],
+                "public": true,
+                "tags": ["wildlife", "tracking"],
+                "num_datasets": 1,
+                "last_submission_date": "2025-09-20T17:45:30.654321Z",
+                "teams": [],
+                "name": "Wildlife Tracking",
+                "date_created": "2025-09-15T12:30:00.000000Z",
+                "date_modified": "2025-09-21T09:40:55.000000Z",
+                "deleted_at": null
+            }
+        ]
 
 Get a paginated list of Projects
 ---------------------------------

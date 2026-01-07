@@ -24,6 +24,7 @@ from django.test import RequestFactory, TransactionTestCase
 from django.test.client import Client
 from django.utils import timezone
 from django.utils.encoding import smart_str
+
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from pyxform.builder import create_survey_element_from_dict
@@ -779,3 +780,9 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
     def _publish_managed_form_and_submit_instance(self):
         self._publish_managed_form()
         self._submit_encrypted_instance()
+
+    def sort_by_keys(self, items, *keys):
+        return sorted(
+            items,
+            key=lambda item: tuple(item[k] for k in keys),
+        )

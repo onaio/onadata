@@ -90,7 +90,6 @@ class TestCacheTools(TestCase):
             "teams": [],
             "data_views": [],
             "name": "Some Project",
-            "deleted_at": None,
         }
 
         self.assertEqual(

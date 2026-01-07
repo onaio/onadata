@@ -2,6 +2,7 @@
 """
 Test onadata.libs.serializers.project_serializer
 """
+
 from unittest.mock import MagicMock
 
 from django.core.cache import cache

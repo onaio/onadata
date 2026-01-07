@@ -457,7 +457,25 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ("shared", "user_stars", "deleted_by", "organization")
+        fields = [
+            "url",
+            "projectid",
+            "name",
+            "owner",
+            "created_by",
+            "metadata",
+            "starred",
+            "users",
+            "forms",
+            "public",
+            "tags",
+            "num_datasets",
+            "last_submission_date",
+            "teams",
+            "data_views",
+            "date_created",
+            "date_modified",
+        ]
 
     def validate(self, attrs):
         """Validate the project name does not exist and the user has the permissions to
