@@ -10,6 +10,9 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models.project import Project
 from onadata.libs.permissions import get_role
+from onadata.libs.serializers.fields.format_suffix_hyperlink_field import (
+    FormatSuffixHyperlinkedRelatedField,
+)
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.project_serializer import (
     ProjectSerializer as ProjectSerializerV1,
@@ -42,7 +45,7 @@ class ProjectListSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="project-v2-detail", lookup_field="pk"
     )
-    owner = serializers.HyperlinkedRelatedField(
+    owner = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         source="organization",
         lookup_field="username",
@@ -50,7 +53,7 @@ class ProjectListSerializer(serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = serializers.HyperlinkedRelatedField(
+    created_by = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     metadata = JsonField(required=False)

@@ -39,6 +39,9 @@ from onadata.libs.kms.tools import (
 )
 from onadata.libs.permissions import get_role, is_organization
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
+from onadata.libs.serializers.fields.format_suffix_hyperlink_field import (
+    FormatSuffixHyperlinkedRelatedField,
+)
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.api_export_tools import get_metadata_format
@@ -384,7 +387,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     """XForm base serializer."""
 
     formid = serializers.ReadOnlyField(source="id")
-    owner = serializers.HyperlinkedRelatedField(
+    owner = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         source="user",
         lookup_field="username",
@@ -392,7 +395,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = serializers.HyperlinkedRelatedField(
+    created_by = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         lookup_field="username",
         queryset=User.objects.exclude(
@@ -455,7 +458,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
 
     formid = serializers.ReadOnlyField(source="id")
     metadata = serializers.SerializerMethodField()
-    owner = serializers.HyperlinkedRelatedField(
+    owner = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         source="user",
         lookup_field="username",
@@ -463,7 +466,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = serializers.HyperlinkedRelatedField(
+    created_by = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         lookup_field="username",
         queryset=User.objects.exclude(
@@ -814,7 +817,7 @@ class XFormVersionListSerializer(serializers.ModelSerializer):
         format="xml",
         lookup_fields=(("xform__pk", "pk"), ("version", "version_id")),
     )
-    created_by = serializers.HyperlinkedRelatedField(
+    created_by = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail",
         lookup_field="username",
         queryset=User.objects.exclude(

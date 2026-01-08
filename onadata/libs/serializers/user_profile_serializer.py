@@ -28,6 +28,9 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
+from onadata.libs.serializers.fields.format_suffix_hyperlink_field import (
+    FormatSuffixHyperlinkedRelatedField,
+)
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_get, safe_cache_set
@@ -136,7 +139,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     password = serializers.CharField(
         source="user.password", allow_blank=True, required=False
     )
-    user = serializers.HyperlinkedRelatedField(
+    user = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     metadata = JsonField(required=False)
@@ -407,7 +410,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
     email = serializers.CharField(source="user.email")
     website = serializers.CharField(source="home_page", required=False)
     gravatar = serializers.ReadOnlyField()
-    user = serializers.HyperlinkedRelatedField(
+    user = FormatSuffixHyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     api_token = serializers.SerializerMethodField()

@@ -286,6 +286,7 @@ class TestAbstractViewSet(TestBase, TestCase):
             0
         ]
         data["url"] = f"http://testserver/api/v1/projects/{self.project.pk}"
+        data["owner"] = data["owner"].removesuffix(".json")
         self.assertDictContainsSubset(data, response.data)
 
         request.user = self.user
