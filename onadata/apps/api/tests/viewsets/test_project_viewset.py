@@ -762,6 +762,59 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+    def test_projects_create_with_json_format_suffix_in_owner_url(self):
+        """Test that owner URLs with .json format suffix are handled correctly."""
+        data = {
+            "name": "demo",
+            "owner": f"http://testserver/api/v1/users/{self.user.username}.json",
+            "metadata": {
+                "description": "Test project with .json suffix",
+                "location": "Test Location",
+                "category": "test",
+            },
+            "public": False,
+        }
+        self._project_create(project_data=data, merge=False)
+        self.assertIsNotNone(self.project)
+        self.assertIsNotNone(self.project_data)
+
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)
+
+    def test_projects_create_with_other_format_suffixes_in_owner_url(self):
+        """Test that owner URLs with various format suffixes are handled correctly."""
+        format_suffixes = ["csv", "xml", "yaml", "html", "api"]
+
+        for suffix in format_suffixes:
+            data = {
+                "name": f"demo_{suffix}",
+                "owner": f"http://testserver/api/v1/users/{self.user.username}.{suffix}",
+                "public": False,
+            }
+
+            view = ProjectViewSet.as_view({"post": "create"})
+            request = self.factory.post(
+                "/",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = view(request, owner=self.user.username)
+
+            self.assertEqual(
+                response.status_code,
+                201,
+                f"Failed to create project with .{suffix} format suffix in owner URL",
+            )
+
+            project = Project.objects.get(name=data["name"])
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)
+
     # pylint: disable=invalid-name
     def test_projects_create_many_users(self):
         self._project_create()
