@@ -23,9 +23,6 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
-from onadata.libs.serializers.fields.format_suffix_hyperlink_field import (
-    FormatSuffixHyperlinkedRelatedField,
-)
 from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
@@ -67,11 +64,11 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name="organizationprofile-detail", lookup_field="user"
     )
     org = serializers.CharField(source="user.username", max_length=30)
-    user = FormatSuffixHyperlinkedRelatedField(
+    user = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     email = serializers.EmailField(allow_blank=True)
-    creator = FormatSuffixHyperlinkedRelatedField(
+    creator = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     users = serializers.SerializerMethodField()
@@ -205,7 +202,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 class RotateOrganizationKeySerializer(serializers.Serializer):
     """Serializer for manual key rotation."""
 
-    user = FormatSuffixHyperlinkedRelatedField(
+    user = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     id = serializers.IntegerField()

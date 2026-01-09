@@ -17,9 +17,6 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import ManagerRole, OwnerRole, get_role, is_organization
-from onadata.libs.serializers.fields.format_suffix_hyperlink_field import (
-    FormatSuffixHyperlinkedRelatedField,
-)
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -314,7 +311,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="project-detail", lookup_field="pk"
     )
-    owner = FormatSuffixHyperlinkedRelatedField(
+    owner = serializers.HyperlinkedRelatedField(
         view_name="user-detail",
         source="organization",
         lookup_field="username",
@@ -322,7 +319,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = FormatSuffixHyperlinkedRelatedField(
+    created_by = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     metadata = JsonField(required=False)
@@ -436,7 +433,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="project-detail", lookup_field="pk"
     )
-    owner = FormatSuffixHyperlinkedRelatedField(
+    owner = serializers.HyperlinkedRelatedField(
         view_name="user-detail",
         source="organization",
         lookup_field="username",
@@ -444,7 +441,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = FormatSuffixHyperlinkedRelatedField(
+    created_by = serializers.HyperlinkedRelatedField(
         view_name="user-detail", lookup_field="username", read_only=True
     )
     metadata = JsonField(required=False)
