@@ -218,7 +218,12 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         media_file = "1335783522563.jpg"
         if delete_existing_attachments:
             try:
-                cmd = f"rm {settings.MEDIA_ROOT}*/attachments/*/{media_file}"
+                # Use specific user and xform id_string instead of wildcards to avoid
+                # deleting files from other tests running in parallel
+                cmd = (
+                    f"rm {settings.MEDIA_ROOT}"
+                    f"{self.user.username}/attachments/{self.xform.id_string}/{media_file}"
+                )
                 subprocess.run(cmd, shell=True, check=True)
             except subprocess.CalledProcessError:
                 pass
