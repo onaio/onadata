@@ -207,7 +207,7 @@ def send_mass_mail(
         message = EmailMultiAlternatives(subject, text, from_email, recipient)
         message.attach_alternative(html, "text/html")
         messages.append(message)
-    return connection.send_messages(messages)
+    return connection.send_actstream_message_asyncs(messages)
 
 
 def friendly_date(date):
