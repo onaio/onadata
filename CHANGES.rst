@@ -45,7 +45,7 @@ v5.11.1 (2025-12-10)
 
 v5.11.0 (2025-12-08)
 --------------------
-- Handle failures during partitioning cutover in
+- Handle failures during partitioning cutover
   [@ukanga]
   `PR #2962 https://github.com/onaio/onadata/pull/2962`
 - fix: add validation to prevent replacing encrypted forms
@@ -71,7 +71,7 @@ v5.11.0 (2025-12-08)
   `PR #2967 https://github.com/onaio/onadata/pull/2967`
 - Add message folding for Actstream messages
   [@FrankApiyo]
-  `PR #2967 https://github.com/onaio/onadata/pull/2956`
+  `PR #2956 https://github.com/onaio/onadata/pull/2956`
 
 v5.10.0 (2025-11-24)*
 --------------------
