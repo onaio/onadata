@@ -3,6 +3,31 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.13.0 (2026-01-12)
+--------------------
+- Update to pyxform==4.1.0
+  [@ukanga]
+  `PR #2961 https://github.com/onaio/onadata/pull/2961`
+- feat: add v2 project list endpoint
+  [@kelvin-muchiri]
+  `PR #2877 https://github.com/onaio/onadata/pull/2877`
+- chore(deps): security updates
+  [@kelvin-muchiri]
+  `PR #2981 https://github.com/onaio/onadata/pull/2981`
+- fix: decryption fails for data collected before encryption was disabled
+  [@kelvin-muchiri]
+  `PR #2983 https://github.com/onaio/onadata/pull/2983`
+- fix: new Instance created if there is a edit conflict
+  [@kelvin-muchiri]
+  `PR #2984 https://github.com/onaio/onadata/pull/2984`
+- Fix: Strip format suffixes from hyperlinked username fields
+  [@FrankApiyo]
+  `PR #2987 https://github.com/onaio/onadata/pull/2987`
+- Fix flaky tests
+  [@FrankApiyo]
+  `PR #2988 https://github.com/onaio/onadata/pull/2988`
+
+
 v5.12.0 (2025-12-16)
 --------------------
 - Revert activity log folding implementation
