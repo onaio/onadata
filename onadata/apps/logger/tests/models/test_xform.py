@@ -10,6 +10,8 @@ from unittest.mock import call, patch
 
 from django.core.cache import cache
 from django.utils import timezone
+from pyxform.builder import SurveyElementBuilder as RealBuilder
+from pyxform.errors import PyXFormError
 
 from onadata.apps.logger.models import DataView, Instance, XForm
 from onadata.apps.logger.models.xform import (
@@ -18,7 +20,6 @@ from onadata.apps.logger.models.xform import (
     get_survey_from_file_object,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from pyxform.errors import PyXFormError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -517,7 +518,6 @@ class TestXForm(TestBase):
 
     def test_get_survey_fallback_on_trigger_error(self):
         """Test _get_survey falls back to XLS when trigger format error occurs."""
-        from pyxform.builder import SurveyElementBuilder as RealBuilder
 
         self._publish_transportation_form()
         xform = XForm.objects.get(pk=self.xform.pk)
