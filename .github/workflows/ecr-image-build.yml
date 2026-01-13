@@ -168,7 +168,7 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: Upload Trivy scan result to Github security lab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true

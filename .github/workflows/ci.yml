@@ -225,7 +225,7 @@ jobs:
           retention-days: 30
 
       - name: Upload vulnerability scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
