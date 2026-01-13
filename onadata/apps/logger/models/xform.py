@@ -471,12 +471,24 @@ class XFormMixin:
         except ValueError:
             pass
         except (PyXFormError, KeyError) as e:
-            if (
+            error_message = str(e)
+            # Handle itemset errors (existing logic from migration 0031)
+            is_itemset_error = (
                 "Arguments 'itemset' and 'list_name' must not both be None or empty"
-                in str(e)
-                or "itemset" in str(e)
-            ) and self.xls:
-                return self.get_survey_from_xlsform()
+                in error_message
+                or "itemset" in error_message
+            )
+            # Handle trigger format errors (pyxform 4.1.0 expects tuples)
+            is_trigger_error = (
+                "expected processed trigger data as a tuple" in error_message
+            )
+
+            if (is_itemset_error or is_trigger_error) and self.xls:
+                # Use get_survey_and_json_from_xlsform to get workbook_json
+                survey, workbook_json = self.get_survey_and_json_from_xlsform()
+                # Persist the workbook_json to avoid repeated XLS parsing
+                XForm.objects.filter(pk=self.pk).update(json=workbook_json)
+                return survey
             raise
 
         return bytes(bytearray(self.xml, encoding="utf-8"))

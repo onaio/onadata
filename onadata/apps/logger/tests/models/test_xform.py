@@ -18,6 +18,7 @@ from onadata.apps.logger.models.xform import (
     get_survey_from_file_object,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from pyxform.errors import PyXFormError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
@@ -513,3 +514,53 @@ class TestXForm(TestBase):
         self.assertIsNotNone(survey2)
         self.assertEqual(survey.name, survey2.name)
         self.assertEqual(workbook_json["name"], workbook_json2["name"])
+
+    def test_get_survey_fallback_on_trigger_error(self):
+        """Test _get_survey falls back to XLS when trigger format error occurs."""
+        from pyxform.builder import SurveyElementBuilder as RealBuilder
+
+        self._publish_transportation_form()
+        xform = XForm.objects.get(pk=self.xform.pk)
+
+        # Store the original workbook_json for comparison
+        original_workbook_json = xform.json.copy()
+
+        # Set json to survey.to_json_dict() to simulate old format
+        old_format_json = xform.survey.to_json_dict()
+        XForm.objects.filter(pk=xform.pk).update(json=old_format_json)
+        xform.refresh_from_db()
+
+        # Clear cached survey
+        if hasattr(xform, "_survey"):
+            delattr(xform, "_survey")
+
+        # Mock the builder to raise PyXFormError on first call only
+        # Second call (from get_survey_from_file_object) should succeed
+        call_count = [0]
+
+        def side_effect_fn(json_data):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # First call - simulate trigger error
+                raise PyXFormError(
+                    "Internal error: PyXForm expected processed trigger data as a tuple, "
+                    "but received a type '<class 'str'>' with value '${assessor}'."
+                )
+            # Subsequent calls - use real implementation
+            return RealBuilder().create_survey_element_from_dict(json_data)
+
+        with patch(
+            "onadata.apps.logger.models.xform.SurveyElementBuilder"
+        ) as mock_builder_class:
+            mock_builder = mock_builder_class.return_value
+            mock_builder.create_survey_element_from_dict.side_effect = side_effect_fn
+
+            # Should not raise - should fall back to XLS and persist workbook_json
+            survey = xform.survey
+            self.assertIsNotNone(survey)
+
+        # Verify the JSON was updated to workbook_json format (not survey.to_json_dict())
+        xform.refresh_from_db()
+        self.assertIsInstance(xform.json, dict)
+        # The json should now be workbook_json, not the old survey.to_json_dict() format
+        self.assertEqual(xform.json, original_workbook_json)
