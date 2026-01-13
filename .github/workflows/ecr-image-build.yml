@@ -63,28 +63,16 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan github.com > ~/.ssh/known_hosts
 
-      - name: Get the version
-        id: get-version
-        if: github.event_name != 'push'
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Get the branch name
-        id: get-branch-name
-        if: >
-          github.event_name == 'push'
-          || github.event_name == 'workflow_dispatch'
-        run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
       - name: Get docker repository URL
         id: get-repo-url
         run: |
           echo "docker_repo=${{ steps.login-ecr.outputs.registry }}\
-               /onaio/onadata:${{ env.version || github.ref_name }}"\
+               /onaio/onadata:${{ steps.meta.outputs.version }}"\
                | sed 's/ //g' >> $GITHUB_ENV
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu

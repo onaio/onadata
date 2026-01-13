@@ -173,10 +173,14 @@ jobs:
       - name: Update apt sources
         run: sudo apt-get update
 
-      - name: Get the branch name
-        id: get-branch-name
-        if: github.event_name == 'push'
-        run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: onaio/onadata
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
 
       - name: Build Docker image
         uses: docker/build-push-action@v6
@@ -185,9 +189,8 @@ jobs:
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64
           push: false
-          tags: |
-            onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
-          cache-from: type=registry,ref=onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.tags }}
           cache-to: type=inline
           ssh: |
             default=/tmp/ssh-agent.sock
@@ -198,7 +201,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
-          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          image-ref: ${{ steps.meta.outputs.tags }}
           format: sarif
           ignore-unfixed: false
           severity: "CRITICAL,HIGH"
