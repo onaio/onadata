@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=requirements/dev.pip --strip-extras requirements/dev.in
 #
+-e .
+    # via -r requirements/base.in
 -e git+https://github.com/onaio/savreaderwriter.git@fix-pep-440-issues#egg=savreaderwriter
     # via -r requirements/base.in
 amqp==5.3.1
@@ -12,7 +14,7 @@ analytics-python==1.4.post1
     # via onadata
 appoptics-metrics==5.1.0
     # via onadata
-asgiref==3.10.0
+asgiref==3.11.0
     # via
     #   django
     #   django-cors-headers
@@ -32,31 +34,31 @@ attrs==25.4.0
     #   referencing
 backoff==1.10.0
     # via analytics-python
-billiard==4.2.3
+billiard==4.2.4
     # via celery
-boto3==1.40.76
+boto3==1.42.27
     # via
     #   dataflows-tabulator
     #   moto
     #   valigetta
-botocore==1.40.76
+botocore==1.42.27
     # via
     #   boto3
     #   moto
     #   s3transfer
 cached-property==2.0.1
     # via tableschema
-cachetools==6.2.2
+cachetools==6.2.4
     # via google-auth
-celery==5.5.3
+celery==5.6.2
     # via onadata
-certifi==2025.11.12
+certifi==2026.1.4
     # via
     #   requests
     #   sentry-sdk
 cffi==2.0.0
     # via cryptography
-cfgv==3.4.0
+cfgv==3.5.0
     # via pre-commit
 chardet==5.2.0
     # via
@@ -111,7 +113,7 @@ dill==0.4.0
     # via pylint
 distlib==0.4.0
     # via virtualenv
-django==5.2.8
+django==5.2.10
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -156,11 +158,11 @@ django-multidb-router @ git+https://github.com/onaio/django-multidb-router.git@f
     # via -r requirements/base.in
 django-nose==1.4.7
     # via onadata
-django-oauth-toolkit==3.1.0
+django-oauth-toolkit==3.2.0
     # via onadata
 django-ordered-model==3.7.4
     # via onadata
-django-query-builder==3.2.0
+django-query-builder==3.2.1
     # via onadata
 django-redis==6.0.0
     # via onadata
@@ -168,7 +170,7 @@ django-registration-redux==2.13
     # via onadata
 django-render-block==0.11
     # via django-templated-email
-django-reversion==6.0.0
+django-reversion==6.1.0
     # via onadata
 django-taggit==6.1.0
     # via onadata
@@ -204,11 +206,13 @@ elaphe3==0.2.0
     # via onadata
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.3.0
-    # via ipython
+exceptiongroup==1.3.1
+    # via
+    #   celery
+    #   ipython
 executing==2.2.1
     # via stack-data
-filelock==3.20.0
+filelock==3.20.3
     # via virtualenv
 flake8==7.3.0
     # via flake8-polyfill
@@ -228,15 +232,15 @@ google-auth==2.41.1
     #   onadata
 google-auth-oauthlib==1.2.3
     # via onadata
-greenlet==3.2.4
+greenlet==3.3.0
     # via sqlalchemy
 hiredis==3.3.0
     # via redis
 httmock==1.4.0
     # via -r requirements/dev.in
-httplib2==0.31.0
+httplib2==0.31.1
     # via onadata
-identify==2.6.15
+identify==2.6.16
     # via pre-commit
 idna==3.11
     # via requests
@@ -246,7 +250,7 @@ inflection==0.5.1
     # via djangorestframework-jsonapi
 ipdb==0.13.13
     # via -r requirements/dev.in
-ipython==8.37.0
+ipython==8.38.0
     # via ipdb
 isodate==0.7.2
     # via tableschema
@@ -268,7 +272,7 @@ jsonpickle==4.1.1
     # via onadata
 jsonpointer==3.0.0
     # via datapackage
-jsonschema==4.25.1
+jsonschema==4.26.0
     # via
     #   datapackage
     #   tableschema
@@ -276,7 +280,7 @@ jsonschema-specifications==2025.9.1
     # via jsonschema
 jwcrypto==1.5.6
     # via django-oauth-toolkit
-kombu==5.5.4
+kombu==5.6.2
     # via celery
 linear-tsv==1.1.0
     # via dataflows-tabulator
@@ -299,9 +303,9 @@ modilabs-python-utils==0.1.5
     # via onadata
 monotonic==1.6
     # via analytics-python
-moto==5.1.17
+moto==5.1.19
     # via -r requirements/dev.in
-nodeenv==1.9.1
+nodeenv==1.10.0
     # via pre-commit
 nose==1.3.7
     # via django-nose
@@ -332,16 +336,16 @@ pep8-naming==0.10.0
     # via prospector
 pexpect==4.9.0
     # via ipython
-pillow==12.0.0
+pillow==12.1.0
     # via
     #   elaphe3
     #   onadata
-platformdirs==4.5.0
+platformdirs==4.5.1
     # via
     #   pylint
     #   virtualenv
     #   yapf
-pre-commit==4.4.0
+pre-commit==4.5.1
     # via -r requirements/dev.in
 prompt-toolkit==3.0.52
     # via
@@ -394,7 +398,7 @@ pylint==3.3.9
     #   pylint-plugin-utils
 pylint-celery==0.3
     # via prospector
-pylint-django==2.6.1
+pylint-django==2.7.0
     # via
     #   -r requirements/dev.in
     #   prospector
@@ -402,9 +406,9 @@ pylint-plugin-utils==0.9.0
     # via
     #   pylint-celery
     #   pylint-django
-pymongo==4.15.4
+pymongo==4.16.0
     # via onadata
-pyparsing==3.2.5
+pyparsing==3.3.1
     # via httplib2
 python-dateutil==2.9.0.post0
     # via
@@ -436,7 +440,7 @@ pyyaml==6.0.3
     #   responses
 recaptcha-client==1.0.6
     # via onadata
-redis==7.0.1
+redis==7.1.0
     # via
     #   django-redis
     #   onadata
@@ -469,17 +473,17 @@ responses==0.25.8
     # via moto
 rfc3986==2.0.0
     # via tableschema
-rpds-py==0.29.0
+rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
 rsa==4.9.1
     # via google-auth
-s3transfer==0.14.0
+s3transfer==0.16.0
     # via boto3
 semver==3.0.4
     # via requirements-detector
-sentry-sdk==2.45.0
+sentry-sdk==2.49.0
     # via onadata
 setoptconf-tmp==0.3.1
     # via prospector
@@ -496,9 +500,9 @@ six==1.17.0
     #   tableschema
 snowballstemmer==3.0.1
     # via pydocstyle
-sqlalchemy==2.0.44
+sqlalchemy==2.0.45
     # via dataflows-tabulator
-sqlparse==0.5.3
+sqlparse==0.5.5
     # via
     #   django
     #   django-debug-toolbar
@@ -510,13 +514,13 @@ tblib==3.2.2
     # via -r requirements/dev.in
 toml==0.10.2
     # via prospector
-tomli==2.3.0
+tomli==2.4.0
     # via
     #   ipdb
     #   pylint
     #   requirements-detector
     #   yapf
-tomlkit==0.13.3
+tomlkit==0.14.0
     # via pylint
 traitlets==5.14.3
     # via
@@ -533,8 +537,10 @@ typing-extensions==4.15.0
     #   referencing
     #   sqlalchemy
     #   virtualenv
-tzdata==2025.2
+tzdata==2025.3
     # via kombu
+tzlocal==5.3.1
+    # via celery
 ujson==5.11.0
     # via onadata
 unicodecsv==0.14.1
@@ -543,7 +549,7 @@ unicodecsv==0.14.1
     #   datapackage
     #   onadata
     #   tableschema
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   botocore
     #   requests
@@ -558,11 +564,11 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.35.4
+virtualenv==20.36.1
     # via pre-commit
 wcwidth==0.2.14
     # via prompt-toolkit
-werkzeug==3.1.3
+werkzeug==3.1.5
     # via moto
 wrapt==2.0.1
     # via deprecated
