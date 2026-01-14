@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.13.1 (2026-01-14)
+--------------------
+- Fix: Handle trigger format backward compatibility for pyxform 4.1.0
+  [@ukanga]
+  `PR #2993 https://github.com/onaio/onadata/pull/2993`
+
 v5.13.0 (2026-01-12)
 --------------------
 - Update to pyxform==4.1.0
