@@ -651,7 +651,7 @@ class XFormSerializer(XFormBaseSerializer):
             return instance
 
 
-# pylint: disable=abstract-method
+# pylint: disable=abstract-method,too-many-ancestors
 class XFormCreateSerializer(XFormSerializer):
     """
     XForm serializer that is only relevant during the XForm publishing process.
