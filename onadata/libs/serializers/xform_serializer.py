@@ -424,8 +424,6 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         read_only_fields = (
-            "json",
-            "xml",
             "date_created",
             "date_modified",
             "encrypted",
@@ -435,89 +433,111 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             "xls_available",
             "is_managed",
         )
-        exclude = (
-            "json",
-            "xml",
-            "xls",
-            "user",
-            "has_start_time",
-            "shared",
-            "shared_data",
-            "deleted_at",
-            "deleted_by",
+        fields = (
+            "url",
+            "project",
+            "formid",
+            "title",
+            "id_string",
+            "sms_id_string",
+            "version",
+            "uuid",
+            "date_created",
+            "date_modified",
+            "last_updated_at",
+            "description",
+            "downloadable",
+            "owner",
+            "created_by",
+            "public",
+            "public_data",
+            "public_key",
+            "require_auth",
+            "tags",
+            "enketo_url",
+            "enketo_preview_url",
+            "enketo_single_submit_url",
+            "num_of_submissions",
+            "num_of_pending_decryption_submissions",
+            "num_of_decrypted_submissions",
+            "last_submission_time",
+            "xls_available",
+            "allows_sms",
+            "encrypted",
+            "bamboo_dataset",
+            "instances_with_geopoints",
+            "instances_with_osm",
+            "has_hxl_support",
+            "hash",
+            "is_merged_dataset",
+            "is_instance_json_regenerated",
+            "is_managed",
+            "contributes_entities_to",
+            "consumes_entities_from",
+            "data_views",
+            "users",
         )
 
 
-class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+class XFormSerializer(XFormBaseSerializer):
     """
     XForm model serializer
     """
 
-    formid = serializers.ReadOnlyField(source="id")
     metadata = serializers.SerializerMethodField()
-    owner = serializers.HyperlinkedRelatedField(
-        view_name="user-detail",
-        source="user",
-        lookup_field="username",
-        queryset=User.objects.exclude(
-            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-        ),
-    )
-    created_by = serializers.HyperlinkedRelatedField(
-        view_name="user-detail",
-        lookup_field="username",
-        queryset=User.objects.exclude(
-            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-        ),
-    )
-    public = serializers.BooleanField(source="shared")
-    public_data = serializers.BooleanField(source="shared_data")
-    public_key = serializers.CharField(required=False)
     enable_kms_encryption = serializers.BooleanField(required=False, write_only=True)
-    require_auth = serializers.BooleanField()
     submission_count_for_today = serializers.ReadOnlyField()
-    tags = TagListSerializer(read_only=True)
-    title = serializers.CharField(max_length=255)
-    url = serializers.HyperlinkedIdentityField(
-        view_name="xform-detail", lookup_field="pk"
-    )
-    users = serializers.SerializerMethodField()
-    enketo_url = serializers.SerializerMethodField()
-    enketo_preview_url = serializers.SerializerMethodField()
-    enketo_single_submit_url = serializers.SerializerMethodField()
-    num_of_submissions = serializers.SerializerMethodField()
-    num_of_pending_decryption_submissions = serializers.SerializerMethodField()
-    last_submission_time = serializers.SerializerMethodField()
     form_versions = serializers.SerializerMethodField()
-    data_views = serializers.SerializerMethodField()
-    xls_available = serializers.SerializerMethodField()
-    contributes_entities_to = serializers.SerializerMethodField()
-    consumes_entities_from = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta(XFormBaseSerializer.Meta):
         model = XForm
-        read_only_fields = (
-            "json",
-            "xml",
+        fields = (
+            "url",
+            "project",
+            "formid",
+            "title",
+            "id_string",
+            "sms_id_string",
+            "version",
+            "uuid",
             "date_created",
             "date_modified",
+            "last_updated_at",
+            "description",
+            "downloadable",
+            "owner",
+            "created_by",
+            "public",
+            "public_data",
+            "public_key",
+            "require_auth",
+            "tags",
+            "enketo_url",
+            "enketo_preview_url",
+            "enketo_single_submit_url",
+            "num_of_submissions",
+            "submission_count_for_today",
+            "num_of_pending_decryption_submissions",
+            "num_of_decrypted_submissions",
+            "last_submission_time",
+            "xls_available",
+            "allows_sms",
             "encrypted",
             "bamboo_dataset",
-            "last_submission_time",
+            "instances_with_geopoints",
+            "instances_with_osm",
+            "has_hxl_support",
+            "hash",
             "is_merged_dataset",
-            "xls_available",
+            "is_instance_json_regenerated",
             "is_managed",
-        )
-        exclude = (
-            "json",
-            "xml",
-            "xls",
-            "user",
-            "has_start_time",
-            "shared",
-            "shared_data",
-            "deleted_at",
-            "deleted_by",
+            "enable_kms_encryption",
+            "contributes_entities_to",
+            "consumes_entities_from",
+            "form_versions",
+            "data_views",
+            "metadata",
+            "users",
         )
 
     def get_metadata(self, obj):
@@ -631,7 +651,7 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             return instance
 
 
-# pylint: disable=abstract-method
+# pylint: disable=abstract-method,too-many-ancestors
 class XFormCreateSerializer(XFormSerializer):
     """
     XForm serializer that is only relevant during the XForm publishing process.
@@ -644,6 +664,9 @@ class XFormCreateSerializer(XFormSerializer):
         Returns the value of ``obj.has_id_string_changed``
         """
         return obj.has_id_string_changed
+
+    class Meta(XFormSerializer.Meta):
+        fields = XFormSerializer.Meta.fields + ("has_id_string_changed",)
 
 
 # pylint: disable=abstract-method

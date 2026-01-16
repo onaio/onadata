@@ -257,7 +257,7 @@ class XFormViewSet(
         renderers.GoogleSheetsRenderer,
     ]
     queryset = (
-        XForm.objects.select_related("user", "created_by")
+        XForm.objects.select_related("user", "created_by", "project")
         .prefetch_related(
             Prefetch(
                 "xformuserobjectpermission_set",
@@ -269,34 +269,7 @@ class XFormViewSet(
             Prefetch("tags"),
             Prefetch("dataview_set"),
         )
-        .only(
-            "id",
-            "id_string",
-            "title",
-            "shared",
-            "shared_data",
-            "require_auth",
-            "created_by",
-            "num_of_submissions",
-            "downloadable",
-            "encrypted",
-            "sms_id_string",
-            "date_created",
-            "date_modified",
-            "last_submission_time",
-            "uuid",
-            "bamboo_dataset",
-            "instances_with_osm",
-            "instances_with_geopoints",
-            "version",
-            "has_hxl_support",
-            "project",
-            "last_updated_at",
-            "user",
-            "allows_sms",
-            "description",
-            "is_merged_dataset",
-        )
+        .defer("xml", "json", "xls")
     )
     serializer_class = XFormSerializer
     pagination_class = StandardPageNumberPagination
