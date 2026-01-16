@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import re
 from builtins import open
+from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
 from xml.etree.ElementTree import fromstring
@@ -16,6 +17,7 @@ from django.conf import settings
 
 import unicodecsv as ucsv
 from celery.backends.rpc import BacklogLimitExceeded
+from openpyxl import Workbook
 
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.main.models import MetaData
@@ -707,3 +709,64 @@ class CSVImportTestCase(TestBase):
                     },
                 ],
             )
+
+    def test_submission_xls_to_csv_with_empty_date_cells(self):
+        """Test that submission_xls_to_csv handles empty cells in date columns.
+
+        Regression test for AttributeError when calling .isoformat() on None
+        values in date columns.
+
+        The date column detection logic in submission_xls_to_csv checks is_date
+        on the row where it stops iterating (when value becomes None or reaches
+        max_row-1). We structure the test data so that:
+        - Rows 2 and 3 have dates (loop advances through both)
+        - Row 3 is where is_date gets checked (since 3 < 4-1 is False)
+        - Row 4 has an empty cell, which triggers the bug when iterating
+        """
+        # Create an Excel workbook with a date column containing empty cells
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "data"
+
+        # Add headers
+        sheet["A1"] = "name"
+        sheet["B1"] = "date_field"
+        sheet["C1"] = "age"
+
+        # Row 2: first data row with valid date
+        sheet["A2"] = "John"
+        sheet["B2"] = datetime(2023, 5, 15)
+        sheet["B2"].number_format = "YYYY-MM-DD"
+        sheet["C2"] = 30
+
+        # Row 3: second data row with valid date (is_date check happens here)
+        sheet["A3"] = "Jane"
+        sheet["B3"] = datetime(2023, 6, 20)
+        sheet["B3"].number_format = "YYYY-MM-DD"
+        sheet["C3"] = 25
+
+        # Row 4: third data row with EMPTY date - triggers AttributeError
+        sheet["A4"] = "Bob"
+        sheet["B4"] = None  # Empty date cell - this causes AttributeError
+        sheet["C4"] = 35
+
+        # Save workbook to BytesIO
+        xls_file = BytesIO()
+        workbook.save(xls_file)
+        xls_file.seek(0)
+
+        # This should not raise AttributeError
+        csv_file = csv_import.submission_xls_to_csv(xls_file)
+
+        # Verify the CSV was created and contains the expected data
+        csv_file.seek(0)
+        csv_reader = ucsv.DictReader(csv_file, encoding="utf-8-sig")
+        rows = list(csv_reader)
+
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["name"], "John")
+        self.assertEqual(rows[1]["name"], "Jane")
+        self.assertEqual(rows[2]["name"], "Bob")
+
+        # The empty date cell should remain as empty string or None representation
+        self.assertIn(rows[2]["date_field"], ["", "None", None])
