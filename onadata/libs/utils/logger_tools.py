@@ -654,6 +654,20 @@ def create_instance(
     return instance
 
 
+def _create_duplicate_response(request):
+    """Create a 202 response for duplicate submissions."""
+    response = OpenRosaResponse(_("Duplicate submission"))
+    response.status_code = 202
+    if request:
+        try:
+            response["Location"] = request.build_absolute_uri(request.path)
+        except KeyError:
+            # Handle cases where request doesn't have required META data
+            # (e.g., synthetic requests from CSV import background tasks)
+            pass
+    return response
+
+
 # pylint: disable=too-many-branches,too-many-statements
 @use_master
 def safe_create_instance(  # noqa C901
@@ -703,11 +717,7 @@ def safe_create_instance(  # noqa C901
         response.status_code = 400
         error = response
     except DuplicateInstance:
-        response = OpenRosaResponse(_("Duplicate submission"))
-        response.status_code = 202
-        if request:
-            response["Location"] = request.build_absolute_uri(request.path)
-        error = response
+        error = _create_duplicate_response(request)
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
     except UnreadablePostError as e:
@@ -729,11 +739,7 @@ def safe_create_instance(  # noqa C901
             _("Submission has been modified since it was last fetched.")
         )
     if isinstance(instance, DuplicateInstance):
-        response = OpenRosaResponse(_("Duplicate submission"))
-        response.status_code = 202
-        if request:
-            response["Location"] = request.build_absolute_uri(request.path)
-        error = response
+        error = _create_duplicate_response(request)
         instance = None
     return [error, instance]
 
