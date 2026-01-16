@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.13.2 (2026-01-16)
+--------------------
+- Catch keyerror in async workers
+  [@FrankApiyo]
+  `PR #2997 https://github.com/onaio/onadata/pull/2997`
+- Fix submit xls bug
+  [@FrankApiyo]
+  `PR #2998 https://github.com/onaio/onadata/pull/2998`
+
 v5.13.1 (2026-01-14)
 --------------------
 - Fix: Handle trigger format backward compatibility for pyxform 4.1.0
