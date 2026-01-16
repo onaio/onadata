@@ -654,7 +654,7 @@ def submission_xls_to_csv(xls_file):  # noqa
                 row_values[date_column_index - 1] = row_values[
                     date_column_index - 1
                 ].isoformat()
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, AttributeError):
                 pass
 
         # convert excel boolean to true/false
