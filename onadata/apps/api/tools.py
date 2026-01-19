@@ -295,13 +295,15 @@ def get_organization_members(organization):
     """Get members team user queryset"""
     team = get_organization_members_team(organization)
 
-    return team.user_set.filter(is_active=True)
+    # Optimize: Prefetch profile to avoid N+1
+    return team.user_set.filter(is_active=True).select_related("profile")
 
 
 def get_organization_owners(organization):
     """Get owners team user queryset"""
     team = get_or_create_organization_owners_team(organization)
-    return team.user_set.filter(is_active=True)
+    # Optimize: Prefetch profile to avoid N+1
+    return team.user_set.filter(is_active=True).select_related("profile")
 
 
 def _get_owners(organization):
@@ -655,10 +657,12 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
+    # Only fetch the fields we need: xform.id, xform.project_id, and
+    # project.id for permissions
     xform = (
         XForm.objects.filter(pk=xform_id)
         .select_related("project")
-        .only("project_id", "id")
+        .only("id", "project__id")
         .first()
     )
 
@@ -666,7 +670,7 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # ignore if forms has meta perms set
-    if xform.metadata_set.filter(data_type=XFORM_META_PERMS):
+    if xform.metadata_set.filter(data_type=XFORM_META_PERMS).exists():
         return
 
     # get and compare the project role to the xform role

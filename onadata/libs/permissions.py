@@ -533,7 +533,11 @@ def get_user_perms(obj):
     model = ProjectUserObjectPermission if isinstance(obj, Project) else model
 
     return (
-        queryset_iterator(model.objects.filter(content_object_id=obj.pk))
+        queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk).select_related(
+                "permission", "user"
+            )
+        )
         if model
         else None
     )
@@ -547,7 +551,11 @@ def get_group_perms(obj):
     model = ProjectGroupObjectPermission if isinstance(obj, Project) else model
 
     return (
-        queryset_iterator(model.objects.filter(content_object_id=obj.pk))
+        queryset_iterator(
+            model.objects.filter(content_object_id=obj.pk).select_related(
+                "permission", "group"
+            )
+        )
         if model
         else None
     )
