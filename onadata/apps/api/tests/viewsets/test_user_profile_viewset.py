@@ -1007,6 +1007,41 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["username"], "columbia.txt")
 
+    def test_unicode_username(self):
+        """Test that usernames with Unicode/accented characters are accepted"""
+        unicode_usernames = [
+            ("sangaré", "sangare@example.com"),
+            ("müller", "muller@example.com"),
+            ("françois", "francois@example.com"),
+            ("josé", "jose@example.com"),
+        ]
+
+        for username, email in unicode_usernames:
+            data = {
+                "username": username,
+                "name": "Test User",
+                "email": email,
+                "city": "TestCity",
+                "country": "US",
+                "organization": "Test Inc.",
+                "password": "testpass123$",
+                "is_org": False,
+            }
+            request = self.factory.post(
+                "/api/v1/profiles",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request)
+
+            self.assertEqual(
+                response.status_code,
+                201,
+                f"Failed to create user with Unicode username '{username}': {response.data}",
+            )
+            self.assertEqual(response.data["username"], username)
+
     def test_username_with_blocked_file_extensions(self):
         """Test that usernames ending with blocked file extensions are rejected"""
         blocked_extensions = ["json", "csv", "xls", "xlsx", "kml"]

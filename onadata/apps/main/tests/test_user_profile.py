@@ -6,6 +6,7 @@ Test user profile
 from __future__ import unicode_literals
 
 from unittest.mock import patch
+from urllib.parse import unquote
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.test import RequestFactory
@@ -132,6 +133,12 @@ class TestUserProfile(TestBase):
             ("user.middle.name", "user13@example.com"),  # multiple dots
             ("test.user-name_123", "user14@example.com"),  # mixed characters
             ("username.txt", "user15@example.com"),  # non-blocked extension
+            # Unicode/accented characters
+            ("sangaré", "user16@example.com"),  # French accented e
+            ("müller", "user17@example.com"),  # German umlaut
+            ("françois", "user18@example.com"),  # French cedilla
+            ("josé", "user19@example.com"),  # Spanish accented e
+            ("naïve", "user20@example.com"),  # French diaeresis
         ]
         for username, email in valid_usernames:
             users_before = User.objects.count()
@@ -224,3 +231,22 @@ class TestUserProfile(TestBase):
             self.assertTrue(url_with_format.endswith("/bob.json"))
         except NoReverseMatch as e:
             self.fail(f"URL reverse with format='json' failed: {e}")
+
+    def test_url_reverse_with_unicode_username(self):
+        """Test that URL reversing works with Unicode/accented usernames"""
+        unicode_usernames = [
+            ("sangaré", "sangare@example.com"),
+            ("müller", "muller@example.com"),
+            ("françois", "francois@example.com"),
+        ]
+
+        for username, email in unicode_usernames:
+            self._login_user_and_profile({"username": username, "email": email})
+
+            # URL reverse should work for Unicode usernames
+            try:
+                url = reverse("user-detail", kwargs={"username": username})
+                # URLs are percent-encoded, so decode before checking
+                self.assertIn(username, unquote(url))
+            except NoReverseMatch as e:
+                self.fail(f"URL reverse failed for Unicode username '{username}': {e}")
