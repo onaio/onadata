@@ -1,4 +1,4 @@
-FROM onaio/python-deps:3.10.19-20251028 AS base
+FROM onaio/python-deps:3.10.19-20260119 AS base
 
 ARG optional_packages
 
