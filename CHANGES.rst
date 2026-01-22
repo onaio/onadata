@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.14.0 (2026-01-22)
+--------------------
+- Allow usernames to have any unicode characters
+  [@FrankApiyo]
+  `PR #3001 https://github.com/onaio/onadata/pull/3001`
+- Update requirements to latest versions
+  [@ukanga]
+  `PR #2995 https://github.com/onaio/onadata/pull/2995`
+
 v5.13.2 (2026-01-16)
 --------------------
 - Catch keyerror in async workers
