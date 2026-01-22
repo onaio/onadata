@@ -1042,6 +1042,41 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             )
             self.assertEqual(response.data["username"], username)
 
+    def test_emoji_username_rejected(self):
+        """Test that usernames containing emojis are rejected"""
+        emoji_usernames = [
+            "user😀",
+            "🎉party",
+            "test❤user",
+            "👍",
+        ]
+
+        for username in emoji_usernames:
+            data = {
+                "username": username,
+                "name": "Test User",
+                "email": "emojitest@example.com",
+                "city": "TestCity",
+                "country": "US",
+                "organization": "Test Inc.",
+                "password": "testpass123$",
+                "is_org": False,
+            }
+            request = self.factory.post(
+                "/api/v1/profiles",
+                data=json.dumps(data),
+                content_type="application/json",
+                **self.extra,
+            )
+            response = self.view(request)
+
+            self.assertEqual(
+                response.status_code,
+                400,
+                f"Username with emoji '{username}' should be rejected but got: {response.data}",
+            )
+            self.assertIn("username", response.data)
+
     def test_username_with_blocked_file_extensions(self):
         """Test that usernames ending with blocked file extensions are rejected"""
         blocked_extensions = ["json", "csv", "xls", "xlsx", "kml"]
