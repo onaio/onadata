@@ -480,6 +480,7 @@ class OwnerRole(Role):
 
 
 ROLES_ORDERED = [
+    MemberRole,
     ReadOnlyRoleNoDownload,
     ReadOnlyRole,
     DataEntryOnlyRole,
@@ -490,7 +491,6 @@ ROLES_ORDERED = [
     EditorRole,
     ManagerRole,
     OwnerRole,
-    MemberRole,
 ]
 
 ROLES = {role.name: role for role in ROLES_ORDERED}
