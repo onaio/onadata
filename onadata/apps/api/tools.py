@@ -279,8 +279,6 @@ def add_user_to_organization(organization, user, role=None):
 
     else:
         # New members & managers gain default team permissions on projects
-        team = get_organization_members_team(organization)
-
         for project in queryset_iterator(project_qs):
             if role == ManagerRole.name and project.created_by == user:
                 # New managers are only granted the manager role on the

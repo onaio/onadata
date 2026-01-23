@@ -409,9 +409,6 @@ class MemberRole(Role):
     """
 
     name = "member"
-    class_to_permissions = {
-        OrganizationProfile: [CAN_VIEW_ORGANIZATION_PROFILE],
-    }
 
 
 class OwnerRole(Role):
@@ -480,7 +477,6 @@ class OwnerRole(Role):
 
 
 ROLES_ORDERED = [
-    MemberRole,
     ReadOnlyRoleNoDownload,
     ReadOnlyRole,
     DataEntryOnlyRole,

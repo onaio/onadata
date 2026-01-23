@@ -21,7 +21,6 @@ from onadata.libs.permissions import (
     DataEntryRole,
     ManagerRole,
     OwnerRole,
-    MemberRole,
 )
 
 User = get_user_model()
@@ -142,8 +141,6 @@ class RemoveUserFromOrgTestCase(TestBase):
             OwnerRole.add(self.user, self.project)
 
         else:
-            MemberRole.add(self.user, self.org)
-            MemberRole.add(self.user, self.org.userprofile_ptr)
             DataEntryRole.add(self.user, self.project)
 
     def test_owner_removed(self):
@@ -182,7 +179,6 @@ class RemoveUserFromOrgTestCase(TestBase):
             self.members_team.user_set.filter(username=self.user.username).exists()
         )
         self.assertTrue(DataEntryRole.user_has_role(self.user, self.project))
-        self.assertTrue(MemberRole.user_has_role(self.user, self.org))
 
         remove_user_from_organization(self.org, self.user)
 
@@ -190,8 +186,6 @@ class RemoveUserFromOrgTestCase(TestBase):
             self.members_team.user_set.filter(username=self.user.username).exists()
         )
         self.assertFalse(DataEntryRole.user_has_role(self.user, self.project))
-        self.assertFalse(MemberRole.user_has_role(self.user, self.org))
-        self.assertFalse(MemberRole.user_has_role(self.user, self.org.userprofile_ptr))
 
     @patch("onadata.apps.api.tools.invalidate_organization_cache")
     def test_cache_invalidated(self, mock_invalidate_cache):

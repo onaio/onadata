@@ -5036,8 +5036,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
             for role_class in ROLES_ORDERED:
-                if role_class.name == "member":  # MemberRole is for orgs, not xforms
-                    continue
                 data = {"username": "alice", "role": role_class.name}
                 request = self.factory.post("/", data=data, **self.extra)
                 response = view(request, pk=formid)

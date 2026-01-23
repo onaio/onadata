@@ -2117,8 +2117,6 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {"username": "alice", "remove": True}
         for role_name, role_class in iteritems(role.ROLES):
-            if role_name == "member":  # MemberRole is for orgs, not projects
-                continue
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertTrue(role_class.user_has_role(self.user, self.project))
@@ -2646,8 +2644,6 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {"username": "alice", "remove": True}
         for role_name, role_class in iteritems(role.ROLES):
-            if role_name == "member":  # MemberRole is for orgs, not projects
-                continue
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2699,8 +2695,6 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {"username": "alice", "remove": True}
         for role_name, role_class in iteritems(role.ROLES):
-            if role_name == "member":  # MemberRole is for orgs, not projects
-                continue
             ShareProject(self.project, "alice", role_name).save()
 
             self.assertFalse(role_class.user_has_role(self.user, project1))
@@ -2779,8 +2773,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         MetaData.xform_meta_permission(self.xform, data_value=data_value)
 
         for role_class in ROLES_ORDERED:
-            if role_class.name == "member":  # MemberRole is for orgs, not projects
-                continue
             self.assertFalse(role_class.user_has_role(alice_profile.user, self.project))
 
             data = {"username": "alice", "role": role_class.name}
