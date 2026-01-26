@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.14.1 (2026-01-26)
+--------------------
+- Dockerfile clean-up
+  [@FrankApiyo]
+  `PR #3003 https://github.com/onaio/onadata/pull/3003`
+
 v5.14.0 (2026-01-22)
 --------------------
 - Allow usernames to have any unicode characters
