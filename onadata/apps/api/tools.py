@@ -190,13 +190,13 @@ def remove_user_from_organization(organization, user):
     owners_team = get_or_create_organization_owners_team(organization)
     remove_user_from_team(owners_team, user)
 
-    role = get_role_in_org(user, organization)
-    role_cls = ROLES.get(role)
+    org_role = get_role_in_org(user, organization)
+    org_role_cls = ROLES.get(org_role)
 
-    if role_cls:
+    if org_role_cls:
         # Remove object permissions
-        role_cls.remove_obj_permissions(user, organization)
-        role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
+        org_role_cls.remove_obj_permissions(user, organization)
+        org_role_cls.remove_obj_permissions(user, organization.userprofile_ptr)
 
     # Invalidate organization cache
     invalidate_organization_cache(organization.user.username)
@@ -208,8 +208,10 @@ def remove_user_from_organization(organization, user):
     project_qs = organization.user.project_org.all()
 
     for project in queryset_iterator(project_qs):
+        project_perms = get_perms(user, project)
+        project_role = get_role(project_perms, project)
         api_tasks.share_project_async.delay(
-            project.pk, user.username, role, remove=True
+            project.pk, user.username, project_role, remove=True
         )
 
 
@@ -277,8 +279,6 @@ def add_user_to_organization(organization, user, role=None):
 
     else:
         # New members & managers gain default team permissions on projects
-        team = get_organization_members_team(organization)
-
         for project in queryset_iterator(project_qs):
             if role == ManagerRole.name and project.created_by == user:
                 # New managers are only granted the manager role on the
