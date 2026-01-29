@@ -501,7 +501,7 @@ def decrypt_instance(instance: Instance) -> None:
     # form could have been switched from managed to unmanaged before any
     # encrypted submissions were received. We therefore check if the
     # form was ever managed.
-    if not instance.xform.kms_keys.exists():
+    if not (instance.xform.is_managed or instance.xform.kms_keys.exists()):
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )
