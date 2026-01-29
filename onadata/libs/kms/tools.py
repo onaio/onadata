@@ -497,10 +497,9 @@ def decrypt_instance(instance: Instance) -> None:
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
         )
 
-    # We can't rely on the current status of XForm.is_managed since the
+    # We can't rely on the current status of XForm.is_managed alone since the
     # form could have been switched from managed to unmanaged before any
-    # encrypted submissions were received. We therefore check if the
-    # form was ever managed.
+    # encrypted submissions were received
     if not (instance.xform.is_managed or instance.xform.kms_keys.exists()):
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
