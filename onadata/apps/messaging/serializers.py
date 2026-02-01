@@ -33,7 +33,7 @@ class ContentTypeChoiceField(serializers.ChoiceField):
         """
         Get the model from ContentType object
         """
-        return value.model
+        return value
 
 
 class MessageSerializer(serializers.ModelSerializer):
