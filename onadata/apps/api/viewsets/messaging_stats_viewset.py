@@ -3,11 +3,12 @@ API Endpoint implementation for Messaging statistics
 """
 
 import json
+import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Count, IntegerField, OuterRef, Subquery
+from django.db.models import CharField, Func, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Cast
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
@@ -24,6 +25,9 @@ from onadata.apps.messaging.filters import (
     TargetTypeFilterBackend,
 )
 from onadata.apps.messaging.permissions import TargetObjectPermissions
+from onadata.apps.viewer.models.export import ExportBaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -151,7 +155,9 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 if verb == EXPORT_CREATED:
                     export_type = None
                     if isinstance(parsed, dict) and "description" in parsed:
-                        export_type = parsed["description"]
+                        raw_type = parsed["description"]
+                        if raw_type in ExportBaseModel.EXPORT_TYPE_DICT:
+                            export_type = raw_type
 
                     # Group counts by export type
                     counts_by_type[export_type] = (
@@ -161,14 +167,18 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                     # For non-export verbs, use None as key
                     counts_by_type[None] = counts_by_type.get(None, 0) + count
             except (json.JSONDecodeError, TypeError):
-                pass
+                logger.warning(
+                    "Failed to parse action description for verb '%s': %s",
+                    verb,
+                    desc,
+                )
 
         return counts_by_type
 
     def _stream_annotated_queryset(self, queryset):
         yield "["
+        first = True
         group_key = None
-        prev_group_key = None
         out = {}
         for item in queryset.iterator():
             # Check if user information is included in the results
@@ -177,12 +187,12 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             else:
                 current_group_key = item.get("group")
 
-            if group_key is None:
+            if first:
                 group_key = current_group_key
+                first = False
             elif group_key != current_group_key:
                 yield json.dumps(out)
                 yield ","
-                prev_group_key = group_key
                 out = {}
                 group_key = current_group_key
 
@@ -198,20 +208,16 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             counts_by_type = self._extract_counts_by_export_type(descriptions, verb)
 
             # Add entries for each export type (or single entry for non-export verbs)
-            if counts_by_type:
-                for export_type, count in counts_by_type.items():
-                    # For export_created, append export type to verb
-                    # Creates entries like "export_created_csv"
-                    if verb == EXPORT_CREATED and export_type:
-                        verb_key = f"{verb}_{export_type}"
-                    else:
-                        verb_key = verb
+            for export_type, count in counts_by_type.items():
+                # For export_created, append export type to verb
+                # Creates entries like "export_created_csv"
+                if verb == EXPORT_CREATED and export_type:
+                    verb_key = f"{verb}_{export_type}"
+                else:
+                    verb_key = verb
 
-                    out[verb_key] = count
-            else:
-                # Fallback to database count if no descriptions were parsed
-                out[verb] = item.get("count")
-        if prev_group_key != group_key:
+                out[verb_key] = count
+        if not first:
             yield json.dumps(out)
         yield "]"
 
@@ -230,13 +236,19 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
         # Limit to most recent actions for performance (configurable via settings)
         limit = getattr(settings, "MESSAGING_STATS_LIMIT", 500)
-        # Get IDs of the most recent N actions to avoid the following error:
-        # "Cannot change a query once a slice has been taken"
-        action_ids = list(queryset.values_list("id", flat=True)[:limit])
-        limited_queryset = queryset.filter(id__in=action_ids)
+        # Use a subquery to keep the limiting operation in the database rather
+        # than materializing IDs into Python memory.
+        limited_queryset = queryset.filter(
+            id__in=Subquery(queryset.values("id")[:limit])
+        )
 
-        base_query = limited_queryset.extra(
-            select={"group": f"TO_CHAR(timestamp, '{group_format}')"}
+        base_query = limited_queryset.annotate(
+            group=Func(
+                "timestamp",
+                Value(group_format),
+                function="TO_CHAR",
+                output_field=CharField(),
+            )
         )
 
         if include_user:
@@ -254,7 +266,6 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 .values("group", "verb", "actor_object_id", "username")
                 .order_by("-group", "actor_object_id")
                 .annotate(
-                    count=Count("verb"),
                     descriptions=ArrayAgg("description", distinct=False),
                 )
             )
@@ -263,7 +274,6 @@ class MessagingStatsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             base_query.values("group", "verb")
             .order_by("-group")
             .annotate(
-                count=Count("verb"),
                 descriptions=ArrayAgg("description", distinct=False),
             )
         )
