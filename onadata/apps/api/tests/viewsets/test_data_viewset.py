@@ -16,9 +16,6 @@ from io import StringIO
 from tempfile import NamedTemporaryFile
 from unittest.mock import Mock, patch
 
-import defusedxml.ElementTree as ET
-import geojson
-import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
@@ -26,6 +23,10 @@ from django.test import RequestFactory
 from django.test.testcases import SerializeMixin
 from django.test.utils import override_settings
 from django.utils import timezone
+
+import defusedxml.ElementTree as ET
+import geojson
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
@@ -1836,7 +1837,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(self.xform.num_of_submissions, 2)
         mock_cache_set.assert_called_once_with(
             f"xfm-submissions-deleting-{formid}",
-            [str(i.pk) for i in records_to_be_deleted],
+            [i.pk for i in records_to_be_deleted],
             3600,
         )
 
@@ -2097,6 +2098,58 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertNotEqual(current_count, delete_all_current_count)
         self.assertEqual(delete_all_current_count, 0)
         self.assertEqual(self.xform.num_of_submissions, 0)
+
+    @patch("onadata.apps.api.tasks.delete_xform_submissions_async.delay")
+    def test_bulk_delete_instance_ids_are_integers(self, delete_async_mock):
+        """Test that instance_ids are converted to integers for bulk deletion."""
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xlsx",
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # Add multiple submissions
+        for x in range(1, 6):
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "libs",
+                "tests",
+                "utils",
+                "fixtures",
+                "tutorial",
+                "instances",
+                "uuid{}".format(x),
+                "submission.xml",
+            )
+            self._make_submission(path)
+
+        self.xform.refresh_from_db()
+        formid = self.xform.pk
+
+        view = DataViewSet.as_view({"delete": "destroy"})
+        deleted_instances_subset = self.xform.instances.all()[:3]
+        # Create comma-separated string of IDs (as strings)
+        instance_ids = ",".join([str(i.pk) for i in deleted_instances_subset])
+        data = {"instance_ids": instance_ids, "delete_all": False}
+
+        request = self.factory.delete("/", data=data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(delete_async_mock.called)
+
+        # Verify that instance_ids passed to the task are integers, not strings
+        call_args = delete_async_mock.call_args
+        passed_instance_ids = call_args[0][2]  # Third positional argument
+
+        # All IDs should be integers
+        self.assertIsInstance(passed_instance_ids, list)
+        for instance_id in passed_instance_ids:
+            self.assertIsInstance(
+                instance_id,
+                int,
+                f"Expected instance_id to be int, got {type(instance_id)}",
+            )
 
     @patch("onadata.apps.api.viewsets.data_viewset.send_message")
     def test_delete_submission_by_editor(self, send_message_mock):
@@ -3901,7 +3954,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         mock_del_async.assert_called_once_with(
             self.xform.pk,
             self.user.pk,
-            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            [records_to_be_deleted[0].pk, records_to_be_deleted[1].pk],
             True,
         )
         # Permanent deletion
@@ -3914,7 +3967,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         mock_del_async.assert_called_once_with(
             self.xform.pk,
             self.user.pk,
-            [str(records_to_be_deleted[0].pk), str(records_to_be_deleted[1].pk)],
+            [records_to_be_deleted[0].pk, records_to_be_deleted[1].pk],
             False,
         )
 

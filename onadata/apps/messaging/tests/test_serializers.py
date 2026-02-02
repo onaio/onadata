@@ -3,6 +3,7 @@
 Tests for messaging serializers.
 """
 
+import json
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -100,3 +101,42 @@ class TestSendMessage(TestCase):
             call_args = mock_serializer.call_args
             self.assertEqual(call_args[1]["data"]["message"], '{"id": [1, 2, 3]}')
             mock_instance.save.assert_called_once()
+
+    def test_send_message_integer_ids_not_stringified(self):
+        """
+        Test that integer IDs remain as integers in JSON message, not strings
+        """
+
+        with patch(
+            "onadata.apps.messaging.serializers.MessageSerializer"
+        ) as mock_serializer:
+            mock_instance = MagicMock()
+            mock_instance.is_valid.return_value = True
+            mock_serializer.return_value = mock_instance
+
+            # Pass integer IDs
+            send_message(
+                instance_id=[8, 9, 10],
+                target_id=100,
+                target_type=XFORM,
+                user=self.user.id,
+                message_verb=SUBMISSION_CREATED,
+                message_description="imported_via_csv",
+            )
+
+            # Verify MessageSerializer was called
+            call_args = mock_serializer.call_args
+            message_json = call_args[1]["data"]["message"]
+
+            # Parse the JSON to verify IDs are integers, not strings
+            parsed_message = json.loads(message_json)
+            self.assertIn("id", parsed_message)
+            self.assertEqual(parsed_message["id"], [8, 9, 10])
+
+            # Verify IDs are integers, not strings
+            for id_val in parsed_message["id"]:
+                self.assertIsInstance(
+                    id_val,
+                    int,
+                    f"Expected ID to be int, got {type(id_val).__name__}: {id_val}",
+                )

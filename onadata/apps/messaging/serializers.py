@@ -181,7 +181,11 @@ def send_message(
                 message = MessageSerializer(data=data, context={"request": request})
                 del ids[:message_id_limit]
                 if message.is_valid():
-                    message.save()
+                    m = message.save()
+
+                    if len(ids) == 0:
+                        return m
+    return None
 
 
 def create_description_map(message_description):

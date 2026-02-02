@@ -382,7 +382,7 @@ class DataViewSet(
                 raise ParseError(_("Data id(s) not provided."))
 
             if not delete_all_submissions:
-                instance_ids = [x for x in instance_ids.split(",") if x.isdigit()]
+                instance_ids = [int(x) for x in instance_ids.split(",") if x.isdigit()]
 
                 if not instance_ids:
                     raise ParseError(_("Invalid data ids were provided."))
