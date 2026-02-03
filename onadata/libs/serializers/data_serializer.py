@@ -5,22 +5,20 @@ Submission data serializers module.
 
 from io import BytesIO
 
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 import xmltodict
 from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
-
-from django.core.files.uploadedfile import InMemoryUploadedFile
-
 from valigetta.decryptor import decrypt_submission
 
 from onadata.apps.logger.models import Project, XForm, XFormKey
-from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
-from onadata.libs.kms.tools import get_kms_client
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.libs.data import parse_int
+from onadata.libs.kms.tools import get_kms_client
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import (
@@ -334,13 +332,14 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
                 enc_files[name] = BytesIO(file_content)
         return enc_files
 
+    # pylint: disable=too-many-locals
     def _decrypt_submission_files(self, request, xform):
         """
         Decrypt the incoming submission XML and media files.
 
         :param request: The HTTP request
         :param xform: The XForm
-        :return: Tuple of (decrypted_xml_file, decrypted_media_files) or None if not encrypted
+        :return: Tuple of (decrypted_xml_file, decrypted_media_files)
         :raises serializers.ValidationError: If decryption fails
         """
         xml_file = request.FILES.get("xml_submission_file")
@@ -355,8 +354,8 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
         try:
             xform_key = XFormKey.objects.get(version=version, xform=xform)
-        except XFormKey.DoesNotExist:
-            raise serializers.ValidationError(_("Encryption key not found."))
+        except XFormKey.DoesNotExist as exc:
+            raise serializers.ValidationError(_("Encryption key not found.")) from exc
 
         if xform_key.kms_key.disabled_at is not None:
             raise serializers.ValidationError(_("Encryption key has been disabled."))
@@ -412,6 +411,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         },
         additional_context={"from": "XML Submission Edit"},
     )
+    # pylint: disable=too-many-locals
     def update(self, instance, validated_data):
         """
         Handle submission edit
