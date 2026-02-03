@@ -19,9 +19,10 @@ import socket
 import sys
 from importlib import reload
 
-from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
+
+from celery.signals import after_setup_logger
 
 # setting default encoding to utf-8
 if sys.version[0] == "2":
@@ -296,7 +297,7 @@ REST_FRAMEWORK = {
         "onadata.libs.authentication.DigestAuthentication",
         "onadata.libs.authentication.TempTokenAuthentication",
         "onadata.libs.authentication.EnketoTokenAuthentication",
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
+        "onadata.libs.authentication.StrictOAuth2Authentication",
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ),
