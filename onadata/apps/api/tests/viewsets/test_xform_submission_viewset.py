@@ -2239,3 +2239,55 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             response.render()
             self.assertIn("Encryption key has been disabled", str(response.content))
+
+    def test_edit_deletes_old_attachments(self):
+        """Test that old attachments are soft-deleted after a successful edit."""
+        # Create initial submission with attachment
+        survey = self.surveys[0]
+        media_file = "1335783522563.jpg"
+        media_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            media_file,
+        )
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            survey + ".xml",
+        )
+        self._make_submission_w_attachment(submission_path, media_path)
+        self.assertEqual(Instance.objects.count(), 1)
+        self.assertEqual(Attachment.objects.count(), 1)
+
+        instance = Instance.objects.first()
+        old_attachment = Attachment.objects.first()
+        self.assertIsNone(old_attachment.deleted_at)
+
+        # Edit the submission
+        edit_submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            f"{survey}_edited.xml",
+        )
+
+        with open(edit_submission_path, "rb") as sf:
+            data = {"xml_submission_file": sf}
+            request = self.factory.put(
+                f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+            )
+            request.user = AnonymousUser()
+            response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify old attachment is soft-deleted
+        old_attachment.refresh_from_db()
+        self.assertIsNotNone(old_attachment.deleted_at)

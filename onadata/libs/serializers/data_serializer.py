@@ -7,6 +7,7 @@ from io import BytesIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import xmltodict
@@ -14,9 +15,12 @@ from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 from valigetta.decryptor import decrypt_submission
 
-from onadata.apps.logger.models import Project, XForm, XFormKey
+from onadata.apps.logger.models import Attachment, Project, XForm, XFormKey
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
-from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
+from onadata.apps.logger.xform_instance_parser import (
+    clean_and_parse_xml,
+    get_deprecated_uuid_from_xml,
+)
 from onadata.libs.data import parse_int
 from onadata.libs.kms.tools import get_kms_client
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -449,6 +453,20 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
                 xml_file = decrypted_xml_file
                 media_files = decrypted_media_files
 
+        # Read XML content to find the instance being edited via deprecatedID
+        xml_content = xml_file.read()
+        xml_file.seek(0)
+        deprecated_uuid = get_deprecated_uuid_from_xml(xml_content)
+
+        # Get old attachment IDs before the edit
+        old_attachment_ids = []
+        if deprecated_uuid:
+            old_attachment_ids = list(
+                Attachment.objects.filter(
+                    instance__uuid=deprecated_uuid, deleted_at__isnull=True
+                ).values_list("id", flat=True)
+            )
+
         # Save the submission using safe_create_instance
         error, new_instance = safe_create_instance(
             username, xml_file, media_files, None, request
@@ -459,6 +477,12 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
             exc.response = error
             exc.status_code = error.status_code
             raise exc
+
+        # Delete old attachments after successful edit
+        if old_attachment_ids:
+            Attachment.objects.filter(id__in=old_attachment_ids).update(
+                deleted_at=timezone.now()
+            )
 
         return new_instance
 
