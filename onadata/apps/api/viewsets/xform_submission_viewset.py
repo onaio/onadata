@@ -53,6 +53,7 @@ class XFormSubmissionViewSet(
     AuthenticateHeaderMixin,  # pylint: disable=too-many-ancestors
     OpenRosaHeadersMixin,
     mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
     BaseViewset,
     viewsets.GenericViewSet,
 ):
@@ -123,6 +124,21 @@ class XFormSubmissionViewSet(
             )
 
         return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Handle submission edit requests.
+
+        Uses the SubmissionSerializer to handle decryption of encrypted
+        submissions and save the edit via safe_create_instance.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.update(None, serializer.validated_data)
+        return Response(
+            serializer.to_representation(instance),
+            status=status.HTTP_201_CREATED,
+        )
 
     def handle_exception(self, exc):
         """
