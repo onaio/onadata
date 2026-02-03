@@ -414,10 +414,10 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     )
     def update(self, instance, validated_data):
         """
-        Handle submission edit requests.
+        Handle submission edit
 
         If the form is managed and encrypted, decrypt the incoming submission
-        files. Then save the edit submission via safe_create_instance.
+        files
         """
         request, username = get_request_and_username(self.context)
         view = self.context["view"]
