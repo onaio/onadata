@@ -2035,7 +2035,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self._publish_xls_form_to_project()
 
     def test_edit_unencrypted_submission(self):
-        """Test editing a submission for a non-managed form (no encryption)."""
+        """Editing a submission for a non-managed form (no encryption)."""
         # Create initial submission
         survey = self.surveys[0]
         submission_path = os.path.join(
@@ -2085,7 +2085,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     def test_edit_encrypted_submission(
         self, mock_get_kms_client, mock_decrypt, mock_safe_create
     ):
-        """Test editing an encrypted submission for a managed form."""
+        """Editing an encrypted submission for a managed form."""
         from io import BytesIO
 
         # Publish encrypted form
@@ -2166,7 +2166,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         mock_safe_create.assert_called_once()
 
     def test_edit_encryption_key_not_found(self):
-        """Test editing fails when encryption key is not found."""
+        """Editing fails when encryption key is not found."""
         # Publish encrypted form
         xlsform_path = os.path.join(
             self.main_directory,
@@ -2197,7 +2197,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             self.assertIn("Encryption key not found", str(response.content))
 
     def test_edit_encryption_key_disabled(self):
-        """Test editing fails when encryption key is disabled."""
+        """Editing fails when encryption key is disabled."""
         # Publish encrypted form
         xlsform_path = os.path.join(
             self.main_directory,
@@ -2241,7 +2241,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             self.assertIn("Encryption key has been disabled", str(response.content))
 
     def test_edit_deletes_old_attachments(self):
-        """Test that old attachments are soft-deleted after a successful edit."""
+        """Old attachments are soft-deleted when removed from an edited submission."""
         # Create initial submission with attachment
         survey = self.surveys[0]
         media_file = "1335783522563.jpg"
@@ -2269,14 +2269,14 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         old_attachment = Attachment.objects.first()
         self.assertIsNone(old_attachment.deleted_at)
 
-        # Edit the submission
+        # Edit the submission with XML that no longer references the media
         edit_submission_path = os.path.join(
             self.main_directory,
             "fixtures",
             "transportation",
             "instances",
             survey,
-            f"{survey}_edited.xml",
+            f"{survey}_edited_no_media.xml",
         )
 
         with open(edit_submission_path, "rb") as sf:
@@ -2288,6 +2288,5 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Verify old attachment is soft-deleted
         old_attachment.refresh_from_db()
         self.assertIsNotNone(old_attachment.deleted_at)
