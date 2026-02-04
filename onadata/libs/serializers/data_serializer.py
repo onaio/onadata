@@ -443,7 +443,7 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         )
 
         # If form is managed decrypt the incoming files
-        if submission_encrypted and (xform.is_managed or xform.kms_keys.exists()):
+        if submission_encrypted and xform.is_was_managed:
             # Put the file back for decryption
             request.FILES["xml_submission_file"] = xml_file
 
