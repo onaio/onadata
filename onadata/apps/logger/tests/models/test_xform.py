@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-test_xform module
+Tests for module onadata.apps.logger.models.xform.py
 """
 
 import os
