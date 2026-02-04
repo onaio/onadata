@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 import xmltodict
+from defusedxml import ElementTree
 from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 from valigetta.decryptor import decrypt_submission
@@ -434,10 +435,18 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         if not xml_file:
             raise serializers.ValidationError(_("No XML submission file."))
 
-        # If form is managed and encrypted, decrypt the incoming files
-        if xform.is_managed and xform.encrypted:
+        # Check if the incoming submission is encrypted
+        xml_content = xml_file.read()
+        xml_file.seek(0)
+        submission_encrypted = (
+            ElementTree.fromstring(xml_content).attrib.get("encrypted") == "yes"
+        )
+
+        # If form is managed decrypt the incoming files
+        if submission_encrypted and (xform.is_managed or xform.kms_keys.exists()):
             # Put the file back for decryption
             request.FILES["xml_submission_file"] = xml_file
+
             for media_file in media_files:
                 request.FILES[media_file.name] = media_file
 
