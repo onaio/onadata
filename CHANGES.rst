@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.14.2 (2026-02-05)
+--------------------
+- fix: user removal from an org doesn't revoke project permissions
+  [@kelvin-muchiri]
+  `PR #3004 https://github.com/onaio/onadata/pull/3004`
+- perf: prioritize xform.is_managed over xform.kms_keys.exists()
+  [@kelvin-muchiri]
+  `PR #3007 https://github.com/onaio/onadata/pull/3007`
+
 v5.14.1 (2026-01-26)
 --------------------
 - Dockerfile clean-up
