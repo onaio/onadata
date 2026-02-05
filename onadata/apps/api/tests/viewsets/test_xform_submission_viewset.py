@@ -2266,6 +2266,52 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             response.render()
             self.assertIn("Encryption key has been disabled", str(response.content))
 
+    @mock_aws
+    @override_settings(
+        KMS_PROVIDER="AWS",
+        AWS_ACCESS_KEY_ID="fake-id",
+        AWS_SECRET_ACCESS_KEY="fake-secret",
+        AWS_KMS_REGION_NAME="us-east-1",
+        KMS_CLIENT_CLASS="onadata.libs.kms.clients.AWSKMSClient",
+    )
+    @patch("onadata.libs.serializers.data_serializer.decrypt_submission")
+    def test_edit_decryption_failure(self, mock_decrypt):
+        """Editing fails when decryption fails."""
+        from valigetta.exceptions import InvalidSubmissionException
+
+        # Create organization and KMS key
+        org = self._create_organization(
+            username="test_org", name="Test Org", created_by=self.user
+        )
+        kms_key = create_key(org)
+        self.xform.is_managed = True
+        self.xform.save()
+        # Version must match the fixture (instances_encrypted/submission.xml)
+        submission_version = "2025051326"
+        self.xform.kms_keys.create(version=submission_version, kms_key=kms_key)
+
+        # Mock decrypt_submission to raise an exception
+        mock_decrypt.side_effect = InvalidSubmissionException("Invalid signature.")
+
+        # Attempt to edit - should fail due to decryption error
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances_encrypted",
+            "submission.xml",
+        )
+
+        with open(submission_path, "rb") as sf:
+            data = {"xml_submission_file": sf}
+            request = self.factory.post(f"/enketo/{self.xform.pk}/submission/1", data)
+            request.user = AnonymousUser()
+            response = self.view(request, xform_pk=self.xform.pk, pk=1)
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            response.render()
+            self.assertIn("Decryption failed", str(response.content))
+            self.assertIn("Invalid signature", str(response.content))
+
     def test_edit_deletes_old_attachments(self):
         """Old attachments are soft-deleted when removed from an edited submission."""
         # Create initial submission with attachment

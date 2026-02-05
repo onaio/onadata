@@ -14,6 +14,7 @@ from defusedxml import ElementTree
 from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 from valigetta.decryptor import decrypt_submission
+from valigetta.exceptions import InvalidSubmissionException
 
 from onadata.apps.logger.models import Project, XForm, XFormKey
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
@@ -364,12 +365,18 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
         submission_xml = BytesIO(xml_content)
         kms_client = get_kms_client()
         enc_files = self._get_encrypted_files(request)
-        decrypted_files = decrypt_submission(
-            kms_client=kms_client,
-            key_id=xform_key.kms_key.key_id,
-            submission_xml=submission_xml,
-            enc_files=enc_files,
-        )
+
+        try:
+            decrypted_files = decrypt_submission(
+                kms_client=kms_client,
+                key_id=xform_key.kms_key.key_id,
+                submission_xml=submission_xml,
+                enc_files=enc_files,
+            )
+        except InvalidSubmissionException as exc:
+            raise serializers.ValidationError(
+                _("Decryption failed: %(error)s") % {"error": str(exc)}
+            ) from exc
 
         # Process decrypted files
         decrypted_xml_file = None
