@@ -540,7 +540,10 @@ def check_encrypted_submission(xml, xform):
     """Validate encrypted submission"""
     submission_encrypted = is_valid_encrypted_submission(xform.encrypted, xml)
 
-    if xform.encrypted and not submission_encrypted:
+    # Edits from managed forms have been decrypted already
+    is_edit = get_deprecated_uuid_from_xml(xml) is not None
+
+    if xform.encrypted and not submission_encrypted and not is_edit:
         raise InstanceEncryptionError(
             _("Unencrypted submissions are not allowed for encrypted forms.")
         )

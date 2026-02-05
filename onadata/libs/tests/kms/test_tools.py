@@ -4,13 +4,10 @@ import base64
 import os
 from datetime import datetime, timedelta
 from datetime import timezone as tz
-from hashlib import md5, sha256
+from hashlib import sha256
 from io import BytesIO
 from unittest.mock import Mock, call, patch
 
-import boto3
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
@@ -18,9 +15,9 @@ from django.template.loader import render_to_string
 from django.test import override_settings
 from django.utils import timezone
 from django.utils.html import strip_tags
+
 from moto import mock_aws
 from pyxform.builder import create_survey_element_from_dict
-from valigetta.decryptor import _get_submission_iv
 from valigetta.exceptions import (
     AliasAlreadyExistsException,
     CreateAliasException,
@@ -1029,31 +1026,29 @@ class DecryptInstanceTestCase(TestBase):
         }
         dec_aes_key = b"0123456789abcdef0123456789abcdef"
         self.kms_key = create_key(self.org)
-        enc_aes_key = self._encrypt(key_id=self.kms_key.key_id, plain_text=dec_aes_key)
-        enc_signature = self._get_encrypted_signature(
+        enc_aes_key = self._kms_encrypt(
+            key_id=self.kms_key.key_id, plain_text=dec_aes_key
+        )
+        enc_signature = self._create_encrypted_signature(
             key_id=self.kms_key.key_id,
+            form_id=self.form_id,
+            version=self.instance_version,
             enc_aes_key=enc_aes_key,
-            dec_media=self.dec_media,
+            instance_uuid=self.instance_uuid,
             dec_submission=self.dec_submission_file,
+            dec_media=self.dec_media,
         )
         enc_key_b64 = base64.b64encode(enc_aes_key).decode("utf-8")
         enc_signature_b64 = base64.b64encode(enc_signature).decode("utf-8")
 
-        self.metadata_xml = f"""
-        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
-            id="{self.form_id}" version="{self.instance_version}">
-            <base64EncryptedKey>{enc_key_b64}</base64EncryptedKey>
-            <meta xmlns="http://openrosa.org/xforms">
-                <instanceID>{self.instance_uuid}</instanceID>
-            </meta>
-            <media>
-                <file>sunset.png.enc</file>
-                <file>forest.mp4.enc</file>
-            </media>
-            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
-            <base64EncryptedElementSignature>{enc_signature_b64}</base64EncryptedElementSignature>
-        </data>
-        """.strip()
+        self.metadata_xml = self._create_encrypted_submission_manifest(
+            form_id=self.form_id,
+            version=self.instance_version,
+            enc_key_b64=enc_key_b64,
+            instance_uuid=self.instance_uuid,
+            enc_signature_b64=enc_signature_b64,
+            media_files=["sunset.png.enc", "forest.mp4.enc"],
+        )
         self.metadata_xml_file = BytesIO(self.metadata_xml.encode("utf-8"))
 
         md = """
@@ -1083,7 +1078,9 @@ class DecryptInstanceTestCase(TestBase):
 
         for index, (name, file) in enumerate(dec_files, start=1):
             enc_file_name = f"{name}.enc"
-            enc_file = self._encrypt_file(dec_aes_key, index, file.getvalue())
+            enc_file = self._encrypt_submission_file(
+                dec_aes_key, self.instance_uuid, index, file.getvalue()
+            )
             attachment = Attachment(
                 instance=self.instance,
                 xform=self.xform,
@@ -1098,45 +1095,6 @@ class DecryptInstanceTestCase(TestBase):
         Attachment.objects.bulk_create(attachments)
 
         self.xform.kms_keys.create(version="202502131337", kms_key=self.kms_key)
-
-    def _encrypt(self, key_id, plain_text):
-        boto3_kms_client = boto3.client("kms", region_name="us-east-1")
-
-        response = boto3_kms_client.encrypt(KeyId=key_id, Plaintext=plain_text)
-        return response["CiphertextBlob"]
-
-    def _get_encrypted_signature(self, key_id, enc_aes_key, dec_submission, dec_media):
-        def compute_file_md5(file):
-            file.seek(0)
-            return md5(file.read()).hexdigest().zfill(32)
-
-        signature_parts = [
-            self.form_id,
-            self.instance_version,
-            base64.b64encode(enc_aes_key).decode("utf-8"),
-            self.instance_uuid,
-        ]
-        # Add media files
-        for media_name, media_file in dec_media.items():
-            file_md5_hash = compute_file_md5(media_file)
-            signature_parts.append(f"{media_name}::{file_md5_hash}")
-
-        # Add submission file
-        file_md5_hash = compute_file_md5(dec_submission)
-        signature_parts.append(f"submission.xml::{file_md5_hash}")
-        # Construct final signature string
-        signature_data = "\n".join(signature_parts) + "\n"
-        # Compute MD5 digest before encrypting
-        signature_md5_digest = md5(signature_data.encode("utf-8")).digest()
-        # Encrypt MD5 digest
-        return self._encrypt(key_id=key_id, plain_text=signature_md5_digest)
-
-    def _encrypt_file(self, dec_aes_key, iv_counter, data):
-        iv = _get_submission_iv(self.instance_uuid, dec_aes_key, iv_counter=iv_counter)
-        cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
-        padded_data = pad(data, AES.block_size)
-
-        return BytesIO(cipher_aes.encrypt(padded_data))
 
     def _compute_file_sha256(self, buffer):
         return sha256(buffer.getvalue()).hexdigest()

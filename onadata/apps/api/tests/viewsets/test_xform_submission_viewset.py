@@ -3,8 +3,10 @@
 Test XFormSubmissionViewSet module.
 """
 
+import base64
 import os
 from builtins import open  # pylint: disable=redefined-builtin
+from io import BytesIO
 from unittest.mock import patch
 
 from django.conf import settings
@@ -18,6 +20,7 @@ from django.utils import timezone
 
 import simplejson as json
 from django_digest.test import DigestAuth
+from moto import mock_aws
 from rest_framework import status
 from rest_framework.reverse import reverse
 
@@ -29,6 +32,7 @@ from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionVi
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, XForm
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.services.textit import ServiceDefinition
+from onadata.libs.kms.tools import create_key
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.utils.common_tools import get_uuid
 
@@ -2034,8 +2038,8 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.view = XFormSubmissionViewSet.as_view({"post": "update"})
         self._publish_xls_form_to_project()
 
-    def test_edit_unencrypted_submission(self):
-        """Editing a submission for a non-managed form (no encryption)."""
+    def test_edit_submission_unmanaged(self):
+        """Editing a submission for a unmanaged form."""
         # Create initial submission
         survey = self.surveys[0]
         submission_path = os.path.join(
@@ -2079,91 +2083,113 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(edited_instance.uuid, new_uuid)
         self.assertNotEqual(edited_instance.uuid, original_uuid)
 
-    @patch("onadata.libs.serializers.data_serializer.safe_create_instance")
-    @patch("onadata.libs.serializers.data_serializer.decrypt_submission")
-    @patch("onadata.libs.serializers.data_serializer.get_kms_client")
-    def test_edit_encrypted_submission(
-        self, mock_get_kms_client, mock_decrypt, mock_safe_create
-    ):
-        """Editing an encrypted submission for a managed form."""
-        from io import BytesIO
-
-        # Publish encrypted form
-        xlsform_path = os.path.join(
+    @mock_aws
+    @override_settings(
+        KMS_PROVIDER="AWS",
+        AWS_ACCESS_KEY_ID="fake-id",
+        AWS_SECRET_ACCESS_KEY="fake-secret",
+        AWS_KMS_REGION_NAME="us-east-1",
+        KMS_CLIENT_CLASS="onadata.libs.kms.clients.AWSKMSClient",
+    )
+    def test_edit_submission_managed(self):
+        """Editing a submission for a managed form."""
+        # Create initial unencrypted submission
+        survey = self.surveys[0]
+        submission_path = os.path.join(
             self.main_directory,
             "fixtures",
             "transportation",
-            "transportation_encrypted.xlsx",
+            "instances",
+            survey,
+            survey + ".xml",
         )
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
-        self.xform.is_managed = True
-        self.xform.save()
+        self._make_submission(submission_path)
+        self.assertEqual(Instance.objects.count(), 1)
 
-        # Create KMSKey and XFormKey
-        content_type = ContentType.objects.get_for_model(self.xform)
-        kms_key = KMSKey.objects.create(
-            key_id="test-key-id",
-            public_key="test-pub-key",
-            content_type=content_type,
-            object_id=self.xform.pk,
-            provider=KMSKey.KMSProvider.AWS,
+        original_instance = Instance.objects.first()
+        original_uuid = original_instance.uuid
+
+        # Create organization and KMS key, then encrypt the form
+        org = self._create_organization(
+            username="test_org", name="Test Org", created_by=self.user
         )
-        submission_version = "2025051326"
-        self.xform.kms_keys.create(version=submission_version, kms_key=kms_key)
+        kms_key = create_key(org)
+        self._encrypt_xform(self.xform, kms_key)
+        submission_version = self.xform.version
+        form_id = self.xform.id_string
 
-        # Create a mock instance for safe_create_instance to return
-        mock_instance = Instance(xform=self.xform, uuid="new-edited-uuid-1234")
-        mock_instance.date_created = timezone.now()
-        mock_instance.date_modified = timezone.now()
-        mock_safe_create.return_value = (None, mock_instance)
-
-        # Mock the decryption function to return decrypted content
-        decrypted_xml = b"""<?xml version='1.0' ?>
-        <data id="transportation_encrypted" version="2025051326">
-            <transport>
-                <loop_over_transport_types_frequency>
-                    <ambulance>daily</ambulance>
-                </loop_over_transport_types_frequency>
-            </transport>
-            <meta>
-                <instanceID>uuid:new-edited-uuid-1234</instanceID>
-                <deprecatedID>uuid:original-uuid</deprecatedID>
-            </meta>
-        </data>"""
-        mock_decrypt.return_value = [
-            ("submission.xml", BytesIO(decrypted_xml)),
-        ]
-        mock_get_kms_client.return_value = None
-
-        # Edit the submission with encrypted content
-        submission_xml_enc_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances_encrypted",
-            "submission.xml.enc",
+        # Create encrypted edit submission
+        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
+        dec_submission_xml = (
+            f"<?xml version='1.0' ?>"
+            f'<transportation id="{form_id}" version="{submission_version}">'
+            f"<transport>"
+            f"<available_transportation_types_to_referral_facility>none"
+            f"</available_transportation_types_to_referral_facility>"
+            f"<loop_over_transport_types_frequency>"
+            f"<ambulance /><bicycle /><boat_canoe /><bus /><donkey_mule_cart />"
+            f"<keke_pepe /><lorry /><motorbike /><taxi /><other />"
+            f"</loop_over_transport_types_frequency>"
+            f"</transport>"
+            f"<meta>"
+            f"<instanceID>{new_uuid}</instanceID>"
+            f"<deprecatedID>uuid:{original_uuid}</deprecatedID>"
+            f"</meta>"
+            f"</transportation>"
         )
-        edit_submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances_encrypted",
-            "submission.xml",
+        dec_submission_file = BytesIO(dec_submission_xml.encode("utf-8"))
+
+        # Encrypt the submission using TestBase helpers
+        dec_aes_key = b"0123456789abcdef0123456789abcdef"
+        enc_aes_key = self._kms_encrypt(kms_key.key_id, dec_aes_key)
+        enc_key_b64 = base64.b64encode(enc_aes_key).decode("utf-8")
+
+        # Encrypt the submission XML file
+        enc_submission_file = self._encrypt_submission_file(
+            dec_aes_key, new_uuid, iv_counter=1, data=dec_submission_file.getvalue()
         )
 
-        with open(edit_submission_path, "rb") as sf, open(
-            submission_xml_enc_path, "rb"
-        ) as mf:
-            data = {"xml_submission_file": sf, "submission.xml.enc": mf}
-            request = self.factory.post(f"/enketo/{self.xform.pk}/1/submission", data)
-            request.user = AnonymousUser()
-            response = self.view(request, xform_pk=self.xform.pk, pk=1)
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # Create encrypted signature
+        enc_signature = self._create_encrypted_signature(
+            key_id=kms_key.key_id,
+            form_id=form_id,
+            version=submission_version,
+            enc_aes_key=enc_aes_key,
+            instance_uuid=new_uuid,
+            dec_submission=dec_submission_file,
+        )
+        enc_signature_b64 = base64.b64encode(enc_signature).decode("utf-8")
 
-        # Verify decryption was called
-        mock_decrypt.assert_called_once()
-        # Verify safe_create_instance was called with decrypted content
-        mock_safe_create.assert_called_once()
+        # Create metadata XML (the encrypted submission envelope)
+        metadata_xml = self._create_encrypted_submission_manifest(
+            form_id=form_id,
+            version=submission_version,
+            enc_key_b64=enc_key_b64,
+            instance_uuid=new_uuid,
+            enc_signature_b64=enc_signature_b64,
+        )
+
+        # Create file objects for the request
+        metadata_file = BytesIO(metadata_xml.encode("utf-8"))
+        metadata_file.name = "xml_submission_file"
+        enc_submission_file.name = "submission.xml.enc"
+
+        data = {
+            "xml_submission_file": metadata_file,
+            "submission.xml.enc": enc_submission_file,
+        }
+        request = self.factory.post(
+            f"/enketo/{self.xform.pk}/submission/{original_instance.pk}", data
+        )
+        request.user = AnonymousUser()
+        response = self.view(request, xform_pk=self.xform.pk, pk=original_instance.pk)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify the submission was edited
+        self.assertEqual(Instance.objects.count(), 1)
+        edited_instance = Instance.objects.first()
+        self.assertEqual(edited_instance.uuid, new_uuid.replace("uuid:", ""))
+        self.assertNotEqual(edited_instance.uuid, original_uuid)
 
     def test_edit_encryption_key_not_found(self):
         """Editing fails when encryption key is not found."""
