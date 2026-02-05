@@ -2155,7 +2155,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             submission_xml_enc_path, "rb"
         ) as mf:
             data = {"xml_submission_file": sf, "submission.xml.enc": mf}
-            request = self.factory.post(f"/enketo/{self.xform.pk}/submission/1", data)
+            request = self.factory.post(f"/enketo/{self.xform.pk}/1/submission", data)
             request.user = AnonymousUser()
             response = self.view(request, xform_pk=self.xform.pk, pk=1)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -2189,7 +2189,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
         with open(submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
-            request = self.factory.post(f"/enketo/{self.xform.pk}/submission/1", data)
+            request = self.factory.post(f"/enketo/{self.xform.pk}/1/submission", data)
             request.user = AnonymousUser()
             response = self.view(request, xform_pk=self.xform.pk, pk=1)
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2233,7 +2233,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
         with open(submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
-            request = self.factory.post(f"/enketo/{self.xform.pk}/submission/1", data)
+            request = self.factory.post(f"/enketo/{self.xform.pk}/1/submission", data)
             request.user = AnonymousUser()
             response = self.view(request, xform_pk=self.xform.pk, pk=1)
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2282,7 +2282,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         with open(edit_submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
             request = self.factory.post(
-                f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
             )
             request.user = AnonymousUser()
             response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)

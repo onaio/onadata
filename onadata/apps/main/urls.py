@@ -383,7 +383,7 @@ urlpatterns = [
         name="form-list",
     ),
     re_path(
-        r"^enketo/(?P<xform_pk>\d+)/submission/(?P<submission_pk>\d+)/formList$",
+        r"^enketo/(?P<xform_pk>\d+)/(?P<submission_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
@@ -455,7 +455,7 @@ urlpatterns = [
         name="submissions",
     ),
     re_path(
-        r"^enketo/(?P<xform_pk>\d+)/submission/(?P<pk>\d+)$",
+        r"^enketo/(?P<xform_pk>\d+)/(?P<pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "update"}),
         name="submissions",
     ),
