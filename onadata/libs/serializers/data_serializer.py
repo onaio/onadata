@@ -3,6 +3,7 @@
 Submission data serializers module.
 """
 
+import logging
 from io import BytesIO
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -49,6 +50,7 @@ from onadata.libs.utils.logger_tools import (
     safe_create_instance,
 )
 
+logger = logging.getLogger(__name__)
 NUM_FLOIP_COLUMNS = 6
 
 
@@ -374,9 +376,9 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
                 enc_files=enc_files,
             )
         except InvalidSubmissionException as exc:
-            raise serializers.ValidationError(
-                _("Decryption failed: %(error)s") % {"error": str(exc)}
-            ) from exc
+            logger.exception(exc)
+
+            raise serializers.ValidationError(_("Decryption failed."))
 
         # Process decrypted files
         decrypted_xml_file = None

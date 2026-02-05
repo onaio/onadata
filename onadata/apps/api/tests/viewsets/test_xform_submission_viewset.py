@@ -2274,8 +2274,9 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         AWS_KMS_REGION_NAME="us-east-1",
         KMS_CLIENT_CLASS="onadata.libs.kms.clients.AWSKMSClient",
     )
+    @patch("onadata.libs.serializers.data_serializer.logger.exception")
     @patch("onadata.libs.serializers.data_serializer.decrypt_submission")
-    def test_edit_decryption_failure(self, mock_decrypt):
+    def test_edit_decryption_failure(self, mock_decrypt, mock_logger):
         """Editing fails when decryption fails."""
         from valigetta.exceptions import InvalidSubmissionException
 
@@ -2310,7 +2311,11 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             response.render()
             self.assertIn("Decryption failed", str(response.content))
-            self.assertIn("Invalid signature", str(response.content))
+            # Detailed error message should not be exposed to the user
+            self.assertNotIn("Invalid signature", str(response.content))
+
+        # Exception should be logged
+        mock_logger.assert_called_once()
 
     def test_edit_deletes_old_attachments(self):
         """Old attachments are soft-deleted when removed from an edited submission."""
