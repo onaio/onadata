@@ -4,23 +4,23 @@
 #
 #    pip-compile --output-file=requirements/ses.pip --strip-extras requirements/ses.in
 #
-asgiref==3.11.0
+asgiref==3.11.1
     # via django
 boto==2.49.0
     # via -r requirements/ses.in
-boto3==1.42.30
+boto3==1.42.44
     # via django-ses
-botocore==1.42.30
+botocore==1.42.44
     # via
     #   boto3
     #   s3transfer
-django==5.2.10
+django==5.2.11
     # via
     #   -r requirements/ses.in
     #   django-ses
-django-ses==4.6.0
+django-ses==4.7.1
     # via -r requirements/ses.in
-jmespath==1.0.1
+jmespath==1.1.0
     # via
     #   boto3
     #   botocore
