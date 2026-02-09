@@ -456,7 +456,7 @@ urlpatterns = [
     ),
     re_path(
         r"^enketo/(?P<xform_pk>\d+)/(?P<pk>\d+)/submission$",
-        XFormSubmissionViewSet.as_view({"post": "update"}),
+        XFormSubmissionViewSet.as_view({"post": "update", "head": "update"}),
         name="submissions",
     ),
     re_path(
