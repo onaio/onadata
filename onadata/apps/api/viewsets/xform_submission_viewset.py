@@ -138,7 +138,14 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
-        return super().update(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.update(None, serializer.validated_data)
+
+        return Response(
+            serializer.to_representation(instance),
+            status=status.HTTP_201_CREATED,
+        )
 
     def handle_exception(self, exc):
         """
