@@ -210,6 +210,23 @@ jobs:
           scanners: "vuln"
           output: "trivy_results.sarif"
 
+      - name: Cache Trivy HTML template
+        id: cache-template
+        uses: actions/cache@v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          path: html.tpl
+          key: trivy-html-template-v1
+
+      - name: Download Trivy HTML template
+        if: >-
+          (github.event_name == 'pull_request' || github.event_name == 'push')
+          && steps.cache-template.outputs.cache-hit != 'true'
+        run: |
+          url="https://raw.githubusercontent.com"
+          url+="/aquasecurity/trivy/main/contrib/html.tpl"
+          wget -q "$url" -O html.tpl
+
       - name: Run Trivy vulnerability scanner (HTML report)
         uses: aquasecurity/trivy-action@0.33.1
         if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -217,7 +234,7 @@ jobs:
           version: "v0.69.1"
           image-ref: ${{ steps.meta.outputs.tags }}
           format: "template"
-          template: "@/contrib/html.tpl"
+          template: "@html.tpl"
           ignore-unfixed: false
           severity: "CRITICAL,HIGH"
           scanners: "vuln"
