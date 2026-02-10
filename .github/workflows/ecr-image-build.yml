@@ -224,17 +224,49 @@ jobs:
         run: |
           details=$(jq -r '
             .runs[0].tool.driver.rules as $rules |
-            .runs[0].results[0:10] |
-            map(
+            [.runs[0].results[] |
               . as $result |
               $rules[.ruleIndex] as $rule |
-              ($rule.properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW")) as $severity |
-              ($result.locations[0].message.text | split(":")[0] | if contains("site-packages/") then split("site-packages/")[1] elif contains("usr/lib/") then split("usr/lib/")[1] else (split("/") | .[-4:] | join("/")) end) as $location |
-              ($result.message.text | capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
-              ($result.message.text | capture("Installed Version: (?<ver>[^\n]+)") | .ver) as $installed |
-              ($result.message.text | capture("Fixed Version: (?<fix>[^\n]+)") | .fix // "Not available") as $fixed |
-              (if $severity == "CRITICAL" then "🔴" elif $severity == "HIGH" then "🟠" elif $severity == "MEDIUM" then "🟡" else "⚪" end) as $icon |
-              "\($icon) *\($result.ruleId)* (\($severity))\nPackage: `\($package)@\($installed)`\nLocation: `\($location)`\nFixed: `\($fixed)`\n<\($rule.helpUri)|View Details>\n"
+              ($rule.properties.tags[] |
+                select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              {
+                result: $result,
+                rule: $rule,
+                severity: $severity
+              }
+            ] |
+            sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
+            .[0:10] |
+            map(
+              .result as $result |
+              .rule as $rule |
+              .severity as $severity |
+              ($result.locations[0].message.text | split(":")[0] |
+                if contains("site-packages/") then
+                  split("site-packages/")[1]
+                elif contains("usr/lib/") then
+                  split("usr/lib/")[1]
+                else
+                  (split("/") | .[-4:] | join("/"))
+                end) as $location |
+              ($result.message.text |
+                capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
+              ($result.message.text |
+                capture("Installed Version: (?<ver>[^\n]+)") |
+                .ver) as $installed |
+              ($result.message.text |
+                capture("Fixed Version: ?(?<fix>[^\n]*)") |
+                .fix) as $rawfixed |
+              (if $rawfixed == "" then "Not available"
+               else $rawfixed end) as $fixed |
+              (if $severity == "CRITICAL" then "🔴"
+               elif $severity == "HIGH" then "🟠"
+               else "⚪" end) as $icon |
+              "\($icon) *\($result.ruleId)* (\($severity))\n" +
+              "Package: `\($package)@\($installed)`\n" +
+              "Location: `\($location)`\n" +
+              "Fixed: `\($fixed)`\n" +
+              "<\($rule.helpUri)|View Details>\n"
             ) | join("\n")
           ' trivy-results.sarif)
 
