@@ -1,5 +1,6 @@
+---
 name: CI
-on:
+on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: ["*"]
   push:
@@ -68,17 +69,17 @@ jobs:
       matrix:
         test_path:
           - [
-              " Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
-              "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            " Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
+            "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
           - [
-              "Django Unit Tests API",
-              "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            "Django Unit Tests API",
+            "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
           - [
-              "Django Unit Tests Logger",
-              "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            "Django Unit Tests Logger",
+            "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
     name: "${{ matrix.test_path[0] }}"
     runs-on: ubuntu-22.04
     needs: static-analysis
@@ -208,13 +209,25 @@ jobs:
           scanners: "vuln"
           output: "trivy_results.sarif"
 
-      - name: Install SARIF tools
+      - name: Run Trivy vulnerability scanner (HTML report)
+        uses: aquasecurity/trivy-action@0.33.1
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: pip install sarif-tools
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: "template"
+          template: "@/contrib/html.tpl"
+          ignore-unfixed: false
+          severity: "CRITICAL,HIGH"
+          scanners: "vuln"
+          output: "trivy_results.html"
 
-      - name: Convert SARIF to HTML
+      - name: Upload Trivy SARIF as artifact
+        uses: actions/upload-artifact@v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: sarif html -o trivy_results.html trivy_results.sarif
+        with:
+          name: trivy-sarif-results
+          path: trivy_results.sarif
+          retention-days: 30
 
       - name: Upload Trivy HTML report as artifact
         uses: actions/upload-artifact@v4

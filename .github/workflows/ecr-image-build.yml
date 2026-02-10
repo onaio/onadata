@@ -1,7 +1,7 @@
 ---
 name: AWS ECR Build Image
 
-on: # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
   release:
     types:
       - "released"
@@ -173,11 +173,13 @@ jobs:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true
 
-      - name: Install SARIF tools
-        run: pip install sarif-tools
-
-      - name: Convert SARIF to HTML
-        run: sarif html -o trivy-results.html trivy-results.sarif
+      - name: Run Trivy vulnerability scanner (HTML report)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.docker_repo }}
+          format: "template"
+          template: "@/contrib/html.tpl"
+          output: "trivy-results.html"
 
       - name: Upload Trivy SARIF as artifact
         uses: actions/upload-artifact@v4
