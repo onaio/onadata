@@ -163,6 +163,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
+          version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
           format: "sarif"
           output: "trivy-results.sarif"
@@ -176,6 +177,7 @@ jobs:
       - name: Run Trivy vulnerability scanner (HTML report)
         uses: aquasecurity/trivy-action@0.33.1
         with:
+          version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
           format: "template"
           template: "@/contrib/html.tpl"
