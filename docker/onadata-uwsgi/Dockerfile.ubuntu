@@ -47,7 +47,8 @@ ENV PYENV_ROOT="$HOME/.pyenv"
 ENV PATH=$PYENV_ROOT/versions/3.10.19/bin:$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 USER root
-RUN chown -R appuser:appuser /srv/onadata/
+RUN chown -R appuser:appuser /srv/onadata/ && \
+    ldconfig
 USER appuser
 
 # install sphinx and build API docs.
@@ -55,17 +56,16 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20250811 AS runtime
+FROM dhi.io/debian-base:bookworm-debian12 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisite packages
 RUN apt-get update -q \
-    && apt-get install -y --no-install-recommends ca-certificates \
-    && echo "deb http://deb.debian.org/debian bookworm main non-free contrib" >> /etc/apt/sources.list \
-    && echo "deb https://deb.debian.org/debian unstable main" >> /etc/apt/sources.list \
-    && apt-get update -q \
-    && apt-get install -y --no-install-recommends netcat-traditional liblzma5
+    && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    netcat-traditional \
+    liblzma5
 
 ENV LC_ALL=C.UTF-8
 ENV LC_CTYPE=C.UTF-8
@@ -81,10 +81,11 @@ RUN apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
     libxml2 \
     libxslt1.1 \
+    && ldconfig \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd -G tty -m appuser \
+    && useradd -U -m appuser \
     && mkdir -p /srv/onadata \
     && chown -R appuser:appuser /srv/onadata
 
