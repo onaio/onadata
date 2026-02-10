@@ -2,6 +2,7 @@
 """
 XFormSubmissionViewSet module
 """
+
 from django.conf import settings
 from django.http import UnreadablePostError
 from django.utils.translation import gettext as _
@@ -23,13 +24,13 @@ from onadata.libs.renderers.renderers import FLOIPRenderer, TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import (
     FLOIPSubmissionSerializer,
     JSONSubmissionSerializer,
+    RapidProJSONSubmissionSerializer,
     RapidProSubmissionSerializer,
     SubmissionSerializer,
-    RapidProJSONSubmissionSerializer,
 )
 from onadata.libs.utils.logger_tools import (
-    OpenRosaResponseBadRequest,
     OpenRosaNotAuthenticated,
+    OpenRosaResponseBadRequest,
 )
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -132,13 +133,12 @@ class XFormSubmissionViewSet(
         Uses the SubmissionSerializer to handle decryption of encrypted
         submissions and save the edit via safe_create_instance.
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.update(None, serializer.validated_data)
-        return Response(
-            serializer.to_representation(instance),
-            status=status.HTTP_201_CREATED,
-        )
+        if request.method.upper() == "HEAD":
+            return Response(
+                status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
+            )
+
+        return super().update(request, *args, **kwargs)
 
     def handle_exception(self, exc):
         """
