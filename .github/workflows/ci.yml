@@ -198,6 +198,28 @@ jobs:
           build-args: |
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          version: v0.69.1
+          cache: true
+
+      - name: Configure Trivy VEX Hub with DHI advisories
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
+          mkdir -p ~/.trivy/vex
+          cat > ~/.trivy/vex/repository.yaml << 'EOF'
+          repositories:
+            - name: default
+              url: https://github.com/aquasecurity/vexhub
+              enabled: true
+            - name: dhi-vex
+              url: https://github.com/docker-hardened-images/advisories
+              enabled: true
+          EOF
+          trivy vex repo download
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -209,6 +231,7 @@ jobs:
           severity: "CRITICAL,HIGH"
           scanners: "vuln"
           output: "trivy_results.sarif"
+          trivy-config: trivy.yaml
 
       - name: Cache Trivy HTML template
         id: cache-template
@@ -239,6 +262,7 @@ jobs:
           severity: "CRITICAL,HIGH"
           scanners: "vuln"
           output: "trivy_results.html"
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy SARIF as artifact
         uses: actions/upload-artifact@v4
