@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -802,7 +802,7 @@ def safe_instance_op(
     *,
     request,
     op_kwargs: dict,
-) -> Tuple[Optional[Any], Optional[Any]]:
+) -> tuple[Optional[Any], Optional[Any]]:
     """
     Run a create/edit operation and convert known exceptions into OpenRosa responses.
 
@@ -813,7 +813,7 @@ def safe_instance_op(
 
     except Http404:
         raise
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-except
         return _instance_op_to_openrosa_response(exc, request=request), None
 
     # Preserve existing behavior: sometimes you get a DuplicateInstance object back
@@ -841,14 +841,14 @@ def safe_create_instance(  # noqa C901
     error, instance = safe_instance_op(
         create_instance,
         request=request,
-        op_kwargs=dict(
-            username=username,
-            xml_file=xml_file,
-            media_files=media_files,
-            uuid=uuid,
-            request=request,
-            status=instance_status,
-        ),
+        op_kwargs={
+            "username": username,
+            "xml_file": xml_file,
+            "media_files": media_files,
+            "uuid": uuid,
+            "request": request,
+            "status": instance_status,
+        },
     )
     return [error, instance]
 
@@ -870,14 +870,14 @@ def safe_edit_instance(
     error, instance = safe_instance_op(
         edit_instance,
         request=request,
-        op_kwargs=dict(
-            request=request,
-            instance=instance,
-            username=username,
-            xml_file=xml_file,
-            media_files=media_files,
-            status=status,
-        ),
+        op_kwargs={
+            "request": request,
+            "instance": instance,
+            "username": username,
+            "xml_file": xml_file,
+            "media_files": media_files,
+            "status": status,
+        },
     )
     return [error, instance]
 
