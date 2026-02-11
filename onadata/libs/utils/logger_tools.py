@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
+from typing import Any, Callable, Optional, Tuple
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -118,6 +119,7 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 User = get_user_model()
+Operation = Callable[..., Any]
 
 
 def create_xform_version(xform: XForm, user: User) -> XFormVersion:
@@ -795,6 +797,32 @@ def _instance_op_to_openrosa_response(
     )
 
 
+def safe_instance_op(
+    operation: Operation,
+    *,
+    request,
+    op_kwargs: dict,
+) -> Tuple[Optional[Any], Optional[Any]]:
+    """
+    Run a create/edit operation and convert known exceptions into OpenRosa responses.
+
+    Returns: (error_response, instance)
+    """
+    try:
+        instance = operation(**op_kwargs)
+
+    except Http404:
+        raise
+    except Exception as exc:
+        return _instance_op_to_openrosa_response(exc, request=request), None
+
+    # Preserve existing behavior: sometimes you get a DuplicateInstance object back
+    if isinstance(instance, DuplicateInstance):
+        return _create_duplicate_response(request), None
+
+    return None, instance
+
+
 # pylint: disable=too-many-branches,too-many-statements
 @use_master
 def safe_create_instance(  # noqa C901
@@ -810,24 +838,19 @@ def safe_create_instance(  # noqa C901
     :returns: A list [error, instance] where error is None if there was no
         error.
     """
-    try:
-        instance = create_instance(
-            username,
-            xml_file,
-            media_files,
+    error, instance = safe_instance_op(
+        create_instance,
+        request=request,
+        op_kwargs=dict(
+            username=username,
+            xml_file=xml_file,
+            media_files=media_files,
             uuid=uuid,
             request=request,
             status=instance_status,
-        )
-    except Http404:
-        raise
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        return _instance_op_to_openrosa_response(exc, request=request), None
-
-    if isinstance(instance, DuplicateInstance):
-        return _create_duplicate_response(request), None
-
-    return None, instance
+        ),
+    )
+    return [error, instance]
 
 
 @use_master
@@ -844,24 +867,19 @@ def safe_edit_instance(
     :returns: A list [error, instance] where error is None if there was no
         error.
     """
-    try:
-        instance = edit_instance(
+    error, instance = safe_instance_op(
+        edit_instance,
+        request=request,
+        op_kwargs=dict(
             request=request,
             instance=instance,
             username=username,
             xml_file=xml_file,
             media_files=media_files,
             status=status,
-        )
-    except Http404:
-        raise
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        return _instance_op_to_openrosa_response(exc, request=request), None
-
-    if isinstance(instance, DuplicateInstance):
-        return _create_duplicate_response(request), None
-
-    return None, instance
+        ),
+    )
+    return [error, instance]
 
 
 def generate_aws_media_url(
