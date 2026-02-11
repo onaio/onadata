@@ -751,7 +751,7 @@ def _instance_op_to_openrosa_response(
     if isinstance(exc, (FormInactiveError, FormIsMergedDatasetError)):
         return OpenRosaResponseNotAllowed(text(exc))
 
-    if isinstance(exc, (XForm.DoesNotExist, Http404)):
+    if isinstance(exc, XForm.DoesNotExist):
         return OpenRosaResponseNotFound(_("Form does not exist on this account"))
 
     if isinstance(exc, (ExpatError, ParseError)):
@@ -819,6 +819,8 @@ def safe_create_instance(  # noqa C901
             request=request,
             status=instance_status,
         )
+    except Http404:
+        raise
     except Exception as exc:  # pylint: disable=broad-exception-caught
         return _instance_op_to_openrosa_response(exc, request=request), None
 
@@ -851,6 +853,8 @@ def safe_edit_instance(
             media_files=media_files,
             status=status,
         )
+    except Http404:
+        raise
     except Exception as exc:  # pylint: disable=broad-exception-caught
         return _instance_op_to_openrosa_response(exc, request=request), None
 
