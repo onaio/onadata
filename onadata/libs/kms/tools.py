@@ -535,6 +535,8 @@ def decrypt_instance(instance: Instance) -> None:
         enc_files=get_encrypted_files(attachment_qs),
     )
     # Replace encrypted submission with decrypted submission
+    # Check if this is an edit (has prior history) before creating new history
+    is_edit = instance.submission_history.exists()
     # Initialize InstanceHistory before replacement
     history = InstanceHistory(
         checksum=instance.checksum,
@@ -580,8 +582,12 @@ def decrypt_instance(instance: Instance) -> None:
             attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
                 deleted_at=timezone.now()
             )
-            # Increment XForm num_of_decrypted_submissions
-            transaction.on_commit(lambda: incr_task.delay(instance.xform_id, delta=1))
+            # Increment XForm num_of_decrypted_submissions only for new
+            # submissions
+            if not is_edit:
+                transaction.on_commit(
+                    lambda: incr_task.delay(instance.xform_id, delta=1)
+                )
 
     except InvalidSubmissionException as exc:
         save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)

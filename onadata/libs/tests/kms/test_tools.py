@@ -27,7 +27,14 @@ from valigetta.exceptions import (
 from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
 
-from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType, XForm
+from onadata.apps.logger.models import (
+    Attachment,
+    Instance,
+    InstanceHistory,
+    KMSKey,
+    SurveyType,
+    XForm,
+)
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import (
     DecryptionError,
@@ -1176,6 +1183,38 @@ class DecryptInstanceTestCase(TestBase):
         mock_adjust_decrypted_submission_count.assert_called_once_with(
             self.xform.pk, delta=1
         )
+
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_decrypt_edited_submission_skips_increment(
+        self, mock_adjust_decrypted_submission_count
+    ):
+        """Decrypting an edited submission does not increment count."""
+        # Create prior history to simulate an edit
+        InstanceHistory.objects.create(
+            checksum=self.instance.checksum,
+            xml=self.instance.xml,
+            xform_instance=self.instance,
+            uuid=self.instance.uuid,
+            submission_date=self.instance.date_created,
+        )
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+
+        # Decryption succeeds
+        self.assertFalse(self.instance.is_encrypted)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
+
+        # History now has 2 entries: the pre-existing one + the one created by decrypt
+        self.assertEqual(self.instance.submission_history.count(), 2)
+
+        # XForm decrypted submission count is NOT incremented for edits
+        mock_adjust_decrypted_submission_count.assert_not_called()
 
     def test_unencrypted_submission(self):
         """Unencrypted Instance is rejected."""

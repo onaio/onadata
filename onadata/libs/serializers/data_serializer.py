@@ -4,9 +4,10 @@ Submission data serializers module.
 """
 
 import logging
+from hashlib import sha256
 from io import BytesIO
 
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
@@ -14,14 +15,17 @@ import xmltodict
 from defusedxml import ElementTree
 from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
-from valigetta.decryptor import decrypt_submission
-from valigetta.exceptions import InvalidSubmissionException
 
-from onadata.apps.logger.models import Project, XForm, XFormKey
+from onadata.apps.logger.models import Project, XForm
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
-from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
+from onadata.apps.logger.xform_instance_parser import (
+    InstanceEncryptionError,
+    get_uuid_from_xml,
+)
+from onadata.apps.messaging.constants import SUBMISSION_EDITED, XFORM
+from onadata.apps.messaging.serializers import send_message
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.data import parse_int
-from onadata.libs.kms.tools import get_kms_client
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.common_tags import (
@@ -45,9 +49,15 @@ from onadata.libs.utils.dict_tools import (
     query_list_to_dict,
 )
 from onadata.libs.utils.logger_tools import (
+    OpenRosaResponseBadRequest,
+    _create_duplicate_response,
+    _edit_instance,
+    check_encrypted_submission,
+    check_submission_permissions,
     dict2xform,
     remove_metadata_fields,
     safe_create_instance,
+    save_attachments,
 )
 
 logger = logging.getLogger(__name__)
@@ -325,92 +335,6 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     XML SubmissionSerializer - handles creating a submission from XML.
     """
 
-    def _get_encrypted_files(self, request):
-        """Get encrypted media files from request as BytesIO objects."""
-        enc_files = {}
-
-        for name, file in request.FILES.items():
-            if name != "xml_submission_file":
-                file_content = file.read()
-                file.seek(0)
-                enc_files[name] = BytesIO(file_content)
-        return enc_files
-
-    # pylint: disable=too-many-locals
-    def _decrypt_submission_files(self, request, xform):
-        """
-        Decrypt the incoming submission XML and media files.
-
-        :param request: The HTTP request
-        :param xform: The XForm
-        :return: Tuple of (decrypted_xml_file, decrypted_media_files)
-        :raises serializers.ValidationError: If decryption fails
-        """
-        xml_file = request.FILES.get("xml_submission_file")
-        # Read XML content
-        xml_content = xml_file.read()
-        xml_file.seek(0)
-
-        # Extract version from XML content
-        xml_obj = clean_and_parse_xml(xml_content)
-        root_node = xml_obj.documentElement
-        version = root_node.getAttribute("version") or None
-
-        try:
-            xform_key = XFormKey.objects.get(version=version, xform=xform)
-        except XFormKey.DoesNotExist as exc:
-            raise serializers.ValidationError(_("Encryption key not found.")) from exc
-
-        if xform_key.kms_key.disabled_at is not None:
-            raise serializers.ValidationError(_("Encryption key has been disabled."))
-
-        submission_xml = BytesIO(xml_content)
-        kms_client = get_kms_client()
-        enc_files = self._get_encrypted_files(request)
-
-        try:
-            decrypted_files = decrypt_submission(
-                kms_client=kms_client,
-                key_id=xform_key.kms_key.key_id,
-                submission_xml=submission_xml,
-                enc_files=enc_files,
-            )
-        except InvalidSubmissionException as exc:
-            logger.exception(exc)
-
-            raise serializers.ValidationError(_("Decryption failed."))
-
-        # Process decrypted files
-        decrypted_xml_file = None
-        decrypted_media_files = []
-
-        for original_name, decrypted_file in decrypted_files:
-            content = decrypted_file.getvalue()
-            if original_name.lower() == "submission.xml":
-                # Create an InMemoryUploadedFile for the decrypted XML
-                decrypted_xml_file = InMemoryUploadedFile(
-                    file=BytesIO(content),
-                    field_name="xml_submission_file",
-                    name="submission.xml",
-                    content_type="text/xml",
-                    size=len(content),
-                    charset="utf-8",
-                )
-            else:
-                # Create InMemoryUploadedFile for decrypted media
-                decrypted_media_files.append(
-                    InMemoryUploadedFile(
-                        file=BytesIO(content),
-                        field_name=original_name,
-                        name=original_name,
-                        content_type="application/octet-stream",
-                        size=len(content),
-                        charset=None,
-                    )
-                )
-
-        return decrypted_xml_file, decrypted_media_files
-
     @TrackObjectEvent(
         user_field="xform__user",
         properties={
@@ -423,18 +347,14 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     )
     # pylint: disable=too-many-locals
     def update(self, instance, validated_data):
-        """
-        Handle submission edit
-
-        If the form is managed and encrypted, decrypt the incoming submission
-        files
-        """
+        """Handle submission edit"""
         request, username = get_request_and_username(self.context)
         view = self.context["view"]
         xform_pk = view.kwargs.get("xform_pk")
 
         # Get the XForm
         xform = get_object_or_404(XForm, pk=xform_pk)
+        check_submission_permissions(request, xform)
 
         # Get submission files
         xml_file_list = request.FILES.pop("xml_submission_file", [])
@@ -451,23 +371,65 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
             ElementTree.fromstring(xml_content).attrib.get("encrypted") == "yes"
         )
 
-        # If form is managed decrypt the incoming files
+        try:
+            check_encrypted_submission(xml_content, xform)
+        except InstanceEncryptionError as e:
+            error = OpenRosaResponseBadRequest(str(e))
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
+            raise exc
+
         if submission_encrypted and xform.is_was_managed:
-            # Put the file back for decryption
-            request.FILES["xml_submission_file"] = xml_file
+            # Update XML with incoming encrypted XML
+            instance_pk = view.kwargs.get("pk")
+            instance = instance or get_object_or_404(
+                Instance, pk=instance_pk, xform=xform
+            )
+            xml = (
+                xml_content.decode("utf-8")
+                if isinstance(xml_content, bytes)
+                else xml_content
+            )
+            new_uuid = get_uuid_from_xml(xml)
+            checksum = sha256(xml_content).hexdigest()
+            submitted_by = request.user if request.user.is_authenticated else None
 
-            for media_file in media_files:
-                request.FILES[media_file.name] = media_file
+            if instance.uuid == new_uuid:
+                # Duplicate submission — save extra attachments only
+                with transaction.atomic():
+                    save_attachments(
+                        xform, instance, media_files, remove_deleted_media=True
+                    )
+                    instance.save(update_fields=["date_modified"])
 
-            decrypted_xml_file, decrypted_media_files = self._decrypt_submission_files(
-                request, xform
+                response = _create_duplicate_response(request)
+                exc = exceptions.APIException(detail=response)
+                exc.response = response
+                exc.status_code = response.status_code
+                raise exc
+
+            _edit_instance(
+                instance, instance.uuid, new_uuid, submitted_by, checksum, xml
+            )
+            save_attachments(xform, instance, media_files, remove_deleted_media=True)
+
+            # Update ParsedInstance
+            pi, created = ParsedInstance.objects.get_or_create(instance=instance)
+            if not created:
+                pi.save()
+
+            send_message(
+                instance_id=instance.id,
+                target_id=xform.id,
+                target_type=XFORM,
+                user=submitted_by,
+                message_verb=SUBMISSION_EDITED,
             )
 
-            if decrypted_xml_file:
-                xml_file = decrypted_xml_file
-                media_files = decrypted_media_files
+            return instance
 
-        # Save the submission using safe_create_instance
+        # For non-encrypted submissions, use the standard create flow
         error, new_instance = safe_create_instance(
             username, xml_file, media_files, None, request
         )
