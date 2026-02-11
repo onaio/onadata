@@ -2099,6 +2099,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         enc_sunset_name = "sunset.png.enc"
         enc_forest_name = "forest.mp4.enc"
         fake_content = b"fake-content"
+        manifest_xml = self._enc_instance_manifest_xml()
 
         # Simulate existing decrypted submission
         original_instance = self._submit_decrypted_instance()
@@ -2164,7 +2165,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         original_dec_forest = Attachment.objects.get(name="forest.mp4")
         original_uuid = original_instance.uuid
 
-        manifest_file = BytesIO(self._enc_instance_manifest_xml().encode("utf-8"))
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
         manifest_file.name = "xml_submission_file"
         enc_submission_file = InMemoryUploadedFile(
             file=BytesIO(fake_content),
@@ -2223,7 +2224,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
         self.assertNotEqual(edited_instance.uuid, original_uuid)
         self.assertTrue(edited_instance.is_encrypted)
-        self.assertEqual(edited_instance.xml, self._enc_instance_manifest_xml())
+        self.assertEqual(edited_instance.xml, manifest_xml)
         self.assertTrue(edited_instance.media_all_received)
 
         # Old submission is stored in InstanceHistory
@@ -2255,59 +2256,28 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
     def test_edit_managed_duplicate_saves_extra_attachments(self):
         """Extra attachments sent in a separate request are saved."""
-        # Create initial unencrypted submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        self.assertEqual(Instance.objects.count(), 1)
+        self._publish_managed_form()
+        original_instance = self._submit_decrypted_instance()
+        manifest_xml = self._enc_instance_manifest_xml()
+        fake_content = b"fake-content"
+        enc_submission_name = "submission.xml.enc"
+        enc_sunset_name = "sunset.png.enc"
 
-        original_instance = Instance.objects.first()
-
-        # Make the form managed and encrypted (no XFormKey created)
-        # Use queryset update to bypass XForm.save() which resets encrypted
-        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
-        form_id = self.xform.id_string
-        version = self.xform.version
-
-        # Build encrypted manifest XML referencing a media file
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<media><file>photo.jpg.enc</file></media>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
-        # First request: send XML + submission.xml.enc (no extra media yet)
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        enc_file_content = b"fake encrypted submission content"
-        enc_file = InMemoryUploadedFile(
-            file=BytesIO(enc_file_content),
-            field_name="submission.xml.enc",
-            name="submission.xml.enc",
+        # First request: send manifest + submission.xml.enc only (no media yet)
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        enc_submission_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
+            field_name=enc_submission_name,
+            name=enc_submission_name,
             content_type="application/octet-stream",
-            size=len(enc_file_content),
+            size=len(fake_content),
             charset=None,
         )
 
         data = {
-            "xml_submission_file": xml_file,
-            "submission.xml.enc": enc_file,
+            "xml_submission_file": manifest_file,
+            enc_submission_name: enc_submission_file,
         }
         request = self.factory.post(
             f"/enketo/{self.xform.pk}/{original_instance.pk}/submission", data
@@ -2319,25 +2289,24 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         # Verify the edit was applied
         self.assertEqual(Instance.objects.count(), 1)
         edited_instance = Instance.objects.first()
-        self.assertEqual(edited_instance.uuid, new_uuid.replace("uuid:", ""))
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
         self.assertEqual(Attachment.objects.filter(instance=edited_instance).count(), 1)
 
-        # Second request: same XML + extra media attachment
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        photo_content = b"fake encrypted photo content"
-        photo_file = InMemoryUploadedFile(
-            file=BytesIO(photo_content),
-            field_name="photo.jpg.enc",
-            name="photo.jpg.enc",
+        # Second request: same manifest + extra media attachment
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        enc_sunset_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
+            field_name=enc_sunset_name,
+            name=enc_sunset_name,
             content_type="application/octet-stream",
-            size=len(photo_content),
+            size=len(fake_content),
             charset=None,
         )
 
         data = {
-            "xml_submission_file": xml_file,
-            "photo.jpg.enc": photo_file,
+            "xml_submission_file": manifest_file,
+            enc_sunset_name: enc_sunset_file,
         }
         request = self.factory.post(
             f"/enketo/{self.xform.pk}/{edited_instance.pk}/submission", data
