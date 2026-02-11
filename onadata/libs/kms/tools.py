@@ -470,7 +470,7 @@ def save_decryption_error(instance: Instance, error_name: str):
     )
 
 
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too=many-statements
 def decrypt_instance(instance: Instance) -> None:
     """Decrypt encrypted Instance
 

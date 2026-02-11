@@ -729,6 +729,7 @@ def _create_duplicate_response(request):
     return response
 
 
+# pylint: disable=too-many-return-statements,too-many-branches
 def _instance_op_to_openrosa_response(
     exc: Exception,
     *,
@@ -788,6 +789,10 @@ def _instance_op_to_openrosa_response(
             _("Submission has been modified since it was last fetched.")
         )
 
+    return OpenRosaResponseServerError(
+        _("An error occurred during submission processing.")
+    )
+
 
 # pylint: disable=too-many-branches,too-many-statements
 @use_master
@@ -813,7 +818,7 @@ def safe_create_instance(  # noqa C901
             request=request,
             status=instance_status,
         )
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         return _instance_op_to_openrosa_response(exc, request=request), None
 
     if isinstance(instance, DuplicateInstance):
@@ -845,7 +850,7 @@ def safe_edit_instance(
             media_files=media_files,
             status=status,
         )
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         return _instance_op_to_openrosa_response(exc, request=request), None
 
     if isinstance(instance, DuplicateInstance):
@@ -1235,6 +1240,12 @@ class OpenRosaResponseConflict(OpenRosaResponse):
     """An HTTP response class with OpenRosa headers for the Conflict response."""
 
     status_code = 409
+
+
+class OpenRosaResponseServerError(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the Server Error response."""
+
+    status_code = 500
 
 
 class OpenRosaDuplicateInstance(OpenRosaResponse):
