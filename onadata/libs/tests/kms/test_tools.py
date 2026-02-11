@@ -1216,6 +1216,21 @@ class DecryptInstanceTestCase(TestBase):
         # XForm decrypted submission count is NOT incremented for edits
         mock_adjust_decrypted_submission_count.assert_not_called()
 
+    def test_decrypt_excludes_soft_deleted_attachments(self):
+        """Decryption only processes active (non-deleted) attachments."""
+        # Soft-delete 1 attachment
+        self.instance.attachments.filter(name="sunset.png.enc").update(
+            deleted_at=timezone.now()
+        )
+
+        with self.assertRaises(DecryptionError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(
+            str(exc_info.exception),
+            "Media file sunset.png.enc not found in provided files.",
+        )
+
     def test_unencrypted_submission(self):
         """Unencrypted Instance is rejected."""
         self._publish_transportation_form_and_submit_instance()

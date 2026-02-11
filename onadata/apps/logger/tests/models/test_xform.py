@@ -378,7 +378,7 @@ class TestXForm(TestBase):
 
         self.assertTrue(self.xform.is_managed)
 
-        dec_instance = self._submit_decrypted_instance()
+        dec_instance = self._submit_dec_instance()
 
         result = self.xform.update_num_of_decrypted_submissions()
         self.xform.refresh_from_db()

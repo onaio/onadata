@@ -16,9 +16,6 @@ from io import StringIO
 from tempfile import NamedTemporaryFile
 from unittest.mock import Mock, patch
 
-import defusedxml.ElementTree as ET
-import geojson
-import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
@@ -26,6 +23,10 @@ from django.test import RequestFactory
 from django.test.testcases import SerializeMixin
 from django.test.utils import override_settings
 from django.utils import timezone
+
+import defusedxml.ElementTree as ET
+import geojson
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
@@ -3921,7 +3922,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
     def test_is_encrypted_query_param(self):
         """`is_encrypted` query param works."""
         self._publish_managed_form_and_submit_instance()
-        self._submit_decrypted_instance()
+        self._submit_dec_instance()
 
         view = DataViewSet.as_view({"get": "list"})
         request = self.factory.get("/", data={"is_encrypted": False}, **self.extra)

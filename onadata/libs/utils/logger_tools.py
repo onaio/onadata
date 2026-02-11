@@ -488,6 +488,7 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                     name=filename,
                     extension=extension,
                     user=instance.user,
+                    deleted_at=None,
                     defaults={"media_file": f},
                 )
             except Attachment.MultipleObjectsReturned:
@@ -676,6 +677,10 @@ def edit_instance(
     is_encrypted = fromstring(xml_content).attrib.get("encrypted") == "yes"
 
     if is_encrypted and xform.is_was_managed:
+        # Delete existing attachments as the new attachments should take precedence
+        instance.attachments.filter(deleted_at__isnull=True).update(
+            deleted_at=timezone.now()
+        )
         xml = (
             xml_content.decode("utf-8")
             if isinstance(xml_content, bytes)
@@ -694,6 +699,8 @@ def edit_instance(
                 instance.save(update_fields=["date_modified"])
 
             raise DuplicateInstance()
+
+        instance.media_all_received = False  # Reset media_all_received
 
         _edit_instance(instance, instance.uuid, new_uuid, submitted_by, checksum, xml)
         save_attachments(xform, instance, media_files, remove_deleted_media=True)
@@ -792,9 +799,7 @@ def _instance_op_to_openrosa_response(
             _("Submission has been modified since it was last fetched.")
         )
 
-    return OpenRosaResponseServerError(
-        _("An error occurred during submission processing.")
-    )
+    raise exc
 
 
 def safe_instance_op(

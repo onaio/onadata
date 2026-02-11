@@ -10,6 +10,7 @@ from xml.etree.ElementTree import ParseError
 
 from django.http.request import HttpRequest
 from django.test import override_settings
+
 from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
@@ -1199,7 +1200,7 @@ class TestInstance(TestBase):
     def test_decrypt_instance_managed_encryption(self, mock_decrypt):
         """Instance is decrypted if encryption uses managed keys"""
         self._publish_managed_form()
-        instance = self._submit_encrypted_instance()
+        instance = self._submit_enc_instance()
 
         mock_decrypt.assert_called_once_with(instance.pk)
 
@@ -1272,7 +1273,7 @@ class TestInstance(TestBase):
     def test_set_is_encrypted(self):
         """is_encrypted is set to True for encrypted Instance."""
         self._publish_managed_form()
-        instance = self._submit_encrypted_instance()
+        instance = self._submit_enc_instance()
 
         self.assertTrue(instance.is_encrypted)
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
@@ -1383,7 +1384,7 @@ class TestInstance(TestBase):
     def test_check_encrypted(self):
         """check_encrypted returns True if Instance encrypted"""
         self._publish_managed_form()
-        instance = self._submit_encrypted_instance()
+        instance = self._submit_enc_instance()
 
         self.assertTrue(instance.check_encrypted())
 

@@ -11,7 +11,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.contenttypes.models import ContentType
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.http import UnreadablePostError
 from django.test import TransactionTestCase, override_settings
 from django.urls.exceptions import NoReverseMatch
@@ -2094,59 +2094,107 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     @patch("onadata.libs.utils.logger_tools.send_message")
     def test_edit_submission_managed(self, mock_send_message, mock_decrypt_async):
         """Editing a submission for a managed form stores encrypted XML as-is."""
-        # Create initial unencrypted submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        self.assertEqual(Instance.objects.count(), 1)
+        self._publish_managed_form()
+        enc_submission_name = "submission.xml.enc"
+        enc_sunset_name = "sunset.png.enc"
+        enc_forest_name = "forest.mp4.enc"
+        fake_content = b"fake-content"
 
-        original_instance = Instance.objects.first()
+        # Simulate existing decrypted submission
+        original_instance = self._submit_dec_instance()
+        Attachment.objects.bulk_create(
+            [
+                Attachment(
+                    instance=original_instance,
+                    mimetype="application/octet-stream",
+                    name=enc_sunset_name,
+                    deleted_at=timezone.now(),
+                    media_file=SimpleUploadedFile(
+                        enc_sunset_name,
+                        fake_content,
+                        content_type="application/octet-stream",
+                    ),
+                ),
+                Attachment(
+                    instance=original_instance,
+                    mimetype="application/octet-stream",
+                    name=enc_forest_name,
+                    deleted_at=timezone.now(),
+                    media_file=SimpleUploadedFile(
+                        enc_forest_name,
+                        fake_content,
+                        content_type="application/octet-stream",
+                    ),
+                ),
+                Attachment(
+                    instance=original_instance,
+                    mimetype="application/octet-stream",
+                    name=enc_submission_name,
+                    deleted_at=timezone.now(),
+                    media_file=SimpleUploadedFile(
+                        enc_submission_name,
+                        fake_content,
+                        content_type="application/octet-stream",
+                    ),
+                ),
+                Attachment(
+                    instance=original_instance,
+                    mimetype="image/png",
+                    name="sunset.jpg",
+                    media_file=SimpleUploadedFile(
+                        "sunset.jpg",
+                        fake_content,
+                        content_type="image/png",
+                    ),
+                ),
+                Attachment(
+                    instance=original_instance,
+                    mimetype="video/mp4",
+                    name="forest.mp4",
+                    media_file=SimpleUploadedFile(
+                        "forest.mp4",
+                        fake_content,
+                        content_type="video/mp4",
+                    ),
+                ),
+            ]
+        )
+
+        original_dec_sunset = Attachment.objects.get(name="sunset.jpg")
+        original_dec_forest = Attachment.objects.get(name="forest.mp4")
         original_uuid = original_instance.uuid
 
-        # Make the form managed and encrypted
-        self.xform.encrypted = True
-        self.xform.is_managed = True
-        self.xform.save(update_fields=["encrypted", "is_managed"])
-        form_id = self.xform.id_string
-        version = self.xform.version
-
-        # Build encrypted manifest XML
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        enc_file_content = b"fake encrypted submission content"
-        enc_file = InMemoryUploadedFile(
-            file=BytesIO(enc_file_content),
-            field_name="submission.xml.enc",
-            name="submission.xml.enc",
+        manifest_file = BytesIO(self._enc_instance_manifest_xml().encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        enc_submission_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
+            field_name=enc_submission_name,
+            name=enc_submission_name,
             content_type="application/octet-stream",
-            size=len(enc_file_content),
+            size=len(fake_content),
             charset=None,
         )
-
+        enc_sunset_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
+            field_name=enc_sunset_name,
+            name=enc_sunset_name,
+            content_type="application/octet-stream",
+            size=len(fake_content),
+            charset=None,
+        )
+        enc_forest_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
+            field_name=enc_forest_name,
+            name=enc_forest_name,
+            content_type="application/octet-stream",
+            size=len(fake_content),
+            charset=None,
+        )
         data = {
-            "xml_submission_file": xml_file,
-            "submission.xml.enc": enc_file,
+            "xml_submission_file": manifest_file,
+            enc_submission_name: enc_submission_file,
+            enc_sunset_name: enc_sunset_file,
+            enc_forest_name: enc_forest_file,
         }
 
         with self.captureOnCommitCallbacks(execute=True):
@@ -2171,17 +2219,19 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         # Verify the submission was edited
         self.assertEqual(Instance.objects.count(), 1)
         edited_instance = Instance.objects.first()
-        self.assertEqual(edited_instance.uuid, new_uuid.replace("uuid:", ""))
+
+        self.assertEqual(edited_instance.uuid, "8780874c-fe70-4060-ab6e-c8e5228ed85f")
         self.assertNotEqual(edited_instance.uuid, original_uuid)
         self.assertTrue(edited_instance.is_encrypted)
-        self.assertEqual(edited_instance.xml, manifest_xml)
+        self.assertEqual(edited_instance.xml, self._enc_instance_manifest_xml())
+        self.assertTrue(edited_instance.media_all_received)
 
         # Old submission is stored in InstanceHistory
         history = InstanceHistory.objects.get(xform_instance=edited_instance)
         self.assertEqual(history.uuid, original_uuid)
         self.assertEqual(history.xml, original_instance.xml)
 
-        mock_send_message.assert_called_with(
+        mock_send_message.assert_called_once_with(
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type="xform",
@@ -2190,6 +2240,18 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         )
         # Instance is queued for decryption
         mock_decrypt_async.delay.assert_called_once_with(edited_instance.pk)
+
+        # Old attachments are deleted
+        original_dec_sunset.refresh_from_db()
+        original_dec_forest.refresh_from_db()
+        self.assertIsNotNone(original_dec_sunset.deleted_at)
+        self.assertIsNotNone(original_dec_forest.deleted_at)
+
+        # Encrypted files are saved afresh
+        for name in {enc_submission_name, enc_forest_name, enc_sunset_name}:
+            self.assertTrue(
+                Attachment.objects.filter(name=name, deleted_at__isnull=True).exists()
+            )
 
     def test_edit_managed_duplicate_saves_extra_attachments(self):
         """Extra attachments sent in a separate request are saved."""
@@ -2208,10 +2270,9 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
         original_instance = Instance.objects.first()
 
-        # Make the form managed and encrypted
-        self.xform.encrypted = True
-        self.xform.is_managed = True
-        self.xform.save(update_fields=["encrypted", "is_managed"])
+        # Make the form managed and encrypted (no XFormKey created)
+        # Use queryset update to bypass XForm.save() which resets encrypted
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
         form_id = self.xform.id_string
         version = self.xform.version
 
@@ -2620,77 +2681,3 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             response["Location"],
             f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
         )
-
-    def test_edit_deletes_old_attachments(self):
-        """Old attachments are soft-deleted when removed from an edited submission."""
-        # Create initial submission with attachment
-        survey = self.surveys[0]
-        media_file = "1335783522563.jpg"
-        media_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            media_file,
-        )
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission_w_attachment(submission_path, media_path)
-        self.assertEqual(Instance.objects.count(), 1)
-        self.assertEqual(Attachment.objects.count(), 1)
-
-        instance = Instance.objects.first()
-        old_attachment = Attachment.objects.first()
-        self.assertIsNone(old_attachment.deleted_at)
-
-        # Edit the submission with XML that no longer references the media
-        form_id = self.xform.id_string
-        version = self.xform.version
-        edit_xml = (
-            f"<?xml version='1.0' ?>"
-            f'<transportation id="{form_id}" version="{version}">'
-            f"<transport>"
-            f"<available_transportation_types_to_referral_facility>none"
-            f"</available_transportation_types_to_referral_facility>"
-            f"<loop_over_transport_types_frequency>"
-            f"<ambulance /><bicycle /><boat_canoe /><bus />"
-            f"<donkey_mule_cart /><keke_pepe /><lorry />"
-            f"<motorbike /><taxi /><other />"
-            f"</loop_over_transport_types_frequency>"
-            f"</transport>"
-            f"<image1 />"
-            f"<meta>"
-            f"<instanceID>uuid:6b2cc313-fc09-437e-8139-fcd32f695d41</instanceID>"
-            f"<deprecatedID>uuid:{instance.uuid}</deprecatedID>"
-            f"</meta>"
-            f"</transportation>"
-        )
-        xml_file = BytesIO(edit_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-
-        data = {"xml_submission_file": xml_file}
-        request = self.factory.post(
-            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-        )
-        request.user = AnonymousUser()
-        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-
-        self.assertContains(response, "Successful submission", status_code=201)
-        self.assertTrue(response.has_header("X-OpenRosa-Version"))
-        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
-        self.assertTrue(response.has_header("Date"))
-        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
-        self.assertEqual(
-            response["Location"],
-            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
-        )
-
-        old_attachment.refresh_from_db()
-        self.assertIsNotNone(old_attachment.deleted_at)

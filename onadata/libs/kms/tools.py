@@ -527,7 +527,7 @@ def decrypt_instance(instance: Instance) -> None:
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
     kms_client = get_kms_client()
     # Decrypt submission files
-    attachment_qs = instance.attachments.all()
+    attachment_qs = instance.attachments.filter(deleted_at__isnull=True)
     decrypted_files = decrypt_submission(
         kms_client=kms_client,
         key_id=xform_key.kms_key.key_id,

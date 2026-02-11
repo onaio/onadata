@@ -853,7 +853,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self.xform = self._publish_markdown(md, self.org.user, id_string="nature")
         self._encrypt_xform(self.xform, self._create_kms_key(self.org), encrypted_by)
 
-    def _submit_encrypted_instance(self):
+    def _enc_instance_manifest_xml(self):
+        """Encrypted instance manifest XML"""
         manifest_xml = f"""
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="{self.xform.id_string}" version="{self.xform.version}">
@@ -863,24 +864,34 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             </meta>
             <media>
                 <file>sunset.png.enc</file>
+            </media>
+            <media>
                 <file>forest.mp4.enc</file>
             </media>
             <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
             <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
         </data>
         """.strip()
+        return manifest_xml
+
+    def _submit_enc_instance(self):
+        """Create an encrypted Instance"""
         survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
 
         return Instance.objects.create(
-            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+            xform=self.xform,
+            xml=self._enc_instance_manifest_xml(),
+            user=self.user,
+            survey_type=survey_type,
         )
 
-    def _submit_decrypted_instance(self):
+    def _submit_dec_instance(self):
+        """Create a decrypted Instance"""
         manifest_xml = f"""
         <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
             id="{self.xform.id_string}" version="{self.xform.version}">
             <formhub>
-                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+                <uuid>{self.xform.uuid}</uuid>
             </formhub>
             <sunset>sunset.png</sunset>
             <forest>forest.mp4</forest>
@@ -898,7 +909,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _publish_managed_form_and_submit_instance(self):
         self._publish_managed_form()
-        self._submit_encrypted_instance()
+        self._submit_enc_instance()
 
     def sort_by_keys(self, items, *keys):
         return sorted(
