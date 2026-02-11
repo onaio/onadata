@@ -2101,7 +2101,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         fake_content = b"fake-content"
 
         # Simulate existing decrypted submission
-        original_instance = self._submit_dec_instance()
+        original_instance = self._submit_decrypted_instance()
         Attachment.objects.bulk_create(
             [
                 Attachment(

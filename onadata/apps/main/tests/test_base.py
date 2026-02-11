@@ -874,7 +874,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         """.strip()
         return manifest_xml
 
-    def _submit_enc_instance(self):
+    def _submit_encrypted_instance(self):
         """Create an encrypted Instance"""
         survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
 
@@ -885,7 +885,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             survey_type=survey_type,
         )
 
-    def _submit_dec_instance(self):
+    def _submit_decrypted_instance(self):
         """Create a decrypted Instance"""
         manifest_xml = f"""
         <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
@@ -909,7 +909,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
 
     def _publish_managed_form_and_submit_instance(self):
         self._publish_managed_form()
-        self._submit_enc_instance()
+        self._submit_encrypted_instance()
 
     def sort_by_keys(self, items, *keys):
         return sorted(
