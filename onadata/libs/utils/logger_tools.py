@@ -31,7 +31,6 @@ from django.core.exceptions import (
 from django.core.files.storage import storages
 from django.db import DataError, IntegrityError, transaction
 from django.http import (
-    Http404,
     HttpResponse,
     HttpResponseNotFound,
     HttpResponseRedirect,
@@ -816,8 +815,6 @@ def safe_instance_op(
     try:
         instance = operation(**op_kwargs)
 
-    except Http404:
-        raise
     except Exception as exc:  # pylint: disable=broad-except
         return _instance_op_to_openrosa_response(exc, request=request), None
 
