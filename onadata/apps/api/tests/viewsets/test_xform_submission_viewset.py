@@ -2381,40 +2381,12 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
     def test_edit_encryption_key_not_found_reject(self):
         """Edit is rejected if encryption key not found."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
+        self._publish_managed_form()
+        instance = self._submit_decrypted_instance()
+        # Remove XFormKey so no key is found for the version
+        self.xform.kms_keys.all().delete()
 
-        # Make the form managed and encrypted (no XFormKey created)
-        # Use queryset update to bypass XForm.save() which resets encrypted
-        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
-        self.xform.refresh_from_db()
-
-        form_id = self.xform.id_string
-        version = self.xform.version
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
+        manifest_xml = self._enc_instance_manifest_xml()
         xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
@@ -2440,52 +2412,14 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
     def test_edit_encryption_key_disabled_reject(self):
         """Edit is rejected if encryption key is disabled."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
+        self._publish_managed_form()
+        instance = self._submit_decrypted_instance()
+        # Disable the KMSKey
+        xform_key = self.xform.kms_keys.first()
+        xform_key.kms_key.disabled_at = timezone.now()
+        xform_key.kms_key.save(update_fields=["disabled_at"])
 
-        # Make the form managed and encrypted
-        # Use queryset update to bypass XForm.save() which resets encrypted
-        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
-        self.xform.refresh_from_db()
-
-        # Create a disabled KMSKey
-        content_type = ContentType.objects.get_for_model(self.xform)
-        kms_key = KMSKey.objects.create(
-            key_id="fake-key-id",
-            public_key="fake-pub-key",
-            content_type=content_type,
-            object_id=self.xform.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            disabled_at=timezone.now(),
-        )
-        self.xform.kms_keys.create(version=self.xform.version, kms_key=kms_key)
-
-        form_id = self.xform.id_string
-        version = self.xform.version
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
+        manifest_xml = self._enc_instance_manifest_xml()
         xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
@@ -2512,52 +2446,27 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
     def test_edit_encryption_key_not_found_accept(self):
         """Edit is accepted if encryption key not found and setting allows it."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
+        self._publish_managed_form()
+        instance = self._submit_decrypted_instance()
+        # Remove XFormKey so no key is found for the version
+        self.xform.kms_keys.all().delete()
 
-        # Make the form managed and encrypted (no XFormKey created)
-        # Use queryset update to bypass XForm.save() which resets encrypted
-        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
-        self.xform.refresh_from_db()
-
-        form_id = self.xform.id_string
-        version = self.xform.version
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        enc_file_content = b"fake encrypted submission content"
-        enc_file = InMemoryUploadedFile(
-            file=BytesIO(enc_file_content),
+        manifest_xml = self._enc_instance_manifest_xml()
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        fake_content = b"fake-content"
+        enc_submission_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
             field_name="submission.xml.enc",
             name="submission.xml.enc",
             content_type="application/octet-stream",
-            size=len(enc_file_content),
+            size=len(fake_content),
             charset=None,
         )
-        data = {"xml_submission_file": xml_file, "submission.xml.enc": enc_file}
+        data = {
+            "xml_submission_file": manifest_file,
+            "submission.xml.enc": enc_submission_file,
+        }
         request = self.factory.post(
             f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
@@ -2577,64 +2486,29 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
     def test_edit_encryption_key_disabled_accept(self):
         """Edit is accepted if encryption key is disabled and setting allows it."""
-        # Create initial submission
-        survey = self.surveys[0]
-        submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            survey + ".xml",
-        )
-        self._make_submission(submission_path)
-        instance = Instance.objects.first()
+        self._publish_managed_form()
+        instance = self._submit_decrypted_instance()
+        # Disable the KMSKey
+        xform_key = self.xform.kms_keys.first()
+        xform_key.kms_key.disabled_at = timezone.now()
+        xform_key.kms_key.save(update_fields=["disabled_at"])
 
-        # Make the form managed and encrypted
-        # Use queryset update to bypass XForm.save() which resets encrypted
-        XForm.objects.filter(pk=self.xform.pk).update(encrypted=True, is_managed=True)
-        self.xform.refresh_from_db()
-
-        # Create a disabled KMSKey
-        content_type = ContentType.objects.get_for_model(self.xform)
-        kms_key = KMSKey.objects.create(
-            key_id="fake-key-id",
-            public_key="fake-pub-key",
-            content_type=content_type,
-            object_id=self.xform.pk,
-            provider=KMSKey.KMSProvider.AWS,
-            disabled_at=timezone.now(),
-        )
-        self.xform.kms_keys.create(version=self.xform.version, kms_key=kms_key)
-
-        form_id = self.xform.id_string
-        version = self.xform.version
-        new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        manifest_xml = (
-            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
-            f' id="{form_id}" version="{version}">'
-            f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
-            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
-            f"<orx:instanceID>{new_uuid}</orx:instanceID>"
-            f"</orx:meta>"
-            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>fake-sig"
-            f"</base64EncryptedElementSignature>"
-            f"</data>"
-        )
-
-        xml_file = BytesIO(manifest_xml.encode("utf-8"))
-        xml_file.name = "xml_submission_file"
-        enc_file_content = b"fake encrypted submission content"
-        enc_file = InMemoryUploadedFile(
-            file=BytesIO(enc_file_content),
+        manifest_xml = self._enc_instance_manifest_xml()
+        manifest_file = BytesIO(manifest_xml.encode("utf-8"))
+        manifest_file.name = "xml_submission_file"
+        fake_content = b"fake-content"
+        enc_submission_file = InMemoryUploadedFile(
+            file=BytesIO(fake_content),
             field_name="submission.xml.enc",
             name="submission.xml.enc",
             content_type="application/octet-stream",
-            size=len(enc_file_content),
+            size=len(fake_content),
             charset=None,
         )
-        data = {"xml_submission_file": xml_file, "submission.xml.enc": enc_file}
+        data = {
+            "xml_submission_file": manifest_file,
+            "submission.xml.enc": enc_submission_file,
+        }
         request = self.factory.post(
             f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
