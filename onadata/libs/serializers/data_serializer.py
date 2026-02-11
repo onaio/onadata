@@ -3,7 +3,6 @@
 Submission data serializers module.
 """
 
-import logging
 from hashlib import sha256
 from io import BytesIO
 
@@ -60,7 +59,6 @@ from onadata.libs.utils.logger_tools import (
     save_attachments,
 )
 
-logger = logging.getLogger(__name__)
 NUM_FLOIP_COLUMNS = 6
 
 

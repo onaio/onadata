@@ -2109,7 +2109,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
 
-        # Build encrypted envelope XML
+        # Build encrypted manifest XML
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
         manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
@@ -2157,8 +2157,6 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         edited_instance = Instance.objects.first()
         self.assertEqual(edited_instance.uuid, new_uuid.replace("uuid:", ""))
         self.assertNotEqual(edited_instance.uuid, original_uuid)
-
-        # Instance XML is the encrypted envelope (not decrypted)
         self.assertTrue(edited_instance.is_encrypted)
         self.assertEqual(edited_instance.xml, manifest_xml)
 
@@ -2201,9 +2199,9 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
 
-        # Build encrypted envelope XML referencing a media file
+        # Build encrypted manifest XML referencing a media file
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        envelope_xml = (
+        manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
             f' id="{form_id}" version="{version}">'
             f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
@@ -2218,7 +2216,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         )
 
         # First request: send XML + submission.xml.enc (no extra media yet)
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         enc_file_content = b"fake encrypted submission content"
         enc_file = InMemoryUploadedFile(
@@ -2248,7 +2246,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(Attachment.objects.filter(instance=edited_instance).count(), 1)
 
         # Second request: same XML + extra media attachment
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         photo_content = b"fake encrypted photo content"
         photo_file = InMemoryUploadedFile(
@@ -2340,7 +2338,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        envelope_xml = (
+        manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
             f' id="{form_id}" version="{version}">'
             f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
@@ -2353,7 +2351,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             f"</data>"
         )
 
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
         request = self.factory.post(
@@ -2403,7 +2401,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        envelope_xml = (
+        manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
             f' id="{form_id}" version="{version}">'
             f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
@@ -2416,7 +2414,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             f"</data>"
         )
 
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
         request = self.factory.post(
@@ -2454,7 +2452,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        envelope_xml = (
+        manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
             f' id="{form_id}" version="{version}">'
             f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
@@ -2467,7 +2465,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             f"</data>"
         )
 
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         enc_file_content = b"fake encrypted submission content"
         enc_file = InMemoryUploadedFile(
@@ -2522,7 +2520,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         form_id = self.xform.id_string
         version = self.xform.version
         new_uuid = "uuid:6b2cc313-fc09-437e-8139-fcd32f695d41"
-        envelope_xml = (
+        manifest_xml = (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes"'
             f' id="{form_id}" version="{version}">'
             f"<base64EncryptedKey>fake-key</base64EncryptedKey>"
@@ -2535,7 +2533,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             f"</data>"
         )
 
-        xml_file = BytesIO(envelope_xml.encode("utf-8"))
+        xml_file = BytesIO(manifest_xml.encode("utf-8"))
         xml_file.name = "xml_submission_file"
         enc_file_content = b"fake encrypted submission content"
         enc_file = InMemoryUploadedFile(
@@ -2584,23 +2582,37 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.assertIsNone(old_attachment.deleted_at)
 
         # Edit the submission with XML that no longer references the media
-        edit_submission_path = os.path.join(
-            self.main_directory,
-            "fixtures",
-            "transportation",
-            "instances",
-            survey,
-            f"{survey}_edited_no_media.xml",
+        form_id = self.xform.id_string
+        version = self.xform.version
+        edit_xml = (
+            f"<?xml version='1.0' ?>"
+            f'<transportation id="{form_id}" version="{version}">'
+            f"<transport>"
+            f"<available_transportation_types_to_referral_facility>none"
+            f"</available_transportation_types_to_referral_facility>"
+            f"<loop_over_transport_types_frequency>"
+            f"<ambulance /><bicycle /><boat_canoe /><bus />"
+            f"<donkey_mule_cart /><keke_pepe /><lorry />"
+            f"<motorbike /><taxi /><other />"
+            f"</loop_over_transport_types_frequency>"
+            f"</transport>"
+            f"<image1 />"
+            f"<meta>"
+            f"<instanceID>uuid:6b2cc313-fc09-437e-8139-fcd32f695d41</instanceID>"
+            f"<deprecatedID>uuid:{instance.uuid}</deprecatedID>"
+            f"</meta>"
+            f"</transportation>"
         )
+        xml_file = BytesIO(edit_xml.encode("utf-8"))
+        xml_file.name = "xml_submission_file"
 
-        with open(edit_submission_path, "rb") as sf:
-            data = {"xml_submission_file": sf}
-            request = self.factory.post(
-                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
-            )
-            request.user = AnonymousUser()
-            response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = {"xml_submission_file": xml_file}
+        request = self.factory.post(
+            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
+        )
+        request.user = AnonymousUser()
+        response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         old_attachment.refresh_from_db()
         self.assertIsNotNone(old_attachment.deleted_at)
