@@ -2066,12 +2066,20 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         with open(edit_submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
             request = self.factory.post(
-                f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
             )
             request.user = AnonymousUser()
             response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-            self.assertIn("Successful submission", response.data.get("message", ""))
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        )
 
         # Verify the submission was edited
         # The instance count stays the same but the uuid changes
@@ -2083,7 +2091,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
     @override_settings(KMS_AUTO_DECRYPT_INSTANCE=True)
     @patch("onadata.apps.logger.tasks.decrypt_instance_async")
-    @patch("onadata.libs.serializers.data_serializer.send_message")
+    @patch("onadata.libs.utils.logger_tools.send_message")
     def test_edit_submission_managed(self, mock_send_message, mock_decrypt_async):
         """Editing a submission for a managed form stores encrypted XML as-is."""
         # Create initial unencrypted submission
@@ -2143,14 +2151,22 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
 
         with self.captureOnCommitCallbacks(execute=True):
             request = self.factory.post(
-                f"/enketo/{self.xform.pk}/submission/{original_instance.pk}", data
+                f"/enketo/{self.xform.pk}/{original_instance.pk}/submission", data
             )
             request.user = AnonymousUser()
             response = self.view(
                 request, xform_pk=self.xform.pk, pk=original_instance.pk
             )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{original_instance.pk}/submission",
+        )
 
         # Verify the submission was edited
         self.assertEqual(Instance.objects.count(), 1)
@@ -2165,7 +2181,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(history.uuid, original_uuid)
         self.assertEqual(history.xml, original_instance.xml)
 
-        mock_send_message.assert_called_once_with(
+        mock_send_message.assert_called_with(
             instance_id=edited_instance.id,
             target_id=self.xform.id,
             target_type="xform",
@@ -2233,7 +2249,7 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             "submission.xml.enc": enc_file,
         }
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{original_instance.pk}", data
+            f"/enketo/{self.xform.pk}/{original_instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=original_instance.pk)
@@ -2263,12 +2279,21 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             "photo.jpg.enc": photo_file,
         }
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{edited_instance.pk}", data
+            f"/enketo/{self.xform.pk}/{edited_instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=edited_instance.pk)
+
         # Duplicate submission returns 202
         self.assertEqual(response.status_code, 202)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{edited_instance.pk}/submission",
+        )
 
         # Extra attachment should have been saved
         self.assertEqual(Attachment.objects.filter(instance=edited_instance).count(), 2)
@@ -2308,11 +2333,20 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         with open(edit_submission_path, "rb") as sf:
             data = {"xml_submission_file": sf}
             request = self.factory.post(
-                f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+                f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
             )
             request.user = alice_profile.user
             response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-            self.assertEqual(response.status_code, 403)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        )
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
     def test_edit_encryption_key_not_found_reject(self):
@@ -2355,14 +2389,22 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
         self.assertContains(
             response,
             "Encryption key does not exist or is disabled.",
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
+        )
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
         )
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=False)
@@ -2418,14 +2460,23 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         xml_file.name = "xml_submission_file"
         data = {"xml_submission_file": xml_file}
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
+
         self.assertContains(
             response,
             "Encryption key does not exist or is disabled.",
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
+        )
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
         )
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
@@ -2478,11 +2529,20 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         )
         data = {"xml_submission_file": xml_file, "submission.xml.enc": enc_file}
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        )
 
     @override_settings(KMS_KEY_NOT_FOUND_ACCEPT_SUBMISSION=True)
     def test_edit_encryption_key_disabled_accept(self):
@@ -2546,11 +2606,20 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         )
         data = {"xml_submission_file": xml_file, "submission.xml.enc": enc_file}
         request = self.factory.post(
-            f"/enketo/{self.xform.pk}/submission/{instance.pk}", data
+            f"/enketo/{self.xform.pk}/{instance.pk}/submission", data
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        )
 
     def test_edit_deletes_old_attachments(self):
         """Old attachments are soft-deleted when removed from an edited submission."""
@@ -2612,7 +2681,16 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
         )
         request.user = AnonymousUser()
         response = self.view(request, xform_pk=self.xform.pk, pk=instance.pk)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertContains(response, "Successful submission", status_code=201)
+        self.assertTrue(response.has_header("X-OpenRosa-Version"))
+        self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
+        self.assertTrue(response.has_header("Date"))
+        self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+        self.assertEqual(
+            response["Location"],
+            f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
+        )
 
         old_attachment.refresh_from_db()
         self.assertIsNotNone(old_attachment.deleted_at)

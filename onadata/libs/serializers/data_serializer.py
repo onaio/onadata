@@ -3,27 +3,17 @@
 Submission data serializers module.
 """
 
-from hashlib import sha256
 from io import BytesIO
 
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 import xmltodict
-from defusedxml import ElementTree
 from rest_framework import exceptions, serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.logger.models.instance import Instance, InstanceHistory
-from onadata.apps.logger.xform_instance_parser import (
-    InstanceEncryptionError,
-    get_uuid_from_xml,
-)
-from onadata.apps.messaging.constants import SUBMISSION_EDITED, XFORM
-from onadata.apps.messaging.serializers import send_message
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.data import parse_int
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -48,15 +38,10 @@ from onadata.libs.utils.dict_tools import (
     query_list_to_dict,
 )
 from onadata.libs.utils.logger_tools import (
-    OpenRosaResponseBadRequest,
-    _create_duplicate_response,
-    _edit_instance,
-    check_encrypted_submission,
-    check_submission_permissions,
     dict2xform,
     remove_metadata_fields,
     safe_create_instance,
-    save_attachments,
+    safe_edit_instance,
 )
 
 NUM_FLOIP_COLUMNS = 6
@@ -333,113 +318,6 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     XML SubmissionSerializer - handles creating a submission from XML.
     """
 
-    @TrackObjectEvent(
-        user_field="xform__user",
-        properties={
-            "submitted_by": "user",
-            "xform_id": "xform__pk",
-            "project_id": "xform__project__pk",
-            "organization": "xform__user__profile__organization",
-        },
-        additional_context={"from": "XML Submission Edit"},
-    )
-    # pylint: disable=too-many-locals
-    def update(self, instance, validated_data):
-        """Handle submission edit"""
-        request, username = get_request_and_username(self.context)
-        view = self.context["view"]
-        xform_pk = view.kwargs.get("xform_pk")
-
-        # Get the XForm
-        xform = get_object_or_404(XForm, pk=xform_pk)
-        check_submission_permissions(request, xform)
-
-        # Get submission files
-        xml_file_list = request.FILES.pop("xml_submission_file", [])
-        xml_file = xml_file_list[0] if xml_file_list else None
-        media_files = list(request.FILES.values())
-
-        if not xml_file:
-            raise serializers.ValidationError(_("No XML submission file."))
-
-        # Check if the incoming submission is encrypted
-        xml_content = xml_file.read()
-        xml_file.seek(0)
-        submission_encrypted = (
-            ElementTree.fromstring(xml_content).attrib.get("encrypted") == "yes"
-        )
-
-        try:
-            check_encrypted_submission(xml_content, xform)
-        except InstanceEncryptionError as e:
-            error = OpenRosaResponseBadRequest(str(e))
-            exc = exceptions.APIException(detail=error)
-            exc.response = error
-            exc.status_code = error.status_code
-            raise exc
-
-        if submission_encrypted and xform.is_was_managed:
-            # Update XML with incoming encrypted XML
-            instance_pk = view.kwargs.get("pk")
-            instance = instance or get_object_or_404(
-                Instance, pk=instance_pk, xform=xform
-            )
-            xml = (
-                xml_content.decode("utf-8")
-                if isinstance(xml_content, bytes)
-                else xml_content
-            )
-            new_uuid = get_uuid_from_xml(xml)
-            checksum = sha256(xml_content).hexdigest()
-            submitted_by = request.user if request.user.is_authenticated else None
-
-            if instance.uuid == new_uuid:
-                # Duplicate submission — save extra attachments only
-                with transaction.atomic():
-                    save_attachments(
-                        xform, instance, media_files, remove_deleted_media=True
-                    )
-                    instance.save(update_fields=["date_modified"])
-
-                response = _create_duplicate_response(request)
-                exc = exceptions.APIException(detail=response)
-                exc.response = response
-                exc.status_code = response.status_code
-                raise exc
-
-            _edit_instance(
-                instance, instance.uuid, new_uuid, submitted_by, checksum, xml
-            )
-            save_attachments(xform, instance, media_files, remove_deleted_media=True)
-
-            # Update ParsedInstance
-            pi, created = ParsedInstance.objects.get_or_create(instance=instance)
-            if not created:
-                pi.save()
-
-            send_message(
-                instance_id=instance.id,
-                target_id=xform.id,
-                target_type=XFORM,
-                user=submitted_by,
-                message_verb=SUBMISSION_EDITED,
-            )
-
-            return instance
-
-        # For non-encrypted submissions, use the standard create flow
-        error, new_instance = safe_create_instance(
-            username, xml_file, media_files, None, request
-        )
-
-        if error:
-            exc = exceptions.APIException(detail=error)
-            exc.response = error
-            exc.status_code = error.status_code
-            raise exc
-
-        return new_instance
-
     def validate(self, attrs):
         try:
             request, __ = get_request_and_username(self.context)
@@ -478,6 +356,39 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
             exc.response = error
             exc.status_code = error.status_code
 
+            raise exc
+
+        return instance
+
+    @TrackObjectEvent(
+        user_field="xform__user",
+        properties={
+            "submitted_by": "user",
+            "xform_id": "xform__pk",
+            "project_id": "xform__project__pk",
+            "organization": "xform__user__profile__organization",
+        },
+        additional_context={"from": "XML Submission Edit"},
+    )
+    def update(self, instance, validated_data):
+        """Handle submission edit"""
+        request, username = get_request_and_username(self.context)
+        xml_file_list = request.FILES.pop("xml_submission_file", [])
+        xml_file = xml_file_list[0] if xml_file_list else None
+        media_files = request.FILES.values()
+
+        error, instance = safe_edit_instance(
+            request=request,
+            instance=instance,
+            username=username,
+            xml_file=xml_file,
+            media_files=media_files,
+        )
+
+        if error:
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
             raise exc
 
         return instance

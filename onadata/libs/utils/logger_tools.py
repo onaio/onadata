@@ -654,10 +654,71 @@ def create_instance(
     return instance
 
 
+# pylint: disable=too-many-locals
+def edit_instance(
+    request,
+    instance,
+    username,
+    xml_file,
+    media_files,
+    status="submitted_via_web",
+):
+    """Edit an existing Instance"""
+    xform = instance.xform
+    check_submission_permissions(request, xform)
+    xml_content = xml_file.read()
+    xml_file.seek(0)
+    check_encrypted_submission(xml_content, xform)
+
+    is_encrypted = fromstring(xml_content).attrib.get("encrypted") == "yes"
+
+    if is_encrypted and xform.is_was_managed:
+        xml = (
+            xml_content.decode("utf-8")
+            if isinstance(xml_content, bytes)
+            else xml_content
+        )
+        new_uuid = get_uuid_from_xml(xml)
+        checksum = sha256(xml_content).hexdigest()
+        submitted_by = request.user if request.user.is_authenticated else None
+
+        if instance.uuid == new_uuid:
+            # Duplicate submission — save extra attachments only
+            with transaction.atomic():
+                save_attachments(
+                    xform, instance, media_files, remove_deleted_media=True
+                )
+                instance.save(update_fields=["date_modified"])
+
+            raise DuplicateInstance()
+
+        _edit_instance(instance, instance.uuid, new_uuid, submitted_by, checksum, xml)
+        save_attachments(xform, instance, media_files, remove_deleted_media=True)
+        send_message(
+            instance_id=instance.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=submitted_by,
+            message_verb=SUBMISSION_EDITED,
+        )
+
+        return instance
+
+    # For unmanaged submissions, use the standard create flow
+    return create_instance(
+        username=username,
+        xml_file=xml_file,
+        media_files=media_files,
+        uuid=None,
+        request=request,
+        status=status,
+    )
+
+
 def _create_duplicate_response(request):
     """Create a 202 response for duplicate submissions."""
-    response = OpenRosaResponse(_("Duplicate submission"))
-    response.status_code = 202
+    response = OpenRosaDuplicateInstance(_("Duplicate submission"))
+
     if request:
         try:
             response["Location"] = request.build_absolute_uri(request.path)
@@ -666,6 +727,66 @@ def _create_duplicate_response(request):
             # (e.g., synthetic requests from CSV import background tasks)
             pass
     return response
+
+
+def _instance_op_to_openrosa_response(
+    exc: Exception,
+    *,
+    request,
+):
+    """Translate domain exceptions into the correct OpenRosa response."""
+    if isinstance(exc, InstanceInvalidUserError):
+        return OpenRosaResponseBadRequest(_("Username or ID required."))
+
+    if isinstance(exc, InstanceEmptyError):
+        return OpenRosaResponseBadRequest(
+            _("Received empty submission. No instance was created")
+        )
+
+    if isinstance(exc, (InstanceEncryptionError, InstanceFormatError)):
+        return OpenRosaResponseBadRequest(text(exc))
+
+    if isinstance(exc, (FormInactiveError, FormIsMergedDatasetError)):
+        return OpenRosaResponseNotAllowed(text(exc))
+
+    if isinstance(exc, XForm.DoesNotExist):
+        return OpenRosaResponseNotFound(_("Form does not exist on this account"))
+
+    if isinstance(exc, (ExpatError, ParseError)):
+        return OpenRosaResponseBadRequest(_("Improperly formatted XML."))
+
+    if isinstance(exc, AttachmentNameError):
+        return OpenRosaResponseBadRequest(_("Attachment file name exceeds 100 chars"))
+
+    if isinstance(exc, DuplicateInstance):
+        return _create_duplicate_response(request)
+
+    if isinstance(exc, PermissionDenied):
+        return OpenRosaResponseForbidden(exc)
+
+    if isinstance(exc, UnreadablePostError):
+        return OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {exc}"))
+
+    if isinstance(exc, InstanceMultipleNodeError):
+        return OpenRosaResponseBadRequest(exc)
+
+    if isinstance(exc, DjangoUnicodeDecodeError):
+        return OpenRosaResponseBadRequest(
+            _("File likely corrupted during transmission, please try later.")
+        )
+
+    if isinstance(exc, NonUniqueFormIdError):
+        return OpenRosaResponseBadRequest(
+            _("Unable to submit because there are multiple forms with this formID.")
+        )
+
+    if isinstance(exc, DataError):
+        return OpenRosaResponseBadRequest(str(exc))
+
+    if isinstance(exc, InstanceEditConflictError):
+        return OpenRosaResponseConflict(
+            _("Submission has been modified since it was last fetched.")
+        )
 
 
 # pylint: disable=too-many-branches,too-many-statements
@@ -683,8 +804,6 @@ def safe_create_instance(  # noqa C901
     :returns: A list [error, instance] where error is None if there was no
         error.
     """
-    error = instance = None
-
     try:
         instance = create_instance(
             username,
@@ -694,54 +813,45 @@ def safe_create_instance(  # noqa C901
             request=request,
             status=instance_status,
         )
-    except InstanceInvalidUserError:
-        error = OpenRosaResponseBadRequest(_("Username or ID required."))
-    except InstanceEmptyError:
-        error = OpenRosaResponseBadRequest(
-            _("Received empty submission. No instance was created")
-        )
-    except InstanceEncryptionError as e:
-        error = OpenRosaResponseBadRequest(text(e))
-    except InstanceFormatError as e:
-        error = OpenRosaResponseBadRequest(text(e))
-    except (FormInactiveError, FormIsMergedDatasetError) as e:
-        error = OpenRosaResponseNotAllowed(text(e))
-    except XForm.DoesNotExist:
-        error = OpenRosaResponseNotFound(_("Form does not exist on this account"))
-    except (ExpatError, ParseError):
-        error = OpenRosaResponseBadRequest(_("Improperly formatted XML."))
-    except AttachmentNameError:
-        response = OpenRosaResponseBadRequest(
-            _("Attachment file name exceeds 100 chars")
-        )
-        response.status_code = 400
-        error = response
-    except DuplicateInstance:
-        error = _create_duplicate_response(request)
-    except PermissionDenied as e:
-        error = OpenRosaResponseForbidden(e)
-    except UnreadablePostError as e:
-        error = OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {e}"))
-    except InstanceMultipleNodeError as e:
-        error = OpenRosaResponseBadRequest(e)
-    except DjangoUnicodeDecodeError:
-        error = OpenRosaResponseBadRequest(
-            _("File likely corrupted during transmission, please try later.")
-        )
-    except NonUniqueFormIdError:
-        error = OpenRosaResponseBadRequest(
-            _("Unable to submit because there are multiple forms with this formID.")
-        )
-    except DataError as e:
-        error = OpenRosaResponseBadRequest((str(e)))
-    except InstanceEditConflictError:
-        error = OpenRosaResponseConflict(
-            _("Submission has been modified since it was last fetched.")
-        )
+    except Exception as exc:
+        return _instance_op_to_openrosa_response(exc, request=request), None
+
     if isinstance(instance, DuplicateInstance):
-        error = _create_duplicate_response(request)
-        instance = None
-    return [error, instance]
+        return _create_duplicate_response(request), None
+
+    return None, instance
+
+
+@use_master
+def safe_edit_instance(
+    request,
+    instance,
+    username,
+    xml_file,
+    media_files,
+    status="submitted_via_web",
+):
+    """Edit and Instance and catch exceptions
+
+    :returns: A list [error, instance] where error is None if there was no
+        error.
+    """
+    try:
+        instance = edit_instance(
+            request=request,
+            instance=instance,
+            username=username,
+            xml_file=xml_file,
+            media_files=media_files,
+            status=status,
+        )
+    except Exception as exc:
+        return _instance_op_to_openrosa_response(exc, request=request), None
+
+    if isinstance(instance, DuplicateInstance):
+        return _create_duplicate_response(request), None
+
+    return None, instance
 
 
 def generate_aws_media_url(
@@ -1125,6 +1235,12 @@ class OpenRosaResponseConflict(OpenRosaResponse):
     """An HTTP response class with OpenRosa headers for the Conflict response."""
 
     status_code = 409
+
+
+class OpenRosaDuplicateInstance(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the duplicate response."""
+
+    status_code = 202
 
 
 class OpenRosaNotAuthenticated(Response):

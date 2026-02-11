@@ -5,6 +5,7 @@ XFormSubmissionViewSet module
 
 from django.conf import settings
 from django.http import UnreadablePostError
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 from rest_framework import mixins, permissions, status, viewsets
@@ -138,13 +139,15 @@ class XFormSubmissionViewSet(
                 status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
             )
 
-        serializer = self.get_serializer(data=request.data)
+        instance_pk = kwargs.get("pk")
+        instance = get_object_or_404(Instance, pk=instance_pk)
+        serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance = serializer.update(None, serializer.validated_data)
+        self.perform_update(serializer)
+        headers = self.get_success_headers(serializer.data)
 
         return Response(
-            serializer.to_representation(instance),
-            status=status.HTTP_201_CREATED,
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
     def handle_exception(self, exc):
