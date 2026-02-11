@@ -30,6 +30,7 @@ from django.core.exceptions import (
 from django.core.files.storage import storages
 from django.db import DataError, IntegrityError, transaction
 from django.http import (
+    Http404,
     HttpResponse,
     HttpResponseNotFound,
     HttpResponseRedirect,
@@ -750,7 +751,7 @@ def _instance_op_to_openrosa_response(
     if isinstance(exc, (FormInactiveError, FormIsMergedDatasetError)):
         return OpenRosaResponseNotAllowed(text(exc))
 
-    if isinstance(exc, XForm.DoesNotExist):
+    if isinstance(exc, (XForm.DoesNotExist, Http404)):
         return OpenRosaResponseNotFound(_("Form does not exist on this account"))
 
     if isinstance(exc, (ExpatError, ParseError)):
