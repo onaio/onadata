@@ -15,9 +15,11 @@ COPY requirements/ /srv/onadata/requirements/
 # Install service requirements
 WORKDIR /srv/onadata
 
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev \
-    && ldconfig
+    && ldconfig \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /srv/onadata/.venv
 
@@ -25,7 +27,7 @@ RUN python -m venv /srv/onadata/.venv
 # hadolint ignore=DL3013
 RUN --mount=type=ssh if [ -n "$optional_packages" ]; then /srv/onadata/.venv/bin/pip install --no-cache-dir ${optional_packages} ; fi
 
-#a hadolint ignore=DL3013
+# hadolint ignore=DL3013
 RUN python -m pip install --no-cache-dir -U pip && \
     python -m pip install --no-cache-dir -r requirements/base.pip && \
     python -m pip install --no-cache-dir -r requirements/s3.pip && \
