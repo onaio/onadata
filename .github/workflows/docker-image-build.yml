@@ -1,9 +1,10 @@
+---
 name: Docker Build Image
 
-on:
+on:  # yamllint disable-line rule:truthy
   release:
-      types:
-          - "released"
+    types:
+      - "released"
   push:
     branches:
       - "main"
@@ -44,6 +45,8 @@ jobs:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64,linux/arm64
+          secrets: |
+            ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
           build-args: |
             optional_packages=PyYAML django-redis
           push: true

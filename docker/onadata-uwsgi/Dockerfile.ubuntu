@@ -25,7 +25,19 @@ RUN python -m venv /srv/onadata/.venv
 
 
 # hadolint ignore=DL3013
-RUN --mount=type=ssh if [ -n "$optional_packages" ]; then /srv/onadata/.venv/bin/pip install --no-cache-dir ${optional_packages} ; fi
+RUN --mount=type=secret,id=ONADEPLOY_GH_TOKEN \
+    if [ -n "$optional_packages" ]; then \
+        test -s /run/secrets/ONADEPLOY_GH_TOKEN \
+            || { echo "ONADEPLOY_GH_TOKEN secret is required"; exit 1; } \
+        && git config --global \
+            url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
+            "https://github.com/" \
+        && git config --global --add \
+            url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
+            "ssh://git@github.com/" \
+        && /srv/onadata/.venv/bin/pip install --no-cache-dir ${optional_packages} \
+        && rm -f ~/.gitconfig; \
+    fi
 
 # hadolint ignore=DL3013
 RUN python -m pip install --no-cache-dir -U pip && \

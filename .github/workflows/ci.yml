@@ -38,19 +38,16 @@ jobs:
       - name: Install APT requirements
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
-
       - name: Install Pip requirements
         env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+          ONADEPLOY_GH_TOKEN: ${{ secrets.ONADEPLOY_GH_TOKEN }}
         run: |
+          git config --global \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git config --global --add \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "ssh://git@github.com/"
           pip install -U pip
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
@@ -110,15 +107,6 @@ jobs:
           distribution: "adopt"
           java-version: "8"
 
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
-
       - name: Setup python
         uses: actions/setup-python@v5
         with:
@@ -138,8 +126,14 @@ jobs:
 
       - name: Install Pip requirements
         env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+          ONADEPLOY_GH_TOKEN: ${{ secrets.ONADEPLOY_GH_TOKEN }}
         run: |
+          git config --global \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git config --global --add \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "ssh://git@github.com/"
           pip install -U pip
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
@@ -161,15 +155,6 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
 
       - name: Update apt sources
         run: sudo apt-get update
@@ -193,8 +178,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=${{ steps.meta.outputs.tags }}
           cache-to: type=inline
-          ssh: |
-            default=/tmp/ssh-agent.sock
+          secrets: |
+            ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
           build-args: |
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
