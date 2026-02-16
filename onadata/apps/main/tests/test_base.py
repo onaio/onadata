@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import base64
 import csv
+import hashlib
 import json
 import os
 import re
@@ -35,7 +36,6 @@ from pyxform.builder import create_survey_element_from_dict
 from rest_framework.test import APIRequestFactory
 from six.moves.urllib.error import URLError
 from six.moves.urllib.request import urlopen
-from valigetta.decryptor import _get_submission_iv
 
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -742,6 +742,31 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         response = kms_client.encrypt(KeyId=key_id, Plaintext=plain_text)
         return response["CiphertextBlob"]
 
+    def _get_submission_iv(
+        self, instance_id: str, aes_key: bytes, iv_counter: int
+    ) -> bytes:
+        """Generates a 16-byte initialization vector (IV) for AES encryption.
+
+        The IV is created by hashing the instance ID and AES key, then mutating
+        the hash based on the iv_counter.
+
+        :param instance_id: Unique instance ID from submission.xml
+        :param aes_key: Symmetric key used for encryption
+        :param iv_counter: Counter used for mutating the IV
+        :return: A 16-byte initialization vector (IV)
+        """
+        md5_hash = hashlib.md5()
+        md5_hash.update(instance_id.encode("utf-8"))
+        md5_hash.update(aes_key)
+
+        iv_seed_array = bytearray(md5_hash.digest())
+
+        # Mutate IV based on iv_counter
+        for i in range(iv_counter):
+            iv_seed_array[i % 16] = (iv_seed_array[i % 16] + 1) % 256
+
+        return bytes(iv_seed_array)
+
     def _encrypt_submission_file(self, dec_aes_key, instance_uuid, iv_counter, data):
         """Encrypt a file using AES-CFB for ODK encrypted submissions.
 
@@ -751,7 +776,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         :param data: The plaintext data bytes to encrypt.
         :returns: A BytesIO containing the encrypted data.
         """
-        iv = _get_submission_iv(instance_uuid, dec_aes_key, iv_counter=iv_counter)
+        iv = self._get_submission_iv(instance_uuid, dec_aes_key, iv_counter=iv_counter)
         cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
         padded_data = pad(data, AES.block_size)
         return BytesIO(cipher_aes.encrypt(padded_data))
