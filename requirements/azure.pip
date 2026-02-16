@@ -6,7 +6,7 @@
 #
 asgiref==3.11.1
     # via django
-azure-core==1.38.0
+azure-core==1.38.1
     # via
     #   azure-storage-blob
     #   django-storages
