@@ -738,68 +738,6 @@ def _create_duplicate_response(request):
 
 
 # pylint: disable=too-many-return-statements,too-many-branches
-def _instance_op_to_openrosa_response(
-    exc: Exception,
-    *,
-    request,
-):
-    """Translate domain exceptions into the correct OpenRosa response."""
-    if isinstance(exc, InstanceInvalidUserError):
-        return OpenRosaResponseBadRequest(_("Username or ID required."))
-
-    if isinstance(exc, InstanceEmptyError):
-        return OpenRosaResponseBadRequest(
-            _("Received empty submission. No instance was created")
-        )
-
-    if isinstance(exc, (InstanceEncryptionError, InstanceFormatError)):
-        return OpenRosaResponseBadRequest(text(exc))
-
-    if isinstance(exc, (FormInactiveError, FormIsMergedDatasetError)):
-        return OpenRosaResponseNotAllowed(text(exc))
-
-    if isinstance(exc, XForm.DoesNotExist):
-        return OpenRosaResponseNotFound(_("Form does not exist on this account"))
-
-    if isinstance(exc, (ExpatError, ParseError)):
-        return OpenRosaResponseBadRequest(_("Improperly formatted XML."))
-
-    if isinstance(exc, AttachmentNameError):
-        return OpenRosaResponseBadRequest(_("Attachment file name exceeds 100 chars"))
-
-    if isinstance(exc, DuplicateInstance):
-        return _create_duplicate_response(request)
-
-    if isinstance(exc, PermissionDenied):
-        return OpenRosaResponseForbidden(exc)
-
-    if isinstance(exc, UnreadablePostError):
-        return OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {exc}"))
-
-    if isinstance(exc, InstanceMultipleNodeError):
-        return OpenRosaResponseBadRequest(exc)
-
-    if isinstance(exc, DjangoUnicodeDecodeError):
-        return OpenRosaResponseBadRequest(
-            _("File likely corrupted during transmission, please try later.")
-        )
-
-    if isinstance(exc, NonUniqueFormIdError):
-        return OpenRosaResponseBadRequest(
-            _("Unable to submit because there are multiple forms with this formID.")
-        )
-
-    if isinstance(exc, DataError):
-        return OpenRosaResponseBadRequest(str(exc))
-
-    if isinstance(exc, InstanceEditConflictError):
-        return OpenRosaResponseConflict(
-            _("Submission has been modified since it was last fetched.")
-        )
-
-    raise exc
-
-
 def safe_instance_op(
     operation: Operation,
     *,
@@ -811,17 +749,60 @@ def safe_instance_op(
 
     Returns: (error_response, instance)
     """
+    error = instance = None
+
     try:
         instance = operation(**op_kwargs)
 
-    except Exception as exc:  # pylint: disable=broad-except
-        return _instance_op_to_openrosa_response(exc, request=request), None
-
-    # Preserve existing behavior: sometimes you get a DuplicateInstance object back
+    except InstanceInvalidUserError:
+        error = OpenRosaResponseBadRequest(_("Username or ID required."))
+    except InstanceEmptyError:
+        error = OpenRosaResponseBadRequest(
+            _("Received empty submission. No instance was created")
+        )
+    except InstanceEncryptionError as e:
+        error = OpenRosaResponseBadRequest(text(e))
+    except InstanceFormatError as e:
+        error = OpenRosaResponseBadRequest(text(e))
+    except (FormInactiveError, FormIsMergedDatasetError) as e:
+        error = OpenRosaResponseNotAllowed(text(e))
+    except XForm.DoesNotExist:
+        error = OpenRosaResponseNotFound(_("Form does not exist on this account"))
+    except (ExpatError, ParseError):
+        error = OpenRosaResponseBadRequest(_("Improperly formatted XML."))
+    except AttachmentNameError:
+        response = OpenRosaResponseBadRequest(
+            _("Attachment file name exceeds 100 chars")
+        )
+        response.status_code = 400
+        error = response
+    except DuplicateInstance:
+        error = _create_duplicate_response(request)
+    except PermissionDenied as e:
+        error = OpenRosaResponseForbidden(e)
+    except UnreadablePostError as e:
+        error = OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {e}"))
+    except InstanceMultipleNodeError as e:
+        error = OpenRosaResponseBadRequest(e)
+    except DjangoUnicodeDecodeError:
+        error = OpenRosaResponseBadRequest(
+            _("File likely corrupted during transmission, please try later.")
+        )
+    except NonUniqueFormIdError:
+        error = OpenRosaResponseBadRequest(
+            _("Unable to submit because there are multiple forms with this formID.")
+        )
+    except DataError as e:
+        error = OpenRosaResponseBadRequest((str(e)))
+    except InstanceEditConflictError:
+        error = OpenRosaResponseConflict(
+            _("Submission has been modified since it was last fetched.")
+        )
     if isinstance(instance, DuplicateInstance):
-        return _create_duplicate_response(request), None
+        error = _create_duplicate_response(request)
+        instance = None
 
-    return None, instance
+    return [error, instance]
 
 
 # pylint: disable=too-many-branches,too-many-statements
