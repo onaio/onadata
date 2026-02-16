@@ -820,7 +820,7 @@ def safe_create_instance(  # noqa C901
     :returns: A list [error, instance] where error is None if there was no
         error.
     """
-    error, instance = safe_instance_op(
+    return safe_instance_op(
         create_instance,
         request=request,
         op_kwargs={
@@ -832,7 +832,6 @@ def safe_create_instance(  # noqa C901
             "status": instance_status,
         },
     )
-    return [error, instance]
 
 
 @use_master
@@ -849,7 +848,7 @@ def safe_edit_instance(
     :returns: A list [error, instance] where error is None if there was no
         error.
     """
-    error, instance = safe_instance_op(
+    return safe_instance_op(
         edit_instance,
         request=request,
         op_kwargs={
@@ -861,7 +860,6 @@ def safe_edit_instance(
             "status": status,
         },
     )
-    return [error, instance]
 
 
 def generate_aws_media_url(
