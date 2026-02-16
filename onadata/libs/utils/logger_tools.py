@@ -737,7 +737,7 @@ def _create_duplicate_response(request):
     return response
 
 
-# pylint: disable=too-many-return-statements,too-many-branches
+# pylint: disable=too-many-branches,too-many-statements
 def safe_instance_op(
     operation: Operation,
     *,
