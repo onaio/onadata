@@ -801,7 +801,6 @@ def safe_instance_op(
     if isinstance(instance, DuplicateInstance):
         error = _create_duplicate_response(request)
         instance = None
-
     return [error, instance]
 
 
@@ -1243,12 +1242,6 @@ class OpenRosaResponseConflict(OpenRosaResponse):
     """An HTTP response class with OpenRosa headers for the Conflict response."""
 
     status_code = 409
-
-
-class OpenRosaResponseServerError(OpenRosaResponse):
-    """An HTTP response class with OpenRosa headers for the Server Error response."""
-
-    status_code = 500
 
 
 class OpenRosaDuplicateInstance(OpenRosaResponse):
