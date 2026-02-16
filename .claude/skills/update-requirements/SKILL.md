@@ -8,34 +8,24 @@ all pinned `.pip` requirement files.
 ## Usage
 
 ```bash
-/update-requirements <new-docker-image-tag>
+/update-requirements
 ```
 
-Example: `/update-requirements 3.10.19-20260205`
+Example: `/update-requirements
 
 ## Steps
 
-1. **Read the current tag** from line 1 of
-   `docker/onadata-uwsgi/Dockerfile.ubuntu`.
-
-2. **Create a branch** named
+1. **Create a branch** named
    `chore/update-requirements-<YYYYMMDD>`
    using the date portion of the new tag.
 
-3. **Update the Dockerfile** — change only line 1
-   image tag from current value to the new tag:
-
-   ```dockerfile
-   FROM onaio/python-deps:<new-tag> AS base
-   ```
-
-4. **Delete all `.pip` files**:
+2. **Delete all `.pip` files**:
 
    ```bash
    rm -f requirements/*.pip
    ```
 
-5. **Regenerate `.pip` files** (order matters):
+3. **Regenerate `.pip` files** (order matters):
 
    ```bash
    # base.pip FIRST (other files depend on it)
@@ -63,12 +53,11 @@ Example: `/update-requirements 3.10.19-20260205`
      --strip-extras requirements/docs.in
    ```
 
-6. **Verify** all 6 `.pip` files exist:
+4. **Verify** all 6 `.pip` files exist:
    `ls requirements/*.pip`
 
-7. **Commit** all changed files:
-   - `docker/onadata-uwsgi/Dockerfile.ubuntu`
+5. **Commit** all changed files:
    - `requirements/*.pip`
    - `.claude/skills/update-requirements.md`
 
-8. **Push and create PR** targeting `main`.
+6. **Push and create PR** targeting `main`.
