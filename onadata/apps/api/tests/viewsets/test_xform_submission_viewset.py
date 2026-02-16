@@ -2325,8 +2325,15 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             f"http://testserver/enketo/{self.xform.pk}/{edited_instance.pk}/submission",
         )
 
-        # Extra attachment should have been saved
-        self.assertEqual(Attachment.objects.filter(instance=edited_instance).count(), 2)
+        # Extra attachment should have been saved; both attachments are active
+        att_qs = Attachment.objects.filter(instance=edited_instance)
+        self.assertEqual(att_qs.count(), 2)
+        self.assertTrue(
+            att_qs.filter(name=enc_submission_name, deleted_at__isnull=True).exists()
+        )
+        self.assertTrue(
+            att_qs.filter(name=enc_sunset_name, deleted_at__isnull=True).exists()
+        )
 
     def test_edit_submission_permission_denied(self):
         """Editing a submission is rejected when user lacks permission."""

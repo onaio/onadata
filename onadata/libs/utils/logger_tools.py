@@ -676,10 +676,6 @@ def edit_instance(
     is_encrypted = fromstring(xml_content).attrib.get("encrypted") == "yes"
 
     if is_encrypted and xform.is_was_managed:
-        # Delete existing attachments as the new attachments should take precedence
-        instance.attachments.filter(deleted_at__isnull=True).update(
-            deleted_at=timezone.now()
-        )
         xml = (
             xml_content.decode("utf-8")
             if isinstance(xml_content, bytes)
@@ -700,8 +696,11 @@ def edit_instance(
             raise DuplicateInstance()
 
         instance.media_all_received = False  # Reset media_all_received
-
         _edit_instance(instance, instance.uuid, new_uuid, submitted_by, checksum, xml)
+        # Delete existing attachments as the new attachments should take precedence
+        instance.attachments.filter(deleted_at__isnull=True).update(
+            deleted_at=timezone.now()
+        )
         save_attachments(xform, instance, media_files, remove_deleted_media=True)
         send_message(
             instance_id=instance.id,
