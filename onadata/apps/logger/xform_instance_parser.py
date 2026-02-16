@@ -463,3 +463,62 @@ def get_entity_uuid_from_xml(xml):
     """Returns the uuid for the XML submission's entity"""
     entity_node = get_meta_from_xml(xml, "entity")
     return entity_node.getAttribute("id")
+
+
+class RustXFormInstanceParser:
+    """Drop-in replacement for XFormInstanceParser using Rust native parser."""
+
+    def __init__(self, xml_str, data_dictionary):
+        self.data_dicionary = data_dictionary
+        repeat_xpaths = [
+            get_abbreviated_xpath(e.get_xpath())
+            for e in data_dictionary.get_survey_elements_of_type("repeat")
+        ]
+
+        from onadata.libs.data.query import get_numeric_fields
+
+        numeric_fields = set(get_numeric_fields(data_dictionary))
+        geo_xpaths = (
+            data_dictionary.geopoint_xpaths()
+            if hasattr(data_dictionary, "geopoint_xpaths")
+            else []
+        )
+
+        from onadata_xml import parse_submission
+
+        self._result = parse_submission(
+            smart_str(xml_str.strip()) if isinstance(xml_str, str) else xml_str,
+            repeat_xpaths,
+            data_dictionary.encrypted,
+            numeric_fields,
+            geo_xpaths,
+        )
+
+    def get_root_node(self):
+        return None
+
+    def get_root_node_name(self):
+        return self._result.root_node_name
+
+    def to_dict(self):
+        return self._result.dict
+
+    def to_flat_dict(self):
+        return self._result.flat_dict
+
+    def get_attributes(self):
+        return self._result.attributes
+
+    def get_xform_id_string(self):
+        return self._result.attributes["id"]
+
+    def get_version(self):
+        return self._result.attributes.get("version")
+
+    def get_flat_dict_with_attributes(self):
+        result = self.to_flat_dict().copy()
+        result[XFORM_ID_STRING] = self.get_xform_id_string()
+        version = self.get_version()
+        if version:
+            result[VERSION] = version
+        return result
