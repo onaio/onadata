@@ -383,6 +383,24 @@ def convert_to_serializable_date(date):
     return date
 
 
+def _compare_parser_outputs(py_parser, rust_parser, instance_pk):
+    """Log differences between Python and Rust parser outputs for shadow mode."""
+    _logger = logging.getLogger("onadata.rust_parser_shadow")
+    try:
+        if py_parser.to_dict() != rust_parser.to_dict():
+            _logger.warning("dict mismatch for instance pk=%s", instance_pk)
+        if py_parser.to_flat_dict() != rust_parser.to_flat_dict():
+            _logger.warning("flat_dict mismatch for instance pk=%s", instance_pk)
+        if py_parser.get_root_node_name() != rust_parser.get_root_node_name():
+            _logger.warning(
+                "root_node_name mismatch for instance pk=%s", instance_pk
+            )
+    except Exception:
+        _logger.exception(
+            "Shadow mode comparison failed for instance pk=%s", instance_pk
+        )
+
+
 class InstanceBaseClass:
     """Interface of functions for Instance and InstanceHistory model"""
 
@@ -416,29 +434,40 @@ class InstanceBaseClass:
     def _set_geom(self):
         # pylint: disable=no-member
         xform = self.xform
-        geo_xpaths = xform.geopoint_xpaths()
-        doc = self.get_dict()
-        points = []
+        self._set_parser()
 
-        if geo_xpaths:
-            for xpath in geo_xpaths:
-                for gps in get_values_matching_key(doc, xpath):
-                    try:
-                        geometry = [float(s) for s in gps.split()]
-                        lat, lng = geometry[0:2]
-                        points.append(Point(lng, lat))
-                    except ValueError:
-                        return
+        if (
+            getattr(settings, "USE_RUST_XML_PARSER", False)
+            and hasattr(self._parser, "_result")
+        ):
+            points = [
+                Point(lng, lat)
+                for lat, lng in self._parser._result.geom_points
+            ]
+        else:
+            geo_xpaths = xform.geopoint_xpaths()
+            doc = self.get_dict()
+            points = []
 
-            if not xform.instances_with_geopoints and points:
-                xform.instances_with_geopoints = True
-                xform.save()
+            if geo_xpaths:
+                for xpath in geo_xpaths:
+                    for gps in get_values_matching_key(doc, xpath):
+                        try:
+                            geometry = [float(s) for s in gps.split()]
+                            lat, lng = geometry[0:2]
+                            points.append(Point(lng, lat))
+                        except ValueError:
+                            return
 
-            # pylint: disable=attribute-defined-outside-init
-            if points:
-                self.geom = GeometryCollection(points)
-            else:
-                self.geom = None
+        if not xform.instances_with_geopoints and points:
+            xform.instances_with_geopoints = True
+            xform.save()
+
+        # pylint: disable=attribute-defined-outside-init
+        if points:
+            self.geom = GeometryCollection(points)
+        else:
+            self.geom = None
 
     def get_full_dict(self, include_related=True):
         """Returns the submission XML as a python dictionary object
@@ -517,7 +546,34 @@ class InstanceBaseClass:
         if not hasattr(self, "_parser"):
             # pylint: disable=no-member
             # pylint: disable=attribute-defined-outside-init
-            self._parser = XFormInstanceParser(self.xml, self.xform)
+            if getattr(settings, "USE_RUST_XML_PARSER", False):
+                from onadata.apps.logger.xform_instance_parser import (
+                    RustXFormInstanceParser,
+                )
+
+                self._parser = RustXFormInstanceParser(self.xml, self.xform)
+            else:
+                self._parser = XFormInstanceParser(self.xml, self.xform)
+
+                if getattr(settings, "RUST_XML_PARSER_SHADOW_MODE", False):
+                    try:
+                        from onadata.apps.logger.xform_instance_parser import (
+                            RustXFormInstanceParser,
+                        )
+
+                        rust_parser = RustXFormInstanceParser(
+                            self.xml, self.xform
+                        )
+                        _compare_parser_outputs(
+                            self._parser, rust_parser, self.pk
+                        )
+                    except Exception:
+                        _shadow_logger = logging.getLogger(
+                            "onadata.rust_parser_shadow"
+                        )
+                        _shadow_logger.exception(
+                            "Shadow mode Rust parser failed for pk=%s", self.pk
+                        )
 
     def _set_survey_type(self):
         # pylint: disable=attribute-defined-outside-init
@@ -529,8 +585,15 @@ class InstanceBaseClass:
         # pylint: disable=no-member,attribute-defined-outside-init
         # pylint: disable=access-member-before-definition
         if self.xml and not self.uuid:
-            # pylint: disable=no-member
-            uuid = get_uuid_from_xml(self.xml)
+            if (
+                getattr(settings, "USE_RUST_XML_PARSER", False)
+                and hasattr(self, "_parser")
+                and hasattr(self._parser, "_result")
+            ):
+                uuid = self._parser._result.uuid
+            else:
+                # pylint: disable=no-member
+                uuid = get_uuid_from_xml(self.xml)
             if uuid is not None:
                 self.uuid = uuid
         set_uuid(self)

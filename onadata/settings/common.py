@@ -722,3 +722,7 @@ CSP_STYLE_SRC = [
 CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
 
 ENABLE_TABLE_PARTITIONING = False
+
+# Rust XML parser feature flags
+USE_RUST_XML_PARSER = False
+RUST_XML_PARSER_SHADOW_MODE = False
