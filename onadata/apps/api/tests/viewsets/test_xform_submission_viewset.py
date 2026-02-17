@@ -2531,3 +2531,45 @@ class EditSubmissionTestCase(TestAbstractViewSet, TransactionTestCase):
             response["Location"],
             f"http://testserver/enketo/{self.xform.pk}/{instance.pk}/submission",
         )
+
+    def test_edit_submission_wrong_xform(self):
+        """Editing a submission with a mismatched xform_pk returns 404."""
+        # Create initial submission
+        survey = self.surveys[0]
+        submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            survey + ".xml",
+        )
+        self._make_submission(submission_path)
+        instance = Instance.objects.first()
+
+        # Publish a second form
+        md = """
+        | survey  |
+        |         | type | name | label  |
+        |         | text | city | City?  |
+        """
+        other_xform = self._publish_markdown(md, self.user, id_string="other")
+
+        edit_submission_path = os.path.join(
+            self.main_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            survey,
+            f"{survey}_edited.xml",
+        )
+
+        with open(edit_submission_path, "rb") as sf:
+            data = {"xml_submission_file": sf}
+            request = self.factory.post(
+                f"/enketo/{other_xform.pk}/{instance.pk}/submission", data
+            )
+            request.user = AnonymousUser()
+            response = self.view(request, xform_pk=other_xform.pk, pk=instance.pk)
+
+        self.assertEqual(response.status_code, 404)
