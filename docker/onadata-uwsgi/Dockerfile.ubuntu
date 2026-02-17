@@ -17,40 +17,40 @@ WORKDIR /srv/onadata
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev \
-    && ldconfig \
-    && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev \
+  && ldconfig \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /srv/onadata/.venv
 
 
 # hadolint ignore=DL3013
 RUN --mount=type=secret,id=ONADEPLOY_GH_TOKEN \
-    if [ -n "$optional_packages" ]; then \
-        test -s /run/secrets/ONADEPLOY_GH_TOKEN \
-            || { echo "ONADEPLOY_GH_TOKEN secret is required"; exit 1; } \
-        && git config --global \
-            url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
-            "https://github.com/" \
-        && git config --global --add \
-            url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
-            "ssh://git@github.com/" \
-        && /srv/onadata/.venv/bin/pip install --no-cache-dir ${optional_packages} \
-        && rm -f ~/.gitconfig; \
-    fi
+  if [ -n "$optional_packages" ]; then \
+  test -s /run/secrets/ONADEPLOY_GH_TOKEN \
+  || { echo "ONADEPLOY_GH_TOKEN secret is required"; exit 1; } \
+  && git config --global \
+  url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
+  "https://github.com/" \
+  && git config --global --add \
+  url."https://x-access-token:$(cat /run/secrets/ONADEPLOY_GH_TOKEN)@github.com/".insteadOf \
+  "ssh://git@github.com/" \
+  && /srv/onadata/.venv/bin/pip install --no-cache-dir ${optional_packages} \
+  && rm -f ~/.gitconfig; \
+  fi
 
 # hadolint ignore=DL3013
 RUN python -m pip install --no-cache-dir -U pip && \
-    python -m pip install --no-cache-dir -r requirements/base.pip && \
-    python -m pip install --no-cache-dir -r requirements/s3.pip && \
-    python -m pip install --no-cache-dir -r requirements/ses.pip && \
-    python -m pip install --no-cache-dir -r requirements/azure.pip && \
-    python -m pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.12 supervisor==4.2.5
+  python -m pip install --no-cache-dir -r requirements/base.pip && \
+  python -m pip install --no-cache-dir -r requirements/s3.pip && \
+  python -m pip install --no-cache-dir -r requirements/ses.pip && \
+  python -m pip install --no-cache-dir -r requirements/azure.pip && \
+  python -m pip install --no-cache-dir pyyaml==6.0.3 uwsgitop==0.12 supervisor==4.2.5
 
 ARG INSTALL_DEV_DEPENDENCIES=false
 RUN if [ "$INSTALL_DEV_DEPENDENCIES" = "true" ]; then \
-    python -m pip install --no-cache-dir -r requirements/dev.pip; \
-    fi
+  python -m pip install --no-cache-dir -r requirements/dev.pip; \
+  fi
 
 FROM base AS docs
 
