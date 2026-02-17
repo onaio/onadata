@@ -25,6 +25,7 @@ from django.utils import timezone
 from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
@@ -1111,6 +1112,15 @@ class XForm(XFormMixin, BaseModel):
             "download_xform",
             kwargs={"username": self.user.username, "id_string": self.id_string},
         )
+
+    @property
+    def is_was_managed(self):
+        """Check if the form is currently managed or was previously managed.
+
+        We can't rely on XForm.is_managed alone since the form could have been
+        switched from managed to unmanaged after KMS keys were created.
+        """
+        return self.is_managed or self.kms_keys.exists()
 
     @property
     def has_instances_with_geopoints(self):

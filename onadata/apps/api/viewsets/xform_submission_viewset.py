@@ -2,8 +2,10 @@
 """
 XFormSubmissionViewSet module
 """
+
 from django.conf import settings
 from django.http import UnreadablePostError
+from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 from rest_framework import mixins, permissions, status, viewsets
@@ -23,13 +25,13 @@ from onadata.libs.renderers.renderers import FLOIPRenderer, TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import (
     FLOIPSubmissionSerializer,
     JSONSubmissionSerializer,
+    RapidProJSONSubmissionSerializer,
     RapidProSubmissionSerializer,
     SubmissionSerializer,
-    RapidProJSONSubmissionSerializer,
 )
 from onadata.libs.utils.logger_tools import (
-    OpenRosaResponseBadRequest,
     OpenRosaNotAuthenticated,
+    OpenRosaResponseBadRequest,
 )
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -53,6 +55,7 @@ class XFormSubmissionViewSet(
     AuthenticateHeaderMixin,  # pylint: disable=too-many-ancestors
     OpenRosaHeadersMixin,
     mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
     BaseViewset,
     viewsets.GenericViewSet,
 ):
@@ -123,6 +126,30 @@ class XFormSubmissionViewSet(
             )
 
         return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Handle submission edit requests.
+
+        Uses the SubmissionSerializer to handle decryption of encrypted
+        submissions and save the edit via safe_create_instance.
+        """
+        if request.method.upper() == "HEAD":
+            return Response(
+                status=status.HTTP_204_NO_CONTENT, template_name=self.template_name
+            )
+
+        instance_pk = kwargs.get("pk")
+        xform_pk = kwargs.get("xform_pk")
+        instance = get_object_or_404(Instance, pk=instance_pk, xform_id=xform_pk)
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        headers = self.get_success_headers(serializer.data)
+
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def handle_exception(self, exc):
         """

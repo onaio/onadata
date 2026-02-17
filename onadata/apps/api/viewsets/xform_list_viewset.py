@@ -18,6 +18,7 @@ from onadata.apps.api.tools import (
     get_media_file_response,
     get_xform_list_cache_key,
 )
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
 from onadata.apps.main.models.meta_data import MetaData
@@ -178,12 +179,21 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
 
         return cache_key
 
+    def _validate_submission_belongs_to_xform(self):
+        """Validate that the submission belongs to the xform."""
+        submission_pk = self.kwargs.get("submission_pk")
+        xform_pk = self.kwargs.get("xform_pk")
+
+        if submission_pk and xform_pk:
+            get_object_or_404(Instance, pk=submission_pk, xform_id=xform_pk)
+
     def list(self, request, *args, **kwargs):
         headers = get_openrosa_headers(request, location=False)
 
         if request.method in ["HEAD"]:
             return Response("", headers=headers, status=204)
 
+        self._validate_submission_belongs_to_xform()
         cache_key = self._get_xform_list_cache_key()
 
         if cache_key is not None:

@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from hashlib import sha256
 from http.client import BadStatusLine
+from typing import Any, Callable, Optional
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from xml.dom import Node
@@ -117,6 +118,7 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 User = get_user_model()
+Operation = Callable[..., Any]
 
 
 def create_xform_version(xform: XForm, user: User) -> XFormVersion:
@@ -485,6 +487,7 @@ def save_attachments(xform, instance, media_files, remove_deleted_media=False):
                     name=filename,
                     extension=extension,
                     user=instance.user,
+                    deleted_at=None,
                     defaults={"media_file": f},
                 )
             except Attachment.MultipleObjectsReturned:
@@ -654,10 +657,76 @@ def create_instance(
     return instance
 
 
+# pylint: disable=too-many-locals
+def edit_instance(
+    request,
+    instance,
+    username,
+    xml_file,
+    media_files,
+    status="submitted_via_web",
+):
+    """Edit an existing Instance"""
+    xform = instance.xform
+    check_submission_permissions(request, xform)
+    xml_content = xml_file.read()
+    xml_file.seek(0)
+    check_encrypted_submission(xml_content, xform)
+
+    is_encrypted = fromstring(xml_content).attrib.get("encrypted") == "yes"
+
+    if is_encrypted and xform.is_was_managed:
+        xml = (
+            xml_content.decode("utf-8")
+            if isinstance(xml_content, bytes)
+            else xml_content
+        )
+        new_uuid = get_uuid_from_xml(xml)
+        checksum = sha256(xml_content).hexdigest()
+        submitted_by = request.user if request.user.is_authenticated else None
+
+        if instance.uuid == new_uuid:
+            # Duplicate submission — save extra attachments only
+            with transaction.atomic():
+                save_attachments(
+                    xform, instance, media_files, remove_deleted_media=True
+                )
+                instance.save(update_fields=["date_modified"])
+
+            raise DuplicateInstance()
+
+        instance.media_all_received = False  # Reset media_all_received
+        _edit_instance(instance, instance.uuid, new_uuid, submitted_by, checksum, xml)
+        # Delete existing attachments as the new attachments should take precedence
+        instance.attachments.filter(deleted_at__isnull=True).update(
+            deleted_at=timezone.now()
+        )
+        save_attachments(xform, instance, media_files, remove_deleted_media=True)
+        send_message(
+            instance_id=instance.id,
+            target_id=xform.id,
+            target_type=XFORM,
+            user=submitted_by,
+            message_verb=SUBMISSION_EDITED,
+        )
+
+        return instance
+
+    # For unmanaged submissions, use the standard create flow
+    return create_instance(
+        username=username,
+        xml_file=xml_file,
+        media_files=media_files,
+        uuid=None,
+        request=request,
+        status=status,
+    )
+
+
 def _create_duplicate_response(request):
     """Create a 202 response for duplicate submissions."""
-    response = OpenRosaResponse(_("Duplicate submission"))
-    response.status_code = 202
+    response = OpenRosaDuplicateInstance(_("Duplicate submission"))
+
     if request:
         try:
             response["Location"] = request.build_absolute_uri(request.path)
@@ -669,31 +738,22 @@ def _create_duplicate_response(request):
 
 
 # pylint: disable=too-many-branches,too-many-statements
-@use_master
-def safe_create_instance(  # noqa C901
-    username,
-    xml_file,
-    media_files,
-    uuid,
+def safe_instance_op(
+    operation: Operation,
+    *,
     request,
-    instance_status: str = "submitted_via_web",
-):
-    """Create an instance and catch exceptions.
+    op_kwargs: dict,
+) -> tuple[Optional[Any], Optional[Any]]:
+    """
+    Run a create/edit operation and convert known exceptions into OpenRosa responses.
 
-    :returns: A list [error, instance] where error is None if there was no
-        error.
+    Returns: (error_response, instance)
     """
     error = instance = None
 
     try:
-        instance = create_instance(
-            username,
-            xml_file,
-            media_files,
-            uuid=uuid,
-            request=request,
-            status=instance_status,
-        )
+        instance = operation(**op_kwargs)
+
     except InstanceInvalidUserError:
         error = OpenRosaResponseBadRequest(_("Username or ID required."))
     except InstanceEmptyError:
@@ -742,6 +802,63 @@ def safe_create_instance(  # noqa C901
         error = _create_duplicate_response(request)
         instance = None
     return [error, instance]
+
+
+# pylint: disable=too-many-branches,too-many-statements
+@use_master
+def safe_create_instance(  # noqa C901
+    username,
+    xml_file,
+    media_files,
+    uuid,
+    request,
+    instance_status: str = "submitted_via_web",
+):
+    """Create an instance and catch exceptions.
+
+    :returns: A list [error, instance] where error is None if there was no
+        error.
+    """
+    return safe_instance_op(
+        create_instance,
+        request=request,
+        op_kwargs={
+            "username": username,
+            "xml_file": xml_file,
+            "media_files": media_files,
+            "uuid": uuid,
+            "request": request,
+            "status": instance_status,
+        },
+    )
+
+
+@use_master
+def safe_edit_instance(
+    request,
+    instance,
+    username,
+    xml_file,
+    media_files,
+    status="submitted_via_web",
+):
+    """Edit and Instance and catch exceptions
+
+    :returns: A list [error, instance] where error is None if there was no
+        error.
+    """
+    return safe_instance_op(
+        edit_instance,
+        request=request,
+        op_kwargs={
+            "request": request,
+            "instance": instance,
+            "username": username,
+            "xml_file": xml_file,
+            "media_files": media_files,
+            "status": status,
+        },
+    )
 
 
 def generate_aws_media_url(
@@ -1125,6 +1242,12 @@ class OpenRosaResponseConflict(OpenRosaResponse):
     """An HTTP response class with OpenRosa headers for the Conflict response."""
 
     status_code = 409
+
+
+class OpenRosaDuplicateInstance(OpenRosaResponse):
+    """An HTTP response class with OpenRosa headers for the duplicate response."""
+
+    status_code = 202
 
 
 class OpenRosaNotAuthenticated(Response):

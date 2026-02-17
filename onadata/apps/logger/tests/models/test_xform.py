@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-test_xform module
+Tests for module onadata.apps.logger.models.xform.py
 """
 
 import os
@@ -8,12 +8,15 @@ from builtins import str as text
 from io import BytesIO
 from unittest.mock import call, patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils import timezone
+
 from pyxform.builder import SurveyElementBuilder as RealBuilder
 from pyxform.errors import PyXFormError
 
-from onadata.apps.logger.models import DataView, Instance, XForm
+from onadata.apps.logger.models import DataView, Instance, KMSKey, XForm
+from onadata.apps.logger.models.kms import XFormKey
 from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
@@ -564,3 +567,40 @@ class TestXForm(TestBase):
         self.assertIsInstance(xform.json, dict)
         # The json should now be workbook_json, not the old survey.to_json_dict() format
         self.assertEqual(xform.json, original_workbook_json)
+
+    def test_is_was_managed_when_managed(self):
+        """is_was_managed returns True when is_managed is True"""
+        self._publish_transportation_form()
+        self.xform.is_managed = True
+        self.xform.save()
+
+        self.assertTrue(self.xform.is_was_managed)
+
+    def test_is_was_managed_when_not_managed_no_keys(self):
+        """is_was_managed returns False when not managed and no KMS keys"""
+        self._publish_transportation_form()
+        self.assertFalse(self.xform.is_managed)
+        self.assertFalse(self.xform.kms_keys.exists())
+
+        self.assertFalse(self.xform.is_was_managed)
+
+    def test_is_was_managed_with_kms_keys(self):
+        """is_was_managed returns True when KMS keys exist even if not managed"""
+        self._publish_transportation_form()
+        self.assertFalse(self.xform.is_managed)
+
+        ct = ContentType.objects.get_for_model(XForm)
+        kms_key = KMSKey.objects.create(
+            key_id="test-key",
+            public_key="test-public-key",
+            provider=KMSKey.KMSProvider.AWS,
+            content_type=ct,
+            object_id=self.xform.pk,
+        )
+        XFormKey.objects.create(
+            xform=self.xform,
+            kms_key=kms_key,
+            version="1",
+        )
+
+        self.assertTrue(self.xform.is_was_managed)

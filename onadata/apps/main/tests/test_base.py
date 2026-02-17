@@ -7,13 +7,15 @@ from __future__ import unicode_literals
 
 import base64
 import csv
+import hashlib
 import json
 import os
 import re
 import socket
 import subprocess
 import warnings
-from io import StringIO
+from hashlib import md5
+from io import BytesIO, StringIO
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -25,6 +27,9 @@ from django.test.client import Client
 from django.utils import timezone
 from django.utils.encoding import smart_str
 
+import boto3
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from pyxform.builder import create_survey_element_from_dict
@@ -724,6 +729,140 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             provider=KMSKey.KMSProvider.AWS,
         )
 
+    def _kms_encrypt(self, key_id, plain_text):
+        """Encrypt data using AWS KMS.
+
+        Requires @mock_aws decorator and appropriate AWS settings.
+
+        :param key_id: The KMS key ID to use for encryption.
+        :param plain_text: The plaintext bytes to encrypt.
+        :returns: The encrypted ciphertext blob.
+        """
+        kms_client = boto3.client("kms", region_name="us-east-1")
+        response = kms_client.encrypt(KeyId=key_id, Plaintext=plain_text)
+        return response["CiphertextBlob"]
+
+    def _get_submission_iv(
+        self, instance_id: str, aes_key: bytes, iv_counter: int
+    ) -> bytes:
+        """Generates a 16-byte initialization vector (IV) for AES encryption.
+
+        The IV is created by hashing the instance ID and AES key, then mutating
+        the hash based on the iv_counter.
+
+        :param instance_id: Unique instance ID from submission.xml
+        :param aes_key: Symmetric key used for encryption
+        :param iv_counter: Counter used for mutating the IV
+        :return: A 16-byte initialization vector (IV)
+        """
+        md5_hash = hashlib.md5()
+        md5_hash.update(instance_id.encode("utf-8"))
+        md5_hash.update(aes_key)
+
+        iv_seed_array = bytearray(md5_hash.digest())
+
+        # Mutate IV based on iv_counter
+        for i in range(iv_counter):
+            iv_seed_array[i % 16] = (iv_seed_array[i % 16] + 1) % 256
+
+        return bytes(iv_seed_array)
+
+    def _encrypt_submission_file(self, dec_aes_key, instance_uuid, iv_counter, data):
+        """Encrypt a file using AES-CFB for ODK encrypted submissions.
+
+        :param dec_aes_key: The decrypted AES key (32 bytes).
+        :param instance_uuid: The instance UUID for IV generation.
+        :param iv_counter: The IV counter (1 for first file, 2 for second, etc).
+        :param data: The plaintext data bytes to encrypt.
+        :returns: A BytesIO containing the encrypted data.
+        """
+        iv = self._get_submission_iv(instance_uuid, dec_aes_key, iv_counter=iv_counter)
+        cipher_aes = AES.new(dec_aes_key, AES.MODE_CFB, iv=iv, segment_size=128)
+        padded_data = pad(data, AES.block_size)
+        return BytesIO(cipher_aes.encrypt(padded_data))
+
+    def _create_encrypted_signature(
+        self,
+        key_id,
+        form_id,
+        version,
+        enc_aes_key,
+        instance_uuid,
+        dec_submission,
+        dec_media=None,
+    ):
+        """Create an encrypted signature for an ODK encrypted submission.
+
+        :param key_id: The KMS key ID for encrypting the signature.
+        :param form_id: The XForm id_string.
+        :param version: The XForm version.
+        :param enc_aes_key: The encrypted AES key (bytes).
+        :param instance_uuid: The instance UUID.
+        :param dec_submission: The decrypted submission file (BytesIO).
+        :param dec_media: Optional dict of media files {name: BytesIO}.
+        :returns: The encrypted signature ciphertext blob.
+        """
+
+        def compute_file_md5(file):
+            file.seek(0)
+            return md5(file.read()).hexdigest().zfill(32)
+
+        enc_key_b64 = base64.b64encode(enc_aes_key).decode("utf-8")
+        signature_parts = [form_id, version, enc_key_b64, instance_uuid]
+
+        # Add media files if present
+        if dec_media:
+            for media_name, media_file in dec_media.items():
+                file_md5_hash = compute_file_md5(media_file)
+                signature_parts.append(f"{media_name}::{file_md5_hash}")
+
+        # Add submission file
+        file_md5_hash = compute_file_md5(dec_submission)
+        signature_parts.append(f"submission.xml::{file_md5_hash}")
+
+        # Construct final signature string and encrypt
+        signature_data = "\n".join(signature_parts) + "\n"
+        signature_md5_digest = md5(signature_data.encode("utf-8")).digest()
+        return self._kms_encrypt(key_id=key_id, plain_text=signature_md5_digest)
+
+    def _create_encrypted_submission_manifest(
+        self,
+        form_id,
+        version,
+        enc_key_b64,
+        instance_uuid,
+        enc_signature_b64,
+        media_files=None,
+    ):
+        """Create the metadata XML manifest for an encrypted submission.
+
+        :param form_id: The XForm id_string.
+        :param version: The XForm version.
+        :param enc_key_b64: The base64-encoded encrypted AES key.
+        :param instance_uuid: The instance UUID (with or without 'uuid:' prefix).
+        :param enc_signature_b64: The base64-encoded encrypted signature.
+        :param media_files: Optional list of encrypted media file names.
+        :returns: The metadata XML string.
+        """
+        media_xml = ""
+        if media_files:
+            media_entries = "".join(f"<file>{f}</file>" for f in media_files)
+            media_xml = f"<media>{media_entries}</media>"
+
+        return (
+            f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes" '
+            f'id="{form_id}" version="{version}">'
+            f"<base64EncryptedKey>{enc_key_b64}</base64EncryptedKey>"
+            f'<orx:meta xmlns:orx="http://openrosa.org/xforms">'
+            f"<orx:instanceID>{instance_uuid}</orx:instanceID>"
+            f"</orx:meta>"
+            f"{media_xml}"
+            f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
+            f"<base64EncryptedElementSignature>{enc_signature_b64}"
+            f"</base64EncryptedElementSignature>"
+            f"</data>"
+        )
+
     def _publish_managed_form(self, encrypted_by=None):
         if not hasattr(self, "org"):
             self.org = self._create_organization(
@@ -739,7 +878,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         self.xform = self._publish_markdown(md, self.org.user, id_string="nature")
         self._encrypt_xform(self.xform, self._create_kms_key(self.org), encrypted_by)
 
-    def _submit_encrypted_instance(self):
+    def _enc_instance_manifest_xml(self):
+        """Encrypted instance manifest XML"""
         manifest_xml = f"""
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="{self.xform.id_string}" version="{self.xform.version}">
@@ -749,24 +889,34 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             </meta>
             <media>
                 <file>sunset.png.enc</file>
+            </media>
+            <media>
                 <file>forest.mp4.enc</file>
             </media>
             <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
             <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
         </data>
         """.strip()
+        return manifest_xml
+
+    def _submit_encrypted_instance(self):
+        """Create an encrypted Instance"""
         survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
 
         return Instance.objects.create(
-            xform=self.xform, xml=manifest_xml, user=self.user, survey_type=survey_type
+            xform=self.xform,
+            xml=self._enc_instance_manifest_xml(),
+            user=self.user,
+            survey_type=survey_type,
         )
 
     def _submit_decrypted_instance(self):
+        """Create a decrypted Instance"""
         manifest_xml = f"""
         <data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms"
             id="{self.xform.id_string}" version="{self.xform.version}">
             <formhub>
-                <uuid>76972fb82e41400c840019938b188ce8</uuid>
+                <uuid>{self.xform.uuid}</uuid>
             </formhub>
             <sunset>sunset.png</sunset>
             <forest>forest.mp4</forest>

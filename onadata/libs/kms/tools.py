@@ -470,7 +470,7 @@ def save_decryption_error(instance: Instance, error_name: str):
     )
 
 
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too-many-statements
 def decrypt_instance(instance: Instance) -> None:
     """Decrypt encrypted Instance
 
@@ -497,10 +497,7 @@ def decrypt_instance(instance: Instance) -> None:
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
         )
 
-    # We can't rely on the current status of XForm.is_managed alone since the
-    # form could have been switched from managed to unmanaged before any
-    # encrypted submissions were received
-    if not (instance.xform.is_managed or instance.xform.kms_keys.exists()):
+    if not instance.xform.is_was_managed:
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )
@@ -530,7 +527,7 @@ def decrypt_instance(instance: Instance) -> None:
     submission_xml = BytesIO(instance.xml.encode("utf-8"))
     kms_client = get_kms_client()
     # Decrypt submission files
-    attachment_qs = instance.attachments.all()
+    attachment_qs = instance.attachments.filter(deleted_at__isnull=True)
     decrypted_files = decrypt_submission(
         kms_client=kms_client,
         key_id=xform_key.kms_key.key_id,
@@ -538,6 +535,8 @@ def decrypt_instance(instance: Instance) -> None:
         enc_files=get_encrypted_files(attachment_qs),
     )
     # Replace encrypted submission with decrypted submission
+    # Check if this is an edit (has prior history) before creating new history
+    is_edit = instance.submission_history.exists()
     # Initialize InstanceHistory before replacement
     history = InstanceHistory(
         checksum=instance.checksum,
@@ -583,8 +582,12 @@ def decrypt_instance(instance: Instance) -> None:
             attachment_qs.exclude(id__in=decrypted_attachment_ids).update(
                 deleted_at=timezone.now()
             )
-            # Increment XForm num_of_decrypted_submissions
-            transaction.on_commit(lambda: incr_task.delay(instance.xform_id, delta=1))
+            # Increment XForm num_of_decrypted_submissions only for new
+            # submissions
+            if not is_edit:
+                transaction.on_commit(
+                    lambda: incr_task.delay(instance.xform_id, delta=1)
+                )
 
     except InvalidSubmissionException as exc:
         save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)

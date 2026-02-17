@@ -41,6 +41,7 @@ from onadata.libs.utils.logger_tools import (
     dict2xform,
     remove_metadata_fields,
     safe_create_instance,
+    safe_edit_instance,
 )
 
 NUM_FLOIP_COLUMNS = 6
@@ -317,9 +318,6 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
     XML SubmissionSerializer - handles creating a submission from XML.
     """
 
-    def update(self, instance, validated_data):
-        pass
-
     def validate(self, attrs):
         try:
             request, __ = get_request_and_username(self.context)
@@ -358,6 +356,39 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
             exc.response = error
             exc.status_code = error.status_code
 
+            raise exc
+
+        return instance
+
+    @TrackObjectEvent(
+        user_field="xform__user",
+        properties={
+            "submitted_by": "user",
+            "xform_id": "xform__pk",
+            "project_id": "xform__project__pk",
+            "organization": "xform__user__profile__organization",
+        },
+        additional_context={"from": "XML Submission Edit"},
+    )
+    def update(self, instance, validated_data):
+        """Handle submission edit"""
+        request, username = get_request_and_username(self.context)
+        xml_file_list = request.FILES.pop("xml_submission_file", [])
+        xml_file = xml_file_list[0] if xml_file_list else None
+        media_files = request.FILES.values()
+
+        error, instance = safe_edit_instance(
+            request=request,
+            instance=instance,
+            username=username,
+            xml_file=xml_file,
+            media_files=media_files,
+        )
+
+        if error:
+            exc = exceptions.APIException(detail=error)
+            exc.response = error
+            exc.status_code = error.status_code
             raise exc
 
         return instance

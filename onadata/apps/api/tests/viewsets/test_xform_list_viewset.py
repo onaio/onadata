@@ -22,6 +22,7 @@ from onadata.apps.api.viewsets.xform_list_viewset import (
     PreviewXFormListViewSet,
     XFormListViewSet,
 )
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.main.models import MetaData
 from onadata.libs.models.share_project import ShareProject
@@ -1580,3 +1581,27 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def test_form_list_submission_belongs_to_xform(self):
+        """formList with submission_pk returns 404 if submission doesn't belong to xform."""
+        self._submit_transport_instance()
+        instance = Instance.objects.first()
+
+        # Publish a second form
+        md = """
+        | survey  |
+        |         | type | name | label  |
+        |         | text | city | City?  |
+        """
+        other_xform = self._publish_markdown(md, self.user, id_string="other")
+
+        # Request with mismatched xform_pk and submission_pk
+        request = self.factory.get("/", **self.extra)
+        response = self.view(
+            request, xform_pk=other_xform.pk, submission_pk=instance.pk
+        )
+        self.assertEqual(response.status_code, 404)
+
+        # Request with correct xform_pk and submission_pk succeeds
+        response = self.view(request, xform_pk=self.xform.pk, submission_pk=instance.pk)
+        self.assertEqual(response.status_code, 200)
