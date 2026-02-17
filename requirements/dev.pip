@@ -81,7 +81,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==44.0.3
+cryptography==46.0.5
     # via
     #   jwcrypto
     #   moto
@@ -111,7 +111,7 @@ dill==0.4.1
     # via pylint
 distlib==0.4.0
     # via virtualenv
-django==5.2.10
+django==5.2.11
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -334,7 +334,7 @@ pep8-naming==0.10.0
     # via prospector
 pexpect==4.9.0
     # via ipython
-pillow==12.1.0
+pillow==12.1.1
     # via
     #   elaphe3
     #   onadata

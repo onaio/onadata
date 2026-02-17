@@ -70,7 +70,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==44.0.3
+cryptography==46.0.5
     # via
     #   jwcrypto
     #   onadata
@@ -91,7 +91,7 @@ deprecated==1.3.1
     # via onadata
 dict2xml==1.7.8
     # via onadata
-django==5.2.10
+django==5.2.11
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -258,7 +258,7 @@ packaging==25.0
     #   kombu
 paho-mqtt==2.1.0
     # via onadata
-pillow==12.1.0
+pillow==12.1.1
     # via
     #   elaphe3
     #   onadata
