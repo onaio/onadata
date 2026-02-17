@@ -1,7 +1,7 @@
 ---
 name: AWS ECR Build Image
 
-on: # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
   release:
     types:
       - "released"
@@ -54,15 +54,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
 
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a  $SSH_AUTH_SOCK >> /dev/null
-          ssh-add  - <<<  "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
-
       - name: Get docker repository URL
         id: get-repo-url
         run: |
@@ -79,8 +70,8 @@ jobs:
           platforms: ${{ matrix.platforms[0] }}
           cache-from: type=registry,ref=${{ env.docker_repo }}
           cache-to: type=inline
-          ssh: |
-            default=/tmp/ssh-agent.sock
+          secrets: |
+            ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
           build-args: >
             optional_packages=PyYAML
             django-redis
@@ -160,12 +151,34 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.docker_repo }}
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.4
+        with:
+          version: v0.69.1
+          cache: true
+
+      - name: Configure Trivy VEX Hub with DHI advisories
+        run: |
+          mkdir -p ~/.trivy/vex
+          cat > ~/.trivy/vex/repository.yaml << 'EOF'
+          repositories:
+            - name: default
+              url: https://github.com/aquasecurity/vexhub
+              enabled: true
+            - name: dhi-vex
+              url: https://github.com/docker-hardened-images/advisories
+              enabled: true
+          EOF
+          trivy vex repo download
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
+          version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
           format: "sarif"
           output: "trivy-results.sarif"
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy scan result to Github security lab
         uses: github/codeql-action/upload-sarif@v4
@@ -173,11 +186,29 @@ jobs:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true
 
-      - name: Install SARIF tools
-        run: pip install sarif-tools
+      - name: Cache Trivy HTML template
+        id: cache-template
+        uses: actions/cache@v4
+        with:
+          path: html.tpl
+          key: trivy-html-template-v1
 
-      - name: Convert SARIF to HTML
-        run: sarif html -o trivy-results.html trivy-results.sarif
+      - name: Download Trivy HTML template
+        if: steps.cache-template.outputs.cache-hit != 'true'
+        run: |
+          url="https://raw.githubusercontent.com"
+          url+="/aquasecurity/trivy/main/contrib/html.tpl"
+          wget -q "$url" -O html.tpl
+
+      - name: Run Trivy vulnerability scanner (HTML report)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          version: "v0.69.1"
+          image-ref: ${{ env.docker_repo }}
+          format: "template"
+          template: "@html.tpl"
+          output: "trivy-results.html"
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy SARIF as artifact
         uses: actions/upload-artifact@v4
@@ -206,17 +237,49 @@ jobs:
         run: |
           details=$(jq -r '
             .runs[0].tool.driver.rules as $rules |
-            .runs[0].results[0:10] |
-            map(
+            [.runs[0].results[] |
               . as $result |
               $rules[.ruleIndex] as $rule |
-              ($rule.properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW")) as $severity |
-              ($result.locations[0].message.text | split(":")[0] | if contains("site-packages/") then split("site-packages/")[1] elif contains("usr/lib/") then split("usr/lib/")[1] else (split("/") | .[-4:] | join("/")) end) as $location |
-              ($result.message.text | capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
-              ($result.message.text | capture("Installed Version: (?<ver>[^\n]+)") | .ver) as $installed |
-              ($result.message.text | capture("Fixed Version: (?<fix>[^\n]+)") | .fix // "Not available") as $fixed |
-              (if $severity == "CRITICAL" then "🔴" elif $severity == "HIGH" then "🟠" elif $severity == "MEDIUM" then "🟡" else "⚪" end) as $icon |
-              "\($icon) *\($result.ruleId)* (\($severity))\nPackage: `\($package)@\($installed)`\nLocation: `\($location)`\nFixed: `\($fixed)`\n<\($rule.helpUri)|View Details>\n"
+              ($rule.properties.tags[] |
+                select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              {
+                result: $result,
+                rule: $rule,
+                severity: $severity
+              }
+            ] |
+            sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
+            .[0:10] |
+            map(
+              .result as $result |
+              .rule as $rule |
+              .severity as $severity |
+              ($result.locations[0].message.text | split(":")[0] |
+                if contains("site-packages/") then
+                  split("site-packages/")[1]
+                elif contains("usr/lib/") then
+                  split("usr/lib/")[1]
+                else
+                  (split("/") | .[-4:] | join("/"))
+                end) as $location |
+              ($result.message.text |
+                capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
+              ($result.message.text |
+                capture("Installed Version: (?<ver>[^\n]+)") |
+                .ver) as $installed |
+              ($result.message.text |
+                capture("Fixed Version: ?(?<fix>[^\n]*)") |
+                .fix) as $rawfixed |
+              (if $rawfixed == "" then "Not available"
+               else $rawfixed end) as $fixed |
+              (if $severity == "CRITICAL" then "🔴"
+               elif $severity == "HIGH" then "🟠"
+               else "⚪" end) as $icon |
+              "\($icon) *\($result.ruleId)* (\($severity))\n" +
+              "Package: `\($package)@\($installed)`\n" +
+              "Location: `\($location)`\n" +
+              "Fixed: `\($fixed)`\n" +
+              "<\($rule.helpUri)|View Details>\n"
             ) | join("\n")
           ' trivy-results.sarif)
 
