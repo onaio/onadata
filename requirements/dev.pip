@@ -555,7 +555,7 @@ urllib3==2.6.3
     #   sentry-sdk
 uwsgi==2.0.31
     # via onadata
-valigetta @ git+https://git@github.com/onaio/valigetta.git@v0.2.1
+valigetta @ git+https://git@github.com/onaio/valigetta.git@v0.2.2
     # via -r requirements/base.in
 vine==5.1.0
     # via
