@@ -76,7 +76,6 @@ jobs:
             optional_packages=PyYAML
             django-redis
             ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-          push: true
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           outputs: >
