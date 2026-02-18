@@ -40,7 +40,7 @@ RUN --mount=type=secret,id=ONADEPLOY_GH_TOKEN \
   fi
 
 # hadolint ignore=DL3013
-RUN python -m pip install --no-cache-dir -U pip && \
+RUN python -m pip install --no-cache-dir -U pip setuptools && \
   python -m pip install --no-cache-dir -r requirements/base.pip && \
   python -m pip install --no-cache-dir -r requirements/s3.pip && \
   python -m pip install --no-cache-dir -r requirements/ses.pip && \
@@ -61,7 +61,18 @@ COPY docs /srv/onadata/docs
 COPY onadata /srv/onadata/onadata
 
 # install sphinx and build API docs.
-RUN python -m pip install --no-cache-dir -r requirements/docs.pip && make -C docs html
+# setuptools provides the `distutils` module removed in Python 3.13
+RUN python -m pip install --no-cache-dir setuptools -r requirements/docs.pip && make -C docs html
+
+# Intermediate stage: install runtime shared libraries in a full Debian image
+# so apt-get resolves all transitive dependencies (e.g. libogdi), then copy
+# the resulting /usr/lib and /usr/share into the minimal dhi.io runtime.
+FROM python:3.13-slim-bookworm AS runtime-libs
+ENV DEBIAN_FRONTEND=noninteractive
+# hadolint ignore=DL3008
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends libgdal32 libmemcached11 libxml2 libproj25 \
+  && rm -rf /var/lib/apt/lists/*
 
 FROM dhi.io/python:3.13-debian13 AS runtime
 
@@ -76,17 +87,14 @@ ENV LC_CTYPE=C.UTF-8
 ENV LANG=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 
-# Copy runtime shared libraries from the build stage (GDAL, libmemcached,
-# libxml2 and their transitive dependencies).
-COPY --from=base /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
-COPY --from=base /usr/lib/libarmadillo* /usr/lib/
-COPY --from=base /usr/share/gdal/ /usr/share/gdal/
-COPY --from=base /usr/share/proj/ /usr/share/proj/
-# Resolve alternatives symlinks used by libblas/liblapack.
-COPY --from=base /etc/alternatives/ /etc/alternatives/
-# Provide ldconfig and its cache so ctypes.util.find_library() works.
-COPY --from=base /sbin/ldconfig /sbin/ldconfig
-COPY --from=base /etc/ld.so.cache /etc/ld.so.cache
+# Copy runtime shared libraries and data files from the runtime-libs stage.
+# Using a full apt-get install ensures all transitive deps (libogdi, etc.) are included.
+COPY --from=runtime-libs /usr/lib/ /usr/lib/
+COPY --from=runtime-libs /usr/share/gdal/ /usr/share/gdal/
+COPY --from=runtime-libs /usr/share/proj/ /usr/share/proj/
+COPY --from=runtime-libs /etc/alternatives/ /etc/alternatives/
+COPY --from=runtime-libs /sbin/ldconfig /sbin/ldconfig
+COPY --from=runtime-libs /etc/ld.so.cache /etc/ld.so.cache
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
