@@ -68,15 +68,14 @@ jobs:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: ${{ matrix.platforms[0] }}
-          cache-from: type=registry,ref=${{ env.docker_repo }}
-          cache-to: type=inline
+          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,scope=${{ env.PLATFORM_PAIR }},mode=max
           secrets: |
             ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
           build-args: >
             optional_packages=PyYAML
             django-redis
             ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-          push: true
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           outputs: >
