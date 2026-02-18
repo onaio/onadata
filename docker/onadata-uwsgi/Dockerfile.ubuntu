@@ -63,6 +63,13 @@ COPY onadata /srv/onadata/onadata
 # install sphinx and build API docs.
 RUN python -m pip install --no-cache-dir -r requirements/docs.pip && make -C docs html
 
+# Intermediate stage: mirror the arch-specific library tree under /export so
+# that the runtime COPY can place it at the correct path without needing any
+# shell utilities (the slim runtime image has no coreutils).
+FROM base AS lib-export
+RUN mkdir -p /export/usr/lib && \
+  cp -a /usr/lib/$(uname -m)-linux-gnu /export/usr/lib/
+
 FROM dhi.io/python:3.13-debian13 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -78,7 +85,10 @@ ENV LANGUAGE=C.UTF-8
 
 # Copy runtime shared libraries from the build stage (GDAL, libmemcached,
 # libxml2 and their transitive dependencies).
-COPY --from=base /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
+# The lib-export stage preserves the arch-specific directory name (e.g.
+# x86_64-linux-gnu or aarch64-linux-gnu) so a single COPY merges into the
+# runtime /usr/lib/ without needing any shell utilities.
+COPY --from=lib-export /export/usr/lib/ /usr/lib/
 COPY --from=base /usr/lib/libarmadillo* /usr/lib/
 COPY --from=base /usr/share/gdal/ /usr/share/gdal/
 COPY --from=base /usr/share/proj/ /usr/share/proj/
