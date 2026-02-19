@@ -14,6 +14,7 @@ services:
     tty: true
     volumes:
       - ./:/srv/onadata
+      - venv-data:/srv/onadata/.venv
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     ports:
       - "8000:8000"
@@ -33,6 +34,7 @@ services:
       - api
     volumes:
       - ./:/srv/onadata
+      - venv-data:/srv/onadata/.venv
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     command: celery -A onadata.celeryapp worker -B -l INFO -E
 
@@ -49,5 +51,6 @@ services:
     image: redis:alpine
 
 volumes:
+  venv-data:
   savreaderwriter-exclusion:
   dbdata:
