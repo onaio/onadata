@@ -297,7 +297,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             created_by = request.user
             created_by = None if created_by.is_anonymous else created_by
             metadata["last_password_edit"] = timezone.now().isoformat()
-            profile = UserProfile(
+            profile = UserProfile.objects.create(
                 user=new_user,
                 name=params.get("first_name"),
                 created_by=created_by,
@@ -308,7 +308,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 twitter=params.get("twitter", ""),
                 metadata=metadata,
             )
-            profile.save()
 
         if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
             redirect_url = params.get("redirect_url")
