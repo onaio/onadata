@@ -172,7 +172,7 @@ jobs:
           trivy vex repo download
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:
           version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
@@ -201,7 +201,7 @@ jobs:
           wget -q "$url" -O html.tpl
 
       - name: Run Trivy vulnerability scanner (HTML report)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:
           version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
