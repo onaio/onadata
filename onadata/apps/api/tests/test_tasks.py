@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 
+from multidb.pinning import this_thread_is_pinned
+
 from onadata.apps.api.tasks import (
     ShareProject,
     delete_xform_submissions_async,
@@ -231,3 +233,11 @@ class DeleteXFormSubmissionsAsyncTestCase(TestBase):
         delete_xform_submissions_async.delay(self.xform.pk, sys.maxsize)
         self.assertFalse(mock_delete.called)
         mock_logger.assert_called_once()
+
+    def test_pinned_to_primary_db(self, mock_delete):
+        """Thread is pinned to primary DB during task execution"""
+        mock_delete.side_effect = lambda *a, **kw: self.assertTrue(
+            this_thread_is_pinned(),
+            "Thread was not pinned to primary DB when calling delete_xform_submissions",
+        )
+        delete_xform_submissions_async.delay(self.xform.pk, self.user.pk)
