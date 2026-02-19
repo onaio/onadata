@@ -87,6 +87,8 @@ RUN apt-get update \
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
+# Fix venv python symlink to point to the runtime image's Python
+RUN ln -sf /usr/local/bin/python /srv/onadata/.venv/bin/python
 COPY --from=docs /srv/onadata/docs/_build/html /srv/onadata/docs/_build/html
 COPY onadata/ /srv/onadata/onadata/
 COPY extras/ /srv/onadata/extras/
