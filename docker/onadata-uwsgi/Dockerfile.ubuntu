@@ -64,7 +64,7 @@ COPY onadata /srv/onadata/onadata
 # setuptools provides the `distutils` module removed in Python 3.13
 RUN python -m pip install --no-cache-dir setuptools -r requirements/docs.pip && make -C docs html
 
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.13-slim-trixie AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -82,7 +82,7 @@ ENV LANGUAGE=C.UTF-8
 # hadolint ignore=DL3008
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-     libgdal32 libmemcached11 libxml2 libproj25 \
+     libgdal36 libmemcached11t64 libxml2 libproj25 \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy only the files required in the final build

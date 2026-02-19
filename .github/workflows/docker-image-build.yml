@@ -51,7 +51,6 @@ jobs:
             optional_packages=PyYAML django-redis
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          provenance: false
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

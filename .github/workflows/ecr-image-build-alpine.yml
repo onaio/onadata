@@ -76,7 +76,6 @@ jobs:
           labels: |
             org.opencontainers.image.title=Onadata Alpine
             org.opencontainers.image.version=${{ github.event.inputs.version }}
-          provenance: false
 
       - name: Image digest
         run: echo ${{ steps.docker-build-alpine.outputs.digest }}
