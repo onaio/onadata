@@ -100,6 +100,7 @@ COPY --from=base /etc/ld.so.cache /etc/ld.so.cache
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
+RUN ln -sf "$(which python)" /srv/onadata/.venv/bin/python
 COPY --from=docs /srv/onadata/docs/_build/html /srv/onadata/docs/_build/html
 COPY onadata/ /srv/onadata/onadata/
 COPY extras/ /srv/onadata/extras/
