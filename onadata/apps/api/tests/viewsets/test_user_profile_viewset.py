@@ -11,6 +11,7 @@ from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.db.models import signals
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -2014,3 +2015,57 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertIsNotNone(cached_data_b_own)
         self.assertEqual(cached_data_b_own["first_name"], "UserB")
         self.assertEqual(cached_data_b_own["email"], user_b_data["email"])
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {
+                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                "OPTIONS": {"min_length": 9},
+            },
+        ]
+    )
+    def test_registration_rolls_back_on_password_validation_failure(self):
+        """Failed registration should not leave behind orphaned DB records."""
+        data = _profile_data()
+        data["password"] = "abc"  # too short, will fail validation
+
+        user_count = User.objects.count()
+        reg_count = RegistrationProfile.objects.count()
+        profile_count = UserProfile.objects.count()
+
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("password", response.data)
+
+        self.assertEqual(User.objects.count(), user_count)
+        self.assertEqual(RegistrationProfile.objects.count(), reg_count)
+        self.assertEqual(UserProfile.objects.count(), profile_count)
+
+    @patch(
+        "onadata.libs.serializers.user_profile_serializer.UserProfile.objects.create",
+        side_effect=IntegrityError("duplicate key"),
+    )
+    def test_registration_rolls_back_on_profile_creation_failure(self, mock_create):
+        """User and RegistrationProfile are rolled back if UserProfile creation fails."""
+        data = _profile_data()
+
+        user_count = User.objects.count()
+        reg_count = RegistrationProfile.objects.count()
+
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        with self.assertRaises(IntegrityError):
+            self.view(request)
+
+        self.assertEqual(User.objects.count(), user_count)
+        self.assertEqual(RegistrationProfile.objects.count(), reg_count)
