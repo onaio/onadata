@@ -64,27 +64,26 @@ COPY onadata /srv/onadata/onadata
 # setuptools provides the `distutils` module removed in Python 3.13
 RUN python -m pip install --no-cache-dir setuptools -r requirements/docs.pip && make -C docs html
 
-FROM dhi.io/python:3.13-debian13 AS runtime
+FROM python:3.13-slim-bookworm AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=onadata.settings.docker
-ENV PATH="/srv/onadata/.venv/bin:/opt/python/bin:$PATH"
+ENV PATH="/srv/onadata/.venv/bin:$PATH"
 
 ENV LC_ALL=C.UTF-8
 ENV LC_CTYPE=C.UTF-8
 ENV LANG=C.UTF-8
 ENV LANGUAGE=C.UTF-8
 
-# Copy runtime shared libraries from the build stage (GDAL, libmemcached,
-# libxml2 and their transitive dependencies).
-COPY --from=base /usr/lib/ /usr/lib/
-COPY --from=base /usr/share/gdal/ /usr/share/gdal/
-COPY --from=base /usr/share/proj/ /usr/share/proj/
-COPY --from=base /etc/alternatives/ /etc/alternatives/
-COPY --from=base /sbin/ldconfig /sbin/ldconfig
-COPY --from=base /etc/ld.so.cache /etc/ld.so.cache
+# Install runtime shared libraries for GDAL, libmemcached, libxml2 and
+# their transitive dependencies.
+# hadolint ignore=DL3008
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+     libgdal32 libmemcached11 libxml2 libproj25 \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
