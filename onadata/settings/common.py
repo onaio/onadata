@@ -161,9 +161,9 @@ TEMPLATES = [
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 MIDDLEWARE = (
+    "corsheaders.middleware.CorsMiddleware",
     "onadata.libs.profiling.sql.SqlTimingMiddleware",
     "django.middleware.http.ConditionalGetMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     # 'django.middleware.locale.LocaleMiddleware',
