@@ -19,9 +19,10 @@ import socket
 import sys
 from importlib import reload
 
-from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
+
+from celery.signals import after_setup_logger
 
 # setting default encoding to utf-8
 if sys.version[0] == "2":
@@ -162,12 +163,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 MIDDLEWARE = (
     "onadata.libs.profiling.sql.SqlTimingMiddleware",
     "django.middleware.http.ConditionalGetMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     # 'django.middleware.locale.LocaleMiddleware',
     "onadata.libs.utils.middleware.LocaleMiddlewareWithTweaks",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
