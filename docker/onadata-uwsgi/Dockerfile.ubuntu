@@ -103,7 +103,7 @@ COPY --from=base /usr/bin/java /usr/bin/java
 # We copy them back to /etc/ so the JVM finds java.security, cacerts, etc.
 COPY --from=base /srv/java-conf/ /etc/
 ENV JAVA_HOME="/usr/lib/jvm/default-java" \
-    LD_LIBRARY_PATH="/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server"
+  LD_LIBRARY_PATH="/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server"
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
