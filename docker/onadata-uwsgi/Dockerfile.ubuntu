@@ -85,6 +85,8 @@ COPY --from=base /usr/share/proj/ /usr/share/proj/
 COPY --from=base /etc/alternatives/ /etc/alternatives/
 COPY --from=base /sbin/ldconfig /sbin/ldconfig
 COPY --from=base /etc/ld.so.cache /etc/ld.so.cache
+# /usr/bin/env is needed by venv script shebangs (e.g. uwsgi, manage.py)
+COPY --from=base /usr/bin/env /usr/bin/env
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
