@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from azure.storage.blob import AccountSasPermissions
 from defusedxml.ElementTree import ParseError
+from multidb.pinning import this_thread_is_pinned
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance, InstanceHistory
@@ -1185,6 +1186,27 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
         self.xform.refresh_from_db()
         self.assertEqual(self.xform.num_of_decrypted_submissions, 3)
+
+    def test_pinned_to_primary_db(self):
+        """Thread is pinned to primary DB during deletion"""
+        pinned_states = []
+        original_submission_count = type(self.xform).submission_count
+
+        def capture_pinned(xform_self, force_update=False):
+            if force_update:
+                pinned_states.append(this_thread_is_pinned())
+            return original_submission_count(xform_self, force_update=force_update)
+
+        with patch.object(type(self.xform), "submission_count", capture_pinned):
+            delete_xform_submissions(self.xform, self.user)
+
+        self.assertTrue(
+            pinned_states, "submission_count was not called with force_update"
+        )
+        self.assertTrue(
+            all(pinned_states),
+            "Thread was not pinned to primary DB during submission_count",
+        )
 
 
 class ResponseWithMimetypeAndNameTestCase(TestBase):

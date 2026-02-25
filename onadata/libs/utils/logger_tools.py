@@ -1313,6 +1313,7 @@ class PublishXForm:  # pylint: disable=too-few-public-methods
         return publish_xml_form(self.xml_file, self.user, self.project)
 
 
+@use_master
 def delete_xform_submissions(
     xform: XForm,
     deleted_by: User,
