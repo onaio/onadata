@@ -2069,3 +2069,33 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(User.objects.count(), user_count)
         self.assertEqual(RegistrationProfile.objects.count(), reg_count)
+
+    @override_settings(AUTO_ACTIVATE_NEW_USERS=True)
+    def test_profile_create_user_active_by_default(self):
+        """User is active when AUTO_ACTIVATE_NEW_USERS is True."""
+        data = _profile_data()
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username=data["username"])
+        self.assertTrue(user.is_active)
+
+    @override_settings(AUTO_ACTIVATE_NEW_USERS=False)
+    def test_profile_create_user_inactive_when_disabled(self):
+        """User stays inactive when AUTO_ACTIVATE_NEW_USERS is False."""
+        data = _profile_data()
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username=data["username"])
+        self.assertFalse(user.is_active)

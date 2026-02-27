@@ -291,7 +291,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             except ValidationError as e:
                 raise serializers.ValidationError({"password": e.messages})
 
-            new_user.is_active = True
+            new_user.is_active = getattr(settings, "AUTO_ACTIVATE_NEW_USERS", True)
             new_user.save()
 
             created_by = request.user
