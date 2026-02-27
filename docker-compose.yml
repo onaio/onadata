@@ -17,7 +17,7 @@ services:
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     ports:
       - "8000:8000"
-    command: python3.10 manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
 
   celery:
     environment:
