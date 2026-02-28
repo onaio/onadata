@@ -17,7 +17,7 @@ from onadata.apps.logger.models.instance import (
     update_xform_submission_count,
 )
 from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.celeryapp import app
 from onadata.libs.exceptions import NotAllMediaReceivedError
 from onadata.libs.kms.tools import (
@@ -350,11 +350,11 @@ def import_entities_from_csv_async(
                     },
                 )
 
-    send_message(
+    send_actstream_message_async.delay(
         instance_id=entity_list.pk,
         target_id=entity_list.pk,
         target_type=ENTITY_LIST,
-        user=user,
+        user=user.id,
         message_verb=ENTITY_LIST_IMPORTED,
     )
 
