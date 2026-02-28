@@ -1,0 +1,10 @@
+<!-- templates/display_data.html -->
+{% load i18n %}
+{% load static %}
+
+<body>
+    <h1>Fetched JSON Data</h1>
+    <pre id="json-data">{{data | safe }}</pre>
+    <script type="text/javascript" src="{{STATIC_URL}}js/display_data.js"></script>
+
+</body>
