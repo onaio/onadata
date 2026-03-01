@@ -297,7 +297,7 @@ REST_FRAMEWORK = {
         "onadata.libs.authentication.DigestAuthentication",
         "onadata.libs.authentication.TempTokenAuthentication",
         "onadata.libs.authentication.EnketoTokenAuthentication",
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
+        "onadata.libs.authentication.StrictOAuth2Authentication",
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ),

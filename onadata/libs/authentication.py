@@ -19,6 +19,7 @@ from django.utils.translation import gettext as _
 import jwt
 from django_digest import HttpDigestAuthenticator
 from multidb.pinning import use_master
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from oauth2_provider.models import AccessToken
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
@@ -430,3 +431,32 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
         self._set_oauth2_error_on_request(request, access_token, scopes)
 
         return False
+
+
+class StrictOAuth2Authentication(OAuth2Authentication):
+    """
+    OAuth2 authentication that raises AuthenticationFailed when a Bearer token
+    is provided but is invalid or expired.
+
+    The default OAuth2Authentication returns None for invalid tokens, which
+    causes DRF to silently fall through to other authentication classes or
+    allow anonymous access. This class ensures that if a Bearer token is
+    explicitly provided, it must be valid.
+    """
+
+    def authenticate(self, request):
+        auth_header = get_authorization_header(request).split()
+
+        if not auth_header or auth_header[0].lower() != b"bearer":
+            return None
+
+        result = super().authenticate(request)
+
+        if result is None:
+            oauth2_error = getattr(request, "oauth2_error", {})
+            error_description = oauth2_error.get(
+                "error_description", "Invalid or expired token"
+            )
+            raise exceptions.AuthenticationFailed(_(error_description))
+
+        return result
