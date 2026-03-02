@@ -4,6 +4,7 @@ services:
       DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
+      target: base
       args:
         INSTALL_DEV_DEPENDENCIES: "true"
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
@@ -14,6 +15,7 @@ services:
     tty: true
     volumes:
       - ./:/srv/onadata
+      - venv:/srv/onadata/.venv
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     ports:
       - "8000:8000"
@@ -24,6 +26,7 @@ services:
       DJANGO_SETTINGS_MODULE: onadata.settings.docker
     build:
       context: .
+      target: base
       args:
         INSTALL_DEV_DEPENDENCIES: "true"
       dockerfile: ./docker/onadata-uwsgi/Dockerfile.ubuntu
@@ -33,6 +36,7 @@ services:
       - api
     volumes:
       - ./:/srv/onadata
+      - venv:/srv/onadata/.venv
       - savreaderwriter-exclusion:/srv/onadata/src/savreaderwriter
     command: celery -A onadata.celeryapp worker -B -l INFO -E
 
@@ -49,5 +53,6 @@ services:
     image: redis:alpine
 
 volumes:
+  venv:
   savreaderwriter-exclusion:
   dbdata:
