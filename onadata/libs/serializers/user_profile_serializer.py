@@ -269,50 +269,45 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         username = params.get("username")
         password = params.get("password1", "")
         site = get_host_domain(request)
-        new_user = None
 
-        try:
-            new_user = RegistrationProfile.objects.create_inactive_user(
-                username=username,
-                password=password,
-                email=params.get("email"),
-                site=site,
-                send_email=settings.SEND_EMAIL_ACTIVATION_API,
+        with transaction.atomic():
+            try:
+                new_user = RegistrationProfile.objects.create_inactive_user(
+                    username=username,
+                    password=password,
+                    email=params.get("email"),
+                    first_name=params.get("first_name"),
+                    last_name=params.get("last_name"),
+                    site=site,
+                    send_email=settings.SEND_EMAIL_ACTIVATION_API,
+                )
+            except IntegrityError as e:
+                raise serializers.ValidationError(
+                    _(f"User account {username} already exists")
+                ) from e
+
+            try:
+                validate_password(password, user=new_user)
+            except ValidationError as e:
+                raise serializers.ValidationError({"password": e.messages})
+
+            new_user.is_active = getattr(settings, "AUTO_ACTIVATE_NEW_USERS", True)
+            new_user.save()
+
+            created_by = request.user
+            created_by = None if created_by.is_anonymous else created_by
+            metadata["last_password_edit"] = timezone.now().isoformat()
+            profile = UserProfile.objects.create(
+                user=new_user,
+                name=params.get("first_name"),
+                created_by=created_by,
+                city=params.get("city", ""),
+                country=params.get("country", ""),
+                organization=params.get("organization", ""),
+                home_page=params.get("home_page", ""),
+                twitter=params.get("twitter", ""),
+                metadata=metadata,
             )
-        except IntegrityError as e:
-            raise serializers.ValidationError(
-                _(f"User account {username} already exists")
-            ) from e
-
-        try:
-            validate_password(password, user=new_user)
-
-        except ValidationError as e:
-            # Delete created user object if created
-            # to allow re-registration
-            if new_user:
-                new_user.delete()
-            raise serializers.ValidationError({"password": e.messages})
-
-        new_user.is_active = True
-        new_user.first_name = params.get("first_name")
-        new_user.last_name = params.get("last_name")
-        new_user.save()
-        created_by = request.user
-        created_by = None if created_by.is_anonymous else created_by
-        metadata["last_password_edit"] = timezone.now().isoformat()
-        profile = UserProfile(
-            user=new_user,
-            name=params.get("first_name"),
-            created_by=created_by,
-            city=params.get("city", ""),
-            country=params.get("country", ""),
-            organization=params.get("organization", ""),
-            home_page=params.get("home_page", ""),
-            twitter=params.get("twitter", ""),
-            metadata=metadata,
-        )
-        profile.save()
 
         if getattr(settings, "ENABLE_EMAIL_VERIFICATION", False):
             redirect_url = params.get("redirect_url")
