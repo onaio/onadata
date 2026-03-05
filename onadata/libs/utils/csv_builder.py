@@ -49,10 +49,10 @@ from onadata.libs.utils.common_tools import (
     get_abbreviated_xpath,
     get_choice_label,
     get_value_or_attachment_uri,
+    sanitize_for_export,
     str_to_bool,
     track_task_progress,
 )
-from onadata.libs.utils.export_builder import sanitize_for_export
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare

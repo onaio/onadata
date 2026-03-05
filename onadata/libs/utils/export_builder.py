@@ -61,6 +61,7 @@ from onadata.libs.utils.common_tools import (
     get_choice_label,
     get_choice_label_value,
     get_value_or_attachment_uri,
+    sanitize_for_export,
     str_to_bool,
     track_task_progress,
 )
@@ -81,21 +82,6 @@ def get_data_dictionary_from_survey(survey):
     data_dicionary._survey = survey
 
     return data_dicionary
-
-
-_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
-
-
-def sanitize_for_export(value):
-    """Prevent CSV/XLSX formula injection (CWE-1236).
-
-    Prefixes cell values starting with formula characters with a single quote
-    to force spreadsheet applications to treat them as literal strings.
-    Reference: https://owasp.org/www-community/attacks/CSV_Injection
-    """
-    if isinstance(value, str) and value and value[0] in _FORMULA_PREFIXES:
-        return "'" + value
-    return value
 
 
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
