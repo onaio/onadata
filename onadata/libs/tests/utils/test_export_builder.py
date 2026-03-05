@@ -72,6 +72,7 @@ class TestSanitizeForExport(TestBase):
             "@SUM(A1)": "'@SUM(A1)",
             "\tdata": "'\tdata",
             "\rdata": "'\rdata",
+            "\ndata": "'\ndata",
         }
         for payload, expected in dangerous.items():
             self.assertEqual(
@@ -4021,6 +4022,7 @@ class TestExportBuilder(TestBase):
             "@SUM(A1:A10)",
             "\tcmd",
             "\rcmd",
+            "\ncmd",
         ]
 
         for payload in formula_payloads:
