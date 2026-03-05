@@ -26,7 +26,7 @@ from onadata.libs.utils.common_tags import ATTACHMENTS
 DEFAULT_UPDATE_BATCH = 100
 TRUE_VALUES = ["TRUE", "T", "1", 1]
 
-_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
 def sanitize_for_export(value):
