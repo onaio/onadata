@@ -106,6 +106,8 @@ class TestSanitizeForExport(TestBase):
         """Dash followed by non-numeric content is still sanitized."""
         self.assertEqual(sanitize_for_export("-cmd"), "'-cmd")
         self.assertEqual(sanitize_for_export("-A1+B1"), "'-A1+B1")
+        self.assertEqual(sanitize_for_export("-1+1"), "'-1+1")
+        self.assertEqual(sanitize_for_export("-"), "'-")
 
     def test_does_not_modify_non_string_types(self):
         """Non-string types (int, float, None, bool) pass through unchanged."""

@@ -38,11 +38,15 @@ def sanitize_for_export(value):
     Reference: https://owasp.org/www-community/attacks/CSV_Injection
     """
     if isinstance(value, str) and value and value[0] in _FORMULA_PREFIXES:
-        # Skip negative numbers — they are not formula injections.
+        # Skip negative numbers (e.g. GPS coords "-1.26 36.79 0.0 30.0").
         if value[0] == "-":
-            stripped = value[1:]
-            if stripped and (stripped[0].isdigit() or stripped[0] == "."):
+            try:
+                # Handle space-separated numeric values (GPS coordinates).
+                for token in value.split():
+                    float(token)
                 return value
+            except ValueError:
+                pass
         return "'" + value
     return value
 
