@@ -34,9 +34,15 @@ def sanitize_for_export(value):
 
     Prefixes cell values starting with formula characters with a single quote
     to force spreadsheet applications to treat them as literal strings.
+    Values that look like negative numbers (e.g. ``-1.26``) are left as-is.
     Reference: https://owasp.org/www-community/attacks/CSV_Injection
     """
     if isinstance(value, str) and value and value[0] in _FORMULA_PREFIXES:
+        # Skip negative numbers — they are not formula injections.
+        if value[0] == "-":
+            stripped = value[1:]
+            if stripped and (stripped[0].isdigit() or stripped[0] == "."):
+                return value
         return "'" + value
     return value
 
