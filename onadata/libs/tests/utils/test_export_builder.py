@@ -38,11 +38,11 @@ from onadata.libs.utils.common_tags import (
     SELECT_BIND_TYPE,
 )
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
+from onadata.libs.utils.common_tools import sanitize_for_export
 from onadata.libs.utils.export_builder import (
     ExportBuilder,
     decode_mongo_encoded_section_names,
     dict_to_joined_export,
-    sanitize_for_export,
     string_to_date_with_xls_validation,
 )
 from onadata.libs.utils.export_tools import get_columns_with_hxl
