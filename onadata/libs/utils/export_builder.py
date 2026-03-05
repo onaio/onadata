@@ -914,7 +914,9 @@ class ExportBuilder:
         """Export CSV formatted files from ``data`` and zip the files."""
 
         def write_row(row, csv_writer, fields):
-            csv_writer.writerow([encode_if_str(row, field) for field in fields])
+            csv_writer.writerow(
+                [sanitize_for_export(encode_if_str(row, field)) for field in fields]
+            )
 
         csv_defs = {}
         dataview = kwargs.get("dataview")

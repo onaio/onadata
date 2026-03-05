@@ -86,6 +86,26 @@ class TestSanitizeForExport(TestBase):
         for val in safe:
             self.assertEqual(sanitize_for_export(val), val)
 
+    def test_does_not_modify_negative_numbers(self):
+        """Negative numeric strings (e.g. GPS coordinates) pass through."""
+        negative_numbers = [
+            "-1.2627557",
+            "-1.2627557 36.7926442 0.0 30.0",
+            "-42",
+            "-.5",
+        ]
+        for val in negative_numbers:
+            self.assertEqual(
+                sanitize_for_export(val),
+                val,
+                f"Negative number {val!r} should not be modified",
+            )
+
+    def test_sanitizes_dash_non_numeric(self):
+        """Dash followed by non-numeric content is still sanitized."""
+        self.assertEqual(sanitize_for_export("-cmd"), "'-cmd")
+        self.assertEqual(sanitize_for_export("-A1+B1"), "'-A1+B1")
+
     def test_does_not_modify_non_string_types(self):
         """Non-string types (int, float, None, bool) pass through unchanged."""
         self.assertIsNone(sanitize_for_export(None))
