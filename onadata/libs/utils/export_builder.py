@@ -83,6 +83,21 @@ def get_data_dictionary_from_survey(survey):
     return data_dicionary
 
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def sanitize_for_export(value):
+    """Prevent CSV/XLSX formula injection (CWE-1236).
+
+    Prefixes cell values starting with formula characters with a single quote
+    to force spreadsheet applications to treat them as literal strings.
+    Reference: https://owasp.org/www-community/attacks/CSV_Injection
+    """
+    if isinstance(value, str) and value and value[0] in _FORMULA_PREFIXES:
+        return "'" + value
+    return value
+
+
 def encode_if_str(row, key, encode_dates=False, sav_writer=None):
     """Encode a string value in ``row[key]``."""
     val = row.get(key)
@@ -1036,7 +1051,7 @@ class ExportBuilder:
         def write_row(data, work_sheet, fields, work_sheet_titles):
             # update parent_table with the generated sheet's title
             data[PARENT_TABLE_NAME] = work_sheet_titles.get(data.get(PARENT_TABLE_NAME))
-            work_sheet.append([data.get(f) for f in fields])
+            work_sheet.append([sanitize_for_export(data.get(f)) for f in fields])
 
         dataview = kwargs.get("dataview")
         total_records = kwargs.get("total_records")

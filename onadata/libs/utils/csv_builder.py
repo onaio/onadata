@@ -52,6 +52,7 @@ from onadata.libs.utils.common_tools import (
     str_to_bool,
     track_task_progress,
 )
+from onadata.libs.utils.export_builder import sanitize_for_export
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 # the bind type of select multiples that we use to compare
@@ -192,7 +193,9 @@ def write_to_csv(
         for i, row in enumerate(rows, start=1):
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
                 row.pop(col, None)
-            writer.writerow([row.get(col, na_rep) for col in columns])
+            writer.writerow(
+                [sanitize_for_export(row.get(col, na_rep)) for col in columns]
+            )
             track_task_progress(i, total_records)
 
 
