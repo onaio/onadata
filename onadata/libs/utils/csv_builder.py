@@ -177,18 +177,18 @@ def write_to_csv(
                     for col in new_cols
                 ]
 
-            writer.writerow(new_cols)
+            writer.writerow([sanitize_for_export(c) for c in new_cols])
 
         if include_labels or include_labels_only:
             labels = get_labels_from_columns(
                 columns, data_dictionary, group_delimiter, language=language
             )
-            writer.writerow(labels)
+            writer.writerow([sanitize_for_export(l) for l in labels])
 
         if include_hxl and columns_with_hxl:
             hxl_row = [columns_with_hxl.get(col, "") for col in columns]
             if hxl_row:
-                writer.writerow(hxl_row)
+                writer.writerow([sanitize_for_export(h) for h in hxl_row])
 
         for i, row in enumerate(rows, start=1):
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
