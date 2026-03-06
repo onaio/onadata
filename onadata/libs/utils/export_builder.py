@@ -931,13 +931,17 @@ class ExportBuilder:
         if not self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, "title")
-                csv_defs[section["name"]]["csv_writer"].writerow(list(fields))
+                csv_defs[section["name"]]["csv_writer"].writerow(
+                    [sanitize_for_export(f) for f in fields]
+                )
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, "label")
-                csv_defs[section["name"]]["csv_writer"].writerow(list(fields))
+                csv_defs[section["name"]]["csv_writer"].writerow(
+                    [sanitize_for_export(f) for f in fields]
+                )
 
         media_xpaths = (
             []
@@ -953,7 +957,7 @@ class ExportBuilder:
                 hxl_row = [columns_with_hxl.get(col, "") for col in fields]
                 if hxl_row:
                     writer = csv_defs[section["name"]]["csv_writer"]
-                    writer.writerow(hxl_row)
+                    writer.writerow([sanitize_for_export(h) for h in hxl_row])
 
         index = 1
         indices = {}
@@ -1064,7 +1068,7 @@ class ExportBuilder:
 
                 # get the worksheet
                 work_sheet = work_sheets[section_name]
-                work_sheet.append(headers)
+                work_sheet.append([sanitize_for_export(h) for h in headers])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
@@ -1074,7 +1078,7 @@ class ExportBuilder:
 
                 # get the worksheet
                 work_sheet = work_sheets[section_name]
-                work_sheet.append(labels)
+                work_sheet.append([sanitize_for_export(l) for l in labels])
 
         media_xpaths = (
             []
@@ -1094,7 +1098,7 @@ class ExportBuilder:
 
                 hxl_row = [columns_with_hxl.get(col, "") for col in headers]
                 if hxl_row:
-                    work_sheet.append(hxl_row)
+                    work_sheet.append([sanitize_for_export(h) for h in hxl_row])
 
         index = 1
         indices = {}
