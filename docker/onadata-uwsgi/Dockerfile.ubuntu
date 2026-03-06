@@ -17,9 +17,11 @@ WORKDIR /srv/onadata
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev \
+  && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
   && ldconfig \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p /srv/java-conf \
+  && cp -a /etc/java-*-openjdk /srv/java-conf/
 
 RUN python -m venv /srv/onadata/.venv
 
@@ -90,6 +92,18 @@ COPY --from=base /usr/bin/env /usr/bin/env
 COPY --from=base /usr/bin/bash /usr/bin/bash
 COPY --from=base /usr/bin/bash /bin/bash
 COPY --from=base /usr/bin/bash /bin/sh
+
+# Java is required by pyxform's ODK Validate for XForm validation.
+# The JRE lives under /usr/lib/jvm/ (already covered by /usr/lib/ copy above)
+# and /etc/alternatives/ (also copied above). We need the /usr/bin/java
+# symlink and LD_LIBRARY_PATH so the linker can find libjli.so.
+COPY --from=base /usr/bin/java /usr/bin/java
+# Java security and trust store config (java.security, cacerts, etc.).
+# The base stage stages all /etc/java-*-openjdk dirs into /srv/java-conf/.
+# We copy them back to /etc/ so the JVM finds java.security, cacerts, etc.
+COPY --from=base /srv/java-conf/ /etc/
+ENV JAVA_HOME="/usr/lib/jvm/default-java" \
+    LD_LIBRARY_PATH="/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server"
 
 # Copy only the files required in the final build
 COPY --from=base /srv/onadata/.venv /srv/onadata/.venv
