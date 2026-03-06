@@ -1078,7 +1078,7 @@ class ExportBuilder:
 
                 # get the worksheet
                 work_sheet = work_sheets[section_name]
-                work_sheet.append([sanitize_for_export(l) for l in labels])
+                work_sheet.append([sanitize_for_export(val) for val in labels])
 
         media_xpaths = (
             []
