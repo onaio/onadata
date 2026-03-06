@@ -183,7 +183,7 @@ def write_to_csv(
             labels = get_labels_from_columns(
                 columns, data_dictionary, group_delimiter, language=language
             )
-            writer.writerow([sanitize_for_export(l) for l in labels])
+            writer.writerow([sanitize_for_export(val) for val in labels])
 
         if include_hxl and columns_with_hxl:
             hxl_row = [columns_with_hxl.get(col, "") for col in columns]
