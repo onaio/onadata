@@ -20,9 +20,8 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends git-core gcc libc6-dev build-essential libgdal-dev libmemcached-dev zlib1g-dev default-jre-headless \
   && ldconfig \
   && rm -rf /var/lib/apt/lists/* \
-  && JAVA_ETC=$(echo /etc/java-*-openjdk) \
-  && cp -a "$JAVA_ETC" /etc/java-openjdk \
-  && ln -sfn /etc/java-openjdk "$JAVA_ETC"
+  && mkdir -p /srv/java-conf \
+  && cp -a /etc/java-*-openjdk /srv/java-conf/
 
 RUN python -m venv /srv/onadata/.venv
 
@@ -99,17 +98,10 @@ COPY --from=base /usr/bin/bash /bin/sh
 # and /etc/alternatives/ (also copied above). We need the /usr/bin/java
 # symlink and LD_LIBRARY_PATH so the linker can find libjli.so.
 COPY --from=base /usr/bin/java /usr/bin/java
-COPY --from=base /usr/bin/ln /usr/bin/ln
 # Java security and trust store config (java.security, cacerts, etc.).
-# The base stage copies the version-specific dir to a stable /etc/java-openjdk
-# and replaces the original with a symlink. COPY follows symlinks, so both
-# resolve to the same content. We restore the symlink with ln.
-COPY --from=base /etc/java-openjdk/ /etc/java-openjdk/
-# hadolint ignore=DL3059
-RUN for d in /usr/lib/jvm/java-*-openjdk-*/; do \
-      d=${d%/}; d=${d##*/}; d=${d#java-}; \
-      /usr/bin/ln -sfn /etc/java-openjdk "/etc/java-${d%%-*}-openjdk"; \
-    done
+# The base stage stages all /etc/java-*-openjdk dirs into /srv/java-conf/.
+# We copy them back to /etc/ so the JVM finds java.security, cacerts, etc.
+COPY --from=base /srv/java-conf/ /etc/
 ENV JAVA_HOME="/usr/lib/jvm/default-java" \
     LD_LIBRARY_PATH="/usr/lib/jvm/default-java/lib:/usr/lib/jvm/default-java/lib/server"
 
