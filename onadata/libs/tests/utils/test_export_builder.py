@@ -102,10 +102,30 @@ class TestSanitizeForExport(TestBase):
                 f"Negative number {val!r} should not be modified",
             )
 
+    def test_does_not_modify_positive_signed_numbers(self):
+        """Positive signed numeric strings (e.g. '+1.5') pass through."""
+        positive_numbers = ["+1.5", "+42", "+.5", "+0"]
+        for val in positive_numbers:
+            self.assertEqual(
+                sanitize_for_export(val),
+                val,
+                f"Positive number {val!r} should not be modified",
+            )
+
+    def test_sanitizes_plus_non_numeric(self):
+        """Plus followed by non-numeric content is still sanitized."""
+        self.assertEqual(sanitize_for_export("+cmd"), "'+cmd")
+        self.assertEqual(sanitize_for_export("+A1+B1"), "'+A1+B1")
+        # "+1+1" fails float() parsing, so it is treated as a formula.
+        self.assertEqual(sanitize_for_export("+1+1"), "'+1+1")
+        self.assertEqual(sanitize_for_export("+"), "'+")
+
     def test_sanitizes_dash_non_numeric(self):
         """Dash followed by non-numeric content is still sanitized."""
         self.assertEqual(sanitize_for_export("-cmd"), "'-cmd")
         self.assertEqual(sanitize_for_export("-A1+B1"), "'-A1+B1")
+        # "-1+1" looks numeric at a glance but fails float() parsing
+        # (the "+1" suffix), so it is correctly treated as a formula.
         self.assertEqual(sanitize_for_export("-1+1"), "'-1+1")
         self.assertEqual(sanitize_for_export("-"), "'-")
 
@@ -4101,4 +4121,66 @@ class TestExportBuilder(TestBase):
                         cell_value,
                         safe_val,
                         f"Safe value {safe_val!r} should not be modified",
+                    )
+
+    def test_label_rows_sanitized_in_csv_and_xlsx(self):
+        """Labels containing formula prefixes must be sanitized in exports.
+
+        Form authors control field labels, so a label like '=SUM(A1)'
+        must be prefixed with a single quote in header/label rows.
+        """
+        md_xform = """
+        | survey |      |           |              |
+        |        | type | name      | label        |
+        |        | text | safe_name | Name         |
+        |        | text | dangerous | =SUM(A1:A10) |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {"name": "data"})
+        dd = DataDictionary()
+        # pylint: disable=protected-access
+        dd._survey = survey
+
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+
+        data = [{"safe_name": "Alice", "dangerous": "hello"}]
+
+        # --- CSV export ---
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_csv(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+            csv_path = os.path.join(temp_dir, "data.csv")
+            with open(csv_path, encoding="utf-8") as csv_file:
+                reader = csv.reader(csv_file)
+                rows = list(reader)
+                # rows[0] = headers (field names), rows[1] = labels
+                label_row = rows[1]
+                for cell in label_row:
+                    self.assertFalse(
+                        cell.startswith("="),
+                        f"CSV label {cell!r} starts with '=' — "
+                        f"should be sanitized",
+                    )
+            shutil.rmtree(temp_dir)
+
+        # --- XLSX export ---
+        with NamedTemporaryFile(suffix=".xlsx") as xls_file:
+            export_builder.to_xlsx_export(xls_file.name, data)
+            xls_file.seek(0)
+            workbook = load_workbook(xls_file.name)
+            main_sheet = workbook["data"]
+            rows = list(main_sheet.values)
+            # rows[0] = headers, rows[1] = labels
+            label_row = rows[1]
+            for cell in label_row:
+                if cell and isinstance(cell, str):
+                    self.assertFalse(
+                        cell.startswith("="),
+                        f"XLSX label {cell!r} starts with '=' — "
+                        f"should be sanitized",
                     )

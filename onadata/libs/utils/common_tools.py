@@ -34,14 +34,18 @@ def sanitize_for_export(value):
 
     Prefixes cell values starting with formula characters with a single quote
     to force spreadsheet applications to treat them as literal strings.
-    Values that look like negative numbers (e.g. ``-1.26``) are left as-is.
+    Numeric values starting with ``-`` or ``+`` (e.g. ``-1.26``, ``+3``)
+    are left as-is.
     Reference: https://owasp.org/www-community/attacks/CSV_Injection
     """
     if isinstance(value, str) and value and value[0] in _FORMULA_PREFIXES:
-        # Skip negative numbers (e.g. GPS coords "-1.26 36.79 0.0 30.0").
-        if value[0] == "-":
+        # Skip signed numeric values (e.g. GPS coords "-1.26 36.79 0.0 30.0"
+        # or explicit-sign numbers like "+1.5").
+        # Every space-separated token must parse as float(); a single
+        # non-numeric token (e.g. "=cmd…") causes ValueError, so the
+        # whole value is treated as dangerous and gets prefixed.
+        if value[0] in ("-", "+"):
             try:
-                # Handle space-separated numeric values (GPS coordinates).
                 for token in value.split():
                     float(token)
                 return value
