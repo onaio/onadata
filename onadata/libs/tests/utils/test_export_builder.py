@@ -66,13 +66,14 @@ class TestSanitizeForExport(TestBase):
     def test_prefixes_formula_characters(self):
         """Values starting with formula chars get a single-quote prefix."""
         dangerous = {
-            "=cmd|' /C calc'!'A1'": "'=cmd|' /C calc'!'A1'",
+            "=cmd|' /C calc'!'A1'": "'=cmd\\|' /C calc'!'A1'",
             "+1+1": "'+1+1",
             "-1+1": "'-1+1",
             "@SUM(A1)": "'@SUM(A1)",
             "\tdata": "'\tdata",
             "\rdata": "'\rdata",
             "\ndata": "'\ndata",
+            "%macro": "'%macro",
         }
         for payload, expected in dangerous.items():
             self.assertEqual(
@@ -128,6 +129,27 @@ class TestSanitizeForExport(TestBase):
         # (the "+1" suffix), so it is correctly treated as a formula.
         self.assertEqual(sanitize_for_export("-1+1"), "'-1+1")
         self.assertEqual(sanitize_for_export("-"), "'-")
+
+    def test_escapes_inner_pipe_characters(self):
+        """Pipe characters are escaped to prevent DDE-style payloads."""
+        # Prefixed value with pipes
+        self.assertEqual(
+            sanitize_for_export("=DDE|cmd|'/C calc'"),
+            "'=DDE\\|cmd\\|'/C calc'",
+        )
+        # Non-prefixed value with a pipe mid-cell
+        self.assertEqual(sanitize_for_export("foo|bar"), "foo\\|bar")
+        # Value with only a pipe
+        self.assertEqual(sanitize_for_export("|"), "\\|")
+        # Safe value without pipe unchanged
+        self.assertEqual(sanitize_for_export("no pipe here"), "no pipe here")
+
+    def test_prefixes_percent(self):
+        """Values starting with % get a single-quote prefix."""
+        self.assertEqual(sanitize_for_export("%macro"), "'%macro")
+        self.assertEqual(sanitize_for_export("%0A"), "'%0A")
+        # Percent in middle is fine
+        self.assertEqual(sanitize_for_export("100%"), "100%")
 
     def test_does_not_modify_non_string_types(self):
         """Non-string types (int, float, None, bool) pass through unchanged."""
