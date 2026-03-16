@@ -34,7 +34,7 @@ class XFormVersion(models.Model):
     json = models.TextField()
 
     def __str__(self):
-        return f"{self.xform.title}-{self.version}"
+        return f"{self.xform.title}-{self.version}-{self.xform.form_id}"
 
     def json_dict(self):
         """Returns the form JSON in survey.to_json_dict() format."""
