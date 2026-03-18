@@ -181,7 +181,9 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     exists = False
 
     if entity_uuid is not None:
-        exists = Entity.objects.filter(uuid=entity_uuid).exists()
+        exists = Entity.objects.filter(
+            uuid=entity_uuid, entity_list=registration_form.entity_list
+        ).exists()
 
     if exists and entity_node.getAttribute("update") in mutation_success_checks:
         # Update Entity
