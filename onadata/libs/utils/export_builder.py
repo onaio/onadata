@@ -17,7 +17,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl.utils.datetime import to_excel
 from openpyxl.workbook import Workbook
-from pyxform.question import Option, Question
+from pyxform.question import Itemset, Option, Question
 from pyxform.section import RepeatingSection, Section
 from savReaderWriter import SavWriter  # pylint: disable=no-name-in-module
 from six import iteritems
@@ -1244,6 +1244,8 @@ class ExportBuilder:
                 choices = self.survey.get("choices")
                 if choices is not None and question.get("itemset"):
                     choices = choices.get(question.get("itemset"))
+            if isinstance(choices, Itemset):
+                choices = choices.options
             _value_labels = {}
             if choices:
                 is_numeric = is_all_numeric([c["name"] for c in choices])
