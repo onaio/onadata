@@ -365,7 +365,7 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertDictEqual(entity.json, original_json)
 
     def test_entity_created_if_duplicate_other_project(self):
-        """Entity is created if duplicate uuid belongs to different project"""
+        """Entity is created even if duplicate uuid exists in another project"""
         # Simulate an existing Entity same uuid, different project
         project = Project.objects.create(
             name="Project B", created_by=self.user, organization=self.user
@@ -390,7 +390,7 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(Entity.objects.count(), 2)
 
     def test_entity_creation_rejected_if_duplicate_same_project(self):
-        """Entity is rejected if duplicate uuid belongs to same project"""
+        """Entity is rejected if duplicate uuid exists in the same project"""
         # Simulate an existing Entity same uuid, same project
         entity_list = EntityList.objects.get(name="trees", project=self.project)
         Entity.objects.create(
