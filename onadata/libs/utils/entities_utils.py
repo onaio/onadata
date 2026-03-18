@@ -120,22 +120,15 @@ def create_entity_from_instance(
 
 
 def update_entity_from_instance(
-    uuid: str, instance: Instance, registration_form: RegistrationForm
+    entity: Entity, instance: Instance, registration_form: RegistrationForm
 ) -> Entity | None:
     """Updates Entity
 
-    :param uuid: uuid of the Entity to be updated
+    :param entity: Entity to be updated
     :param instance: Submission that updates an Entity
     :param registration_form: RegistrationForm updating the Entity
     :return: updated Entity if uuid valid, else None
     """
-    try:
-        entity = Entity.objects.get(uuid=uuid)
-
-    except Entity.DoesNotExist as err:
-        logger.exception(err)
-        return None
-
     patch_data = get_entity_json_from_instance(instance, registration_form)
     entity.json = {**entity.json, **patch_data}
     entity.save()
@@ -178,20 +171,21 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     registration_form = registration_form_qs.first()
     mutation_success_checks = ["1", "true"]
     entity_uuid = entity_node.getAttribute("id")
-    exists = False
 
     if entity_uuid is not None:
-        exists = Entity.objects.filter(
-            uuid=entity_uuid, entity_list=registration_form.entity_list
-        ).exists()
+        try:
+            entity = Entity.objects.get(
+                uuid=entity_uuid, entity_list=registration_form.entity_list
+            )
+        except Entity.DoesNotExist:
+            if entity_node.getAttribute("create") in mutation_success_checks:
+                # Create Entity
+                create_entity_from_instance(instance, registration_form)
 
-    if exists and entity_node.getAttribute("update") in mutation_success_checks:
-        # Update Entity
-        update_entity_from_instance(entity_uuid, instance, registration_form)
-
-    elif not exists and entity_node.getAttribute("create") in mutation_success_checks:
-        # Create Entity
-        create_entity_from_instance(instance, registration_form)
+        else:
+            if entity_node.getAttribute("update") in mutation_success_checks:
+                # Update Entity
+                update_entity_from_instance(entity, instance, registration_form)
 
 
 def adjust_elist_num_entities(entity_list: EntityList, delta: int) -> None:
