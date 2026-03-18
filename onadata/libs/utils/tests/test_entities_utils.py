@@ -27,7 +27,6 @@ from onadata.libs.utils.entities_utils import (
     create_or_update_entity_from_instance,
     import_entities_from_csv,
 )
-from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class CreateUpdateEntityTestCase(TestBase):
@@ -511,7 +510,9 @@ class EntityListNumEntitiesBase(TestBase):
     def setUp(self):
         super().setUp()
 
-        self.project = get_user_default_project(self.user)
+        self.project = Project.objects.create(
+            name="Entities", organization=self.user, created_by=self.user
+        )
         self.entity_list = EntityList.objects.create(
             name="trees", project=self.project, num_entities=10
         )
