@@ -90,7 +90,7 @@ def get_entity_json_from_instance(
     return instance_json
 
 
-def create_entity_from_instance(
+def _create_entity_from_instance(
     instance: Instance, registration_form: RegistrationForm
 ) -> Entity:
     """Create an Entity
@@ -119,7 +119,7 @@ def create_entity_from_instance(
     return entity
 
 
-def update_entity_from_instance(
+def _update_entity_from_instance(
     entity: Entity, instance: Instance, registration_form: RegistrationForm
 ) -> Entity | None:
     """Updates Entity
@@ -180,12 +180,12 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         except Entity.DoesNotExist:
             if entity_node.getAttribute("create") in mutation_success_checks:
                 # Create Entity
-                create_entity_from_instance(instance, registration_form)
+                _create_entity_from_instance(instance, registration_form)
 
         else:
             if entity_node.getAttribute("update") in mutation_success_checks:
                 # Update Entity
-                update_entity_from_instance(entity, instance, registration_form)
+                _update_entity_from_instance(entity, instance, registration_form)
 
 
 def adjust_elist_num_entities(entity_list: EntityList, delta: int) -> None:

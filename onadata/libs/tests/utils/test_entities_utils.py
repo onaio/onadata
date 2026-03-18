@@ -24,11 +24,11 @@ from onadata.apps.logger.models import (
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.utils.entities_utils import (
+    _create_entity_from_instance,
+    _update_entity_from_instance,
     adjust_elist_num_entities,
     commit_cached_elist_num_entities,
-    create_entity_from_instance,
     import_entities_from_csv,
-    update_entity_from_instance,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -72,7 +72,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
 
     def test_entity_created(self):
         """Entity is created successfully"""
-        create_entity_from_instance(self.instance, self.registration_form)
+        _create_entity_from_instance(self.instance, self.registration_form)
 
         self.assertEqual(Entity.objects.count(), 1)
 
@@ -153,7 +153,7 @@ class CreateEntityFromInstanceTestCase(TestBase):
         registration_form = RegistrationForm.objects.get(
             xform=xform, entity_list=self.entity_list
         )
-        create_entity_from_instance(instance, registration_form)
+        _create_entity_from_instance(instance, registration_form)
         entity = Entity.objects.first()
         expected_json = {
             "geometry": "-1.286905 36.772845 0 0",
@@ -197,7 +197,7 @@ class UpdateEntityFromInstanceTestCase(TestBase):
 
     def test_entity_updated(self):
         """Entity is updated successfully"""
-        update_entity_from_instance(
+        _update_entity_from_instance(
             self.entity.uuid, self.instance, self.registration_form
         )
         # No new Entity created
