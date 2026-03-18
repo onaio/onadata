@@ -172,7 +172,7 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     mutation_success_checks = ["1", "true"]
     entity_uuid = entity_node.getAttribute("id")
 
-    if entity_uuid is not None:
+    if entity_uuid:
         try:
             entity = Entity.objects.get(
                 uuid=entity_uuid, entity_list=registration_form.entity_list
