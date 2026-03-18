@@ -121,7 +121,7 @@ def _create_entity_from_instance(
 
 def _update_entity_from_instance(
     entity: Entity, instance: Instance, registration_form: RegistrationForm
-) -> Entity | None:
+) -> Entity:
     """Updates Entity
 
     :param entity: Entity to be updated
