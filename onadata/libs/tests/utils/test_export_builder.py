@@ -21,7 +21,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from pyxform.question import Question
+from pyxform.question import Itemset, Question
 from pyxform.survey import Survey
 from savReaderWriter import SavHeaderReader, SavReader
 
@@ -38,8 +38,8 @@ from onadata.libs.utils.common_tags import (
     REVIEW_STATUS,
     SELECT_BIND_TYPE,
 )
-from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
 from onadata.libs.utils.common_tools import sanitize_for_export
+from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
 from onadata.libs.utils.export_builder import (
     ExportBuilder,
     decode_mongo_encoded_section_names,
@@ -4156,8 +4156,7 @@ class TestExportBuilder(TestBase):
                 for cell in label_row:
                     self.assertFalse(
                         cell.startswith("="),
-                        f"CSV label {cell!r} starts with '=' — "
-                        f"should be sanitized",
+                        f"CSV label {cell!r} starts with '=' — should be sanitized",
                     )
             shutil.rmtree(temp_dir)
 
@@ -4174,6 +4173,154 @@ class TestExportBuilder(TestBase):
                 if cell and isinstance(cell, str):
                     self.assertFalse(
                         cell.startswith("="),
-                        f"XLSX label {cell!r} starts with '=' — "
-                        f"should be sanitized",
+                        f"XLSX label {cell!r} starts with '=' — should be sanitized",
                     )
+
+    def test_get_sav_value_labels_with_itemset_choices(self):
+        """
+        Test _get_sav_value_labels handles Itemset objects from survey choices.
+
+        In pyxform 4.1.0+, survey.get("choices") returns a dict of
+        {list_name: Itemset} instead of {list_name: [list_of_dicts]}.
+        When a question's to_json_dict() does not include "children",
+        the code falls back to survey.get("choices") which now returns
+        Itemset objects. This test verifies the fix for:
+        TypeError: 'Itemset' object is not iterable
+        """
+        md = """
+        | survey  |                    |        |                    |
+        |         | type               | name   | label              |
+        |         | select_one consent | Q1     | May I proceed?     |
+        |         | select_one gender  | Q2     | Gender             |
+
+        | choices |           |        |                    |
+        |         | list name | name   | label              |
+        |         | consent   | 1      | Yes                |
+        |         | consent   | 2      | No                 |
+        |         | gender    | male   | Male               |
+        |         | gender    | female | Female             |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        # Simulate the production scenario: question has no inline choices
+        # (choices attribute is None), forcing fallback to survey.get("choices")
+        # which returns Itemset objects in pyxform 4.1.0+.
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        # Replace survey choices with Itemset objects to match pyxform 4.1.0
+        consent_itemset = Itemset(
+            "consent",
+            [{"name": "1", "label": "Yes"}, {"name": "2", "label": "No"}],
+        )
+        gender_itemset = Itemset(
+            "gender",
+            [{"name": "male", "label": "Male"}, {"name": "female", "label": "Female"}],
+        )
+        self.assertEqual(set(survey.choices.keys()), {"consent", "gender"})
+        self.assertEqual(survey.choices["consent"].name, consent_itemset.name)
+        self.assertEqual(survey.choices["gender"].name, gender_itemset.name)
+
+        # pylint: disable=protected-access
+        labels = export_builder._get_sav_value_labels({"Q1": "Q1", "Q2": "Q2"})
+
+        # Should not raise TypeError: 'Itemset' object is not iterable
+        self.assertEqual(labels["Q1"], {1: "Yes", 2: "No"})
+        self.assertEqual(labels["Q2"], {"male": "Male", "female": "Female"})
+
+    def test_get_sav_value_labels_with_itemset_select_multiple(self):
+        """
+        Test _get_sav_value_labels handles Itemset for select_multiple questions.
+
+        select_multiple questions should treat choice names as strings
+        (not numeric), even when names are numeric values.
+        """
+        md = """
+        | survey  |                      |        |                    |
+        |         | type                 | name   | label              |
+        |         | select_multiple opts | Q1     | Pick options       |
+
+        | choices |           |      |           |
+        |         | list name | name | label     |
+        |         | opts      | 1    | Option A  |
+        |         | opts      | 2    | Option B  |
+        |         | opts      | 3    | Option C  |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        opts_itemset = Itemset(
+            "opts",
+            [
+                {"name": "1", "label": "Option A"},
+                {"name": "2", "label": "Option B"},
+                {"name": "3", "label": "Option C"},
+            ],
+        )
+        self.assertEqual(set(survey.choices.keys()), {"opts"})
+        self.assertEqual(survey.choices["opts"].name, opts_itemset.name)
+
+        # pylint: disable=protected-access
+        labels = export_builder._get_sav_value_labels({"Q1": "Q1"})
+
+        # select_multiple ("select all that apply") should keep names as strings
+        self.assertEqual(
+            labels["Q1"], {"1": "Option A", "2": "Option B", "3": "Option C"}
+        )
+
+    def test_to_zipped_sav_with_itemset_choices(self):
+        """
+        Test to_zipped_sav completes without error when survey choices
+        are Itemset objects (pyxform 4.1.0+).
+        """
+        md = """
+        | survey  |                    |        |                    |
+        |         | type               | name   | label              |
+        |         | select_one y_n     | Q1     | Do you agree?      |
+        |         | text               | Q2     | Name               |
+
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | y_n       | 1    | Yes   |
+        |         | y_n       | 2    | No    |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        y_n_itemset = Itemset(
+            "y_n", [{"name": "1", "label": "Yes"}, {"name": "2", "label": "No"}]
+        )
+        self.assertEqual(set(survey.choices.keys()), {"y_n"})
+        self.assertEqual(survey.choices["y_n"].name, y_n_itemset.name)
+
+        data = [{"Q1": "1", "Q2": "John", "_submission_time": "2024-01-01"}]
+
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            try:
+                export_builder.to_zipped_sav(temp_zip_file.name, data)
+            except TypeError as e:
+                if "Itemset" in str(e):
+                    self.fail(f"to_zipped_sav should handle Itemset choices: {e}")
+                raise
