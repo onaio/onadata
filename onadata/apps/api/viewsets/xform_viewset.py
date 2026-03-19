@@ -94,6 +94,12 @@ from onadata.libs.utils.csv_import import (
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
+from onadata.libs.utils.enketo_redis import (
+    get_cached_preview_url,
+    get_cached_survey_urls,
+    store_preview_url,
+    store_survey_urls,
+)
 from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
     get_enketo_urls,
@@ -472,6 +478,84 @@ class XFormViewSet(
                 }
 
         return Response(data, http_status)
+
+    @staticmethod
+    def _build_survey_response(urls):
+        """Build the standard enketo survey links response dict."""
+        return {
+            "enketo_url": urls.get("offline_url", ""),
+            "enketo_preview_url": urls.get("preview_url", ""),
+            "single_submit_url": urls.get(
+                "single_once_url", urls.get("single_url", "")
+            ),
+        }
+
+    def _fetch_enketo_urls(self, request):
+        """Call the Enketo API and return the URLs dict or an error Response."""
+        form_url = get_form_url(
+            request,
+            self.object.user.username,
+            protocol=settings.ENKETO_PROTOCOL,
+            xform_pk=self.object.pk,
+            generate_consistent_urls=True,
+        )
+
+        try:
+            enketo_urls = get_enketo_urls(form_url, self.object.id_string)
+        except EnketoError as exc:
+            return Response(
+                {"message": _(f"Enketo error: {exc}")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not enketo_urls:
+            return Response(
+                {"message": _("Enketo not properly configured.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return enketo_urls
+
+    @action(methods=["GET"], detail=True, url_path="enketo-links")
+    def enketo_links(self, request, **kwargs):
+        """Return enketo survey links, served from Redis cache when available.
+
+        Uses the same Redis key patterns as Zebra
+        (``enketo-survey-urls-for-{pk}``) so both apps share one cache.
+        On a cache miss the Enketo API is called and the result is stored.
+
+        Query params:
+            show_preview  – if ``"true"``, return only the preview URL.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self.object = self.get_object()
+        show_preview = request.GET.get("show_preview") == "true"
+
+        # --- try cache first ---
+        if show_preview:
+            cached = get_cached_preview_url(self.object.pk)
+            if cached:
+                return Response({"enketo_preview_url": cached})
+        else:
+            cached = get_cached_survey_urls(self.object.pk)
+            if cached:
+                return Response(self._build_survey_response(cached))
+
+        # --- cache miss: call Enketo API ---
+        result = self._fetch_enketo_urls(request)
+        if isinstance(result, Response):
+            return result
+        enketo_urls = result
+
+        # --- store in cache ---
+        if show_preview:
+            preview_url = enketo_urls.get("preview_url", "")
+            if preview_url:
+                store_preview_url(self.object.pk, preview_url)
+            return Response({"enketo_preview_url": preview_url})
+
+        store_survey_urls(self.object.pk, enketo_urls)
+        return Response(self._build_survey_response(enketo_urls))
 
     # pylint: disable=unused-argument
     @action(methods=["POST", "GET"], detail=False)

@@ -284,7 +284,7 @@ def get_form(kwargs):
 def get_form_url(
     request,
     username=None,
-    protocol="https",
+    protocol=None,
     preview=False,
     xform_pk=None,
     generate_consistent_urls=False,
@@ -298,6 +298,9 @@ def get_form_url(
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
     """
+    if protocol is None:
+        protocol = getattr(settings, "ENKETO_PROTOCOL", "https")
+
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
