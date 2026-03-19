@@ -38,6 +38,9 @@ v5.15.0 (2026-03-19)
 - fix: entity update fails if duplicate uuid exists in another project
   [@kelvin-muchiri]
   `PR #3027 https://github.com/onaio/onadata/pull/3027`
+- fix: handle pyxform Itemset objects in SAV export value labels
+  [@FrankApiyo]
+  `PR #3029 https://github.com/onaio/onadata/pull/3029`
 
 v5.14.2 (2026-02-05)
 --------------------
