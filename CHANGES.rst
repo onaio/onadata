@@ -3,6 +3,45 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.15.0 (2026-03-19)
+--------------------
+- Switch to Python 3.13 from 3.10.19
+  [@ukanga]
+  `PR #3013 https://github.com/onaio/onadata/pull/3013`
+- feat: edit decrypted submission
+  [@kelvin-muchiri]
+  `PR #3009 https://github.com/onaio/onadata/pull/3009`
+- Update dependencies
+  [@FrankApiyo]
+  `PR #3015 https://github.com/onaio/onadata/pull/3015`
+- fix: upgrade trivy-action to v0.34.0 (CWE-78)
+  [@ukanga]
+  `PR #3020 https://github.com/onaio/onadata/pull/3020`
+- fix: incorrect cors middlware placement
+  [@kelvin-muchiri]
+  `PR #3021 https://github.com/onaio/onadata/pull/3021`
+- Fix missing dependency and layer compression issue
+  [@FrankApiyo]
+  `PR #3022 https://github.com/onaio/onadata/pull/3022`
+- fix: make user registration atomic to prevent inactive user state
+  [@kelvin-muchiri]
+  `PR #3018 https://github.com/onaio/onadata/pull/3018`
+- fix: target base stage and preserve venv in docker-compose
+  [@kelvin-muchiri]
+  `PR #3023 https://github.com/onaio/onadata/pull/3023`
+- fix: sanitize CSV/XLSX exports to prevent formula injection (CWE-1236)
+  [@FrankApiyo]
+  `PR #3024 https://github.com/onaio/onadata/pull/3024`
+- fix: entity rejected if duplicate in other project
+  [@kelvin-muchiri]
+  `PR #3026 https://github.com/onaio/onadata/pull/3026`
+- fix: entity update fails if duplicate uuid exists in another project
+  [@kelvin-muchiri]
+  `PR #3027 https://github.com/onaio/onadata/pull/3027`
+- fix: handle pyxform Itemset objects in SAV export value labels
+  [@FrankApiyo]
+  `PR #3029 https://github.com/onaio/onadata/pull/3029`
+
 v5.14.2 (2026-02-05)
 --------------------
 - fix: user removal from an org doesn't revoke project permissions
