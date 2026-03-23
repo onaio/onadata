@@ -476,20 +476,9 @@ class XFormViewSet(
         if not has_defaults:
             cached = get_cached_survey_urls(self.object.pk)
             if cached:
-                if show_preview:
-                    return Response(
-                        {"enketo_preview_url": cached.get("preview_url", "")}
-                    )
-                if survey_type == "single":
-                    return Response(
-                        {
-                            "single_submit_url": cached.get(
-                                "single_once_url",
-                                cached.get("single_url", ""),
-                            )
-                        }
-                    )
-                return Response(self._build_survey_response(cached))
+                return Response(
+                    self._format_enketo_response(cached, survey_type, show_preview)
+                )
 
         # --- Cache miss or defaults present: call the Enketo API ----------
         form_url = get_form_url(
@@ -520,31 +509,22 @@ class XFormViewSet(
         if not has_defaults:
             store_survey_urls(self.object.pk, enketo_urls)
 
-        if show_preview:
-            return Response(
-                {"enketo_preview_url": enketo_urls.get("preview_url", "")}
-            )
-
-        if survey_type == "single":
-            return Response(
-                {
-                    "single_submit_url": enketo_urls.get(
-                        "single_once_url", enketo_urls.get("single_url", "")
-                    )
-                }
-            )
-
-        return Response(self._build_survey_response(enketo_urls))
+        return Response(
+            self._format_enketo_response(enketo_urls, survey_type, show_preview)
+        )
 
     @staticmethod
-    def _build_survey_response(urls):
-        """Build the standard enketo survey links response dict."""
+    def _format_enketo_response(urls, survey_type, show_preview):
+        """Return the appropriate response dict for the given query params."""
+        if show_preview:
+            return {"enketo_preview_url": urls.get("preview_url", "")}
+        single = urls.get("single_once_url", urls.get("single_url", ""))
+        if survey_type == "single":
+            return {"single_submit_url": single}
         return {
             "enketo_url": urls.get("offline_url", ""),
             "enketo_preview_url": urls.get("preview_url", ""),
-            "single_submit_url": urls.get(
-                "single_once_url", urls.get("single_url", "")
-            ),
+            "single_submit_url": single,
         }
 
     # pylint: disable=unused-argument
