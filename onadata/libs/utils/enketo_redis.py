@@ -110,3 +110,21 @@ def store_preview_url(form_pk, url):
         )
     except (redis.ConnectionError, redis.RedisError, OSError):
         logger.exception("enketo-links Redis write error")
+
+
+def delete_cached_urls(form_pk):
+    """Remove all cached enketo URLs for *form_pk*.
+
+    Call this when a form is deleted so stale links are not served for
+    the remainder of the TTL.
+    """
+    client = _get_client()
+    if client is None:
+        return
+    try:
+        client.delete(
+            f"{SURVEY_URLS_PREFIX}{int(form_pk)}",
+            f"{PREVIEW_URL_PREFIX}{int(form_pk)}",
+        )
+    except (redis.ConnectionError, redis.RedisError, OSError):
+        logger.exception("enketo-links Redis delete error")

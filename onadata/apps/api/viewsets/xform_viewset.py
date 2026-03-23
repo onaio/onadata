@@ -95,6 +95,7 @@ from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.enketo_redis import (
+    delete_cached_urls,
     get_cached_preview_url,
     get_cached_survey_urls,
     store_preview_url,
@@ -447,7 +448,6 @@ class XFormViewSet(
         form_url = get_form_url(
             request,
             self.object.user.username,
-            protocol=settings.ENKETO_PROTOCOL,
             xform_pk=self.object.pk,
             generate_consistent_urls=True,
         )
@@ -464,7 +464,7 @@ class XFormViewSet(
             preview_url = enketo_urls.get("preview_url")
             single_submit_url = enketo_urls.get("single_url")
         except EnketoError as e:
-            data = {"message": _(f"Enketo error: {e}")}
+            data = {"message": _("Enketo error: %(error)s") % {"error": e}}
         else:
             if survey_type == "single":
                 http_status = status.HTTP_200_OK
@@ -495,7 +495,6 @@ class XFormViewSet(
         form_url = get_form_url(
             request,
             self.object.user.username,
-            protocol=settings.ENKETO_PROTOCOL,
             xform_pk=self.object.pk,
             generate_consistent_urls=True,
         )
@@ -504,7 +503,7 @@ class XFormViewSet(
             enketo_urls = get_enketo_urls(form_url, self.object.id_string)
         except EnketoError as exc:
             return Response(
-                {"message": _(f"Enketo error: {exc}")},
+                {"message": _("Enketo error: %(error)s") % {"error": exc}},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -545,13 +544,16 @@ class XFormViewSet(
             return result
         enketo_urls = result
 
+        # Always store the full set — avoids a second Enketo API call
+        # when the other variant (preview vs. full) is requested next.
+        store_survey_urls(self.object.pk, enketo_urls)
+        preview_url = enketo_urls.get("preview_url", "")
+        if preview_url:
+            store_preview_url(self.object.pk, preview_url)
+
         if show_preview:
-            preview_url = enketo_urls.get("preview_url", "")
-            if preview_url:
-                store_preview_url(self.object.pk, preview_url)
             return Response({"enketo_preview_url": preview_url})
 
-        store_survey_urls(self.object.pk, enketo_urls)
         return Response(self._build_survey_response(enketo_urls))
 
     # pylint: disable=unused-argument
@@ -915,6 +917,7 @@ class XFormViewSet(
         xform = self.get_object()
         user = request.user
         xform.soft_delete(user=user)
+        delete_cached_urls(xform.pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

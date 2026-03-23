@@ -330,7 +330,6 @@ class DataViewSet(
                 form_url = get_form_url(
                     request,
                     self.object.xform.user.username,
-                    protocol=settings.ENKETO_PROTOCOL,
                     xform_pk=self.object.xform.id,
                     generate_consistent_urls=True,
                 )

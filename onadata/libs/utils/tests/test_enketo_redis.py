@@ -9,6 +9,7 @@ from onadata.libs.utils import enketo_redis
 from onadata.libs.utils.enketo_redis import (
     PREVIEW_URL_PREFIX,
     SURVEY_URLS_PREFIX,
+    delete_cached_urls,
     get_cached_preview_url,
     get_cached_survey_urls,
     store_preview_url,
@@ -34,6 +35,10 @@ class EnketoRedisDisabledTest(TestCase):
     @override_settings(ENKETO_LINKS_REDIS_URL="")
     def test_store_preview_url_does_not_raise(self):
         store_preview_url(42, "https://e.test/preview")
+
+    @override_settings(ENKETO_LINKS_REDIS_URL="")
+    def test_delete_cached_urls_does_not_raise(self):
+        delete_cached_urls(42)
 
 
 @override_settings(ENKETO_LINKS_REDIS_URL="redis://localhost:6379/15")
@@ -133,6 +138,19 @@ class EnketoRedisCacheTest(TestCase):
         self.assertEqual(args[0], f"{PREVIEW_URL_PREFIX}42")
         self.assertEqual(args[1], "https://e.test/p")
         self.assertIn("ex", kwargs)
+
+    # --- delete ---
+
+    def test_delete_cached_urls_removes_both_keys(self):
+        delete_cached_urls(42)
+        self.mock_redis.delete.assert_called_once_with(
+            f"{SURVEY_URLS_PREFIX}42",
+            f"{PREVIEW_URL_PREFIX}42",
+        )
+
+    def test_delete_cached_urls_handles_error(self):
+        self.mock_redis.delete.side_effect = redis.RedisError("boom")
+        delete_cached_urls(42)  # should not raise
 
     # --- key safety ---
 
