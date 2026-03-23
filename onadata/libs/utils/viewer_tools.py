@@ -214,7 +214,7 @@ def handle_enketo_error(response):
             ) from enketo_error
         message = response.text
     else:
-        message = data.get("message", response.text)
+        message = data["message"] if "message" in data else response.text
 
     if response.status_code == 400:
         if not event_id:
