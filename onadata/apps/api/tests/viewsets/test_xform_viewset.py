@@ -1607,14 +1607,11 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            single_once_url = (
-                "http://enketo.ona.io/single"
-                "/::2b27ac0cdcf2842eaac4984f688d9270"
-            )
+            single_url = "http://enketo.ona.io/single/::XZqoZ94y"
             data = {
                 "enketo_url": url,
                 "enketo_preview_url": preview_url,
-                "single_submit_url": single_once_url,
+                "single_submit_url": single_url,
             }
             self.assertEqual(response.data, data)
 
@@ -1649,10 +1646,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             get_data = {"survey_type": "single"}
             request = self.factory.get("/", data=get_data, **self.extra)
             response = view(request, pk=formid)
-            submit_url = (
-                "http://enketo.ona.io/single"
-                "/::2b27ac0cdcf2842eaac4984f688d9270"
-            )
+            submit_url = "http://enketo.ona.io/single/::XZqoZ94y"
             self.assertEqual(response.data["single_submit_url"], submit_url)
 
     def test_enketo_url_with_default_form_params(self):

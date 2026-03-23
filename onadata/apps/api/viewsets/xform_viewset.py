@@ -518,7 +518,7 @@ class XFormViewSet(
         """Return the appropriate response dict for the given query params."""
         if show_preview:
             return {"enketo_preview_url": urls.get("preview_url", "")}
-        single = urls.get("single_once_url", urls.get("single_url", ""))
+        single = urls.get("single_url", "")
         if survey_type == "single":
             return {"single_submit_url": single}
         return {
