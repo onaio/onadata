@@ -1565,8 +1565,6 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             # Clear MetaData so the endpoint hits the Enketo API
             MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
-            # need to return 502 for 500s and 502s and the correct message
-            # can we get a reference number from sentry?
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
                 data = {
@@ -1579,6 +1577,33 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                     status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
                 self.assertEqual(response.data, data)
+
+    def test_enketo_url_no_account_includes_sentry_ref(self):
+        """Enketo 400 error includes the Sentry event_id in the message."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
+            request = self.factory.get("/", **self.extra)
+            fake_event_id = "abc123def456"
+            with (
+                HTTMock(enketo_error_mock),
+                patch(
+                    "onadata.libs.utils.viewer_tools.report_exception",
+                    return_value=fake_event_id,
+                ),
+            ):
+                response = view(request, pk=formid)
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+                self.assertEqual(
+                    response.data["message"],
+                    "Enketo error: no account exists for this"
+                    f" OpenRosa server (reference: {fake_event_id})",
+                )
 
     def test_enketo_url_error500(self):
         with HTTMock(enketo_mock):

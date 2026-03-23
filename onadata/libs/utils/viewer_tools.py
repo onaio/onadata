@@ -201,10 +201,11 @@ def get_enketo_urls(
 
 def handle_enketo_error(response):
     """Handle enketo error response."""
+    event_id = None
     try:
         data = json.loads(response.content)
     except (ValueError, JSONDecodeError) as enketo_error:
-        report_exception(
+        event_id = report_exception(
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
         if response.status_code in (500, 502):
@@ -216,7 +217,14 @@ def handle_enketo_error(response):
         message = data.get("message", response.text)
 
     if response.status_code == 400:
-        raise EnketoError(f"Enketo error: {message}", status_code=500)
+        if not event_id:
+            event_id = report_exception(
+                f"HTTP Error {response.status_code}", message
+            )
+        error_msg = f"Enketo error: {message}"
+        if event_id:
+            error_msg += f" (reference: {event_id})"
+        raise EnketoError(error_msg, status_code=500)
 
     raise EnketoError(message)
 

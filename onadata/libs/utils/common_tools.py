@@ -104,6 +104,8 @@ def report_exception(subject, info, exc_info=None):
     """
     Formats an exception then posts it to sentry and if not in debug or
     testing sends email to mail_admins.
+
+    Returns the Sentry event_id (str) when an event is captured, or None.
     """
     # Add hostname to subject mail
     subject = f"{subject} - {settings.HOSTNAME}"
@@ -114,16 +116,18 @@ def report_exception(subject, info, exc_info=None):
         message += "".join(traceback.format_exception(*exc_info))
 
         # send to sentry
-        sentry_sdk.capture_exception(exc_info)
+        event_id = sentry_sdk.capture_exception(exc_info)
     else:
         message = f"{info}"
-        sentry_sdk.capture_message(f"{subject}: {info}")
+        event_id = sentry_sdk.capture_message(f"{subject}: {info}")
 
     if settings.DEBUG or settings.TESTING_MODE:
         sys.stdout.write(f"Subject: {subject}\n")
         sys.stdout.write(f"Message: {message}\n")
     else:
         mail_admins(subject=subject, message=message)
+
+    return event_id
 
 
 def filename_from_disposition(content_disposition):
