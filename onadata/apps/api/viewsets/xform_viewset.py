@@ -53,6 +53,7 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
@@ -95,11 +96,6 @@ from onadata.libs.utils.csv_import import (
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.enketo_redis import (
-    delete_cached_urls,
-    get_cached_survey_urls,
-    store_survey_urls,
-)
 from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
     get_enketo_urls,
@@ -442,18 +438,18 @@ class XFormViewSet(
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
     def enketo(self, request, **kwargs):
-        """Expose enketo urls, served from Redis cache when available.
+        """Expose enketo urls.
 
-        On the first request the Enketo API is called and the result is
-        cached in Redis (key ``enketo-survey-urls-for-{pk}``); subsequent
-        requests are served directly from the cache.  Caching is skipped
-        when form-default query params are present since each combination
-        produces unique URLs.
+        URLs are persisted in the MetaData table.  On the first request
+        the Enketo API is called and the result is stored; subsequent
+        requests are served directly from the database.  When form-default
+        query params are present the Enketo API is always called (each
+        combination produces unique URLs that are not persisted).
 
         Query params:
             survey_type   – ``"single"`` to return only the single-submit URL.
             show_preview  – ``"true"`` to return only the preview URL.
-            <field>=value – pre-populate form fields (skips caching).
+            <field>=value – pre-populate form fields (skips persistence).
         """
         survey_type = self.kwargs.get("survey_type") or request.GET.get(
             "survey_type"
@@ -472,15 +468,17 @@ class XFormViewSet(
         defaults = generate_enketo_form_defaults(self.object, **form_params)
         has_defaults = bool(defaults)
 
-        # --- Serve from Redis cache (only when no form defaults) -----------
+        # --- Serve from MetaData when no form defaults --------------------
         if not has_defaults:
-            cached = get_cached_survey_urls(self.object.pk)
-            if cached:
+            stored = self._read_enketo_metadata(self.object)
+            if stored:
                 return Response(
-                    self._format_enketo_response(cached, survey_type, show_preview)
+                    self._format_enketo_response(
+                        stored, survey_type, show_preview
+                    )
                 )
 
-        # --- Cache miss or defaults present: call the Enketo API ----------
+        # --- DB miss or defaults present: call the Enketo API -------------
         form_url = get_form_url(
             request,
             self.object.user.username,
@@ -505,25 +503,62 @@ class XFormViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Cache the result when no form defaults were used.
+        # Persist the result when no form defaults were used.
         if not has_defaults:
-            store_survey_urls(self.object.pk, enketo_urls)
+            self._store_enketo_metadata(self.object, enketo_urls)
 
         return Response(
             self._format_enketo_response(enketo_urls, survey_type, show_preview)
         )
 
     @staticmethod
+    def _read_enketo_metadata(xform):
+        """Read enketo URLs from MetaData, returning a dict or None."""
+        enketo_url = MetaData.enketo_url(xform)
+        if not enketo_url:
+            return None
+        preview = MetaData.enketo_preview_url(xform)
+        single = MetaData.enketo_single_submit_url(xform)
+        return {
+            "enketo_url": enketo_url.data_value if enketo_url else "",
+            "enketo_preview_url": preview.data_value if preview else "",
+            "single_submit_url": single.data_value if single else "",
+        }
+
+    @staticmethod
+    def _store_enketo_metadata(xform, enketo_urls):
+        """Persist enketo URLs from the Enketo API response into MetaData."""
+        offline_url = enketo_urls.get("offline_url")
+        if offline_url:
+            MetaData.enketo_url(xform, offline_url)
+        preview_url = enketo_urls.get("preview_url")
+        if preview_url:
+            MetaData.enketo_preview_url(xform, preview_url)
+        single_url = enketo_urls.get("single_url")
+        if single_url:
+            MetaData.enketo_single_submit_url(xform, single_url)
+
+    @staticmethod
     def _format_enketo_response(urls, survey_type, show_preview):
         """Return the appropriate response dict for the given query params."""
         if show_preview:
-            return {"enketo_preview_url": urls.get("preview_url", "")}
-        single = urls.get("single_url", "")
+            return {
+                "enketo_preview_url": urls.get(
+                    "enketo_preview_url", urls.get("preview_url", "")
+                )
+            }
+        single = urls.get(
+            "single_submit_url", urls.get("single_url", "")
+        )
         if survey_type == "single":
             return {"single_submit_url": single}
         return {
-            "enketo_url": urls.get("offline_url", ""),
-            "enketo_preview_url": urls.get("preview_url", ""),
+            "enketo_url": urls.get(
+                "enketo_url", urls.get("offline_url", "")
+            ),
+            "enketo_preview_url": urls.get(
+                "enketo_preview_url", urls.get("preview_url", "")
+            ),
             "single_submit_url": single,
         }
 
@@ -888,7 +923,6 @@ class XFormViewSet(
         xform = self.get_object()
         user = request.user
         xform.soft_delete(user=user)
-        delete_cached_urls(xform.pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

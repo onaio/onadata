@@ -908,11 +908,10 @@ Get webform/enketo link
     <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
 Returns enketo survey links (webform URL, preview URL, and single-submit URL).
-Responses are **cached in Redis** (key ``enketo-survey-urls-for-{pk}``); on the
-first request the Enketo API is called and the result is stored, and subsequent
-requests are served directly from the cache. Caching is skipped when
-form-default query params are present since each combination produces unique
-URLs.
+On the first request the Enketo API is called and the result is persisted in
+the database; subsequent requests are served directly from the stored data.
+When form-default query params are present the Enketo API is always called
+since each combination produces unique URLs.
 
 Request
 ^^^^^^^

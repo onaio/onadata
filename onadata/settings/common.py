@@ -104,10 +104,6 @@ ENKETO_API_INSTANCE_PATH = "/api_v2/instance"
 ENKETO_API_TOKEN = ""
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v2/instance/iframe"
 ENKETO_API_SALT = "secretsalt"
-# Redis URL for caching enketo survey links.
-# Uses the same key patterns as Zebra (enketo-survey-urls-for-{pk}, etc.)
-# so both apps can share the same cache.  Leave empty to disable caching.
-ENKETO_LINKS_REDIS_URL = ""
 VERIFY_SSL = True
 ENKETO_AUTH_COOKIE = "__enketo"
 ENKETO_META_UID_COOKIE = "__enketo_meta_uid"
