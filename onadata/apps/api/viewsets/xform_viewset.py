@@ -531,7 +531,6 @@ class XFormViewSet(
         self.object = self.get_object()
         show_preview = request.GET.get("show_preview") == "true"
 
-        # --- try cache first ---
         if show_preview:
             cached = get_cached_preview_url(self.object.pk)
             if cached:
@@ -541,13 +540,11 @@ class XFormViewSet(
             if cached:
                 return Response(self._build_survey_response(cached))
 
-        # --- cache miss: call Enketo API ---
         result = self._fetch_enketo_urls(request)
         if isinstance(result, Response):
             return result
         enketo_urls = result
 
-        # --- store in cache ---
         if show_preview:
             preview_url = enketo_urls.get("preview_url", "")
             if preview_url:

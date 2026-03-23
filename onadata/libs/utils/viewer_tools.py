@@ -297,6 +297,9 @@ def get_form_url(
     provided then Enketo will request the form list from
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
+
+    When *protocol* is ``None`` (the default) it is read from the
+    ``ENKETO_PROTOCOL`` Django setting, falling back to ``"https"``.
     """
     if protocol is None:
         protocol = getattr(settings, "ENKETO_PROTOCOL", "https")

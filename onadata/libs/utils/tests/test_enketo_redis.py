@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import redis
 from django.test import TestCase, override_settings
 
 from onadata.libs.utils import enketo_redis
@@ -15,19 +16,8 @@ from onadata.libs.utils.enketo_redis import (
 )
 
 
-def _reset_pool():
-    """Reset the module-level connection pool between tests."""
-    enketo_redis._pool = None
-
-
 class EnketoRedisDisabledTest(TestCase):
     """When ENKETO_LINKS_REDIS_URL is empty, all functions are no-ops."""
-
-    def setUp(self):
-        _reset_pool()
-
-    def tearDown(self):
-        _reset_pool()
 
     @override_settings(ENKETO_LINKS_REDIS_URL="")
     def test_get_cached_survey_urls_returns_none(self):
@@ -51,24 +41,16 @@ class EnketoRedisCacheTest(TestCase):
     """Test caching with a mocked Redis connection."""
 
     def setUp(self):
-        _reset_pool()
         self.mock_redis = MagicMock()
-        self.pool_patcher = patch.object(
+        self.client_patcher = patch.object(
             enketo_redis,
-            "_get_pool",
-            return_value=MagicMock(),
-        )
-        self.redis_patcher = patch(
-            "onadata.libs.utils.enketo_redis.redis.Redis",
+            "_get_client",
             return_value=self.mock_redis,
         )
-        self.pool_patcher.start()
-        self.redis_patcher.start()
+        self.client_patcher.start()
 
     def tearDown(self):
-        self.pool_patcher.stop()
-        self.redis_patcher.stop()
-        _reset_pool()
+        self.client_patcher.stop()
 
     # --- survey URLs ---
 
@@ -89,7 +71,7 @@ class EnketoRedisCacheTest(TestCase):
         self.assertIsNone(get_cached_survey_urls(99))
 
     def test_get_cached_survey_urls_returns_none_on_error(self):
-        self.mock_redis.hgetall.side_effect = Exception("boom")
+        self.mock_redis.hgetall.side_effect = redis.RedisError("boom")
         self.assertIsNone(get_cached_survey_urls(99))
 
     def test_store_survey_urls_writes_hash_with_ttl(self):
