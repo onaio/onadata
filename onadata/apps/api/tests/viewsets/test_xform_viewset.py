@@ -1566,9 +1566,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
-                data = {
-                    "message": "Enketo error: no account exists for this OpenRosa server"
-                }
+                data = {"message": "Enketo error, please retry."}
 
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
@@ -1593,10 +1591,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
-                data = {
-                    "message": "Enketo error: Sorry, we cannot load your form right "
-                    "now.  Please try again later."
-                }
+                data = {"message": "Enketo error, please retry."}
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
 
