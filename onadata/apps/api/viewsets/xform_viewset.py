@@ -452,9 +452,7 @@ class XFormViewSet(
                             omit for all URLs.
             <field>=value – pre-populate form fields (skips persistence).
         """
-        survey_type = self.kwargs.get("survey_type") or request.GET.get(
-            "survey_type"
-        )
+        survey_type = self.kwargs.get("survey_type") or request.GET.get("survey_type")
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
@@ -462,9 +460,7 @@ class XFormViewSet(
         # Filter out known endpoint params so they are not mistaken for
         # form-field defaults (e.g. a form with a field named "survey_type").
         known_params = {"survey_type", "format"}
-        form_params = {
-            k: v for k, v in request.GET.items() if k not in known_params
-        }
+        form_params = {k: v for k, v in request.GET.items() if k not in known_params}
         defaults = generate_enketo_form_defaults(self.object, **form_params)
         has_defaults = bool(defaults)
 
@@ -472,9 +468,7 @@ class XFormViewSet(
         if not has_defaults:
             stored = self._read_enketo_metadata(self.object)
             if stored:
-                return Response(
-                    self._format_enketo_response(stored, survey_type)
-                )
+                return Response(self._format_enketo_response(stored, survey_type))
 
         # --- DB miss or defaults present: call the Enketo API -------------
         form_url = get_form_url(
@@ -485,14 +479,15 @@ class XFormViewSet(
         )
 
         try:
-            enketo_urls = get_enketo_urls(
-                form_url, self.object.id_string, **defaults
-            )
+            enketo_urls = get_enketo_urls(form_url, self.object.id_string, **defaults)
         except EnketoError as e:
             logger.error("Enketo API error for form %s: %s", self.object.pk, e)
+            http_status = (
+                e.status_code if e.status_code else status.HTTP_502_BAD_GATEWAY
+            )
             return Response(
-                {"message": _("Enketo error, please retry.")},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {"message": str(e)},
+                status=http_status,
             )
 
         if not enketo_urls:
@@ -505,9 +500,7 @@ class XFormViewSet(
         if not has_defaults:
             self._store_enketo_metadata(self.object, enketo_urls)
 
-        return Response(
-            self._format_enketo_response(enketo_urls, survey_type)
-        )
+        return Response(self._format_enketo_response(enketo_urls, survey_type))
 
     @staticmethod
     def _read_enketo_metadata(xform):
@@ -545,15 +538,11 @@ class XFormViewSet(
                     "enketo_preview_url", urls.get("preview_url", "")
                 )
             }
-        single = urls.get(
-            "single_submit_url", urls.get("single_url", "")
-        )
+        single = urls.get("single_submit_url", urls.get("single_url", ""))
         if survey_type == "single":
             return {"single_submit_url": single}
         return {
-            "enketo_url": urls.get(
-                "enketo_url", urls.get("offline_url", "")
-            ),
+            "enketo_url": urls.get("enketo_url", urls.get("offline_url", "")),
             "enketo_preview_url": urls.get(
                 "enketo_preview_url", urls.get("preview_url", "")
             ),

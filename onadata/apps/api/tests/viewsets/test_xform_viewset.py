@@ -1563,15 +1563,21 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
             # Clear MetaData so the endpoint hits the Enketo API
-            MetaData.objects.filter(
-                object_id=formid, data_type="enketo_url"
-            ).delete()
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
+            # need to return 502 for 500s and 502s and the correct message
+            # can we get a reference number from sentry?
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
-                data = {"message": "Enketo error, please retry."}
+                data = {
+                    "message": "Enketo error: no account exists"
+                    " for this OpenRosa server"
+                }
 
-                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
                 self.assertEqual(response.data, data)
 
     def test_enketo_url_error500(self):
@@ -1580,13 +1586,16 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
             # Clear MetaData so the endpoint hits the Enketo API
-            MetaData.objects.filter(
-                object_id=formid, data_type="enketo_url"
-            ).delete()
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error500_mock):
                 response = view(request, pk=formid)
+                data = {
+                    "message": "Sorry, we cannot load your form right"
+                    " now.  Please try again later."
+                }
                 self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertEqual(response.data, data)
 
     def test_enketo_url_error502(self):
         with HTTMock(enketo_mock):
@@ -1594,13 +1603,14 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
             # Clear MetaData so the endpoint hits the Enketo API
-            MetaData.objects.filter(
-                object_id=formid, data_type="enketo_url"
-            ).delete()
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
-                data = {"message": "Enketo error, please retry."}
+                data = {
+                    "message": "Sorry, we cannot load your form right"
+                    " now.  Please try again later."
+                }
                 self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
                 self.assertEqual(response.data, data)
 
@@ -1664,9 +1674,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
             # Clear MetaData so defaults force an Enketo API call
-            MetaData.objects.filter(
-                object_id=formid, data_type="enketo_url"
-            ).delete()
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
 
             get_data = {"num": "1"}
             request = self.factory.get("/", data=get_data, **self.extra)

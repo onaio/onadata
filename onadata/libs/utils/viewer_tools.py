@@ -207,14 +207,18 @@ def handle_enketo_error(response):
         report_exception(
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
-        if response.status_code == 502:
+        if response.status_code in (500, 502):
             raise EnketoError(
                 "Sorry, we cannot load your form right now.  Please try again later."
             ) from enketo_error
-        raise EnketoError() from enketo_error
-    if "message" in data:
-        raise EnketoError(data["message"])
-    raise EnketoError(response.text)
+        message = response.text
+    else:
+        message = data.get("message", response.text)
+
+    if response.status_code == 400:
+        raise EnketoError(f"Enketo error: {message}", status_code=500)
+
+    raise EnketoError(message)
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
