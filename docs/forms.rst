@@ -940,8 +940,8 @@ Get webform/enketo link with default form values
   <pre class="prettyprint">
   <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?name=value</pre>
 
-Pass form field names as query params to pre-populate the web form. Caching is
-skipped when defaults are present.
+Pass form field names as query params to pre-populate the web form. Persistence
+is skipped when defaults are present since each combination produces unique URLs.
 
 Request
 ^^^^^^^
@@ -969,6 +969,8 @@ Get single submission url
   <pre class="prettyprint">
   <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=single</pre>
 
+Pass ``survey_type=single`` to return only the single-submit URL.
+
 Request
 ^^^^^^^
 ::
@@ -992,15 +994,15 @@ Get enketo preview link only
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?show_preview=true</pre>
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=preview</pre>
 
-Pass ``show_preview=true`` to return only the preview URL.
+Pass ``survey_type=preview`` to return only the preview URL.
 
 Request
 ^^^^^^^
 ::
 
-    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?show_preview=true
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?survey_type=preview
 
 Response
 ^^^^^^^^

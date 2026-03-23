@@ -447,21 +447,21 @@ class XFormViewSet(
         combination produces unique URLs that are not persisted).
 
         Query params:
-            survey_type   – ``"single"`` to return only the single-submit URL.
-            show_preview  – ``"true"`` to return only the preview URL.
+            survey_type   – ``"single"`` for single-submit URL only,
+                            ``"preview"`` for preview URL only,
+                            omit for all URLs.
             <field>=value – pre-populate form fields (skips persistence).
         """
         survey_type = self.kwargs.get("survey_type") or request.GET.get(
             "survey_type"
         )
-        show_preview = request.GET.get("show_preview") == "true"
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
         # Determine whether form-default query params are present.
         # Filter out known endpoint params so they are not mistaken for
         # form-field defaults (e.g. a form with a field named "survey_type").
-        known_params = {"survey_type", "show_preview", "format"}
+        known_params = {"survey_type", "format"}
         form_params = {
             k: v for k, v in request.GET.items() if k not in known_params
         }
@@ -473,9 +473,7 @@ class XFormViewSet(
             stored = self._read_enketo_metadata(self.object)
             if stored:
                 return Response(
-                    self._format_enketo_response(
-                        stored, survey_type, show_preview
-                    )
+                    self._format_enketo_response(stored, survey_type)
                 )
 
         # --- DB miss or defaults present: call the Enketo API -------------
@@ -508,7 +506,7 @@ class XFormViewSet(
             self._store_enketo_metadata(self.object, enketo_urls)
 
         return Response(
-            self._format_enketo_response(enketo_urls, survey_type, show_preview)
+            self._format_enketo_response(enketo_urls, survey_type)
         )
 
     @staticmethod
@@ -539,9 +537,9 @@ class XFormViewSet(
             MetaData.enketo_single_submit_url(xform, single_url)
 
     @staticmethod
-    def _format_enketo_response(urls, survey_type, show_preview):
-        """Return the appropriate response dict for the given query params."""
-        if show_preview:
+    def _format_enketo_response(urls, survey_type):
+        """Return the appropriate response dict for the given survey_type."""
+        if survey_type == "preview":
             return {
                 "enketo_preview_url": urls.get(
                     "enketo_preview_url", urls.get("preview_url", "")
