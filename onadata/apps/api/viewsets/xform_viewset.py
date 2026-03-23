@@ -5,6 +5,7 @@ The /forms API endpoint.
 """
 
 import json
+import logging
 import os
 import random
 from datetime import datetime
@@ -107,6 +108,8 @@ from onadata.libs.utils.viewer_tools import (
     get_form_url,
 )
 from onadata.settings.common import CSV_EXTENSION, XLS_EXTENSIONS
+
+logger = logging.getLogger(__name__)
 
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
@@ -464,7 +467,8 @@ class XFormViewSet(
             preview_url = enketo_urls.get("preview_url")
             single_submit_url = enketo_urls.get("single_url")
         except EnketoError as e:
-            data = {"message": _("Enketo error: %(error)s") % {"error": e}}
+            logger.error("Enketo API error for form %s: %s", self.object.pk, e)
+            data = {"message": _("Enketo error, please retry.")}
         else:
             if survey_type == "single":
                 http_status = status.HTTP_200_OK
@@ -502,8 +506,9 @@ class XFormViewSet(
         try:
             enketo_urls = get_enketo_urls(form_url, self.object.id_string)
         except EnketoError as exc:
+            logger.error("Enketo API error for form %s: %s", self.object.pk, exc)
             return Response(
-                {"message": _("Enketo error: %(error)s") % {"error": exc}},
+                {"message": _("Enketo error, please retry.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
