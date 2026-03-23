@@ -442,10 +442,56 @@ class XFormViewSet(
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
     def enketo(self, request, **kwargs):
-        """Expose enketo urls."""
-        survey_type = self.kwargs.get("survey_type") or request.GET.get("survey_type")
+        """Expose enketo urls, served from Redis cache when available.
+
+        On the first request the Enketo API is called and the result is
+        cached in Redis (key ``enketo-survey-urls-for-{pk}``); subsequent
+        requests are served directly from the cache.  Caching is skipped
+        when form-default query params are present since each combination
+        produces unique URLs.
+
+        Query params:
+            survey_type   – ``"single"`` to return only the single-submit URL.
+            show_preview  – ``"true"`` to return only the preview URL.
+            <field>=value – pre-populate form fields (skips caching).
+        """
+        survey_type = self.kwargs.get("survey_type") or request.GET.get(
+            "survey_type"
+        )
+        show_preview = request.GET.get("show_preview") == "true"
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
+
+        # Determine whether form-default query params are present.
+        # Filter out known endpoint params so they are not mistaken for
+        # form-field defaults (e.g. a form with a field named "survey_type").
+        known_params = {"survey_type", "show_preview", "format"}
+        form_params = {
+            k: v for k, v in request.GET.items() if k not in known_params
+        }
+        defaults = generate_enketo_form_defaults(self.object, **form_params)
+        has_defaults = bool(defaults)
+
+        # --- Serve from Redis cache (only when no form defaults) -----------
+        if not has_defaults:
+            cached = get_cached_survey_urls(self.object.pk)
+            if cached:
+                if show_preview:
+                    return Response(
+                        {"enketo_preview_url": cached.get("preview_url", "")}
+                    )
+                if survey_type == "single":
+                    return Response(
+                        {
+                            "single_submit_url": cached.get(
+                                "single_once_url",
+                                cached.get("single_url", ""),
+                            )
+                        }
+                    )
+                return Response(self._build_survey_response(cached))
+
+        # --- Cache miss or defaults present: call the Enketo API ----------
         form_url = get_form_url(
             request,
             self.object.user.username,
@@ -453,33 +499,42 @@ class XFormViewSet(
             generate_consistent_urls=True,
         )
 
-        data = {"message": _("Enketo not properly configured.")}
-        http_status = status.HTTP_400_BAD_REQUEST
-
         try:
-            # pass default arguments to enketo_url to prepopulate form fields
-            request_vars = request.GET
-            defaults = generate_enketo_form_defaults(self.object, **request_vars)
-            enketo_urls = get_enketo_urls(form_url, self.object.id_string, **defaults)
-            offline_url = enketo_urls.get("offline_url")
-            preview_url = enketo_urls.get("preview_url")
-            single_submit_url = enketo_urls.get("single_url")
+            enketo_urls = get_enketo_urls(
+                form_url, self.object.id_string, **defaults
+            )
         except EnketoError as e:
             logger.error("Enketo API error for form %s: %s", self.object.pk, e)
-            data = {"message": _("Enketo error, please retry.")}
-        else:
-            if survey_type == "single":
-                http_status = status.HTTP_200_OK
-                data = {"single_submit_url": single_submit_url}
-            else:
-                http_status = status.HTTP_200_OK
-                data = {
-                    "enketo_url": offline_url,
-                    "enketo_preview_url": preview_url,
-                    "single_submit_url": single_submit_url,
-                }
+            return Response(
+                {"message": _("Enketo error, please retry.")},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
-        return Response(data, http_status)
+        if not enketo_urls:
+            return Response(
+                {"message": _("Enketo not properly configured.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Cache the result when no form defaults were used.
+        if not has_defaults:
+            store_survey_urls(self.object.pk, enketo_urls)
+
+        if show_preview:
+            return Response(
+                {"enketo_preview_url": enketo_urls.get("preview_url", "")}
+            )
+
+        if survey_type == "single":
+            return Response(
+                {
+                    "single_submit_url": enketo_urls.get(
+                        "single_once_url", enketo_urls.get("single_url", "")
+                    )
+                }
+            )
+
+        return Response(self._build_survey_response(enketo_urls))
 
     @staticmethod
     def _build_survey_response(urls):
@@ -491,76 +546,6 @@ class XFormViewSet(
                 "single_once_url", urls.get("single_url", "")
             ),
         }
-
-    def _fetch_enketo_urls(self, request):
-        """Call the Enketo API and return the URLs dict.
-
-        Raises:
-            EnketoError: on Enketo API failure (logged before re-raise).
-            ParseError: when Enketo returns an empty/falsy response.
-        """
-        form_url = get_form_url(
-            request,
-            self.object.user.username,
-            xform_pk=self.object.pk,
-            generate_consistent_urls=True,
-        )
-
-        try:
-            enketo_urls = get_enketo_urls(form_url, self.object.id_string)
-        except EnketoError as exc:
-            logger.error("Enketo API error for form %s: %s", self.object.pk, exc)
-            raise
-
-        if not enketo_urls:
-            raise ParseError(_("Enketo not properly configured."))
-
-        return enketo_urls
-
-    @action(methods=["GET"], detail=True, url_path="enketo-links")
-    def enketo_links(self, request, **kwargs):
-        """Return enketo survey links, served from Redis cache when available.
-
-        Uses the same Redis key patterns as Zebra
-        (``enketo-survey-urls-for-{pk}``) so both apps share one cache.
-        On a cache miss the Enketo API is called and the result is stored.
-
-        Query params:
-            show_preview  – if ``"true"``, return only the preview URL.
-        """
-        # pylint: disable=attribute-defined-outside-init
-        self.object = self.get_object()
-        show_preview = request.GET.get("show_preview") == "true"
-
-        cached = get_cached_survey_urls(self.object.pk)
-        if cached:
-            if show_preview:
-                return Response(
-                    {"enketo_preview_url": cached.get("preview_url", "")}
-                )
-            return Response(self._build_survey_response(cached))
-
-        try:
-            enketo_urls = self._fetch_enketo_urls(request)
-        except EnketoError:
-            return Response(
-                {"message": _("Enketo error, please retry.")},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-        except ParseError as exc:
-            return Response(
-                {"message": str(exc.detail)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        store_survey_urls(self.object.pk, enketo_urls)
-
-        if show_preview:
-            return Response(
-                {"enketo_preview_url": enketo_urls.get("preview_url", "")}
-            )
-
-        return Response(self._build_survey_response(enketo_urls))
 
     # pylint: disable=unused-argument
     @action(methods=["POST", "GET"], detail=False)

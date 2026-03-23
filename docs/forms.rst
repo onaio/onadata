@@ -907,6 +907,13 @@ Get webform/enketo link
     <pre class="prettyprint">
     <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
+Returns enketo survey links (webform URL, preview URL, and single-submit URL).
+Responses are **cached in Redis** (key ``enketo-survey-urls-for-{pk}``); on the
+first request the Enketo API is called and the result is stored, and subsequent
+requests are served directly from the cache. Caching is skipped when
+form-default query params are present since each combination produces unique
+URLs.
+
 Request
 ^^^^^^^
 ::
@@ -919,13 +926,12 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
         "enketo_url": "https://h6ic6.enketo.org/webform",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform"
+        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview",
+        "single_submit_url": "https://enke.to/single/::abcd"
     }
 
 Get webform/enketo link with default form values
@@ -934,6 +940,9 @@ Get webform/enketo link with default form values
 
   <pre class="prettyprint">
   <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?name=value</pre>
+
+Pass form field names as query params to pre-populate the web form. Caching is
+skipped when defaults are present.
 
 Request
 ^^^^^^^
@@ -947,8 +956,6 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
@@ -975,12 +982,64 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
         "single_submit_url": "https://enke.to/single/::abcd"
+    }
+
+Get enketo preview link only
+-----------------------------
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?show_preview=true</pre>
+
+Pass ``show_preview=true`` to return only the preview URL.
+
+Request
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?show_preview=true
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+
+::
+
+    {
+        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview"
+    }
+
+Error responses
+^^^^^^^^^^^^^^^
+
+If the Enketo API is unreachable or returns an error:
+
+::
+
+    HTTP 502 Bad Gateway
+
+::
+
+    {
+        "message": "Enketo error, please retry."
+    }
+
+If Enketo is not properly configured:
+
+::
+
+    HTTP 400 Bad Request
+
+::
+
+    {
+        "message": "Enketo not properly configured."
     }
 
 

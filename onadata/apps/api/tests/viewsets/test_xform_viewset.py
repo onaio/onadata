@@ -1568,7 +1568,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=formid)
                 data = {"message": "Enketo error, please retry."}
 
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
                 self.assertEqual(response.data, data)
 
     def test_enketo_url_error500(self):
@@ -1580,7 +1580,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error500_mock):
                 response = view(request, pk=formid)
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
 
     def test_enketo_url_error502(self):
         with HTTMock(enketo_mock):
@@ -1592,7 +1592,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
                 data = {"message": "Enketo error, please retry."}
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
                 self.assertEqual(response.data, data)
 
     @override_settings(TESTING_MODE=False)
@@ -1607,11 +1607,14 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             response = view(request, pk=formid)
             url = "https://enketo.ona.io/::YY8M"
             preview_url = "https://enketo.ona.io/preview/::YY8M"
-            single_url = "http://enketo.ona.io/single/::XZqoZ94y"
+            single_once_url = (
+                "http://enketo.ona.io/single"
+                "/::2b27ac0cdcf2842eaac4984f688d9270"
+            )
             data = {
                 "enketo_url": url,
                 "enketo_preview_url": preview_url,
-                "single_submit_url": single_url,
+                "single_submit_url": single_once_url,
             }
             self.assertEqual(response.data, data)
 
@@ -1646,7 +1649,10 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             get_data = {"survey_type": "single"}
             request = self.factory.get("/", data=get_data, **self.extra)
             response = view(request, pk=formid)
-            submit_url = "http://enketo.ona.io/single/::XZqoZ94y"
+            submit_url = (
+                "http://enketo.ona.io/single"
+                "/::2b27ac0cdcf2842eaac4984f688d9270"
+            )
             self.assertEqual(response.data["single_submit_url"], submit_url)
 
     def test_enketo_url_with_default_form_params(self):
