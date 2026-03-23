@@ -30,13 +30,22 @@ PREVIEW_URL_PREFIX = "enketo-preview-url-for-"
 DEFAULT_CACHE_TTL = 86400
 
 
+# redis.Redis already manages a ConnectionPool internally, so reusing
+# the same client object is the intended usage pattern.
+_client = None
+
+
 def _get_client():
-    """Return a new Redis client, or *None* if not configured."""
+    """Return the cached Redis client, or *None* if not configured."""
+    global _client  # pylint: disable=global-statement
+    if _client is not None:
+        return _client
     url = getattr(settings, "ENKETO_LINKS_REDIS_URL", None)
     if not url:
         return None
     try:
-        return redis.Redis.from_url(url, decode_responses=True)
+        _client = redis.Redis.from_url(url, decode_responses=True)
+        return _client
     except (redis.ConnectionError, redis.RedisError, OSError):
         logger.exception("Failed to create enketo-links Redis client")
         return None
@@ -59,7 +68,7 @@ def get_cached_survey_urls(form_pk):
     try:
         data = client.hgetall(f"{SURVEY_URLS_PREFIX}{int(form_pk)}")
         return data if data else None
-    except (redis.ConnectionError, redis.RedisError, OSError):
+    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis read error")
         return None
 
@@ -81,7 +90,7 @@ def store_survey_urls(form_pk, urls):
             pipe.hset(key, mapping=mapping)
             pipe.expire(key, _cache_ttl())
             pipe.execute()
-    except (redis.ConnectionError, redis.RedisError, OSError):
+    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis write error")
 
 
@@ -92,7 +101,7 @@ def get_cached_preview_url(form_pk):
         return None
     try:
         return client.get(f"{PREVIEW_URL_PREFIX}{int(form_pk)}")
-    except (redis.ConnectionError, redis.RedisError, OSError):
+    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis read error")
         return None
 
@@ -108,7 +117,7 @@ def store_preview_url(form_pk, url):
             str(url),
             ex=_cache_ttl(),
         )
-    except (redis.ConnectionError, redis.RedisError, OSError):
+    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis write error")
 
 
@@ -126,5 +135,5 @@ def delete_cached_urls(form_pk):
             f"{SURVEY_URLS_PREFIX}{int(form_pk)}",
             f"{PREVIEW_URL_PREFIX}{int(form_pk)}",
         )
-    except (redis.ConnectionError, redis.RedisError, OSError):
+    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis delete error")

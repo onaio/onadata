@@ -108,7 +108,7 @@ ENKETO_API_SALT = "secretsalt"
 # Uses the same key patterns as Zebra (enketo-survey-urls-for-{pk}, etc.)
 # so both apps can share the same cache.  Leave empty to disable caching.
 ENKETO_LINKS_REDIS_URL = ""
-VERIFY_SSL = False
+VERIFY_SSL = True
 ENKETO_AUTH_COOKIE = "__enketo"
 ENKETO_META_UID_COOKIE = "__enketo_meta_uid"
 ENKETO_META_USERNAME_COOKIE = "__enketo_meta_username"
