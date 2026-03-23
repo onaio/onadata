@@ -548,7 +548,7 @@ class XFormViewSet(
         except EnketoError:
             return Response(
                 {"message": _("Enketo error, please retry.")},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_502_BAD_GATEWAY,
             )
         except ParseError as exc:
             return Response(
