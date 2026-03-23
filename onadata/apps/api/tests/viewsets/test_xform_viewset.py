@@ -1562,7 +1562,10 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(
+                object_id=formid, data_type="enketo_url"
+            ).delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
@@ -1576,7 +1579,10 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(
+                object_id=formid, data_type="enketo_url"
+            ).delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error500_mock):
                 response = view(request, pk=formid)
@@ -1587,7 +1593,10 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(
+                object_id=formid, data_type="enketo_url"
+            ).delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
@@ -1654,6 +1663,10 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
+            # Clear MetaData so defaults force an Enketo API call
+            MetaData.objects.filter(
+                object_id=formid, data_type="enketo_url"
+            ).delete()
 
             get_data = {"num": "1"}
             request = self.factory.get("/", data=get_data, **self.extra)
