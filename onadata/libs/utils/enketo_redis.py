@@ -6,8 +6,6 @@ patterns as Zebra so both apps can share the same cache:
 
   - Hash ``enketo-survey-urls-for-{form_pk}`` stores the full set of
     survey links (offline_url, preview_url, single_once_url, …).
-  - String ``enketo-preview-url-for-{form_pk}`` stores just the
-    preview URL (used when only the preview is requested).
 
 A separate Redis instance can be configured via the
 ``ENKETO_LINKS_REDIS_URL`` Django setting.  When not set the module
@@ -24,7 +22,6 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 SURVEY_URLS_PREFIX = "enketo-survey-urls-for-"
-PREVIEW_URL_PREFIX = "enketo-preview-url-for-"
 
 # Default TTL: 24 hours.  Override via ENKETO_LINKS_CACHE_TTL (seconds).
 DEFAULT_CACHE_TTL = 86400
@@ -94,35 +91,8 @@ def store_survey_urls(form_pk, urls):
         logger.exception("enketo-links Redis write error")
 
 
-def get_cached_preview_url(form_pk):
-    """Read the cached preview URL for *form_pk*, or ``None``."""
-    client = _get_client()
-    if client is None:
-        return None
-    try:
-        return client.get(f"{PREVIEW_URL_PREFIX}{int(form_pk)}")
-    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
-        logger.exception("enketo-links Redis read error")
-        return None
-
-
-def store_preview_url(form_pk, url):
-    """Cache just the preview URL for *form_pk*."""
-    client = _get_client()
-    if client is None:
-        return
-    try:
-        client.set(
-            f"{PREVIEW_URL_PREFIX}{int(form_pk)}",
-            str(url),
-            ex=_cache_ttl(),
-        )
-    except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
-        logger.exception("enketo-links Redis write error")
-
-
 def delete_cached_urls(form_pk):
-    """Remove all cached enketo URLs for *form_pk*.
+    """Remove cached enketo URLs for *form_pk*.
 
     Call this when a form is deleted so stale links are not served for
     the remainder of the TTL.
@@ -131,9 +101,6 @@ def delete_cached_urls(form_pk):
     if client is None:
         return
     try:
-        client.delete(
-            f"{SURVEY_URLS_PREFIX}{int(form_pk)}",
-            f"{PREVIEW_URL_PREFIX}{int(form_pk)}",
-        )
+        client.delete(f"{SURVEY_URLS_PREFIX}{int(form_pk)}")
     except (redis.ConnectionError, redis.RedisError, OSError, ValueError, TypeError):
         logger.exception("enketo-links Redis delete error")

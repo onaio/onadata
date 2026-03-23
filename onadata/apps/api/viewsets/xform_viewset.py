@@ -97,9 +97,7 @@ from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.enketo_redis import (
     delete_cached_urls,
-    get_cached_preview_url,
     get_cached_survey_urls,
-    store_preview_url,
     store_survey_urls,
 )
 from onadata.libs.utils.viewer_tools import (
@@ -534,14 +532,13 @@ class XFormViewSet(
         self.object = self.get_object()
         show_preview = request.GET.get("show_preview") == "true"
 
-        if show_preview:
-            cached = get_cached_preview_url(self.object.pk)
-            if cached:
-                return Response({"enketo_preview_url": cached})
-        else:
-            cached = get_cached_survey_urls(self.object.pk)
-            if cached:
-                return Response(self._build_survey_response(cached))
+        cached = get_cached_survey_urls(self.object.pk)
+        if cached:
+            if show_preview:
+                return Response(
+                    {"enketo_preview_url": cached.get("preview_url", "")}
+                )
+            return Response(self._build_survey_response(cached))
 
         try:
             enketo_urls = self._fetch_enketo_urls(request)
@@ -556,15 +553,12 @@ class XFormViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Always store the full set — avoids a second Enketo API call
-        # when the other variant (preview vs. full) is requested next.
         store_survey_urls(self.object.pk, enketo_urls)
-        preview_url = enketo_urls.get("preview_url", "")
-        if preview_url:
-            store_preview_url(self.object.pk, preview_url)
 
         if show_preview:
-            return Response({"enketo_preview_url": preview_url})
+            return Response(
+                {"enketo_preview_url": enketo_urls.get("preview_url", "")}
+            )
 
         return Response(self._build_survey_response(enketo_urls))
 

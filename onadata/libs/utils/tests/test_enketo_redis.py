@@ -7,12 +7,9 @@ from django.test import TestCase, override_settings
 
 from onadata.libs.utils import enketo_redis
 from onadata.libs.utils.enketo_redis import (
-    PREVIEW_URL_PREFIX,
     SURVEY_URLS_PREFIX,
     delete_cached_urls,
-    get_cached_preview_url,
     get_cached_survey_urls,
-    store_preview_url,
     store_survey_urls,
 )
 
@@ -32,14 +29,6 @@ class EnketoRedisDisabledTest(TestCase):
     @override_settings(ENKETO_LINKS_REDIS_URL="")
     def test_store_survey_urls_does_not_raise(self):
         store_survey_urls(42, {"offline_url": "https://e.test/x"})
-
-    @override_settings(ENKETO_LINKS_REDIS_URL="")
-    def test_get_cached_preview_url_returns_none(self):
-        self.assertIsNone(get_cached_preview_url(42))
-
-    @override_settings(ENKETO_LINKS_REDIS_URL="")
-    def test_store_preview_url_does_not_raise(self):
-        store_preview_url(42, "https://e.test/preview")
 
     @override_settings(ENKETO_LINKS_REDIS_URL="")
     def test_delete_cached_urls_does_not_raise(self):
@@ -123,35 +112,12 @@ class EnketoRedisCacheTest(TestCase):
 
         mock_pipe.hset.assert_not_called()
 
-    # --- preview URL ---
-
-    def test_get_cached_preview_url_returns_string_on_hit(self):
-        self.mock_redis.get.return_value = "https://e.test/p"
-        result = get_cached_preview_url(99)
-        self.assertEqual(result, "https://e.test/p")
-        self.mock_redis.get.assert_called_once_with(
-            f"{PREVIEW_URL_PREFIX}99"
-        )
-
-    def test_get_cached_preview_url_returns_none_on_miss(self):
-        self.mock_redis.get.return_value = None
-        self.assertIsNone(get_cached_preview_url(99))
-
-    def test_store_preview_url_writes_with_ttl(self):
-        store_preview_url(42, "https://e.test/p")
-        self.mock_redis.set.assert_called_once()
-        args, kwargs = self.mock_redis.set.call_args
-        self.assertEqual(args[0], f"{PREVIEW_URL_PREFIX}42")
-        self.assertEqual(args[1], "https://e.test/p")
-        self.assertIn("ex", kwargs)
-
     # --- delete ---
 
-    def test_delete_cached_urls_removes_both_keys(self):
+    def test_delete_cached_urls_removes_key(self):
         delete_cached_urls(42)
         self.mock_redis.delete.assert_called_once_with(
             f"{SURVEY_URLS_PREFIX}42",
-            f"{PREVIEW_URL_PREFIX}42",
         )
 
     def test_delete_cached_urls_handles_error(self):
