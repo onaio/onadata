@@ -1449,9 +1449,7 @@ class ExportBuilder:
         for section in self.sections:
             sav_options = self._get_sav_options(section["elements"])
             sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(
-                sav_file.name, ioLocale=str("en_US.UTF-8"), **sav_options
-            )
+            sav_writer = SavWriter(sav_file.name, **sav_options)
             sav_defs[section["name"]] = {"sav_file": sav_file, "sav_writer": sav_writer}
 
         media_xpaths = (
