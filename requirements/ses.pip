@@ -8,17 +8,17 @@ asgiref==3.11.1
     # via django
 boto==2.49.0
     # via -r requirements/ses.in
-boto3==1.42.49
+boto3==1.42.72
     # via django-ses
-botocore==1.42.49
+botocore==1.42.72
     # via
     #   boto3
     #   s3transfer
-django==5.2.11
+django==5.2.12
     # via
     #   -r requirements/ses.in
     #   django-ses
-django-ses==4.7.1
+django-ses==4.7.2
     # via -r requirements/ses.in
 jmespath==1.1.0
     # via

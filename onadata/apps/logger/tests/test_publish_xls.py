@@ -103,9 +103,9 @@ class TestPublishXLS(TestBase):
         """
         self._create_user_and_login()
         msg = (
-            "Currently, you can only declare a single entity per form."
-            " Please make sure your entities sheet only declares"
-            " one entity."
+            "[row : 2] On the 'entities' sheet, the entity declaration"
+            " is invalid. The entity list name 'trees' does not have a"
+            " label, but a 'label' is required when creating entities."
         )
         with self.assertRaisesMessage(PyXFormError, msg):
             self.xform = self._publish_markdown(md, self.user)

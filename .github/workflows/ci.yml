@@ -184,7 +184,7 @@ jobs:
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.4
+        uses: aquasecurity/setup-trivy@v0.2.6
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           version: v0.69.1

@@ -3677,9 +3677,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request)
         self.assertEqual(response.status_code, 400, response.data)
         error_message = (
-            "[row : 2] Invalid question name 'sdfasdfaf sdf'. "
-            "Names must begin with a letter, colon, or underscore. "
-            "Other characters can include numbers, dashes, and periods."
+            "[row : 2] On the 'survey' sheet, the 'name' value is invalid. "
+            "Names must begin with a letter or underscore. "
+            "After the first character, names may contain letters, digits, "
+            "underscores, hyphens, or periods."
         )
         self.assertEqual(response.data.get("detail"), error_message)
 

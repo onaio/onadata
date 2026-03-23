@@ -152,7 +152,7 @@ jobs:
           docker buildx imagetools inspect ${{ env.docker_repo }}
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.4
+        uses: aquasecurity/setup-trivy@v0.2.6
         with:
           version: v0.69.1
           cache: true
