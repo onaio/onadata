@@ -20,6 +20,11 @@ from onadata.libs.utils.enketo_redis import (
 class EnketoRedisDisabledTest(TestCase):
     """When ENKETO_LINKS_REDIS_URL is empty, all functions are no-ops."""
 
+    def setUp(self):
+        # Reset the module-level cached client so a client set by a
+        # previous test doesn't leak into these "disabled" tests.
+        enketo_redis._client = None
+
     @override_settings(ENKETO_LINKS_REDIS_URL="")
     def test_get_cached_survey_urls_returns_none(self):
         self.assertIsNone(get_cached_survey_urls(42))
@@ -56,6 +61,7 @@ class EnketoRedisCacheTest(TestCase):
 
     def tearDown(self):
         self.client_patcher.stop()
+        enketo_redis._client = None
 
     # --- survey URLs ---
 

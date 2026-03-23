@@ -32,7 +32,7 @@ DEFAULT_CACHE_TTL = 86400
 
 # redis.Redis already manages a ConnectionPool internally, so reusing
 # the same client object is the intended usage pattern.
-_client = None
+_client = None  # pylint: disable=invalid-name
 
 
 def _get_client():

@@ -495,7 +495,12 @@ class XFormViewSet(
         }
 
     def _fetch_enketo_urls(self, request):
-        """Call the Enketo API and return the URLs dict or an error Response."""
+        """Call the Enketo API and return the URLs dict.
+
+        Raises:
+            EnketoError: on Enketo API failure (logged before re-raise).
+            ParseError: when Enketo returns an empty/falsy response.
+        """
         form_url = get_form_url(
             request,
             self.object.user.username,
@@ -507,16 +512,10 @@ class XFormViewSet(
             enketo_urls = get_enketo_urls(form_url, self.object.id_string)
         except EnketoError as exc:
             logger.error("Enketo API error for form %s: %s", self.object.pk, exc)
-            return Response(
-                {"message": _("Enketo error, please retry.")},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise
 
         if not enketo_urls:
-            return Response(
-                {"message": _("Enketo not properly configured.")},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError(_("Enketo not properly configured."))
 
         return enketo_urls
 
@@ -544,10 +543,18 @@ class XFormViewSet(
             if cached:
                 return Response(self._build_survey_response(cached))
 
-        result = self._fetch_enketo_urls(request)
-        if isinstance(result, Response):
-            return result
-        enketo_urls = result
+        try:
+            enketo_urls = self._fetch_enketo_urls(request)
+        except EnketoError:
+            return Response(
+                {"message": _("Enketo error, please retry.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ParseError as exc:
+            return Response(
+                {"message": str(exc.detail)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Always store the full set — avoids a second Enketo API call
         # when the other variant (preview vs. full) is requested next.
