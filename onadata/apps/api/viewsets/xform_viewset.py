@@ -486,7 +486,7 @@ class XFormViewSet(
                 e.status_code if e.status_code else status.HTTP_502_BAD_GATEWAY
             )
             return Response(
-                {"message": str(e)},
+                {"message": e.message},
                 status=http_status,
             )
 
