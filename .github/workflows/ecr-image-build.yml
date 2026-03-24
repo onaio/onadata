@@ -152,7 +152,7 @@ jobs:
           docker buildx imagetools inspect ${{ env.docker_repo }}
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@v0.2.6
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
         with:
           version: v0.69.1
           cache: true
@@ -172,7 +172,7 @@ jobs:
           trivy vex repo download
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
@@ -201,7 +201,7 @@ jobs:
           wget -q "$url" -O html.tpl
 
       - name: Run Trivy vulnerability scanner (HTML report)
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           version: "v0.69.1"
           image-ref: ${{ env.docker_repo }}
