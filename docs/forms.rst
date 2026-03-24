@@ -1021,7 +1021,19 @@ Response
 Error responses
 ^^^^^^^^^^^^^^^
 
-If the Enketo API is unreachable or returns an error:
+If Enketo returns a client error (e.g. misconfigured account):
+
+::
+
+    HTTP 500 Internal Server Error
+
+::
+
+    {
+        "message": "Enketo error: <details> (reference: <sentry_event_id>)"
+    }
+
+If the Enketo API is unreachable or returns a server error:
 
 ::
 
@@ -1030,7 +1042,7 @@ If the Enketo API is unreachable or returns an error:
 ::
 
     {
-        "message": "Enketo error, please retry."
+        "message": "Sorry, we cannot load your form right now.  Please try again later. (reference: <sentry_event_id>)"
     }
 
 If Enketo is not properly configured:

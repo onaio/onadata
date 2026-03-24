@@ -35,6 +35,7 @@ from httmock import HTTMock
 from rest_framework import status
 
 from onadata.apps.api.tests.mocked_data import (
+    enketo_error403_mock,
     enketo_error500_mock,
     enketo_error502_mock,
     enketo_error_mock,
@@ -1638,6 +1639,25 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 }
                 self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
                 self.assertEqual(response.data, data)
+
+    def test_enketo_url_error403_returns_generic_message(self):
+        """Non-400/500/502 Enketo errors return a generic message, not upstream details."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
+            request = self.factory.get("/", **self.extra)
+            with HTTMock(enketo_error403_mock):
+                response = view(request, pk=formid)
+                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertIn(
+                    "Sorry, we cannot load your form right now.",
+                    response.data["message"],
+                )
+                # Must NOT leak the upstream error details
+                self.assertNotIn("API key invalid", response.data["message"])
 
     @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):
