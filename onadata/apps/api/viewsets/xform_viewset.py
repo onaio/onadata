@@ -450,16 +450,20 @@ class XFormViewSet(
             survey_type   – ``"single"`` for single-submit URL only,
                             ``"preview"`` for preview URL only,
                             omit for all URLs.
+            show_preview  – ``"true"`` for preview URL only (legacy;
+                            equivalent to ``survey_type=preview``).
             <field>=value – pre-populate form fields (skips persistence).
         """
         survey_type = self.kwargs.get("survey_type") or request.GET.get("survey_type")
+        if not survey_type and request.GET.get("show_preview", "").lower() == "true":
+            survey_type = "preview"
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
 
         # Determine whether form-default query params are present.
         # Filter out known endpoint params so they are not mistaken for
         # form-field defaults (e.g. a form with a field named "survey_type").
-        known_params = {"survey_type", "format"}
+        known_params = {"survey_type", "show_preview", "format"}
         form_params = {k: v for k, v in request.GET.items() if k not in known_params}
         defaults = generate_enketo_form_defaults(self.object, **form_params)
         has_defaults = bool(defaults)

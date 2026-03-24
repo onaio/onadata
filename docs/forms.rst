@@ -997,6 +997,8 @@ Get enketo preview link only
     <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=preview</pre>
 
 Pass ``survey_type=preview`` to return only the preview URL.
+The legacy ``show_preview=true`` query parameter is also supported and
+behaves identically.
 
 Request
 ^^^^^^^

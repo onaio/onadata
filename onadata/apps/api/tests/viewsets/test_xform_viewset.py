@@ -1693,6 +1693,58 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             submit_url = "http://enketo.ona.io/single/::XZqoZ94y"
             self.assertEqual(response.data["single_submit_url"], submit_url)
 
+    def test_get_preview_url_via_survey_type(self):
+        """survey_type=preview returns only the preview URL."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"survey_type": "preview"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
+            self.assertEqual(response.data, {"enketo_preview_url": preview_url})
+
+    def test_get_preview_url_via_show_preview(self):
+        """Legacy show_preview=true returns only the preview URL."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"show_preview": "true"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
+            self.assertEqual(response.data, {"enketo_preview_url": preview_url})
+
+    def test_show_preview_false_returns_all_urls(self):
+        """show_preview=false is ignored and all URLs are returned."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"show_preview": "false"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("enketo_url", response.data)
+            self.assertIn("enketo_preview_url", response.data)
+            self.assertIn("single_submit_url", response.data)
+
+    def test_survey_type_takes_precedence_over_show_preview(self):
+        """survey_type=single wins even when show_preview=true is present."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"survey_type": "single", "show_preview": "true"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(list(response.data.keys()), ["single_submit_url"])
+
     def test_enketo_url_with_default_form_params(self):
         with HTTMock(enketo_mock_with_form_defaults):
             self._publish_xls_form_to_project()
