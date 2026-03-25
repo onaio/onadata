@@ -68,7 +68,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==44.0.3
+cryptography==46.0.5
     # via
     #   google-auth
     #   jwcrypto
