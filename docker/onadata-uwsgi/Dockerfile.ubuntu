@@ -75,7 +75,7 @@ ENV LANGUAGE=en_US.UTF-8
 
 
 # Install OnaData runtime dependencies
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-overwrite" \
     gdal-bin \
     git-core \
     libpcre3 \
