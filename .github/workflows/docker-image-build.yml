@@ -59,8 +59,8 @@ jobs:
           build-args: |
             optional_packages=PyYAML django-redis
           push: true
-          tags: |
-            onaio/onadata:${{ env.version || github.ref_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          provenance: false
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
