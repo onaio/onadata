@@ -89,8 +89,11 @@ COPY --from=base /etc/alternatives/ /etc/alternatives/
 # Provide ldconfig and its cache so ctypes.util.find_library() works.
 COPY --from=base /sbin/ldconfig /sbin/ldconfig
 COPY --from=base /etc/ld.so.cache /etc/ld.so.cache
-# /usr/bin/env is needed by venv script shebangs (e.g. uwsgi, manage.py)
+# /usr/bin/env and bash are needed by venv script shebangs and k8s exec
 COPY --from=base /usr/bin/env /usr/bin/env
+COPY --from=base /usr/bin/bash /usr/bin/bash
+COPY --from=base /usr/bin/bash /bin/bash
+COPY --from=base /usr/bin/bash /bin/sh
 
 # Java is required by pyxform's ODK Validate for XForm validation.
 # The JRE lives under /usr/lib/jvm/ (already covered by /usr/lib/ copy above)
