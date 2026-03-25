@@ -207,10 +207,11 @@ jobs:
           output: "trivy_results.sarif"
 
       - name: Run Trivy vulnerability scanner (HTML report)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
-          image-ref: ${{ steps.meta.outputs.tags }}
+          version: "v0.69.3"
+          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
           format: "template"
           template: "@/contrib/html.tpl"
           ignore-unfixed: false
@@ -219,7 +220,7 @@ jobs:
           output: "trivy_results.html"
 
       - name: Upload Trivy SARIF as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           name: trivy-sarif-results
