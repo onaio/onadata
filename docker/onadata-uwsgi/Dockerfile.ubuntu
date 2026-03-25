@@ -63,6 +63,7 @@ RUN apt-get update -q \
     && apt-get install -y --no-install-recommends ca-certificates \
     && echo "deb http://deb.debian.org/debian bookworm main non-free contrib" >> /etc/apt/sources.list \
     && echo "deb https://deb.debian.org/debian unstable main" >> /etc/apt/sources.list \
+    && printf 'Package: *\nPin: release a=unstable\nPin-Priority: 100\n' > /etc/apt/preferences.d/unstable \
     && apt-get update -q \
     && apt-get install -y --no-install-recommends locales netcat-traditional liblzma5 \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
