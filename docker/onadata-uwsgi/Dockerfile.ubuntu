@@ -54,7 +54,7 @@ RUN python -m pip install --no-cache-dir -r requirements/docs.pip && \
     make -C docs html
 
 
-FROM debian:bookworm-20260202 AS runtime
+FROM debian:bookworm-20260316 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -75,7 +75,7 @@ ENV LANGUAGE=en_US.UTF-8
 
 
 # Install OnaData runtime dependencies
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-overwrite" \
     gdal-bin \
     git-core \
     libpcre3 \

@@ -19,6 +19,7 @@ from onadata.apps.logger.models.instance import (
 from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_IMPORTED
 from onadata.apps.messaging.serializers import send_message
 from onadata.celeryapp import app
+from onadata.libs.exceptions import NotAllMediaReceivedError
 from onadata.libs.kms.tools import (
     adjust_xform_num_of_decrypted_submissions,
     commit_cached_xform_num_of_decrypted_submissions,
@@ -186,7 +187,13 @@ def update_project_date_modified_async(instance_id):
 class DecryptInstanceAutoRetryTask(AutoRetryTask):
     """Custom task class for decrypting instances with auto-retry"""
 
-    autoretry_for = (*AutoRetryTask.autoretry_for, ValigettaConnectionException)
+    retry_backoff = 5
+    max_retries = 8
+    autoretry_for = (
+        *AutoRetryTask.autoretry_for,
+        ValigettaConnectionException,
+        NotAllMediaReceivedError,
+    )
 
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def on_failure(self, exc, task_id, args, kwargs, einfo):

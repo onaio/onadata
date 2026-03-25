@@ -18,10 +18,10 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -101,10 +101,10 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: "adopt"
           java-version: "8"
@@ -119,7 +119,7 @@ jobs:
           ssh-keyscan github.com > ~/.ssh/known_hosts
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -159,7 +159,7 @@ jobs:
         run: echo "IS_PUBLIC_REPO=$(if [ ${{ github.event.repository.private }} = false ]; then echo true; else echo false; fi)" >> $GITHUB_ENV
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup SSH Agent and add Github to known hosts
         env:
@@ -179,7 +179,7 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
@@ -195,7 +195,7 @@ jobs:
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
@@ -214,7 +214,7 @@ jobs:
         run: sarif html -o trivy_results.html trivy_results.sarif
 
       - name: Upload Trivy HTML report as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           name: trivy-html-report
@@ -222,7 +222,7 @@ jobs:
           retention-days: 30
 
       - name: Upload vulnerability scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
@@ -267,7 +267,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           payload: |
