@@ -1,7 +1,7 @@
 ---
 name: AWS ECR Build Image
 
-on: # yamllint disable-line rule:truthy
+on:  # yamllint disable-line rule:truthy
   release:
     types:
       - "released"
@@ -203,26 +203,13 @@ jobs:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true
 
-      - name: Cache Trivy HTML template
-        id: cache-template
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: html.tpl
-          key: trivy-html-template-v1
-
-      - name: Download Trivy HTML template
-        if: steps.cache-template.outputs.cache-hit != 'true'
-        run: |
-          url="https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl"
-          wget -q "$url" -O html.tpl
-
       - name: Run Trivy vulnerability scanner (HTML report)
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           version: "v0.69.3"
           image-ref: ${{ env.docker_repo }}
           format: "template"
-          template: "@html.tpl"
+          template: "@/contrib/html.tpl"
           output: "trivy-results.html"
           trivy-config: trivy.yaml
 
