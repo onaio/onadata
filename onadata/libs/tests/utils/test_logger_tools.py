@@ -642,6 +642,33 @@ class TestLoggerTools(PyxformTestCase, TestBase):
             )
             self.assertContains(ret[0].content.decode(), "Improperly formatted XML.")
 
+    @patch("onadata.libs.utils.logger_tools.save_attachments")
+    def test_media_all_received_false_by_default(self, mock_save_attachments):
+        """Media all received is False by default"""
+        md = """
+        | survey |      |      |       |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        xform = self._publish_markdown(md, self.user)
+        xml_string = f"""
+        <data id="{xform.id_string}" version="2025121501">
+            <meta>
+                <instanceID>uuid:81e421f0-220a-4051-998f-058a6926d60f</instanceID>
+            </meta>
+            <name>Test Name</name>
+        </data>
+        """
+        req = HttpRequest()
+        req.user = self.user
+        instance = create_instance(
+            self.user.username,
+            BytesIO(xml_string.strip().encode("utf-8")),
+            media_files=[],
+            request=req,
+        )
+        self.assertEqual(instance.media_all_received, False)
+
 
 class DeleteXFormSubmissionsTestCase(TestBase):
     """Tests for method `delete_xform_submissions`"""

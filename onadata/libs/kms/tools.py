@@ -10,7 +10,6 @@ from contextlib import suppress
 from datetime import timedelta
 from hashlib import sha256
 from io import BytesIO
-from xml.etree import ElementTree
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -42,7 +41,11 @@ from onadata.apps.logger.models import (
     XForm,
     XFormKey,
 )
-from onadata.libs.exceptions import DecryptionError, EncryptionError
+from onadata.libs.exceptions import (
+    DecryptionError,
+    EncryptionError,
+    NotAllMediaReceivedError,
+)
 from onadata.libs.permissions import is_organization
 from onadata.libs.utils.cache_tools import (
     XFORM_DEC_SUBMISSION_COUNT,
@@ -59,6 +62,7 @@ from onadata.libs.utils.common_tags import (
     DECRYPTION_FAILURE_KEY_DISABLED,
     DECRYPTION_FAILURE_KEY_NOT_FOUND,
     DECRYPTION_FAILURE_MESSAGES,
+    DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED,
 )
 from onadata.libs.utils.email import friendly_date, send_mass_mail
 from onadata.libs.utils.logger_tools import create_xform_version
@@ -446,20 +450,6 @@ def encrypt_xform(xform, encrypted_by=None, override_encryption=False) -> None:
     _encrypt_xform(xform=xform, kms_key=kms_key, encrypted_by=encrypted_by)
 
 
-def is_instance_encrypted(instance: Instance) -> bool:
-    """Return True if instance is encrypted
-
-    :param instance: Instance
-    """
-    try:
-        tree = ElementTree.fromstring(instance.xml)
-
-    except ElementTree.ParseError:
-        return False
-
-    return tree.attrib.get("encrypted") == "yes"
-
-
 def save_decryption_error(instance: Instance, error_name: str):
     """Add decryption error metadata to Instance json.
 
@@ -498,12 +488,16 @@ def decrypt_instance(instance: Instance) -> None:
 
         return enc_files
 
-    if not is_instance_encrypted(instance):
+    if not instance.check_encrypted():
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_INSTANCE_NOT_ENCRYPTED]
         )
 
-    if not instance.xform.is_managed:
+    # We can't rely on the current status of XForm.is_managed since the
+    # form could have been switched from managed to unmanaged before any
+    # encrypted submissions were received. We therefore check if the
+    # form was ever managed.
+    if not instance.xform.kms_keys.exists():
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_ENCRYPTION_UNMANAGED]
         )
@@ -522,6 +516,12 @@ def decrypt_instance(instance: Instance) -> None:
         save_decryption_error(instance, DECRYPTION_FAILURE_KEY_DISABLED)
         raise DecryptionError(
             DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_KEY_DISABLED]
+        )
+
+    if not instance.media_all_received:
+        save_decryption_error(instance, DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED)
+        raise NotAllMediaReceivedError(
+            DECRYPTION_FAILURE_MESSAGES[DECRYPTION_FAILURE_NOT_ALL_MEDIA_RECEIVED]
         )
 
     submission_xml = BytesIO(instance.xml.encode("utf-8"))

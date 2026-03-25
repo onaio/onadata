@@ -26,6 +26,45 @@ from onadata.libs.utils.common_tags import ATTACHMENTS
 DEFAULT_UPDATE_BATCH = 100
 TRUE_VALUES = ["TRUE", "T", "1", 1]
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n", "%")
+
+
+def sanitize_for_export(value):
+    """Prevent CSV/XLSX formula injection (CWE-1236).
+
+    Prefixes cell values starting with formula characters with a single quote
+    to force spreadsheet applications to treat them as literal strings.
+    Numeric values starting with ``-`` or ``+`` (e.g. ``-1.26``, ``+3``)
+    are left as-is.
+    Inner pipe characters are escaped to prevent DDE-style payloads
+    (e.g. ``=DDE|cmd|'/C calc'``).
+    Reference: https://owasp.org/www-community/attacks/CSV_Injection
+    """
+    if not isinstance(value, str) or not value:
+        return value
+
+    if value[0] in _FORMULA_PREFIXES:
+        # Skip signed numeric values (e.g. GPS coords "-1.26 36.79 0.0 30.0"
+        # or explicit-sign numbers like "+1.5").
+        # Every space-separated token must parse as float(); a single
+        # non-numeric token (e.g. "=cmd…") causes ValueError, so the
+        # whole value is treated as dangerous and gets prefixed.
+        if value[0] in ("-", "+"):
+            try:
+                for token in value.split():
+                    float(token)
+                return value
+            except ValueError:
+                pass
+        value = "'" + value
+
+    # Escape inner pipe characters to prevent DDE command execution
+    # (e.g. =DDE|cmd|'/C calc') even in values that were already prefixed.
+    if "|" in value:
+        value = value.replace("|", "\\|")
+
+    return value
+
 
 class FilenameMissing(Exception):
     """Custom Exception for a missing filename."""

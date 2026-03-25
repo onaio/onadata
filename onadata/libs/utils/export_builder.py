@@ -61,6 +61,7 @@ from onadata.libs.utils.common_tools import (
     get_choice_label,
     get_choice_label_value,
     get_value_or_attachment_uri,
+    sanitize_for_export,
     str_to_bool,
     track_task_progress,
 )
@@ -913,7 +914,9 @@ class ExportBuilder:
         """Export CSV formatted files from ``data`` and zip the files."""
 
         def write_row(row, csv_writer, fields):
-            csv_writer.writerow([encode_if_str(row, field) for field in fields])
+            csv_writer.writerow(
+                [sanitize_for_export(encode_if_str(row, field)) for field in fields]
+            )
 
         csv_defs = {}
         dataview = kwargs.get("dataview")
@@ -928,13 +931,17 @@ class ExportBuilder:
         if not self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, "title")
-                csv_defs[section["name"]]["csv_writer"].writerow(list(fields))
+                csv_defs[section["name"]]["csv_writer"].writerow(
+                    [sanitize_for_export(f) for f in fields]
+                )
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
                 fields = self.get_fields(dataview, section, "label")
-                csv_defs[section["name"]]["csv_writer"].writerow(list(fields))
+                csv_defs[section["name"]]["csv_writer"].writerow(
+                    [sanitize_for_export(f) for f in fields]
+                )
 
         media_xpaths = (
             []
@@ -950,7 +957,7 @@ class ExportBuilder:
                 hxl_row = [columns_with_hxl.get(col, "") for col in fields]
                 if hxl_row:
                     writer = csv_defs[section["name"]]["csv_writer"]
-                    writer.writerow(hxl_row)
+                    writer.writerow([sanitize_for_export(h) for h in hxl_row])
 
         index = 1
         indices = {}
@@ -1036,7 +1043,7 @@ class ExportBuilder:
         def write_row(data, work_sheet, fields, work_sheet_titles):
             # update parent_table with the generated sheet's title
             data[PARENT_TABLE_NAME] = work_sheet_titles.get(data.get(PARENT_TABLE_NAME))
-            work_sheet.append([data.get(f) for f in fields])
+            work_sheet.append([sanitize_for_export(data.get(f)) for f in fields])
 
         dataview = kwargs.get("dataview")
         total_records = kwargs.get("total_records")
@@ -1061,7 +1068,7 @@ class ExportBuilder:
 
                 # get the worksheet
                 work_sheet = work_sheets[section_name]
-                work_sheet.append(headers)
+                work_sheet.append([sanitize_for_export(h) for h in headers])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
@@ -1071,7 +1078,7 @@ class ExportBuilder:
 
                 # get the worksheet
                 work_sheet = work_sheets[section_name]
-                work_sheet.append(labels)
+                work_sheet.append([sanitize_for_export(val) for val in labels])
 
         media_xpaths = (
             []
@@ -1091,7 +1098,7 @@ class ExportBuilder:
 
                 hxl_row = [columns_with_hxl.get(col, "") for col in headers]
                 if hxl_row:
-                    work_sheet.append(hxl_row)
+                    work_sheet.append([sanitize_for_export(h) for h in hxl_row])
 
         index = 1
         indices = {}
