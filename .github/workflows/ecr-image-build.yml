@@ -29,13 +29,13 @@ jobs:
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -43,11 +43,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@c962da2960ed15f492addc26fffa274485265950 # v2
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
           tags: |
@@ -84,7 +84,7 @@ jobs:
 
       - name: (Ubuntu) Build and push
         id: docker-build-ubuntu
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
@@ -114,7 +114,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -127,17 +127,17 @@ jobs:
       - build
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: /tmp/digests
           pattern: digests-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -145,11 +145,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@c962da2960ed15f492addc26fffa274485265950 # v2
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/onaio/onadata
           tags: |
@@ -172,34 +172,69 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.docker_repo }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
         with:
+          version: v0.69.3
+          cache: true
+
+      - name: Configure Trivy VEX Hub with DHI advisories
+        run: |
+          mkdir -p $HOME/.trivy/vex-hub
+          cat > $HOME/.trivy/vex-hub.yaml << 'VEXEOF'
+          repositories:
+            - url: https://github.com/aquasecurity/vexhub
+            - url: https://github.com/onaio/dhi-vex-data
+          VEXEOF
+          trivy vex repo download
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: "v0.69.3"
           image-ref: ${{ env.docker_repo }}
           format: "sarif"
           output: "trivy-results.sarif"
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy scan result to Github security lab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
           sarif_file: "trivy-results.sarif"
         continue-on-error: true
 
-      - name: Install SARIF tools
-        run: pip install sarif-tools
+      - name: Cache Trivy HTML template
+        id: cache-template
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: html.tpl
+          key: trivy-html-template-v1
 
-      - name: Convert SARIF to HTML
-        run: sarif html -o trivy-results.html trivy-results.sarif
+      - name: Download Trivy HTML template
+        if: steps.cache-template.outputs.cache-hit != 'true'
+        run: |
+          url="https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl"
+          wget -q "$url" -O html.tpl
+
+      - name: Run Trivy vulnerability scanner (HTML report)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: "v0.69.3"
+          image-ref: ${{ env.docker_repo }}
+          format: "template"
+          template: "@html.tpl"
+          output: "trivy-results.html"
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy SARIF as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: trivy-sarif-results
           path: trivy-results.sarif
           retention-days: 30
 
       - name: Upload Trivy HTML report as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: trivy-html-report
           path: trivy-results.html
@@ -243,7 +278,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@70cd7be8e40a46e8b0eced40b0de447bdb42f68e # v1.26.0
         with:
           payload: |
             {
