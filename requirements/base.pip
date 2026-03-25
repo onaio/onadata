@@ -14,7 +14,7 @@ analytics-python==1.4.post1
     # via onadata
 appoptics-metrics==5.1.0
     # via onadata
-asgiref==3.11.0
+asgiref==3.11.1
     # via
     #   django
     #   django-cors-headers
@@ -72,6 +72,7 @@ codetiming==1.4.0
     # via -r requirements/base.in
 cryptography==44.0.3
     # via
+    #   google-auth
     #   jwcrypto
     #   onadata
     #   pyjwt
@@ -117,7 +118,7 @@ django-cors-headers==4.9.0
     # via onadata
 django-csp==4.0
     # via onadata
-django-debug-toolbar==6.1.0
+django-debug-toolbar==6.2.0
     # via onadata
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
@@ -197,7 +198,7 @@ greenlet==3.3.2
     # via sqlalchemy
 hiredis==3.3.1
     # via redis
-httplib2==0.31.1
+httplib2==0.31.2
     # via onadata
 idna==3.11
     # via requests
@@ -207,7 +208,7 @@ inflection==0.5.1
     # via djangorestframework-jsonapi
 isodate==0.7.2
     # via tableschema
-jmespath==1.0.1
+jmespath==1.1.0
     # via
     #   boto3
     #   botocore
@@ -231,7 +232,7 @@ linear-tsv==1.1.0
     # via dataflows-tabulator
 lxml==6.0.2
     # via onadata
-markdown==3.10
+markdown==3.10.2
     # via onadata
 modilabs-python-utils==0.1.5
     # via onadata
@@ -252,7 +253,7 @@ openpyxl==3.1.3
     #   dataflows-tabulator
     #   onadata
     #   pyxform
-packaging==25.0
+packaging==26.0
     # via
     #   django-csp
     #   kombu
@@ -270,7 +271,7 @@ pyasn1==0.6.3
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==2.23
+pycparser==3.0
     # via cffi
 pycryptodome==3.23.0
     # via valigetta
@@ -284,7 +285,7 @@ pylibmc==1.6.3
     # via onadata
 pymongo==4.16.0
     # via onadata
-pyparsing==3.3.1
+pyparsing==3.3.2
     # via httplib2
 python-dateutil==2.9.0.post0
     # via
@@ -395,7 +396,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-wcwidth==0.2.14
+wcwidth==0.6.0
     # via prompt-toolkit
 wrapt==2.1.2
     # via deprecated
