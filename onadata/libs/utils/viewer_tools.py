@@ -230,7 +230,10 @@ def handle_enketo_error(response):
 
     if not event_id:
         event_id = report_exception(f"HTTP Error {response.status_code}", message)
-    error_msg = "Enketo error: Sorry, we cannot load your form right now.  Please try again later."
+    error_msg = (
+        "Enketo error: Sorry, we cannot load your form right now."
+        "  Please try again later."
+    )
     if event_id:
         error_msg += f" (reference: {event_id})"
     raise EnketoError(error_msg)
