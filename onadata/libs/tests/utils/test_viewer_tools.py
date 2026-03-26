@@ -134,12 +134,12 @@ class TestViewerTools(TestBase):
         """Test get_form_url()."""
         request = RequestFactory().get("/")
 
-        # default https://ona.io
-        url = get_form_url(request)
+        # explicit https protocol https://ona.io
+        url = get_form_url(request, protocol="https")
         self.assertEqual(url, "https://ona.io")
 
-        # with username https://ona.io/bob
-        url = get_form_url(request, username="bob")
+        # with username and explicit https https://ona.io/bob
+        url = get_form_url(request, username="bob", protocol="https")
         self.assertEqual(url, "https://ona.io/bob")
 
         # with http protocol http://ona.io/bob

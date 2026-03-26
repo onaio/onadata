@@ -578,7 +578,7 @@ class XFormViewSet(
         except EnketoError as e:
             logger.error("Enketo API error for form %s: %s", self.object.pk, e)
             return Response(
-                {"message": e.message},
+                {"message": f"Enketo error: {e.message}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

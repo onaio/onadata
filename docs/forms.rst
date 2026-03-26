@@ -1021,11 +1021,14 @@ Response
 Error responses
 ^^^^^^^^^^^^^^^
 
+All Enketo errors return HTTP 400. The error message varies depending on
+the upstream failure.
+
 If Enketo returns a client error (e.g. misconfigured account):
 
 ::
 
-    HTTP 500 Internal Server Error
+    HTTP 400 Bad Request
 
 ::
 
@@ -1033,11 +1036,12 @@ If Enketo returns a client error (e.g. misconfigured account):
         "message": "Enketo error: <details> (reference: <sentry_event_id>)"
     }
 
-If the Enketo API is unreachable or returns a server error:
+If the Enketo API is unreachable or returns a server error, a generic
+message is returned to avoid leaking upstream details:
 
 ::
 
-    HTTP 502 Bad Gateway
+    HTTP 400 Bad Request
 
 ::
 
