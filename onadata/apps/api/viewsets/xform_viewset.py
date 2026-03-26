@@ -298,7 +298,8 @@ def _store_enketo_metadata(xform, enketo_urls):
             "enketo_preview_url": preview_url or "",
             "single_submit_url": single_url or "",
         }
-        safe_cache_set(f"{ENKETO_URLS_CACHE}{xform.pk}", result, get_enketo_urls_cache_ttl())
+        cache_key = f"{ENKETO_URLS_CACHE}{xform.pk}"
+        safe_cache_set(cache_key, result, get_enketo_urls_cache_ttl())
 
     # Invalidate the per-field serializer caches so they refresh.
     safe_cache_delete(f"{ENKETO_URL_CACHE}{xform.pk}")
