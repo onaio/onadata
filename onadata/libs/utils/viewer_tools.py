@@ -203,12 +203,15 @@ ENKETO_GENERIC_ERROR = (
     "Sorry, we cannot load your form right now. Please try again later."
 )
 
+ENKETO_ERROR_PREFIX = "Enketo error: "
+
 
 def _enketo_error_msg(message, event_id=None):
-    """Append the Sentry reference to an error message when available."""
+    """Build a prefixed error message, appending the Sentry reference when available."""
+    prefixed = f"{ENKETO_ERROR_PREFIX}{message}"
     if event_id:
-        return f"{message} (reference: {event_id})"
-    return message
+        return f"{prefixed} (reference: {event_id})"
+    return prefixed
 
 
 def handle_enketo_error(response):

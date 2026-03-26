@@ -155,10 +155,20 @@ class TestViewerTools(TestBase):
 
         # with form pk url http://ona.io/bob/1
         url = get_form_url(request, username="bob", xform_pk=1)
+        self.assertEqual(url, "http://ona.io/bob/1")
+
+        # with form pk and explicit https url https://ona.io/bob/1
+        url = get_form_url(request, username="bob", xform_pk=1, protocol="https")
         self.assertEqual(url, "https://ona.io/bob/1")
 
-        # with form uuid url https://ona.io/enketo/492
+        # with form uuid url http://ona.io/enketo/492
         url = get_form_url(request, xform_pk=492, generate_consistent_urls=True)
+        self.assertEqual(url, "http://ona.io/enketo/492")
+
+        # with form uuid and explicit https url https://ona.io/enketo/492
+        url = get_form_url(
+            request, xform_pk=492, generate_consistent_urls=True, protocol="https"
+        )
         self.assertEqual(url, "https://ona.io/enketo/492")
 
     @override_settings(ZIP_REPORT_ATTACHMENT_LIMIT=8)
