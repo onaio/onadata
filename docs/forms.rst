@@ -928,9 +928,9 @@ Response
 ::
 
     {
-        "enketo_url": "https://h6ic6.enketo.org/webform",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview",
-        "single_submit_url": "https://enke.to/single/::abcd"
+        "enketo_url": "https://enketo.ona.io/x/6hfHnMp1",
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1",
+        "single_submit_url": "https://enketo.ona.io/single/6hfHnMp1"
     }
 
 Get webform/enketo link with default form values
@@ -958,8 +958,8 @@ Response
 ::
 
     {
-        "enketo_url": "https://h6ic6.enketo.org/webform?d[%2Fform_id%2Fname]=test",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://api.ona.io/geoffreymuchai/&id=form_id"
+        "enketo_url": "https://enketo.ona.io/x/6hfHnMp1?d[%2Fform_id%2Fname]=test",
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1?d[%2Fform_id%2Fname]=test"
     }
 
 Get single submission url
@@ -986,7 +986,7 @@ Response
 ::
 
     {
-        "single_submit_url": "https://enke.to/single/::abcd"
+        "single_submit_url": "https://enketo.ona.io/single/6hfHnMp1"
     }
 
 Get enketo preview link only
@@ -1015,7 +1015,7 @@ Response
 ::
 
     {
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview"
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1"
     }
 
 Error responses
