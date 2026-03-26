@@ -60,6 +60,7 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_URLS_CACHE_TTL,
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
+    PROJ_OWNER_CACHE,
     safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
@@ -95,7 +96,6 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_cache_delete
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -261,7 +261,7 @@ def _read_enketo_metadata(xform):
         data_type__in=["enketo_url", "enketo_preview_url", "enketo_single_submit_url"],
     ).values_list("data_type", "data_value")
 
-    by_type = {data_type: data_value for data_type, data_value in rows}
+    by_type = dict(rows)
     if "enketo_url" not in by_type:
         return None
 
