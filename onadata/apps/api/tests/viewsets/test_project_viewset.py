@@ -620,7 +620,9 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         for date_created, project in zip(
             dates_created,
-            Project.objects.filter(organization__username=self.user.username),
+            Project.objects.filter(
+                organization__username=self.user.username
+            ).order_by("pk"),
         ):
             new_date = datetime(
                 year=date_created["year"],

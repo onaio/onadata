@@ -231,13 +231,12 @@ def handle_enketo_error(response):
     else:
         message = data["message"] if "message" in data else response.text
 
-    if response.status_code == 400:
-        if not event_id:
-            event_id = report_exception(f"HTTP Error {response.status_code}", message)
-        raise EnketoError(_enketo_error_msg(message, event_id))
-
     if not event_id:
         event_id = report_exception(f"HTTP Error {response.status_code}", message)
+
+    if response.status_code == 400:
+        raise EnketoError(_enketo_error_msg(message, event_id))
+
     raise EnketoError(_enketo_error_msg(ENKETO_GENERIC_ERROR, event_id))
 
 
