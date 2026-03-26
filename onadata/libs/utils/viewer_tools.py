@@ -208,7 +208,7 @@ def handle_enketo_error(response):
         event_id = report_exception(
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
-        if response.status_code in (500, 502):
+        if response.status_code >= 500:
             raise EnketoError(
                 "Sorry, we cannot load your form right now.  Please try again later."
             ) from enketo_error
@@ -218,13 +218,11 @@ def handle_enketo_error(response):
 
     if response.status_code == 400:
         if not event_id:
-            event_id = report_exception(
-                f"HTTP Error {response.status_code}", message
-            )
+            event_id = report_exception(f"HTTP Error {response.status_code}", message)
         error_msg = f"Enketo error: {message}"
         if event_id:
             error_msg += f" (reference: {event_id})"
-        raise EnketoError(error_msg, status_code=500)
+        raise EnketoError(error_msg)
 
     if not event_id:
         event_id = report_exception(f"HTTP Error {response.status_code}", message)

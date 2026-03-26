@@ -13,9 +13,8 @@ class EnketoError(Exception):
         "There was a problem with your submission or form. Please contact support."
     )
 
-    def __init__(self, message=None, status_code=None):
+    def __init__(self, message=None):
         self.message = message if message is not None else self.default_message
-        self.status_code = status_code
         super().__init__(self.message)
 
 

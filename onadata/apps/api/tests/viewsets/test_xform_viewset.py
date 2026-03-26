@@ -1575,7 +1575,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
 
                 self.assertEqual(
                     response.status_code,
-                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    status.HTTP_400_BAD_REQUEST,
                 )
                 self.assertEqual(response.data, data)
 
@@ -1598,7 +1598,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=formid)
                 self.assertEqual(
                     response.status_code,
-                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    status.HTTP_400_BAD_REQUEST,
                 )
                 self.assertEqual(
                     response.data["message"],
@@ -1620,7 +1620,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                     "message": "Sorry, we cannot load your form right"
                     " now.  Please try again later."
                 }
-                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
 
     def test_enketo_url_error502(self):
@@ -1637,7 +1637,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                     "message": "Sorry, we cannot load your form right"
                     " now.  Please try again later."
                 }
-                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
 
     def test_enketo_url_error403_returns_generic_message(self):
@@ -1651,13 +1651,74 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error403_mock):
                 response = view(request, pk=formid)
-                self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertIn(
                     "Sorry, we cannot load your form right now.",
                     response.data["message"],
                 )
                 # Must NOT leak the upstream error details
                 self.assertNotIn("API key invalid", response.data["message"])
+
+    @override_settings(TESTING_MODE=False)
+    def test_enketo_url_served_from_cache(self):
+        """Second /enketo call is served from Redis cache, not the DB."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+
+            # First call — populates MetaData + cache
+            request = self.factory.get("/", **self.extra)
+            response1 = view(request, pk=formid)
+            self.assertEqual(response1.status_code, 200)
+
+            # Second call — should come from cache, not DB.
+            # Patch only MetaData.objects.filter to verify no DB query is made.
+            request = self.factory.get("/", **self.extra)
+            with patch(
+                "onadata.apps.api.viewsets.xform_viewset.MetaData.objects.filter",
+                side_effect=AssertionError(
+                    "MetaData.objects.filter should not be called on cache hit"
+                ),
+            ):
+                response2 = view(request, pk=formid)
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.data, response1.data)
+
+    @override_settings(TESTING_MODE=False)
+    def test_enketo_url_cache_invalidated_on_metadata_delete(self):
+        """Deleting enketo MetaData clears the Redis cache and forces DB lookup."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+
+            # Populate cache
+            request = self.factory.get("/", **self.extra)
+            response1 = view(request, pk=formid)
+            self.assertEqual(response1.status_code, 200)
+
+            # Delete MetaData (triggers signal → clears cache)
+            MetaData.objects.filter(
+                object_id=formid,
+                data_type__in=[
+                    "enketo_url",
+                    "enketo_preview_url",
+                    "enketo_single_submit_url",
+                ],
+            ).delete()
+
+            # Verify cache is cleared
+            from onadata.libs.utils.cache_tools import ENKETO_URLS_CACHE
+
+            self.assertIsNone(cache.get(f"{ENKETO_URLS_CACHE}{formid}"))
+
+            # Subsequent request should call the Enketo API since both
+            # cache and MetaData are empty, and still return valid data.
+            request = self.factory.get("/", **self.extra)
+            response2 = view(request, pk=formid)
+            self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.data, response1.data)
 
     @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):

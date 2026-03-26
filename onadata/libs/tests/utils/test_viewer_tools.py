@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
+
 import os
 from unittest.mock import patch
 
@@ -128,7 +129,7 @@ class TestViewerTools(TestBase):
         with self.assertRaises(Http404):
             get_form(kwarg)
 
-    @override_settings(TESTING_MODE=False)
+    @override_settings(TESTING_MODE=False, ENKETO_PROTOCOL="http")
     def test_get_form_url(self):
         """Test get_form_url()."""
         request = RequestFactory().get("/")
@@ -142,11 +143,14 @@ class TestViewerTools(TestBase):
         self.assertEqual(url, "https://ona.io/bob")
 
         # with http protocol http://ona.io/bob
-        url = get_form_url(request, username="bob", protocol="http")
+        url = get_form_url(
+            request,
+            username="bob",
+        )
         self.assertEqual(url, "http://ona.io/bob")
 
         # preview url http://ona.io/preview/bob
-        url = get_form_url(request, username="bob", protocol="http", preview=True)
+        url = get_form_url(request, username="bob", preview=True)
         self.assertEqual(url, "http://ona.io/preview/bob")
 
         # with form pk url http://ona.io/bob/1
