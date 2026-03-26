@@ -555,6 +555,9 @@ class XFormViewSet(
         # Determine whether form-default query params are present.
         # Filter out known endpoint params so they are not mistaken for
         # form-field defaults (e.g. a form with a field named "survey_type").
+        # NOTE: If you add a new query param to this endpoint, add it here
+        # too — otherwise it will be treated as a form-field default and
+        # persistence will be silently skipped.
         known_params = {"survey_type", "show_preview", "format"}
         form_params = {k: v for k, v in request.GET.items() if k not in known_params}
         defaults = generate_enketo_form_defaults(self.object, **form_params)
