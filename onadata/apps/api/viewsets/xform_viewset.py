@@ -274,32 +274,42 @@ def _read_enketo_metadata(xform):
     return result
 
 
-def _store_enketo_metadata(xform, enketo_urls):
-    """Persist enketo URLs from the Enketo API response into MetaData.
+def _normalize_enketo_api_keys(enketo_urls):
+    """Map Enketo API response keys to canonical keys used in MetaData/cache.
 
-    Also populates the composite Redis cache and invalidates the per-field
+    Enketo API returns ``offline_url``, ``preview_url``, ``single_url``.
+    Internally we use ``enketo_url``, ``enketo_preview_url``,
+    ``single_submit_url``.  This function normalises at the boundary so
+    downstream code only deals with one naming convention.
+    """
+    return {
+        "enketo_url": enketo_urls.get("offline_url", ""),
+        "enketo_preview_url": enketo_urls.get("preview_url", ""),
+        "single_submit_url": enketo_urls.get("single_url", ""),
+    }
+
+
+def _store_enketo_metadata(xform, enketo_urls):
+    """Persist enketo URLs (canonical keys) into MetaData.
+
+    Also populates the composite cache and invalidates the per-field
     serializer caches so they pick up the fresh values.
     """
-    offline_url = enketo_urls.get("offline_url")
-    if offline_url:
-        MetaData.enketo_url(xform, offline_url)
-    preview_url = enketo_urls.get("preview_url")
+    enketo_url = enketo_urls.get("enketo_url")
+    if enketo_url:
+        MetaData.enketo_url(xform, enketo_url)
+    preview_url = enketo_urls.get("enketo_preview_url")
     if preview_url:
         MetaData.enketo_preview_url(xform, preview_url)
-    single_url = enketo_urls.get("single_url")
+    single_url = enketo_urls.get("single_submit_url")
     if single_url:
         MetaData.enketo_single_submit_url(xform, single_url)
 
     # Populate the composite cache used by _read_enketo_metadata only when
     # the primary URL is present — avoids caching partial/empty responses.
-    if offline_url:
-        result = {
-            "enketo_url": offline_url,
-            "enketo_preview_url": preview_url or "",
-            "single_submit_url": single_url or "",
-        }
+    if enketo_url:
         cache_key = f"{ENKETO_URLS_CACHE}{xform.pk}"
-        safe_cache_set(cache_key, result, get_enketo_urls_cache_ttl())
+        safe_cache_set(cache_key, enketo_urls, get_enketo_urls_cache_ttl())
 
     # Invalidate the per-field serializer caches so they refresh.
     safe_cache_delete(f"{ENKETO_URL_CACHE}{xform.pk}")
@@ -308,22 +318,20 @@ def _store_enketo_metadata(xform, enketo_urls):
 
 
 def _format_enketo_response(urls, survey_type):
-    """Return the appropriate response dict for the given survey_type."""
+    """Return the appropriate response dict for the given survey_type.
+
+    Expects canonical keys (``enketo_url``, ``enketo_preview_url``,
+    ``single_submit_url``) — call ``_normalize_enketo_api_keys`` first
+    when working with raw Enketo API responses.
+    """
     if survey_type == "preview":
-        return {
-            "enketo_preview_url": urls.get(
-                "enketo_preview_url", urls.get("preview_url", "")
-            )
-        }
-    single = urls.get("single_submit_url", urls.get("single_url", ""))
+        return {"enketo_preview_url": urls.get("enketo_preview_url", "")}
     if survey_type == "single":
-        return {"single_submit_url": single}
+        return {"single_submit_url": urls.get("single_submit_url", "")}
     return {
-        "enketo_url": urls.get("enketo_url", urls.get("offline_url", "")),
-        "enketo_preview_url": urls.get(
-            "enketo_preview_url", urls.get("preview_url", "")
-        ),
-        "single_submit_url": single,
+        "enketo_url": urls.get("enketo_url", ""),
+        "enketo_preview_url": urls.get("enketo_preview_url", ""),
+        "single_submit_url": urls.get("single_submit_url", ""),
     }
 
 
@@ -555,9 +563,8 @@ class XFormViewSet(
         # Determine whether form-default query params are present.
         # Filter out known endpoint params so they are not mistaken for
         # form-field defaults (e.g. a form with a field named "survey_type").
-        # NOTE: If you add a new query param to this endpoint, add it here
-        # too — otherwise it will be treated as a form-field default and
-        # persistence will be silently skipped.
+        # NOTE: If you add a new query param to the /enketo endpoint,
+        # add it here too
         known_params = {"survey_type", "show_preview", "format"}
         form_params = {k: v for k, v in request.GET.items() if k not in known_params}
         defaults = generate_enketo_form_defaults(self.object, **form_params)
@@ -591,6 +598,9 @@ class XFormViewSet(
                 {"message": _("Enketo error: Enketo not properly configured.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Normalise API keys to canonical names used in MetaData/cache.
+        enketo_urls = _normalize_enketo_api_keys(enketo_urls)
 
         # Persist the result when no form defaults were used.
         if not has_defaults:
