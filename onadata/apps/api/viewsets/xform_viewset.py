@@ -584,7 +584,7 @@ class XFormViewSet(
 
         if not enketo_urls:
             return Response(
-                {"message": _("Enketo not properly configured.")},
+                {"message": _("Enketo error: Enketo not properly configured.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

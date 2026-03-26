@@ -1617,7 +1617,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             with HTTMock(enketo_error500_mock):
                 response = view(request, pk=formid)
                 data = {
-                    "message": "Sorry, we cannot load your form right"
+                    "message": "Enketo error: Sorry, we cannot load your form right"
                     " now.  Please try again later."
                 }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1634,7 +1634,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
                 data = {
-                    "message": "Sorry, we cannot load your form right"
+                    "message": "Enketo error: Sorry, we cannot load your form right"
                     " now.  Please try again later."
                 }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1653,7 +1653,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=formid)
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertIn(
-                    "Sorry, we cannot load your form right now.",
+                    "Enketo error: Sorry, we cannot load your form right now.",
                     response.data["message"],
                 )
                 # Must NOT leak the upstream error details

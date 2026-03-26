@@ -1042,7 +1042,7 @@ If the Enketo API is unreachable or returns a server error:
 ::
 
     {
-        "message": "Sorry, we cannot load your form right now.  Please try again later. (reference: <sentry_event_id>)"
+        "message": "Enketo error: Sorry, we cannot load your form right now.  Please try again later. (reference: <sentry_event_id>)"
     }
 
 If Enketo is not properly configured:
@@ -1054,7 +1054,7 @@ If Enketo is not properly configured:
 ::
 
     {
-        "message": "Enketo not properly configured."
+        "message": "Enketo error: Enketo not properly configured."
     }
 
 
