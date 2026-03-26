@@ -199,6 +199,18 @@ def get_enketo_urls(
     return None
 
 
+ENKETO_GENERIC_ERROR = (
+    "Sorry, we cannot load your form right now. Please try again later."
+)
+
+
+def _enketo_error_msg(message, event_id=None):
+    """Append the Sentry reference to an error message when available."""
+    if event_id:
+        return f"{message} (reference: {event_id})"
+    return message
+
+
 def handle_enketo_error(response):
     """Handle enketo error response."""
     event_id = None
@@ -209,13 +221,9 @@ def handle_enketo_error(response):
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
         if response.status_code >= 500:
-            error_msg = (
-                "Sorry, we cannot load your form right now."
-                "  Please try again later."
-            )
-            if event_id:
-                error_msg += f" (reference: {event_id})"
-            raise EnketoError(error_msg) from enketo_error
+            raise EnketoError(
+                _enketo_error_msg(ENKETO_GENERIC_ERROR, event_id)
+            ) from enketo_error
         message = response.text
     else:
         message = data["message"] if "message" in data else response.text
@@ -223,20 +231,11 @@ def handle_enketo_error(response):
     if response.status_code == 400:
         if not event_id:
             event_id = report_exception(f"HTTP Error {response.status_code}", message)
-        error_msg = message
-        if event_id:
-            error_msg += f" (reference: {event_id})"
-        raise EnketoError(error_msg)
+        raise EnketoError(_enketo_error_msg(message, event_id))
 
     if not event_id:
         event_id = report_exception(f"HTTP Error {response.status_code}", message)
-    error_msg = (
-        "Sorry, we cannot load your form right now."
-        "  Please try again later."
-    )
-    if event_id:
-        error_msg += f" (reference: {event_id})"
-    raise EnketoError(error_msg)
+    raise EnketoError(_enketo_error_msg(ENKETO_GENERIC_ERROR, event_id))
 
 
 def generate_enketo_form_defaults(xform, **kwargs):

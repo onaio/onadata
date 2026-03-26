@@ -147,13 +147,9 @@ def enketo_error403_mock(url, request):  # pylint: disable=unused-argument
     Returns mocked Enketo Response object for all queries to enketo.ona.io that
     may result in an HTTP 403 error response.
     """
-    response = requests.Response()
-    response.status_code = 403
-    # pylint: disable=protected-access
-    response._content = \
-        '{\n  "message": "Forbidden: API key invalid",\n'\
-        '  "code": "403"\n}'
-    return response
+    return {'status_code': 403,
+            'content': '{\n  "message": "Forbidden: API key invalid",'
+                       '\n  "code": "403"\n}'}
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')

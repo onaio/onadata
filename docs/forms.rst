@@ -1046,7 +1046,7 @@ message is returned to avoid leaking upstream details:
 ::
 
     {
-        "message": "Enketo error: Sorry, we cannot load your form right now.  Please try again later. (reference: <sentry_event_id>)"
+        "message": "Enketo error: Sorry, we cannot load your form right now. Please try again later. (reference: <sentry_event_id>)"
     }
 
 If Enketo is not properly configured:

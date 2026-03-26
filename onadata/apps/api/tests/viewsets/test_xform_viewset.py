@@ -1618,7 +1618,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=formid)
                 data = {
                     "message": "Enketo error: Sorry, we cannot load your form right"
-                    " now.  Please try again later."
+                    " now. Please try again later."
                 }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
@@ -1635,7 +1635,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
                 response = view(request, pk=formid)
                 data = {
                     "message": "Enketo error: Sorry, we cannot load your form right"
-                    " now.  Please try again later."
+                    " now. Please try again later."
                 }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
