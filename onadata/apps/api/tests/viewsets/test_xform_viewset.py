@@ -35,6 +35,7 @@ from httmock import HTTMock
 from rest_framework import status
 
 from onadata.apps.api.tests.mocked_data import (
+    enketo_error403_mock,
     enketo_error500_mock,
     enketo_error502_mock,
     enketo_error_mock,
@@ -1562,43 +1563,162 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
                 data = {
-                    "message": "Enketo error: no account exists for this OpenRosa server"
+                    "message": "Enketo error: no account exists"
+                    " for this OpenRosa server"
                 }
 
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
                 self.assertEqual(response.data, data)
+
+    def test_enketo_url_no_account_includes_sentry_ref(self):
+        """Enketo 400 error includes the Sentry event_id in the message."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
+            request = self.factory.get("/", **self.extra)
+            fake_event_id = "abc123def456"
+            with (
+                HTTMock(enketo_error_mock),
+                patch(
+                    "onadata.libs.utils.viewer_tools.report_exception",
+                    return_value=fake_event_id,
+                ),
+            ):
+                response = view(request, pk=formid)
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                )
+                self.assertEqual(
+                    response.data["message"],
+                    "Enketo error: no account exists for this"
+                    f" OpenRosa server (reference: {fake_event_id})",
+                )
 
     def test_enketo_url_error500(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error500_mock):
                 response = view(request, pk=formid)
+                data = {
+                    "message": "Enketo error: Sorry, we cannot load your form right"
+                    " now. Please try again later."
+                }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data, data)
 
     def test_enketo_url_error502(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
-            # no tags
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
             request = self.factory.get("/", **self.extra)
             with HTTMock(enketo_error502_mock):
                 response = view(request, pk=formid)
                 data = {
-                    "message": "Enketo error: Sorry, we cannot load your form right "
-                    "now.  Please try again later."
+                    "message": "Enketo error: Sorry, we cannot load your form right"
+                    " now. Please try again later."
                 }
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
                 self.assertEqual(response.data, data)
+
+    def test_enketo_url_error403_returns_generic_message(self):
+        """Non-400/500/502 Enketo errors return a generic message, not upstream details."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            # Clear MetaData so the endpoint hits the Enketo API
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
+            request = self.factory.get("/", **self.extra)
+            with HTTMock(enketo_error403_mock):
+                response = view(request, pk=formid)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(
+                    "Enketo error: Sorry, we cannot load your form right now.",
+                    response.data["message"],
+                )
+                # Must NOT leak the upstream error details
+                self.assertNotIn("API key invalid", response.data["message"])
+
+    @override_settings(TESTING_MODE=False)
+    def test_enketo_url_served_from_cache(self):
+        """Second /enketo call is served from Redis cache, not the DB."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+
+            # First call — populates MetaData + cache
+            request = self.factory.get("/", **self.extra)
+            response1 = view(request, pk=formid)
+            self.assertEqual(response1.status_code, 200)
+
+            # Second call — should come from cache, not DB.
+            # Patch only MetaData.objects.filter to verify no DB query is made.
+            request = self.factory.get("/", **self.extra)
+            with patch(
+                "onadata.apps.api.viewsets.xform_viewset.MetaData.objects.filter",
+                side_effect=AssertionError(
+                    "MetaData.objects.filter should not be called on cache hit"
+                ),
+            ):
+                response2 = view(request, pk=formid)
+                self.assertEqual(response2.status_code, 200)
+                self.assertEqual(response2.data, response1.data)
+
+    @override_settings(TESTING_MODE=False)
+    def test_enketo_url_cache_invalidated_on_metadata_delete(self):
+        """Deleting enketo MetaData clears the Redis cache and forces DB lookup."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+
+            # Populate cache
+            request = self.factory.get("/", **self.extra)
+            response1 = view(request, pk=formid)
+            self.assertEqual(response1.status_code, 200)
+
+            # Delete MetaData (triggers signal → clears cache)
+            MetaData.objects.filter(
+                object_id=formid,
+                data_type__in=[
+                    "enketo_url",
+                    "enketo_preview_url",
+                    "enketo_single_submit_url",
+                ],
+            ).delete()
+
+            # Verify cache is cleared
+            from onadata.libs.utils.cache_tools import ENKETO_URLS_CACHE
+
+            self.assertIsNone(cache.get(f"{ENKETO_URLS_CACHE}{formid}"))
+
+            # Subsequent request should call the Enketo API since both
+            # cache and MetaData are empty, and still return valid data.
+            request = self.factory.get("/", **self.extra)
+            response2 = view(request, pk=formid)
+            self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.data, response1.data)
 
     @override_settings(TESTING_MODE=False)
     def test_enketo_url(self):
@@ -1654,11 +1774,65 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             submit_url = "http://enketo.ona.io/single/::XZqoZ94y"
             self.assertEqual(response.data["single_submit_url"], submit_url)
 
+    def test_get_preview_url_via_survey_type(self):
+        """survey_type=preview returns only the preview URL."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"survey_type": "preview"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
+            self.assertEqual(response.data, {"enketo_preview_url": preview_url})
+
+    def test_get_preview_url_via_show_preview(self):
+        """Legacy show_preview=true returns only the preview URL."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"show_preview": "true"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            preview_url = "https://enketo.ona.io/preview/::YY8M"
+            self.assertEqual(response.data, {"enketo_preview_url": preview_url})
+
+    def test_show_preview_false_returns_all_urls(self):
+        """show_preview=false is ignored and all URLs are returned."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"show_preview": "false"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("enketo_url", response.data)
+            self.assertIn("enketo_preview_url", response.data)
+            self.assertIn("single_submit_url", response.data)
+
+    def test_survey_type_takes_precedence_over_show_preview(self):
+        """survey_type=single wins even when show_preview=true is present."""
+        with HTTMock(enketo_urls_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "enketo"})
+            formid = self.xform.pk
+            get_data = {"survey_type": "single", "show_preview": "true"}
+            request = self.factory.get("/", data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(list(response.data.keys()), ["single_submit_url"])
+
     def test_enketo_url_with_default_form_params(self):
         with HTTMock(enketo_mock_with_form_defaults):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({"get": "enketo"})
             formid = self.xform.pk
+            # Clear MetaData so defaults force an Enketo API call
+            MetaData.objects.filter(object_id=formid, data_type="enketo_url").delete()
 
             get_data = {"num": "1"}
             request = self.factory.get("/", data=get_data, **self.extra)

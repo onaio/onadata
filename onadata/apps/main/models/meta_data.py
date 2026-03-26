@@ -28,6 +28,10 @@ import requests
 from onadata.apps.logger.models import EntityList, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.cache_tools import (
+    ENKETO_URL_CACHE,
+    ENKETO_URLS_CACHE,
+    ENKETO_PREVIEW_URL_CACHE,
+    ENKETO_SINGLE_SUBMIT_URL_CACHE,
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
     safe_cache_delete,
@@ -607,6 +611,16 @@ def clear_cached_metadata_instance_object(
 
     if instance.data_type == "media":
         safe_cache_delete(f"{XFORM_MANIFEST_CACHE}{xform_id}")
+
+    if instance.data_type in (
+        "enketo_url",
+        "enketo_preview_url",
+        "enketo_single_submit_url",
+    ):
+        safe_cache_delete(f"{ENKETO_URLS_CACHE}{xform_id}")
+        safe_cache_delete(f"{ENKETO_URL_CACHE}{xform_id}")
+        safe_cache_delete(f"{ENKETO_PREVIEW_URL_CACHE}{xform_id}")
+        safe_cache_delete(f"{ENKETO_SINGLE_SUBMIT_URL_CACHE}{xform_id}")
 
 
 # pylint: disable=unused-argument

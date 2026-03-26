@@ -81,6 +81,7 @@ class Command(BaseCommand):
             form_url = get_form_url(
                 request,
                 username=username,
+                protocol=protocol,
                 xform_pk=xform_pk,
                 generate_consistent_urls=generate_consistent_urls,
             )

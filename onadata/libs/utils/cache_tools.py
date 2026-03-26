@@ -9,6 +9,7 @@ import socket
 import time
 from contextlib import contextmanager
 
+from django.conf import settings
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
@@ -42,6 +43,15 @@ ENKETO_URL_CACHE = "xfs-get_enketo_url"
 ENKETO_SINGLE_SUBMIT_URL_CACHE = "xfs-get_enketosingle_submit__url"
 ENKETO_PREVIEW_URL_CACHE = "xfs-get_enketo_preview_url"
 XFORM_METADATA_CACHE = "xfs-get_xform_metadata"
+ENKETO_URLS_CACHE = "xfs-enketo_urls-"
+ENKETO_URLS_CACHE_TTL_DEFAULT = 24 * 60 * 60
+
+
+def get_enketo_urls_cache_ttl():
+    """Return the enketo URLs cache TTL, respecting override_settings in tests."""
+    return getattr(settings, "ENKETO_URLS_CACHE_TTL", ENKETO_URLS_CACHE_TTL_DEFAULT)
+
+
 XFORM_DATA_VERSIONS = "xfs-get_xform_data_versions"
 XFORM_COUNT = "xfs-submission_count"
 DATAVIEW_COUNT = "dvs-get_data_count"

@@ -199,22 +199,45 @@ def get_enketo_urls(
     return None
 
 
+ENKETO_GENERIC_ERROR = (
+    "Sorry, we cannot load your form right now. Please try again later."
+)
+
+ENKETO_ERROR_PREFIX = "Enketo error: "
+
+
+def _enketo_error_msg(message, event_id=None):
+    """Build a prefixed error message, appending the Sentry reference when available."""
+    prefixed = f"{ENKETO_ERROR_PREFIX}{message}"
+    if event_id:
+        return f"{prefixed} (reference: {event_id})"
+    return prefixed
+
+
 def handle_enketo_error(response):
     """Handle enketo error response."""
+    event_id = None
     try:
         data = json.loads(response.content)
     except (ValueError, JSONDecodeError) as enketo_error:
-        report_exception(
+        event_id = report_exception(
             f"HTTP Error {response.status_code}", response.text, sys.exc_info()
         )
-        if response.status_code == 502:
+        if response.status_code >= 500:
             raise EnketoError(
-                "Sorry, we cannot load your form right now.  Please try again later."
+                _enketo_error_msg(ENKETO_GENERIC_ERROR, event_id)
             ) from enketo_error
-        raise EnketoError() from enketo_error
-    if "message" in data:
-        raise EnketoError(data["message"])
-    raise EnketoError(response.text)
+        message = response.text
+    else:
+        message = data["message"] if "message" in data else response.text
+
+    if not event_id:
+        event_id = report_exception(f"HTTP Error {response.status_code}", message)
+
+    if response.status_code == 400:
+        raise EnketoError(_enketo_error_msg(message, event_id))
+
+    raise EnketoError(_enketo_error_msg(ENKETO_GENERIC_ERROR, event_id))
 
 
 def generate_enketo_form_defaults(xform, **kwargs):
@@ -284,7 +307,7 @@ def get_form(kwargs):
 def get_form_url(
     request,
     username=None,
-    protocol="https",
+    protocol=None,
     preview=False,
     xform_pk=None,
     generate_consistent_urls=False,
@@ -297,7 +320,13 @@ def get_form_url(
     provided then Enketo will request the form list from
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
+
+    When *protocol* is ``None`` (the default) it is read from the
+    ``ENKETO_PROTOCOL`` Django setting, falling back to ``"https"``.
     """
+    if protocol is None:
+        protocol = getattr(settings, "ENKETO_PROTOCOL", "https")
+
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME

@@ -907,6 +907,12 @@ Get webform/enketo link
     <pre class="prettyprint">
     <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
+Returns enketo survey links (webform URL, preview URL, and single-submit URL).
+On the first request the Enketo API is called and the result is persisted in
+the database; subsequent requests are served directly from the stored data.
+When form-default query params are present the Enketo API is always called
+since each combination produces unique URLs.
+
 Request
 ^^^^^^^
 ::
@@ -919,13 +925,12 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
-        "enketo_url": "https://h6ic6.enketo.org/webform",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform"
+        "enketo_url": "https://enketo.ona.io/x/6hfHnMp1",
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1",
+        "single_submit_url": "https://enketo.ona.io/single/6hfHnMp1"
     }
 
 Get webform/enketo link with default form values
@@ -934,6 +939,9 @@ Get webform/enketo link with default form values
 
   <pre class="prettyprint">
   <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?name=value</pre>
+
+Pass form field names as query params to pre-populate the web form. Persistence
+is skipped when defaults are present since each combination produces unique URLs.
 
 Request
 ^^^^^^^
@@ -947,13 +955,11 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
-        "enketo_url": "https://h6ic6.enketo.org/webform?d[%2Fform_id%2Fname]=test",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://api.ona.io/geoffreymuchai/&id=form_id"
+        "enketo_url": "https://enketo.ona.io/x/6hfHnMp1?d[%2Fform_id%2Fname]=test",
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1?d[%2Fform_id%2Fname]=test"
     }
 
 Get single submission url
@@ -962,6 +968,8 @@ Get single submission url
 
   <pre class="prettyprint">
   <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=single</pre>
+
+Pass ``survey_type=single`` to return only the single-submit URL.
 
 Request
 ^^^^^^^
@@ -975,12 +983,82 @@ Response
 
     HTTP 200 OK
 
-Response
-^^^^^^^^^
 ::
 
     {
-        "single_submit_url": "https://enke.to/single/::abcd"
+        "single_submit_url": "https://enketo.ona.io/single/6hfHnMp1"
+    }
+
+Get enketo preview link only
+-----------------------------
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?survey_type=preview</pre>
+
+Pass ``survey_type=preview`` to return only the preview URL.
+The legacy ``show_preview=true`` query parameter is also supported and
+behaves identically.
+
+Request
+^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?survey_type=preview
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+
+::
+
+    {
+        "enketo_preview_url": "https://enketo.ona.io/preview/6hfHnMp1"
+    }
+
+Error responses
+^^^^^^^^^^^^^^^
+
+All Enketo errors return HTTP 400. The error message varies depending on
+the upstream failure.
+
+If Enketo returns a client error (e.g. misconfigured account):
+
+::
+
+    HTTP 400 Bad Request
+
+::
+
+    {
+        "message": "Enketo error: <details> (reference: <sentry_event_id>)"
+    }
+
+If the Enketo API is unreachable or returns a server error, a generic
+message is returned to avoid leaking upstream details:
+
+::
+
+    HTTP 400 Bad Request
+
+::
+
+    {
+        "message": "Enketo error: Sorry, we cannot load your form right now. Please try again later. (reference: <sentry_event_id>)"
+    }
+
+If Enketo is not properly configured:
+
+::
+
+    HTTP 400 Bad Request
+
+::
+
+    {
+        "message": "Enketo error: Enketo not properly configured."
     }
 
 

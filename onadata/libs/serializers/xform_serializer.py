@@ -77,7 +77,6 @@ def _create_enketo_urls(request, xform):
     form_url = get_form_url(
         request,
         xform.user.username,
-        settings.ENKETO_PROTOCOL,
         xform_pk=xform.pk,
         generate_consistent_urls=True,
     )
