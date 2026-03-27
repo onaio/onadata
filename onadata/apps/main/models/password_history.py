@@ -4,9 +4,9 @@ Password History Class Module
 This module contains the `PasswordHistory` model which is used to track
 password changes for a user.
 """
+
 from django.contrib.auth import get_user_model
 from django.db import models
-
 
 User = get_user_model()
 
@@ -33,7 +33,9 @@ class PasswordHistory(models.Model):
         that the `PasswordHistory` is updated when a user changes
         """
         if not created and instance.pk:
-            current_password = User.objects.get(pk=instance.pk).password
+            current_password = (
+                User.objects.only("password").get(pk=instance.pk).password
+            )
             if current_password != instance.password and current_password:
                 cls.objects.create(user=instance, hashed_password=current_password)
 
