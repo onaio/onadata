@@ -38,6 +38,7 @@ from onadata.libs.utils.common_tags import (
     TEXTIT_DETAILS,
     XFORM_META_PERMS,
 )
+from onadata.libs.utils.project_utils import propagate_project_permissions_async
 
 ANONYMOUS_USERNAME = "anonymous"
 CHUNK_SIZE = 1024
@@ -138,6 +139,11 @@ def unique_type_for_form(
         if not metadata_created and extra_data:
             result.extra_data = extra_data
             result.save()
+
+        kpi_url = getattr(settings, "KPI_FORMBUILDER_URL", None)
+        if metadata_created and kpi_url and kpi_url in result.data_value:
+            project = result.target_object.project
+            propagate_project_permissions_async.apply_async(args=[project.pk])
 
     if data_file:
         if result.data_value is None or result.data_value == "":

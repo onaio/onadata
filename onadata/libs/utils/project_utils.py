@@ -20,14 +20,8 @@ from requests.sessions import HTTPAdapter
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.celeryapp import app
-from onadata.libs.permissions import (
-    get_role,
-    is_organization,
-)
-from onadata.libs.utils.common_tags import (
-    API_TOKEN,
-    ONADATA_KOBOCAT_AUTH_HEADER,
-)
+from onadata.libs.permissions import get_role, is_organization
+from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADER
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -178,12 +172,15 @@ def propagate_project_permissions(
 
         # Propagate permissions for XForms that were published by
         # Formbuilder
+        kpi_url = getattr(settings, "KPI_FORMBUILDER_URL", None)
         for asset in project.xform_set.filter(deleted_at__isnull=True).iterator():
             if (
-                asset.metadata_set.filter(
+                not asset.metadata_set.filter(
                     data_type="published_by_formbuilder", data_value=True
-                ).count()
-                == 0
+                ).exists()
+                and not asset.metadata_set.filter(
+                    data_type="source", data_value__icontains=kpi_url
+                ).exists()
             ):
                 continue
 
@@ -198,8 +195,20 @@ def propagate_project_permissions(
                     }
                 )
 
+            asset_uid_url = (
+                asset.metadata_set.filter(
+                    data_type="source", data_value__icontains=kpi_url
+                )
+                .first()
+                .data_value
+            )
+            match = re.search(r"assets/(.+?)\.json", asset_uid_url)
+            asset_uid_from_url = None
+            if match:
+                asset_uid_from_url = match.group(1)
+
             assigned_permissions = retrieve_asset_permissions(
-                service_url, asset.id_string, session
+                service_url, asset_uid_from_url or asset.id_string, session
             )
             new_users = [
                 username
@@ -223,7 +232,7 @@ def propagate_project_permissions(
             if new_users:
                 assign_change_asset_permission(
                     service_url,
-                    asset.id_string,
+                    asset_uid_from_url or asset.id_string,
                     new_users,
                     session,
                 )
