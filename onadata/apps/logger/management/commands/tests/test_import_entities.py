@@ -320,8 +320,10 @@ class ImportEntitiesCommandTestCase(TestBase):
         self.assertEqual(entities[0].json.get("label"), "300cm purpleheart")
         self.assertEqual(str(entities[0].uuid), "dbee4c32-a922-451c-9df7-42f40bf78f48")
 
-    @patch("onadata.apps.logger.management.commands.import_entities.send_message")
-    def test_audit_log_created(self, mock_send_message):
+    @patch(
+        "onadata.apps.logger.management.commands.import_entities.send_actstream_message_async.delay"
+    )
+    def test_audit_log_created(self, mock_send_actstream_message_async):
         """Creates an audit log when entities are imported"""
         csv_path = self._write_csv(
             ["label", "species", "circumference_cm"],
@@ -337,7 +339,7 @@ class ImportEntitiesCommandTestCase(TestBase):
             stdout=out,
         )
 
-        mock_send_message.assert_called_once_with(
+        mock_send_actstream_message_async.assert_called_once_with(
             instance_id=self.entity_list.pk,
             target_id=self.entity_list.pk,
             target_type="entitylist",
