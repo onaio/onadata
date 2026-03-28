@@ -1,0 +1,13 @@
+[package]
+name = "onadata_xml"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "onadata_xml"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module"] }
+quick-xml = "0.37"
+sha2 = "0.10"
