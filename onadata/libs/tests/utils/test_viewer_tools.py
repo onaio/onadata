@@ -1,24 +1,31 @@
 # -*- coding: utf-8 -*-
 """Test onadata.libs.utils.viewer_tools."""
+
+import json
 import os
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.http import Http404
+from django.test import SimpleTestCase
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.utils import timezone
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.viewer_tools import (
+    ENKETO_ERROR_PREFIX,
+    ENKETO_GENERIC_ERROR,
     create_attachments_zipfile,
     export_def_from_filename,
     generate_enketo_form_defaults,
     get_client_ip,
     get_form,
     get_form_url,
+    handle_enketo_error,
 )
 
 
@@ -128,33 +135,46 @@ class TestViewerTools(TestBase):
         with self.assertRaises(Http404):
             get_form(kwarg)
 
-    @override_settings(TESTING_MODE=False)
+    @override_settings(TESTING_MODE=False, ENKETO_PROTOCOL="http")
     def test_get_form_url(self):
         """Test get_form_url()."""
         request = RequestFactory().get("/")
 
-        # default https://ona.io
-        url = get_form_url(request)
+        # explicit https protocol https://ona.io
+        url = get_form_url(request, protocol="https")
         self.assertEqual(url, "https://ona.io")
 
-        # with username https://ona.io/bob
-        url = get_form_url(request, username="bob")
+        # with username and explicit https https://ona.io/bob
+        url = get_form_url(request, username="bob", protocol="https")
         self.assertEqual(url, "https://ona.io/bob")
 
         # with http protocol http://ona.io/bob
-        url = get_form_url(request, username="bob", protocol="http")
+        url = get_form_url(
+            request,
+            username="bob",
+        )
         self.assertEqual(url, "http://ona.io/bob")
 
         # preview url http://ona.io/preview/bob
-        url = get_form_url(request, username="bob", protocol="http", preview=True)
+        url = get_form_url(request, username="bob", preview=True)
         self.assertEqual(url, "http://ona.io/preview/bob")
 
         # with form pk url http://ona.io/bob/1
         url = get_form_url(request, username="bob", xform_pk=1)
+        self.assertEqual(url, "http://ona.io/bob/1")
+
+        # with form pk and explicit https url https://ona.io/bob/1
+        url = get_form_url(request, username="bob", xform_pk=1, protocol="https")
         self.assertEqual(url, "https://ona.io/bob/1")
 
-        # with form uuid url https://ona.io/enketo/492
+        # with form uuid url http://ona.io/enketo/492
         url = get_form_url(request, xform_pk=492, generate_consistent_urls=True)
+        self.assertEqual(url, "http://ona.io/enketo/492")
+
+        # with form uuid and explicit https url https://ona.io/enketo/492
+        url = get_form_url(
+            request, xform_pk=492, generate_consistent_urls=True, protocol="https"
+        )
         self.assertEqual(url, "https://ona.io/enketo/492")
 
     @override_settings(ZIP_REPORT_ATTACHMENT_LIMIT=8)
@@ -185,3 +205,99 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
+
+
+def _mock_response(status_code, content, text=None):
+    """Build a mock response for handle_enketo_error tests."""
+    response = Mock()
+    response.status_code = status_code
+    response.content = content
+    response.text = text if text is not None else content.decode("utf-8")
+    return response
+
+
+@patch("onadata.libs.utils.viewer_tools.report_exception")
+class TestHandleEnketoError(SimpleTestCase):
+    """Test handle_enketo_error() branches."""
+
+    def test_valid_json_with_message_and_status_400(self, mock_report):
+        """400 with a JSON message raises EnketoError containing that message."""
+        mock_report.return_value = "sentry-id"
+        body = json.dumps({"message": "Wrong parameter"}).encode()
+        response = _mock_response(400, body)
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn("Wrong parameter", str(ctx.exception))
+        self.assertIn("sentry-id", str(ctx.exception))
+        mock_report.assert_called_once_with("HTTP Error 400", "Wrong parameter")
+
+    def test_valid_json_with_message_and_status_500(self, mock_report):
+        """Non-400 status with valid JSON raises EnketoError with generic message."""
+        mock_report.return_value = "sentry-id"
+        body = json.dumps({"message": "Internal failure"}).encode()
+        response = _mock_response(500, body)
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn(ENKETO_GENERIC_ERROR, str(ctx.exception))
+        self.assertIn("sentry-id", str(ctx.exception))
+        mock_report.assert_called_once_with("HTTP Error 500", "Internal failure")
+
+    def test_valid_json_without_message_key(self, mock_report):
+        """Valid JSON missing 'message' key falls back to response.text."""
+        mock_report.return_value = "sentry-id"
+        body = json.dumps({"error": "unknown"}).encode()
+        response = _mock_response(400, body, text="raw response text")
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn("raw response text", str(ctx.exception))
+        mock_report.assert_called_once_with("HTTP Error 400", "raw response text")
+
+    def test_invalid_json_with_status_500(self, mock_report):
+        """Invalid JSON + 5xx raises EnketoError with generic message."""
+        mock_report.return_value = "sentry-id"
+        response = _mock_response(502, b"bad gateway html", text="bad gateway html")
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn(ENKETO_GENERIC_ERROR, str(ctx.exception))
+        self.assertIn("sentry-id", str(ctx.exception))
+        mock_report.assert_called_once()
+
+    def test_invalid_json_with_status_400(self, mock_report):
+        """Invalid JSON + 400 raises EnketoError with response text as message."""
+        mock_report.return_value = "sentry-id"
+        response = _mock_response(400, b"not json", text="not json")
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn("not json", str(ctx.exception))
+        self.assertIn("sentry-id", str(ctx.exception))
+
+    def test_invalid_json_with_non_400_non_5xx(self, mock_report):
+        """Invalid JSON + non-400/non-5xx raises EnketoError with generic message."""
+        mock_report.return_value = "sentry-id"
+        response = _mock_response(422, b"unprocessable", text="unprocessable")
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertIn(ENKETO_GENERIC_ERROR, str(ctx.exception))
+
+    def test_error_message_includes_enketo_prefix(self, mock_report):
+        """All raised errors include the Enketo error prefix."""
+        mock_report.return_value = "sentry-id"
+        body = json.dumps({"message": "some error"}).encode()
+        response = _mock_response(400, body)
+
+        with self.assertRaises(EnketoError) as ctx:
+            handle_enketo_error(response)
+
+        self.assertTrue(str(ctx.exception).startswith(ENKETO_ERROR_PREFIX))
