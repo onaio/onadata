@@ -89,8 +89,8 @@ def utc_time_string_for_javascript(date_string):
 def find_choice_label(choices, string):
     """Returns the choice label of the given ``string``."""
     for choice in choices:
-        if choice["name"] == string:
-            return choice["label"]
+        if isinstance(choice, dict) and choice.get("name") == string:
+            return choice.get("label")
     return None
 
 
