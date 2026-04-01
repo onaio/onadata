@@ -1354,6 +1354,28 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
 
+    @patch(
+        "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
+    )
+    def test_decrypt_inactive_form(self, mock_adjust_decrypted_submission_count):
+        """Decryption succeeds even when the form is inactive."""
+        self.xform.downloadable = False
+        self.xform.save(update_fields=["downloadable"])
+        self.instance.refresh_from_db()
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+
+        self.assertFalse(self.instance.is_encrypted)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
+        self.assertEqual(self.instance.xml, self.dec_submission_xml)
+        mock_adjust_decrypted_submission_count.assert_called_once_with(
+            self.xform.pk, delta=1
+        )
+
     def test_media_not_all_received(self):
         """Decryption fails if not all media files have been received."""
         self.instance.media_all_received = False
