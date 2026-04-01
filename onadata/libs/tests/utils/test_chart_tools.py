@@ -14,7 +14,9 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import (_flatten_multiple_dict_into_one,
                                             build_chart_data,
                                             build_chart_data_for_field,
-                                            calculate_ranges, get_choice_label,
+                                            calculate_ranges,
+                                            find_choice_label,
+                                            get_choice_label,
                                             get_field_choices,
                                             utc_time_string_for_javascript)
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
@@ -669,3 +671,64 @@ class TestChartUtilFunctions(unittest.TestCase):
         result = _flatten_multiple_dict_into_one("a_var", group_by, input_data)
         self.maxDiff = None
         self.assertEqual(result, expected_data)
+
+
+class TestFindChoiceLabel(unittest.TestCase):
+    """Tests for the find_choice_label function."""
+
+    def test_returns_label_for_matching_choice(self):
+        """Returns the label when a choice name matches."""
+        choices = [
+            {"name": "yes", "label": "Yes"},
+            {"name": "no", "label": "No"},
+        ]
+        self.assertEqual(find_choice_label(choices, "yes"), "Yes")
+
+    def test_returns_none_when_no_match(self):
+        """Returns None when no choice name matches the string."""
+        choices = [{"name": "yes", "label": "Yes"}]
+        self.assertIsNone(find_choice_label(choices, "no"))
+
+    def test_returns_none_for_empty_choices(self):
+        """Returns None when choices list is empty."""
+        self.assertIsNone(find_choice_label([], "yes"))
+
+    def test_skips_non_dict_choices(self):
+        """Skips non-dict items in the choices list without raising."""
+        choices = ["invalid", 42, None, {"name": "yes", "label": "Yes"}]
+        self.assertEqual(find_choice_label(choices, "yes"), "Yes")
+
+    def test_returns_none_when_all_choices_are_non_dict(self):
+        """Returns None when all items in choices are non-dict."""
+        choices = ["a", 1, None]
+        self.assertIsNone(find_choice_label(choices, "a"))
+
+    def test_choice_missing_label_key(self):
+        """Returns None when the matching choice has no 'label' key."""
+        choices = [{"name": "yes"}]
+        self.assertIsNone(find_choice_label(choices, "yes"))
+
+    def test_choice_missing_name_key(self):
+        """Skips choices that have no 'name' key."""
+        choices = [{"label": "Yes"}, {"name": "no", "label": "No"}]
+        self.assertEqual(find_choice_label(choices, "no"), "No")
+
+    def test_works_with_pyxform_option_objects(self):
+        """Works with pyxform Option objects (Mapping but not dict)."""
+        from pyxform.question import Option
+
+        choices = [
+            Option(name="male", label="Male"),
+            Option(name="female", label="Female"),
+        ]
+        self.assertEqual(find_choice_label(choices, "male"), "Male")
+        self.assertEqual(find_choice_label(choices, "female"), "Female")
+        self.assertIsNone(find_choice_label(choices, "other"))
+
+    def test_returns_first_matching_choice(self):
+        """Returns the label of the first matching choice."""
+        choices = [
+            {"name": "yes", "label": "First"},
+            {"name": "yes", "label": "Second"},
+        ]
+        self.assertEqual(find_choice_label(choices, "yes"), "First")

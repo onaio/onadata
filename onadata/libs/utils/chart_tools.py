@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import re
 from collections import OrderedDict
+from collections.abc import Mapping
 
 from django.db.utils import DataError
 from django.http import Http404
@@ -89,8 +90,8 @@ def utc_time_string_for_javascript(date_string):
 def find_choice_label(choices, string):
     """Returns the choice label of the given ``string``."""
     for choice in choices:
-        if choice["name"] == string:
-            return choice["label"]
+        if isinstance(choice, Mapping) and choice.get("name") == string:
+            return choice.get("label")
     return None
 
 
