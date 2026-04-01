@@ -713,6 +713,18 @@ class TestFindChoiceLabel(unittest.TestCase):
         choices = [{"label": "Yes"}, {"name": "no", "label": "No"}]
         self.assertEqual(find_choice_label(choices, "no"), "No")
 
+    def test_works_with_pyxform_option_objects(self):
+        """Works with pyxform Option objects (Mapping but not dict)."""
+        from pyxform.question import Option
+
+        choices = [
+            Option(name="male", label="Male"),
+            Option(name="female", label="Female"),
+        ]
+        self.assertEqual(find_choice_label(choices, "male"), "Male")
+        self.assertEqual(find_choice_label(choices, "female"), "Female")
+        self.assertIsNone(find_choice_label(choices, "other"))
+
     def test_returns_first_matching_choice(self):
         """Returns the label of the first matching choice."""
         choices = [
