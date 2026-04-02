@@ -559,7 +559,7 @@ def decrypt_instance(instance: Instance) -> None:
                     instance.checksum = sha256(xml).hexdigest()
                     instance.is_encrypted = False
                     instance.decryption_status = Instance.DecryptionStatus.SUCCESS
-                    instance.save()
+                    instance.save(force=True)
 
                 else:
                     # Save decrypted media file
