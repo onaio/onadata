@@ -564,6 +564,11 @@ class XFormSerializer(XFormBaseSerializer):
         to use the key data to create an RSA key object using the cryptography
         package
         """
+        if self.instance and self.instance.is_managed:
+            raise serializers.ValidationError(
+                _("Cannot update the public key of a managed form")
+            )
+
         try:
             load_pem_public_key(value.encode("utf-8"), backend=default_backend())
         except ValueError as e:
@@ -619,9 +624,6 @@ class XFormSerializer(XFormBaseSerializer):
 
     def update(self, instance, validated_data):
         enable_kms_encryption = validated_data.pop("enable_kms_encryption", None)
-
-        if instance.is_managed:
-            validated_data.pop("public_key", None)
 
         with transaction.atomic():
             instance = super().update(instance, validated_data)

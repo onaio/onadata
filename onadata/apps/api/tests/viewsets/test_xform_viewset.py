@@ -5648,15 +5648,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertTrue(response.data["is_managed"])
         self.assertEqual(response.data["num_of_pending_decryption_submissions"], 0)
 
-    def test_update_public_key_ignored_for_managed_form(self):
-        """Updating public_key is ignored for managed forms."""
+    def test_update_public_key_rejected_for_managed_form(self):
+        """Updating public_key raises a validation error for managed forms."""
         self._publish_transportation_form()
         self.xform.public_key = "fake-public-key"
         self.xform.is_managed = True
         self.xform.encrypted = True
         self.xform.save()
-
-        original_public_key = self.xform.public_key
 
         view = XFormViewSet.as_view({"patch": "partial_update"})
 
@@ -5677,27 +5675,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         request = self.factory.patch("/", data=data, **self.extra)
         response = view(request, pk=self.xform.id)
 
-        self.assertEqual(response.status_code, 200)
-        self.xform.refresh_from_db()
-        self.assertEqual(self.xform.public_key, original_public_key)
-
-    def test_update_managed_form_without_public_key(self):
-        """Updating a managed form without public_key in payload succeeds."""
-        self._publish_transportation_form()
-        self.xform.public_key = "fake-public-key"
-        self.xform.is_managed = True
-        self.xform.encrypted = True
-        self.xform.save()
-
-        view = XFormViewSet.as_view({"patch": "partial_update"})
-
-        data = {"description": "updated description"}
-        request = self.factory.patch("/", data=data, **self.extra)
-        response = view(request, pk=self.xform.id)
-
-        self.assertEqual(response.status_code, 200)
-        self.xform.refresh_from_db()
-        self.assertEqual(self.xform.description, "updated description")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["public_key"],
+            ["Cannot update the public key of a managed form"],
+        )
 
     def test_update_xform_rejected_for_encrypted_xform(self):
         """Replacing a form is not allowed for encrypted form."""
