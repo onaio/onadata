@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 
 from celery.result import AsyncResult
+from multidb.pinning import use_master
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Instance, Project, ProjectInvitation, XForm
@@ -213,6 +214,7 @@ def share_project_async(project_id, username, role, remove=False):
 
 
 @app.task(base=AutoRetryTask)
+@use_master
 def delete_xform_submissions_async(
     xform_id: int,
     deleted_by_id: int,
