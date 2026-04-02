@@ -620,6 +620,9 @@ class XFormSerializer(XFormBaseSerializer):
     def update(self, instance, validated_data):
         enable_kms_encryption = validated_data.pop("enable_kms_encryption", None)
 
+        if instance.is_managed:
+            validated_data.pop("public_key", None)
+
         with transaction.atomic():
             instance = super().update(instance, validated_data)
 
