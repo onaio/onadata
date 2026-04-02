@@ -18,8 +18,6 @@ from io import StringIO
 from unittest.mock import Mock, patch
 from xml.dom import Node
 
-import jwt
-from defusedxml import minidom
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -29,6 +27,9 @@ from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django.utils.html import conditional_escape
+
+import jwt
+from defusedxml import minidom
 from django_digest.test import DigestAuth
 from flaky import flaky
 from httmock import HTTMock
@@ -5646,6 +5647,39 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["is_managed"])
         self.assertEqual(response.data["num_of_pending_decryption_submissions"], 0)
+
+    def test_update_public_key_rejected_for_managed_form(self):
+        """Updating public_key raises a validation error for managed forms."""
+        self._publish_transportation_form()
+        self.xform.public_key = "fake-public-key"
+        self.xform.is_managed = True
+        self.xform.encrypted = True
+        self.xform.save()
+
+        view = XFormViewSet.as_view({"patch": "partial_update"})
+
+        public_key = (
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxNlbF920Dj7CYsKYrxcK\n"
+            "PL0PatubLO2OhcMCpHgdbpGZscbWVAcXNkdjhmPhTuVPXmOa2Wjwe4ZkRfXJW2Iv\n"
+            "lvPm//UIWXhXUsNQaB9P\n"
+            "X4yxLWC0fZQ9T3ito8PcZ1nS+B39HYMkRSn9K5r65zRi\n"
+            "SZhwvTkhcwq7Cea+wX3UT/pfEx62Z8GZ3E8iiYrIcNv2DM+x+0yYmQEboXq1tlKE\n"
+            "twkF965z9mUTyXYfinrrHVx7xXhz1jbiWyOvTpiY8aAC35EaV3h/MdNXKk7WznJi\n"
+            "xdM\n"
+            "nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm\n"
+            "7QIDAQAB\n"
+            "-----END PUBLIC KEY-----"
+        )
+        data = {"public_key": public_key}
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["public_key"],
+            ["Cannot update the public key of a managed form"],
+        )
 
     def test_update_xform_rejected_for_encrypted_xform(self):
         """Replacing a form is not allowed for encrypted form."""

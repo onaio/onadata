@@ -564,6 +564,11 @@ class XFormSerializer(XFormBaseSerializer):
         to use the key data to create an RSA key object using the cryptography
         package
         """
+        if self.instance and self.instance.is_managed:
+            raise serializers.ValidationError(
+                _("Cannot update the public key of a managed form")
+            )
+
         try:
             load_pem_public_key(value.encode("utf-8"), backend=default_backend())
         except ValueError as e:
