@@ -67,7 +67,7 @@ from onadata.libs.utils.cache_tools import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
-from onadata.apps.messaging.serializers import send_message
+from onadata.apps.messaging.tasks import send_actstream_message_async
 from onadata.apps.viewer.models.export import Export
 from onadata.libs import authentication, filters
 from onadata.libs.exceptions import EnketoError
@@ -167,13 +167,15 @@ def _try_update_xlsform(request, xform, owner):
 
     if isinstance(survey, XForm):
         serializer = XFormSerializer(xform, context={"request": request})
+        user_id = request.user.id if request.user else None
+        owner_id = owner.id if owner else None
 
         # send form update notification
-        send_message(
+        send_actstream_message_async.delay(
             instance_id=xform.id,
             target_id=xform.id,
             target_type=XFORM,
-            user=request.user or owner,
+            user=user_id or owner_id,
             message_verb=FORM_UPDATED,
         )
 
