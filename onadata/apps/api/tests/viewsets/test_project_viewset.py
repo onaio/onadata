@@ -21,6 +21,7 @@ import dateutil.parser
 import requests
 from httmock import HTTMock, urlmatch
 from rest_framework.authtoken.models import Token
+from reversion.models import Version
 from six import iteritems
 
 from onadata.apps.api import tools
@@ -349,6 +350,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_projects_get(self):
         self._project_create()
+        version_count = Version.objects.get_for_object(self.project).count()
+
         view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
@@ -367,6 +370,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         res_user_props = list(response.data["users"][0])
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
+
+        # reversion: GET does not create a new version
+        self.assertEqual(
+            Version.objects.get_for_object(self.project).count(), version_count
+        )
 
     def test_project_get_deleted_form(self):
         self._publish_xls_form_to_project()
@@ -514,6 +522,11 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
 
+        # reversion: creating a project records a version
+        versions = Version.objects.get_for_object(self.project)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, self.user)
+
     def test_project_create_other_account(self):  # pylint: disable=invalid-name
         """
         Test that a user cannot create a project in a different user account
@@ -620,9 +633,9 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         for date_created, project in zip(
             dates_created,
-            Project.objects.filter(
-                organization__username=self.user.username
-            ).order_by("pk"),
+            Project.objects.filter(organization__username=self.user.username).order_by(
+                "pk"
+            ),
         ):
             new_date = datetime(
                 year=date_created["year"],
@@ -1757,6 +1770,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_project_partial_updates(self):
         self._project_create()
+        version_count = Version.objects.get_for_object(self.project).count()
+
         view = ProjectViewSet.as_view({"patch": "partial_update"})
         projectid = self.project.pk
         metadata = (
@@ -1773,6 +1788,11 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
+
+        # reversion: partial update records a new version
+        versions = Version.objects.get_for_object(self.project)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     # pylint: disable=invalid-name
     def test_cache_updated_on_project_update(self):
@@ -2917,6 +2937,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_projects_soft_delete(self):
         self._project_create()
+        version_count = Version.objects.get_for_object(self.project).count()
 
         view = ProjectViewSet.as_view({"get": "list", "delete": "destroy"})
 
@@ -2952,6 +2973,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         self.assertFalse(serializer.data in response.data)
+
+        # reversion: soft delete records a new version with deleted_at set
+        versions = Version.objects.get_for_object(self.project)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertIsNotNone(versions[0].field_dict.get("deleted_at"))
 
     def test_project_share_multiple_users(self):
         """
