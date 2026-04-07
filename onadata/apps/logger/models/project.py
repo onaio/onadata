@@ -12,6 +12,7 @@ from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from taggit.managers import TaggableManager
@@ -220,3 +221,6 @@ class ProjectGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(Project, on_delete=models.CASCADE)
+
+
+reversion.register(Project)

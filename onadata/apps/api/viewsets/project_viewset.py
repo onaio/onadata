@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from reversion.views import RevisionMixin
 
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
@@ -70,6 +71,7 @@ class ProjectViewSet(
     ETagsMixin,
     LabelsMixin,
     ProfilerMixin,
+    RevisionMixin,
     BaseViewset,
     ModelViewSet,
 ):
