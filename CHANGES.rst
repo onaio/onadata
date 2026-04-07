@@ -41,6 +41,33 @@ v5.15.0 (2026-03-19)
 - fix: handle pyxform Itemset objects in SAV export value labels
   [@FrankApiyo]
   `PR #3029 https://github.com/onaio/onadata/pull/3029`
+- fix: ModuleNotFoundError: No module named 'pkg_resources
+  [@kelvin-muchiri]
+  `PR #3011 https://github.com/onaio/onadata/pull/3011`
+- chore: update requirements
+  [@ukanga]
+  `PR #3032 https://github.com/onaio/onadata/pull/3032`
+- Fix/trivy supply chain remediation v2
+  [@ukanga]
+  `PR #3036 https://github.com/onaio/onadata/pull/3036`
+- fix: pin trivy-action and setup-trivy to commit SHAs
+  [@FrankApiyo]
+  `PR #3035 https://github.com/onaio/onadata/pull/3035`
+- fix: remove hardcoded ioLocale from SavWriter to fix locale error
+  [@FrankApiyo]
+  `PR #3034 https://github.com/onaio/onadata/pull/3034`
+- feat: persist enketo URLs in MetaData and improve error handling
+  [@FrankApiyo]
+  `PR #3031 https://github.com/onaio/onadata/pull/3031`
+- fix: make find_choice_label defensive against non-dict choices
+  [@FrankApiyo]
+  `PR #3047 https://github.com/onaio/onadata/pull/3047`
+- fix: decrypting Instance fails if form inactive
+  [@kelvin-muchiri]
+  `PR #3048 https://github.com/onaio/onadata/pull/3048`
+- fix: overriding public key allowed for managed forms
+  [@kelvin-muchiri]
+  `PR #3049 https://github.com/onaio/onadata/pull/3049`
 
 v5.14.2 (2026-02-05)
 --------------------
