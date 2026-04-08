@@ -12,6 +12,7 @@ from onadata.apps.logger.models.project import (
     set_object_permissions as set_project_permissions,
 )
 from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.utils.cache_tools import project_cache_prefixes, safe_cache_delete
 from onadata.libs.utils.xform_utils import set_project_perms_to_xform
 
 
@@ -119,6 +120,10 @@ class Command(BaseCommand):
 
         self._transfer_xform(project, to_user)
         self._transfer_merged_xform(project, to_user)
+
+        # clear all project caches to avoid stale data
+        for prefix in project_cache_prefixes:
+            safe_cache_delete(f"{prefix}{project.pk}")
 
     @transaction.atomic()
     def handle(self, *args, **options):
