@@ -109,6 +109,8 @@ class EntityTestCase(TestBase):
     def test_soft_delete_updates_elist_count(self, mock_adjust):
         """Soft deleting decrements EntityList num_entities"""
         entity = Entity.objects.create(entity_list=self.entity_list)
+        # Clear the +1 call recorded during create so we can assert only
+        # the -1 call from the soft delete
         mock_adjust.reset_mock()
 
         entity.soft_delete(self.user)
@@ -131,6 +133,8 @@ class EntityTestCase(TestBase):
     def test_hard_delete_updates_elist_count(self, mock_adjust):
         """Hard deleting decrements EntityList num_entities"""
         entity = Entity.objects.create(entity_list=self.entity_list)
+        # Clear the +1 call recorded during create so we can assert only
+        # the -1 call from the hard delete
         mock_adjust.reset_mock()
 
         entity.delete()
