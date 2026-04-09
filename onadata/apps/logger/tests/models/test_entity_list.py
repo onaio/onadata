@@ -121,7 +121,7 @@ class EntityListTestCase(TestBase):
         self.assertEqual(entity_list.num_entities, 0)
         self.assertIsNone(entity_list.last_entity_update_time)
 
-    @patch("onadata.apps.logger.signals.set_entity_list_perms_async.delay")
+    @patch("onadata.apps.logger.tasks.set_entity_list_perms_async.delay")
     def test_permissions_applied_async(self, mock_set_perms):
         """Permissions are applied asynchronously"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)

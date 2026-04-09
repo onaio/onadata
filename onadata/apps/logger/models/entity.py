@@ -2,10 +2,12 @@
 Entity model
 """
 
+import importlib
 import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -40,7 +42,7 @@ class Entity(BaseModel):
             deletion_time = timezone.now()
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
-            self.save(update_fields=["deleted_at", "deleted_by"])
+            self.save(update_fields=["deleted_at", "deleted_by", "date_modified"])
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
@@ -106,3 +108,101 @@ class EntityHistory(BaseModel):
         choices=MutationType.choices,
         default=MutationType.CREATE,
     )
+
+
+# pylint: disable=unused-argument
+def incr_entity_list_num_entities(sender, instance, created=False, **kwargs):
+    """Increment EntityList `num_entities`"""
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    entity_list = instance.entity_list
+
+    if created:
+        transaction.on_commit(
+            lambda: logger_tasks.adjust_elist_num_entities_async.delay(
+                entity_list.pk, delta=1
+            )
+        )
+
+
+def decr_entity_list_num_entities_on_hard_delete(sender, instance, **kwargs):
+    """Decrement EntityList `num_entities`"""
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+    transaction.on_commit(
+        lambda: logger_tasks.adjust_elist_num_entities_async.delay(
+            instance.entity_list.pk, delta=-1
+        )
+    )
+
+
+def decr_entity_list_num_entities_on_soft_delete(sender, instance, **kwargs):
+    """Decrement EntityList `num_entities` on Entity soft delete"""
+    if not instance.pk or instance.deleted_at is None:
+        return
+
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+
+    if old_instance.deleted_at is None and instance.deleted_at is not None:
+        # Entity was soft deleted
+        # Avoid cyclic dependency errors
+        logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+        transaction.on_commit(
+            lambda: logger_tasks.adjust_elist_num_entities_async.delay(
+                instance.entity_list.pk, delta=-1
+            )
+        )
+
+
+def update_last_entity_update_time_now(sender, instance, **kwargs):
+    """Update EntityList `last_entity_update_time`"""
+    entity_list = instance.entity_list
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=entity_list.pk).update(
+        last_entity_update_time=timezone.now()
+    )
+
+
+def update_last_entity_update_time(sender, instance, **kwargs):
+    """Update EntityList `last_entity_update_time`"""
+    entity_list = instance.entity_list
+    # Using Queryset.update ensures we do not call the model's save method and
+    # signals
+    EntityList.objects.filter(pk=entity_list.pk).update(
+        last_entity_update_time=instance.date_modified
+    )
+
+
+post_save.connect(
+    incr_entity_list_num_entities,
+    sender=Entity,
+    dispatch_uid="incr_entity_list_num_entities",
+)
+
+post_delete.connect(
+    decr_entity_list_num_entities_on_hard_delete,
+    sender=Entity,
+    dispatch_uid="decr_entity_list_num_entities_on_hard_delete",
+)
+
+pre_save.connect(
+    decr_entity_list_num_entities_on_soft_delete,
+    sender=Entity,
+    dispatch_uid="decr_entity_list_num_entities_on_soft_delete",
+)
+
+post_delete.connect(
+    update_last_entity_update_time_now,
+    sender=Entity,
+    dispatch_uid="delete_enti_el_last_update_time",
+)
+
+post_save.connect(
+    update_last_entity_update_time,
+    sender=Entity,
+    dispatch_uid="update_enti_el_last_update_time",
+)
