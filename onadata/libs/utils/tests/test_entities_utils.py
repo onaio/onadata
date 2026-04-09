@@ -18,7 +18,7 @@ from onadata.apps.logger.models import (
     Project,
     RegistrationForm,
 )
-from onadata.apps.logger.signals import create_or_update_entity
+from onadata.apps.logger.models.instance import create_or_update_entity
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.utils.entities_utils import (
