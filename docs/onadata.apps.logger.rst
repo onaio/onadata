@@ -48,14 +48,6 @@ onadata.apps.logger.import\_tools module
    :undoc-members:
    :show-inheritance:
 
-onadata.apps.logger.signals module
-----------------------------------
-
-.. automodule:: onadata.apps.logger.signals
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 onadata.apps.logger.tasks module
 --------------------------------
 
