@@ -1425,6 +1425,7 @@ class ExportBuilder:
             "varTypes": var_types,
             "valueLabels": value_labels,
             "ioUtf8": True,
+            "fileLabel": "File exported by Ona",
         }
 
     # pylint: disable=too-many-locals
