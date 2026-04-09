@@ -2,6 +2,7 @@
 
 import os
 import sys
+from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -12,6 +13,7 @@ from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project, XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import OwnerRole, ReadOnlyRole
+from onadata.libs.utils.cache_tools import project_cache_prefixes
 
 
 class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
@@ -196,6 +198,30 @@ class TestMoveProjectToAnewOwner(TestBase):  # pylint: disable=C0111
         self.assertFalse(OwnerRole.user_has_role(jane, project))
         self.assertTrue(ReadOnlyRole.user_has_role(jane, project))
         self.assertTrue(ReadOnlyRole.user_has_role(jane, self.xform))
+
+    @patch("onadata.apps.logger.management.commands.transferproject.safe_cache_delete")
+    def test_project_caches_cleared_on_transfer(self, mock_safe_cache_delete):
+        """All project caches are invalidated after a project transfer"""
+        user_model = get_user_model()
+        user1 = user_model.objects.create_user(
+            username="user1", email="user1@test.com", password="test_pass"
+        )
+        user_model.objects.create_user(
+            username="user2", email="user2@test.com", password="test_pass"
+        )
+        project = Project.objects.create(
+            name="Test_project", organization=user1, created_by=user1
+        )
+        call_command(
+            "transferproject",
+            current_owner="user1",
+            new_owner="user2",
+            project_id=project.id,
+        )
+        expected_calls = [
+            call(f"{prefix}{project.pk}") for prefix in project_cache_prefixes
+        ]
+        mock_safe_cache_delete.assert_has_calls(expected_calls)
 
 
 class TestUserValidation(TestBase):
