@@ -40,7 +40,7 @@ class Entity(BaseModel):
             deletion_time = timezone.now()
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
-            self.save(update_fields=["deleted_at", "deleted_by"])
+            self.save(update_fields=["deleted_at", "deleted_by", "date_modified"])
 
     class Meta(BaseModel.Meta):
         app_label = "logger"

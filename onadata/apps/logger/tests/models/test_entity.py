@@ -58,50 +58,72 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity.json, {})
         self.assertIsInstance(entity.uuid, uuid.UUID)
 
-    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
     @patch("django.utils.timezone.now")
-    def test_soft_delete(self, mock_now, mock_adjust):
+    def test_soft_delete(self, mock_now):
         """Soft delete works"""
         mock_now.return_value = self.mocked_now
+
         entity = Entity.objects.create(entity_list=self.entity_list)
-        mock_adjust.reset_mock()
-        self.entity_list.refresh_from_db()
 
         self.assertIsNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
 
         entity.soft_delete(self.user)
-        self.entity_list.refresh_from_db()
-        entity.refresh_from_db()
 
-        self.assertEqual(self.entity_list.last_entity_update_time, self.mocked_now)
         self.assertEqual(entity.deleted_at, self.mocked_now)
-        self.assertEqual(entity.deleted_at, self.mocked_now)
-        mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
-
-        # Soft deleted item cannot be soft deleted again
-        deleted_at = timezone.now()
-        entity2 = Entity.objects.create(
-            entity_list=self.entity_list, deleted_at=deleted_at
-        )
-        entity2.soft_delete(self.user)
-        entity2.refresh_from_db()
-        # deleted_at should not remain unchanged
-        self.assertEqual(entity2.deleted_at, deleted_at)
-
-        # deleted_by is optional
-        entity3 = Entity.objects.create(entity_list=self.entity_list)
-        entity3.soft_delete()
-        entity2.refresh_from_db()
-
-        self.assertEqual(entity3.deleted_at, self.mocked_now)
-        self.assertIsNone(entity3.deleted_by)
+        self.assertEqual(entity.deleted_by, self.user)
 
     @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
-    def test_hard_delete(self, mock_adjust):
-        """Hard deleting updates dataset info"""
+    def test_soft_delete_already_deleted(self, mock_adjust):
+        """Soft deleting an already-deleted Entity is a no-op"""
+        deleted_at = timezone.now()
+        entity = Entity.objects.create(
+            entity_list=self.entity_list, deleted_at=deleted_at
+        )
+        entity.soft_delete(self.user)
+        entity.refresh_from_db()
+        # deleted_at should remain unchanged
+        self.assertEqual(entity.deleted_at, deleted_at)
+
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    @patch("django.utils.timezone.now")
+    def test_soft_delete_without_deleted_by(self, mock_now, mock_adjust):
+        """deleted_by is optional when soft deleting"""
+        mock_now.return_value = self.mocked_now
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        entity.soft_delete()
+        entity.refresh_from_db()
+
+        self.assertEqual(entity.deleted_at, self.mocked_now)
+        self.assertIsNone(entity.deleted_by)
+
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    def test_soft_delete_updates_last_entity_update_time(self, mock_adjust):
+        """Soft deleting updates EntityList last_entity_update_time"""
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        self.entity_list.refresh_from_db()
+        old_last_entity_update_time = self.entity_list.last_entity_update_time
+
+        entity.soft_delete(self.user)
+        self.entity_list.refresh_from_db()
+        new_last_entity_update_time = self.entity_list.last_entity_update_time
+
+        self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    def test_soft_delete_updates_elist_count(self, mock_adjust):
+        """Soft deleting decrements EntityList num_entities"""
         entity = Entity.objects.create(entity_list=self.entity_list)
         mock_adjust.reset_mock()
+
+        entity.soft_delete(self.user)
+
+        mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
+
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    def test_hard_delete_updates_last_entity_update_time(self, mock_adjust):
+        """Hard deleting updates EntityList last_entity_update_time"""
+        entity = Entity.objects.create(entity_list=self.entity_list)
         self.entity_list.refresh_from_db()
         old_last_entity_update_time = self.entity_list.last_entity_update_time
 
@@ -110,6 +132,15 @@ class EntityTestCase(TestBase):
         new_last_entity_update_time = self.entity_list.last_entity_update_time
 
         self.assertTrue(old_last_entity_update_time < new_last_entity_update_time)
+
+    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
+    def test_hard_delete_updates_elist_count(self, mock_adjust):
+        """Hard deleting decrements EntityList num_entities"""
+        entity = Entity.objects.create(entity_list=self.entity_list)
+        mock_adjust.reset_mock()
+
+        entity.delete()
+
         mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
 
     def test_entity_list_uuid_unique(self):
