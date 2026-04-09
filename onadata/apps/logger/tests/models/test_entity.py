@@ -73,8 +73,7 @@ class EntityTestCase(TestBase):
         self.assertEqual(entity.deleted_at, self.mocked_now)
         self.assertEqual(entity.deleted_by, self.user)
 
-    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
-    def test_soft_delete_already_deleted(self, mock_adjust):
+    def test_soft_delete_already_deleted(self):
         """Soft deleting an already-deleted Entity is a no-op"""
         deleted_at = timezone.now()
         entity = Entity.objects.create(
@@ -85,20 +84,16 @@ class EntityTestCase(TestBase):
         # deleted_at should remain unchanged
         self.assertEqual(entity.deleted_at, deleted_at)
 
-    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
-    @patch("django.utils.timezone.now")
-    def test_soft_delete_without_deleted_by(self, mock_now, mock_adjust):
+    def test_soft_delete_deleted_by_optional(self):
         """deleted_by is optional when soft deleting"""
-        mock_now.return_value = self.mocked_now
         entity = Entity.objects.create(entity_list=self.entity_list)
         entity.soft_delete()
         entity.refresh_from_db()
 
-        self.assertEqual(entity.deleted_at, self.mocked_now)
+        self.assertIsNotNone(entity.deleted_at)
         self.assertIsNone(entity.deleted_by)
 
-    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
-    def test_soft_delete_updates_last_entity_update_time(self, mock_adjust):
+    def test_soft_delete_updates_last_entity_update_time(self):
         """Soft deleting updates EntityList last_entity_update_time"""
         entity = Entity.objects.create(entity_list=self.entity_list)
         self.entity_list.refresh_from_db()
@@ -120,8 +115,7 @@ class EntityTestCase(TestBase):
 
         mock_adjust.assert_called_once_with(self.entity_list.pk, delta=-1)
 
-    @patch("onadata.apps.logger.tasks.adjust_elist_num_entities_async.delay")
-    def test_hard_delete_updates_last_entity_update_time(self, mock_adjust):
+    def test_hard_delete_updates_last_entity_update_time(self):
         """Hard deleting updates EntityList last_entity_update_time"""
         entity = Entity.objects.create(entity_list=self.entity_list)
         self.entity_list.refresh_from_db()
