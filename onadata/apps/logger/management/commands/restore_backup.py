@@ -44,4 +44,4 @@ class Command(BaseCommand):
         input_file = os.path.realpath(input_file)
 
         num_instances, num_restored = restore_backup_from_zip(input_file, username)
-        sys.stdout.write(f"Restored {num_restored} of {num_instances } submissions\n")
+        sys.stdout.write(f"Restored {num_restored} of {num_instances} submissions\n")

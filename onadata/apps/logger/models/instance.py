@@ -608,7 +608,7 @@ class Instance(models.Model, InstanceBaseClass):
     Model representing a single submission to an XForm
     """
 
-    class DecryptionStatus(models.TextChoices):
+    class DecryptionStatus(models.TextChoices):  # pylint: disable=too-many-ancestors
         UNMANAGED = "unmanaged", _("Does not use managed keys")
         PENDING = "pending", _("Pending decryption")
         SUCCESS = "success", _("Decryption successful")
