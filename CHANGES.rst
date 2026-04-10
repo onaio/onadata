@@ -3,6 +3,22 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.15.1 (2026-04-10)
+--------------------
+- chore(deps): regenerate requirements with Python 3.13 and django 5.2.13
+  [@ukanga]
+  `PR #3055 https://github.com/onaio/onadata/pull/3055`
+- fix: set explicit fileLabel for SavWriter to avoid getpass.getuser() call
+  [@FrankApiyo]
+  `PR #3053 https://github.com/onaio/onadata/pull/3053`
+- fix: stale project caches after sharing project w/ team
+  [@kelvin-muchiri]
+  `PR #3052 https://github.com/onaio/onadata/pull/3052`
+- Project reversion api tracking
+  [@ukanga]
+  `PR #3051 https://github.com/onaio/onadata/pull/3051`
+
+
 v5.15.0 (2026-03-19)
 --------------------
 - Switch to Python 3.13 from 3.10.19
