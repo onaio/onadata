@@ -158,7 +158,7 @@ class TestOSMViewSet(TestAbstractViewSet):
         with open(test_file_path, "r") as test_file:
             expected_csv_reader = csv.DictReader(test_file)
             for index, row in enumerate(expected_csv_reader):
-                self.assertDictContainsSubset(row, data[index])
+                self.assertLessEqual(row.items(), data[index].items())
 
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.xform.pk, format="csv")

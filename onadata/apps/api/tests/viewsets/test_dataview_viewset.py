@@ -255,7 +255,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         # JSON format
         response = self.view(request, pk=self.data_view.pk, format="json")
         self.assertEqual(response.status_code, 200)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_get_dataview_form_details(self):
         self._create_dataview()

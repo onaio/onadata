@@ -547,7 +547,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
                     row.pop(None)
-                self.assertDictContainsSubset(row, data[index])
+                self.assertLessEqual(row.items(), data[index].items())
 
     def _test_csv_files(self, csv_file, csv_file_path):
         reader = csv.DictReader(csv_file)
@@ -557,7 +557,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             for index, row in enumerate(expected_csv_reader):
                 if None in row:
                     row.pop(None)
-                self.assertDictContainsSubset(row, data[index])
+                self.assertLessEqual(row.items(), data[index].items())
 
     def _publish_registration_form(self, user, project=None):
         md = """

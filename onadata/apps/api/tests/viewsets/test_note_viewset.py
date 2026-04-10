@@ -46,7 +46,7 @@ class TestNoteViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.data) > 0)
-        self.assertDictContainsSubset(self.note, response.data[0])
+        self.assertLessEqual(self.note.items(), response.data[0].items())
 
     def test_note_get(self):
         self._add_notes_to_data_point()
@@ -56,7 +56,7 @@ class TestNoteViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["owner"], self.user.username)
-        self.assertDictContainsSubset(self.note, response.data)
+        self.assertLessEqual(self.note.items(), response.data.items())
 
     def test_get_note_for_specific_instance(self):
         self._add_notes_to_data_point()
@@ -68,7 +68,7 @@ class TestNoteViewSet(TestBase):
         request = self.factory.get("/", data=query_params, **self.extra)
         response = view(request, pk=self.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertDictContainsSubset(self.note, response.data)
+        self.assertLessEqual(self.note.items(), response.data.items())
 
         second_instance = self.xform.instances.last()
         query_params = {"instance": second_instance.id}
@@ -185,12 +185,12 @@ class TestNoteViewSet(TestBase):
         note = Note(note="Hello", instance=self._first_xform_instance)
         note.save()
         data = NoteSerializer(note).data
-        self.assertDictContainsSubset(
+        self.assertLessEqual(
             {
                 "created_by": None,
                 "note": "Hello",
                 "instance": note.instance_id,
                 "owner": None,
-            },
-            data,
+            }.items(),
+            data.items(),
         )

@@ -68,7 +68,7 @@ class TestUserPermissions(TestAbstractViewSet):
 
                 xform = bob.xforms.all()[0]
                 data.update({"url": "http://testserver/api/v1/forms/%s" % xform.pk})
-                self.assertDictContainsSubset(data, response.data)
+                self.assertLessEqual(data.items(), response.data.items())
 
     def test_manager_can_update_xform(self):
         self._publish_xls_form_to_project()
