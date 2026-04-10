@@ -28,7 +28,7 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-from django.core.files.storage import storages
+from django.core.files.storage import InvalidStorageError, storages
 from django.db import DataError, IntegrityError, transaction
 from django.http import (
     HttpResponse,
@@ -944,14 +944,14 @@ def get_storages_media_download_url(
         s3_class = storages.create_storage(
             {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
         )
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, InvalidStorageError):
         pass
 
     try:
         azure_class = storages.create_storage(
             {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
         )
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, InvalidStorageError):
         pass
 
     # Check if the storage backend is S3

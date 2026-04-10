@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.core.files.storage import InvalidStorageError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
@@ -1312,3 +1313,27 @@ class GetStoragesMediaDownloadUrlTestCase(TestBase):
         self.assertEqual(called_kwargs["content_type"], "text/csv")
         self.assertIsInstance(called_kwargs["permission"], AccountSasPermissions)
         self.assertTrue(called_kwargs["permission"].read)
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+        },
+    )
+    @patch("onadata.libs.utils.logger_tools.storages")
+    def test_invalid_storage_error_is_handled_gracefully(self, mock_storages):
+        """InvalidStorageError from create_storage is caught gracefully.
+
+        Regression test for https://github.com/onaio/onadata/issues/2960.
+        When the azure or boto3 packages are not installed, Django's
+        create_storage raises InvalidStorageError (wrapping ModuleNotFoundError).
+        The function should return None without raising.
+        """
+        mock_storages.create_storage.side_effect = InvalidStorageError(
+            "Could not find backend: No module named 'azure'"
+        )
+        mock_storages.__getitem__ = lambda self, key: None
+
+        url = get_storages_media_download_url(
+            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
+        )
+        self.assertIsNone(url)
