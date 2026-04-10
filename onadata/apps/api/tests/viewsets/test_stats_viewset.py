@@ -49,7 +49,7 @@ class TestStatsViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         data = {"count": 4}
-        self.assertDictContainsSubset(data, response.data[0], response.data)
+        self.assertLessEqual(data.items(), response.data[0].items(), response.data)
 
         request = self.factory.get("/?group=_submitted_by", **self.extra)
         response = view(request, pk=formid)
@@ -57,7 +57,7 @@ class TestStatsViewSet(TestBase):
         self.assertIsInstance(response.data, list)
         data = {"count": 4}
 
-        self.assertDictContainsSubset(data, response.data[0])
+        self.assertLessEqual(data.items(), response.data[0].items())
 
     def test_submissions_stats_with_xform_in_delete_async_queue(self):
         self._publish_transportation_form()
@@ -165,7 +165,7 @@ class TestStatsViewSet(TestBase):
         response = view(request, pk=formid)
         data = {"age": 28.5, "amount": 1100.0}
         self.assertNotEqual(response.get("Cache-Control"), None)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_mean_api(self):
         self._contributions_form_submissions()
@@ -175,7 +175,7 @@ class TestStatsViewSet(TestBase):
         response = view(request, pk=formid)
         data = {"age": 28.17, "amount": 1455.0}
         self.assertNotEqual(response.get("Cache-Control"), None)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_mode_api(self):
         self._contributions_form_submissions()
@@ -185,7 +185,7 @@ class TestStatsViewSet(TestBase):
         response = view(request, pk=formid)
         data = {"age": 24, "amount": 430.0}
         self.assertNotEqual(response.get("Cache-Control"), None)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_range_api(self):
         self._contributions_form_submissions()
@@ -198,7 +198,7 @@ class TestStatsViewSet(TestBase):
             "amount": {"range": 2770, "max": 3200, "min": 430},
         }
         self.assertNotEqual(response.get("Cache-Control"), None)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_bad_field(self):
         self._contributions_form_submissions()
@@ -247,7 +247,7 @@ class TestStatsViewSet(TestBase):
             "min": 430,
             "range": 2770,
         }
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_wrong_stat_function_api(self):
         self._contributions_form_submissions()

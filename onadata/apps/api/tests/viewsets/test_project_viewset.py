@@ -1838,7 +1838,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.put("/", data=data, **self.extra)
         response = view(request, pk=projectid)
         data.update({"metadata": json.loads(data.get("metadata"))})
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     # pylint: disable=invalid-name
     def test_project_partial_updates_to_existing_metadata(self):
