@@ -42,7 +42,7 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
         # ensure that id and timestamp are returned
         self.assertTrue("id" and "timestamp" in [text(x) for x in list(response.data)])
         return response.data

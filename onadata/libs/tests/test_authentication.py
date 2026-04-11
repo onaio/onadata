@@ -28,13 +28,13 @@ JWT_ALGORITHM = getattr(settings, "JWT_ALGORITHM", "HS256")
 
 class TestGetAPIToken(TestCase):
     def test_non_existent_token(self):
-        with self.assertRaisesRegexp(AuthenticationFailed, "Invalid token"):
+        with self.assertRaisesRegex(AuthenticationFailed, "Invalid token"):
             data = {API_TOKEN: "nonexistenttoken"}
             jwt_data = jwt.encode(data, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
             get_api_token(jwt_data)
 
     def test_bad_signature(self):
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             AuthenticationFailed, "JWT DecodeError: Signature verification failed"
         ):
             data = {API_TOKEN: "somekey"}

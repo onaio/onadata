@@ -292,7 +292,7 @@ class TestXForm(TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
         self.assertEqual(xform.deleted_by.username, "bob")
         calls = [call(self.project.pk), call(self.project.pk)]
-        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.assert_has_calls(calls, any_order=True)
         mock_clear_project_cache.reset_mock()
 
         xform.restore()
@@ -313,7 +313,7 @@ class TestXForm(TestBase):
         self.assertNotIn("-deleted-at-", xform.sms_id_string)
         self.assertIsNone(xform.deleted_by)
         calls = [call(self.project.pk), call(self.project.pk)]
-        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.assert_has_calls(calls, any_order=True)
 
     @patch("onadata.apps.logger.models.xform.clear_project_cache")
     def test_restore_deleted_merged_xform(self, mock_clear_project_cache):
@@ -337,7 +337,7 @@ class TestXForm(TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
         self.assertEqual(xform.deleted_by.username, "bob")
         calls = [call(self.project.pk), call(self.project.pk)]
-        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.assert_has_calls(calls, any_order=True)
         mock_clear_project_cache.reset_mock()
 
         xform.restore()
@@ -356,7 +356,7 @@ class TestXForm(TestBase):
         self.assertNotIn("-deleted-at-", xform.sms_id_string)
         self.assertIsNone(xform.deleted_by)
         calls = [call(self.project.pk), call(self.project.pk)]
-        mock_clear_project_cache.has_calls(calls, any_order=True)
+        mock_clear_project_cache.assert_has_calls(calls, any_order=True)
 
     def test_update_num_of_decrypted_submissions_unmanaged(self):
         """update_num_of_decrypted_submissions() returns unmanaged form"""

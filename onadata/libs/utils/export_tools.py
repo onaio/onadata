@@ -752,7 +752,7 @@ def kml_export_data(id_string, user, xform=None):
         xpaths = list(data_for_display)
         xpaths.sort(key=cmp_to_key(instance.xform.get_xpath_cmp()))
         table_rows = [
-            f"<tr><td>{cached_get_labels(xpath) }</td>"
+            f"<tr><td>{cached_get_labels(xpath)}</td>"
             f"<td>{data_for_display[xpath]}</td></tr>"
             for xpath in xpaths
             if not xpath.startswith("_")

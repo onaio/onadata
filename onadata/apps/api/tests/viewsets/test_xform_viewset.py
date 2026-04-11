@@ -205,7 +205,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 xform = self.user.xforms.get(id_string="transportation_2011_07_25")
                 data.update({"url": "http://testserver/api/v1/forms/%s" % xform.pk})
 
-                self.assertDictContainsSubset(data, response.data)
+                self.assertLessEqual(data.items(), response.data.items())
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEqual("owner", response.data["users"][0]["role"])
 
@@ -260,7 +260,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                         "has_id_string_changed": False,
                     }
                 )
-                self.assertDictContainsSubset(data, response.data)
+                self.assertLessEqual(data.items(), response.data.items())
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEqual("owner", response.data["users"][0]["role"])
 
@@ -301,7 +301,7 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                     }
                 )
 
-                self.assertDictContainsSubset(data, response.data)
+                self.assertLessEqual(data.items(), response.data.items())
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertEqual("owner", response.data["users"][0]["role"])
 
@@ -1408,7 +1408,7 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             response = view(request, pk=formid, format="json")
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get("Cache-Control"), None)
-            self.assertDictContainsSubset(data, response.data)
+            self.assertLessEqual(data.items(), response.data.items())
 
             # test correct file name
             self.assertEqual(

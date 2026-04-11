@@ -144,7 +144,7 @@ def _process_user_directory(user_dir):
                 if relative_path == ".":
                     folder_name = "root"
                 else:
-                    folder_name = relative_path.split(os.sep)[0]
+                    folder_name = relative_path.split(os.sep, maxsplit=1)[0]
 
                 if folder_name not in folder_sizes:
                     folder_sizes[folder_name] = 0

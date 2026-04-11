@@ -488,7 +488,7 @@ class TestChartsViewSet(TestBase):
             "url": "http://testserver/api/v1/charts/{}".format(self.xform.pk),
         }
         self.assertEqual(200, response.status_code)
-        self.assertDictContainsSubset(expected, response.data)
+        self.assertLessEqual(expected.items(), response.data.items())
 
         # If content-type is not returned; Assume that the desired
         # response is JSON
@@ -496,7 +496,7 @@ class TestChartsViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=self.xform.pk)
         self.assertEqual(200, response.status_code)
-        self.assertDictContainsSubset(expected, response.data)
+        self.assertLessEqual(expected.items(), response.data.items())
 
     def test_charts_caching(self):
         """
