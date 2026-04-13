@@ -227,7 +227,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         data["user"] = f"http://testserver/api/v1/users/{data['org']}"
         data["creator"] = "http://testserver/api/v1/users/bob"
         data.pop("email")
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
         # pylint: disable=attribute-defined-outside-init
         self.company_data = response.data
         self.organization = OrganizationProfile.objects.get(user__username=data["org"])
@@ -287,7 +287,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         ]
         data["url"] = f"http://testserver/api/v1/projects/{self.project.pk}"
         data["owner"] = data["owner"].removesuffix(".json")
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
         request.user = self.user
         # pylint: disable=attribute-defined-outside-init
@@ -675,7 +675,7 @@ class TestAbstractViewSet(TestBase, TestCase):
         )
         data["url"] = f"http://testserver/api/v1/teams/{team.pk}"
         data["teamid"] = team.id
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
         self.team_data = response.data
         self.team = team
 

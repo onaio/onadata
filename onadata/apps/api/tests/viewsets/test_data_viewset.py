@@ -146,8 +146,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         dataid = self.xform.instances.all().order_by("id")[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(
-            data, sorted(response.data, key=lambda x: x["_id"])[0]
+        self.assertLessEqual(
+            data.items(), sorted(response.data, key=lambda x: x["_id"])[0].items()
         )
 
         data = {
@@ -160,7 +160,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertIsInstance(response.data, dict)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     @override_settings(STREAM_DATA=True)
     def test_data_streaming(self):
@@ -185,8 +185,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
 
         dataid = self.xform.instances.all().order_by("id")[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(
-            data, sorted(streaming_data, key=lambda x: x["_id"])[0]
+        self.assertLessEqual(
+            data.items(), sorted(streaming_data, key=lambda x: x["_id"])[0].items()
         )
 
         data = {
@@ -199,7 +199,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.get("Cache-Control"), None)
         self.assertIsInstance(response.data, dict)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_catch_data_error(self):
         view = DataViewSet.as_view({"get": "list"})
@@ -996,8 +996,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         dataid = self.xform.instances.all().order_by("id")[0].pk
         data = _data_instance(dataid)
 
-        self.assertDictContainsSubset(
-            data, sorted(response.data, key=lambda x: x["_id"])[0]
+        self.assertLessEqual(
+            data.items(), sorted(response.data, key=lambda x: x["_id"])[0].items()
         )
 
         data = {
@@ -1009,7 +1009,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_data_public(self):
         self._make_submissions()
@@ -1523,8 +1523,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by("id")[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(
-            data, sorted(response.data, key=lambda x: x["_id"])[0]
+        self.assertLessEqual(
+            data.items(), sorted(response.data, key=lambda x: x["_id"])[0].items()
         )
 
         # access to a public data as other user
@@ -1538,8 +1538,8 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by("id")[0].pk
         data = _data_instance(dataid)
-        self.assertDictContainsSubset(
-            data, sorted(response.data, key=lambda x: x["_id"])[0]
+        self.assertLessEqual(
+            data.items(), sorted(response.data, key=lambda x: x["_id"])[0].items()
         )
 
     def test_same_submission_with_different_attachments(self):
@@ -1618,7 +1618,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "_id": dataid,
             "image1": "1335783522563.jpg",
         }
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertLessEqual(data.items(), sorted(response.data)[0].items())
 
         media_file = "1442323232322.jpg"
         self._make_submission_w_attachment(
@@ -1649,7 +1649,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         ]
         self.maxDiff = None
         response = view(request, pk=formid)
-        self.assertDictContainsSubset(sorted([data])[0], sorted(response.data)[0])
+        self.assertLessEqual(sorted([data])[0].items(), sorted(response.data)[0].items())
         self.assertEqual(response.status_code, 200)
         submission_file.close()
         os.unlink(submission_file.name)
@@ -1693,7 +1693,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             "_status": "submitted_via_web",
             "_id": dataid,
         }
-        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        self.assertLessEqual(data.items(), sorted(response.data)[0].items())
 
         data = {
             "_xform_id_string": "transportation_2011_07_25",
@@ -1704,7 +1704,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
-        self.assertDictContainsSubset(data, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_delete_submission(self):
         self._make_submissions()

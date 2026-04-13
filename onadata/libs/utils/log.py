@@ -26,7 +26,7 @@ class Enum:
         return iter(self.enums.values())
 
 
-Actions = Enum(
+Actions = Enum(  # pylint: disable=invalid-name
     PROFILE_ACCESSED="profile-accessed",
     PUBLIC_PROFILE_ACCESSED="public-profile-accessed",
     PROFILE_SETTINGS_UPDATED="profile-settings-updated",
