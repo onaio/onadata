@@ -11,6 +11,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.files.storage import storages
@@ -990,6 +991,40 @@ pre_save.connect(
     decr_xform_num_of_decrypted_submissions_on_soft_delete,
     sender=Instance,
     dispatch_uid="decr_xform_num_of_decrypted_submissions_on_soft_delete",
+)
+
+
+def create_or_update_entity(sender, instance, created=False, **kwargs):
+    """Create or update an Entity after Instance saved"""
+    # Avoid cyclic dependency errors
+    meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
+    entities_utils = importlib.import_module("onadata.libs.utils.entities_utils")
+
+    content_type = ContentType.objects.get_for_model(instance.xform)
+    is_review_enabled = meta_data.MetaData.objects.filter(
+        content_type=content_type,
+        object_id=instance.xform.id,
+        data_type="submission_review",
+        data_value="true",
+    ).exists()
+    should_create_or_update = False
+
+    if not is_review_enabled:
+        should_create_or_update = True
+
+    else:
+        if not created:
+            is_review_approved = SubmissionReview.objects.filter(
+                instance_id=instance.id, status=SubmissionReview.APPROVED
+            ).exists()
+            should_create_or_update = is_review_approved
+
+    if should_create_or_update:
+        entities_utils.create_or_update_entity_from_instance(instance)
+
+
+post_save.connect(
+    create_or_update_entity, sender=Instance, dispatch_uid="create_or_update_entity"
 )
 
 

@@ -5,9 +5,10 @@ RegistrationForm model
 import json
 
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils.translation import gettext_lazy as _
 
-from onadata.apps.logger.models.entity_list import EntityList
+from onadata.apps.logger.models.entity_list import EntityList, EntityListProperty
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.libs.models import BaseModel
@@ -76,3 +77,24 @@ class RegistrationForm(BaseModel):
     def properties(self) -> list[str]:
         """All EntityList properties the form contributes to"""
         return list(self.get_save_to().keys())
+
+
+# pylint: disable=unused-argument
+def create_elist_properties(sender, instance, **kwargs):
+    """Create EntityListProperty from RegistrationForm"""
+    for prop in instance.properties:
+        if not EntityListProperty.objects.filter(
+            name__iexact=prop, entity_list=instance.entity_list
+        ).exists():
+            EntityListProperty.objects.create(
+                name=prop,
+                entity_list=instance.entity_list,
+                created_by=instance.xform.created_by,
+            )
+
+
+post_save.connect(
+    create_elist_properties,
+    sender=RegistrationForm,
+    dispatch_uid="create_elist_properties",
+)

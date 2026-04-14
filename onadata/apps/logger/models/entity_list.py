@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, transaction
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -137,3 +138,41 @@ class EntityListGroupObjectPermission(GroupObjectPermissionBase):
     # improved performance in huge databases
     group = models.ForeignKey(Group, on_delete=models.CASCADE, db_index=False)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, db_index=False)
+
+
+# pylint: disable=unused-argument
+def set_entity_list_perms(sender, instance, created=False, **kwargs):
+    """Set project permissions to EntityList"""
+    # Avoid cyclic dependency errors
+    logger_tasks = importlib.import_module("onadata.apps.logger.tasks")
+
+    if created:
+        transaction.on_commit(
+            lambda: logger_tasks.set_entity_list_perms_async.delay(instance.pk)
+        )
+
+
+def delete_entity_list_metadata(sender, instance, **kwargs):
+    """Delete EntityList related data on delete"""
+    # Avoid cyclic dependency errors
+    meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
+
+    clear_project_cache(instance.project.pk)
+    # We get original name incase name has been modified in the case where
+    # EntityList was first soft deleted
+    entity_list_name = instance.name.split("-")[0]
+    meta_data.MetaData.objects.filter(
+        data_type="media",
+        data_value=f"entity_list {instance.pk} {entity_list_name}",
+    ).delete()
+
+
+post_save.connect(
+    set_entity_list_perms, sender=EntityList, dispatch_uid="set_entity_list_perms"
+)
+
+post_delete.connect(
+    delete_entity_list_metadata,
+    sender=EntityList,
+    dispatch_uid="delete_entity_list_metadata",
+)
