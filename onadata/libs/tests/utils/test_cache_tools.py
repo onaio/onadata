@@ -114,6 +114,24 @@ class TestCacheTools(TestCase):
         project_cache.pop("date_modified")
         self.assertEqual(project_cache, expected_project_cache)
 
+    @patch("onadata.libs.utils.cache_tools.cache.set")
+    def test_reset_project_cache_handles_oversized_data(self, mock_cache_set):
+        """reset_project_cache does not raise when cache value exceeds size limit"""
+        bob = User.objects.create(username="alice", first_name="alice")
+        UserProfile.objects.create(user=bob)
+        project = Project.objects.create(
+            name="Big Project", created_by=bob, organization=bob
+        )
+        mock_cache_set.side_effect = Exception("TooBig")
+
+        request = HttpRequest()
+        request.user = bob
+        request.META = {"SERVER_NAME": "testserver", "SERVER_PORT": "80"}
+
+        # Should not raise even when cache.set raises due to oversized data
+        reset_project_cache(project, request, ProjectSerializer)
+        mock_cache_set.assert_called()
+
 
 @patch("onadata.libs.utils.cache_tools.cache.set")
 class SafeCacheSetTestCase(TestCase):
@@ -138,6 +156,7 @@ class SafeCacheSetTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -178,6 +197,7 @@ class SafeCacheGetTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -219,6 +239,7 @@ class SafeCacheAddTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -260,6 +281,7 @@ class SafeCacheIncrTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -301,6 +323,7 @@ class SafeCacheDecrTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -334,6 +357,7 @@ class SafeCacheDeleteTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (Exception, "Exception"),
         ]
 
         for exception_class, exception_name in test_cases:
