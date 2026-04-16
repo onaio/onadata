@@ -5,7 +5,6 @@ Cache utilities.
 
 import hashlib
 import logging
-import socket
 import time
 from contextlib import contextmanager
 
@@ -135,7 +134,7 @@ def reset_project_cache(project, request, project_serializer_class):
     project_cache_data = project_serializer_class(
         project, context={"request": request}
     ).data
-    cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+    safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
 
 
 def _safe_cache_operation(operation, default_return=None):
@@ -150,7 +149,7 @@ def _safe_cache_operation(operation, default_return=None):
     """
     try:
         return operation()
-    except (ConnectionError, socket.error, ValueError) as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.exception(exc)
 
         return default_return
@@ -294,8 +293,8 @@ def set_cache_with_lock(
     """
     with with_cache_lock(cache_key, lock_expire, lock_timeout):
         # Get the current value from cache
-        current_value = cache.get(cache_key)
+        current_value = safe_cache_get(cache_key)
         # Use the callback to get the modified value
         new_value = modify_callback(current_value)
         # Set the new value in the cache with the specified timeout
-        cache.set(cache_key, new_value, cache_timeout)
+        safe_cache_set(cache_key, new_value, cache_timeout)
