@@ -11,6 +11,8 @@ from django.core.cache import cache
 from django.http.request import HttpRequest
 from django.test import TestCase
 
+import pylibmc
+
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -138,6 +140,7 @@ class SafeCacheSetTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -178,6 +181,7 @@ class SafeCacheGetTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -219,6 +223,7 @@ class SafeCacheAddTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -260,6 +265,7 @@ class SafeCacheIncrTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -301,6 +307,7 @@ class SafeCacheDecrTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:
@@ -334,6 +341,7 @@ class SafeCacheDeleteTestCase(TestCase):
             (ConnectionError, "ConnectionError"),
             (socket.error, "socket.error"),
             (ValueError, "ValueError"),
+            (pylibmc.TooBig, "pylibmc.TooBig"),
         ]
 
         for exception_class, exception_name in test_cases:

@@ -13,6 +13,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils.encoding import force_bytes
 
+import pylibmc
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = cache.default_timeout
@@ -150,7 +152,7 @@ def _safe_cache_operation(operation, default_return=None):
     """
     try:
         return operation()
-    except (ConnectionError, socket.error, ValueError) as exc:
+    except (ConnectionError, socket.error, ValueError, pylibmc.Error) as exc:
         logger.exception(exc)
 
         return default_return
