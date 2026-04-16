@@ -3,6 +3,16 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.15.2 (2026-04-16)
+--------------------
+- fix: stale CSV exports after Entity soft delete
+  [@kelvin-muchiri]
+  `PR #3054 https://github.com/onaio/onadata/pull/3054`
+- fix: handle pylibmc.TooBig in cache operations
+  [@ukanga]
+  `PR #3063 https://github.com/onaio/onadata/pull/3063`
+
+
 v5.15.1 (2026-04-10)
 --------------------
 - chore(deps): regenerate requirements with Python 3.13 and django 5.2.13
