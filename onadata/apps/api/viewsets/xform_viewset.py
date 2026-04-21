@@ -65,6 +65,7 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_get,
     safe_cache_set,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
@@ -989,6 +990,20 @@ class XFormViewSet(
         )
 
         return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box of all geolocated submissions.
+
+        Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
+        ``null`` when the form has no geolocated submissions. Used by the
+        frontend tile map to fit the viewport on load without fetching the
+        full submission set.
+        """
+        xform = self.get_object()
+        bbox = compute_instance_bbox([xform.pk])
+        return Response({"bbox": bbox})
 
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):

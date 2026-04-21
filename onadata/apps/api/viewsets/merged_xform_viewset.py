@@ -20,6 +20,7 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 
 
 # pylint: disable=too-many-ancestors
@@ -92,6 +93,20 @@ class MergedXFormViewSet(
             data = json.loads(data) if isinstance(data, str) else data
 
         return Response(data)
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box across all xforms in this merged dataset.
+
+        Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
+        Matches the xform set `form_tiles()` serves when called with
+        ``merged_dataset_id``.
+        """
+        merged_xform = self.get_object()
+        xform_ids = list(merged_xform.xforms.values_list("pk", flat=True))
+        bbox = compute_instance_bbox(xform_ids)
+        return Response({"bbox": bbox})
 
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)
