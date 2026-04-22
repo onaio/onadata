@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Tests for URL configuration when django.contrib.admin toggles in INSTALLED_APPS.
-"""
+"""Tests for URL configuration when django.contrib.admin toggles in INSTALLED_APPS."""
 import importlib
 
 from django.conf import settings
@@ -13,12 +11,11 @@ from onadata.apps.main import urls as main_urls_module
 
 
 class TestUrlsAdminToggle(SimpleTestCase):
+
     """Verify the admin conditional in main/urls.py actually toggles."""
 
     def tearDown(self):
-        # override_settings reverts settings, but the URL modules were
-        # reloaded under the override. Reload again under the real settings
-        # so later tests in the suite see the expected URLconf.
+        """Reload URL modules so later tests see the real settings URLconf."""
         clear_url_caches()
         importlib.reload(main_urls_module)
         importlib.reload(api_v1_urls_module)
