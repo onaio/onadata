@@ -198,8 +198,10 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
-    "django.contrib.admin",
-    "django.contrib.admindocs",
+    # Django admin is optional. To enable it, add to INSTALLED_APPS in a
+    # downstream settings module:
+    #     "django.contrib.admin",
+    #     "django.contrib.admindocs",
     "django.contrib.gis",
     "registration",
     # "django_nose",
