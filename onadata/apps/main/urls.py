@@ -36,7 +36,7 @@ ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
 ADMIN_INSTALLED = "django.contrib.admin" in settings.INSTALLED_APPS
 
 if ADMIN_INSTALLED:
-    from django.contrib import admin
+    from django.contrib import admin  # pylint: disable=ungrouped-imports
 
     admin.autodiscover()
     urlpatterns = [re_path(f"^{ADMIN_URL_PATH}/", admin.site.urls)]
