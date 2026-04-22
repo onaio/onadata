@@ -11,7 +11,6 @@ from onadata.apps.main import urls as main_urls_module
 
 
 class TestUrlsAdminToggle(SimpleTestCase):
-
     """Verify the admin conditional in main/urls.py actually toggles."""
 
     def tearDown(self):
