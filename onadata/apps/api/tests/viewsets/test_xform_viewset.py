@@ -121,6 +121,15 @@ def raise_bad_status_line(arg):
     raise BadStatusLine("RANDOM STATUS")
 
 
+def _xml_data_node_version(xml_str, id_string):
+    """Return the ``version`` attribute on the primary <data id="..."> node."""
+    doc = minidom.parseString(xml_str)
+    for node in doc.getElementsByTagName("data"):
+        if node.getAttribute("id") == id_string:
+            return node.getAttribute("version")
+    return None
+
+
 class XFormViewSetBaseTestCase(TestAbstractViewSet):
     def _make_submission_over_date_range(self, start, days=1):
         self._publish_xls_form_to_project()
@@ -4065,6 +4074,80 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
 
             for v in expected:
                 self.assertIn(v, response.data.get("form_versions"))
+
+    def test_replace_form_with_same_version_saves_new_xform_version(self):
+        """Replacing a form whose XLSForm carries the same version string
+        still saves a new XFormVersion (the new version is auto-bumped)."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            initial_version = self.xform.version
+            initial_count = XFormVersion.objects.filter(xform=self.xform).count()
+
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                request = self.factory.patch(
+                    "/", data={"xls_file": xls_file}, **self.extra
+                )
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 200)
+
+            self.xform.refresh_from_db()
+            self.assertEqual(
+                XFormVersion.objects.filter(xform=self.xform).count(),
+                initial_count + 1,
+            )
+            self.assertNotEqual(self.xform.version, initial_version)
+            self.assertTrue(
+                XFormVersion.objects.filter(
+                    xform=self.xform, version=initial_version
+                ).exists()
+            )
+            self.assertTrue(
+                XFormVersion.objects.filter(
+                    xform=self.xform, version=self.xform.version
+                ).exists()
+            )
+
+    def test_replace_form_same_version_bumps_with_numeric_suffix(self):
+        """Successive replacements with the same version walk -2, -3, ..."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            base_version = self.xform.version
+
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation.xlsx",
+            )
+
+            for expected_suffix in (2, 3):
+                with open(path, "rb") as xls_file:
+                    request = self.factory.patch(
+                        "/", data={"xls_file": xls_file}, **self.extra
+                    )
+                    response = view(request, pk=self.xform.pk)
+                    self.assertEqual(response.status_code, 200)
+                self.xform.refresh_from_db()
+                expected_version = f"{base_version}-{expected_suffix}"
+                self.assertEqual(self.xform.version, expected_version)
+                self.assertEqual(
+                    _xml_data_node_version(self.xform.xml, self.xform.id_string),
+                    expected_version,
+                )
 
     def test_versions_endpoint(self):
         """

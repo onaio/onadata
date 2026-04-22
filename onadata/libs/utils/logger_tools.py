@@ -1129,6 +1129,52 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     return dd
 
 
+def _get_xform_xml_data_node(doc, id_string):
+    """Return the primary <data id="..."> node from a parsed XForm XML doc,
+    or None if not found."""
+    model_nodes = [
+        n
+        for n in doc.getElementsByTagName("model")
+        if n.parentNode.nodeName == "h:head"
+    ]
+    if len(model_nodes) != 1:
+        return None
+    instance_nodes = [
+        n
+        for n in model_nodes[0].childNodes
+        if n.nodeType == Node.ELEMENT_NODE
+        and n.tagName.lower() == "instance"
+        and not n.hasAttribute("id")
+    ]
+    if len(instance_nodes) != 1:
+        return None
+    survey_nodes = [
+        n
+        for n in instance_nodes[0].childNodes
+        if n.nodeType == Node.ELEMENT_NODE and n.getAttribute("id") == id_string
+    ]
+    if len(survey_nodes) != 1:
+        return None
+    return survey_nodes[0]
+
+
+def _get_version_from_xform_xml(xml_str, id_string):
+    """Return the version attribute from the primary <data> node, or ""."""
+    data_node = _get_xform_xml_data_node(clean_and_parse_xml(xml_str), id_string)
+    return data_node.getAttribute("version") if data_node else ""
+
+
+def _set_version_in_xform_xml(xml_str, id_string, version):
+    """Set the ``version`` attribute on the primary <data> node. Returns the
+    updated XML string (unchanged if the data node cannot be located)."""
+    doc = clean_and_parse_xml(xml_str)
+    data_node = _get_xform_xml_data_node(doc, id_string)
+    if data_node is None:
+        return xml_str
+    data_node.setAttribute("version", version)
+    return doc.toxml()
+
+
 @TrackObjectEvent(
     user_field="user",
     properties={"created_by": "user", "xform_id": "pk", "xform_name": "title"},
@@ -1141,8 +1187,13 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         xml = xml.decode("utf-8")
     survey = create_survey_element_from_xml(xml)
     form_json = survey.to_json()
+    xml_version = _get_version_from_xform_xml(xml, survey.id_string)
     if id_string:
         dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
+        new_version = dd.get_unique_version(xml_version)
+        if new_version != xml_version:
+            xml = _set_version_in_xform_xml(xml, dd.id_string, new_version)
+        dd.version = new_version
         dd.xml = xml
         dd.json = form_json
         dd.mark_start_time_boolean()
@@ -1153,7 +1204,12 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     else:
         created_by = created_by or user
         dd = DataDictionary(
-            created_by=created_by, user=user, xml=xml, json=form_json, project=project
+            created_by=created_by,
+            user=user,
+            xml=xml,
+            json=form_json,
+            project=project,
+            version=xml_version,
         )
         dd.mark_start_time_boolean()
         set_uuid(dd)
