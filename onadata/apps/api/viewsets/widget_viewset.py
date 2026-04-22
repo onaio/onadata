@@ -71,6 +71,7 @@ class WidgetViewSet(
         if "key" in request.GET:
             key = request.GET["key"]
             obj = get_object_or_404(Widget, key=key)
+            self.check_object_permissions(request, obj)
 
             serializer = self.get_serializer(obj)
 
