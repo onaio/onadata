@@ -7,6 +7,7 @@ import logging
 
 from django.db import migrations
 
+from multidb.pinning import use_master
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.errors import PyXFormError
 
@@ -105,40 +106,48 @@ def update_xform_schema(apps, schema_editor):  # pylint: disable=unused-argument
     processed = 0
     patched = 0
 
-    for xform in xform_qs.iterator(chunk_size=100):
-        processed += 1
-        print(f"processed {processed} xforms")
+    with use_master:
+        for xform in xform_qs.iterator(chunk_size=100):
+            processed += 1
+            print(f"processed {processed} xforms")
 
-        try:
-            json_data = (
-                json.loads(xform.json) if isinstance(xform.json, str) else xform.json
-            )
-            _ = create_survey_element_from_dict(json_data)
-
-        except (KeyError, PyXFormError):
             try:
-                # Try to recreate the full schema from the xlsform
-                survey = LiveXForm.objects.get(id=xform.id).get_survey_from_xlsform()
-                XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
-
-            # AttributeError covers PyXForm v4 serialization bugs such as
-            # OsmUploadQuestion missing the ``choices`` attribute during
-            # ``to_json_dict`` — fall back to patching the stored JSON.
-            except (KeyError, PyXFormError, TypeError, AttributeError):
-                # If the full schema creation fails, try to patch the JSON
-                print(
-                    f"regenerating schema for XForm {xform.id} failed, performing patch"
+                json_data = (
+                    json.loads(xform.json)
+                    if isinstance(xform.json, str)
+                    else xform.json
                 )
-                process_children(json_data["children"], ensure_choices_exist(json_data))
-                XForm.objects.filter(id=xform.id).update(json=json_data)
-                patched += 1
+                _ = create_survey_element_from_dict(json_data)
 
-        except TypeError:
-            pass
+            except (KeyError, PyXFormError):
+                try:
+                    # Try to recreate the full schema from the xlsform
+                    survey = LiveXForm.objects.get(
+                        id=xform.id
+                    ).get_survey_from_xlsform()
+                    XForm.objects.filter(id=xform.id).update(json=survey.to_json_dict())
 
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            print(xform.pk, xform, e, type(e))
-            break
+                # AttributeError covers PyXForm v4 serialization bugs such as
+                # OsmUploadQuestion missing the ``choices`` attribute during
+                # ``to_json_dict`` — fall back to patching the stored JSON.
+                except (KeyError, PyXFormError, TypeError, AttributeError):
+                    # If the full schema creation fails, try to patch the JSON
+                    print(
+                        f"regenerating schema for XForm {xform.id} failed, "
+                        "performing patch"
+                    )
+                    process_children(
+                        json_data["children"], ensure_choices_exist(json_data)
+                    )
+                    XForm.objects.filter(id=xform.id).update(json=json_data)
+                    patched += 1
+
+            except TypeError:
+                pass
+
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                print(xform.pk, xform, e, type(e))
+                break
 
     print(f"patched {patched} xforms")
 
