@@ -8,9 +8,6 @@ import sys
 import django
 from django.conf import settings
 from django.conf.urls import i18n
-
-# enable the admin:
-from django.contrib import admin
 from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import include, re_path
 from django.views.generic import RedirectView
@@ -36,9 +33,24 @@ from onadata.libs.utils.analytics import init_analytics
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
 
-admin.autodiscover()
+ADMIN_INSTALLED = "django.contrib.admin" in settings.INSTALLED_APPS
 
-urlpatterns = [
+if ADMIN_INSTALLED:
+    from django.contrib import admin
+
+    admin.autodiscover()
+    urlpatterns = [re_path(f"^{ADMIN_URL_PATH}/", admin.site.urls)]
+    if "django.contrib.admindocs" in settings.INSTALLED_APPS:
+        urlpatterns += [
+            re_path(
+                f"^{ADMIN_URL_PATH}/doc/",
+                include("django.contrib.admindocs.urls"),
+            ),
+        ]
+else:
+    urlpatterns = []
+
+urlpatterns += [
     # change Language
     re_path(r"^i18n/", include(i18n)),
     re_path("^api/v1/", include(api_v1_router.urls)),
@@ -52,8 +64,6 @@ urlpatterns = [
     re_path(r"^api/v1$", RedirectView.as_view(url="/api/v1/", permanent=True)),
     # django default stuff
     re_path(r"^accounts/", include(registration_patterns)),
-    re_path(f"^{ADMIN_URL_PATH}/", admin.site.urls),
-    re_path(f"^{ADMIN_URL_PATH}/doc/", include("django.contrib.admindocs.urls")),
     # oath2_provider
     re_path(
         r"^o/authorize/$",
