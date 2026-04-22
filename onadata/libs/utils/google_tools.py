@@ -2,6 +2,7 @@
 """
 Google utility functions.
 """
+
 from typing import Optional
 
 from django.conf import settings
@@ -15,4 +16,5 @@ def create_flow(redirect_uri: Optional[str] = None) -> Flow:
         settings.GOOGLE_FLOW,
         scopes=settings.GOOGLE_FLOW_SCOPES,
         redirect_uri=redirect_uri or settings.GOOGLE_STEP2_URI,
+        autogenerate_code_verifier=False,
     )
