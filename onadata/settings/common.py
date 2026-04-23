@@ -109,6 +109,22 @@ ENKETO_AUTH_COOKIE = "__enketo"
 ENKETO_META_UID_COOKIE = "__enketo_meta_uid"
 ENKETO_META_USERNAME_COOKIE = "__enketo_meta_username"
 
+# Cookie security — all cookies issued by the app (session, CSRF, Enketo)
+# get Secure/HttpOnly/SameSite by default. Set DJANGO_*_SECURE=false in
+# local dev if you need to test over plain HTTP.
+SESSION_COOKIE_SECURE = (
+    os.environ.get("DJANGO_SESSION_COOKIE_SECURE", "true").lower() == "true"
+)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.environ.get("DJANGO_SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SECURE = (
+    os.environ.get("DJANGO_CSRF_COOKIE_SECURE", "true").lower() == "true"
+)
+CSRF_COOKIE_SAMESITE = os.environ.get("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
+# CSRF_COOKIE_HTTPONLY is left at Django's default (False) because the
+# JS client reads the CSRF token from the cookie to set the X-CSRFToken
+# header on AJAX requests.
+
 # Login URLs
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/login_redirect/"
