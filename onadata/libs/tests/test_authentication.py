@@ -15,6 +15,7 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import (
     DigestAuthentication,
     MasterReplicaOAuth2Validator,
+    StrictOAuth2Authentication,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
     check_lockout,
@@ -201,3 +202,70 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         )
         self.assertEqual(req.access_token, token)
         self.assertEqual(req.user, token.user)
+
+
+class TestStrictOAuth2Authentication(TestCase):
+    """Test StrictOAuth2Authentication class."""
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.auth = StrictOAuth2Authentication()
+
+    def test_returns_none_when_no_bearer_header(self):
+        """Test returns None when no Bearer token is provided."""
+        request = self.factory.get("/")
+        result = self.auth.authenticate(request)
+        self.assertIsNone(result)
+
+    def test_returns_none_when_different_auth_scheme(self):
+        """Test returns None when Authorization header uses different scheme."""
+        request = self.factory.get("/", HTTP_AUTHORIZATION="Token abc123")
+        result = self.auth.authenticate(request)
+        self.assertIsNone(result)
+
+    @patch("onadata.libs.authentication.OAuth2Authentication.authenticate")
+    def test_raises_auth_failed_when_bearer_token_invalid(self, mock_authenticate):
+        """Test raises AuthenticationFailed when Bearer token is invalid."""
+        mock_authenticate.return_value = None
+        request = self.factory.get("/", HTTP_AUTHORIZATION="Bearer invalid_token")
+        request.oauth2_error = {"error_description": "The access token is invalid"}
+
+        with self.assertRaises(AuthenticationFailed) as context:
+            self.auth.authenticate(request)
+
+        self.assertIn("access token is invalid", str(context.exception))
+
+    @patch("onadata.libs.authentication.OAuth2Authentication.authenticate")
+    def test_raises_auth_failed_when_bearer_token_expired(self, mock_authenticate):
+        """Test raises AuthenticationFailed when Bearer token is expired."""
+        mock_authenticate.return_value = None
+        request = self.factory.get("/", HTTP_AUTHORIZATION="Bearer expired_token")
+        request.oauth2_error = {"error_description": "The access token has expired"}
+
+        with self.assertRaises(AuthenticationFailed) as context:
+            self.auth.authenticate(request)
+
+        self.assertIn("access token has expired", str(context.exception))
+
+    @patch("onadata.libs.authentication.OAuth2Authentication.authenticate")
+    def test_raises_auth_failed_with_default_message(self, mock_authenticate):
+        """Test raises AuthenticationFailed with default message when no error_description."""
+        mock_authenticate.return_value = None
+        request = self.factory.get("/", HTTP_AUTHORIZATION="Bearer some_token")
+
+        with self.assertRaises(AuthenticationFailed) as context:
+            self.auth.authenticate(request)
+
+        self.assertIn("Invalid or expired token", str(context.exception))
+
+    @patch("onadata.libs.authentication.OAuth2Authentication.authenticate")
+    def test_returns_user_and_token_when_valid(self, mock_authenticate):
+        """Test returns (user, token) tuple when Bearer token is valid."""
+        user = MagicMock()
+        token = MagicMock()
+        mock_authenticate.return_value = (user, token)
+        request = self.factory.get("/", HTTP_AUTHORIZATION="Bearer valid_token")
+
+        result = self.auth.authenticate(request)
+
+        self.assertEqual(result, (user, token))
