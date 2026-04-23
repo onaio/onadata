@@ -3,7 +3,6 @@
 Custom rest_framework Router - MultiLookupRouter.
 """
 
-from django.contrib import admin
 from django.urls import re_path
 
 from rest_framework import routers
@@ -19,6 +18,7 @@ from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.floip_viewset import FloipViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.merged_xform_viewset import MergedXFormViewSet
+from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.open_data_viewset import OpenDataViewSet
@@ -37,11 +37,8 @@ from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.api.viewsets.messaging_stats_viewset import MessagingStatsViewSet
 from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import RestServicesViewSet
-
-admin.autodiscover()
 
 
 class MultiLookupRouter(routers.DefaultRouter):
