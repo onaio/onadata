@@ -166,6 +166,14 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         """
         Return organization members.
         """
+        if not obj:
+            return []
+
+        members = get_organization_members(obj)
+        owners = get_organization_owners(obj)
+
+        if owners and members:
+            members = members.exclude(username__in=[user.username for user in owners])
 
         def _create_user_list(user_list):
             users_list = []
@@ -185,12 +193,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                     }
                 )
             return users_list
-
-        members = get_organization_members(obj) if obj else []
-        owners = get_organization_owners(obj) if obj else []
-
-        if owners and members:
-            members = members.exclude(username__in=[user.username for user in owners])
 
         members_list = _create_user_list(members)
         owners_list = _create_user_list(owners)

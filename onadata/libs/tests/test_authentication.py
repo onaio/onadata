@@ -188,7 +188,7 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         mock_token_class.DoesNotExist = AccessToken.DoesNotExist
         mock_token_class.objects.select_related(
             "application", "user"
-        ).get.side_effect = [AccessToken.DoesNotExist, token]
+        ).only.return_value.get.side_effect = [AccessToken.DoesNotExist, token]
         req = HttpRequest()
         self.assertTrue(
             MasterReplicaOAuth2Validator().validate_bearer_token(token, {}, req)
@@ -196,7 +196,7 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         self.assertEqual(
             mock_token_class.objects.select_related(
                 "application", "user"
-            ).get.call_count,
+            ).only.return_value.get.call_count,
             2,
         )
         self.assertEqual(req.access_token, token)
