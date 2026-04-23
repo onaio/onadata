@@ -2121,6 +2121,17 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             # example cookie: bob:1jlVih:i2KvHoAtsQOlYB71CJeNuVUlEY0
             self.assertEqual(username_cookie.split(":")[0], "bob")
             self.assertEqual(uid_cookie.split(":")[0], "bob")
+            for cookie_name in (
+                settings.ENKETO_META_UID_COOKIE,
+                settings.ENKETO_META_USERNAME_COOKIE,
+                settings.ENKETO_AUTH_COOKIE,
+            ):
+                morsel = cookies[cookie_name]
+                self.assertTrue(morsel["secure"], f"{cookie_name} missing Secure flag")
+                self.assertTrue(
+                    morsel["httponly"], f"{cookie_name} missing HttpOnly flag"
+                )
+                self.assertEqual(morsel["samesite"], "Lax")
 
     @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
