@@ -762,8 +762,14 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
         return None
 
     max_age = 30 * 24 * 60 * 60 * 1000
-    enketo_meta_uid = {"max_age": max_age, "salt": settings.ENKETO_API_SALT}
-    enketo = {"secure": False, "salt": settings.ENKETO_API_SALT}
+    cookie_kwargs = {
+        "secure": getattr(settings, "SESSION_COOKIE_SECURE", True),
+        "httponly": getattr(settings, "SESSION_COOKIE_HTTPONLY", True),
+        "samesite": getattr(settings, "SESSION_COOKIE_SAMESITE", "Lax"),
+        "salt": settings.ENKETO_API_SALT,
+    }
+    enketo_meta_uid = {**cookie_kwargs, "max_age": max_age}
+    enketo = {**cookie_kwargs}
 
     # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
     # i.e. don't add in development environment because cookie automatically
