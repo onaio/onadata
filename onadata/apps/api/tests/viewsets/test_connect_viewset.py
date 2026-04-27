@@ -347,6 +347,13 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
 
+    def test_reset_user_password_with_invalid_json_body(self):
+        request = self.factory.post("/", data=1, format="json")
+
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+
     def test_reset_user_password_with_updated_user_email(self):
         # set user.last_login, ensures we get same/valid token
         # https://code.djangoproject.com/ticket/10265
