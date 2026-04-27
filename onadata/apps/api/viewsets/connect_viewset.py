@@ -5,6 +5,8 @@ The /api/v1/user API implementation
 User authentication API support to access API tokens.
 """
 
+from collections.abc import Mapping
+
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -119,8 +121,8 @@ class ConnectViewSet(
         Allows a user to reset and change their password.
         """
         context = {"request": request}
-        data = request.data if request.data is not None else {}
-        if "token" in request.data:
+        data = request.data if isinstance(request.data, Mapping) else {}
+        if "token" in data:
             serializer = PasswordResetChangeSerializer(data=data, context=context)
 
             if serializer.is_valid():
