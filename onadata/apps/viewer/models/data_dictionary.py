@@ -8,8 +8,6 @@ import json
 import os
 from io import BytesIO
 
-import openpyxl
-import unicodecsv as csv
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -17,6 +15,9 @@ from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+import openpyxl
+import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.utils import has_external_choices
@@ -32,6 +33,7 @@ from onadata.apps.logger.models.xform import (
     check_xform_uuid,
     get_survey_from_file_object,
 )
+from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (
@@ -158,6 +160,8 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             if has_external_choices(workbook_json):
                 self.has_external_choices = True
             survey = check_version_set(survey)
+            if self.pk is not None:
+                survey.version = self.get_unique_version(survey.get("version"))
             workbook_json["version"] = survey.get("version")
             if get_columns_with_hxl(survey.get("children")):
                 self.has_hxl_support = True
@@ -212,6 +216,24 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
             if self.xls.name is not None
             else self.id_string + ".xml"
         )
+
+    def get_unique_version(self, version):
+        """Return ``version`` unchanged if no XFormVersion exists for this xform
+        with that string; otherwise append "-N" with the smallest unused N >= 2.
+        Empty / None versions pass through unchanged (no sensible suffix)."""
+        if not version:
+            return version
+        existing = set(
+            XFormVersion.objects.filter(xform_id=self.pk).values_list(
+                "version", flat=True
+            )
+        )
+        if version not in existing:
+            return version
+        suffix = 2
+        while f"{version}-{suffix}" in existing:
+            suffix += 1
+        return f"{version}-{suffix}"
 
 
 # pylint: disable=unused-argument

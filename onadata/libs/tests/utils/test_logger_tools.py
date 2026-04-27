@@ -19,11 +19,14 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from azure.storage.blob import AccountSasPermissions
+from defusedxml import minidom
 from defusedxml.ElementTree import ParseError
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance, InstanceHistory
 from onadata.apps.logger.models.survey_type import SurveyType
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.logger.xform_instance_parser import AttachmentNameError
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.test_utils.pyxform_test_case import PyxformTestCase
@@ -34,9 +37,11 @@ from onadata.libs.utils.logger_tools import (
     delete_xform_submissions,
     generate_content_disposition_header,
     get_storages_media_download_url,
+    publish_xml_form,
     response_with_mimetype_and_name,
     safe_create_instance,
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class CreateInstanceTestCase(PyxformTestCase, TestBase):
@@ -1337,3 +1342,52 @@ class GetStoragesMediaDownloadUrlTestCase(TestBase):
             "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
         self.assertIsNone(url)
+
+
+class PublishXmlFormReplaceTestCase(TestBase):
+    """Replacing an XML form should always create a new XFormVersion."""
+
+    def setUp(self):
+        super().setUp()
+        self.project = get_user_default_project(self.user)
+        self.xml_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.xml",
+        )
+
+    def _publish(self, id_string=None):
+        with open(self.xml_path, "rb") as xml_file:
+            return publish_xml_form(xml_file, self.user, self.project, id_string)
+
+    def test_replace_with_same_version_creates_new_xform_version(self):
+        dd = self._publish()
+        xform_id = dd.pk
+        initial_version = dd.version
+        initial_count = XFormVersion.objects.filter(xform_id=xform_id).count()
+
+        self._publish(id_string=dd.id_string)
+
+        self.assertEqual(
+            XFormVersion.objects.filter(xform_id=xform_id).count(),
+            initial_count + 1,
+        )
+        xform = XForm.objects.get(pk=xform_id)
+        self.assertNotEqual(xform.version, initial_version)
+        self.assertEqual(xform.version, f"{initial_version}-2")
+        doc = minidom.parseString(xform.xml)
+        data_node = next(
+            node
+            for node in doc.getElementsByTagName("data")
+            if node.getAttribute("id") == xform.id_string
+        )
+        self.assertEqual(data_node.getAttribute("version"), xform.version)
+        self.assertTrue(
+            XFormVersion.objects.filter(
+                xform_id=xform_id, version=xform.version
+            ).exists()
+        )
