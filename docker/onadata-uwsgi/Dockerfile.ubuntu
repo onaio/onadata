@@ -1,4 +1,4 @@
-FROM dhi.io/python:3.13-debian13-dev AS base
+FROM dhi.io/python:3.10-debian13-dev AS base
 
 ARG optional_packages
 
@@ -63,10 +63,9 @@ COPY docs /srv/onadata/docs
 COPY onadata /srv/onadata/onadata
 
 # install sphinx and build API docs.
-# setuptools provides the `distutils` module removed in Python 3.13
 RUN python -m pip install --no-cache-dir setuptools -r requirements/docs.pip && make -C docs html
 
-FROM dhi.io/python:3.13-debian13 AS runtime
+FROM dhi.io/python:3.10-debian13 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
