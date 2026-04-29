@@ -4,10 +4,11 @@ from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+
 from pyxform.errors import PyXFormError
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -85,9 +86,7 @@ class TestPublishXLS(TestBase):
         |        | text | c    | m.png            |
         """
         self._create_user_and_login()
-        msg = (
-            "To use big-image, you must also specify" " an image for the survey element"
-        )
+        msg = "To use big-image, you must also specify an image for the survey element"
         with self.assertRaisesMessage(PyXFormError, msg):
             self.xform = self._publish_markdown(md, self.user)
 
@@ -103,9 +102,9 @@ class TestPublishXLS(TestBase):
         """
         self._create_user_and_login()
         msg = (
-            "[row : 2] On the 'entities' sheet, the entity declaration"
-            " is invalid. The entity list name 'trees' does not have a"
-            " label, but a 'label' is required when creating entities."
+            "Currently, you can only declare a single entity per form."
+            " Please make sure your entities sheet only declares"
+            " one entity."
         )
         with self.assertRaisesMessage(PyXFormError, msg):
             self.xform = self._publish_markdown(md, self.user)
