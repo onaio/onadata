@@ -1,5 +1,6 @@
+---
 name: CI
-on:
+on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: ["*"]
   push:
@@ -18,10 +19,10 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -37,19 +38,16 @@ jobs:
       - name: Install APT requirements
         run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
 
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
-
       - name: Install Pip requirements
         env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+          ONADEPLOY_GH_TOKEN: ${{ secrets.ONADEPLOY_GH_TOKEN }}
         run: |
+          git config --global \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git config --global --add \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "ssh://git@github.com/"
           pip install -U pip
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
@@ -68,17 +66,17 @@ jobs:
       matrix:
         test_path:
           - [
-              " Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
-              "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            " Django Unit Tests (Libraries, Main, RestServices, SMS Support, Viewer, Messaging)",
+            "python manage.py test onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer onadata/apps/messaging --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
           - [
-              "Django Unit Tests API",
-              "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            "Django Unit Tests API",
+            "python manage.py test onadata/apps/api --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
           - [
-              "Django Unit Tests Logger",
-              "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
-            ]
+            "Django Unit Tests Logger",
+            "python manage.py test onadata/apps/logger --noinput --timing --settings=onadata.settings.github_actions_test --verbosity=2 --parallel=4",
+          ]
     name: "${{ matrix.test_path[0] }}"
     runs-on: ubuntu-22.04
     needs: static-analysis
@@ -101,25 +99,16 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: "adopt"
           java-version: "8"
 
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
-
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -137,8 +126,14 @@ jobs:
 
       - name: Install Pip requirements
         env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+          ONADEPLOY_GH_TOKEN: ${{ secrets.ONADEPLOY_GH_TOKEN }}
         run: |
+          git config --global \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+          git config --global --add \
+            url."https://x-access-token:${ONADEPLOY_GH_TOKEN}@github.com/".insteadOf \
+            "ssh://git@github.com/"
           pip install -U pip
           pip install --upgrade wheel setuptools
           pip install -r requirements/base.pip
@@ -159,62 +154,111 @@ jobs:
         run: echo "IS_PUBLIC_REPO=$(if [ ${{ github.event.repository.private }} = false ]; then echo true; else echo false; fi)" >> $GITHUB_ENV
 
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH Agent and add Github to known hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK >> /dev/null
-          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com > ~/.ssh/known_hosts
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Update apt sources
         run: sudo apt-get update
 
-      - name: Get the branch name
-        id: get-branch-name
-        if: github.event_name == 'push'
-        run: echo "version=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: onaio/onadata
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64
           push: false
-          tags: |
-            onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
-          cache-from: type=registry,ref=onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.tags }}
           cache-to: type=inline
-          ssh: |
-            default=/tmp/ssh-agent.sock
+          secrets: |
+            ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
           build-args: |
             optional_packages=PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
-          image-ref: onaio/onadata:${{ github.head_ref || github.base_ref || env.version }}
+          version: v0.69.3
+          cache: true
+
+      - name: Configure Trivy VEX Hub with DHI advisories
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
+          mkdir -p ~/.trivy/vex
+          cat > ~/.trivy/vex/repository.yaml << 'EOF'
+          repositories:
+            - name: default
+              url: https://github.com/aquasecurity/vexhub
+              enabled: true
+            - name: dhi-vex
+              url: https://github.com/docker-hardened-images/advisories
+              enabled: true
+          EOF
+          trivy vex repo download
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          version: "v0.69.3"
+          image-ref: ${{ steps.meta.outputs.tags }}
           format: sarif
           ignore-unfixed: false
           severity: "CRITICAL,HIGH"
           scanners: "vuln"
           output: "trivy_results.sarif"
+          trivy-config: trivy.yaml
 
-      - name: Install SARIF tools
+      - name: Cache Trivy HTML template
+        id: cache-template
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: pip install sarif-tools
+        with:
+          path: html.tpl
+          key: trivy-html-template-v1
 
-      - name: Convert SARIF to HTML
+      - name: Download Trivy HTML template
+        if: >-
+          (github.event_name == 'pull_request' || github.event_name == 'push')
+          && steps.cache-template.outputs.cache-hit != 'true'
+        run: |
+          url="https://raw.githubusercontent.com"
+          url+="/aquasecurity/trivy/main/contrib/html.tpl"
+          wget -q "$url" -O html.tpl
+
+      - name: Run Trivy vulnerability scanner (HTML report)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         if: github.event_name == 'pull_request' || github.event_name == 'push'
-        run: sarif html -o trivy_results.html trivy_results.sarif
+        with:
+          version: "v0.69.3"
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: "template"
+          template: "@html.tpl"
+          ignore-unfixed: false
+          severity: "CRITICAL,HIGH"
+          scanners: "vuln"
+          output: "trivy_results.html"
+          trivy-config: trivy.yaml
+
+      - name: Upload Trivy SARIF as artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        with:
+          name: trivy-sarif-results
+          path: trivy_results.sarif
+          retention-days: 30
 
       - name: Upload Trivy HTML report as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         with:
           name: trivy-html-report
@@ -222,7 +266,7 @@ jobs:
           retention-days: 30
 
       - name: Upload vulnerability scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.IS_PUBLIC_REPO == 'true'
         with:
           sarif_file: "trivy_results.sarif"
@@ -242,17 +286,49 @@ jobs:
         run: |
           details=$(jq -r '
             .runs[0].tool.driver.rules as $rules |
-            .runs[0].results[0:10] |
-            map(
+            [.runs[0].results[] |
               . as $result |
               $rules[.ruleIndex] as $rule |
-              ($rule.properties.tags[] | select(. == "HIGH" or . == "CRITICAL" or . == "MEDIUM" or . == "LOW")) as $severity |
-              ($result.locations[0].message.text | split(":")[0] | if contains("site-packages/") then split("site-packages/")[1] elif contains("usr/lib/") then split("usr/lib/")[1] else (split("/") | .[-4:] | join("/")) end) as $location |
-              ($result.message.text | capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
-              ($result.message.text | capture("Installed Version: (?<ver>[^\n]+)") | .ver) as $installed |
-              ($result.message.text | capture("Fixed Version: (?<fix>[^\n]+)") | .fix // "Not available") as $fixed |
-              (if $severity == "CRITICAL" then "🔴" elif $severity == "HIGH" then "🟠" elif $severity == "MEDIUM" then "🟡" else "⚪" end) as $icon |
-              "\($icon) *\($result.ruleId)* (\($severity))\nPackage: `\($package)@\($installed)`\nLocation: `\($location)`\nFixed: `\($fixed)`\n<\($rule.helpUri)|View Details>\n"
+              ($rule.properties.tags[] |
+                select(. == "CRITICAL" or . == "HIGH")) as $severity |
+              {
+                result: $result,
+                rule: $rule,
+                severity: $severity
+              }
+            ] |
+            sort_by(if .severity == "CRITICAL" then 0 else 1 end) |
+            .[0:10] |
+            map(
+              .result as $result |
+              .rule as $rule |
+              .severity as $severity |
+              ($result.locations[0].message.text | split(":")[0] |
+                if contains("site-packages/") then
+                  split("site-packages/")[1]
+                elif contains("usr/lib/") then
+                  split("usr/lib/")[1]
+                else
+                  (split("/") | .[-4:] | join("/"))
+                end) as $location |
+              ($result.message.text |
+                capture("Package: (?<pkg>[^\n]+)") | .pkg) as $package |
+              ($result.message.text |
+                capture("Installed Version: (?<ver>[^\n]+)") |
+                .ver) as $installed |
+              ($result.message.text |
+                capture("Fixed Version: ?(?<fix>[^\n]*)") |
+                .fix) as $rawfixed |
+              (if $rawfixed == "" then "Not available"
+               else $rawfixed end) as $fixed |
+              (if $severity == "CRITICAL" then "🔴"
+               elif $severity == "HIGH" then "🟠"
+               else "⚪" end) as $icon |
+              "\($icon) *\($result.ruleId)* (\($severity))\n" +
+              "Package: `\($package)@\($installed)`\n" +
+              "Location: `\($location)`\n" +
+              "Fixed: `\($fixed)`\n" +
+              "<\($rule.helpUri)|View Details>\n"
             ) | join("\n")
           ' trivy_results.sarif)
 
@@ -267,7 +343,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Send Slack Notification
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           payload: |

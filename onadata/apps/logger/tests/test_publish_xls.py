@@ -4,10 +4,11 @@ from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+
 from pyxform.errors import PyXFormError
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -85,9 +86,7 @@ class TestPublishXLS(TestBase):
         |        | text | c    | m.png            |
         """
         self._create_user_and_login()
-        msg = (
-            "To use big-image, you must also specify" " an image for the survey element"
-        )
+        msg = "To use big-image, you must also specify an image for the survey element"
         with self.assertRaisesMessage(PyXFormError, msg):
             self.xform = self._publish_markdown(md, self.user)
 

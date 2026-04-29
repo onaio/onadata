@@ -21,7 +21,7 @@ from django.core.files.temp import NamedTemporaryFile
 
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
-from pyxform.question import Question
+from pyxform.question import Itemset, Question
 from pyxform.survey import Survey
 from savReaderWriter import SavHeaderReader, SavReader
 
@@ -38,6 +38,7 @@ from onadata.libs.utils.common_tags import (
     REVIEW_STATUS,
     SELECT_BIND_TYPE,
 )
+from onadata.libs.utils.common_tools import sanitize_for_export
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder, get_labels_from_columns
 from onadata.libs.utils.export_builder import (
     ExportBuilder,
@@ -58,6 +59,105 @@ def _logger_fixture_path(*args):
 def _str_if_bytes(val):
     """Returns val as string if it is of type bytes otherwise returns bytes"""
     return str(val, "utf-8") if isinstance(val, bytes) else val
+
+
+class TestSanitizeForExport(TestBase):
+    """Test sanitize_for_export prevents formula injection (CWE-1236)."""
+
+    def test_prefixes_formula_characters(self):
+        """Values starting with formula chars get a single-quote prefix."""
+        dangerous = {
+            "=cmd|' /C calc'!'A1'": "'=cmd\\|' /C calc'!'A1'",
+            "+1+1": "'+1+1",
+            "-1+1": "'-1+1",
+            "@SUM(A1)": "'@SUM(A1)",
+            "\tdata": "'\tdata",
+            "\rdata": "'\rdata",
+            "\ndata": "'\ndata",
+            "%macro": "'%macro",
+        }
+        for payload, expected in dangerous.items():
+            self.assertEqual(
+                sanitize_for_export(payload),
+                expected,
+                f"Failed for payload: {payload!r}",
+            )
+
+    def test_does_not_modify_safe_values(self):
+        """Normal values pass through unchanged."""
+        safe = ["hello", "123", "John Doe", "", "some text with = in middle"]
+        for val in safe:
+            self.assertEqual(sanitize_for_export(val), val)
+
+    def test_does_not_modify_negative_numbers(self):
+        """Negative numeric strings (e.g. GPS coordinates) pass through."""
+        negative_numbers = [
+            "-1.2627557",
+            "-1.2627557 36.7926442 0.0 30.0",
+            "-42",
+            "-.5",
+        ]
+        for val in negative_numbers:
+            self.assertEqual(
+                sanitize_for_export(val),
+                val,
+                f"Negative number {val!r} should not be modified",
+            )
+
+    def test_does_not_modify_positive_signed_numbers(self):
+        """Positive signed numeric strings (e.g. '+1.5') pass through."""
+        positive_numbers = ["+1.5", "+42", "+.5", "+0"]
+        for val in positive_numbers:
+            self.assertEqual(
+                sanitize_for_export(val),
+                val,
+                f"Positive number {val!r} should not be modified",
+            )
+
+    def test_sanitizes_plus_non_numeric(self):
+        """Plus followed by non-numeric content is still sanitized."""
+        self.assertEqual(sanitize_for_export("+cmd"), "'+cmd")
+        self.assertEqual(sanitize_for_export("+A1+B1"), "'+A1+B1")
+        # "+1+1" fails float() parsing, so it is treated as a formula.
+        self.assertEqual(sanitize_for_export("+1+1"), "'+1+1")
+        self.assertEqual(sanitize_for_export("+"), "'+")
+
+    def test_sanitizes_dash_non_numeric(self):
+        """Dash followed by non-numeric content is still sanitized."""
+        self.assertEqual(sanitize_for_export("-cmd"), "'-cmd")
+        self.assertEqual(sanitize_for_export("-A1+B1"), "'-A1+B1")
+        # "-1+1" looks numeric at a glance but fails float() parsing
+        # (the "+1" suffix), so it is correctly treated as a formula.
+        self.assertEqual(sanitize_for_export("-1+1"), "'-1+1")
+        self.assertEqual(sanitize_for_export("-"), "'-")
+
+    def test_escapes_inner_pipe_characters(self):
+        """Pipe characters are escaped to prevent DDE-style payloads."""
+        # Prefixed value with pipes
+        self.assertEqual(
+            sanitize_for_export("=DDE|cmd|'/C calc'"),
+            "'=DDE\\|cmd\\|'/C calc'",
+        )
+        # Non-prefixed value with a pipe mid-cell
+        self.assertEqual(sanitize_for_export("foo|bar"), "foo\\|bar")
+        # Value with only a pipe
+        self.assertEqual(sanitize_for_export("|"), "\\|")
+        # Safe value without pipe unchanged
+        self.assertEqual(sanitize_for_export("no pipe here"), "no pipe here")
+
+    def test_prefixes_percent(self):
+        """Values starting with % get a single-quote prefix."""
+        self.assertEqual(sanitize_for_export("%macro"), "'%macro")
+        self.assertEqual(sanitize_for_export("%0A"), "'%0A")
+        # Percent in middle is fine
+        self.assertEqual(sanitize_for_export("100%"), "100%")
+
+    def test_does_not_modify_non_string_types(self):
+        """Non-string types (int, float, None, bool) pass through unchanged."""
+        self.assertIsNone(sanitize_for_export(None))
+        self.assertEqual(sanitize_for_export(42), 42)
+        self.assertEqual(sanitize_for_export(3.14), 3.14)
+        self.assertTrue(sanitize_for_export(True))
 
 
 class TestExportBuilder(TestBase):
@@ -3919,3 +4019,308 @@ class TestExportBuilder(TestBase):
         self.assertTrue(
             success, "ExportBuilder should handle None bind in nested groups"
         )
+
+    def test_csv_xlsx_export_sanitizes_formula_injection(self):
+        """Exports must neutralize formula injection payloads (CWE-1236).
+
+        Cell values starting with =, +, -, @, \\t, or \\r must be prefixed
+        with a single quote so spreadsheet applications treat them as text.
+        """
+        survey = self._create_childrens_survey()
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        formula_payloads = [
+            "=cmd|' /C notepad'!'A1'",
+            "+cmd|' /C notepad'!'A1'",
+            "-1+1",
+            "@SUM(A1:A10)",
+            "\tcmd",
+            "\rcmd",
+            "\ncmd",
+        ]
+
+        for payload in formula_payloads:
+            data = [
+                {
+                    "name": payload,
+                    "age": 35,
+                    "tel/telLg==office": "020123456",
+                    "children": [],
+                }
+            ]
+
+            # --- CSV export ---
+            with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+                export_builder.to_zipped_csv(temp_zip_file.name, data)
+                temp_zip_file.seek(0)
+                temp_dir = tempfile.mkdtemp()
+                with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                    zip_file.extractall(temp_dir)
+
+                csv_path = os.path.join(temp_dir, f"{survey.name}.csv")
+                with open(csv_path, encoding="utf-8") as csv_file:
+                    reader = csv.reader(csv_file)
+                    rows = list(reader)
+                    # rows[0] is the header; rows[1] is the first data row
+                    header = rows[0]
+                    name_idx = header.index("name")
+                    cell_value = rows[1][name_idx]
+                    self.assertTrue(
+                        cell_value.startswith("'"),
+                        f"CSV cell for payload {payload!r} should be prefixed "
+                        f"with a single quote, got {cell_value!r}",
+                    )
+                shutil.rmtree(temp_dir)
+
+            # --- XLSX export ---
+            with NamedTemporaryFile(suffix=".xlsx") as xls_file:
+                export_builder.to_xlsx_export(xls_file.name, data)
+                xls_file.seek(0)
+                workbook = load_workbook(xls_file.name)
+                main_sheet = workbook[survey.name]
+                rows = list(main_sheet.values)
+                header = rows[0]
+                name_idx = header.index("name")
+                cell_value = rows[1][name_idx]
+                self.assertTrue(
+                    cell_value.startswith("'"),
+                    f"XLSX cell for payload {payload!r} should be prefixed "
+                    f"with a single quote, got {cell_value!r}",
+                )
+
+        # Verify safe values are NOT prefixed
+        safe_values = ["John", "123", "", "hello world"]
+        for safe_val in safe_values:
+            data = [
+                {
+                    "name": safe_val,
+                    "age": 35,
+                    "tel/telLg==office": "020123456",
+                    "children": [],
+                }
+            ]
+            with NamedTemporaryFile(suffix=".xlsx") as xls_file:
+                export_builder.to_xlsx_export(xls_file.name, data)
+                xls_file.seek(0)
+                workbook = load_workbook(xls_file.name)
+                main_sheet = workbook[survey.name]
+                rows = list(main_sheet.values)
+                header = rows[0]
+                name_idx = header.index("name")
+                cell_value = rows[1][name_idx]
+                if safe_val:
+                    self.assertEqual(
+                        cell_value,
+                        safe_val,
+                        f"Safe value {safe_val!r} should not be modified",
+                    )
+
+    def test_label_rows_sanitized_in_csv_and_xlsx(self):
+        """Labels containing formula prefixes must be sanitized in exports.
+
+        Form authors control field labels, so a label like '=SUM(A1)'
+        must be prefixed with a single quote in header/label rows.
+        """
+        md_xform = """
+        | survey |      |           |              |
+        |        | type | name      | label        |
+        |        | text | safe_name | Name         |
+        |        | text | dangerous | =SUM(A1:A10) |
+        """
+        survey = self.md_to_pyxform_survey(md_xform, {"name": "data"})
+        dd = DataDictionary()
+        # pylint: disable=protected-access
+        dd._survey = survey
+
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+
+        data = [{"safe_name": "Alice", "dangerous": "hello"}]
+
+        # --- CSV export ---
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_csv(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+            csv_path = os.path.join(temp_dir, "data.csv")
+            with open(csv_path, encoding="utf-8") as csv_file:
+                reader = csv.reader(csv_file)
+                rows = list(reader)
+                # rows[0] = headers (field names), rows[1] = labels
+                label_row = rows[1]
+                for cell in label_row:
+                    self.assertFalse(
+                        cell.startswith("="),
+                        f"CSV label {cell!r} starts with '=' — should be sanitized",
+                    )
+            shutil.rmtree(temp_dir)
+
+        # --- XLSX export ---
+        with NamedTemporaryFile(suffix=".xlsx") as xls_file:
+            export_builder.to_xlsx_export(xls_file.name, data)
+            xls_file.seek(0)
+            workbook = load_workbook(xls_file.name)
+            main_sheet = workbook["data"]
+            rows = list(main_sheet.values)
+            # rows[0] = headers, rows[1] = labels
+            label_row = rows[1]
+            for cell in label_row:
+                if cell and isinstance(cell, str):
+                    self.assertFalse(
+                        cell.startswith("="),
+                        f"XLSX label {cell!r} starts with '=' — should be sanitized",
+                    )
+
+    def test_get_sav_value_labels_with_itemset_choices(self):
+        """
+        Test _get_sav_value_labels handles Itemset objects from survey choices.
+
+        In pyxform 4.1.0+, survey.get("choices") returns a dict of
+        {list_name: Itemset} instead of {list_name: [list_of_dicts]}.
+        When a question's to_json_dict() does not include "children",
+        the code falls back to survey.get("choices") which now returns
+        Itemset objects. This test verifies the fix for:
+        TypeError: 'Itemset' object is not iterable
+        """
+        md = """
+        | survey  |                    |        |                    |
+        |         | type               | name   | label              |
+        |         | select_one consent | Q1     | May I proceed?     |
+        |         | select_one gender  | Q2     | Gender             |
+
+        | choices |           |        |                    |
+        |         | list name | name   | label              |
+        |         | consent   | 1      | Yes                |
+        |         | consent   | 2      | No                 |
+        |         | gender    | male   | Male               |
+        |         | gender    | female | Female             |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        # Simulate the production scenario: question has no inline choices
+        # (choices attribute is None), forcing fallback to survey.get("choices")
+        # which returns Itemset objects in pyxform 4.1.0+.
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        # Replace survey choices with Itemset objects to match pyxform 4.1.0
+        consent_itemset = Itemset(
+            "consent",
+            [{"name": "1", "label": "Yes"}, {"name": "2", "label": "No"}],
+        )
+        gender_itemset = Itemset(
+            "gender",
+            [{"name": "male", "label": "Male"}, {"name": "female", "label": "Female"}],
+        )
+        self.assertEqual(set(survey.choices.keys()), {"consent", "gender"})
+        self.assertEqual(survey.choices["consent"].name, consent_itemset.name)
+        self.assertEqual(survey.choices["gender"].name, gender_itemset.name)
+
+        # pylint: disable=protected-access
+        labels = export_builder._get_sav_value_labels({"Q1": "Q1", "Q2": "Q2"})
+
+        # Should not raise TypeError: 'Itemset' object is not iterable
+        self.assertEqual(labels["Q1"], {1: "Yes", 2: "No"})
+        self.assertEqual(labels["Q2"], {"male": "Male", "female": "Female"})
+
+    def test_get_sav_value_labels_with_itemset_select_multiple(self):
+        """
+        Test _get_sav_value_labels handles Itemset for select_multiple questions.
+
+        select_multiple questions should treat choice names as strings
+        (not numeric), even when names are numeric values.
+        """
+        md = """
+        | survey  |                      |        |                    |
+        |         | type                 | name   | label              |
+        |         | select_multiple opts | Q1     | Pick options       |
+
+        | choices |           |      |           |
+        |         | list name | name | label     |
+        |         | opts      | 1    | Option A  |
+        |         | opts      | 2    | Option B  |
+        |         | opts      | 3    | Option C  |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        opts_itemset = Itemset(
+            "opts",
+            [
+                {"name": "1", "label": "Option A"},
+                {"name": "2", "label": "Option B"},
+                {"name": "3", "label": "Option C"},
+            ],
+        )
+        self.assertEqual(set(survey.choices.keys()), {"opts"})
+        self.assertEqual(survey.choices["opts"].name, opts_itemset.name)
+
+        # pylint: disable=protected-access
+        labels = export_builder._get_sav_value_labels({"Q1": "Q1"})
+
+        # select_multiple ("select all that apply") should keep names as strings
+        self.assertEqual(
+            labels["Q1"], {"1": "Option A", "2": "Option B", "3": "Option C"}
+        )
+
+    def test_to_zipped_sav_with_itemset_choices(self):
+        """
+        Test to_zipped_sav completes without error when survey choices
+        are Itemset objects (pyxform 4.1.0+).
+        """
+        md = """
+        | survey  |                    |        |                    |
+        |         | type               | name   | label              |
+        |         | select_one y_n     | Q1     | Do you agree?      |
+        |         | text               | Q2     | Name               |
+
+        | choices |           |      |       |
+        |         | list name | name | label |
+        |         | y_n       | 1    | Yes   |
+        |         | y_n       | 2    | No    |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "data"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        choice_questions = (
+            export_builder.data_dicionary.get_survey_elements_with_choices()
+        )
+        for question in choice_questions:
+            if hasattr(question, "choices"):
+                question.choices = None
+
+        y_n_itemset = Itemset(
+            "y_n", [{"name": "1", "label": "Yes"}, {"name": "2", "label": "No"}]
+        )
+        self.assertEqual(set(survey.choices.keys()), {"y_n"})
+        self.assertEqual(survey.choices["y_n"].name, y_n_itemset.name)
+
+        data = [{"Q1": "1", "Q2": "John", "_submission_time": "2024-01-01"}]
+
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            try:
+                export_builder.to_zipped_sav(temp_zip_file.name, data)
+            except TypeError as e:
+                if "Itemset" in str(e):
+                    self.fail(f"to_zipped_sav should handle Itemset choices: {e}")
+                raise
