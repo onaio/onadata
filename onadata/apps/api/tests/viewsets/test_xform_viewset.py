@@ -6329,3 +6329,32 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
             print(response.data)
             # Ensure response is renderable
             response.render()
+
+    def test_bbox_returns_extent_of_geolocated_submissions(self):
+        """The bbox action returns [min_lng, min_lat, max_lng, max_lat]."""
+        xls_path = self._fixture_path("gps", "gps.xlsx")
+        self._publish_xls_file_and_set_xform(xls_path)
+        self._make_submissions_gps()
+
+        view = XFormViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("bbox", response.data)
+        bbox = response.data["bbox"]
+        self.assertIsNotNone(bbox)
+        self.assertEqual(len(bbox), 4)
+        min_lng, min_lat, max_lng, max_lat = bbox
+        self.assertLessEqual(min_lng, max_lng)
+        self.assertLessEqual(min_lat, max_lat)
+
+    def test_bbox_null_when_no_geolocated_submissions(self):
+        """Returns ``bbox: null`` when no submission has a geom."""
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["bbox"])

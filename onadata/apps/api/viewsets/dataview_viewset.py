@@ -43,6 +43,7 @@ from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.export_tools import parse_request_export_options, str_to_bool
 
@@ -196,6 +197,20 @@ class DataViewViewSet(
         return custom_response_handler(
             request, self.object.xform, query, export_type, dataview=self.object
         )
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box of the dataview's geolocated submissions.
+
+        Applies the dataview's query filter to match the rows `form_tiles()`
+        would serve. Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] |
+        null}``. ``null`` when the filtered set has no geolocated rows.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self.object = self.get_object()
+        bbox = compute_instance_bbox([self.object.xform_id], dataview=self.object)
+        return Response({"bbox": bbox})
 
     # pylint: disable=too-many-locals
     @action(methods=["GET"], detail=True)
