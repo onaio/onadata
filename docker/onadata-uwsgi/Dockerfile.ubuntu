@@ -92,6 +92,7 @@ COPY --from=base /usr/bin/env /usr/bin/env
 COPY --from=base /usr/bin/bash /usr/bin/bash
 COPY --from=base /usr/bin/bash /bin/bash
 COPY --from=base /usr/bin/bash /bin/sh
+COPY --from=base /usr/bin/date /usr/bin/date
 
 # Java is required by pyxform's ODK Validate for XForm validation.
 # The JRE lives under /usr/lib/jvm/ (already covered by /usr/lib/ copy above)
