@@ -45,6 +45,7 @@ from onadata.libs.utils.chart_tools import (
 )
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
+from onadata.libs.utils.dataview_filters import apply_filters
 from onadata.libs.utils.export_tools import parse_request_export_options, str_to_bool
 
 # pylint: disable=invalid-name
@@ -56,47 +57,6 @@ def get_form_field_chart_url(url, field):
     Returns a chart's ``url`` with the field_name ``field`` parameter appended to it.
     """
     return f"{url}?field_name={field}"
-
-
-def filter_to_field_lookup(filter_string):
-    """
-    Converts a =, < or > to a django field lookup
-    """
-    if filter_string == "=":
-        return "__iexact"
-    if filter_string == "<":
-        return "__lt"
-    return "__gt"
-
-
-def get_field_lookup(column, filter_string):
-    """
-    Convert filter_string + column into a field lookup expression
-    """
-    return "json__" + column + filter_to_field_lookup(filter_string)
-
-
-def get_filter_kwargs(filters):
-    """
-    Apply filters on a queryset
-    """
-    kwargs = {}
-    if filters:
-        for f in filters:
-            value = f"{f['value']}"
-            column = f["column"]
-            filter_kwargs = {get_field_lookup(column, f["filter"]): value}
-            kwargs = {**kwargs, **filter_kwargs}
-    return kwargs
-
-
-def apply_filters(instance_qs, filters):
-    """
-    Apply filters on a queryset
-    """
-    if filters:
-        return instance_qs.filter(**get_filter_kwargs(filters))
-    return instance_qs
 
 
 def get_dataview_instances(dataview):

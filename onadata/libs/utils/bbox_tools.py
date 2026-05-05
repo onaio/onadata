@@ -11,6 +11,7 @@ JSON (same semantics `form_tiles()` applies server-side).
 from django.contrib.gis.db.models import Extent
 
 from onadata.apps.logger.models import Instance
+from onadata.libs.utils.dataview_filters import apply_filters
 
 
 def compute_instance_bbox(xform_ids, dataview=None):
@@ -36,10 +37,6 @@ def compute_instance_bbox(xform_ids, dataview=None):
     )
 
     if dataview is not None:
-        # Imported lazily to avoid a circular import: dataview_viewset pulls in
-        # this module transitively via the viewset action.
-        from onadata.apps.api.viewsets.dataview_viewset import apply_filters
-
         queryset = apply_filters(queryset, dataview.query)
 
     extent = queryset.aggregate(extent=Extent("geom")).get("extent")

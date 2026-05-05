@@ -17,8 +17,8 @@ from openpyxl import load_workbook
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
-from onadata.apps.api.viewsets.dataview_viewset import (
-    DataViewViewSet,
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.libs.utils.dataview_filters import (
     apply_filters,
     filter_to_field_lookup,
     get_field_lookup,
