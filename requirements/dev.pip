@@ -312,7 +312,7 @@ oauthlib==3.3.1
     # via
     #   django-oauth-toolkit
     #   requests-oauthlib
-ona-oidc @ git+https://github.com/onaio/ona-oidc.git@dc2de56d8df1d96c17bb768131210d227bc6c212
+ona-oidc @ git+https://github.com/onaio/ona-oidc.git@787fa730c7feb238245b032cd12c636ba02312c2
     # via -r requirements/base.in
 openpyxl==3.1.5
     # via
