@@ -403,6 +403,27 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
 
+    def test_list_public_metadata_excludes_deleted_forms(self):
+        self._add_form_metadata(self.xform, "supporting_doc", self.data_value, self.path)
+        self.xform.shared_data = True
+        self.xform.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        self.view = MetaDataViewSet.as_view({"get": "list"})
+        data = {"xform": self.xform.pk}
+        request = self.factory.get("/", data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data)
+
+        self.xform.soft_delete()
+        request = self.factory.get("/", data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_project_metadata_has_project_field(self):
         self._add_project_metadata(
             self.project, "supporting_doc", self.data_value, self.path

@@ -116,7 +116,8 @@ class ExportDjangoObjectPermission(
         model_cls = XForm
         user = request.user
         return (
-            obj.xform.shared_data or obj.xform.project.shared
+            obj.xform.deleted_at is None
+            and (obj.xform.shared_data or obj.xform.shared or obj.xform.project.shared)
         ) or self._has_object_permission(request, model_cls, user, obj.xform)
 
 

@@ -39,7 +39,9 @@ User = get_user_model()
 def _public_xform_id_or_none(export_id: int):
     export = Export.objects.filter(pk=export_id).first()
 
-    if export and (export.xform.shared_data or export.xform.shared):
+    if export and export.xform.deleted_at is None and (
+        export.xform.shared_data or export.xform.shared
+    ):
         return export.xform_id
 
     return None
@@ -375,7 +377,11 @@ class XFormPermissionFilterMixin:
             )
             self.xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
-            public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
+            public_forms = XForm.objects.filter(
+                pk=self.xform.pk,
+                shared_data=True,
+                deleted_at__isnull=True,
+            )
         elif filename:
             attachment = get_object_or_404(Attachment, pk=view.kwargs.get("pk"))
             self.xform = (
@@ -384,7 +390,11 @@ class XFormPermissionFilterMixin:
                 else attachment.xform
             )
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
-            public_forms = XForm.objects.filter(pk=self.xform.pk, shared_data=True)
+            public_forms = XForm.objects.filter(
+                pk=self.xform.pk,
+                shared_data=True,
+                deleted_at__isnull=True,
+            )
         else:
             if queryset is not None and "pk" in view.kwargs:
                 xform_ids = list(

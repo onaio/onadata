@@ -260,6 +260,27 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.data, data)
 
+    def test_retrieve_public_service_excludes_deleted_forms(self):
+        """Test public rest services are hidden once the form is deleted."""
+        rest = RestService(
+            name="testservice", service_url="http://service.io", xform=self.xform
+        )
+        rest.save()
+        self.xform.shared_data = True
+        self.xform.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = self.view(request, pk=rest.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.xform.soft_delete()
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = self.view(request, pk=rest.pk)
+        self.assertEqual(response.status_code, 404)
+
     def test_duplicate_rest_service(self):
         """Test duplicate service is not created."""
         post_data = {

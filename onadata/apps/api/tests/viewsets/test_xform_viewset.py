@@ -1118,6 +1118,32 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             self.assertNotEqual(response.get("Cache-Control"), None)
             self.assertEqual(response.data, [])
 
+    def test_public_form_list_excludes_deleted_forms(self):
+        self._publish_xls_form_to_project()
+        deleted_form = self.xform
+        deleted_form.shared = True
+        deleted_form.save()
+        deleted_form.soft_delete(user=self.user)
+
+        markdown_xlsform = """
+        | survey |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        self._publish_markdown(markdown_xlsform, self.user, id_string="active_public")
+        active_form = XForm.objects.order_by("-pk").first()
+        active_form.shared = True
+        active_form.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk="public")
+        form_ids = [form["formid"] for form in response.data]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(deleted_form.pk, form_ids)
+        self.assertIn(active_form.pk, form_ids)
+
     def test_form_list_other_user_access(self):
         with HTTMock(enketo_urls_mock):
             """Test that a different user has no access to bob's form"""
