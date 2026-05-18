@@ -3,6 +3,18 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.16.0 (2026-05-18)
+--------------------
+- Make django.contrib.admin optional
+  [@ukanga]
+  `PR #3070 https://github.com/onaio/onadata/pull/3070`
+- fix(security): set Secure flag on session/CSRF/Enketo cookies
+  [@ukanga]
+  `PR #3078 https://github.com/onaio/onadata/pull/3078`
+- fix: guard user reset against primitive JSON bodies
+  [@ukanga]
+  `PR #3080 https://github.com/onaio/onadata/pull/3080`
+
 v5.15.3 (2026-04-22)
 --------------------
 - fix: disable Google OAuth PKCE code verifier auto-generation
