@@ -3,6 +3,13 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.17.0 (2026-05-20)
+--------------------
+- Bump ona-oidc version to v2.9.0
+  [@FrankApiyo]
+  `PR #3088 https://github.com/onaio/onadata/pull/3088`
+
+
 v5.16.0 (2026-05-18)
 --------------------
 - Make django.contrib.admin optional
