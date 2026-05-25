@@ -34,6 +34,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.tasks import send_account_lockout_email
+from onadata.libs.permissions import is_organization_user
 from onadata.libs.utils.cache_tools import (
     LOCKOUT_IP,
     LOGIN_ATTEMPTS,
@@ -421,6 +422,12 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
                 )
 
         if access_token and access_token.is_valid(scopes):
+            # Organization accounts are not loginnable; refuse any token whose
+            # user is an org. New org-user tokens can no longer be issued, but
+            # this guards pre-existing tokens that remain valid until expiry.
+            if is_organization_user(access_token.user):
+                self._set_oauth2_error_on_request(request, access_token, scopes)
+                return False
             request.client = access_token.application
             request.user = access_token.user
             request.scopes = scopes
