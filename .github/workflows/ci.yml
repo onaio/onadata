@@ -191,6 +191,7 @@ jobs:
           file: ./docker/onadata-uwsgi/Dockerfile.ubuntu
           platforms: linux/amd64
           push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           secrets: |
             ONADEPLOY_GH_TOKEN=${{ secrets.ONADEPLOY_GH_TOKEN }}
