@@ -780,9 +780,9 @@ def safe_instance_op(
         error = _create_duplicate_response(request)
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
-    except UnreadablePostError as e:
+    except UnreadablePostError:
         error = OpenRosaResponseBadRequest(
-            _("Unable to read submitted file: %(error)s") % {"error": e}
+            _("Unable to read submitted file, please try re-submitting.")
         )
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
