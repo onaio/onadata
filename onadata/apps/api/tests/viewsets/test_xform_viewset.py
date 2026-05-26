@@ -5644,18 +5644,18 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertIn(
-                "Unsupported file extension '.csv'",
+            self.assertEqual(
                 response.data.get("error"),
+                "The uploaded file could not be validated.",
             )
 
             post_data = {"csv_file": xls_import}
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertIn(
-                "Unsupported file extension '.xlsx'",
+            self.assertEqual(
                 response.data.get("error"),
+                "The uploaded file could not be validated.",
             )
 
     @override_settings(TIME_ZONE="UTC")

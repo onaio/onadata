@@ -3,6 +3,7 @@
 MetaData Serializer
 """
 
+import logging
 import os
 
 from django.contrib.contenttypes.models import ContentType
@@ -39,6 +40,8 @@ from onadata.libs.utils.upload_validation import (
     validate_uploaded_file,
 )
 from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
+
+logger = logging.getLogger(__name__)
 
 UNIQUE_TOGETHER_ERROR = "Object already exists"
 
@@ -200,7 +203,10 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 data_file, allowed_extensions, upload_context
             )
         except UploadValidationError as error:
-            raise serializers.ValidationError({"data_file": str(error)}) from error
+            logger.warning("Metadata file upload validation failed: %s", error)
+            raise serializers.ValidationError(
+                {"data_file": _("The uploaded file could not be validated.")}
+            ) from error
 
         data_file.name = upload.storage_basename
         data_file.content_type = upload.content_type

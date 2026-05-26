@@ -149,7 +149,8 @@ def _prepare_import_csv(csv_file, xls_file):
         elif csv_file:
             _validate_api_upload(csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT)
     except UploadValidationError as error:
-        return None, str(error)
+        logger.warning("Data import upload validation failed: %s", error)
+        return None, _("The uploaded file could not be validated.")
 
     if xls_file:
         csv_file = submission_xls_to_csv(xls_file)
@@ -180,7 +181,11 @@ def _publish_xlsform_async(request):
             xls_file, ("csv", "xls", "xlsx"), XLSFORM_UPLOAD_CONTEXT
         )
     except UploadValidationError as error:
-        return Response({"message": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+        logger.warning("XLSForm upload validation failed: %s", error)
+        return Response(
+            {"message": _("The uploaded file could not be validated.")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     xls_file.seek(0)
     xls_file_path = default_storage.save(
@@ -936,8 +941,9 @@ class XFormViewSet(
                         csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT
                     )
                 except UploadValidationError as error:
+                    logger.warning("CSV import upload validation failed: %s", error)
                     return Response(
-                        data={"error": str(error)},
+                        data={"error": _("The uploaded file could not be validated.")},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 

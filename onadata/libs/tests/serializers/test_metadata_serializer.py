@@ -68,7 +68,7 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
             self.assertIn(
-                "Unsupported file extension '.svg'",
+                "The uploaded file could not be validated.",
                 serializer.errors["data_file"][0],
             )
 
@@ -93,7 +93,7 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
             self.assertIn(
-                "Unsupported file extension '.svg'",
+                "The uploaded file could not be validated.",
                 serializer.errors["data_file"][0],
             )
 
