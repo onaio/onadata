@@ -364,10 +364,25 @@ def _validate_csv_stream(uploaded_file, max_bytes):
     """
     decoder = codecs.getincrementaldecoder("utf-8-sig")()
     head = io.StringIO()
-    head_len = 0
-    total_bytes = 0
-    decoded_any = False
+    state = {"head_len": 0, "decoded_any": False}
 
+    def accumulate(text):
+        if not text:
+            return
+        state["decoded_any"] = True
+        if state["head_len"] < CSV_HEAD_SAMPLE_CHARS:
+            head.write(text[: CSV_HEAD_SAMPLE_CHARS - state["head_len"]])
+            state["head_len"] += len(text)
+
+    def decode(chunk, final=False):
+        try:
+            return decoder.decode(chunk, final)
+        except UnicodeDecodeError as error:
+            raise UploadValidationError(
+                _("CSV files must be UTF-8 encoded.")
+            ) from error
+
+    total_bytes = 0
     _seek_zero(uploaded_file)
     try:
         while True:
@@ -387,35 +402,15 @@ def _validate_csv_stream(uploaded_file, max_bytes):
                     % {"max_bytes": max_bytes}
                 )
 
-            try:
-                text = decoder.decode(chunk)
-            except UnicodeDecodeError as error:
-                raise UploadValidationError(
-                    _("CSV files must be UTF-8 encoded.")
-                ) from error
+            accumulate(decode(chunk))
 
-            if text:
-                decoded_any = True
-                if head_len < CSV_HEAD_SAMPLE_CHARS:
-                    head.write(text[: CSV_HEAD_SAMPLE_CHARS - head_len])
-                    head_len += len(text)
-
-        try:
-            tail = decoder.decode(b"", final=True)
-        except UnicodeDecodeError as error:
-            raise UploadValidationError(
-                _("CSV files must be UTF-8 encoded.")
-            ) from error
-        if tail:
-            decoded_any = True
-            if head_len < CSV_HEAD_SAMPLE_CHARS:
-                head.write(tail[: CSV_HEAD_SAMPLE_CHARS - head_len])
+        accumulate(decode(b"", final=True))
     finally:
         _seek_zero(uploaded_file)
 
     _assert_csv_has_rows(head.getvalue())
 
-    if not decoded_any:
+    if not state["decoded_any"]:
         raise UploadValidationError(_("CSV files must not be empty."))
 
 
@@ -487,7 +482,7 @@ def _validate_mp4(data):
 MP4_FTYP_READ_LIMIT = 4096
 
 
-def _validate_mp4_stream(uploaded_file, max_bytes):  # noqa: ARG001
+def _validate_mp4_stream(uploaded_file, max_bytes):  # pylint: disable=unused-argument
     """Validate an MP4 upload by reading only its leading ``ftyp`` box.
 
     Reads at most :data:`MP4_FTYP_READ_LIMIT` bytes regardless of file size; the
@@ -571,8 +566,6 @@ def _validate_ooxml(data, label, required_entries):
                     _("%(label)s required entries missing: %(missing)s.")
                     % {"label": label, "missing": ", ".join(sorted(missing))}
                 )
-    except UploadValidationError:
-        raise
     except (OSError, zipfile.BadZipFile) as error:
         raise UploadValidationError(
             _("%(label)s archive content could not be parsed.") % {"label": label}
@@ -605,8 +598,6 @@ def _validate_odf(extension, data):
                     % {"label": label}
                 )
             mimetype_bytes = archive.read("mimetype")
-    except UploadValidationError:
-        raise
     except (OSError, zipfile.BadZipFile) as error:
         raise UploadValidationError(
             _("%(label)s archive content could not be parsed.") % {"label": label}

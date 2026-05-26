@@ -47,6 +47,27 @@ def secure_filename(filename: str) -> str:
     return filename.replace("\\", "_").replace("/", "_")
 
 
+def _read_quoted_value(header: str, index: int, length: int) -> "tuple[str, int]":
+    """Read a quoted-string value starting just after the opening quote.
+
+    Returns the unescaped value and the index just past the closing quote (or
+    the end of the header if it is unterminated).
+    """
+    buffer: "list[str]" = []
+    while index < length:
+        char = header[index]
+        if char == "\\" and index + 1 < length:
+            buffer.append(header[index + 1])
+            index += 2
+            continue
+        if char == '"':
+            index += 1
+            break
+        buffer.append(char)
+        index += 1
+    return "".join(buffer), index
+
+
 def _scan_params(header: str) -> "list[tuple[str, str, bool]]":
     """Tokenise a ``Content-Disposition`` header into its parameters.
 
@@ -101,19 +122,8 @@ def _scan_params(header: str) -> "list[tuple[str, str, bool]]":
 
         if index < length and header[index] == '"':
             index += 1
-            buffer: "list[str]" = []
-            while index < length:
-                char = header[index]
-                if char == "\\" and index + 1 < length:
-                    buffer.append(header[index + 1])
-                    index += 2
-                    continue
-                if char == '"':
-                    index += 1
-                    break
-                buffer.append(char)
-                index += 1
-            params.append((name, "".join(buffer), True))
+            value, index = _read_quoted_value(header, index, length)
+            params.append((name, value, True))
         else:
             match = _TOKEN_RE.match(header, index)
             if not match:

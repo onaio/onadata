@@ -185,6 +185,28 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             return reverse("xform-media", **kwargs)
         return None
 
+    @staticmethod
+    def _validate_data_file(attrs, data_type, data_file):
+        """Validate ``data_file`` and update ``attrs`` with the stored metadata."""
+        if data_type == MEDIA_TYPE:
+            allowed_extensions = FORM_MEDIA_ALLOWED_EXTENSIONS
+            upload_context = FORM_MEDIA_UPLOAD_CONTEXT
+        else:
+            allowed_extensions = SUPPORTING_DOC_ALLOWED_EXTENSIONS
+            upload_context = SUPPORTING_DOC_UPLOAD_CONTEXT
+
+        try:
+            upload = validate_uploaded_file(
+                data_file, allowed_extensions, upload_context
+            )
+        except UploadValidationError as error:
+            raise serializers.ValidationError({"data_file": str(error)}) from error
+
+        data_file.name = upload.storage_basename
+        data_file.content_type = upload.content_type
+        attrs["data_value"] = upload.original_name
+        attrs["data_file_type"] = upload.content_type
+
     # pylint: disable=too-many-branches
     def validate(self, attrs):
         """
@@ -204,24 +226,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             )
 
         if data_file:
-            if data_type == MEDIA_TYPE:
-                allowed_extensions = FORM_MEDIA_ALLOWED_EXTENSIONS
-                upload_context = FORM_MEDIA_UPLOAD_CONTEXT
-            else:
-                allowed_extensions = SUPPORTING_DOC_ALLOWED_EXTENSIONS
-                upload_context = SUPPORTING_DOC_UPLOAD_CONTEXT
-
-            try:
-                upload = validate_uploaded_file(
-                    data_file, allowed_extensions, upload_context
-                )
-            except UploadValidationError as error:
-                raise serializers.ValidationError({"data_file": str(error)}) from error
-
-            data_file.name = upload.storage_basename
-            data_file.content_type = upload.content_type
-            attrs["data_value"] = upload.original_name
-            attrs["data_file_type"] = upload.content_type
+            self._validate_data_file(attrs, data_type, data_file)
 
         if data_type == "media" and data_file is None:
             try:

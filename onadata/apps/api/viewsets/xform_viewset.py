@@ -134,6 +134,76 @@ def _validate_api_upload(uploaded_file, allowed_extensions, context):
     return upload
 
 
+def _prepare_import_csv(csv_file, xls_file):
+    """Validate an import upload and return the CSV file to submit.
+
+    Returns ``(csv_file, None)`` on success or ``(None, error_message)`` when
+    validation fails. An XLS upload is converted to CSV after validation.
+    """
+    xls_upload = None
+    try:
+        if xls_file:
+            xls_upload = _validate_api_upload(
+                xls_file, XLS_EXTENSIONS, DATA_IMPORT_UPLOAD_CONTEXT
+            )
+        elif csv_file:
+            _validate_api_upload(csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT)
+    except UploadValidationError as error:
+        return None, str(error)
+
+    if xls_file:
+        csv_file = submission_xls_to_csv(xls_file)
+        csv_file.name = f"{os.path.splitext(xls_upload.storage_basename)[0]}.csv"
+        csv_file.content_type = "text/csv"
+
+    return csv_file, None
+
+
+def _publish_xlsform_async(request):
+    """Validate and queue an async XLSForm publish; return the API response."""
+    try:
+        owner = _get_owner(request)
+    except ValidationError as error:
+        return Response(
+            {"message": error.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    xls_file = request.FILES.get("xls_file")
+    if xls_file is None:
+        return Response(
+            {"message": _("xls_file field empty")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        upload = _validate_api_upload(
+            xls_file, ("csv", "xls", "xlsx"), XLSFORM_UPLOAD_CONTEXT
+        )
+    except UploadValidationError as error:
+        return Response({"message": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+    xls_file.seek(0)
+    xls_file_path = default_storage.save(
+        f"tmp/async-upload-{owner.username}-{upload.storage_basename}",
+        (
+            ContentFile(xls_file.read())
+            if isinstance(xls_file, InMemoryUploadedFile)
+            else xls_file
+        ),
+    )
+    job_uuid = tasks.publish_xlsform_async.delay(
+        request.user.id,
+        request.POST,
+        owner.id,
+        {
+            "name": upload.original_name,
+            "path": xls_file_path,
+            "content_type": upload.content_type,
+        },
+    ).task_id
+    return Response(data={"job_uuid": job_uuid}, status=status.HTTP_202_ACCEPTED)
+
+
 def upload_to_survey_draft(filename, username):
     """Return the ``filename`` in the ``username`` survey-drafts directory."""
     return os.path.join(username, "survey-drafts", os.path.split(filename)[1])
@@ -449,75 +519,24 @@ class XFormViewSet(
     @action(methods=["POST", "GET"], detail=False)
     def create_async(self, request, *args, **kwargs):
         """Temporary Endpoint for Async form creation"""
-        resp = headers = {}
-        resp_code = status.HTTP_400_BAD_REQUEST
+        if request.method != "GET":
+            return _publish_xlsform_async(request)
 
-        if request.method == "GET":
-            # pylint: disable=attribute-defined-outside-init
-            self.etag_data = f"{timezone.now()}"
-            survey = tasks.get_async_status(request.query_params.get("job_uuid"))
+        # pylint: disable=attribute-defined-outside-init
+        self.etag_data = f"{timezone.now()}"
+        survey = tasks.get_async_status(request.query_params.get("job_uuid"))
 
-            if "pk" in survey:
-                xform = XForm.objects.get(pk=survey.get("pk"))
-                serializer = XFormSerializer(xform, context={"request": request})
-                headers = self.get_success_headers(serializer.data)
-                resp = serializer.data
-                resp_code = status.HTTP_201_CREATED
-            else:
-                resp_code = status.HTTP_202_ACCEPTED
-                resp.update(survey)
-        else:
-            try:
-                owner = _get_owner(request)
-            except ValidationError as e:
-                return Response(
-                    {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
-                )
+        if "pk" not in survey:
+            return Response(data=survey, status=status.HTTP_202_ACCEPTED)
 
-            xls_file = request.FILES.get("xls_file")
-            if xls_file is None:
-                return Response(
-                    {"message": _("xls_file field empty")},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            try:
-                upload = _validate_api_upload(
-                    xls_file, ("csv", "xls", "xlsx"), XLSFORM_UPLOAD_CONTEXT
-                )
-            except UploadValidationError as error:
-                return Response(
-                    {"message": str(error)}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-            fname = upload.original_name
-            xls_file.seek(0)
-            xls_file_path = default_storage.save(
-                f"tmp/async-upload-{owner.username}-{upload.storage_basename}",
-                (
-                    ContentFile(xls_file.read())
-                    if isinstance(xls_file, InMemoryUploadedFile)
-                    else xls_file
-                ),
-            )
-
-            resp.update(
-                {
-                    "job_uuid": tasks.publish_xlsform_async.delay(
-                        request.user.id,
-                        request.POST,
-                        owner.id,
-                        {
-                            "name": fname,
-                            "path": xls_file_path,
-                            "content_type": upload.content_type,
-                        },
-                    ).task_id
-                }
-            )
-            resp_code = status.HTTP_202_ACCEPTED
-
-        return Response(data=resp, status=resp_code, headers=headers)
+        serializer = XFormSerializer(
+            XForm.objects.get(pk=survey.get("pk")), context={"request": request}
+        )
+        return Response(
+            data=serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=self.get_success_headers(serializer.data),
+        )
 
     @action(methods=["GET", "HEAD"], detail=True)
     def form(self, request, **kwargs):
@@ -826,33 +845,16 @@ class XFormViewSet(
         else:
             csv_file = request.FILES.get("csv_file", None)
             xls_file = request.FILES.get("xls_file", None)
-            xls_upload = None
 
             if csv_file is None and xls_file is None:
                 resp.update({"error": _("csv_file and xls_file field empty")})
 
             else:
-                try:
-                    if xls_file:
-                        xls_upload = _validate_api_upload(
-                            xls_file, XLS_EXTENSIONS, DATA_IMPORT_UPLOAD_CONTEXT
-                        )
-                    elif csv_file:
-                        _validate_api_upload(
-                            csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT
-                        )
-                except UploadValidationError as error:
-                    resp.update({"error": str(error)})
-
-                if xls_file and resp.get("error") is None:
-                    csv_file = submission_xls_to_csv(xls_file)
-                    csv_file.name = (
-                        f"{os.path.splitext(xls_upload.storage_basename)[0]}.csv"
+                csv_file, error = _prepare_import_csv(csv_file, xls_file)
+                if error is not None:
+                    return Response(
+                        data={"error": error}, status=status.HTTP_400_BAD_REQUEST
                     )
-                    csv_file.content_type = "text/csv"
-
-                if resp.get("error") is not None:
-                    return Response(data=resp, status=status.HTTP_400_BAD_REQUEST)
 
                 overwrite = request.query_params.get("overwrite")
                 overwrite = (
