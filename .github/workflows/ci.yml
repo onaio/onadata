@@ -168,6 +168,9 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
 
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
       - name: Build Docker image
         uses: useblacksmith/build-push-action@v2
         with:
