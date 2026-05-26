@@ -597,6 +597,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(2.5 * 1024 * 1024)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
+# Hosts allowed to bypass the XLSForm-by-URL SSRF guard (which otherwise blocks
+# URLs resolving to private/loopback/link-local/reserved addresses). Add trusted
+# internal form hosts here, e.g. ["forms.internal.example.com"].
+XLSFORM_URL_ALLOWED_HOSTS = []
+
 STRICT_FORM_MEDIA_UPLOAD_TYPES = [
     "image/jpeg",
     "image/png",

@@ -3,8 +3,10 @@
 forms module.
 """
 
+import ipaddress
 import os
 import re
+import socket
 
 from django import forms
 from django.conf import settings
@@ -123,8 +125,58 @@ def _validate_xlsform_upload(uploaded_file, allowed_extensions=None):
     return result
 
 
+def _is_non_public_ip(ip_address):
+    """Return True for addresses an XLSForm download must never reach."""
+    return any(
+        (
+            ip_address.is_private,
+            ip_address.is_loopback,
+            ip_address.is_link_local,
+            ip_address.is_reserved,
+            ip_address.is_multicast,
+            ip_address.is_unspecified,
+        )
+    )
+
+
+def _assert_url_not_internal(url):
+    """Reject XLSForm URLs that resolve to non-public addresses (SSRF guard).
+
+    The host is resolved and every returned address is checked; the download is
+    blocked if any maps to a private, loopback, link-local, reserved, multicast
+    or unspecified address. Hosts listed in
+    ``settings.XLSFORM_URL_ALLOWED_HOSTS`` bypass the check so deployments can
+    permit trusted internal form hosts explicitly.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise forms.ValidationError(_("Only http and https URLs are allowed."))
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise forms.ValidationError(_("Could not determine the URL host."))
+
+    allowed_hosts = getattr(settings, "XLSFORM_URL_ALLOWED_HOSTS", None) or []
+    if hostname in allowed_hosts:
+        return
+
+    try:
+        addrinfo = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as error:
+        raise forms.ValidationError(
+            _("Could not resolve URL host: %(host)s") % {"host": hostname}
+        ) from error
+
+    for info in addrinfo:
+        if _is_non_public_ip(ipaddress.ip_address(info[4][0])):
+            raise forms.ValidationError(
+                _("Downloading XLSForms from this URL host is not permitted.")
+            )
+
+
 def _download_url_upload(cleaned_url, original_name):
-    """Download a remote XLSForm body with the strict upload byte cap."""
+    """Download a remote XLSForm body with SSRF guards and the byte cap."""
+    _assert_url_not_internal(cleaned_url)
     try:
         response = requests.get(
             cleaned_url, stream=True, timeout=DEFAULT_REQUEST_TIMEOUT
