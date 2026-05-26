@@ -3,6 +3,8 @@
 The /api/v1/attachments API implementation.
 """
 
+from urllib.parse import quote
+
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.http import Http404
@@ -85,7 +87,13 @@ class AttachmentViewSet(
                     raise Http404() from error
 
                 raise ParseError(error) from error
-            return Response(data, content_type=self.object.mimetype)
+            response = Response(data, content_type=self.object.mimetype)
+            filename = quote(
+                self.object.name or self.object.media_file.name.split("/")[-1]
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            response["X-Content-Type-Options"] = "nosniff"
+            return response
 
         filename = request.query_params.get("filename")
         serializer = self.get_serializer(self.object)
@@ -94,7 +102,9 @@ class AttachmentViewSet(
             if filename == self.object.media_file.name:
                 return Response(serializer.get_download_url(self.object))
 
-            raise Http404(_(f"Filename '{filename}' not found."))
+            raise Http404(
+                _("Filename '%(filename)s' not found.") % {"filename": filename}
+            )
 
         return Response(serializer.data)
 
