@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import uuid
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -139,8 +140,16 @@ def question_types_to_exclude(_type):
 
 
 def upload_to(instance, filename):
-    """Returns the path to upload an XLSForm file to."""
-    return os.path.join(instance.user.username, "xls", os.path.split(filename)[1])
+    """Returns the path to upload an XLSForm file to.
+
+    The basename is randomised so the stored path never includes any
+    client-supplied name. The original filename is preserved on the in-memory
+    file object during ``DataDictionary.save()`` so pyxform can derive
+    ``fallback_form_name`` from it for forms without an explicit
+    ``settings.id_string``.
+    """
+    extension = os.path.splitext(os.path.split(filename)[1])[1].lower()
+    return os.path.join(instance.user.username, "xls", f"{uuid.uuid4().hex}{extension}")
 
 
 def contains_xml_invalid_char(text, invalids=None):
@@ -874,7 +883,9 @@ class XFormMixin:
 
         if not hasattr(self, "_variable_names"):
             # pylint: disable=import-outside-toplevel
-            from onadata.apps.viewer.models.column_rename import ColumnRename
+            from onadata.apps.viewer.models.column_rename import (  # noqa: PLC0415
+                ColumnRename,
+            )
 
             self._variable_names = ColumnRename.get_dict()
 

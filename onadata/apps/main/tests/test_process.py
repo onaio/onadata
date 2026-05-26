@@ -24,6 +24,7 @@ import requests
 from defusedxml import minidom
 from django_digest.test import Client as DigestClient
 from flaky import flaky
+from requests.structures import CaseInsensitiveDict
 from six import iteritems
 
 from onadata.apps.logger.models import XForm
@@ -139,28 +140,27 @@ class TestProcess(TestBase, SerializeMixin):
             with open(path, "rb") as xls_file:
                 mock_response = requests.Response()
                 mock_response.status_code = 200
-                mock_response.headers = {
-                    "content-type": (
-                        "application/vnd.openxmlformats-"
-                        "officedocument.spreadsheetml.sheet"
-                    ),
-                    "Content-Disposition": (
-                        'attachment; filename="transportation.'
-                        "xlsx\"; filename*=UTF-8''transportation.xlsx"
-                    ),
-                }
-                mock_requests.head.return_value = mock_response
+                mock_response.headers = CaseInsensitiveDict(
+                    {
+                        "content-type": (
+                            "application/vnd.openxmlformats-"
+                            "officedocument.spreadsheetml.sheet"
+                        ),
+                        "Content-Disposition": (
+                            'attachment; filename="transportation.'
+                            "xlsx\"; filename*=UTF-8''transportation.xlsx"
+                        ),
+                    }
+                )
                 # pylint: disable=protected-access
                 mock_response._content = xls_file.read()
+                mock_response._content_consumed = True
                 mock_requests.get.return_value = mock_response
                 response = self.client.post(
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
 
-                mock_requests.get.assert_called_with(xls_url, timeout=30)
-                mock_requests.head.assert_called_with(
-                    xls_url, allow_redirects=True, timeout=30
-                )
+                mock_requests.get.assert_called_with(xls_url, stream=True, timeout=30)
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -187,24 +187,27 @@ class TestProcess(TestBase, SerializeMixin):
             with open(path, "rb") as xls_file:
                 mock_response = requests.Response()
                 mock_response.status_code = 200
-                mock_response.headers = {
-                    "content-type": (
-                        "application/vnd.openxmlformats-"
-                        "officedocument.spreadsheetml.sheet"
-                    ),
-                    "content-disposition": (
-                        'attachment; filename="transportation.'
-                        "xlsx\"; filename*=UTF-8''transportation.xlsx"
-                    ),
-                }
+                mock_response.headers = CaseInsensitiveDict(
+                    {
+                        "content-type": (
+                            "application/vnd.openxmlformats-"
+                            "officedocument.spreadsheetml.sheet"
+                        ),
+                        "content-disposition": (
+                            'attachment; filename="transportation.'
+                            "xlsx\"; filename*=UTF-8''transportation.xlsx"
+                        ),
+                    }
+                )
                 # pylint: disable=protected-access
                 mock_response._content = xls_file.read()
+                mock_response._content_consumed = True
                 mock_requests.get.return_value = mock_response
 
                 response = self.client.post(
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
-                mock_requests.get.assert_called_with(xls_url, timeout=30)
+                mock_requests.get.assert_called_with(xls_url, stream=True, timeout=30)
 
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
