@@ -139,6 +139,16 @@ def question_types_to_exclude(_type):
     return _type in QUESTION_TYPES_TO_EXCLUDE
 
 
+def get_xls_upload_path(username, filename):
+    """Return ``{username}/xls/{uuid}{ext}`` with a randomised basename.
+
+    The basename is randomised so the stored path never includes any
+    client-supplied name, while the original extension is preserved.
+    """
+    extension = os.path.splitext(os.path.split(filename)[1])[1].lower()
+    return os.path.join(username, "xls", f"{uuid.uuid4().hex}{extension}")
+
+
 def upload_to(instance, filename):
     """Returns the path to upload an XLSForm file to.
 
@@ -148,8 +158,7 @@ def upload_to(instance, filename):
     ``fallback_form_name`` from it for forms without an explicit
     ``settings.id_string``.
     """
-    extension = os.path.splitext(os.path.split(filename)[1])[1].lower()
-    return os.path.join(instance.user.username, "xls", f"{uuid.uuid4().hex}{extension}")
+    return get_xls_upload_path(instance.user.username, filename)
 
 
 def contains_xml_invalid_char(text, invalids=None):

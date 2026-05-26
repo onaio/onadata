@@ -6,7 +6,6 @@ DataDictionary model.
 import importlib
 import json
 import os
-import uuid
 from io import BytesIO
 
 from django.conf import settings
@@ -33,6 +32,7 @@ from onadata.apps.logger.models.xform import (
     check_version_set,
     check_xform_uuid,
     get_survey_from_file_object,
+    get_xls_upload_path,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
@@ -137,9 +137,7 @@ def upload_to(instance, filename, username=None):
     """
     if instance:
         username = instance.xform.user.username
-    original_basename = os.path.split(filename)[1]
-    extension = os.path.splitext(original_basename)[1].lower()
-    return os.path.join(username, "xls", f"{uuid.uuid4().hex}{extension}")
+    return get_xls_upload_path(username, filename)
 
 
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes

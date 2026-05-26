@@ -220,6 +220,35 @@ def media_resources(media_list, download=False):
     return data
 
 
+def _store_validated_metadata_file(
+    content_object, data_type, data_file, allowed_extensions, upload_context
+):
+    """Validate ``data_file`` and persist it as a ``MetaData`` record.
+
+    Shared by :meth:`MetaData.supporting_docs` and :meth:`MetaData.media_upload`
+    which differ only in the data type and the allowed extensions/context.
+    """
+    try:
+        upload = validate_uploaded_file(data_file, allowed_extensions, upload_context)
+    except UploadValidationError as error:
+        raise ValidationError({"data_file": str(error)}) from error
+
+    data_file.name = upload.storage_basename
+    data_file.content_type = upload.content_type
+    content_type = ContentType.objects.get_for_model(content_object)
+
+    MetaData.objects.update_or_create(
+        data_type=data_type,
+        content_type=content_type,
+        object_id=content_object.id,
+        data_value=upload.original_name,
+        defaults={
+            "data_file": data_file,
+            "data_file_type": upload.content_type,
+        },
+    )
+
+
 # pylint: disable=too-many-public-methods
 class MetaData(models.Model):
     """MetaData class model."""
@@ -415,28 +444,12 @@ class MetaData(models.Model):
         """
         data_type = "supporting_doc"
         if data_file:
-            try:
-                upload = validate_uploaded_file(
-                    data_file,
-                    SUPPORTING_DOC_ALLOWED_EXTENSIONS,
-                    SUPPORTING_DOC_UPLOAD_CONTEXT,
-                )
-            except UploadValidationError as error:
-                raise ValidationError({"data_file": str(error)}) from error
-
-            data_file.name = upload.storage_basename
-            data_file.content_type = upload.content_type
-            content_type = ContentType.objects.get_for_model(content_object)
-
-            _doc, _created = MetaData.objects.update_or_create(
-                data_type=data_type,
-                content_type=content_type,
-                object_id=content_object.id,
-                data_value=upload.original_name,
-                defaults={
-                    "data_file": data_file,
-                    "data_file_type": upload.content_type,
-                },
+            _store_validated_metadata_file(
+                content_object,
+                data_type,
+                data_file,
+                SUPPORTING_DOC_ALLOWED_EXTENSIONS,
+                SUPPORTING_DOC_UPLOAD_CONTEXT,
             )
 
         return type_for_form(content_object, data_type)
@@ -448,26 +461,12 @@ class MetaData(models.Model):
         """
         data_type = "media"
         if data_file:
-            try:
-                upload = validate_uploaded_file(
-                    data_file, FORM_MEDIA_ALLOWED_EXTENSIONS, FORM_MEDIA_UPLOAD_CONTEXT
-                )
-            except UploadValidationError as error:
-                raise ValidationError({"data_file": str(error)}) from error
-
-            data_file.name = upload.storage_basename
-            data_file.content_type = upload.content_type
-            content_type = ContentType.objects.get_for_model(content_object)
-
-            _media, _created = MetaData.objects.update_or_create(
-                data_type=data_type,
-                content_type=content_type,
-                object_id=content_object.id,
-                data_value=upload.original_name,
-                defaults={
-                    "data_file": data_file,
-                    "data_file_type": upload.content_type,
-                },
+            _store_validated_metadata_file(
+                content_object,
+                data_type,
+                data_file,
+                FORM_MEDIA_ALLOWED_EXTENSIONS,
+                FORM_MEDIA_UPLOAD_CONTEXT,
             )
         return media_resources(type_for_form(content_object, data_type), download)
 
