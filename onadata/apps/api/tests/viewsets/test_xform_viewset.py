@@ -348,7 +348,9 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = self.view(request)
 
-                mock_requests.get.assert_called_with(xls_url, stream=True, timeout=30)
+                mock_requests.get.assert_called_with(
+                    xls_url, stream=True, timeout=30, allow_redirects=False
+                )
                 xls_file.close()
 
                 self.assertEqual(response.status_code, 201)
@@ -481,7 +483,9 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = self.view(request)
 
-                mock_requests.get.assert_called_with(csv_url, stream=True, timeout=30)
+                mock_requests.get.assert_called_with(
+                    csv_url, stream=True, timeout=30, allow_redirects=False
+                )
                 csv_file.close()
 
                 self.assertEqual(response.status_code, 201)
