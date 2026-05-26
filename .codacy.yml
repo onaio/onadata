@@ -1,6 +1,2 @@
 exclude_paths:
   - ".claude/skills/**"
-  # Literal credentials in these auth backend tests trip Bandit's
-  # "possible hardcoded password" (B105/B106); they're test fixtures,
-  # not secrets, so exclude the file from analysis.
-  - "onadata/apps/main/tests/test_backends.py"

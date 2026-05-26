@@ -20,39 +20,53 @@ class TestModelBackend(TestCase):
 
     def test_authenticate_with_username(self):
         user = User.objects.create_user(
-            username="alice", email="alice@example.com", password="secret"
+            username="alice",
+            email="alice@example.com",
+            password="secret",  # nosec B106
         )
         self.assertEqual(
-            self.backend.authenticate(None, username="alice", password="secret"),
+            self.backend.authenticate(
+                None, username="alice", password="secret"  # nosec B106
+            ),
             user,
         )
 
     def test_username_is_case_insensitive(self):
         user = User.objects.create_user(
-            username="Alice", email="alice@example.com", password="secret"
+            username="Alice",
+            email="alice@example.com",
+            password="secret",  # nosec B106
         )
         self.assertEqual(
-            self.backend.authenticate(None, username="alice", password="secret"),
+            self.backend.authenticate(
+                None, username="alice", password="secret"  # nosec B106
+            ),
             user,
         )
 
     def test_authenticate_with_email(self):
         user = User.objects.create_user(
-            username="bob", email="bob@example.com", password="secret"
+            username="bob",
+            email="bob@example.com",
+            password="secret",  # nosec B106
         )
         self.assertEqual(
             self.backend.authenticate(
-                None, username="bob@example.com", password="secret"
+                None, username="bob@example.com", password="secret"  # nosec B106
             ),
             user,
         )
 
     def test_wrong_password_returns_none(self):
         User.objects.create_user(
-            username="carol", email="carol@example.com", password="secret"
+            username="carol",
+            email="carol@example.com",
+            password="secret",  # nosec B106
         )
         self.assertIsNone(
-            self.backend.authenticate(None, username="carol", password="nope")
+            self.backend.authenticate(
+                None, username="carol", password="nope"  # nosec B106
+            )
         )
 
     def test_shared_email_resolves_to_account_matching_password(self):
@@ -61,14 +75,18 @@ class TestModelBackend(TestCase):
         account whose password verifies rather than an arbitrary ``.first()``.
         """
         User.objects.create_user(
-            username="john", email="team@example.com", password="john-pass"
+            username="john",
+            email="team@example.com",
+            password="john-pass",  # nosec B106
         )
         jane = User.objects.create_user(
-            username="jane", email="team@example.com", password="jane-pass"
+            username="jane",
+            email="team@example.com",
+            password="jane-pass",  # nosec B106
         )
         self.assertEqual(
             self.backend.authenticate(
-                None, username="team@example.com", password="jane-pass"
+                None, username="team@example.com", password="jane-pass"  # nosec B106
             ),
             jane,
         )
@@ -79,14 +97,18 @@ class TestModelBackend(TestCase):
         authenticate by email.
         """
         john = User.objects.create_user(
-            username="john", email="team@example.com", password="john-pass"
+            username="john",
+            email="team@example.com",
+            password="john-pass",  # nosec B106
         )
         User.objects.create_user(
-            username="jane", email="team@example.com", password="jane-pass"
+            username="jane",
+            email="team@example.com",
+            password="jane-pass",  # nosec B106
         )
         self.assertEqual(
             self.backend.authenticate(
-                None, username="team@example.com", password="john-pass"
+                None, username="team@example.com", password="john-pass"  # nosec B106
             ),
             john,
         )
@@ -94,10 +116,14 @@ class TestModelBackend(TestCase):
     def test_username_resolves_to_own_account(self):
         """A unique username always resolves to its own account."""
         dave = User.objects.create_user(
-            username="dave", email="dave@example.com", password="dave-pass"
+            username="dave",
+            email="dave@example.com",
+            password="dave-pass",  # nosec B106
         )
         self.assertEqual(
-            self.backend.authenticate(None, username="dave", password="dave-pass"),
+            self.backend.authenticate(
+                None, username="dave", password="dave-pass"  # nosec B106
+            ),
             dave,
         )
 
@@ -107,18 +133,24 @@ class TestModelBackend(TestCase):
         credentials match it.
         """
         User.objects.create_user(
-            username="acme-org", email="acme@example.com", password="secret"
+            username="acme-org",
+            email="acme@example.com",
+            password="secret",  # nosec B106
         )
         with patch(
             "onadata.apps.main.backends.is_organization_user", return_value=True
         ):
             self.assertIsNone(
-                self.backend.authenticate(None, username="acme-org", password="secret")
+                self.backend.authenticate(
+                    None, username="acme-org", password="secret"  # nosec B106
+                )
             )
 
     def test_returns_none_when_no_match(self):
         self.assertIsNone(
-            self.backend.authenticate(None, username="ghost", password="x")
+            self.backend.authenticate(
+                None, username="ghost", password="x"  # nosec B106
+            )
         )
 
     def test_returns_none_without_credentials(self):
