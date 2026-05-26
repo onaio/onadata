@@ -30,7 +30,7 @@ class ModelBackend(DjangoModelBackend):
         into the wrong account and rejecting valid credentials that belong to a
         non-first duplicate.
         """
-        if username is None or password is None:
+        if not username or not password:
             return None
 
         username_matches = User.objects.filter(username__iexact=username)
@@ -47,6 +47,11 @@ class ModelBackend(DjangoModelBackend):
                 continue
             seen_ids.add(user.pk)
             if not user.check_password(password):
+                continue
+            # Reject inactive accounts, matching Django ``ModelBackend``: this
+            # override would otherwise drop the ``user_can_authenticate`` gate
+            # the base backend applies, letting deactivated users in.
+            if not self.user_can_authenticate(user):
                 continue
             # Organization accounts are not loginnable human accounts; their
             # User row exists only to hold permissions and ownership. Skip them

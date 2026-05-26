@@ -175,23 +175,69 @@ class TestModelBackend(TestCase):
                 alice,
             )
 
-    def test_organization_account_without_usable_password_cannot_log_in(self):
+    def test_user_with_unusable_password_cannot_log_in(self):
         """
-        Organization ``User`` rows are created without a usable password (see
-        ``create_organization_object``), so they never match and never
-        authenticate.
+        A ``User`` created without a usable password -- as organization rows
+        are (see ``create_organization_object``) -- never matches and never
+        authenticates. No ``is_organization_user`` patch here: the rejection
+        must rest on the unusable password itself, not the org guard.
         """
-        org = User.objects.create(username="beta-org", email="beta@example.com")
-        org.set_unusable_password()
-        org.save()
-        with patch(
-            "onadata.apps.main.backends.is_organization_user", return_value=True
-        ):
-            self.assertIsNone(
-                self.backend.authenticate(
-                    None, username="beta-org", password="anything"  # nosec B106
-                )
+        user = User.objects.create(username="beta-org", email="beta@example.com")
+        user.set_unusable_password()
+        user.save()
+        self.assertIsNone(
+            self.backend.authenticate(
+                None, username="beta-org", password="anything"  # nosec B106
             )
+        )
+
+    def test_inactive_user_cannot_authenticate(self):
+        """
+        An ``is_active=False`` account is rejected even with a valid password,
+        matching Django ``ModelBackend.user_can_authenticate`` enforcement.
+        """
+        User.objects.create_user(
+            username="frozen",
+            email="frozen@example.com",
+            password="secret",  # nosec B106
+            is_active=False,
+        )
+        self.assertIsNone(
+            self.backend.authenticate(
+                None, username="frozen", password="secret"  # nosec B106
+            )
+        )
+
+    def test_value_matching_one_username_and_another_email(self):
+        """
+        When the supplied value is one account's username and another
+        account's email, the unique username match takes precedence when its
+        password verifies; otherwise the email-matched account is resolved.
+        """
+        alice = User.objects.create_user(
+            username="user@example.com",
+            email="alice@example.com",
+            password="alice-pass",  # nosec B106
+        )
+        bob = User.objects.create_user(
+            username="bob",
+            email="user@example.com",
+            password="bob-pass",  # nosec B106
+        )
+        # Username match wins when its password is supplied...
+        self.assertEqual(
+            self.backend.authenticate(
+                None, username="user@example.com", password="alice-pass"  # nosec B106
+            ),
+            alice,
+        )
+        # ...otherwise the email-matched account is resolved by password.
+        self.assertEqual(
+            self.backend.authenticate(
+                None, username="user@example.com", password="bob-pass"  # nosec B106
+            ),
+            bob,
+        )
 
     def test_username_case_variants_resolve_to_own_account(self):
         """
