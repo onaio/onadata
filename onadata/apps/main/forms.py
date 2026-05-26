@@ -21,7 +21,7 @@ from django.utils.translation import gettext_lazy
 import requests
 from registration.forms import RegistrationFormUniqueEmail
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urljoin, urlparse
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
@@ -174,17 +174,49 @@ def _assert_url_not_internal(url):
             )
 
 
+MAX_DOWNLOAD_REDIRECTS = 5
+
+
+def _get_with_ssrf_guard(url):
+    """GET ``url`` following redirects manually, validating every hop.
+
+    Redirects are not auto-followed; instead each URL in the chain (the initial
+    URL and every ``Location``) is checked with :func:`_assert_url_not_internal`
+    before it is requested, so a public URL cannot redirect the download into an
+    internal address. The chain is capped at :data:`MAX_DOWNLOAD_REDIRECTS`.
+    """
+    current_url = url
+    for _hop in range(MAX_DOWNLOAD_REDIRECTS + 1):
+        _assert_url_not_internal(current_url)
+        try:
+            response = requests.get(
+                current_url,
+                stream=True,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+                allow_redirects=False,
+            )
+        except RequestException as error:
+            raise forms.ValidationError(
+                _("Could not download XLSForm from URL: %(url)s") % {"url": url}
+            ) from error
+
+        if not response.is_redirect:
+            return response
+
+        location = response.headers.get("Location")
+        response.close()
+        if not location:
+            raise forms.ValidationError(
+                _("Could not download XLSForm from URL: %(url)s") % {"url": url}
+            )
+        current_url = urljoin(current_url, location)
+
+    raise forms.ValidationError(_("Too many redirects while downloading the XLSForm."))
+
+
 def _download_url_upload(cleaned_url, original_name):
     """Download a remote XLSForm body with SSRF guards and the byte cap."""
-    _assert_url_not_internal(cleaned_url)
-    try:
-        response = requests.get(
-            cleaned_url, stream=True, timeout=DEFAULT_REQUEST_TIMEOUT
-        )
-    except RequestException as error:
-        raise forms.ValidationError(
-            _("Could not download XLSForm from URL: %(url)s") % {"url": cleaned_url}
-        ) from error
+    response = _get_with_ssrf_guard(cleaned_url)
 
     if response.status_code >= 400:
         raise forms.ValidationError(

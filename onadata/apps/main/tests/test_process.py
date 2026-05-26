@@ -160,7 +160,9 @@ class TestProcess(TestBase, SerializeMixin):
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
 
-                mock_requests.get.assert_called_with(xls_url, stream=True, timeout=30)
+                mock_requests.get.assert_called_with(
+                    xls_url, stream=True, timeout=30, allow_redirects=False
+                )
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -207,7 +209,9 @@ class TestProcess(TestBase, SerializeMixin):
                 response = self.client.post(
                     f"/{self.user.username}/", {"xls_url": xls_url}
                 )
-                mock_requests.get.assert_called_with(xls_url, stream=True, timeout=30)
+                mock_requests.get.assert_called_with(
+                    xls_url, stream=True, timeout=30, allow_redirects=False
+                )
 
                 # make sure publishing the survey worked
                 self.assertEqual(response.status_code, 200)
