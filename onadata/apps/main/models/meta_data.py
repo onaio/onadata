@@ -28,10 +28,10 @@ import requests
 from onadata.apps.logger.models import EntityList, XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.cache_tools import (
-    ENKETO_URL_CACHE,
-    ENKETO_URLS_CACHE,
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
+    ENKETO_URL_CACHE,
+    ENKETO_URLS_CACHE,
     XFORM_MANIFEST_CACHE,
     XFORM_METADATA_CACHE,
     safe_cache_delete,
@@ -41,6 +41,14 @@ from onadata.libs.utils.common_tags import (
     TEXTIT,
     TEXTIT_DETAILS,
     XFORM_META_PERMS,
+)
+from onadata.libs.utils.upload_validation import (
+    FORM_MEDIA_ALLOWED_EXTENSIONS,
+    FORM_MEDIA_UPLOAD_CONTEXT,
+    SUPPORTING_DOC_ALLOWED_EXTENSIONS,
+    SUPPORTING_DOC_UPLOAD_CONTEXT,
+    UploadValidationError,
+    validate_uploaded_file,
 )
 
 ANONYMOUS_USERNAME = "anonymous"
@@ -407,16 +415,27 @@ class MetaData(models.Model):
         """
         data_type = "supporting_doc"
         if data_file:
+            try:
+                upload = validate_uploaded_file(
+                    data_file,
+                    SUPPORTING_DOC_ALLOWED_EXTENSIONS,
+                    SUPPORTING_DOC_UPLOAD_CONTEXT,
+                )
+            except UploadValidationError as error:
+                raise ValidationError({"data_file": str(error)}) from error
+
+            data_file.name = upload.storage_basename
+            data_file.content_type = upload.content_type
             content_type = ContentType.objects.get_for_model(content_object)
 
             _doc, _created = MetaData.objects.update_or_create(
                 data_type=data_type,
                 content_type=content_type,
                 object_id=content_object.id,
-                data_value=data_file.name,
+                data_value=upload.original_name,
                 defaults={
                     "data_file": data_file,
-                    "data_file_type": data_file.content_type,
+                    "data_file_type": upload.content_type,
                 },
             )
 
@@ -429,26 +448,27 @@ class MetaData(models.Model):
         """
         data_type = "media"
         if data_file:
-            allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
-            data_content_type = (
-                data_file.content_type
-                if data_file.content_type in allowed_types
-                else mimetypes.guess_type(data_file.name)[0]
-            )
-
-            if data_content_type in allowed_types:
-                content_type = ContentType.objects.get_for_model(content_object)
-
-                _media, _created = MetaData.objects.update_or_create(
-                    data_type=data_type,
-                    content_type=content_type,
-                    object_id=content_object.id,
-                    data_value=data_file.name,
-                    defaults={
-                        "data_file": data_file,
-                        "data_file_type": data_content_type,
-                    },
+            try:
+                upload = validate_uploaded_file(
+                    data_file, FORM_MEDIA_ALLOWED_EXTENSIONS, FORM_MEDIA_UPLOAD_CONTEXT
                 )
+            except UploadValidationError as error:
+                raise ValidationError({"data_file": str(error)}) from error
+
+            data_file.name = upload.storage_basename
+            data_file.content_type = upload.content_type
+            content_type = ContentType.objects.get_for_model(content_object)
+
+            _media, _created = MetaData.objects.update_or_create(
+                data_type=data_type,
+                content_type=content_type,
+                object_id=content_object.id,
+                data_value=upload.original_name,
+                defaults={
+                    "data_file": data_file,
+                    "data_file_type": upload.content_type,
+                },
+            )
         return media_resources(type_for_form(content_object, data_type), download)
 
     @staticmethod

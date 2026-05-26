@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage, storages
 from django.db import IntegrityError, connections
 from django.http import (
@@ -155,7 +156,7 @@ def clone_xlsform(request, username):
                 Actions.FORM_CLONED,
                 request.user,
                 request.user,
-                _(f"Cloned form '{survey.id_string}'."),
+                _("Cloned form '%(id_string)s'.") % {"id_string": survey.id_string},
                 audit,
                 request,
             )
@@ -224,7 +225,7 @@ def profile(request, username):
                 Actions.FORM_PUBLISHED,
                 request.user,
                 content_user,
-                _(f"Published form '{survey.id_string}'."),
+                _("Published form '%(id_string)s'.") % {"id_string": survey.id_string},
                 audit,
                 request,
             )
@@ -805,7 +806,8 @@ def edit(request, username, id_string):  # noqa C901
                 Actions.FORM_UPDATED,
                 request.user,
                 owner,
-                _(f"Source for '{xform.id_string}' updated to '{source}'."),
+                _("Source for '%(id_string)s' updated to '%(source)s'.")
+                % {"id_string": xform.id_string, "source": source},
                 audit,
                 request,
             )
@@ -857,12 +859,15 @@ def edit(request, username, id_string):  # noqa C901
                 Actions.FORM_UPDATED,
                 request.user,
                 owner,
-                _(f"Media added to '{xform.id_string}'."),
+                _("Media added to '%(id_string)s'.") % {"id_string": xform.id_string},
                 audit,
                 request,
             )
             for media_file in request.FILES.getlist("media"):
-                MetaData.media_upload(xform, media_file)
+                try:
+                    MetaData.media_upload(xform, media_file)
+                except ValidationError as error:
+                    return HttpResponseBadRequest("; ".join(error.messages))
         elif request.POST.get("map_name"):
             mapbox_layer = MapboxLayerForm(request.POST)
             if mapbox_layer.is_valid():
@@ -871,7 +876,8 @@ def edit(request, username, id_string):  # noqa C901
                     Actions.FORM_UPDATED,
                     request.user,
                     owner,
-                    _(f"Map layer added to '{xform.id_string}'."),
+                    _("Map layer added to '%(id_string)s'.")
+                    % {"id_string": xform.id_string},
                     audit,
                     request,
                 )
@@ -882,11 +888,15 @@ def edit(request, username, id_string):  # noqa C901
                 Actions.FORM_UPDATED,
                 request.user,
                 owner,
-                _(f"Supporting document added to '{xform.id_string}'."),
+                _("Supporting document added to '%(id_string)s'.")
+                % {"id_string": xform.id_string},
                 audit,
                 request,
             )
-            MetaData.supporting_docs(xform, request.FILES.get("doc"))
+            try:
+                MetaData.supporting_docs(xform, request.FILES.get("doc"))
+            except ValidationError as error:
+                return HttpResponseBadRequest("; ".join(error.messages))
         elif request.POST.get("template_token") and request.POST.get("template_token"):
             template_name = request.POST.get("template_name")
             template_token = request.POST.get("template_token")
@@ -895,7 +905,8 @@ def edit(request, username, id_string):  # noqa C901
                 Actions.FORM_UPDATED,
                 request.user,
                 owner,
-                _(f"External export added to '{xform.id_string}'."),
+                _("External export added to '%(id_string)s'.")
+                % {"id_string": xform.id_string},
                 audit,
                 request,
             )
@@ -1086,7 +1097,8 @@ def delete_metadata(request, username, id_string, data_id):
             Actions.FORM_UPDATED,
             request.user,
             owner,
-            _(f"Document '{filename}' deleted from '{xform.id_string}'."),
+            _("Document '%(filename)s' deleted from '%(id_string)s'.")
+            % {"filename": filename, "id_string": xform.id_string},
             audit,
             request,
         )
@@ -1102,7 +1114,8 @@ def delete_metadata(request, username, id_string, data_id):
             Actions.FORM_UPDATED,
             request.user,
             owner,
-            _(f"Map layer deleted from '{xform.id_string}'."),
+            _("Map layer deleted from '%(id_string)s'.")
+            % {"id_string": xform.id_string},
             audit,
             request,
         )
@@ -1243,7 +1256,7 @@ def set_perm(request, username, id_string):  # noqa C901
             messages.add_message(
                 request,
                 messages.INFO,
-                _(f"Wrong username <b>{for_user}</b>."),
+                _("Wrong username <b>%(for_user)s</b>.") % {"for_user": for_user},
                 extra_tags="alert-error",
             )
         else:
@@ -1322,7 +1335,8 @@ def set_perm(request, username, id_string):  # noqa C901
             Actions.FORM_PERMISSIONS_UPDATED,
             request.user,
             owner,
-            _(f"Public link on '{xform.id_string}' {action}."),
+            _("Public link on '%(id_string)s' %(action)s.")
+            % {"id_string": xform.id_string, "action": action},
             audit,
             request,
         )
@@ -1354,7 +1368,8 @@ def delete_data(request, username=None, id_string=None):
         Actions.SUBMISSION_DELETED,
         request.user,
         owner,
-        _(f"Deleted submission with id '{data_id}' on '{xform.id_string}'."),
+        _("Deleted submission with id '%(data_id)s' on '%(id_string)s'.")
+        % {"data_id": data_id, "id_string": xform.id_string},
         audit,
         request,
     )
@@ -1389,7 +1404,7 @@ def update_xform(request, username, id_string):
             Actions.FORM_XLS_UPDATED,
             request.user,
             owner,
-            _(f"XLS for '{xform.id_string}' updated."),
+            _("XLS for '%(id_string)s' updated.") % {"id_string": xform.id_string},
             audit,
             request,
         )
@@ -1505,7 +1520,7 @@ def qrcode(request, username, id_string):
     try:
         enketo_urls = get_enketo_urls(formhub_url, id_string)
     except EnketoError as e:
-        error_msg = _(f"Error Generating QRCODE: {e}")
+        error_msg = _("Error Generating QRCODE: %(error)s") % {"error": e}
         results = f"""<div class="alert alert-error">{error_msg}</div>"""
         status = HTTPStatus.BAD_REQUEST
     else:
