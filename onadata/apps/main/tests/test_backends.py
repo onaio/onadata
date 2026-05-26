@@ -146,6 +146,81 @@ class TestModelBackend(TestCase):
                 )
             )
 
+    def test_organization_account_does_not_block_human_with_shared_email(self):
+        """
+        An organization account that shares an email (and password) with a
+        human account must not block the human from logging in by email; the
+        org candidate is skipped, not used to abort the whole lookup.
+        """
+        org = User.objects.create_user(
+            username="acme-org",
+            email="team@example.com",
+            password="shared-pass",  # nosec B106
+        )
+        alice = User.objects.create_user(
+            username="alice",
+            email="team@example.com",
+            password="shared-pass",  # nosec B106
+        )
+        with patch(
+            "onadata.apps.main.backends.is_organization_user",
+            side_effect=lambda user: user == org,
+        ):
+            self.assertEqual(
+                self.backend.authenticate(
+                    None,
+                    username="team@example.com",
+                    password="shared-pass",  # nosec B106
+                ),
+                alice,
+            )
+
+    def test_organization_account_without_usable_password_cannot_log_in(self):
+        """
+        Organization ``User`` rows are created without a usable password (see
+        ``create_organization_object``), so they never match and never
+        authenticate.
+        """
+        org = User.objects.create(username="beta-org", email="beta@example.com")
+        org.set_unusable_password()
+        org.save()
+        with patch(
+            "onadata.apps.main.backends.is_organization_user", return_value=True
+        ):
+            self.assertIsNone(
+                self.backend.authenticate(
+                    None, username="beta-org", password="anything"  # nosec B106
+                )
+            )
+
+    def test_username_case_variants_resolve_to_own_account(self):
+        """
+        Distinct username case-variants each authenticate with their own
+        password instead of the lowest-PK match shadowing the others.
+        """
+        upper = User.objects.create_user(
+            username="Casey",
+            email="casey1@example.com",
+            password="upper-pass",  # nosec B106
+        )
+        lower = User.objects.create_user(
+            username="casey",
+            email="casey2@example.com",
+            password="lower-pass",  # nosec B106
+        )
+        self.assertEqual(
+            self.backend.authenticate(
+                None, username="casey", password="lower-pass"  # nosec B106
+            ),
+            lower,
+        )
+        self.assertEqual(
+            self.backend.authenticate(
+                None, username="Casey", password="upper-pass"  # nosec B106
+            ),
+            upper,
+        )
+
     def test_returns_none_when_no_match(self):
         self.assertIsNone(
             self.backend.authenticate(

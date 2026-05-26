@@ -35,13 +35,25 @@ class ModelBackend(DjangoModelBackend):
 
         username_matches = User.objects.filter(username__iexact=username)
         email_matches = User.objects.filter(email__iexact=username)
+        # Username is unique, so username matches are tried first; email is not,
+        # so email collisions are resolved by password. Candidates are
+        # de-duplicated (a value can match both a username and an email) so each
+        # account's deliberately-expensive password hash is verified at most
+        # once. The work is bounded by the small number of accounts that share
+        # the supplied username/email.
+        seen_ids = set()
         for user in list(username_matches) + list(email_matches):
-            if user.check_password(password):
-                # Organization accounts are not loginnable human accounts; their
-                # User row exists only to hold permissions and ownership. Refuse
-                # authentication so an org account can never establish a session.
-                if is_organization_user(user):
-                    return None
-                return user
+            if user.pk in seen_ids:
+                continue
+            seen_ids.add(user.pk)
+            if not user.check_password(password):
+                continue
+            # Organization accounts are not loginnable human accounts; their
+            # User row exists only to hold permissions and ownership. Skip them
+            # so an org account can never establish a session -- and never
+            # blocks a legitimate human account that shares its email.
+            if is_organization_user(user):
+                continue
+            return user
 
         return None
