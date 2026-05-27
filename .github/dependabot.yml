@@ -11,3 +11,14 @@ updates:
       - "ukanga"
       - "KipSigei"
       - "DavisRayM"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+    reviewers:
+      - "ukanga"
+      - "KipSigei"
+      - "DavisRayM"

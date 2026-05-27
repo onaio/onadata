@@ -49,6 +49,7 @@ from onadata.libs.utils.common_tools import (
     get_abbreviated_xpath,
     get_choice_label,
     get_value_or_attachment_uri,
+    sanitize_for_export,
     str_to_bool,
     track_task_progress,
 )
@@ -176,23 +177,25 @@ def write_to_csv(
                     for col in new_cols
                 ]
 
-            writer.writerow(new_cols)
+            writer.writerow([sanitize_for_export(c) for c in new_cols])
 
         if include_labels or include_labels_only:
             labels = get_labels_from_columns(
                 columns, data_dictionary, group_delimiter, language=language
             )
-            writer.writerow(labels)
+            writer.writerow([sanitize_for_export(val) for val in labels])
 
         if include_hxl and columns_with_hxl:
             hxl_row = [columns_with_hxl.get(col, "") for col in columns]
             if hxl_row:
-                writer.writerow(hxl_row)
+                writer.writerow([sanitize_for_export(h) for h in hxl_row])
 
         for i, row in enumerate(rows, start=1):
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
                 row.pop(col, None)
-            writer.writerow([row.get(col, na_rep) for col in columns])
+            writer.writerow(
+                [sanitize_for_export(row.get(col, na_rep)) for col in columns]
+            )
             track_task_progress(i, total_records)
 
 

@@ -1107,6 +1107,17 @@ class TestExportTools(TestAbstractViewSet):
             # No exception is raised
             SavWriter(sav_file.name, **sav_options)
 
+    def test_sav_options_has_file_label(self):
+        """fileLabel must be set to avoid getpass.getuser() calls at export."""
+        survey = create_survey_from_xls(_logger_fixture_path("grains/grains.xlsx"))
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+
+        for sec in export_builder.sections:
+            sav_options = export_builder._get_sav_options(sec["elements"])
+            self.assertIn("fileLabel", sav_options)
+            self.assertEqual(sav_options["fileLabel"], "File exported by Ona")
+
     @override_settings(PENDING_EXPORT_TIME=1)
     def test_retrieving_pending_export(self):
         self._create_user_and_login()

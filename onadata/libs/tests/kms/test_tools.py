@@ -7,7 +7,6 @@ from datetime import timezone as tz
 from hashlib import md5, sha256
 from io import BytesIO
 from unittest.mock import Mock, call, patch
-from xml.etree.ElementTree import ParseError
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ImproperlyConfigured
@@ -34,7 +33,11 @@ from valigetta.kms import AWSKMSClient as BaseAWSClient
 
 from onadata.apps.logger.models import Attachment, Instance, KMSKey, SurveyType, XForm
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.exceptions import DecryptionError, EncryptionError
+from onadata.libs.exceptions import (
+    DecryptionError,
+    EncryptionError,
+    NotAllMediaReceivedError,
+)
 from onadata.libs.kms.clients import AWSKMSClient
 from onadata.libs.kms.tools import (
     adjust_xform_num_of_decrypted_submissions,
@@ -47,7 +50,6 @@ from onadata.libs.kms.tools import (
     disable_xform_encryption,
     encrypt_xform,
     get_kms_client,
-    is_instance_encrypted,
     rotate_expired_keys,
     rotate_key,
     send_key_grace_expiry_reminder,
@@ -1321,8 +1323,7 @@ class DecryptInstanceTestCase(TestBase):
 
     def test_encryption_unmanaged(self):
         """Decryption fails if encryption is not using managed keys."""
-        self.xform.is_managed = False
-        self.xform.save(update_fields=["is_managed"])
+        self.xform.kms_keys.all().delete()
         old_xml = self.instance.xml
         old_date_modified = self.instance.date_modified
         self.instance.refresh_from_db()
@@ -1339,6 +1340,25 @@ class DecryptInstanceTestCase(TestBase):
         # No update was made to Instance
         self.assertEqual(self.instance.xml, old_xml)
         self.assertEqual(self.instance.date_modified, old_date_modified)
+
+    def test_media_not_all_received(self):
+        """Decryption fails if not all media files have been received."""
+        self.instance.media_all_received = False
+        self.instance.save()
+
+        with self.assertRaises(NotAllMediaReceivedError) as exc_info:
+            decrypt_instance(self.instance)
+
+        self.assertEqual(
+            str(exc_info.exception), "Not all media files have been received."
+        )
+        self.instance.refresh_from_db()
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.FAILED
+        )
+        self.assertEqual(
+            self.instance.json.get("_decryption_error"), "NOT_ALL_MEDIA_RECEIVED"
+        )
 
 
 class DisableXFormEncryptionTestCase(TestBase):
@@ -1667,59 +1687,6 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         cleaned_key = clean_public_key(self.clean_key)
 
         self.assertEqual(cleaned_key, self.clean_key.strip())
-
-
-class IsInstanceEncryptedTestCase(TestBase):
-    """Tests for `is_instance_encrypted`"""
-
-    def test_encrypted_instance(self):
-        """Returns True if Instance is encrypted."""
-        manifest_xml = """
-        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
-            id="test_valigetta" version="202502131337">
-            <base64EncryptedKey>fake0key</base64EncryptedKey>
-            <meta xmlns="http://openrosa.org/xforms">
-                <instanceID>uuid:a10ead67-7415-47da-b823-0947ab8a8ef0</instanceID>
-            </meta>
-            <media>
-                <file>sunset.png.enc</file>
-                <file>forest.mp4.enc</file>
-            </media>
-            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
-            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
-        </data>
-        """.strip()
-        md = """
-        | survey  |
-        |         | type  | name   | label                |
-        |         | photo | sunset | Take photo of sunset |
-        |         | video | forest | Take a video of forest|
-        """
-        xform = self._publish_markdown(md, self.user, id_string="nature")
-        survey_type = SurveyType.objects.create(slug="slug-foo")
-        instance = Instance.objects.create(
-            xform=xform,
-            xml=manifest_xml,
-            user=self.user,
-            survey_type=survey_type,
-        )
-        self.assertTrue(is_instance_encrypted(instance))
-
-    def test_unencrypted_instance(self):
-        """Returns False if Instance unencrypted."""
-        self._publish_transportation_form_and_submit_instance()
-        instance = Instance.objects.order_by("-pk").first()
-
-        self.assertFalse(is_instance_encrypted(instance))
-
-    def test_invalid_xml(self):
-        """Returns False if XML invalid."""
-        self._publish_transportation_form_and_submit_instance()
-        instance = Instance.objects.order_by("-pk").first()
-
-        # Mock ElementTree.fromstring to throw ParseError
-        with patch("xml.etree.ElementTree.fromstring", side_effect=ParseError):
-            self.assertFalse(is_instance_encrypted(instance))
 
 
 @override_settings(
