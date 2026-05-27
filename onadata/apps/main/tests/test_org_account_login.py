@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Tests that organization accounts cannot establish a login session."""
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 
 from rest_framework import status
 
@@ -21,6 +22,22 @@ User = get_user_model()
 # hardcoded passwords.
 TEST_CREDENTIAL = "login-value"
 BEARER_VALUE = "bearer-value"
+OIDC_AUTHORIZATION_ENDPOINT = "https://login.example.com/oauth2/v2.0/authorize"
+OIDC_AUTH_SERVERS = {
+    "microsoft": {
+        "AUTHORIZATION_ENDPOINT": OIDC_AUTHORIZATION_ENDPOINT,
+        "CLIENT_ID": "test-client-id",
+        "JWKS_ENDPOINT": "https://login.example.com/discovery/keys",
+        "SCOPE": "openid profile",
+        "TOKEN_ENDPOINT": "https://login.example.com/oauth2/v2.0/token",
+        "END_SESSION_ENDPOINT": "https://login.example.com/logout",
+        "REDIRECT_URI": "http://testserver/oidc/microsoft/callback",
+        "RESPONSE_TYPE": "id_token",
+        "RESPONSE_MODE": "form_post",
+        "USE_NONCES": False,
+        "LOGIN_QUERY_PARAM_ALLOWLIST": ["kc_idp_hint"],
+    }
+}
 
 
 class TestBlockOrgAccountLogin(TestCase):
@@ -82,6 +99,23 @@ class TestBlockOrgAccountLogin(TestCase):
         )
 
     # -- OIDC SSO path ------------------------------------------------------
+
+    @override_settings(OPENID_CONNECT_AUTH_SERVERS=OIDC_AUTH_SERVERS)
+    def test_oidc_login_ignores_digest_auth_challenge_headers(self):
+        response = self.client.get(
+            "/oidc/microsoft/login?kc_idp_hint=onadata",
+            HTTP_AUTHORIZATION='Digest username="stale", realm="api", nonce="bad"',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+        redirect = urlparse(response["Location"])
+        self.assertEqual(
+            f"{redirect.scheme}://{redirect.netloc}{redirect.path}",
+            OIDC_AUTHORIZATION_ENDPOINT,
+        )
+        self.assertEqual(parse_qs(redirect.query)["kc_idp_hint"], ["onadata"])
 
     @patch("oidc.viewsets.login")
     def test_oidc_rejects_org_user(self, mock_login):

@@ -22,6 +22,8 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
 ):
     """OpenID Connect viewset that refuses login for organization accounts."""
 
+    authentication_classes = []
+
     def generate_successful_response(self, request, user, *args, **kwargs):
         # Signature kept permissive (*args/**kwargs) to track the ona-oidc base
         # across versions; only ``user`` is needed for the organization check.
