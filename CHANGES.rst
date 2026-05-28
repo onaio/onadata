@@ -3,12 +3,26 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.17.1 (2026-05-28)
+--------------------
+- feat: block login to organization accounts
+  [@ukanga]
+  `PR #3090 https://github.com/onaio/onadata/pull/3090`
+- fix(logger): force viewer.0001 before partition cutover
+  [@ukanga]
+  `PR #3087 https://github.com/onaio/onadata/pull/3087`
+- Disable API auth challenges for OIDC endpoints
+  [@ukanga]
+  `PR #3094 https://github.com/onaio/onadata/pull/3094`
+- fix(oidc): clear stale auth cookies on login entry
+  [@FrankApiyo]
+  `PR #3096 https://github.com/onaio/onadata/pull/3096`
+
 v5.17.0 (2026-05-20)
 --------------------
 - Bump ona-oidc version to v2.9.0
   [@FrankApiyo]
   `PR #3088 https://github.com/onaio/onadata/pull/3088`
-
 
 v5.16.0 (2026-05-18)
 --------------------
