@@ -125,3 +125,23 @@ class ProjectSerializer(ProjectSerializerV1):
     url = serializers.HyperlinkedIdentityField(
         view_name="project-v2-detail", lookup_field="pk"
     )
+
+    class Meta(ProjectSerializerV1.Meta):
+        fields = [
+            "url",
+            "projectid",
+            "name",
+            "owner",
+            "created_by",
+            "metadata",
+            "starred",
+            "forms",
+            "public",
+            "tags",
+            "num_datasets",
+            "last_submission_date",
+            "teams",
+            "data_views",
+            "date_created",
+            "date_modified",
+        ]

@@ -2,9 +2,11 @@
 Project viewset for v2 API
 """
 
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
+from onadata.libs.serializers.project_serializer import get_users
 from onadata.libs.serializers.v2.project_serializer import (
     ProjectListSerializer,
     ProjectPrivateSerializer,
@@ -53,3 +55,14 @@ class ProjectViewSet(ProjectViewSetV1):
         ).data
 
         return Response({**base_data, **private_data})
+
+    @action(methods=["GET"], detail=True)
+    def users(self, request, *args, **kwargs):
+        """Return the users and organizations that have access to the project.
+
+        Accessible to any member of the project.
+        """
+        project = self.get_object()
+        data = get_users(project, {"request": request})
+
+        return Response(data)
