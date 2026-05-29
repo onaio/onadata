@@ -140,7 +140,6 @@ class ProjectSerializer(ProjectSerializerV1):
             "tags",
             "num_datasets",
             "last_submission_date",
-            "teams",
             "data_views",
             "date_created",
             "date_modified",
