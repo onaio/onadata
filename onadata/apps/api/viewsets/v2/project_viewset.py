@@ -63,6 +63,11 @@ class ProjectViewSet(ProjectViewSetV1):
         Accessible to any member of the project.
         """
         project = self.get_object()
+        # No need for view level caching
+        # get_users caches the result under PROJ_PERM_CACHE
+        # (ps-project_permissions-<pk>) and is invalidated whenever a member is
+        # added, removed, or has their role changed (ShareProject.save in
+        # onadata/libs/models/share_project.py).
         data = get_users(project, {"request": request})
 
         return Response(data)
