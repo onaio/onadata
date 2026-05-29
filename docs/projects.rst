@@ -321,6 +321,42 @@ Response
             }
         ]
 
+List teams with access to a project (v2)
+----------------------------------------
+
+.. note::
+
+   In the version 2 API the project detail endpoint ``GET /api/v2/projects/{pk}``
+   no longer includes the ``teams`` field. Use the dedicated endpoint below to
+   retrieve the teams that have access to a project.
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v2/projects/<code>{pk}</code>/teams</pre>
+
+Only members of the project (users with a role on the project, e.g. ``owner``,
+``manager``, ``editor`` or ``readonly``) can access this endpoint. Requests from
+users who are not members of the project return ``HTTP 404 Not Found``.
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v2/projects/1/teams
+
+Response
+^^^^^^^^
+::
+
+        [
+            {
+                "name": "ona#Owners",
+                "role": "owner",
+                "users": ["ona"]
+            }
+        ]
+
 Update Project Information
 ------------------------------
 .. raw:: html

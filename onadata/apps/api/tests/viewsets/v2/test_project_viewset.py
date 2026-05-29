@@ -148,18 +148,6 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
             "num_datasets": 1,
             "current_user_role": "owner",
             "last_submission_date": None,
-            "teams": [
-                {
-                    "name": "denoinc#Owners",
-                    "role": "owner",
-                    "users": [self.user.username],
-                },
-                {
-                    "name": "denoinc#members",
-                    "role": None,
-                    "users": [self.organization.user.username],
-                },
-            ],
             "data_views": [],
             "date_created": self.project.date_created.isoformat().replace(
                 "+00:00", "Z"
@@ -170,13 +158,12 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         }
         actual = response.data.copy()
 
+        # `teams` is no longer part of the project detail response
+        self.assertNotIn("teams", actual)
+
         # forms: unique by `formid`
         actual["forms"] = self.sort_by_keys(actual["forms"], "formid")
         expected["forms"] = self.sort_by_keys(expected["forms"], "formid")
-
-        # teams unique by `name`
-        actual["teams"] = self.sort_by_keys(actual["teams"], "name")
-        expected["teams"] = self.sort_by_keys(expected["teams"], "name")
 
         # tags simple list
         actual["tags"] = sorted(actual["tags"])
@@ -312,6 +299,118 @@ class GetProjectUsersTestCase(TestAbstractViewSet):
         A public project is returned by the project filter backend regardless
         of membership, so the explicit member check in ProjectPermissions is
         what keeps the users list members-only here.
+        """
+        self.project.shared = True
+        self.project.save()
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 403)
+
+
+@override_settings(TIME_ZONE="UTC")
+class GetProjectTeamsTestCase(TestAbstractViewSet):
+    """Tests for GET project teams"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._org_create()
+        self.project = Project.objects.create(
+            name="Tree Monitoring",
+            organization=self.organization.user,
+            created_by=self.user,
+            shared=False,
+        )
+        self.view = ProjectViewSet.as_view({"get": "teams"})
+
+    def tearDown(self):
+        cache.clear()
+
+        super().tearDown()
+
+    def test_owner_can_view_teams(self):
+        """Project owner can view the list of teams with access"""
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.sort_by_keys(response.data, "name"),
+            [
+                {
+                    "name": "denoinc#Owners",
+                    "role": "owner",
+                    "users": [self.user.username],
+                },
+                {
+                    "name": "denoinc#members",
+                    "role": None,
+                    "users": [self.organization.user.username],
+                },
+            ],
+        )
+
+    def test_manager_can_view_teams(self):
+        """A project manager can view the list of teams with access"""
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        ShareProject(self.project, "alice", "manager").save()
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        team_names = sorted(entry["name"] for entry in response.data)
+        self.assertEqual(team_names, ["denoinc#Owners", "denoinc#members"])
+
+    def test_member_can_view_teams(self):
+        """A read-only member can view the list of teams with access"""
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        ShareProject(self.project, "alice", "readonly").save()
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        team_names = sorted(entry["name"] for entry in response.data)
+        self.assertEqual(team_names, ["denoinc#Owners", "denoinc#members"])
+
+    def test_non_member_denied(self):
+        """A user with no role on the project cannot view the teams"""
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_denied(self):
+        """An anonymous user cannot view the list of teams"""
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_member_denied_public_project(self):
+        """A non-member cannot view the teams of a public project
+
+        A public project is returned by the project filter backend regardless
+        of membership, so the explicit member check in ProjectPermissions is
+        what keeps the teams list members-only here.
         """
         self.project.shared = True
         self.project.save()

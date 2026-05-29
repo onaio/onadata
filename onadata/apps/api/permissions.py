@@ -294,8 +294,8 @@ class ProjectPermissions(DjangoObjectPermissions):
         ):
             return False
 
-        if view.action == "users":
-            # Any member of the project may view the list of users
+        if view.action in ["users", "teams"]:
+            # Any member of the project may view the list of users or teams
             return get_role(get_perms(request.user, obj), obj) is not None
 
         return super().has_object_permission(request, view, obj)
