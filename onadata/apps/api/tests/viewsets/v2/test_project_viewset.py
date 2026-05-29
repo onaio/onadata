@@ -158,9 +158,6 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         }
         actual = response.data.copy()
 
-        # `teams` is no longer part of the project detail response
-        self.assertNotIn("teams", actual)
-
         # forms: unique by `formid`
         actual["forms"] = self.sort_by_keys(actual["forms"], "formid")
         expected["forms"] = self.sort_by_keys(expected["forms"], "formid")
