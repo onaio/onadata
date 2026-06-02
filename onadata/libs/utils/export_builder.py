@@ -1440,9 +1440,16 @@ class ExportBuilder:
         def write_row(row, sav_writer, fields):
             # replace character for osm fields
             fields = [field.replace(":", "_") for field in fields]
-            sav_writer.writerow(
-                [encode_if_str(row, field, sav_writer=sav_writer) for field in fields]
-            )
+            record = []
+            for field, var_name in zip(fields, sav_writer.varNames):
+                value = encode_if_str(row, field, sav_writer=sav_writer)
+                if (
+                    isinstance(value, bool)
+                    and sav_writer.varTypes[var_name] != SAV_NUMERIC_TYPE
+                ):
+                    value = str(value)
+                record.append(value)
+            sav_writer.writerow(record)
 
         sav_defs = {}
 
