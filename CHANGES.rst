@@ -20,6 +20,9 @@ v5.18.0(2026-06-03)
 - fix(exports): convert bool values for SAV exports
   [@ukanga]
   `PR #3102 https://github.com/onaio/onadata/pull/3102`
+- feat(security): enforce strict file-type validation on uploads
+  [@ukanga]
+  `PR #3092 https://github.com/onaio/onadata/pull/3092`
 
 v5.17.1 (2026-05-28)
 --------------------
