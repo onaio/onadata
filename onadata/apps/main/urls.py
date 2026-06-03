@@ -12,6 +12,8 @@ from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import include, re_path
 from django.views.generic import RedirectView
 
+from rest_framework.renderers import JSONRenderer
+
 from onadata.apps import sms_support
 from onadata.apps.api.urls.v1_urls import (
     BriefcaseViewset,
@@ -83,6 +85,15 @@ urlpatterns += [
                         r"^oidc/(?P<auth_server>\w+)/logout",
                         OnaOpenIDConnectViewset.as_view({"get": "logout"}),
                         name="openid_connect_logout",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/session",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"get": "session"},
+                            authentication_classes=[],
+                            renderer_classes=[JSONRenderer],
+                        ),
+                        name="openid_connect_session",
                     ),
                 ],
                 "oidc",

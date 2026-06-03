@@ -16,6 +16,7 @@ from oidc.viewsets import SSO_COOKIE_NAME, UserModelOpenIDConnectViewset
 from rest_framework import status
 from rest_framework.response import Response
 
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import is_organization_user
 
 
@@ -66,3 +67,20 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
                 template_name="oidc/oidc_unrecoverable_error.html",
             )
         return super().generate_successful_response(request, user, *args, **kwargs)
+
+    def is_session_allowed(self, user):
+        # Mirror the login org-rejection: an org account must not be able to
+        # restore a session via the challenge-free ``session`` probe either.
+        return not is_organization_user(user)
+
+    def get_session_data(self, user, request):
+        data = super().get_session_data(user, request)
+        profile, _created = UserProfile.objects.get_or_create(user=user)
+        data.update(
+            {
+                "name": profile.name,
+                "gravatar": profile.gravatar,
+                "require_auth": profile.require_auth,
+            }
+        )
+        return data
