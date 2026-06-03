@@ -85,12 +85,15 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
     ENKETO_URL_CACHE,
     ENKETO_URLS_CACHE,
     PROJ_OWNER_CACHE,
+    XFORM_BBOX_CACHE,
+    get_bbox_cache_ttl,
     get_enketo_urls_cache_ttl,
     safe_cache_delete,
     safe_cache_get,
@@ -1057,6 +1060,26 @@ class XFormViewSet(
         )
 
         return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box of all geolocated submissions.
+
+        Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
+        ``null`` when the form has no geolocated submissions. Used by the
+        frontend tile map to fit the viewport on load without fetching the
+        full submission set. Cached and busted on submission create/edit/delete.
+        """
+        xform = self.get_object()
+        cache_key = f"{XFORM_BBOX_CACHE}{xform.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        data = {"bbox": compute_instance_bbox([xform.pk])}
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
+        return Response(data)
 
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):

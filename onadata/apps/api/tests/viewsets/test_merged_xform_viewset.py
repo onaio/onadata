@@ -898,3 +898,17 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
         self.assertTrue(response.data["instances_with_geopoints"])
         # deleted parents, 0 submissions
         self.assertEqual(response.data["num_of_submissions"], 0)
+
+    def test_bbox_returns_null_without_geolocated_submissions(self):
+        """Merged dataset bbox returns ``null`` when no underlying xform has
+        geolocated rows. Shape verification keeps parity with the XForm and
+        DataView bbox endpoints; geolocated-extent is covered by the shared
+        helper via the XForm bbox test.
+        """
+        merged_dataset = self._create_merged_dataset()
+        view = MergedXFormViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=merged_dataset["id"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["bbox"])

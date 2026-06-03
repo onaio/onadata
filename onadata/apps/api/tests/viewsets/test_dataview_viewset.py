@@ -17,8 +17,8 @@ from openpyxl import load_workbook
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
-from onadata.apps.api.viewsets.dataview_viewset import (
-    DataViewViewSet,
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.libs.utils.dataview_filters import (
     apply_filters,
     filter_to_field_lookup,
     get_field_lookup,
@@ -2062,3 +2062,18 @@ class TestDataViewViewSet(TestAbstractViewSet):
             self.assertEqual(
                 csv_file.read(), "name,age,gender\nDennis Wambua,28,male\n"
             )
+
+    def test_bbox_returns_null_without_geolocated_submissions(self):
+        """The tutorial fixture has no geom, so bbox is ``null``.
+
+        Verifies the endpoint is wired and returns the expected envelope; the
+        geolocated-extent path is covered by the XFormViewSet bbox test which
+        shares the same underlying helper.
+        """
+        self._create_dataview()
+        view = DataViewViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["bbox"])

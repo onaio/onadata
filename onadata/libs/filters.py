@@ -18,7 +18,7 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.apps.api.viewsets.dataview_viewset import get_filter_kwargs
+from onadata.libs.utils.dataview_filters import get_filter_kwargs
 from onadata.apps.logger.models import (
     Attachment,
     DataView,
