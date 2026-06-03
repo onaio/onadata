@@ -37,11 +37,14 @@ from onadata.apps.logger.xform_instance_parser import (
 )
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
+    DATAVIEW_BBOX_CACHE,
     DATAVIEW_COUNT,
     IS_ORG,
+    MERGED_XFORM_BBOX_CACHE,
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     PROJECT_DATE_MODIFIED_CACHE,
+    XFORM_BBOX_CACHE,
     XFORM_COUNT,
     XFORM_DATA_VERSIONS,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
@@ -222,6 +225,32 @@ def _update_submission_count_for_today(
         safe_cache_decr(count_cache_key)
 
 
+def invalidate_bbox_cache(xform_id):
+    """Bust cached bbox responses affected by a change to ``xform_id``.
+
+    Clears the form's own bbox plus every DataView and MergedXForm whose extent
+    includes this xform, so the next request recomputes from current rows. Run
+    from the Instance signals on submission create, edit, and delete.
+    """
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.data_view import DataView
+    from onadata.apps.logger.models.merged_xform import MergedXForm
+
+    safe_cache_delete(f"{XFORM_BBOX_CACHE}{xform_id}")
+
+    dataview_ids = DataView.objects.filter(xform_id=xform_id).values_list(
+        "pk", flat=True
+    )
+    for dataview_id in dataview_ids:
+        safe_cache_delete(f"{DATAVIEW_BBOX_CACHE}{dataview_id}")
+
+    merged_ids = MergedXForm.objects.filter(xforms__pk=xform_id).values_list(
+        "pk", flat=True
+    )
+    for merged_id in merged_ids:
+        safe_cache_delete(f"{MERGED_XFORM_BBOX_CACHE}{merged_id}")
+
+
 def update_xform_submission_count(instance):
     """Updates the XForm submissions count on a new submission being created."""
     with transaction.atomic():
@@ -293,9 +322,6 @@ def _update_xform_submission_count_delete(instance):
     safe_cache_delete(f"{XFORM_COUNT}{xform.pk}")
 
     # Bust bbox caches so a removed submission no longer counts toward extent.
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.utils.bbox_tools import invalidate_bbox_cache
-
     invalidate_bbox_cache(xform.pk)
 
 
@@ -879,9 +905,6 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
     # Bust bbox caches so the next map-fit request reflects this submission's
     # geom, whether it was just created or edited.
-    # pylint: disable=import-outside-toplevel
-    from onadata.libs.utils.bbox_tools import invalidate_bbox_cache
-
     invalidate_bbox_cache(instance.xform_id)
 
 

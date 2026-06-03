@@ -72,6 +72,7 @@ def get_bbox_cache_ttl():
     """Return the bbox cache TTL, overridable via the BBOX_CACHE_TTL setting."""
     return getattr(settings, "BBOX_CACHE_TTL", BBOX_CACHE_TTL_DEFAULT)
 
+
 # Cache names used in organization profile viewset
 ORG_PROFILE_CACHE = "org-profile-"
 
