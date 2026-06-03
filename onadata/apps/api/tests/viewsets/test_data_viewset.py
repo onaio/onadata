@@ -1011,6 +1011,34 @@ class TestDataViewSet(SerializeMixin, TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertLessEqual(data.items(), response.data.items())
 
+    def test_data_anon_deleted_public_data_form_not_found(self):
+        self._make_submissions()
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        self.xform.soft_delete()
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/")
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_data_other_user_deleted_public_data_form_not_found(self):
+        self._make_submissions()
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        self.xform.soft_delete()
+
+        self._create_user_and_login("alice", "alice")
+        self.extra = {"HTTP_AUTHORIZATION": "Token %s" % self.user.auth_token}
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 404)
+
     def test_data_public(self):
         self._make_submissions()
         view = DataViewSet.as_view({"get": "list"})
@@ -1025,6 +1053,19 @@ class TestDataViewSet(SerializeMixin, TestBase):
         response = view(request, pk="public")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+
+    def test_data_public_excludes_deleted_public_data_form(self):
+        self._make_submissions()
+        self.xform.shared_data = True
+        self.xform.save()
+        self.xform.soft_delete()
+
+        view = DataViewSet.as_view({"get": "list"})
+        request = self.factory.get("/")
+        response = view(request, pk="public")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
     def test_data_public_anon_user(self):
         self._make_submissions()

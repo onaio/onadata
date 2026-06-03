@@ -53,22 +53,8 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
-from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.cache_tools import (
-    ENKETO_URL_CACHE,
-    ENKETO_URLS_CACHE,
-    get_bbox_cache_ttl,
-    get_enketo_urls_cache_ttl,
-    ENKETO_PREVIEW_URL_CACHE,
-    ENKETO_SINGLE_SUBMIT_URL_CACHE,
-    PROJ_OWNER_CACHE,
-    XFORM_BBOX_CACHE,
-    safe_cache_delete,
-    safe_cache_get,
-    safe_cache_set,
-)
-from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.messaging.constants import FORM_UPDATED, XFORM
 from onadata.apps.messaging.serializers import send_message
 from onadata.apps.viewer.models.export import Export
@@ -99,6 +85,20 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
+from onadata.libs.utils.cache_tools import (
+    ENKETO_PREVIEW_URL_CACHE,
+    ENKETO_SINGLE_SUBMIT_URL_CACHE,
+    ENKETO_URL_CACHE,
+    ENKETO_URLS_CACHE,
+    PROJ_OWNER_CACHE,
+    XFORM_BBOX_CACHE,
+    get_bbox_cache_ttl,
+    get_enketo_urls_cache_ttl,
+    safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
+)
 from onadata.libs.utils.common_tools import json_stream
 from onadata.libs.utils.csv_import import (
     get_async_csv_submission_status,
@@ -109,6 +109,12 @@ from onadata.libs.utils.csv_import import (
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
+from onadata.libs.utils.upload_validation import (
+    DATA_IMPORT_UPLOAD_CONTEXT,
+    XLSFORM_UPLOAD_CONTEXT,
+    UploadValidationError,
+    validate_uploaded_file,
+)
 from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults,
     get_enketo_urls,
@@ -121,6 +127,89 @@ logger = logging.getLogger(__name__)
 # pylint: disable=invalid-name
 BaseViewset = get_baseviewset_class()
 User = get_user_model()
+
+
+def _validate_api_upload(uploaded_file, allowed_extensions, context):
+    """Validate an API upload and apply the generated storage filename."""
+    upload = validate_uploaded_file(uploaded_file, allowed_extensions, context)
+    uploaded_file.name = upload.storage_basename
+    uploaded_file.content_type = upload.content_type
+    return upload
+
+
+def _prepare_import_csv(csv_file, xls_file):
+    """Validate an import upload and return the CSV file to submit.
+
+    Returns ``(csv_file, None)`` on success or ``(None, error_message)`` when
+    validation fails. An XLS upload is converted to CSV after validation.
+    """
+    xls_upload = None
+    try:
+        if xls_file:
+            xls_upload = _validate_api_upload(
+                xls_file, XLS_EXTENSIONS, DATA_IMPORT_UPLOAD_CONTEXT
+            )
+        elif csv_file:
+            _validate_api_upload(csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT)
+    except UploadValidationError as error:
+        logger.warning("Data import upload validation failed: %s", error)
+        return None, _("The uploaded file could not be validated.")
+
+    if xls_file:
+        csv_file = submission_xls_to_csv(xls_file)
+        csv_file.name = f"{os.path.splitext(xls_upload.storage_basename)[0]}.csv"
+        csv_file.content_type = "text/csv"
+
+    return csv_file, None
+
+
+def _publish_xlsform_async(request):
+    """Validate and queue an async XLSForm publish; return the API response."""
+    try:
+        owner = _get_owner(request)
+    except ValidationError as error:
+        return Response(
+            {"message": error.messages[0]}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    xls_file = request.FILES.get("xls_file")
+    if xls_file is None:
+        return Response(
+            {"message": _("xls_file field empty")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        upload = _validate_api_upload(
+            xls_file, ("csv", "xls", "xlsx"), XLSFORM_UPLOAD_CONTEXT
+        )
+    except UploadValidationError as error:
+        logger.warning("XLSForm upload validation failed: %s", error)
+        return Response(
+            {"message": _("The uploaded file could not be validated.")},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    xls_file.seek(0)
+    xls_file_path = default_storage.save(
+        f"tmp/async-upload-{owner.username}-{upload.storage_basename}",
+        (
+            ContentFile(xls_file.read())
+            if isinstance(xls_file, InMemoryUploadedFile)
+            else xls_file
+        ),
+    )
+    job_uuid = tasks.publish_xlsform_async.delay(
+        request.user.id,
+        request.POST,
+        owner.id,
+        {
+            "name": upload.original_name,
+            "path": xls_file_path,
+            "content_type": upload.content_type,
+        },
+    ).task_id
+    return Response(data={"job_uuid": job_uuid}, status=status.HTTP_202_ACCEPTED)
 
 
 def upload_to_survey_draft(filename, username):
@@ -438,53 +527,24 @@ class XFormViewSet(
     @action(methods=["POST", "GET"], detail=False)
     def create_async(self, request, *args, **kwargs):
         """Temporary Endpoint for Async form creation"""
-        resp = headers = {}
-        resp_code = status.HTTP_400_BAD_REQUEST
+        if request.method != "GET":
+            return _publish_xlsform_async(request)
 
-        if request.method == "GET":
-            # pylint: disable=attribute-defined-outside-init
-            self.etag_data = f"{timezone.now()}"
-            survey = tasks.get_async_status(request.query_params.get("job_uuid"))
+        # pylint: disable=attribute-defined-outside-init
+        self.etag_data = f"{timezone.now()}"
+        survey = tasks.get_async_status(request.query_params.get("job_uuid"))
 
-            if "pk" in survey:
-                xform = XForm.objects.get(pk=survey.get("pk"))
-                serializer = XFormSerializer(xform, context={"request": request})
-                headers = self.get_success_headers(serializer.data)
-                resp = serializer.data
-                resp_code = status.HTTP_201_CREATED
-            else:
-                resp_code = status.HTTP_202_ACCEPTED
-                resp.update(survey)
-        else:
-            try:
-                owner = _get_owner(request)
-            except ValidationError as e:
-                return Response(
-                    {"message": e.messages[0]}, status=status.HTTP_400_BAD_REQUEST
-                )
+        if "pk" not in survey:
+            return Response(data=survey, status=status.HTTP_202_ACCEPTED)
 
-            fname = request.FILES.get("xls_file").name
-            if isinstance(request.FILES.get("xls_file"), InMemoryUploadedFile):
-                xls_file_path = default_storage.save(
-                    f"tmp/async-upload-{owner.username}-{fname}",
-                    ContentFile(request.FILES.get("xls_file").read()),
-                )
-            else:
-                xls_file_path = request.FILES.get("xls_file").temporary_file_path()
-
-            resp.update(
-                {
-                    "job_uuid": tasks.publish_xlsform_async.delay(
-                        request.user.id,
-                        request.POST,
-                        owner.id,
-                        {"name": fname, "path": xls_file_path},
-                    ).task_id
-                }
-            )
-            resp_code = status.HTTP_202_ACCEPTED
-
-        return Response(data=resp, status=resp_code, headers=headers)
+        serializer = XFormSerializer(
+            XForm.objects.get(pk=survey.get("pk")), context={"request": request}
+        )
+        return Response(
+            data=serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=self.get_success_headers(serializer.data),
+        )
 
     @action(methods=["GET", "HEAD"], detail=True)
     def form(self, request, **kwargs):
@@ -503,6 +563,7 @@ class XFormViewSet(
         form_format = get_existing_file_format(form.xls, form_format)
         filename = form.id_string + "." + form_format
         response["Content-Disposition"] = "attachment; filename=" + filename
+        response["X-Content-Type-Options"] = "nosniff"
 
         return response
 
@@ -794,17 +855,15 @@ class XFormViewSet(
             xls_file = request.FILES.get("xls_file", None)
 
             if csv_file is None and xls_file is None:
-                resp.update({"error": "csv_file and xls_file field empty"})
-
-            elif xls_file and xls_file.name.split(".")[-1] not in XLS_EXTENSIONS:
-                resp.update({"error": "xls_file not an excel file"})
-
-            elif csv_file and csv_file.name.split(".")[-1] != CSV_EXTENSION:
-                resp.update({"error": "csv_file not a csv file"})
+                resp.update({"error": _("csv_file and xls_file field empty")})
 
             else:
-                if xls_file and xls_file.name.split(".")[-1] in XLS_EXTENSIONS:
-                    csv_file = submission_xls_to_csv(xls_file)
+                csv_file, error = _prepare_import_csv(csv_file, xls_file)
+                if error is not None:
+                    return Response(
+                        data={"error": error}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 overwrite = request.query_params.get("overwrite")
                 overwrite = (
                     overwrite.lower() == "true"
@@ -878,10 +937,19 @@ class XFormViewSet(
         else:
             csv_file = request.FILES.get("csv_file", None)
             if csv_file is None:
-                resp.update({"error": "csv_file field empty"})
-            elif csv_file.name.split(".")[-1] != CSV_EXTENSION:
-                resp.update({"error": "csv_file not a csv file"})
+                resp.update({"error": _("csv_file field empty")})
             else:
+                try:
+                    _validate_api_upload(
+                        csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT
+                    )
+                except UploadValidationError as error:
+                    logger.warning("CSV import upload validation failed: %s", error)
+                    return Response(
+                        data={"error": _("The uploaded file could not be validated.")},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
                 overwrite = request.query_params.get("overwrite")
                 overwrite = (
                     overwrite.lower() == "true"

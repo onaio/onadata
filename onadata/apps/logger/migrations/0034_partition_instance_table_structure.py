@@ -612,6 +612,14 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("logger", "0036_save_elist_properties"),
+        # viewer_parsedinstance has an FK to logger_instance(id); it must be
+        # created BEFORE the cutover because the partitioned logger_instance
+        # only has a composite unique key (id, xform_id). Without this dep,
+        # Django can schedule viewer.0001 after the cutover, at which point
+        # creating the single-column FK raises:
+        #   "no unique constraint matching given keys for referenced table
+        #   'logger_instance'".
+        ("viewer", "0001_pre-django-3-upgrade"),
     ]
 
     operations = [

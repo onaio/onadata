@@ -132,6 +132,23 @@ class TestOSMViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.data, [])
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_deleted_form_osm_data_is_not_accessible(self):
+        self._publish_osm_with_submission()
+        formid = self.xform.pk
+        dataid = self.xform.instances.latest("date_created").pk
+        self.xform.soft_delete()
+        request = self.factory.get("/")
+
+        view = OsmViewSet.as_view({"get": "list"})
+        response = view(request, pk=formid, format="osm")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        view = OsmViewSet.as_view({"get": "retrieve"})
+        response = view(request, pk=formid, dataid=dataid, format="osm")
+        self.assertEqual(response.status_code, 404)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     def test_osm_csv_export(self):
         self._publish_osm_with_submission()
         count = Export.objects.all().count()

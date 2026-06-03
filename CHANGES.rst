@@ -3,6 +3,60 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.18.0(2026-06-03)
+-------------------
+- feat(projects): add v2 project users endpoint
+  [@kelvin-muchiri]
+  `PR #3098 https://github.com/onaio/onadata/pull/3098`
+- feat(projects): add v2 project teams endpoint
+  [@kelvin-muchiri]
+  `PR #3099 https://github.com/onaio/onadata/pull/3099`
+- chore(deps-dev): bump tmp to 0.2.6
+  [@ukanga]
+  `PR #3101 https://github.com/onaio/onadata/pull/3101`
+- fix(viewer): support uppercase export types
+  [@ukanga]
+  `PR #3100 https://github.com/onaio/onadata/pull/3100`
+- fix(exports): convert bool values for SAV exports
+  [@ukanga]
+  `PR #3102 https://github.com/onaio/onadata/pull/3102`
+- feat(security): enforce strict file-type validation on uploads
+  [@ukanga]
+  `PR #3092 https://github.com/onaio/onadata/pull/3092`
+
+v5.17.1 (2026-05-28)
+--------------------
+- feat: block login to organization accounts
+  [@ukanga]
+  `PR #3090 https://github.com/onaio/onadata/pull/3090`
+- fix(logger): force viewer.0001 before partition cutover
+  [@ukanga]
+  `PR #3087 https://github.com/onaio/onadata/pull/3087`
+- Disable API auth challenges for OIDC endpoints
+  [@ukanga]
+  `PR #3094 https://github.com/onaio/onadata/pull/3094`
+- fix(oidc): clear stale auth cookies on login entry
+  [@FrankApiyo]
+  `PR #3096 https://github.com/onaio/onadata/pull/3096`
+
+v5.17.0 (2026-05-20)
+--------------------
+- Bump ona-oidc version to v2.9.0
+  [@FrankApiyo]
+  `PR #3088 https://github.com/onaio/onadata/pull/3088`
+
+v5.16.0 (2026-05-18)
+--------------------
+- Make django.contrib.admin optional
+  [@ukanga]
+  `PR #3070 https://github.com/onaio/onadata/pull/3070`
+- fix(security): set Secure flag on session/CSRF/Enketo cookies
+  [@ukanga]
+  `PR #3078 https://github.com/onaio/onadata/pull/3078`
+- fix: guard user reset against primitive JSON bodies
+  [@ukanga]
+  `PR #3080 https://github.com/onaio/onadata/pull/3080`
+
 v5.15.3 (2026-04-22)
 --------------------
 - fix: disable Google OAuth PKCE code verifier auto-generation

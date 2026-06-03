@@ -2,9 +2,11 @@
 Project viewset for v2 API
 """
 
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
+from onadata.libs.serializers.project_serializer import get_teams, get_users
 from onadata.libs.serializers.v2.project_serializer import (
     ProjectListSerializer,
     ProjectPrivateSerializer,
@@ -53,3 +55,33 @@ class ProjectViewSet(ProjectViewSetV1):
         ).data
 
         return Response({**base_data, **private_data})
+
+    @action(methods=["GET"], detail=True)
+    def users(self, request, *args, **kwargs):
+        """Return the users and organizations that have access to the project.
+
+        Accessible to any member of the project.
+        """
+        project = self.get_object()
+        # No need for view level caching
+        # get_users caches the result under PROJ_PERM_CACHE
+        # (ps-project_permissions-<pk>) and is invalidated whenever a member is
+        # added, removed, or has their role changed (ShareProject.save in
+        # onadata/libs/models/share_project.py).
+        data = get_users(project, {"request": request})
+
+        return Response(data)
+
+    @action(methods=["GET"], detail=True)
+    def teams(self, request, *args, **kwargs):
+        """Return the teams that have access to the project.
+
+        Accessible to any member of the project.
+        """
+        project = self.get_object()
+        # No need for view level caching
+        # get_teams caches the result under PROJ_TEAM_USERS_CACHE
+        # (ps-project-team-users<pk>).
+        data = get_teams(project)
+
+        return Response(data)

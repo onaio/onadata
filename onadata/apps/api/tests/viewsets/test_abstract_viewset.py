@@ -19,6 +19,7 @@ import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock
+from requests.structures import CaseInsensitiveDict
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Team
@@ -82,20 +83,29 @@ def add_uuid_to_submission_xml(path, xform):
 
 
 # pylint: disable=invalid-name
-def get_mocked_response_for_file(file_object, filename, status_code=200):
+def get_mocked_response_for_file(
+    file_object, filename, status_code=200, content_type=None
+):
     """Returns a requests.Response() object for mocked tests."""
+    if content_type is None:
+        content_type = (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     mock_response = requests.Response()
     mock_response.status_code = status_code
-    mock_response.headers = {
-        "content-type": (
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ),
-        "Content-Disposition": (
-            f"attachment; filename=\"transportation.xlsx\"; filename*=UTF-8''{filename}"
-        ),
-    }
+    mock_response.headers = CaseInsensitiveDict(
+        {
+            "content-type": content_type,
+            "Content-Disposition": (
+                f'attachment; filename="{filename}";' f" filename*=UTF-8''{filename}"
+            ),
+        }
+    )
     # pylint: disable=protected-access
     mock_response._content = file_object.read()
+    # Mark content as consumed so Response.iter_content() yields from _content
+    # rather than trying to stream from the absent .raw underlying socket.
+    mock_response._content_consumed = True
 
     return mock_response
 

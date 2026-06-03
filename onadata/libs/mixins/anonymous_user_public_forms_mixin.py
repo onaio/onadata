@@ -15,7 +15,7 @@ class AnonymousUserPublicFormsMixin:  # pylint: disable=too-few-public-methods
     """
 
     def _get_public_forms_queryset(self):
-        return XForm.objects.filter(shared=True)
+        return XForm.objects.filter(shared=True, deleted_at__isnull=True)
 
     def get_queryset(self):
         """Public forms only for anonymous Users."""

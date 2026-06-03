@@ -727,6 +727,75 @@ class TestExportBuilder(TestBase):
 
         shutil.rmtree(temp_dir)
 
+    def test_zipped_sav_export_with_bool_string_value(self):
+        """Boolean values in string fields are exported as strings."""
+        md = """
+        | survey |
+        |        | type              | name         | label        |
+        |        | text              | active       | Active       |
+
+        | choices |
+        |         | list name | name   | label  |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "exp"})
+        data = [{"active": True}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
+            rows = list(reader)
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(_str_if_bytes(rows[0][0]), "active")
+            self.assertEqual(_str_if_bytes(rows[1][0]), "True")
+
+        shutil.rmtree(temp_dir)
+
+    def test_zipped_sav_export_with_split_select_multiple_bool_values(self):
+        """Split select multiple bool values are exported correctly."""
+        md = """
+        | survey |
+        |        | type                  | name           | label |
+        |        | select_multiple food  | food_available | Food  |
+
+        | choices |
+        |         | list name | name | label |
+        |         | food      | 1    | One   |
+        |         | food      | 2    | Two   |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "exp"})
+        data = [{"food_available": "1"}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
+            rows = list(reader)
+            rows[0] = list(map(_str_if_bytes, rows[0]))
+            self.assertTrue(len(rows) > 1)
+            self.assertEqual(rows[0][0], "food_available")
+            self.assertEqual(_str_if_bytes(rows[1][0]), "1")
+            self.assertEqual(rows[0][1], "food_available.1")
+            self.assertEqual(rows[1][1], 1.0)
+            self.assertEqual(rows[0][2], "food_available.2")
+            self.assertEqual(rows[1][2], 0.0)
+
+        shutil.rmtree(temp_dir)
+
     # pylint: disable=invalid-name
     def test_zipped_sav_export_dynamic_select_multiple(self):
         md = """

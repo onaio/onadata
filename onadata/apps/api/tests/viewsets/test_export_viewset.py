@@ -136,6 +136,13 @@ class TestExportViewSet(TestBase):
         self.assertTrue(bool(response.data))
         self.assertEqual(status.HTTP_200_OK, response.status_code)
 
+        self.xform.soft_delete(user=self.user)
+        request = self.factory.get("/export", {"xform": self.xform.pk})
+        force_authenticate(request, user=user_mosh)
+        response = view(request)
+        self.assertEqual(response.data, [])
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
     def test_export_public_project(self):
         """
         Test export of a public form for anonymous users.
@@ -167,6 +174,30 @@ class TestExportViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
         self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_public_deleted_form_not_accessible(self):
+        """
+        Test export of a public deleted form returns HTTP_404_NOT_FOUND.
+        """
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.xform.shared_data = True
+        self.xform.shared = True
+        self.xform.save()
+        export = generate_export(
+            Export.CSV_EXPORT, self.xform, None, {"extension": "csv"}
+        )
+        test_user = self._create_user("not_bob", "pass")
+        self.xform.soft_delete(user=self.user)
+
+        request = self.factory.get("/export")
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
+
+        request = self.factory.get("/export")
+        force_authenticate(request, user=test_user)
+        response = self.view(request, pk=export.pk)
+        self.assertEqual(status.HTTP_404_NOT_FOUND, response.status_code)
 
     def test_export_public_not_owner_authenticated(self):
         """

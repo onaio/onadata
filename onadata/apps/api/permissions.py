@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
+from guardian.shortcuts import get_perms
 from rest_framework import exceptions
 from rest_framework.permissions import (
     BasePermission,
@@ -30,6 +31,7 @@ from onadata.libs.permissions import (
     ManagerRole,
     OwnerRole,
     ReadOnlyRoleNoDownload,
+    get_role,
 )
 
 SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
@@ -116,7 +118,8 @@ class ExportDjangoObjectPermission(
         model_cls = XForm
         user = request.user
         return (
-            obj.xform.shared_data or obj.xform.project.shared
+            obj.xform.deleted_at is None
+            and (obj.xform.shared_data or obj.xform.shared or obj.xform.project.shared)
         ) or self._has_object_permission(request, model_cls, user, obj.xform)
 
 
@@ -290,6 +293,10 @@ class ProjectPermissions(DjangoObjectPermissions):
             or OwnerRole.user_has_role(request.user, obj)
         ):
             return False
+
+        if view.action in ["users", "teams"]:
+            # Any member of the project may view the list of users or teams
+            return get_role(get_perms(request.user, obj), obj) is not None
 
         return super().has_object_permission(request, view, obj)
 

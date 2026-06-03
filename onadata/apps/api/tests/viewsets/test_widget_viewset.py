@@ -227,6 +227,26 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
+    def test_list_public_widgets_excludes_deleted_forms(self):
+        self._create_widget()
+        self.xform.shared_data = True
+        self.xform.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        view = WidgetViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        self.xform.soft_delete()
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
     def test_widget_permission_create(self):
 
         alice_data = {"username": "alice", "email": "alice@localhost.com"}

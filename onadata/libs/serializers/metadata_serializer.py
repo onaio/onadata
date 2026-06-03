@@ -3,10 +3,9 @@
 MetaData Serializer
 """
 
-import mimetypes
+import logging
 import os
 
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -18,7 +17,6 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 from six.moves.urllib.parse import urlparse
 
-from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
 from onadata.apps.logger.models import DataView, Instance, Project, XForm
 from onadata.apps.main.models import MetaData
 from onadata.libs.permissions import ROLES, ManagerRole
@@ -32,11 +30,21 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_REVIEW,
     XFORM_META_PERMS,
 )
-from onadata.libs.utils.image_tools import is_azure_storage, generate_media_url_with_sas
+from onadata.libs.utils.image_tools import generate_media_url_with_sas, is_azure_storage
+from onadata.libs.utils.upload_validation import (
+    FORM_MEDIA_ALLOWED_EXTENSIONS,
+    FORM_MEDIA_UPLOAD_CONTEXT,
+    SUPPORTING_DOC_ALLOWED_EXTENSIONS,
+    SUPPORTING_DOC_UPLOAD_CONTEXT,
+    UploadValidationError,
+    validate_uploaded_file,
+)
+from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
+
+logger = logging.getLogger(__name__)
 
 UNIQUE_TOGETHER_ERROR = "Object already exists"
 
-CSV_CONTENT_TYPE = "text/csv"
 MEDIA_TYPE = "media"
 DOC_TYPE = "supporting_doc"
 METADATA_TYPES = (
@@ -180,6 +188,31 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             return reverse("xform-media", **kwargs)
         return None
 
+    @staticmethod
+    def _validate_data_file(attrs, data_type, data_file):
+        """Validate ``data_file`` and update ``attrs`` with the stored metadata."""
+        if data_type == MEDIA_TYPE:
+            allowed_extensions = FORM_MEDIA_ALLOWED_EXTENSIONS
+            upload_context = FORM_MEDIA_UPLOAD_CONTEXT
+        else:
+            allowed_extensions = SUPPORTING_DOC_ALLOWED_EXTENSIONS
+            upload_context = SUPPORTING_DOC_UPLOAD_CONTEXT
+
+        try:
+            upload = validate_uploaded_file(
+                data_file, allowed_extensions, upload_context
+            )
+        except UploadValidationError as error:
+            logger.warning("Metadata file upload validation failed: %s", error)
+            raise serializers.ValidationError(
+                {"data_file": _("The uploaded file could not be validated.")}
+            ) from error
+
+        data_file.name = upload.storage_basename
+        data_file.content_type = upload.content_type
+        attrs["data_value"] = upload.original_name
+        attrs["data_file_type"] = upload.content_type
+
     # pylint: disable=too-many-branches
     def validate(self, attrs):
         """
@@ -199,19 +232,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             )
 
         if data_file:
-            allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
-            # add geojson mimetype
-            mimetypes.add_type("application/geo+json", ".geojson")
-            data_content_type = (
-                data_file.content_type
-                if data_file.content_type in allowed_types
-                else mimetypes.guess_type(data_file.name)[0]
-            )
-            if data_content_type not in allowed_types:
-                raise serializers.ValidationError(
-                    {"data_file": _(f"Unsupported media file type {data_content_type}")}
-                )
-            attrs["data_file_type"] = data_content_type
+            self._validate_data_file(attrs, data_type, data_file)
 
         if data_type == "media" and data_file is None:
             try:
@@ -242,7 +263,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                         ) from error
                 else:
                     raise serializers.ValidationError(
-                        {"data_value": _(f"Invalid url '{value}'.")}
+                        {"data_value": _("Invalid url '%(value)s'.") % {"value": value}}
                     ) from error
             else:
                 # check if we have a value for the filename.
@@ -250,10 +271,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                     raise serializers.ValidationError(
                         {
                             "data_value": _(
-                                f"Cannot get filename from URL {value}. URL should "
+                                "Cannot get filename from URL %(value)s. URL should "
                                 "include the filename e.g "
                                 "http://example.com/data.csv"
                             )
+                            % {"value": value}
                         }
                     )
 
@@ -291,18 +313,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         extra_data = validated_data.get("extra_data")
 
         content_object = self.get_content_object(validated_data)
-        data_value = data_file.name if data_file else validated_data.get("data_value")
-
-        # not exactly sure what changed in the requests.FILES for django 1.7
-        # csv files uploaded in windows do not have the text/csv content_type
-        # this works around that
-        if (
-            data_type == MEDIA_TYPE
-            and data_file
-            and data_file.name.lower().endswith(".csv")
-            and data_file_type != CSV_CONTENT_TYPE
-        ):
-            data_file_type = CSV_CONTENT_TYPE
+        data_value = validated_data.get("data_value") or (
+            data_file.name if data_file else None
+        )
 
         content_type = ContentType.objects.get_for_model(content_object)
 

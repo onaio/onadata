@@ -1204,6 +1204,7 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
             show_date=False,
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
         mock_download_url.assert_called_once_with(
             "test.csv",
             "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
@@ -1224,6 +1225,7 @@ class ResponseWithMimetypeAndNameTestCase(TestBase):
             show_date=False,
         )
         self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
         mock_download_url.assert_called_once_with(
             "test.csv",
             "attachment; filename=\"download.csv\"; filename*=UTF-8''test.csv",
@@ -1337,3 +1339,79 @@ class GetStoragesMediaDownloadUrlTestCase(TestBase):
             "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
         self.assertIsNone(url)
+
+
+class ResponseNosniffHeaderTestCase(TestBase):
+    """Confirm download helpers set X-Content-Type-Options: nosniff."""
+
+    def test_local_filesystem_path_sets_nosniff(self):
+        """Local filesystem download response includes the nosniff header."""
+        fixture_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "screenshot.png",
+        )
+
+        response = response_with_mimetype_and_name(
+            "image/png",
+            "screenshot",
+            extension="png",
+            file_path=fixture_path,
+            use_local_filesystem=True,
+            full_mime=True,
+            show_date=False,
+        )
+
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertIn("attachment", response["Content-Disposition"])
+
+    def test_no_file_path_response_sets_nosniff(self):
+        """Empty-payload response (no file_path) still sets the nosniff header."""
+        response = response_with_mimetype_and_name(
+            "csv",
+            "report",
+            extension="csv",
+            file_path=None,
+            full_mime=False,
+            show_date=False,
+        )
+
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+    @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")
+    def test_generate_media_download_url_redirect_sets_nosniff(self, mock_download_url):
+        """Signed-URL redirect from generate_media_download_url has nosniff."""
+        from onadata.libs.utils.image_tools import generate_media_download_url
+
+        mock_download_url.return_value = "https://signed.example.com/file.png"
+        obj = Mock()
+        obj.media_file.name = "user/attachments/file.png"
+        obj.mimetype = "image/png"
+
+        response = generate_media_download_url(obj)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+    @patch("onadata.libs.utils.image_tools.open")
+    @patch("onadata.libs.utils.image_tools.get_storages_media_download_url")
+    def test_generate_media_download_url_local_sets_nosniff(
+        self, mock_download_url, mock_open
+    ):
+        """Local-filesystem path from generate_media_download_url has nosniff."""
+        from onadata.libs.utils.image_tools import generate_media_download_url
+
+        mock_download_url.return_value = None
+        mock_open.return_value = BytesIO(b"payload")
+        obj = Mock()
+        obj.media_file.name = "user/attachments/file.png"
+        obj.mimetype = "image/png"
+
+        response = generate_media_download_url(obj)
+
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertIn("attachment", response["Content-Disposition"])

@@ -231,6 +231,7 @@ class DataViewSet(
 
         if not queryset:
             filter_kwargs["shared_data"] = True
+            filter_kwargs["deleted_at__isnull"] = True
             queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
 
             if not queryset:

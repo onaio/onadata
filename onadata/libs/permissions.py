@@ -503,6 +503,16 @@ def is_organization(obj):
         return False
 
 
+def is_organization_user(user):
+    """Return True if the auth ``User`` row backs an organization account.
+
+    ``is_organization`` operates on a profile, not a ``User`` (a raw ``User``
+    has no ``organizationprofile`` accessor). Organization accounts always have
+    a profile, so a missing profile means the user is not an organization.
+    """
+    return hasattr(user, "profile") and is_organization(user.profile)
+
+
 def get_role(permissions, obj):
     """
     Return the user role for the given obj permissions.

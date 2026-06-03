@@ -3,9 +3,10 @@
 forms module.
 """
 
+import ipaddress
 import os
-import random
 import re
+import socket
 
 from django import forms
 from django.conf import settings
@@ -19,15 +20,27 @@ from django.utils.translation import gettext_lazy
 
 import requests
 from registration.forms import RegistrationFormUniqueEmail
-from six.moves.urllib.parse import urlparse
+from requests.exceptions import RequestException
+from six.moves.urllib.parse import urljoin, urlparse
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
+from onadata.libs.utils.content_disposition import (
+    ContentDispositionError,
+    parse_filename,
+)
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form, publish_xml_form
+from onadata.libs.utils.upload_validation import (
+    XLSFORM_ALLOWED_EXTENSIONS,
+    XLSFORM_UPLOAD_CONTEXT,
+    UploadValidationError,
+    get_upload_max_bytes,
+    validate_uploaded_file,
+)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 FORM_LICENSES_CHOICES = (
@@ -56,13 +69,7 @@ PERM_CHOICES = (
     ("remove", gettext_lazy("Remove permissions")),
 )
 
-VALID_XLSFORM_CONTENT_TYPES = [
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/csv",
-    "application/vnd.ms-excel",
-]
-
-VALID_FILE_EXTENSIONS = [".xlsx", ".csv"]
+VALID_FILE_EXTENSIONS = [f".{extension}" for extension in XLSFORM_ALLOWED_EXTENSIONS]
 
 DEFAULT_REQUEST_TIMEOUT = getattr(settings, "DEFAULT_REQUEST_TIMEOUT", 30)
 
@@ -72,24 +79,176 @@ User = get_user_model()
 
 def get_filename(response):
     """
-    Get filename from a Content-Desposition header.
+    Get filename from a Content-Disposition header.
     """
-    # pylint: disable=line-too-long
-    # the value of 'content-disposition' contains the filename and has the
-    # following format:
-    # 'attachment; filename="ActApp_Survey_System.xlsx"; filename*=UTF-8\'\'ActApp_Survey_System.xlsx' # noqa
-    cleaned_xls_file = ""
-    content = response.headers.get("Content-Disposition").split("; ")
-    counter = [a for a in content if a.startswith("filename=")]
-    if counter:
-        filename_key_val = counter[0]
-        filename = filename_key_val.split("=")[1].replace('"', "")
-        name, extension = os.path.splitext(filename)
+    content_disposition = response.headers.get("Content-Disposition")
+    if not content_disposition:
+        return ""
 
-        if extension in VALID_FILE_EXTENSIONS and name:
-            cleaned_xls_file = filename
+    try:
+        parsed = parse_filename(content_disposition)
+    except ContentDispositionError:
+        # A malformed upstream header carries no usable filename; fall back to
+        # the caller's original name rather than raising.
+        return ""
 
-    return cleaned_xls_file
+    filename = os.path.basename(parsed or "")
+    name, extension = os.path.splitext(filename)
+
+    if extension in VALID_FILE_EXTENSIONS and name:
+        return filename
+
+    return ""
+
+
+def _validate_xlsform_upload(uploaded_file, allowed_extensions=None):
+    """Validate XLSForm-family uploads and map errors to form errors.
+
+    Returns the :class:`ValidatedUpload`. Does NOT mutate ``uploaded_file.name``
+    because XLSForm publishing reads the original filename via pyxform to
+    derive ``fallback_form_name`` (and, for forms without an explicit
+    ``settings.id_string``, the form's ``id_string``). Storage-path
+    randomisation for ``XForm.xls`` happens at the FileField ``upload_to``
+    callable instead.
+    """
+    try:
+        result = validate_uploaded_file(
+            uploaded_file,
+            allowed_extensions or XLSFORM_ALLOWED_EXTENSIONS,
+            XLSFORM_UPLOAD_CONTEXT,
+        )
+    except UploadValidationError as error:
+        raise forms.ValidationError(str(error)) from error
+
+    uploaded_file.content_type = result.content_type
+
+    return result
+
+
+def _is_non_public_ip(ip_address):
+    """Return True for addresses an XLSForm download must never reach."""
+    return any(
+        (
+            ip_address.is_private,
+            ip_address.is_loopback,
+            ip_address.is_link_local,
+            ip_address.is_reserved,
+            ip_address.is_multicast,
+            ip_address.is_unspecified,
+        )
+    )
+
+
+def _assert_url_not_internal(url):
+    """Reject XLSForm URLs that resolve to non-public addresses (SSRF guard).
+
+    The host is resolved and every returned address is checked; the download is
+    blocked if any maps to a private, loopback, link-local, reserved, multicast
+    or unspecified address. Hosts listed in
+    ``settings.XLSFORM_URL_ALLOWED_HOSTS`` bypass the check so deployments can
+    permit trusted internal form hosts explicitly.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise forms.ValidationError(_("Only http and https URLs are allowed."))
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise forms.ValidationError(_("Could not determine the URL host."))
+
+    allowed_hosts = getattr(settings, "XLSFORM_URL_ALLOWED_HOSTS", None) or []
+    if hostname in allowed_hosts:
+        return
+
+    try:
+        addrinfo = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as error:
+        raise forms.ValidationError(
+            _("Could not resolve URL host: %(host)s") % {"host": hostname}
+        ) from error
+
+    for info in addrinfo:
+        if _is_non_public_ip(ipaddress.ip_address(info[4][0])):
+            raise forms.ValidationError(
+                _("Downloading XLSForms from this URL host is not permitted.")
+            )
+
+
+MAX_DOWNLOAD_REDIRECTS = 5
+
+
+def _get_with_ssrf_guard(url):
+    """GET ``url`` following redirects manually, validating every hop.
+
+    Redirects are not auto-followed; instead each URL in the chain (the initial
+    URL and every ``Location``) is checked with :func:`_assert_url_not_internal`
+    before it is requested, so a public URL cannot redirect the download into an
+    internal address. The chain is capped at :data:`MAX_DOWNLOAD_REDIRECTS`.
+    """
+    current_url = url
+    for _hop in range(MAX_DOWNLOAD_REDIRECTS + 1):
+        _assert_url_not_internal(current_url)
+        try:
+            response = requests.get(
+                current_url,
+                stream=True,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+                allow_redirects=False,
+            )
+        except RequestException as error:
+            raise forms.ValidationError(
+                _("Could not download XLSForm from URL: %(url)s") % {"url": url}
+            ) from error
+
+        if not response.is_redirect:
+            return response
+
+        location = response.headers.get("Location")
+        response.close()
+        if not location:
+            raise forms.ValidationError(
+                _("Could not download XLSForm from URL: %(url)s") % {"url": url}
+            )
+        current_url = urljoin(current_url, location)
+
+    raise forms.ValidationError(_("Too many redirects while downloading the XLSForm."))
+
+
+def _download_url_upload(cleaned_url, original_name):
+    """Download a remote XLSForm body with SSRF guards and the byte cap."""
+    response = _get_with_ssrf_guard(cleaned_url)
+
+    if response.status_code >= 400:
+        raise forms.ValidationError(
+            _("Could not download XLSForm from URL: %(url)s") % {"url": cleaned_url}
+        )
+
+    _name, extension = os.path.splitext(original_name)
+    if extension not in VALID_FILE_EXTENSIONS:
+        original_name = get_filename(response) or original_name
+
+    max_bytes = get_upload_max_bytes(XLSFORM_UPLOAD_CONTEXT)
+    chunks = []
+    total_size = 0
+    try:
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            total_size += len(chunk)
+            if total_size > max_bytes:
+                raise forms.ValidationError(
+                    _("File exceeds the maximum upload size of %(max_bytes)d bytes.")
+                    % {"max_bytes": max_bytes}
+                )
+            chunks.append(chunk)
+    except RequestException as error:
+        raise forms.ValidationError(
+            _("Could not download XLSForm from URL: %(url)s") % {"url": cleaned_url}
+        ) from error
+
+    downloaded_file = ContentFile(b"".join(chunks), name=original_name)
+    downloaded_file.content_type = response.headers.get("Content-Type", "")
+    return downloaded_file
 
 
 class DataLicenseForm(forms.Form):
@@ -216,7 +375,8 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
 
         if username in self.RESERVED_USERNAMES:
             raise forms.ValidationError(
-                _(f"{username} is a reserved name, please choose another")
+                _("%(username)s is a reserved name, please choose another")
+                % {"username": username}
             )
         # Use match() with the validation regex that includes ^ and $ anchors
         if not self.legal_usernames_re.match(username):
@@ -370,7 +530,9 @@ class QuickConverter(
                 # pylint: disable=attribute-defined-outside-init,no-member
                 self._project = Project.objects.get(pk=int(project))
             except (Project.DoesNotExist, ValueError) as e:
-                raise forms.ValidationError(_(f"Unknown project id: {project}")) from e
+                raise forms.ValidationError(
+                    _("Unknown project id: %(project)s") % {"project": project}
+                ) from e
 
         return project
 
@@ -389,22 +551,23 @@ class QuickConverter(
                 and self.cleaned_data["text_xls_form"].strip()
             ):
                 csv_data = self.cleaned_data["text_xls_form"]
-
-                # assigning the filename to a random string (quick fix)
-
-                random_string = "".join(
-                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6)
+                csv_file = ContentFile(csv_data.encode(), name="uploaded_form.csv")
+                csv_file.content_type = "text/csv"
+                validated_upload = _validate_xlsform_upload(
+                    csv_file, allowed_extensions=("csv",)
                 )
-                rand_name = f"uploaded_form_{random_string}.csv"
-
                 cleaned_xls_file = default_storage.save(
-                    upload_to(None, rand_name, user.username),
-                    ContentFile(csv_data.encode()),
+                    upload_to(None, validated_upload.storage_basename, user.username),
+                    csv_file,
                 )
             if "xls_file" in self.cleaned_data and self.cleaned_data["xls_file"]:
                 cleaned_xls_file = self.cleaned_data["xls_file"]
+                _validate_xlsform_upload(
+                    cleaned_xls_file, allowed_extensions=("csv", "xls", "xlsx")
+                )
             if "floip_file" in self.cleaned_data and self.cleaned_data["floip_file"]:
                 cleaned_xls_file = self.cleaned_data["floip_file"]
+                _validate_xlsform_upload(cleaned_xls_file, allowed_extensions=("json",))
 
             cleaned_url = (
                 self.cleaned_data["xls_url"].strip()
@@ -414,28 +577,18 @@ class QuickConverter(
 
             if cleaned_url:
                 self.validate(cleaned_url)
-                cleaned_xls_file = urlparse(cleaned_url)
-                cleaned_xls_file = "_".join(cleaned_xls_file.path.split("/")[-2:])
-                name, extension = os.path.splitext(cleaned_xls_file)
-
-                if extension not in VALID_FILE_EXTENSIONS and name:
-                    response = requests.head(
-                        cleaned_url,
-                        allow_redirects=True,
-                        timeout=DEFAULT_REQUEST_TIMEOUT,
-                    )
-                    if (
-                        response.headers.get("content-type")
-                        in VALID_XLSFORM_CONTENT_TYPES
-                        and response.status_code < 400
-                    ):
-                        cleaned_xls_file = get_filename(response)
-
-                cleaned_xls_file = upload_to(None, cleaned_xls_file, user.username)
-                response = requests.get(cleaned_url, timeout=DEFAULT_REQUEST_TIMEOUT)
-                if response.status_code < 400:
-                    xls_data = ContentFile(response.content)
-                    cleaned_xls_file = default_storage.save(cleaned_xls_file, xls_data)
+                parsed_url = urlparse(cleaned_url)
+                cleaned_xls_file = os.path.basename(parsed_url.path)
+                downloaded_file = _download_url_upload(cleaned_url, cleaned_xls_file)
+                validated_upload = _validate_xlsform_upload(
+                    downloaded_file, allowed_extensions=("csv", "xls", "xlsx")
+                )
+                cleaned_xls_file = upload_to(
+                    None, validated_upload.storage_basename, user.username
+                )
+                cleaned_xls_file = default_storage.save(
+                    cleaned_xls_file, downloaded_file
+                )
 
             project = self.cleaned_data["project"]
 
@@ -446,6 +599,7 @@ class QuickConverter(
 
             cleaned_xml_file = self.cleaned_data["xml_file"]
             if cleaned_xml_file:
+                _validate_xlsform_upload(cleaned_xml_file, allowed_extensions=("xml",))
                 return publish_xml_form(
                     cleaned_xml_file, user, project, id_string, created_by or user
                 )

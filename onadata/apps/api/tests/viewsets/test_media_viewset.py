@@ -127,6 +127,7 @@ class TestMediaViewSet(TestAbstractViewSet, TestBase):
         mock_download_url.assert_called_once_with(
             self.attachment.media_file.name,
             f'attachment; filename="{filename}"',
+            self.attachment.mimetype,
             expires_in=3600,
         )
 

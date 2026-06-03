@@ -182,6 +182,25 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
 
+    def test_list_public_attachments_excludes_deleted_forms(self):
+        self._submit_transport_instance_w_attachment()
+        self.xform.shared_data = True
+        self.xform.save()
+
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        self.xform.soft_delete()
+        request = self.factory.get("/", data={"xform": self.xform.pk}, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
     def test_list_view(self):
         self._submit_transport_instance_w_attachment()
 

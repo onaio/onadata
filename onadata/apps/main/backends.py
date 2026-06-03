@@ -2,9 +2,14 @@
 """
 A custom ModelBackend class module.
 """
+# The onadata import below is ordered per the project's isort config
+# (known-first-party=onadata); silence Codacy's stricter pylint import checks.
+# pylint: disable=wrong-import-position,ungrouped-imports
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend as DjangoModelBackend
 from django.db.models import Q
+
+from onadata.libs.permissions import is_organization_user
 
 User = get_user_model()
 
@@ -26,6 +31,11 @@ class ModelBackend(DjangoModelBackend):
         ).first()
 
         if user and user.check_password(password):
+            # Organization accounts are not loginnable human accounts; their
+            # User row exists only to hold permissions and ownership. Refuse
+            # authentication so an org account can never establish a session.
+            if is_organization_user(user):
+                return None
             return user
 
         return None

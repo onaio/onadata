@@ -101,7 +101,7 @@ class OsmViewSet(
     extra_lookup_fields = None
     public_data_endpoint = "public"
 
-    queryset = XForm.objects.filter().select_related()
+    queryset = XForm.objects.filter(deleted_at__isnull=True).select_related()
 
     def get_serializer_class(self):
         """Returns the OSMSiteMapSerializer class when list API is invoked."""
@@ -132,7 +132,13 @@ class OsmViewSet(
             except ValueError as e:
                 raise ParseError(_(f"Invalid dataid {dataid}")) from e
 
-            obj = get_object_or_404(Instance, pk=dataid, xform__pk=form_pk)
+            obj = get_object_or_404(
+                Instance,
+                pk=dataid,
+                xform__pk=form_pk,
+                xform__deleted_at__isnull=True,
+                deleted_at__isnull=True,
+            )
 
         return obj
 
@@ -155,9 +161,19 @@ class OsmViewSet(
 
         instance = self.get_object()
         if isinstance(instance, XForm):
-            osm_list = OsmData.objects.filter(instance__xform=instance)
+            osm_list = OsmData.objects.filter(
+                instance__xform=instance,
+                instance__xform__deleted_at__isnull=True,
+                instance__deleted_at__isnull=True,
+                deleted_at__isnull=True,
+            )
         else:
-            osm_list = OsmData.objects.filter(instance=instance)
+            osm_list = OsmData.objects.filter(
+                instance=instance,
+                instance__xform__deleted_at__isnull=True,
+                instance__deleted_at__isnull=True,
+                deleted_at__isnull=True,
+            )
         serializer = self.get_serializer(osm_list, many=True)
 
         return Response(serializer.data)
@@ -176,7 +192,12 @@ class OsmViewSet(
                     )
                 )
             instance = self.filter_queryset(self.get_queryset())
-            osm_list = OsmData.objects.filter(instance__xform__in=instance)
+            osm_list = OsmData.objects.filter(
+                instance__xform__in=instance,
+                instance__xform__deleted_at__isnull=True,
+                instance__deleted_at__isnull=True,
+                deleted_at__isnull=True,
+            )
             page = self.paginate_queryset(osm_list)
             if page is not None:
                 serializer = self.get_pagination_serializer(page)
@@ -190,7 +211,12 @@ class OsmViewSet(
                 reverse("osm-list", kwargs={"format": "json"}, request=request)
             )
         instances = (
-            Attachment.objects.filter(extension="osm")
+            Attachment.objects.filter(
+                extension="osm",
+                instance__xform__deleted_at__isnull=True,
+                instance__deleted_at__isnull=True,
+                deleted_at__isnull=True,
+            )
             .values(
                 "instance__xform",
                 "instance__xform__user__username",
