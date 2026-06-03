@@ -3,6 +3,27 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.18.0(2026-06-03)
+-------------------
+- feat(projects): add v2 project users endpoint
+  [@kelvin-muchiri]
+  `PR #3098 https://github.com/onaio/onadata/pull/3098`
+- feat(projects): add v2 project teams endpoint
+  [@kelvin-muchiri]
+  `PR #3099 https://github.com/onaio/onadata/pull/3099`
+- chore(deps-dev): bump tmp to 0.2.6
+  [@ukanga]
+  `PR #3101 https://github.com/onaio/onadata/pull/3101`
+- fix(viewer): support uppercase export types
+  [@ukanga]
+  `PR #3100 https://github.com/onaio/onadata/pull/3100`
+- fix(exports): convert bool values for SAV exports
+  [@ukanga]
+  `PR #3102 https://github.com/onaio/onadata/pull/3102`
+- feat(security): enforce strict file-type validation on uploads
+  [@ukanga]
+  `PR #3092 https://github.com/onaio/onadata/pull/3092`
+
 v5.17.1 (2026-05-28)
 --------------------
 - feat: block login to organization accounts
