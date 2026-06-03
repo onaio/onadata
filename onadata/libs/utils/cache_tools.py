@@ -59,6 +59,14 @@ PROJ_TEAM_USERS_CACHE = "ps-project-team-users"
 XFORM_LINKED_DATAVIEWS = "xfs-linked_dataviews"
 PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 
+# Bbox endpoint caches (forms, dataviews, merged datasets). Busted on every
+# submission create/edit/delete via invalidate_bbox_cache; the TTL is only a
+# safety net for entries that outlive their xform's submission activity.
+XFORM_BBOX_CACHE = "xfs-bbox-"
+DATAVIEW_BBOX_CACHE = "dvs-bbox-"
+MERGED_XFORM_BBOX_CACHE = "mxf-bbox-"
+BBOX_CACHE_TTL = 60 * 60  # 1 hour converted to seconds
+
 # Cache names used in organization profile viewset
 ORG_PROFILE_CACHE = "org-profile-"
 

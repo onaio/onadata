@@ -21,6 +21,12 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
+from onadata.libs.utils.cache_tools import (
+    BBOX_CACHE_TTL,
+    MERGED_XFORM_BBOX_CACHE,
+    safe_cache_get,
+    safe_cache_set,
+)
 
 
 # pylint: disable=too-many-ancestors
@@ -101,12 +107,19 @@ class MergedXFormViewSet(
 
         Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
         Matches the xform set `form_tiles()` serves when called with
-        ``merged_dataset_id``.
+        ``merged_dataset_id``. Cached and busted whenever a submission to any
+        member xform is created, edited, or deleted.
         """
         merged_xform = self.get_object()
+        cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         xform_ids = list(merged_xform.xforms.values_list("pk", flat=True))
-        bbox = compute_instance_bbox(xform_ids)
-        return Response({"bbox": bbox})
+        data = {"bbox": compute_instance_bbox(xform_ids)}
+        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        return Response(data)
 
     # pylint: disable=unused-argument
     @action(methods=["GET"], detail=True)

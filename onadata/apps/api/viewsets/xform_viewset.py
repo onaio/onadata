@@ -55,12 +55,14 @@ from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (
+    BBOX_CACHE_TTL,
     ENKETO_URL_CACHE,
     ENKETO_URLS_CACHE,
     get_enketo_urls_cache_ttl,
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
     PROJ_OWNER_CACHE,
+    XFORM_BBOX_CACHE,
     safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
@@ -999,11 +1001,17 @@ class XFormViewSet(
         Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
         ``null`` when the form has no geolocated submissions. Used by the
         frontend tile map to fit the viewport on load without fetching the
-        full submission set.
+        full submission set. Cached and busted on submission create/edit/delete.
         """
         xform = self.get_object()
-        bbox = compute_instance_bbox([xform.pk])
-        return Response({"bbox": bbox})
+        cache_key = f"{XFORM_BBOX_CACHE}{xform.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        data = {"bbox": compute_instance_bbox([xform.pk])}
+        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        return Response(data)
 
     @action(methods=["GET"], detail=True)
     def export_async(self, request, *args, **kwargs):

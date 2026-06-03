@@ -292,6 +292,12 @@ def _update_xform_submission_count_delete(instance):
     safe_cache_delete(f"{DATAVIEW_COUNT}{xform.pk}")
     safe_cache_delete(f"{XFORM_COUNT}{xform.pk}")
 
+    # Bust bbox caches so a removed submission no longer counts toward extent.
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.utils.bbox_tools import invalidate_bbox_cache
+
+    invalidate_bbox_cache(xform.pk)
+
 
 # pylint: disable=unused-argument
 @use_master
@@ -870,6 +876,13 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
 
         save_full_json(instance)
         update_project_date_modified(instance)
+
+    # Bust bbox caches so the next map-fit request reflects this submission's
+    # geom, whether it was just created or edited.
+    # pylint: disable=import-outside-toplevel
+    from onadata.libs.utils.bbox_tools import invalidate_bbox_cache
+
+    invalidate_bbox_cache(instance.xform_id)
 
 
 # pylint: disable=unused-argument

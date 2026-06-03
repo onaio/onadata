@@ -87,9 +87,11 @@ from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE,
+    XFORM_BBOX_CACHE,
     XFORM_DATA_VERSIONS,
     XFORM_PERMISSIONS_CACHE,
     safe_cache_delete,
+    safe_cache_get,
 )
 from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG, MONGO_STRFTIME
 from onadata.libs.utils.common_tools import (
@@ -6358,3 +6360,27 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["bbox"])
+
+    def test_bbox_is_cached_and_busted_on_new_submission(self):
+        """The bbox response is cached, then busted when a submission arrives."""
+        xls_path = self._fixture_path("gps", "gps.xlsx")
+        self._publish_xls_file_and_set_xform(xls_path)
+        cache_key = f"{XFORM_BBOX_CACHE}{self.xform.pk}"
+
+        view = XFormViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+
+        # Cold form has no geoms: null result is computed and cached.
+        response = view(request, pk=self.xform.pk)
+        self.assertIsNone(response.data["bbox"])
+        self.assertEqual(safe_cache_get(cache_key), {"bbox": None})
+
+        # A new submission busts the cache via the Instance post_save signal.
+        self._make_submissions_gps()
+        self.assertIsNone(safe_cache_get(cache_key))
+
+        # The next request recomputes a real extent and re-caches it.
+        response = view(request, pk=self.xform.pk)
+        self.assertIsNotNone(response.data["bbox"])
+        self.assertEqual(len(response.data["bbox"]), 4)
+        self.assertEqual(safe_cache_get(cache_key), response.data)

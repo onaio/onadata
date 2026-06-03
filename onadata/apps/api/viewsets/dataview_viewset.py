@@ -35,9 +35,13 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import (
+    BBOX_CACHE_TTL,
+    DATAVIEW_BBOX_CACHE,
     PROJ_OWNER_CACHE,
     PROJECT_LINKED_DATAVIEWS,
     safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
 )
 from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
@@ -165,12 +169,23 @@ class DataViewViewSet(
 
         Applies the dataview's query filter to match the rows `form_tiles()`
         would serve. Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] |
-        null}``. ``null`` when the filtered set has no geolocated rows.
+        null}``. ``null`` when the filtered set has no geolocated rows. Cached
+        and busted on submission create/edit/delete for the underlying xform.
         """
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
-        bbox = compute_instance_bbox([self.object.xform_id], dataview=self.object)
-        return Response({"bbox": bbox})
+        cache_key = f"{DATAVIEW_BBOX_CACHE}{self.object.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        data = {
+            "bbox": compute_instance_bbox(
+                [self.object.xform_id], dataview=self.object
+            )
+        }
+        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        return Response(data)
 
     # pylint: disable=too-many-locals
     @action(methods=["GET"], detail=True)
