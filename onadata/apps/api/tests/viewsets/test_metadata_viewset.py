@@ -10,7 +10,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
+from django.test import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
@@ -195,17 +197,19 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.path = os.path.join(self.fixture_dir, self.data_value)
 
         self._add_form_metadata(self.xform, "media", self.data_value, self.path)
+        stored_basename = os.path.basename(self.metadata.data_file.name)
+        media_path_prefix = (
+            f"http://localhost:8000/media/{self.user.username}/formid-media/"
+        )
         data = {
             "id": self.metadata.pk,
             "xform": self.xform.pk,
             "data_value": "1335783522563.jpg",
             "data_type": "media",
             "extra_data": None,
-            "data_file": "http://localhost:8000/media/%s/formid-media/"
-            "1335783522563.jpg" % self.user.username,
+            "data_file": f"{media_path_prefix}{stored_basename}",
             "data_file_type": "image/jpeg",
-            "media_url": "http://localhost:8000/media/%s/formid-media/"
-            "1335783522563.jpg" % self.user.username,
+            "media_url": f"{media_path_prefix}{stored_basename}",
             "file_hash": "md5:2ca0d22073a9b6b4ebe51368b08da60c",
             "url": "http://testserver/api/v1/metadata/%s" % self.metadata.pk,
             "date_created": self.metadata.date_created,
@@ -214,6 +218,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.metadata.pk)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(dict(response.data), data)
+        # Stored basename must be a UUID, not the client-supplied name.
+        self.assertNotEqual(stored_basename, "1335783522563.jpg")
+        self.assertTrue(stored_basename.endswith(".jpg"))
 
     def test_add_mapbox_layer(self):
         data_type = "mapbox_layer"
@@ -247,21 +254,27 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(len(response2.data), 0)
         self.assertEqual(response2.data, [])
 
-    def test_windows_csv_file_upload_to_metadata(self):
+    def test_octet_stream_csv_file_upload_to_metadata_is_accepted(self):
+        """A CSV uploaded with ``application/octet-stream`` is accepted.
+
+        Windows browsers and similar clients commonly omit a precise MIME
+        type. The magic-byte/CSV parser validation still runs.
+        """
         data_value = "transportation.csv"
         path = os.path.join(self.fixture_dir, data_value)
-        with open(path) as f:
-            f = InMemoryUploadedFile(
+        with open(path, "rb") as f:
+            uploaded = InMemoryUploadedFile(
                 f, "media", data_value, "application/octet-stream", 2625, None
             )
             data = {
                 "data_value": data_value,
-                "data_file": f,
+                "data_file": uploaded,
                 "data_type": "media",
                 "xform": self.xform.pk,
             }
-            self._post_metadata(data)
-            self.assertEqual(self.metadata.data_file_type, "text/csv")
+            response = self._post_metadata(data)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.data["data_file_type"], "text/csv")
 
     def test_add_media_url(self):
         data_type = "media"
@@ -404,7 +417,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     def test_list_public_metadata_excludes_deleted_forms(self):
-        self._add_form_metadata(self.xform, "supporting_doc", self.data_value, self.path)
+        self._add_form_metadata(
+            self.xform, "supporting_doc", self.data_value, self.path
+        )
         self.xform.shared_data = True
         self.xform.save()
 
@@ -672,3 +687,189 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertEqual(d_response.status_code, 400)
         self.assertIn(UNIQUE_TOGETHER_ERROR, d_response.data)
+
+    def _post_media_upload(self, name, content, content_type):
+        view = MetaDataViewSet.as_view({"post": "create"})
+        uploaded = SimpleUploadedFile(name, content, content_type=content_type)
+        data = {
+            "data_type": "media",
+            "data_value": name,
+            "xform": self.xform.id,
+            "data_file": uploaded,
+        }
+        request = self.factory.post("/", data=data, **self.extra)
+        return view(request)
+
+    def test_media_upload_rejects_double_extension(self):
+        """A `putty.exe.png` filename is rejected and no MetaData row remains."""
+        before = MetaData.objects.count()
+
+        response = self._post_media_upload("putty.exe.png", b"MZpayload", "image/png")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_media_upload_rejects_signature_mismatch(self):
+        """PNG content-type with executable bytes is rejected without persistence."""
+        before = MetaData.objects.count()
+        before_files = MetaData.objects.exclude(data_file="").count()
+
+        response = self._post_media_upload(
+            "putty.png", b"MZ\x90\x00payload", "image/png"
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(MetaData.objects.count(), before)
+        self.assertEqual(MetaData.objects.exclude(data_file="").count(), before_files)
+
+    def test_media_upload_rejects_content_type_spoof(self):
+        """A real PNG file uploaded under text/csv is rejected."""
+        before = MetaData.objects.count()
+        with open(self.path, "rb") as png:
+            png_bytes = png.read()
+
+        response = self._post_media_upload("data.csv", png_bytes, "text/csv")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_media_upload_stores_uuid_filename(self):
+        """Accepted media uploads store a UUID-based filename, not the client name."""
+        with open(self.path, "rb") as png:
+            png_bytes = png.read()
+
+        response = self._post_media_upload("screenshot.png", png_bytes, "image/png")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        metadata = MetaData.objects.get(pk=response.data["id"])
+        stored_name = os.path.basename(metadata.data_file.name)
+        self.assertNotEqual(stored_name, "screenshot.png")
+        self.assertTrue(stored_name.endswith(".png"))
+        # 32 hex chars + ".png"
+        self.assertEqual(len(stored_name), 32 + len(".png"))
+        # Original filename is preserved as display value
+        self.assertEqual(metadata.data_value, "screenshot.png")
+        # Stored file actually exists in storage
+        self.assertTrue(default_storage.exists(metadata.data_file.name))
+
+    def test_media_upload_mp4_stores_uuid_filename(self):
+        """An MP4 form-media upload is accepted and stored under a UUID name."""
+        # Minimal valid ftyp box (size 0x18, major brand "isom").
+        mp4_bytes = b"\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2"
+
+        response = self._post_media_upload("clip.mp4", mp4_bytes, "video/mp4")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        metadata = MetaData.objects.get(pk=response.data["id"])
+        stored_name = os.path.basename(metadata.data_file.name)
+        self.assertNotEqual(stored_name, "clip.mp4")
+        self.assertTrue(stored_name.endswith(".mp4"))
+        # 32 hex chars + ".mp4"
+        self.assertEqual(len(stored_name), 32 + len(".mp4"))
+        self.assertEqual(metadata.data_value, "clip.mp4")
+        self.assertTrue(default_storage.exists(metadata.data_file.name))
+
+    def _post_supporting_doc_upload(self, name, content, content_type):
+        view = MetaDataViewSet.as_view({"post": "create"})
+        uploaded = SimpleUploadedFile(name, content, content_type=content_type)
+        data = {
+            "data_type": "supporting_doc",
+            "data_value": name,
+            "xform": self.xform.id,
+            "data_file": uploaded,
+        }
+        request = self.factory.post("/", data=data, **self.extra)
+        return view(request)
+
+    @staticmethod
+    def _pdf_bytes():
+        return b"%PDF-1.4\nbody\n%%EOF\n"
+
+    def test_supporting_doc_upload_rejects_double_extension(self):
+        """report.pdf.html is rejected before persistence."""
+        before = MetaData.objects.count()
+
+        response = self._post_supporting_doc_upload(
+            "report.pdf.html", self._pdf_bytes(), "application/pdf"
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_supporting_doc_upload_rejects_content_type_spoof(self):
+        """application/pdf header with non-PDF bytes is rejected."""
+        before = MetaData.objects.count()
+
+        response = self._post_supporting_doc_upload(
+            "report.pdf", b"not a pdf", "application/pdf"
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_supporting_doc_upload_rejects_svg(self):
+        """SVG is no longer in the supporting-doc allowlist."""
+        before = MetaData.objects.count()
+
+        response = self._post_supporting_doc_upload(
+            "icon.svg", b"<svg xmlns='http://www.w3.org/2000/svg'/>", "image/svg+xml"
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_supporting_doc_upload_rejects_zip(self):
+        """ZIP is no longer in the supporting-doc allowlist."""
+        before = MetaData.objects.count()
+        # Empty but structurally valid ZIP
+        zip_bytes = b"PK\x05\x06" + b"\x00" * 18
+
+        response = self._post_supporting_doc_upload(
+            "archive.zip", zip_bytes, "application/zip"
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_supporting_doc_upload_rejects_legacy_doc(self):
+        """Legacy .doc (OLE) uploads are rejected."""
+        before = MetaData.objects.count()
+
+        response = self._post_supporting_doc_upload(
+            "report.doc",
+            b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1payload",
+            "application/msword",
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)
+
+    def test_supporting_doc_upload_stores_uuid_filename(self):
+        """Accepted supporting-doc uploads store a UUID-based filename."""
+        response = self._post_supporting_doc_upload(
+            "report.pdf", self._pdf_bytes(), "application/pdf"
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        metadata = MetaData.objects.get(pk=response.data["id"])
+        stored_name = os.path.basename(metadata.data_file.name)
+        self.assertNotEqual(stored_name, "report.pdf")
+        self.assertTrue(stored_name.endswith(".pdf"))
+        # 32 hex chars + ".pdf"
+        self.assertEqual(len(stored_name), 32 + len(".pdf"))
+        # Original filename preserved as display value
+        self.assertEqual(metadata.data_value, "report.pdf")
+
+    @override_settings(
+        STRICT_UPLOAD_MAX_BYTES={"supporting_doc": {"*": 8}},
+    )
+    def test_supporting_doc_oversized_upload_rejected(self):
+        """A supporting-doc upload over the whole-context byte cap is rejected."""
+        before = MetaData.objects.count()
+
+        response = self._post_supporting_doc_upload(
+            "report.pdf", self._pdf_bytes() * 10, "application/pdf"
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(MetaData.objects.count(), before)

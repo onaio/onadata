@@ -43,15 +43,18 @@ def generate_media_download_url(obj, expiration: int = 3600):
     # spaces or non-ASCII characters.
     content_disposition = f'attachment; filename="{filename}"'
     download_url = get_storages_media_download_url(
-        file_path, content_disposition, expires_in=expiration
+        file_path, content_disposition, obj.mimetype, expires_in=expiration
     )
     if download_url is not None:
-        return HttpResponseRedirect(download_url)
+        response = HttpResponseRedirect(download_url)
+        response["X-Content-Type-Options"] = "nosniff"
+        return response
 
     # pylint: disable=consider-using-with
     file_obj = open(settings.MEDIA_ROOT + file_path, "rb")
     response = HttpResponse(FileWrapper(file_obj), content_type=obj.mimetype)
     response["Content-Disposition"] = content_disposition
+    response["X-Content-Type-Options"] = "nosniff"
 
     return response
 

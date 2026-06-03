@@ -5,7 +5,6 @@ Test onadata.libs.serializers.metadata_serializer
 import os
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.test.utils import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
@@ -48,7 +47,6 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             ],
         )
 
-    @override_settings(SUPPORTED_MEDIA_UPLOAD_TYPES=[])
     def test_unsupported_media_files(self):
         """
         Test unsupported media files
@@ -69,14 +67,14 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertEqual(
-                serializer.errors["data_file"],
-                [("Unsupported media file type image/svg+xml")],
+            self.assertIn(
+                "The uploaded file could not be validated.",
+                serializer.errors["data_file"][0],
             )
 
     def test_svg_media_files(self):
         """
-        Test that an SVG file is uploaded
+        Test that an SVG file is rejected
         """
         self._login_user_and_profile()
         self._publish_form_with_hxl_support()
@@ -93,37 +91,30 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
                 "xform": self.xform.pk,
             }
             serializer = MetaDataSerializer(data=data)
-            self.assertTrue(serializer.is_valid())
-            self.assertEqual(
-                serializer.validated_data["data_file_type"], "image/svg+xml"
+            self.assertFalse(serializer.is_valid())
+            self.assertIn(
+                "The uploaded file could not be validated.",
+                serializer.errors["data_file"][0],
             )
 
     def test_geojson_media_files(self):
         """
-        Test that an geojson file is uploaded ok
+        GeoJSON media files are accepted (used by select_one_from_file map
+        widgets in ODK).
         """
         self._login_user_and_profile()
         self._publish_form_with_hxl_support()
-        data_value = 'sample.geojson'
-        path = os.path.join(os.path.dirname(__file__), 'fixtures',
-                            'sample.geojson')
-        with open(path) as f:
+        data_value = "sample.geojson"
+        path = os.path.join(os.path.dirname(__file__), "fixtures", "sample.geojson")
+        with open(path, "rb") as media_fp:
             f = InMemoryUploadedFile(
-                f, 'media', data_value, None, 2324, None)
+                media_fp, "media", data_value, "application/geo+json", 2324, None
+            )
             data = {
-                'data_value': data_value,
-                'data_file': f,
-                'data_type': 'media',
-                'xform': self.xform.pk
+                "data_value": data_value,
+                "data_file": f,
+                "data_type": "media",
+                "xform": self.xform.pk,
             }
             serializer = MetaDataSerializer(data=data)
-            self.assertTrue(serializer.is_valid())
-            self.assertEqual(
-                serializer.validated_data['data_file_type'],
-                'application/geo+json')
-            self.assertEqual(
-                serializer.validated_data['data_value'],
-                'sample.geojson')
-            self.assertEqual(
-                serializer.validated_data['data_type'],
-                'media')
+            self.assertTrue(serializer.is_valid(), serializer.errors)

@@ -178,6 +178,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     "onadata.libs.profiling.sql.SqlTimingMiddleware",
     "django.middleware.http.ConditionalGetMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -548,32 +549,68 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, str):
 # Set wsgi url scheme to HTTPS
 os.environ["wsgi.url_scheme"] = "https"
 
-SUPPORTED_MEDIA_UPLOAD_TYPES = [
-    "audio/mp3",
-    "audio/mpeg",
-    "audio/wav",
-    "audio/x-m4a",
-    "image/jpeg",
-    "image/png",
-    "image/svg+xml",
-    "text/csv",
-    "text/json",
-    "video/3gpp",
-    "video/mp4",
-    "application/json",
-    "application/geo+json",
+SUPPORTED_SUPPORTING_DOC_UPLOAD_TYPES = [
     "application/pdf",
-    "application/msword",
-    "application/vnd.ms-excel",
-    "application/vnd.ms-powerpoint",
     "application/vnd.oasis.opendocument.text",
     "application/vnd.oasis.opendocument.spreadsheet",
     "application/vnd.oasis.opendocument.presentation",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.openxmlformats-officedocument.presentationml.\
-     presentation",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/zip",
+    "application/geo+json",
+    "application/json",
+    "text/csv",
+    "image/jpeg",
+    "image/png",
+]
+
+# Operator override for the supporting-doc MIME allowlist. Set to a list of
+# MIME types to narrow the policy below SUPPORTED_SUPPORTING_DOC_UPLOAD_TYPES.
+STRICT_SUPPORTING_DOC_UPLOAD_TYPES = None
+
+# Strict upload size policy (deny-by-default). A single nested map:
+#   "*"        -> the global default cap (bytes)
+#   <context>  -> {"<extension>" or "*": bytes}
+# Resolution is most specific first: [context][extension] -> [context]["*"]
+# -> ["*"]. "*" always means "the default at this level". Context keys are the
+# constants in onadata.libs.utils.upload_validation (FORM_MEDIA_UPLOAD_CONTEXT,
+# XLSFORM_UPLOAD_CONTEXT, DATA_IMPORT_UPLOAD_CONTEXT, SUPPORTING_DOC_UPLOAD_CONTEXT).
+#
+# Only formats validated with BOUNDED reads should carry a cap above the
+# default: mp4 (verified from its ftyp header) and csv (a chunked head sample)
+# cost no extra worker memory; every other format reads the whole file to
+# validate, so keep it small. Raise an entry (and the proxy/ingress body
+# limits) to the size a deployment needs.
+STRICT_UPLOAD_MAX_BYTES = {
+    "*": 1 * 1024 * 1024,
+    "form_media": {"mp4": 10 * 1024 * 1024, "csv": 10 * 1024 * 1024},
+    "data_import": {"csv": 10 * 1024 * 1024},
+}
+
+# Django parser knobs, independent of the per-file cap above:
+# - DATA_UPLOAD_MAX_MEMORY_SIZE gates the *non-file* request body; multipart
+#   file-upload fields are EXCLUDED from this check. The real request-body
+#   ceiling is the proxy (nginx client_max_body_size).
+# - FILE_UPLOAD_MAX_MEMORY_SIZE is only the spool-to-disk threshold; anything
+#   larger is streamed to a temporary file instead of buffered in worker RAM.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(2.5 * 1024 * 1024)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Hosts allowed to bypass the XLSForm-by-URL SSRF guard (which otherwise blocks
+# URLs resolving to private/loopback/link-local/reserved addresses). Add trusted
+# internal form hosts here, e.g. ["forms.internal.example.com"].
+XLSFORM_URL_ALLOWED_HOSTS = []
+
+STRICT_FORM_MEDIA_UPLOAD_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "text/csv",
+    "text/xml",
+    "application/xml",
+    "application/geo+json",
+    "application/json",
+    "video/mp4",
 ]
 
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100

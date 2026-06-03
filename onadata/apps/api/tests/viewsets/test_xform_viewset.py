@@ -22,6 +22,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.test.utils import override_settings
@@ -86,6 +87,7 @@ from onadata.libs.serializers.xform_serializer import (
 from onadata.libs.utils.api_export_tools import get_existing_file_format
 from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
+    ENKETO_URLS_CACHE,
     PROJ_FORMS_CACHE,
     XFORM_DATA_VERSIONS,
     XFORM_PERMISSIONS_CACHE,
@@ -346,7 +348,9 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = self.view(request)
 
-                mock_requests.get.assert_called_with(xls_url, timeout=30)
+                mock_requests.get.assert_called_with(
+                    xls_url, stream=True, timeout=30, allow_redirects=False
+                )
                 xls_file.close()
 
                 self.assertEqual(response.status_code, 201)
@@ -467,7 +471,10 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
 
             with open(path, "rb") as csv_file:
                 mock_response = get_mocked_response_for_file(
-                    csv_file, "text_and_integer.csv", 200
+                    csv_file,
+                    "text_and_integer.csv",
+                    200,
+                    content_type="text/csv",
                 )
                 mock_requests.head.return_value = mock_response
                 mock_requests.get.return_value = mock_response
@@ -476,7 +483,9 @@ class PublishXLSFormTestCase(XFormViewSetBaseTestCase):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = self.view(request)
 
-                mock_requests.get.assert_called_with(csv_url, timeout=30)
+                mock_requests.get.assert_called_with(
+                    csv_url, stream=True, timeout=30, allow_redirects=False
+                )
                 csv_file.close()
 
                 self.assertEqual(response.status_code, 201)
@@ -1736,8 +1745,6 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             ).delete()
 
             # Verify cache is cleared
-            from onadata.libs.utils.cache_tools import ENKETO_URLS_CACHE
-
             self.assertIsNone(cache.get(f"{ENKETO_URLS_CACHE}{formid}"))
 
             # Subsequent request should call the Enketo API since both
@@ -3745,6 +3752,89 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.data, {"job_status": "PENDING"})
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_publish_form_async_rejects_double_extension(self):
+        """create_async rejects XLSForm filenames with stacked extensions."""
+        count = XForm.objects.count()
+        view = XFormViewSet.as_view({"post": "create_async"})
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.xlsx",
+        )
+        with open(path, "rb") as src:
+            data = src.read()
+        uploaded = SimpleUploadedFile(
+            "transportation.exe.xlsx",
+            data,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        post_data = {"xls_file": uploaded}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400, getattr(response, "data", None))
+        self.assertEqual(count, XForm.objects.count())
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_publish_form_async_rejects_content_type_spoof(self):
+        """create_async rejects XLSForm content masquerading as a different MIME."""
+        count = XForm.objects.count()
+        view = XFormViewSet.as_view({"post": "create_async"})
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.xlsx",
+        )
+        with open(path, "rb") as src:
+            data = src.read()
+        # Valid XLSX bytes uploaded with a CSV content-type/extension
+        uploaded = SimpleUploadedFile(
+            "transportation.csv", data, content_type="text/csv"
+        )
+        post_data = {"xls_file": uploaded}
+        request = self.factory.post("/", data=post_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400, getattr(response, "data", None))
+        self.assertEqual(count, XForm.objects.count())
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_publish_form_sync_stores_uuid_filename(self):
+        """A successful sync XLSForm upload stores under a UUID-based name."""
+        view = XFormViewSet.as_view({"post": "create"})
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "apps",
+            "main",
+            "tests",
+            "fixtures",
+            "transportation",
+            "transportation.xlsx",
+        )
+        with open(path, "rb") as xls_file:
+            post_data = {"xls_file": xls_file}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request)
+
+        self.assertEqual(response.status_code, 201, getattr(response, "data", None))
+        xform = XForm.objects.get(pk=response.data["formid"])
+        stored_name = os.path.basename(xform.xls.name)
+        self.assertNotEqual(stored_name, "transportation.xlsx")
+        self.assertTrue(stored_name.endswith(".xlsx"))
+        # 32 hex chars + ".xlsx"
+        self.assertEqual(len(stored_name), 32 + len(".xlsx"))
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch(
         "onadata.apps.api.tasks.tools.do_publish_xlsform",
         side_effect=[MemoryError(), MemoryError(), Mock()],
@@ -5474,6 +5564,70 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.data.get("additions"), 9)
             self.assertEqual(response.data.get("updates"), 0)
 
+    def test_data_import_rejects_extension_spoofing(self):
+        """data_import rejects CSV bytes renamed with .xlsx extension."""
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "tutorial.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({"post": "data_import"})
+
+            spoofed = SimpleUploadedFile(
+                "evil.xlsx",
+                b"name,age\nAlice,30\n",
+                content_type=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+            )
+            post_data = {"xls_file": spoofed}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+
+            self.assertEqual(response.status_code, 400, response.data)
+            self.assertIn("error", response.data)
+
+    def test_csv_import_rejects_extension_spoofing(self):
+        """csv_import rejects PNG bytes renamed with .csv extension."""
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "tutorial.xlsx",
+            )
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({"post": "csv_import"})
+
+            png_path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "screenshot.png",
+            )
+            with open(png_path, "rb") as src:
+                spoofed_bytes = src.read()
+
+            spoofed = SimpleUploadedFile(
+                "evil.csv", spoofed_bytes, content_type="text/csv"
+            )
+            post_data = {"csv_file": spoofed}
+            request = self.factory.post("/", data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+
+            self.assertEqual(response.status_code, 400, response.data)
+            self.assertIn("error", response.data)
+
     def test_csv_xls_import_errors(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(
@@ -5494,13 +5648,19 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.data.get("error"), "xls_file not an excel file")
+            self.assertEqual(
+                response.data.get("error"),
+                "The uploaded file could not be validated.",
+            )
 
             post_data = {"csv_file": xls_import}
             request = self.factory.post("/", data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.data.get("error"), "csv_file not a csv file")
+            self.assertEqual(
+                response.data.get("error"),
+                "The uploaded file could not be validated.",
+            )
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_single_registration_form(self):

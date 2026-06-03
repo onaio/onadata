@@ -9,7 +9,11 @@ server {
     access_log    /var/log/onadata/nginx-access.log;
     error_log     /var/log/onadata/nginx-error.log;
 
-    # entity size
+    # entity size — the request-body ceiling. This must be at least as large as
+    # the largest per-(context, extension) upload cap configured in Django
+    # (the STRICT_UPLOAD_MAX_BYTES policy map).
+    # A deployment that raises a per-extension cap must raise this (and any
+    # external ingress / load balancer / CDN body limit) to match.
     client_max_body_size 10m;
 
     # static files

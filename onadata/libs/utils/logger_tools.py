@@ -780,8 +780,10 @@ def safe_instance_op(
         error = _create_duplicate_response(request)
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
-    except UnreadablePostError as e:
-        error = OpenRosaResponseBadRequest(_(f"Unable to read submitted file: {e}"))
+    except UnreadablePostError:
+        error = OpenRosaResponseBadRequest(
+            _("Unable to read submitted file, please try re-submitting.")
+        )
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
     except DjangoUnicodeDecodeError:
@@ -904,7 +906,10 @@ def generate_media_url_with_sas(
     Generate Azure storage URL.
     """
     # pylint: disable=import-outside-toplevel
-    from azure.storage.blob import AccountSasPermissions, generate_blob_sas
+    from azure.storage.blob import (  # noqa: PLC0415
+        AccountSasPermissions,
+        generate_blob_sas,
+    )
 
     account_name = getattr(settings, "AZURE_ACCOUNT_NAME", "")
     container_name = getattr(settings, "AZURE_CONTAINER", "")
@@ -1013,7 +1018,9 @@ def response_with_mimetype_and_name(
                 file_path, content_disposition, mimetype, expires_in
             )
             if download_url is not None:
-                return HttpResponseRedirect(download_url)
+                response = HttpResponseRedirect(download_url)
+                response["X-Content-Type-Options"] = "nosniff"
+                return response
 
             try:
                 default_storage = storages["default"]
@@ -1037,6 +1044,7 @@ def response_with_mimetype_and_name(
     else:
         response = HttpResponse(content_type=mimetype)
     response["Content-Disposition"] = content_disposition
+    response["X-Content-Type-Options"] = "nosniff"
     return response
 
 

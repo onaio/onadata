@@ -142,7 +142,9 @@ class TestProjectViewSet(TestAbstractViewSet):
                 request = self.factory.post("/", data=post_data, **self.extra)
                 response = view(request, pk=project_id)
 
-                mock_requests.get.assert_called_with(xls_url, timeout=30)
+                mock_requests.get.assert_called_with(
+                    xls_url, stream=True, timeout=30, allow_redirects=False
+                )
                 xls_file.close()
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(XForm.objects.count(), pre_count + 1)

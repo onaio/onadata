@@ -8,8 +8,6 @@ import json
 import os
 from io import BytesIO
 
-import openpyxl
-import unicodecsv as csv
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -17,6 +15,9 @@ from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+import openpyxl
+import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
 from pyxform.utils import has_external_choices
@@ -31,6 +32,7 @@ from onadata.apps.logger.models.xform import (
     check_version_set,
     check_xform_uuid,
     get_survey_from_file_object,
+    get_xls_upload_path,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.models.meta_data import MetaData
@@ -126,11 +128,16 @@ def sheet_to_csv(xls_content, sheet_name):
 
 def upload_to(instance, filename, username=None):
     """
-    Return XLSForm file upload path.
+    Return XLSForm file upload path with a UUID-based basename.
+
+    The original filename is preserved on the in-memory file object so pyxform
+    can derive ``fallback_form_name`` from it during publication, but the
+    stored basename is randomised to prevent client-influenced storage paths
+    and double-extension reads from the filesystem.
     """
     if instance:
         username = instance.xform.user.username
-    return os.path.join(username, "xls", os.path.split(filename)[1])
+    return get_xls_upload_path(username, filename)
 
 
 class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
@@ -225,7 +232,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
     if created:
         # pylint: disable=import-outside-toplevel
-        from onadata.libs.permissions import OwnerRole
+        from onadata.libs.permissions import OwnerRole  # noqa: PLC0415
 
         OwnerRole.add(instance.user, xform)
 
@@ -510,7 +517,7 @@ def auto_encrypt_xform(sender, instance, created, **kwargs):
     # Avoid cyclic import by using importlib
     kms_tools = importlib.import_module("onadata.libs.kms.tools")
     # pylint: disable=import-outside-toplevel
-    from onadata.libs.permissions import is_organization
+    from onadata.libs.permissions import is_organization  # noqa: PLC0415
 
     if (
         created

@@ -59,7 +59,10 @@ def publish_xlsform_async(self, user_id, post_data, owner_id, file_data):
     """Publishes an XLSForm"""
     try:
         files = MultiValueDict()
-        files["xls_file"] = default_storage.open(file_data.get("path"))
+        xls_file = default_storage.open(file_data.get("path"))
+        xls_file.name = file_data.get("name")
+        xls_file.content_type = file_data.get("content_type")
+        files["xls_file"] = xls_file
 
         owner = User.objects.get(id=owner_id)
         if owner_id == user_id:
