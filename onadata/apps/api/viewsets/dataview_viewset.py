@@ -35,8 +35,8 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import (
-    BBOX_CACHE_TTL,
     DATAVIEW_BBOX_CACHE,
+    get_bbox_cache_ttl,
     PROJ_OWNER_CACHE,
     PROJECT_LINKED_DATAVIEWS,
     safe_cache_delete,
@@ -184,7 +184,7 @@ class DataViewViewSet(
                 [self.object.xform_id], dataview=self.object
             )
         }
-        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
 
     # pylint: disable=too-many-locals

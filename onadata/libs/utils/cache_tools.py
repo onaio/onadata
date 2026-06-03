@@ -65,7 +65,12 @@ PROJECT_LINKED_DATAVIEWS = "ps-project-linked_dataviews"
 XFORM_BBOX_CACHE = "xfs-bbox-"
 DATAVIEW_BBOX_CACHE = "dvs-bbox-"
 MERGED_XFORM_BBOX_CACHE = "mxf-bbox-"
-BBOX_CACHE_TTL = 60 * 60  # 1 hour converted to seconds
+BBOX_CACHE_TTL_DEFAULT = 60 * 60  # 1 hour converted to seconds
+
+
+def get_bbox_cache_ttl():
+    """Return the bbox cache TTL, overridable via the BBOX_CACHE_TTL setting."""
+    return getattr(settings, "BBOX_CACHE_TTL", BBOX_CACHE_TTL_DEFAULT)
 
 # Cache names used in organization profile viewset
 ORG_PROFILE_CACHE = "org-profile-"

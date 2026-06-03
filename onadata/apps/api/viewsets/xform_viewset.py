@@ -55,9 +55,9 @@ from onadata.apps.logger.models.xform import XForm, XFormUserObjectPermission
 from onadata.apps.logger.models.xform_version import XFormVersion
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (
-    BBOX_CACHE_TTL,
     ENKETO_URL_CACHE,
     ENKETO_URLS_CACHE,
+    get_bbox_cache_ttl,
     get_enketo_urls_cache_ttl,
     ENKETO_PREVIEW_URL_CACHE,
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
@@ -1010,7 +1010,7 @@ class XFormViewSet(
             return Response(cached)
 
         data = {"bbox": compute_instance_bbox([xform.pk])}
-        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
 
     @action(methods=["GET"], detail=True)

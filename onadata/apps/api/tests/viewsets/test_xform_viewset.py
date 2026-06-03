@@ -6384,3 +6384,14 @@ class ExportAsyncTestCase(XFormViewSetBaseTestCase):
         self.assertIsNotNone(response.data["bbox"])
         self.assertEqual(len(response.data["bbox"]), 4)
         self.assertEqual(safe_cache_get(cache_key), response.data)
+
+    @override_settings(BBOX_CACHE_TTL=123)
+    @patch("onadata.apps.api.viewsets.xform_viewset.safe_cache_set")
+    def test_bbox_cache_ttl_is_configurable(self, mock_cache_set):
+        """The cache write uses the BBOX_CACHE_TTL setting when provided."""
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({"get": "bbox"})
+        request = self.factory.get("/", **self.extra)
+        view(request, pk=self.xform.pk)
+
+        self.assertEqual(mock_cache_set.call_args.args[2], 123)

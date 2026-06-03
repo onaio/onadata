@@ -22,7 +22,7 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
-    BBOX_CACHE_TTL,
+    get_bbox_cache_ttl,
     MERGED_XFORM_BBOX_CACHE,
     safe_cache_get,
     safe_cache_set,
@@ -118,7 +118,7 @@ class MergedXFormViewSet(
 
         xform_ids = list(merged_xform.xforms.values_list("pk", flat=True))
         data = {"bbox": compute_instance_bbox(xform_ids)}
-        safe_cache_set(cache_key, data, BBOX_CACHE_TTL)
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
 
     # pylint: disable=unused-argument
