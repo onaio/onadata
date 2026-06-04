@@ -20,6 +20,13 @@ from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
+from onadata.libs.utils.cache_tools import (
+    get_bbox_cache_ttl,
+    MERGED_XFORM_BBOX_CACHE,
+    safe_cache_get,
+    safe_cache_set,
+)
 
 
 # pylint: disable=too-many-ancestors
@@ -91,6 +98,27 @@ class MergedXFormViewSet(
         if fmt == "json":
             data = json.loads(data) if isinstance(data, str) else data
 
+        return Response(data)
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box across all xforms in this merged dataset.
+
+        Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] | null}``.
+        Matches the xform set `form_tiles()` serves when called with
+        ``merged_dataset_id``. Cached and busted whenever a submission to any
+        member xform is created, edited, or deleted.
+        """
+        merged_xform = self.get_object()
+        cache_key = f"{MERGED_XFORM_BBOX_CACHE}{merged_xform.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        xform_ids = list(merged_xform.xforms.values_list("pk", flat=True))
+        data = {"bbox": compute_instance_bbox(xform_ids)}
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
 
     # pylint: disable=unused-argument

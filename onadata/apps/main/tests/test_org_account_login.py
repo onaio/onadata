@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory, TestCase, override_settings
 
+import jwt
 from rest_framework import status
 
 from onadata.apps.api.tools import create_organization
@@ -164,6 +165,93 @@ class TestBlockOrgAccountLogin(TestCase):
         if return_request:
             return request, result
         return result
+
+
+SESSION_VIEWSET_CONFIG = {
+    "JWT_SECRET_KEY": "test-sso-secret-for-session-endpoint",
+    "JWT_ALGORITHM": "HS256",
+}
+
+
+@override_settings(OPENID_CONNECT_VIEWSET_CONFIG=SESSION_VIEWSET_CONFIG)
+class TestOIDCSessionEndpoint(TestCase):
+    """The challenge-free ``/oidc/<server>/session`` reload-restore probe."""
+
+    def setUp(self):
+        self.regular = User.objects.create_user(
+            username="bob", password=TEST_CREDENTIAL, email="bob@example.com"
+        )
+        self.profile = UserProfile.objects.create(
+            user=self.regular, name="Bob Tester", require_auth=True
+        )
+        self.org = create_organization("denoinc", self.regular)
+        self.org_user = self.org.user
+        self.org_user.email = "org@example.com"
+        self.org_user.save()
+
+    def _sso_cookie(self, email):
+        return jwt.encode(
+            {"email": email},
+            SESSION_VIEWSET_CONFIG["JWT_SECRET_KEY"],
+            algorithm="HS256",
+        )
+
+    def _get_session(self, email=None, **extra):
+        if email is not None:
+            self.client.cookies["SSO"] = self._sso_cookie(email)
+        return self.client.get("/oidc/microsoft/session", **extra)
+
+    def test_valid_session_returns_profile_without_secrets(self):
+        response = self._get_session("bob@example.com")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["username"], "bob")
+        self.assertEqual(data["name"], "Bob Tester")
+        self.assertEqual(data["require_auth"], True)
+        self.assertIn("gravatar", data)
+        # No PII / no token material leaves the endpoint.
+        self.assertNotIn("email", data)
+        self.assertNotIn("api_token", data)
+        self.assertNotIn("temp_token", data)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+    def test_anonymous_request_returns_plain_401(self):
+        response = self._get_session()
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("detail", response.json())
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+    def test_html_accept_header_cannot_negotiate_template_renderer(self):
+        response = self._get_session(HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, status.HTTP_406_NOT_ACCEPTABLE)
+        self.assertIn("detail", response.json())
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+    def test_invalid_sso_cookie_returns_plain_401(self):
+        self.client.cookies["SSO"] = "not-a-jwt"
+        response = self.client.get("/oidc/microsoft/session")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("detail", response.json())
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+    def test_org_account_is_rejected(self):
+        response = self._get_session("org@example.com")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
+
+    def test_digest_authorization_header_does_not_challenge(self):
+        response = self.client.get(
+            "/oidc/microsoft/session",
+            HTTP_AUTHORIZATION='Digest username="stale", realm="api", nonce="bad"',
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertFalse(response.has_header("WWW-Authenticate"))
 
 
 class TestOIDCLoginStaleCookieCleanup(TestCase):

@@ -35,15 +35,21 @@ from onadata.libs.utils.api_export_tools import (
     response_for_format,
 )
 from onadata.libs.utils.cache_tools import (
+    DATAVIEW_BBOX_CACHE,
+    get_bbox_cache_ttl,
     PROJ_OWNER_CACHE,
     PROJECT_LINKED_DATAVIEWS,
     safe_cache_delete,
+    safe_cache_get,
+    safe_cache_set,
 )
 from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
+from onadata.libs.utils.dataview_filters import apply_filters
 from onadata.libs.utils.export_tools import parse_request_export_options, str_to_bool
 
 # pylint: disable=invalid-name
@@ -55,47 +61,6 @@ def get_form_field_chart_url(url, field):
     Returns a chart's ``url`` with the field_name ``field`` parameter appended to it.
     """
     return f"{url}?field_name={field}"
-
-
-def filter_to_field_lookup(filter_string):
-    """
-    Converts a =, < or > to a django field lookup
-    """
-    if filter_string == "=":
-        return "__iexact"
-    if filter_string == "<":
-        return "__lt"
-    return "__gt"
-
-
-def get_field_lookup(column, filter_string):
-    """
-    Convert filter_string + column into a field lookup expression
-    """
-    return "json__" + column + filter_to_field_lookup(filter_string)
-
-
-def get_filter_kwargs(filters):
-    """
-    Apply filters on a queryset
-    """
-    kwargs = {}
-    if filters:
-        for f in filters:
-            value = f"{f['value']}"
-            column = f["column"]
-            filter_kwargs = {get_field_lookup(column, f["filter"]): value}
-            kwargs = {**kwargs, **filter_kwargs}
-    return kwargs
-
-
-def apply_filters(instance_qs, filters):
-    """
-    Apply filters on a queryset
-    """
-    if filters:
-        return instance_qs.filter(**get_filter_kwargs(filters))
-    return instance_qs
 
 
 def get_dataview_instances(dataview):
@@ -196,6 +161,31 @@ class DataViewViewSet(
         return custom_response_handler(
             request, self.object.xform, query, export_type, dataview=self.object
         )
+
+    # pylint: disable=unused-argument
+    @action(methods=["GET"], detail=True)
+    def bbox(self, request, *args, **kwargs):
+        """Return the bounding box of the dataview's geolocated submissions.
+
+        Applies the dataview's query filter to match the rows `form_tiles()`
+        would serve. Shape: ``{"bbox": [min_lng, min_lat, max_lng, max_lat] |
+        null}``. ``null`` when the filtered set has no geolocated rows. Cached
+        and busted on submission create/edit/delete for the underlying xform.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self.object = self.get_object()
+        cache_key = f"{DATAVIEW_BBOX_CACHE}{self.object.pk}"
+        cached = safe_cache_get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        data = {
+            "bbox": compute_instance_bbox(
+                [self.object.xform_id], dataview=self.object
+            )
+        }
+        safe_cache_set(cache_key, data, get_bbox_cache_ttl())
+        return Response(data)
 
     # pylint: disable=too-many-locals
     @action(methods=["GET"], detail=True)
