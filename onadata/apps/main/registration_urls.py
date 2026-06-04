@@ -7,13 +7,17 @@ URLConf to include this URLConf for any URL beginning with
 
 """
 
-
+from django.contrib.auth.views import LoginView
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
+
 from registration.backends.default.views import ActivationView
 
+from onadata.apps.main.forms import (
+    LoginLockoutAuthenticationForm,
+    RegistrationFormUserProfile,
+)
 from onadata.apps.main.registration_views import FHRegistrationView
-from onadata.apps.main.forms import RegistrationFormUserProfile
 
 urlpatterns = [
     path(
@@ -39,6 +43,17 @@ urlpatterns = [
         "register/complete/",
         TemplateView.as_view(template_name="registration/registration_complete.html"),
         name="registration_complete",
+    ),
+    # Override the login view (defined in registration.auth_urls below) to use
+    # a form that enforces the failed-login lockout. Declared first so it takes
+    # precedence over the include's ``login/`` route.
+    path(
+        "login/",
+        LoginView.as_view(
+            template_name="registration/login.html",
+            authentication_form=LoginLockoutAuthenticationForm,
+        ),
+        name="auth_login",
     ),
     re_path(r"", include("registration.auth_urls")),
 ]
