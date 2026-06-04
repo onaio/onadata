@@ -22,6 +22,7 @@ from onadata.libs.authentication import (
     check_lockout,
     get_api_token,
     get_client_ip,
+    get_lockout_username,
 )
 from onadata.libs.utils.cache_tools import LOCKOUT_IP, safe_cache_set, safe_key
 from onadata.libs.utils.common_tags import API_TOKEN
@@ -242,6 +243,30 @@ class TestAssertNotLockedOut(TestCase):
         self.assertIsNone(assert_not_locked_out("1.2.3.4", "alice"))
         # Different IP, same username -> not locked out
         self.assertIsNone(assert_not_locked_out("5.6.7.8", "bob"))
+
+
+class TestGetLockoutUsername(TestCase):
+    """Test get_lockout_username() canonicalises submitted identifiers."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+
+    def test_returns_canonical_username_for_case_variant(self):
+        """A different-case username resolves to the stored username."""
+        self.assertEqual(get_lockout_username("BOB"), "bob")
+        self.assertEqual(get_lockout_username("Bob"), "bob")
+
+    def test_returns_canonical_username_for_email(self):
+        """An email identifier resolves to the account's username."""
+        self.assertEqual(get_lockout_username("bob@example.com"), "bob")
+        self.assertEqual(get_lockout_username("BOB@EXAMPLE.COM"), "bob")
+
+    def test_falls_back_to_submitted_value_for_unknown_user(self):
+        """An unmatched identifier is returned unchanged so it is still
+        throttled."""
+        self.assertEqual(get_lockout_username("nobody"), "nobody")
 
 
 class TestMasterReplicaOAuth2Validator(TestCase):

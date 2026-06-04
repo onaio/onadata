@@ -19,6 +19,7 @@ from django.core.validators import URLValidator
 from django.forms import ModelForm
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from django.views.decorators.debug import sensitive_variables
 
 import requests
 from registration.forms import RegistrationFormUniqueEmail
@@ -673,26 +674,40 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
     ``MAX_LOGIN_ATTEMPTS`` is reached, keyed on IP + username.
     """
 
+    # Mirror Django's AuthenticationForm.clean(), which is decorated with
+    # @sensitive_variables() so the submitted password is scrubbed from error
+    # reports if validation raises unexpectedly. Overriding clean() drops the
+    # base decorator, so it must be re-applied here.
+    @sensitive_variables()
     def clean(self):
         # Avoid circular import
         authentication = importlib.import_module("onadata.libs.authentication")
 
         username = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
-        ip_address = authentication.get_client_ip(self.request)
 
-        try:
-            authentication.assert_not_locked_out(ip_address, username)
-        except AuthenticationFailed as exc:
-            raise self._lockout_error() from exc
+        # The lockout is keyed on the username, so it only applies once both
+        # credentials are present; an incomplete submission is already invalid.
+        if username and password:
+            ip_address = authentication.get_client_ip(self.request)
+            # The backend accepts an email or a different-case username, so
+            # resolve the submitted identifier to the account's canonical
+            # username before building lockout keys; otherwise the lockout can
+            # be bypassed by varying the identifier (and the lockout email
+            # lookup would fail).
+            lockout_username = authentication.get_lockout_username(username)
 
-        if username is not None and password:
+            try:
+                authentication.assert_not_locked_out(ip_address, lockout_username)
+            except AuthenticationFailed as exc:
+                raise self._lockout_error() from exc
+
             self.user_cache = authenticate(
                 self.request, username=username, password=password
             )
             if self.user_cache is None:
                 try:
-                    authentication.add_login_attempt(ip_address, username)
+                    authentication.add_login_attempt(ip_address, lockout_username)
                 except AuthenticationFailed as exc:
                     raise self._lockout_error() from exc
                 raise forms.ValidationError(

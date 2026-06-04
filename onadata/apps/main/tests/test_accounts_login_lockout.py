@@ -5,11 +5,16 @@ blocking all logins (even with the correct password) while locked, sending a
 lockout email when the threshold is hit, and keying the lockout on IP + username.
 """
 
+import sys
+from unittest.mock import patch
+
 from django.core import mail
 from django.core.cache import cache
-from django.test import Client, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.views.debug import ExceptionReporter, SafeExceptionReporterFilter
 
+from onadata.apps.main.forms import LoginLockoutAuthenticationForm
 from onadata.apps.main.tests.test_base import TestBase
 
 
@@ -77,3 +82,79 @@ class AccountsLoginLockoutTestCase(TestBase):
         )
 
         self.assertEqual(response.status_code, 302)
+
+    def test_lockout_not_bypassed_by_username_case(self):
+        """Failed attempts with case variants count against the same account."""
+        for username in ("bob", "BOB", "Bob"):
+            self.client.post(self.url, {"username": username, "password": "wrong"})
+
+        # Three failed attempts across case variants reach the threshold, so
+        # even the correct password (and original casing) is now locked out.
+        response = self._attempt(self.login_password)
+
+        self.assertNotEqual(response.status_code, 302)
+        self.assertContains(response, "Maximum login attempts exceeded")
+
+    def test_lockout_not_bypassed_by_email_identifier(self):
+        """Failed attempts via email count against the same account, and the
+        lockout email is sent (it is looked up by canonical username)."""
+        self.user.email = "bob@example.com"
+        self.user.save()
+        mail.outbox = []
+
+        for _ in range(3):
+            self.client.post(
+                self.url, {"username": "bob@example.com", "password": "wrong"}
+            )
+
+        # The email-keyed attempts lock out the username login too.
+        response = self._attempt(self.login_password)
+
+        self.assertNotEqual(response.status_code, 302)
+        self.assertContains(response, "Maximum login attempts exceeded")
+        # Lockout email was dispatched despite the email-based identifier.
+        self.assertTrue(mail.outbox)
+        self.assertIn("bob@example.com", mail.outbox[0].to)
+
+
+class LoginFormSensitiveVariablesTestCase(TestCase):
+    """The overridden clean() must keep Django's @sensitive_variables()
+    protection so the submitted password is scrubbed from error reports if
+    validation raises unexpectedly (active when DEBUG is False, i.e. in
+    production)."""
+
+    def test_password_scrubbed_from_error_report(self):
+        secret = "sup3r-s3cret-pw"  # nosec B105 - test fixture, not a real credential
+        request = RequestFactory().post(
+            "/accounts/login/", {"username": "bob", "password": secret}
+        )
+        form = LoginLockoutAuthenticationForm(
+            request=request, data={"username": "bob", "password": secret}
+        )
+
+        # Force an unexpected error inside clean(), after the password local
+        # has been bound, and capture the resulting traceback.
+        with patch(
+            "onadata.apps.main.forms.authenticate", side_effect=RuntimeError("boom")
+        ):
+            try:
+                form.is_valid()
+            except RuntimeError:
+                exc_info = sys.exc_info()
+            else:
+                self.fail("expected RuntimeError to propagate from clean()")
+
+        reporter = ExceptionReporter(request, *exc_info)
+        password_locals = [
+            value
+            for frame in reporter.get_traceback_data()["frames"]
+            for name, value in frame.get("vars", [])
+            if name == "password"
+        ]
+
+        # The clean() frame did capture the password local ...
+        self.assertTrue(password_locals)
+        rendered = " ".join(str(value) for value in password_locals)
+        # ... but it is cleansed, so the raw password never reaches the report.
+        self.assertNotIn(secret, rendered)
+        self.assertIn(SafeExceptionReporterFilter.cleansed_substitute, rendered)
