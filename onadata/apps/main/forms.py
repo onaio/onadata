@@ -3,6 +3,7 @@
 forms module.
 """
 
+import importlib
 import ipaddress
 import os
 import re
@@ -10,7 +11,8 @@ import socket
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
@@ -21,6 +23,7 @@ from django.utils.translation import gettext_lazy
 import requests
 from registration.forms import RegistrationFormUniqueEmail
 from requests.exceptions import RequestException
+from rest_framework.exceptions import AuthenticationFailed
 from six.moves.urllib.parse import urljoin, urlparse
 
 # pylint: disable=ungrouped-imports
@@ -659,3 +662,49 @@ class ExternalExportForm(forms.Form):
 
 # Deprecated
 ActivateSMSSupportFom = ActivateSMSSupportForm
+
+
+class LoginLockoutAuthenticationForm(AuthenticationForm):
+    """Authentication form that enforces the failed-login lockout.
+
+    Mirrors the lockout enforced by the digest authentication flow
+    (``onadata.libs.authentication``): blocks all logins while locked out,
+    counts failed attempts and triggers a lockout (and lockout email) once
+    ``MAX_LOGIN_ATTEMPTS`` is reached, keyed on IP + username.
+    """
+
+    def clean(self):
+        # Avoid circular import
+        authentication = importlib.import_module("onadata.libs.authentication")
+
+        username = self.cleaned_data.get("username")
+        password = self.cleaned_data.get("password")
+        ip_address = authentication.get_client_ip(self.request)
+
+        try:
+            authentication.assert_not_locked_out(ip_address, username)
+        except AuthenticationFailed as exc:
+            raise self._lockout_error() from exc
+
+        if username is not None and password:
+            self.user_cache = authenticate(
+                self.request, username=username, password=password
+            )
+            if self.user_cache is None:
+                try:
+                    authentication.add_login_attempt(ip_address, username)
+                except AuthenticationFailed as exc:
+                    raise self._lockout_error() from exc
+                raise forms.ValidationError(
+                    _("Invalid username or password"), code="invalid_login"
+                )
+            self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
+
+    @staticmethod
+    def _lockout_error():
+        return forms.ValidationError(
+            _("Maximum login attempts exceeded. Please try again later."),
+            code="locked_out",
+        )
