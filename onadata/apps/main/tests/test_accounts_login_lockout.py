@@ -1,10 +1,8 @@
 """Tests for failed-login lockout on the /accounts/login/ endpoint.
 
-The lockout must mirror the behaviour already enforced by the digest
-authentication flow (onadata.libs.authentication): lock out after
-MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_TIME, block all logins
-(even with the correct password) while locked, send a lockout email when
-the threshold is hit, and key the lockout on IP + username.
+Covers locking out after MAX_LOGIN_ATTEMPTS failed attempts for LOCKOUT_TIME,
+blocking all logins (even with the correct password) while locked, sending a
+lockout email when the threshold is hit, and keying the lockout on IP + username.
 """
 
 from django.core import mail
