@@ -3,6 +3,7 @@
 forms module.
 """
 
+import importlib
 import ipaddress
 import os
 import re
@@ -674,18 +675,14 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
 
     def clean(self):
         # Avoid circular import
-        from onadata.libs.authentication import (
-            add_login_attempt,
-            assert_not_locked_out,
-            get_client_ip,
-        )
+        authentication = importlib.import_module("onadata.libs.authentication")
 
         username = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
-        ip_address = get_client_ip(self.request)
+        ip_address = authentication.get_client_ip(self.request)
 
         try:
-            assert_not_locked_out(ip_address, username)
+            authentication.assert_not_locked_out(ip_address, username)
         except AuthenticationFailed as exc:
             raise self._lockout_error() from exc
 
@@ -695,7 +692,7 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             )
             if self.user_cache is None:
                 try:
-                    add_login_attempt(ip_address, username)
+                    authentication.add_login_attempt(ip_address, username)
                 except AuthenticationFailed as exc:
                     raise self._lockout_error() from exc
                 raise forms.ValidationError(
