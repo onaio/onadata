@@ -699,7 +699,7 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
                 except AuthenticationFailed as exc:
                     raise self._lockout_error() from exc
                 raise forms.ValidationError(
-                    _("Invalid username/password."), code="invalid_login"
+                    _("Invalid username or password"), code="invalid_login"
                 )
             self.confirm_login_allowed(self.user_cache)
 

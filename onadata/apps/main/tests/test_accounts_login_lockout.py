@@ -52,7 +52,7 @@ class AccountsLoginLockoutTestCase(TestBase):
         response = self._attempt("wrong-password")
 
         self.assertNotEqual(response.status_code, 302)
-        self.assertContains(response, "Invalid username/password")
+        self.assertContains(response, "Invalid username or password")
         self.assertNotContains(response, "more failed")
 
     def test_lockout_email_sent_at_threshold(self):
