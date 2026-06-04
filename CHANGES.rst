@@ -17,6 +17,9 @@ v5.19.0(2026-06-04)
 - fix(forms): exclude inactive users from form gallery
   [@ukanga]
   `PR #3115 https://github.com/onaio/onadata/pull/3115`
+- feat(security): enforce failed-login lockout on /accounts/login
+  [@kelvin-muchiri]
+  `PR #3116 https://github.com/onaio/onadata/pull/3116`
 
 v5.18.0(2026-06-03)
 -------------------
