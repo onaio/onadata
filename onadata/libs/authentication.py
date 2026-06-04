@@ -248,16 +248,18 @@ class SSOHeaderAuthentication(BaseAuthentication):
         return authenticate_sso(request)
 
 
+def get_client_ip(request) -> Optional[str]:
+    """Return the originating IP address of a HTTP request."""
+    if request.headers.get("X-Real-Ip"):
+        return request.headers["X-Real-Ip"].split(",")[0]
+    return request.META.get("REMOTE_ADDR")
+
+
 def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]:
     """
     Retrieve user information from a HTTP request.
     """
-    ip_address = None
-
-    if request.headers.get("X-Real-Ip"):
-        ip_address = request.headers["X-Real-Ip"].split(",")[0]
-    else:
-        ip_address = request.META.get("REMOTE_ADDR")
+    ip_address = get_client_ip(request)
 
     try:
         if isinstance(request.headers["Authorization"], bytes):
@@ -275,43 +277,35 @@ def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]
     return None, None
 
 
-def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
-    """Check request user is not locked out on authentication.
+def assert_not_locked_out(ip_address, username):
+    """Raise AuthenticationFailed if the IP + username pair is locked out.
 
-    Returns the username if not locked out, None if request path is in
-    LOCKOUT_EXCLUDED_PATHS.
-    Raises AuthenticationFailed on lockout.
+    Does nothing when either identifier is missing.
     """
-    uri_path = request.get_full_path()
-    if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
-        ip_address, username = retrieve_user_identification(request)
-
-        if ip_address and username:
-            lockout = safe_cache_get(safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"))
-            if lockout:
-                time_locked_out = datetime.now() - datetime.strptime(
-                    lockout, "%Y-%m-%dT%H:%M:%S"
+    if ip_address and username:
+        lockout = safe_cache_get(safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"))
+        if lockout:
+            time_locked_out = datetime.now() - datetime.strptime(
+                lockout, "%Y-%m-%dT%H:%M:%S"
+            )
+            remaining_time = round(
+                (getattr(settings, "LOCKOUT_TIME", 1800) - time_locked_out.seconds) / 60
+            )
+            raise AuthenticationFailed(
+                _(
+                    "Locked out. Too many wrong username/password attempts. "
+                    f"Try again in {remaining_time} minutes."
                 )
-                remaining_time = round(
-                    (getattr(settings, "LOCKOUT_TIME", 1800) - time_locked_out.seconds)
-                    / 60
-                )
-                raise AuthenticationFailed(
-                    _(
-                        "Locked out. Too many wrong username/password attempts. "
-                        f"Try again in {remaining_time} minutes."
-                    )
-                )
-            return ip_address, username
-    return None, None
+            )
 
 
-def login_attempts(request):
+def add_login_attempt(ip_address, username):
+    """Track a failed login attempt for an IP + username pair.
+
+    Increments the attempt counter and, once MAX_LOGIN_ATTEMPTS is reached,
+    starts a lockout and sends the lockout email. Returns the number of
+    attempts. Raises AuthenticationFailed when the attempt triggers a lockout.
     """
-    Track number of login attempts made by a specific IP within
-    a specified amount of time
-    """
-    ip_address, username = check_lockout(request)
     attempts_key = safe_key(f"{LOGIN_ATTEMPTS}{ip_address}-{username}")
     attempts = safe_cache_get(attempts_key)
 
@@ -328,13 +322,37 @@ def login_attempts(request):
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                     getattr(settings, "LOCKOUT_TIME", 1800),
                 )
-            check_lockout(request)
+            assert_not_locked_out(ip_address, username)
             return attempts
         return attempts
 
     safe_cache_set(attempts_key, 1)
 
     return safe_cache_get(attempts_key)
+
+
+def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
+    """Check request user is not locked out on authentication.
+
+    Returns the username if not locked out, None if request path is in
+    LOCKOUT_EXCLUDED_PATHS.
+    Raises AuthenticationFailed on lockout.
+    """
+    uri_path = request.get_full_path()
+    if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
+        ip_address, username = retrieve_user_identification(request)
+        assert_not_locked_out(ip_address, username)
+        return ip_address, username
+    return None, None
+
+
+def login_attempts(request):
+    """
+    Track number of login attempts made by a specific IP within
+    a specified amount of time
+    """
+    ip_address, username = check_lockout(request)
+    return add_login_attempt(ip_address, username)
 
 
 def send_lockout_email(username, ip_address):
