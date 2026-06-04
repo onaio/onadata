@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
 from django.core.signing import BadSignature
 from django.db import DataError
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -275,6 +276,27 @@ def retrieve_user_identification(request) -> Tuple[Optional[str], Optional[str]]
             raise AuthenticationFailed(_("Invalid username"))
         return ip_address, username
     return None, None
+
+
+def get_lockout_username(username):
+    """Return the canonical account username for a submitted identifier.
+
+    The login backend (:mod:`onadata.apps.main.backends`) authenticates
+    case-insensitively and accepts an email address in place of the username.
+    Lockout state is keyed on the username, so the submitted identifier must be
+    resolved to the account's stored username; otherwise ``bob``, ``BOB`` and
+    ``bob@example.com`` would each get a separate attempt counter from the same
+    IP, defeating the lockout, and ``send_lockout_email`` (which looks the user
+    up by exact username) would fail to find the account. Falls back to the
+    submitted value when it does not match any user so that brute-forcing a
+    non-existent account is still throttled.
+    """
+    user = (
+        User.objects.filter(Q(username__iexact=username) | Q(email__iexact=username))
+        .only("username")
+        .first()
+    )
+    return user.username if user else username
 
 
 def assert_not_locked_out(ip_address, username):
