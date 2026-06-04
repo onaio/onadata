@@ -3,6 +3,15 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.19.0(2026-06-04)
+-------------------
+- Add bbox endpoint for forms, dataviews, and merged datasets
+  [@FrankApiyo]
+  `PR #3072 https://github.com/onaio/onadata/pull/3072`
+- Add challenge-free OIDC session endpoint for silently restoring a browser session
+  [@ukanga]
+  `PR #3112 https://github.com/onaio/onadata/pull/3112`
+
 v5.18.0(2026-06-03)
 -------------------
 - feat(projects): add v2 project users endpoint
