@@ -674,55 +674,40 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
 
     def clean(self):
         # Avoid circular import
-        from onadata.libs.authentication import get_client_ip
+        from onadata.libs.authentication import (
+            add_login_attempt,
+            assert_not_locked_out,
+            get_client_ip,
+        )
 
         username = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
         ip_address = get_client_ip(self.request)
 
-        self._raise_if_locked_out(ip_address, username)
+        try:
+            assert_not_locked_out(ip_address, username)
+        except AuthenticationFailed as exc:
+            raise self._lockout_error() from exc
 
         if username is not None and password:
             self.user_cache = authenticate(
                 self.request, username=username, password=password
             )
             if self.user_cache is None:
-                attempts = self._record_failed_attempt(ip_address, username)
-                raise self._invalid_login_error(attempts)
+                try:
+                    add_login_attempt(ip_address, username)
+                except AuthenticationFailed as exc:
+                    raise self._lockout_error() from exc
+                raise forms.ValidationError(
+                    _("Invalid username/password."), code="invalid_login"
+                )
             self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
 
     @staticmethod
-    def _invalid_login_error(attempts):
-        remaining_attempts = getattr(settings, "MAX_LOGIN_ATTEMPTS", 10) - attempts
-        lockout_time = getattr(settings, "LOCKOUT_TIME", 1800) // 60
+    def _lockout_error():
         return forms.ValidationError(
-            _(
-                "Invalid username/password. "
-                f"For security reasons, after {remaining_attempts} more failed "
-                f"login attempts you'll have to wait {lockout_time} minutes "
-                "before trying again."
-            ),
-            code="invalid_login",
+            _("Maximum login attempts exceeded. Please try again later."),
+            code="locked_out",
         )
-
-    @staticmethod
-    def _raise_if_locked_out(ip_address, username):
-        # Avoid circular import
-        from onadata.libs.authentication import assert_not_locked_out
-
-        try:
-            assert_not_locked_out(ip_address, username)
-        except AuthenticationFailed as exc:
-            raise forms.ValidationError(str(exc.detail), code="locked_out") from exc
-
-    @staticmethod
-    def _record_failed_attempt(ip_address, username):
-        # Avoid circular import
-        from onadata.libs.authentication import add_login_attempt
-
-        try:
-            return add_login_attempt(ip_address, username)
-        except AuthenticationFailed as exc:
-            raise forms.ValidationError(str(exc.detail), code="locked_out") from exc

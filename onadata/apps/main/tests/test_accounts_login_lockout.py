@@ -44,15 +44,16 @@ class AccountsLoginLockoutTestCase(TestBase):
         # Locked out: the form is re-rendered (not a login redirect) and
         # shows the lockout message.
         self.assertNotEqual(response.status_code, 302)
-        self.assertContains(response, "Locked out")
+        self.assertContains(response, "Maximum login attempts exceeded")
 
-    def test_failed_attempt_shows_remaining_attempts(self):
-        """A failed attempt below the threshold reports remaining attempts."""
+    def test_failed_attempt_shows_generic_error(self):
+        """A failed attempt below the threshold shows a generic error and
+        does not disclose the number of remaining attempts."""
         response = self._attempt("wrong-password")
 
-        # MAX_LOGIN_ATTEMPTS=3, one attempt used -> 2 remaining.
         self.assertNotEqual(response.status_code, 302)
-        self.assertContains(response, "2 more failed")
+        self.assertContains(response, "Invalid username/password")
+        self.assertNotContains(response, "more failed")
 
     def test_lockout_email_sent_at_threshold(self):
         """A lockout email is sent when the lockout threshold is reached."""
