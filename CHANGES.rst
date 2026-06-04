@@ -11,6 +11,12 @@ v5.19.0(2026-06-04)
 - Add challenge-free OIDC session endpoint for silently restoring a browser session
   [@ukanga]
   `PR #3112 https://github.com/onaio/onadata/pull/3112`
+- ci: optimize Prospector static analysis workflow
+  [@ukanga]
+  `PR #3103 https://github.com/onaio/onadata/pull/3103`
+- fix(forms): exclude inactive users from form gallery
+  [@ukanga]
+  `PR #3115 https://github.com/onaio/onadata/pull/3115`
 
 v5.18.0(2026-06-03)
 -------------------
