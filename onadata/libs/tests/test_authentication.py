@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.http.request import HttpRequest
 from django.test import TestCase
 
@@ -17,9 +18,12 @@ from onadata.libs.authentication import (
     MasterReplicaOAuth2Validator,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
+    assert_not_locked_out,
     check_lockout,
     get_api_token,
+    get_client_ip,
 )
+from onadata.libs.utils.cache_tools import LOCKOUT_IP, safe_cache_set, safe_key
 from onadata.libs.utils.common_tags import API_TOKEN
 
 JWT_SECRET_KEY = getattr(settings, "JWT_SECRET_KEY", "jwt")
@@ -172,6 +176,72 @@ class TestLockout(TestCase):
         # passed as a username
         with self.assertRaises(AuthenticationFailed):
             check_lockout(request)
+
+
+class TestGetClientIp(TestCase):
+    """Test get_client_ip() function."""
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def test_uses_remote_addr_by_default(self):
+        """REMOTE_ADDR is used when no X-Real-Ip header is present."""
+        request = self.factory.get("/")
+        self.assertNotIn("HTTP_X_REAL_IP", request.META)
+        self.assertEqual(get_client_ip(request), request.META.get("REMOTE_ADDR"))
+
+    def test_prefers_x_real_ip(self):
+        """The X-Real-Ip header takes precedence over REMOTE_ADDR."""
+        request = self.factory.get("/", HTTP_X_REAL_IP="1.2.3.4")
+        self.assertEqual(get_client_ip(request), "1.2.3.4")
+
+    def test_returns_first_of_comma_separated_x_real_ip(self):
+        """Only the first address in a comma-separated X-Real-Ip is returned."""
+        request = self.factory.get("/", HTTP_X_REAL_IP="1.2.3.4, 5.6.7.8")
+        self.assertEqual(get_client_ip(request), "1.2.3.4")
+
+
+class TestAssertNotLockedOut(TestCase):
+    """Test assert_not_locked_out() function."""
+
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    @staticmethod
+    def _lock_out(ip_address, username):
+        safe_cache_set(
+            safe_key(f"{LOCKOUT_IP}{ip_address}-{username}"),
+            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            getattr(settings, "LOCKOUT_TIME", 1800),
+        )
+
+    def test_does_nothing_when_not_locked_out(self):
+        """No exception is raised when the IP + username is not locked out."""
+        self.assertIsNone(assert_not_locked_out("1.2.3.4", "bob"))
+
+    def test_does_nothing_when_identifier_missing(self):
+        """No lockout is checked when either identifier is missing."""
+        self._lock_out("1.2.3.4", "bob")
+        self.assertIsNone(assert_not_locked_out("1.2.3.4", None))
+        self.assertIsNone(assert_not_locked_out(None, "bob"))
+        self.assertIsNone(assert_not_locked_out(None, None))
+
+    def test_raises_when_locked_out(self):
+        """AuthenticationFailed is raised when the IP + username is locked out."""
+        self._lock_out("1.2.3.4", "bob")
+        with self.assertRaises(AuthenticationFailed):
+            assert_not_locked_out("1.2.3.4", "bob")
+
+    def test_lockout_is_keyed_per_ip_and_username(self):
+        """A lockout for one IP + username does not affect another."""
+        self._lock_out("1.2.3.4", "bob")
+        # Different username, same IP -> not locked out
+        self.assertIsNone(assert_not_locked_out("1.2.3.4", "alice"))
+        # Different IP, same username -> not locked out
+        self.assertIsNone(assert_not_locked_out("5.6.7.8", "bob"))
 
 
 class TestMasterReplicaOAuth2Validator(TestCase):
