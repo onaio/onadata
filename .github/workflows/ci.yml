@@ -32,11 +32,24 @@ jobs:
             requirements/dev.pip
             requirements/azure.pip
 
+      - name: Cache APT packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .apt-cache/archives
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+
       - name: Update apt sources
         run: sudo apt-get update
 
       - name: Install APT requirements
-        run: sudo apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev software-properties-common ghostscript libxslt1-dev binutils libproj-dev gdal-bin memcached libmemcached-dev libxml2-dev libxslt-dev
+        run: |
+          mkdir -p .apt-cache/archives/partial
+          packages="$(tr '\n' ' ' < .github/apt-packages.txt)"
+          sudo apt-get \
+            -o Dir::Cache::archives="$PWD/.apt-cache/archives" \
+            install -y --no-install-recommends $packages
 
       - name: Install Pip requirements
         env:
@@ -54,9 +67,6 @@ jobs:
           pip install -r requirements/dev.pip
           pip install -r requirements/azure.pip
           pip install PyYAML django-redis ${{ secrets.ECR_OPTIONAL_PACKAGES }}
-
-      - name: Install linting tools
-        run: pip install prospector==1.18.0 pylint==4.0.5
 
       - name: Run Prospector
         run: prospector -X -s veryhigh onadata
