@@ -1019,7 +1019,9 @@ def form_gallery(request):
     data = {}
     if request.user.is_authenticated:
         data["loggedin_user"] = request.user
-    data["shared_forms"] = XForm.objects.filter(shared=True, deleted_at__isnull=True)
+    data["shared_forms"] = XForm.objects.filter(
+        shared=True, deleted_at__isnull=True, user__is_active=True
+    )
     # build list of shared forms with cloned suffix
     id_strings_with_cloned_suffix = [
         x.id_string + XForm.CLONED_SUFFIX for x in data["shared_forms"]

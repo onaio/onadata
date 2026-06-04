@@ -73,6 +73,25 @@ class TestFormShow(TestBase):
         response = self.anon.get(self.url)
         self.assertEqual(response.status_code, 200)
 
+    def test_form_gallery_excludes_inactive_user_forms(self):
+        """Inactive users' shared forms are not listed in the form gallery."""
+        inactive_user = self._create_user(
+            "orgsettings-deleted-at-1763193276", "password", create_profile=True
+        )
+        inactive_user.is_active = False
+        inactive_user.save(update_fields=["is_active"])
+        self.project = get_user_default_project(inactive_user)
+        self._publish_transportation_form()
+        self.xform.user = inactive_user
+        self.xform.project = self.project
+        self.xform.shared = True
+        self.xform.save(update_fields=["user", "project", "shared"])
+
+        response = self.client.get(reverse("forms_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, inactive_user.username)
+
     def test_dl_xlsx_xlsform(self):
         self._publish_xlsx_file()
         response = self.client.get(
