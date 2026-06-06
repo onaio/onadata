@@ -4,9 +4,18 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.viewsets.project_viewset import (
+    ProjectViewSet as ProjectViewSetV1,
+)
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project
 from onadata.libs.models.share_project import ShareProject
+from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    PROJ_V2_OWNER_CACHE,
+    PROJ_V2_PUBLIC_OWNER_CACHE,
+)
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -65,6 +74,17 @@ class GetProjectListTestCase(TestAbstractViewSet):
             }
         ]
         self.assertEqual(response.data, expected_data)
+
+        self.project.shared = True
+        self.project.save()
+
+        request = self.factory.get("/")
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(response.data[0]))
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -171,26 +191,69 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         # Project data is cached
         expected_cache = {**response.data}
         del expected_cache["current_user_role"]
+        del expected_cache["starred"]
 
         self.assertEqual(
-            cache.get(f"ps-project_owner-{self.project.pk}"), expected_cache
+            cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}"), expected_cache
         )
 
     def test_cache_hit(self):
         """Cached data is returned if it exists"""
         # Simulate cached data
-        cache.set(f"ps-project_owner-{self.project.pk}", {"name": "Tree Monitoring"})
+        cache.set(f"{PROJ_OWNER_CACHE}{self.project.pk}", {"name": "v1 data"})
+        cache.set(
+            f"{PROJ_V2_OWNER_CACHE}{self.project.pk}", {"name": "Tree Monitoring"}
+        )
 
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.data, {"name": "Tree Monitoring", "current_user_role": "owner"}
+            response.data,
+            {
+                "name": "Tree Monitoring",
+                "starred": False,
+                "current_user_role": "owner",
+            },
         )
 
-    def test_anon_user_current_user_role(self):
-        """Anonymous user has no current user role"""
+    def test_v2_update_does_not_populate_v1_detail_cache(self):
+        """A v2 update cannot cache the v2 response under the v1 detail key."""
+        update_view = ProjectViewSet.as_view({"patch": "partial_update"})
+        request = self.factory.patch(
+            "/", data={"name": "Canopy Monitoring"}, **self.extra
+        )
+        response = update_view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["url"], f"http://testserver/api/v2/projects/{self.project.pk}"
+        )
+        self.assertNotIn("teams", response.data)
+        self.assertIsNone(cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}"))
+        self.assertEqual(
+            cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}")["url"],
+            f"http://testserver/api/v2/projects/{self.project.pk}",
+        )
+
+        retrieve_v1 = ProjectViewSetV1.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = retrieve_v1(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["url"], f"http://testserver/api/v1/projects/{self.project.pk}"
+        )
+        self.assertEqual(response.data["name"], "Canopy Monitoring")
+        self.assertIn("teams", response.data)
+        self.assertEqual(
+            cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")["url"],
+            f"http://testserver/api/v1/projects/{self.project.pk}",
+        )
+
+    def test_anon_user_public_project_fields(self):
+        """Anonymous user gets the public-safe project shape."""
         self.project.shared = True
         self.project.save()
 
@@ -198,7 +261,82 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.data["current_user_role"])
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(response.data))
+
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        extra = {"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"}
+
+        request = self.factory.get("/", **extra)
+        response = self.view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(response.data))
+
+    def test_public_project_detail_cache_uses_public_and_full_variants(self):
+        """Public and full project detail responses use separate cache variants."""
+        self.project.shared = True
+        self.project.save()
+        self.project.user_stars.add(self.user)
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        ShareProject(self.project, "alice", "readonly").save()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["starred"])
+        self.assertIn("owner", response.data)
+        self.assertIn("current_user_role", response.data)
+        full_cache = cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}")
+        self.assertIsNotNone(full_cache)
+        self.assertIn("owner", full_cache)
+        self.assertNotIn("starred", full_cache)
+        self.assertNotIn("current_user_role", full_cache)
+
+        request = self.factory.get(
+            "/",
+            **{"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"},
+        )
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        self.assertIn("owner", response.data)
+        self.assertEqual(response.data["current_user_role"], "readonly")
+
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
+        self.assertFalse(public_excluded_fields & set(response.data))
+        public_cache = cache.get(f"{PROJ_V2_PUBLIC_OWNER_CACHE}{self.project.pk}")
+        self.assertIsNotNone(public_cache)
+        self.assertNotIn("starred", public_cache)
+        self.assertFalse(public_excluded_fields & set(public_cache))
+
+        cache.clear()
+
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        self.assertFalse(public_excluded_fields & set(response.data))
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["starred"])
+        self.assertIn("owner", response.data)
+        self.assertIn("current_user_role", response.data)
+        full_cache = cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}")
+        self.assertIsNotNone(full_cache)
+        self.assertIn("owner", full_cache)
+        self.assertNotIn("starred", full_cache)
 
 
 @override_settings(TIME_ZONE="UTC")

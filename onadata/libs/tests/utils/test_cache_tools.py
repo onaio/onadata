@@ -7,6 +7,7 @@ import socket
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.http.request import HttpRequest
 from django.test import TestCase
@@ -20,7 +21,14 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
+    PROJ_PUBLIC_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
+    PROJ_V2_OWNER_CACHE,
+    PROJ_V2_PUBLIC_OWNER_CACHE,
+    clear_project_owner_cache,
+    get_project_cache_key,
+    get_project_cache_keys,
+    get_shared_project_detail_cache_data,
     project_cache_prefixes,
     reset_project_cache,
     safe_cache_add,
@@ -71,7 +79,6 @@ class TestCacheTools(TestCase):
             "owner": "http://testserver/api/v1/users/bob",
             "created_by": "http://testserver/api/v1/users/bob",
             "metadata": {},
-            "starred": False,
             "users": [
                 {
                     "is_org": False,
@@ -108,11 +115,72 @@ class TestCacheTools(TestCase):
             expected_project_cache["forms"],
         )
         self.assertEqual(cache.get(f"{PROJ_BASE_FORMS_CACHE}{project.pk}"), None)
+        self.assertEqual(cache.get(f"{PROJ_PUBLIC_OWNER_CACHE}{project.pk}"), None)
 
         project_cache = cache.get(f"{PROJ_OWNER_CACHE}{project.pk}")
         project_cache.pop("date_created")
         project_cache.pop("date_modified")
         self.assertEqual(project_cache, expected_project_cache)
+
+    def test_project_owner_cache_helpers(self):
+        """Project detail cache helpers separate public and full responses."""
+        bob = User.objects.create(username="bob", first_name="bob")
+        UserProfile.objects.create(user=bob)
+        project = Project.objects.create(
+            name="Some Project", created_by=bob, organization=bob, shared=True
+        )
+        request = HttpRequest()
+        request.user = bob
+        anonymous_request = HttpRequest()
+        anonymous_request.user = AnonymousUser()
+
+        self.assertEqual(
+            get_project_cache_keys(project.pk),
+            [
+                f"{PROJ_OWNER_CACHE}{project.pk}",
+                f"{PROJ_PUBLIC_OWNER_CACHE}{project.pk}",
+                f"{PROJ_V2_OWNER_CACHE}{project.pk}",
+                f"{PROJ_V2_PUBLIC_OWNER_CACHE}{project.pk}",
+            ],
+        )
+        self.assertEqual(
+            get_project_cache_key(project.pk, request, project),
+            f"{PROJ_OWNER_CACHE}{project.pk}",
+        )
+        self.assertEqual(
+            get_project_cache_key(project.pk, anonymous_request, project),
+            f"{PROJ_PUBLIC_OWNER_CACHE}{project.pk}",
+        )
+        self.assertEqual(
+            get_project_cache_key(project.pk, request, project, api_version="v2"),
+            f"{PROJ_V2_OWNER_CACHE}{project.pk}",
+        )
+        self.assertEqual(
+            get_project_cache_key(
+                project.pk, anonymous_request, project, api_version="v2"
+            ),
+            f"{PROJ_V2_PUBLIC_OWNER_CACHE}{project.pk}",
+        )
+        self.assertEqual(
+            get_shared_project_detail_cache_data(
+                {
+                    "name": "Some Project",
+                    "starred": True,
+                    "current_user_role": "owner",
+                }
+            ),
+            {"name": "Some Project"},
+        )
+
+        cache.set(f"{PROJ_OWNER_CACHE}{project.pk}", "full")
+        cache.set(f"{PROJ_PUBLIC_OWNER_CACHE}{project.pk}", "public")
+        cache.set(f"{PROJ_V2_OWNER_CACHE}{project.pk}", "v2-full")
+        cache.set(f"{PROJ_V2_PUBLIC_OWNER_CACHE}{project.pk}", "v2-public")
+        clear_project_owner_cache(project.pk)
+        self.assertIsNone(cache.get(f"{PROJ_OWNER_CACHE}{project.pk}"))
+        self.assertIsNone(cache.get(f"{PROJ_PUBLIC_OWNER_CACHE}{project.pk}"))
+        self.assertIsNone(cache.get(f"{PROJ_V2_OWNER_CACHE}{project.pk}"))
+        self.assertIsNone(cache.get(f"{PROJ_V2_PUBLIC_OWNER_CACHE}{project.pk}"))
 
     @patch("onadata.libs.utils.cache_tools.cache.set")
     def test_reset_project_cache_handles_oversized_data(self, mock_cache_set):

@@ -14,6 +14,7 @@ from io import BytesIO
 from pathlib import Path
 from xml.dom import Node
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
@@ -47,12 +48,12 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
-    PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_COUNT,
     XFORM_DEC_SUBMISSION_COUNT,
     XFORM_SUBMISSION_COUNT_FOR_DAY,
     XFORM_SUBMISSION_COUNT_FOR_DAY_DATE,
+    clear_project_owner_cache,
     safe_cache_delete,
     safe_cache_get,
 )
@@ -891,12 +892,8 @@ class XFormMixin:
         header = self._headers[i]
 
         if not hasattr(self, "_variable_names"):
-            # pylint: disable=import-outside-toplevel
-            from onadata.apps.viewer.models.column_rename import (  # noqa: PLC0415
-                ColumnRename,
-            )
-
-            self._variable_names = ColumnRename.get_dict()
+            column_rename_model = apps.get_model("viewer", "ColumnRename")
+            self._variable_names = column_rename_model.get_dict()
 
         if header in self._variable_names and self._variable_names[header]:
             return self._variable_names[header]
@@ -1516,7 +1513,7 @@ post_delete.connect(
 
 def clear_project_cache(project_id):
     """Clear project cache"""
-    safe_cache_delete(f"{PROJ_OWNER_CACHE}{project_id}")
+    clear_project_owner_cache(project_id)
     safe_cache_delete(f"{PROJ_FORMS_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{project_id}")
     safe_cache_delete(f"{PROJ_SUB_DATE_CACHE}{project_id}")

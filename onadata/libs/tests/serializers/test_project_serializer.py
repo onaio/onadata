@@ -16,7 +16,11 @@ from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    get_shared_project_detail_cache_data,
+    safe_key,
+)
 
 
 class TestBaseProjectSerializer(TestAbstractViewSet):
@@ -167,7 +171,10 @@ class TestProjectSerializer(TestAbstractViewSet):
         request.user = self.user
 
         serializer = ProjectSerializer(self.project, context={"request": request}).data
-        self.assertEqual(cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}"), serializer)
+        self.assertEqual(
+            cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}"),
+            get_shared_project_detail_cache_data(serializer),
+        )
 
         # clear cache
         cache.delete(safe_key(f"{PROJ_OWNER_CACHE}{self.project.pk}"))
