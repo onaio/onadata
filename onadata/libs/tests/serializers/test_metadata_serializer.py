@@ -2,6 +2,7 @@
 """
 Test onadata.libs.serializers.metadata_serializer
 """
+
 import os
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -67,9 +68,9 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertIn(
-                "The uploaded file could not be validated.",
+            self.assertEqual(
                 serializer.errors["data_file"][0],
+                "The uploaded file 'sample.svg' could not be validated.",
             )
 
     def test_svg_media_files(self):
@@ -92,9 +93,9 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertIn(
-                "The uploaded file could not be validated.",
+            self.assertEqual(
                 serializer.errors["data_file"][0],
+                "The uploaded file 'sample.svg' could not be validated.",
             )
 
     def test_geojson_media_files(self):

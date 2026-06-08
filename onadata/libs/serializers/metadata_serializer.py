@@ -37,6 +37,7 @@ from onadata.libs.utils.upload_validation import (
     SUPPORTING_DOC_ALLOWED_EXTENSIONS,
     SUPPORTING_DOC_UPLOAD_CONTEXT,
     UploadValidationError,
+    generic_upload_validation_error_message,
     validate_uploaded_file,
 )
 from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
@@ -205,7 +206,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         except UploadValidationError as error:
             logger.warning("Metadata file upload validation failed: %s", error)
             raise serializers.ValidationError(
-                {"data_file": _("The uploaded file could not be validated.")}
+                {"data_file": generic_upload_validation_error_message(data_file)}
             ) from error
 
         data_file.name = upload.storage_basename

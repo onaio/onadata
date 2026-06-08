@@ -160,6 +160,18 @@ def sanitized_original_filename(name):
     return basename
 
 
+def generic_upload_validation_error_message(uploaded_file):
+    """Return a generic API validation error that identifies the upload."""
+    filename = sanitized_original_filename(getattr(uploaded_file, "name", ""))
+
+    if filename:
+        return _("The uploaded file '%(filename)s' could not be validated.") % {
+            "filename": filename
+        }
+
+    return _("The uploaded file could not be validated.")
+
+
 DANGEROUS_PENULTIMATE_EXTENSIONS = frozenset(
     {
         ".asp",

@@ -700,6 +700,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.post("/", data=data, **self.extra)
         return view(request)
 
+    def assert_upload_validation_error(self, response, filename):
+        """Assert the API returns a generic file validation error."""
+        self.assertEqual(
+            response.data["data_file"][0],
+            f"The uploaded file '{filename}' could not be validated.",
+        )
+
     def test_media_upload_rejects_double_extension(self):
         """A `putty.exe.png` filename is rejected and no MetaData row remains."""
         before = MetaData.objects.count()
@@ -707,6 +714,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self._post_media_upload("putty.exe.png", b"MZpayload", "image/png")
 
         self.assertEqual(response.status_code, 400)
+        self.assert_upload_validation_error(response, "putty.exe.png")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_media_upload_rejects_signature_mismatch(self):
@@ -719,6 +727,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400)
+        self.assert_upload_validation_error(response, "putty.png")
         self.assertEqual(MetaData.objects.count(), before)
         self.assertEqual(MetaData.objects.exclude(data_file="").count(), before_files)
 
@@ -731,6 +740,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self._post_media_upload("data.csv", png_bytes, "text/csv")
 
         self.assertEqual(response.status_code, 400)
+        self.assert_upload_validation_error(response, "data.csv")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_media_upload_stores_uuid_filename(self):
@@ -794,6 +804,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "report.pdf.html")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_supporting_doc_upload_rejects_content_type_spoof(self):
@@ -805,6 +816,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "report.pdf")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_supporting_doc_upload_rejects_svg(self):
@@ -816,6 +828,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "icon.svg")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_supporting_doc_upload_rejects_zip(self):
@@ -829,6 +842,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "archive.zip")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_supporting_doc_upload_rejects_legacy_doc(self):
@@ -842,6 +856,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "report.doc")
         self.assertEqual(MetaData.objects.count(), before)
 
     def test_supporting_doc_upload_stores_uuid_filename(self):
@@ -872,4 +887,5 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
         self.assertEqual(response.status_code, 400, response.data)
+        self.assert_upload_validation_error(response, "report.pdf")
         self.assertEqual(MetaData.objects.count(), before)

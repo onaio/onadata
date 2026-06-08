@@ -113,6 +113,7 @@ from onadata.libs.utils.upload_validation import (
     DATA_IMPORT_UPLOAD_CONTEXT,
     XLSFORM_UPLOAD_CONTEXT,
     UploadValidationError,
+    generic_upload_validation_error_message,
     validate_uploaded_file,
 )
 from onadata.libs.utils.viewer_tools import (
@@ -144,6 +145,7 @@ def _prepare_import_csv(csv_file, xls_file):
     validation fails. An XLS upload is converted to CSV after validation.
     """
     xls_upload = None
+    uploaded_file = xls_file or csv_file
     try:
         if xls_file:
             xls_upload = _validate_api_upload(
@@ -153,7 +155,7 @@ def _prepare_import_csv(csv_file, xls_file):
             _validate_api_upload(csv_file, (CSV_EXTENSION,), DATA_IMPORT_UPLOAD_CONTEXT)
     except UploadValidationError as error:
         logger.warning("Data import upload validation failed: %s", error)
-        return None, _("The uploaded file could not be validated.")
+        return None, generic_upload_validation_error_message(uploaded_file)
 
     if xls_file:
         csv_file = submission_xls_to_csv(xls_file)
@@ -186,7 +188,7 @@ def _publish_xlsform_async(request):
     except UploadValidationError as error:
         logger.warning("XLSForm upload validation failed: %s", error)
         return Response(
-            {"message": _("The uploaded file could not be validated.")},
+            {"message": generic_upload_validation_error_message(xls_file)},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -946,7 +948,9 @@ class XFormViewSet(
                 except UploadValidationError as error:
                     logger.warning("CSV import upload validation failed: %s", error)
                     return Response(
-                        data={"error": _("The uploaded file could not be validated.")},
+                        data={
+                            "error": generic_upload_validation_error_message(csv_file)
+                        },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 

@@ -21,6 +21,7 @@ from onadata.libs.utils.upload_validation import (
     XLSFORM_ALLOWED_EXTENSIONS,
     XLSFORM_UPLOAD_CONTEXT,
     UploadValidationError,
+    generic_upload_validation_error_message,
     validate_uploaded_file,
 )
 
@@ -146,6 +147,26 @@ class UploadValidationTestCase(SimpleTestCase):
                 self.assertTrue(
                     result.storage_basename.endswith(f".{result.extension}")
                 )
+
+    def test_generic_validation_error_message_sanitizes_filename(self):
+        """Generic API errors identify only the sanitized client filename."""
+        uploaded_file = _CountingUpload(
+            r"C:\fakepath\evil.svg", b"<svg/>", "image/svg+xml"
+        )
+
+        self.assertEqual(
+            generic_upload_validation_error_message(uploaded_file),
+            "The uploaded file 'evil.svg' could not be validated.",
+        )
+
+    def test_generic_validation_error_message_handles_missing_filename(self):
+        """Generic API errors retain the old text when no filename remains."""
+        uploaded_file = _CountingUpload("\x00\x1f", b"payload", "application/pdf")
+
+        self.assertEqual(
+            generic_upload_validation_error_message(uploaded_file),
+            "The uploaded file could not be validated.",
+        )
 
     def test_double_extension_is_rejected(self):
         """Filenames such as putty.exe.png are rejected before persistence."""

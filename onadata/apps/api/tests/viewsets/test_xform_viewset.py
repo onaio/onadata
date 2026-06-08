@@ -3781,6 +3781,15 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request)
 
         self.assertEqual(response.status_code, 400, getattr(response, "data", None))
+        self.assertEqual(
+            response.data,
+            {
+                "message": (
+                    "The uploaded file 'transportation.exe.xlsx' "
+                    "could not be validated."
+                )
+            },
+        )
         self.assertEqual(count, XForm.objects.count())
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -3808,6 +3817,14 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         response = view(request)
 
         self.assertEqual(response.status_code, 400, getattr(response, "data", None))
+        self.assertEqual(
+            response.data,
+            {
+                "message": (
+                    "The uploaded file 'transportation.csv' could not be validated."
+                )
+            },
+        )
         self.assertEqual(count, XForm.objects.count())
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -5592,7 +5609,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
 
             self.assertEqual(response.status_code, 400, response.data)
-            self.assertIn("error", response.data)
+            self.assertEqual(
+                response.data["error"],
+                "The uploaded file 'evil.xlsx' could not be validated.",
+            )
 
     def test_csv_import_rejects_extension_spoofing(self):
         """csv_import rejects PNG bytes renamed with .csv extension."""
@@ -5628,7 +5648,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             response = view(request, pk=self.xform.id)
 
             self.assertEqual(response.status_code, 400, response.data)
-            self.assertIn("error", response.data)
+            self.assertEqual(
+                response.data["error"],
+                "The uploaded file 'evil.csv' could not be validated.",
+            )
 
     def test_csv_xls_import_errors(self):
         with HTTMock(enketo_mock):
@@ -5652,7 +5675,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.data.get("error"),
-                "The uploaded file could not be validated.",
+                "The uploaded file 'good.csv' could not be validated.",
             )
 
             post_data = {"csv_file": xls_import}
@@ -5661,7 +5684,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
                 response.data.get("error"),
-                "The uploaded file could not be validated.",
+                "The uploaded file 'good.xlsx' could not be validated.",
             )
 
     @override_settings(TIME_ZONE="UTC")
