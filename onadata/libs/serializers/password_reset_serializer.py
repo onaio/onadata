@@ -3,6 +3,9 @@
 Password reset serializer.
 """
 
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -18,10 +21,23 @@ from six.moves.urllib.parse import urlparse
 
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import is_organization
+from onadata.libs.utils.cache_tools import (
+    PASSWORD_RESET_ATTEMPTS,
+    safe_cache_add,
+    safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
+    safe_key,
+)
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 # pylint: disable=invalid-name
 User = get_user_model()
+logger = logging.getLogger(__name__)
+MAX_PASSWORD_RESET_ATTEMPTS = getattr(settings, "MAX_PASSWORD_RESET_ATTEMPTS", 3)
+PASSWORD_RESET_ATTEMPT_WINDOW = getattr(
+    settings, "PASSWORD_RESET_ATTEMPT_WINDOW", 15 * 60
+)
 
 
 class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
@@ -48,6 +64,35 @@ class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
 
 
 default_token_generator = CustomPasswordResetTokenGenerator()
+
+
+def password_reset_attempt_cache_key(email):
+    """Return the cache key for password reset attempts for an email."""
+    normalized_email = email.strip().lower()
+
+    return f"{PASSWORD_RESET_ATTEMPTS}{safe_key(normalized_email)}"
+
+
+def increment_password_reset_attempts(email):
+    """Increment and return the password reset attempts for an email."""
+    cache_key = password_reset_attempt_cache_key(email)
+
+    if safe_cache_add(cache_key, 1, PASSWORD_RESET_ATTEMPT_WINDOW):
+        return 1
+
+    attempts = safe_cache_incr(cache_key)
+    if attempts is not None:
+        return attempts
+
+    attempts = (safe_cache_get(cache_key, 0) or 0) + 1
+    safe_cache_set(cache_key, attempts, PASSWORD_RESET_ATTEMPT_WINDOW)
+
+    return attempts
+
+
+def log_excessive_password_reset_attempt():
+    """Log password reset attempts that exceed the configured limit."""
+    logger.warning("Password reset rate limit exceeded.")
 
 
 # pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments
@@ -130,10 +175,11 @@ class PasswordReset:
     Class imitates a model functionality for use with PasswordResetSerializer
     """
 
-    def __init__(self, email, reset_url, email_subject=None):
+    def __init__(self, email, reset_url, email_subject=None, request=None):
         self.email = email
         self.reset_url = reset_url
         self.email_subject = email_subject
+        self.request = request
 
     # pylint: disable=unused-argument
     def save(
@@ -149,6 +195,12 @@ class PasswordReset:
         """
         email = self.email
         reset_url = self.reset_url
+        attempts = increment_password_reset_attempts(email)
+
+        if attempts > MAX_PASSWORD_RESET_ATTEMPTS:
+            log_excessive_password_reset_attempt()
+            return
+
         active_users = [
             profile.user
             for profile in UserProfile.objects.filter(
@@ -187,13 +239,8 @@ class PasswordResetSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         """
-        Validates the email.
+        Accept any valid email to avoid user enumeration.
         """
-        users = User.objects.filter(email__iexact=value)
-
-        if users.count() == 0:
-            raise serializers.ValidationError(_(f"User '{value}' does not exist."))
-
         return value
 
     def validate_email_subject(self, value):
@@ -207,7 +254,7 @@ class PasswordResetSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Reset a user password."""
-        instance = PasswordReset(**validated_data)
+        instance = PasswordReset(**validated_data, request=self.context.get("request"))
         instance.save()
 
         return instance
