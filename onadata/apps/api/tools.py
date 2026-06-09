@@ -62,9 +62,9 @@ from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
     PROJ_FORMS_CACHE,
     PROJ_NUM_DATASET_CACHE,
-    PROJ_OWNER_CACHE,
     PROJ_SUB_DATE_CACHE,
     XFORM_LIST_CACHE,
+    clear_project_owner_cache,
     reset_project_cache,
     safe_cache_delete,
 )
@@ -77,6 +77,10 @@ from onadata.libs.utils.model_tools import queryset_iterator
 from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
+)
+from onadata.libs.utils.xform_utils import (
+    set_project_perms_to_xform,
+    set_project_perms_to_xform_async,
 )
 
 DECIMAL_PRECISION = 2
@@ -437,7 +441,7 @@ def publish_project_xform(request, project):
 
     if "formid" in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+        clear_project_owner_cache(xform.project.pk)
         safe_cache_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_NUM_DATASET_CACHE}{xform.project.pk}")
@@ -464,15 +468,9 @@ def publish_project_xform(request, project):
         # First assign permissions to the person who uploaded the form
         OwnerRole.add(request.user, xform)
         try:
-            # pylint: disable=import-outside-toplevel,unused-import
-            from onadata.libs.utils.xform_utils import set_project_perms_to_xform_async
-
             # Next run async task to apply all other perms
             set_project_perms_to_xform_async.delay(xform.pk, project.pk)
         except OperationalError:
-            # pylint: disable=import-outside-toplevel,unused-import
-            from onadata.libs.utils.xform_utils import set_project_perms_to_xform
-
             # Apply permissions synchrounously
             set_project_perms_to_xform(xform, project)
     else:

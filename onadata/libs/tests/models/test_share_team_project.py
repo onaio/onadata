@@ -33,24 +33,27 @@ class ShareTeamProjectTestCase(TestBase):
         self.alice = self._create_user("alice", "Yuao8(-)")
         add_user_to_team(self.team, self.alice)
 
-    @patch("onadata.libs.models.share_team_project.safe_cache_delete")
-    def test_share(self, mock_safe_cache_delete):
+    def test_share(self):
         """Sharing a project with a team assigns permissions and clears cache"""
         instance = ShareTeamProject(self.team, self.project, "manager")
-        instance.save()
+        with patch(
+            "onadata.libs.models.share_team_project.clear_project_owner_cache"
+        ) as mock_clear_project_owner_cache, patch(
+            "onadata.libs.models.share_team_project.safe_cache_delete"
+        ) as mock_safe_cache_delete:
+            instance.save()
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
         # Cache is invalidated
+        mock_clear_project_owner_cache.assert_called_once_with(self.project.pk)
         mock_safe_cache_delete.assert_has_calls(
             [
-                call(f"ps-project_owner-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),
             ]
         )
 
-    @patch("onadata.libs.models.share_team_project.safe_cache_delete")
-    def test_remove(self, mock_safe_cache_delete):
+    def test_remove(self):
         """Removing a team from a project removes permissions and clears cache"""
         # Simulate share project
         ManagerRole.add(self.team, self.project)
@@ -62,14 +65,19 @@ class ShareTeamProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.dataview_form))
         # Remove team
         instance = ShareTeamProject(self.team, self.project, "manager", remove=True)
-        instance.save()
+        with patch(
+            "onadata.libs.models.share_team_project.clear_project_owner_cache"
+        ) as mock_clear_project_owner_cache, patch(
+            "onadata.libs.models.share_team_project.safe_cache_delete"
+        ) as mock_safe_cache_delete:
+            instance.save()
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.dataview_form))
         # Cache is invalidated
+        mock_clear_project_owner_cache.assert_called_once_with(self.project.pk)
         mock_safe_cache_delete.assert_has_calls(
             [
-                call(f"ps-project_owner-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),
             ]
         )

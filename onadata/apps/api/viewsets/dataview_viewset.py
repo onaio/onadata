@@ -34,11 +34,12 @@ from onadata.libs.utils.api_export_tools import (
     process_async_export,
     response_for_format,
 )
+from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_BBOX_CACHE,
-    get_bbox_cache_ttl,
-    PROJ_OWNER_CACHE,
     PROJECT_LINKED_DATAVIEWS,
+    clear_project_owner_cache,
+    get_bbox_cache_ttl,
     safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
@@ -47,7 +48,6 @@ from onadata.libs.utils.chart_tools import (
     get_chart_data_for_field,
     get_field_from_field_name,
 )
-from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 from onadata.libs.utils.dataview_filters import apply_filters
 from onadata.libs.utils.export_tools import parse_request_export_options, str_to_bool
@@ -180,9 +180,7 @@ class DataViewViewSet(
             return Response(cached)
 
         data = {
-            "bbox": compute_instance_bbox(
-                [self.object.xform_id], dataview=self.object
-            )
+            "bbox": compute_instance_bbox([self.object.xform_id], dataview=self.object)
         }
         safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
@@ -328,7 +326,7 @@ class DataViewViewSet(
         dataview = self.get_object()
         user = request.user
         dataview.soft_delete(user)
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{dataview.project.pk}")
+        clear_project_owner_cache(dataview.project.pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

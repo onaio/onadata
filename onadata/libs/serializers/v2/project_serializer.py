@@ -12,9 +12,13 @@ from onadata.apps.logger.models.project import Project
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.project_serializer import (
+    PROJECT_PUBLIC_EXCLUDED_FIELDS,
+)
+from onadata.libs.serializers.project_serializer import (
     ProjectSerializer as ProjectSerializerV1,
 )
 from onadata.libs.serializers.project_serializer import (
+    PublicProjectFieldsMixin,
     get_last_submission_date,
     get_num_datasets,
     is_starred,
@@ -35,7 +39,9 @@ def get_current_user_role(project, request):
     return get_role(perms, project)
 
 
-class ProjectListSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectListSerializer(
+    PublicProjectFieldsMixin, serializers.HyperlinkedModelSerializer
+):
     """Serializer for a list of Projects"""
 
     projectid = serializers.ReadOnlyField(source="id")
@@ -60,6 +66,7 @@ class ProjectListSerializer(serializers.HyperlinkedModelSerializer):
     num_datasets = serializers.SerializerMethodField()
     last_submission_date = serializers.SerializerMethodField()
     current_user_role = serializers.SerializerMethodField()
+    public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
 
     class Meta:
         model = Project

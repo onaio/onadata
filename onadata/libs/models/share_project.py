@@ -13,8 +13,8 @@ from onadata.libs.permissions import (
     ReadOnlyRoleNoDownload,
 )
 from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
+    clear_project_owner_cache,
     safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
@@ -76,7 +76,7 @@ class ShareProject:
     def save(self, **kwargs):
         """Assigns role permissions to a project for the user."""
         # pylint: disable=too-many-nested-blocks
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        clear_project_owner_cache(self.project.pk)
         safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
         if self.remove:
             self.__remove_user()
@@ -115,7 +115,7 @@ class ShareProject:
                     role.add(self.user, entity_list)
 
         # clear cache
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+        clear_project_owner_cache(self.project.pk)
         safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
         # propagate KPI permissions
         propagate_project_permissions_async.apply_async(args=[self.project.pk])

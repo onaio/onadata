@@ -37,6 +37,7 @@ from onadata.libs.serializers.project_invitation_serializer import (
 from onadata.libs.serializers.project_serializer import (
     BaseProjectSerializer,
     ProjectSerializer,
+    is_starred,
 )
 from onadata.libs.serializers.share_project_serializer import (
     RemoveUserFromProjectSerializer,
@@ -48,8 +49,9 @@ from onadata.libs.serializers.xform_serializer import (
     XFormSerializer,
 )
 from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
-    safe_cache_delete,
+    clear_project_owner_cache,
+    get_project_cache_key,
+    get_shared_project_detail_cache_data,
     safe_cache_get,
     safe_cache_set,
 )
@@ -91,6 +93,7 @@ class ProjectViewSet(
     permission_classes = [ProjectPermissions]
     filter_backends = (AnonUserProjectFilter, ProjectOwnerFilter, TagFilter)
     pagination_class = StandardPageNumberPagination
+    api_version = "v1"
 
     def get_serializer_class(self):
         """Override `get_serializer_class."""
@@ -121,19 +124,27 @@ class ProjectViewSet(
         """Updates project properties and set's cache with the updated records."""
         project_id = kwargs.get("pk")
         response = super().update(request, *args, **kwargs)
-        safe_cache_set(f"{PROJ_OWNER_CACHE}{project_id}", response.data)
+        clear_project_owner_cache(project_id)
+        safe_cache_set(
+            get_project_cache_key(project_id, request, api_version=self.api_version),
+            get_shared_project_detail_cache_data(response.data),
+        )
         return response
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve single project"""
-        project_id = kwargs.get("pk")
-        project = safe_cache_get(f"{PROJ_OWNER_CACHE}{project_id}")
-        if project:
-            return Response(project)
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
-        serializer = ProjectSerializer(self.object, context={"request": request})
-        return Response(serializer.data)
+        cache_key = get_project_cache_key(self.object.pk, request, self.object)
+        project_data = safe_cache_get(cache_key)
+        if project_data is None:
+            serializer = ProjectSerializer(self.object, context={"request": request})
+            project_data = get_shared_project_detail_cache_data(serializer.data)
+            safe_cache_set(cache_key, project_data)
+        else:
+            project_data = get_shared_project_detail_cache_data(project_data)
+
+        return Response({**project_data, "starred": is_starred(self.object, request)})
 
     def list(self, request, *args, **kwargs):
         """Returns a list of projects"""
@@ -232,7 +243,7 @@ class ProjectViewSet(
             return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # clear cache
-        safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.object.pk}")
+        clear_project_owner_cache(self.object.pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

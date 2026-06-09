@@ -282,6 +282,19 @@ Response
             "deleted_at":null
         }
 
+Public project responses
+------------------------
+
+Unauthenticated requests, and authenticated users who can see a project only
+because it is public, receive a reduced project response. The public response
+keeps public project and form summary fields such as ``url``, ``projectid``,
+``name``, ``forms``, ``public``, ``tags``, ``num_datasets``,
+``last_submission_date``, ``date_created`` and ``date_modified``.
+
+The public response omits internal administration fields: ``owner``,
+``created_by``, ``users``, ``teams`` and ``metadata``. In the version 2 API,
+``current_user_role`` is also omitted for public-only access.
+
 List users with access to a project (v2)
 ----------------------------------------
 
