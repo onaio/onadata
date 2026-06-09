@@ -667,6 +667,8 @@ SECRET_KEY = "mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j"  # noqa
 # Time in minutes to lock out user from account
 LOCKOUT_TIME = 30 * 60
 MAX_LOGIN_ATTEMPTS = 10
+MAX_PASSWORD_RESET_ATTEMPTS = 3
+PASSWORD_RESET_ATTEMPT_WINDOW = 15 * 60
 SUPPORT_EMAIL = "support@example.com"
 FULL_MESSAGE_PAYLOAD = False
 

@@ -98,6 +98,7 @@ LOCKOUT_IP = "lockout_ip-"
 LOGIN_ATTEMPTS = "login_attempts-"
 LOCKOUT_CHANGE_PASSWORD_USER = "lockout_change_password_user-"  # noqa
 CHANGE_PASSWORD_ATTEMPTS = "change_password_attempts-"  # noqa
+PASSWORD_RESET_ATTEMPTS = "password_reset_attempts-"  # noqa
 
 # Cache names used in XForm Model
 XFORM_SUBMISSION_COUNT_FOR_DAY = "xfm-get_submission_count-"

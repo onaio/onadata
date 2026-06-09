@@ -2,6 +2,7 @@
 """
 Test /user API endpoint
 """
+
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -26,7 +27,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.utils.cache_tools import safe_key
+from onadata.libs.utils.cache_tools import PASSWORD_RESET_ATTEMPTS, safe_key
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -301,6 +302,8 @@ class TestConnectViewSet(TestAbstractViewSet):
             "email": self.user.email,
             "reset_url": "http://testdomain.com/reset_form",
         }
+        cache_key = f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}"
+        cache.delete(cache_key)
         request = self.factory.post("/", data=data)
         response = self.view(request)
         self.assertEqual(response.status_code, 204, response.data)
@@ -315,11 +318,61 @@ class TestConnectViewSet(TestAbstractViewSet):
             "Ensure this field has no more than 78 characters.",
         )
 
-        mock_send_mail.called = False
+        mock_send_mail.reset_mock()
         request = self.factory.post("/")
         response = self.view(request)
-        self.assertFalse(mock_send_mail.called)
+        mock_send_mail.assert_not_called()
         self.assertEqual(response.status_code, 400)
+
+    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
+    def test_request_reset_password_unknown_email_returns_generic_success(
+        self, mock_send_mail
+    ):
+        email = "unknown@example.com"
+        cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}")
+        data = {
+            "email": email,
+            "reset_url": "http://testdomain.com/reset_form",
+        }
+
+        request = self.factory.post("/", data=data)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 204, response.data)
+        mock_send_mail.assert_not_called()
+        self.assertEqual(cache.get(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}"), 1)
+
+    @patch("onadata.libs.serializers.password_reset_serializer.logger")
+    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
+    def test_request_reset_password_rate_limited_per_email(
+        self, mock_send_mail, mock_logger
+    ):
+        email = self.user.email
+        cache_key = f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email.lower())}"
+        cache.delete(cache_key)
+        data = {
+            "email": email,
+            "reset_url": "http://testdomain.com/reset_form",
+        }
+
+        for _ in range(3):
+            request = self.factory.post("/", data=data)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 204, response.data)
+
+        self.assertEqual(mock_send_mail.call_count, 3)
+
+        data["email"] = email.upper()
+        request = self.factory.post("/", data=data)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 204, response.data)
+        self.assertEqual(mock_send_mail.call_count, 3)
+        self.assertEqual(cache.get(cache_key), 4)
+        self.assertEqual(
+            mock_logger.warning.call_args[0][0],
+            "Password reset rate limit exceeded.",
+        )
 
     def test_reset_user_password(self):
         # set user.last_login, ensures we get same/valid token
@@ -389,6 +442,7 @@ class TestConnectViewSet(TestAbstractViewSet):
             "reset_url": "http://testdomain.com/reset_form",
             "email_subject": "You requested for a reset password",
         }
+        cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}")
         request = self.factory.post("/", data=data)
         response = self.view(request)
 
@@ -610,7 +664,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["odk_token"], odk_token)
         self.assertEqual(response.data["expires"], expires)
 
-    def test_deactivate_token_when_expires_is_None(self):
+    def test_deactivate_token_when_expires_is_none(self):
         """
         Test that when a token's .expires field is nil, it will be deactivated
         and a new one created in it's place
