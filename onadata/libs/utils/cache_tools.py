@@ -22,7 +22,21 @@ PROJ_NUM_DATASET_CACHE = "ps-num_datasets-"
 PROJ_SUB_DATE_CACHE = "ps-last_submission_date-"
 PROJ_FORMS_CACHE = "ps-project_forms-"
 PROJ_BASE_FORMS_CACHE = "ps-project_base_forms-"
-PROJ_OWNER_CACHE = "ps-project_owner-"
+PROJ_OWNER_CACHE = "ps-project_owner-v1-"
+PROJ_PUBLIC_OWNER_CACHE = "ps-project_owner-v1-public-"
+PROJ_V2_OWNER_CACHE = "ps-project_owner-v2-"
+PROJ_V2_PUBLIC_OWNER_CACHE = "ps-project_owner-v2-public-"
+PROJECT_DETAIL_CACHE_PREFIXES = {
+    "v1": {
+        "full": PROJ_OWNER_CACHE,
+        "public": PROJ_PUBLIC_OWNER_CACHE,
+    },
+    "v2": {
+        "full": PROJ_V2_OWNER_CACHE,
+        "public": PROJ_V2_PUBLIC_OWNER_CACHE,
+    },
+}
+PROJECT_DETAIL_USER_FIELDS = {"starred", "current_user_role"}
 project_cache_prefixes = [
     PROJ_PERM_CACHE,
     PROJ_NUM_DATASET_CACHE,
@@ -30,6 +44,9 @@ project_cache_prefixes = [
     PROJ_FORMS_CACHE,
     PROJ_BASE_FORMS_CACHE,
     PROJ_OWNER_CACHE,
+    PROJ_PUBLIC_OWNER_CACHE,
+    PROJ_V2_OWNER_CACHE,
+    PROJ_V2_PUBLIC_OWNER_CACHE,
 ]
 
 # Cache names used in user_profile_serializer
@@ -135,6 +152,56 @@ def safe_key(key):
     return hashlib.sha256(force_bytes(key)).hexdigest()
 
 
+def get_project_cache_keys(project_id):
+    """Return all detail cache keys for a project."""
+    return [
+        f"{prefixes[access_type]}{project_id}"
+        for prefixes in PROJECT_DETAIL_CACHE_PREFIXES.values()
+        for access_type in ("full", "public")
+    ]
+
+
+def clear_project_owner_cache(project_id):
+    """Clear all project detail cache variants."""
+    for cache_key in get_project_cache_keys(project_id):
+        safe_cache_delete(cache_key)
+
+
+def is_public_project_access(request, project=None):
+    """Return True when the request should receive the public project shape."""
+    user = getattr(request, "user", None)
+
+    if user is None:
+        return False
+
+    if user.is_anonymous:
+        return True
+
+    if project is None:
+        return False
+
+    return not user.has_perm("view_project", project)
+
+
+def get_project_cache_key(project_id, request, project=None, api_version="v1"):
+    """Return the correct project detail cache key for a request."""
+    prefixes = PROJECT_DETAIL_CACHE_PREFIXES[api_version]
+    prefix = prefixes[
+        "public" if is_public_project_access(request, project) else "full"
+    ]
+
+    return f"{prefix}{project_id}"
+
+
+def get_shared_project_detail_cache_data(project_data):
+    """Return project detail data safe for a shared cache entry."""
+    return {
+        key: value
+        for key, value in project_data.items()
+        if key not in PROJECT_DETAIL_USER_FIELDS
+    }
+
+
 def reset_project_cache(project, request, project_serializer_class):
     """
     Clears and sets project cache
@@ -149,7 +216,10 @@ def reset_project_cache(project, request, project_serializer_class):
     project_cache_data = project_serializer_class(
         project, context={"request": request}
     ).data
-    safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", project_cache_data)
+    safe_cache_set(
+        f"{PROJ_OWNER_CACHE}{project.pk}",
+        get_shared_project_detail_cache_data(project_cache_data),
+    )
 
 
 def _safe_cache_operation(operation, default_return=None):

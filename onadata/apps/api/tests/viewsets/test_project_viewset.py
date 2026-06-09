@@ -61,10 +61,15 @@ from onadata.libs.permissions import (
 )
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.project_serializer import (
+    PROJECT_PUBLIC_EXCLUDED_FIELDS,
     BaseProjectSerializer,
     ProjectSerializer,
 )
-from onadata.libs.utils.cache_tools import PROJ_OWNER_CACHE, safe_key
+from onadata.libs.utils.cache_tools import (
+    PROJ_OWNER_CACHE,
+    PROJ_PUBLIC_OWNER_CACHE,
+    safe_key,
+)
 from onadata.libs.utils.user_auth import get_user_default_project
 
 User = get_user_model()
@@ -1762,6 +1767,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertIn(alice_project_data, response.data)
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data[0]))
 
         # should show deleted project public project when filtered by owner
         self.project.soft_delete()
@@ -1805,23 +1811,31 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(False, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        expected_cache = {**response.data}
+        expected_cache.pop("starred")
+        self.assertEqual(cached_project, expected_cache)
 
         projectid = self.project.pk
+        cache.set(f"{PROJ_PUBLIC_OWNER_CACHE}{projectid}", {"public": False})
         data = {"public": True}
         request = self.factory.patch("/", data=data, **self.extra)
         response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        expected_cache = {**response.data}
+        expected_cache.pop("starred")
+        self.assertEqual(cached_project, expected_cache)
+        self.assertIsNone(cache.get(f"{PROJ_PUBLIC_OWNER_CACHE}{projectid}"))
 
         request = self.factory.get("/", **self.extra)
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(True, response.data.get("public"))
         cached_project = cache.get(f"{PROJ_OWNER_CACHE}{self.project.pk}")
-        self.assertEqual(cached_project, response.data)
+        expected_cache = {**response.data}
+        expected_cache.pop("starred")
+        self.assertEqual(cached_project, expected_cache)
 
     def test_project_put_updates(self):
         self._project_create()
@@ -1961,8 +1975,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             organization=self.user,
         )
         public_project.save()
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        self._login_user_and_profile(alice_data)
 
         view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
@@ -1971,6 +1983,89 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["public"], True)
         self.assertEqual(response.data["projectid"], public_project.pk)
         self.assertEqual(response.data["name"], "demo")
+        for field in PROJECT_PUBLIC_EXCLUDED_FIELDS:
+            self.assertIn(field, response.data)
+
+        list_view = ProjectViewSet.as_view({"get": "list"})
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        self._login_user_and_profile(alice_data)
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data))
+
+        request = self.factory.get("/")
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data))
+
+        request = self.factory.get("/")
+        response = list_view(request)
+        self.assertEqual(response.status_code, 200)
+        project_data = next(
+            item for item in response.data if item["projectid"] == public_project.pk
+        )
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(project_data))
+
+    def test_public_project_detail_cache_uses_public_and_full_variants(self):
+        public_project = Project.objects.create(
+            name="public demo",
+            shared=True,
+            metadata={"description": "public metadata"},
+            created_by=self.user,
+            organization=self.user,
+        )
+        public_project.user_stars.add(self.user)
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        ShareProject(public_project, "alice", "readonly").save()
+
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["starred"])
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS <= set(response.data))
+        full_cache = cache.get(f"{PROJ_OWNER_CACHE}{public_project.pk}")
+        self.assertNotIn("starred", full_cache)
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS <= set(full_cache))
+
+        request = self.factory.get(
+            "/",
+            **{"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"},
+        )
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS <= set(response.data))
+
+        request = self.factory.get("/")
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data))
+        public_cache = cache.get(f"{PROJ_PUBLIC_OWNER_CACHE}{public_project.pk}")
+        self.assertIsNotNone(public_cache)
+        self.assertNotIn("starred", public_cache)
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(public_cache))
+
+        cache.clear()
+
+        request = self.factory.get("/")
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["starred"])
+        self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data))
+
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["starred"])
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS <= set(response.data))
+        full_cache = cache.get(f"{PROJ_OWNER_CACHE}{public_project.pk}")
+        self.assertNotIn("starred", full_cache)
+        self.assertTrue(PROJECT_PUBLIC_EXCLUDED_FIELDS <= set(full_cache))
 
     def test_projects_same_name_diff_case(self):
         data1 = {

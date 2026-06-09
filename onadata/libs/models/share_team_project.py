@@ -5,8 +5,8 @@ ShareTeamProject model - facilitate sharing a project to a team.
 
 from onadata.libs.permissions import ROLES
 from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
     PROJ_PERM_CACHE,
+    clear_project_owner_cache,
     safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import XFORM_META_PERMS
@@ -45,7 +45,7 @@ class ShareTeamProject:
                         role.add(self.team, dataview.xform)
 
             # clear cache
-            safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+            clear_project_owner_cache(self.project.pk)
             safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
 
     def remove_team(self):
@@ -65,5 +65,5 @@ class ShareTeamProject:
                 role._remove_obj_permissions(self.team, dataview.xform)
 
             # clear cache
-            safe_cache_delete(f"{PROJ_OWNER_CACHE}{self.project.pk}")
+            clear_project_owner_cache(self.project.pk)
             safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")

@@ -91,8 +91,8 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_SINGLE_SUBMIT_URL_CACHE,
     ENKETO_URL_CACHE,
     ENKETO_URLS_CACHE,
-    PROJ_OWNER_CACHE,
     XFORM_BBOX_CACHE,
+    clear_project_owner_cache,
     get_bbox_cache_ttl,
     get_enketo_urls_cache_ttl,
     safe_cache_delete,
@@ -1027,7 +1027,7 @@ class XFormViewSet(
             }
 
             # clear project from cache
-            safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+            clear_project_owner_cache(xform.project.pk)
             resp_code = status.HTTP_202_ACCEPTED
 
         if request.method == "GET":

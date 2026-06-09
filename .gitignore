@@ -92,3 +92,5 @@ sonar-project.properties
 *.er
 .env
 *.csv
+# roborev snapshots
+/.roborev/

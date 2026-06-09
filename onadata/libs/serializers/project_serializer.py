@@ -17,6 +17,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import ManagerRole, OwnerRole, get_role, is_organization
+from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.analytics import TrackObjectEvent
@@ -29,6 +30,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS,
+    get_shared_project_detail_cache_data,
+    is_public_project_access,
     safe_cache_delete,
     safe_cache_get,
     safe_cache_set,
@@ -203,6 +206,52 @@ def set_owners_permission(user, project):
     OwnerRole.add(user, project)
 
 
+PROJECT_PUBLIC_EXCLUDED_FIELDS = {
+    "owner",
+    "created_by",
+    "users",
+    "teams",
+    "metadata",
+}
+
+
+# pylint: disable=too-few-public-methods
+class PublicProjectFieldsMixin:
+    """
+    Remove project administration fields when a requester only has access
+    because the project is public.
+    """
+
+    public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS
+
+    def get_fields(self):
+        """Return serializer fields, excluding internal fields for public access."""
+        fields = super().get_fields()
+
+        if self.is_public_access(self.instance):
+            for field in self.public_excluded_fields:
+                fields.pop(field, None)
+
+        return fields
+
+    def is_public_access(self, instance):
+        """Return True if the request should receive the public-safe shape."""
+        request = self.context.get("request")
+        project = instance if isinstance(instance, Project) else None
+
+        return is_public_project_access(request, project)
+
+    def to_representation(self, instance):
+        """Remove internal fields from public-only list items."""
+        data = super().to_representation(instance)
+
+        if self.is_public_access(instance):
+            for field in self.public_excluded_fields:
+                data.pop(field, None)
+
+        return data
+
+
 # pylint: disable=too-few-public-methods
 class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     """
@@ -302,7 +351,9 @@ class ProjectXFormSerializer(BaseProjectXFormSerializer):
         return metadata and hasattr(metadata, "data_value") and metadata.data_value
 
 
-class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
+class BaseProjectSerializer(
+    PublicProjectFieldsMixin, serializers.HyperlinkedModelSerializer
+):
     """
     BaseProjectSerializer class.
     """
@@ -424,7 +475,9 @@ def can_add_project_to_profile(user, organization):
     return True
 
 
-class ProjectSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectSerializer(
+    PublicProjectFieldsMixin, serializers.HyperlinkedModelSerializer
+):
     """
     ProjectSerializer class - creates and updates a project.
     """
@@ -603,7 +656,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
         serializer = ProjectSerializer(project, context={"request": request})
         response = serializer.data
-        safe_cache_set(f"{PROJ_OWNER_CACHE}{project.pk}", response)
+        safe_cache_set(
+            f"{PROJ_OWNER_CACHE}{project.pk}",
+            get_shared_project_detail_cache_data(response),
+        )
         return project
 
     def get_users(self, obj):
@@ -670,11 +726,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             obj.dataview_prefetch
             if hasattr(obj, "dataview_prefetch")
             else obj.dataview_set.filter(deleted_at__isnull=True)
-        )
-
-        # pylint: disable=import-outside-toplevel
-        from onadata.libs.serializers.dataview_serializer import (
-            DataViewMinimalSerializer,
         )
 
         serializer = DataViewMinimalSerializer(

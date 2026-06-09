@@ -32,14 +32,18 @@ class ShareProjectTestCase(TestBase):
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.alice = self._create_user("alice", "Yuao8(-)")
 
-    @patch("onadata.libs.models.share_project.safe_cache_delete")
-    def test_share(self, mock_safe_cache_delete, mock_propagate):
+    def test_share(self, mock_propagate):
         """A project is shared with a user
 
         Permissions assigned to project, xform, mergedxform and dataview
         """
         instance = ShareProject(self.project, self.alice, "manager")
-        instance.save()
+        with patch(
+            "onadata.libs.models.share_project.clear_project_owner_cache"
+        ) as mock_clear_project_owner_cache, patch(
+            "onadata.libs.models.share_project.safe_cache_delete"
+        ) as mock_safe_cache_delete:
+            instance.save()
         self.alice.refresh_from_db()
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.project))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.xform))
@@ -49,15 +53,17 @@ class ShareProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
+        mock_clear_project_owner_cache.assert_has_calls(
+            [call(self.project.pk), call(self.project.pk)]
+        )
         mock_safe_cache_delete.assert_has_calls(
             [
-                call(f"ps-project_owner-{self.project.pk}"),
+                call(f"ps-project_permissions-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),
             ]
         )
 
-    @patch("onadata.libs.models.share_project.safe_cache_delete")
-    def test_remove(self, mock_safe_cache_delete, mock_propagate):
+    def test_remove(self, mock_propagate):
         """A user is removed from a project
 
         Permissions removed from project, xform, mergedxform and dataview
@@ -78,7 +84,12 @@ class ShareProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
         # Remove user
         instance = ShareProject(self.project, self.alice, "manager", True)
-        instance.save()
+        with patch(
+            "onadata.libs.models.share_project.clear_project_owner_cache"
+        ) as mock_clear_project_owner_cache, patch(
+            "onadata.libs.models.share_project.safe_cache_delete"
+        ) as mock_safe_cache_delete:
+            instance.save()
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.project))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.xform))
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.dataview_form))
@@ -89,9 +100,12 @@ class ShareProjectTestCase(TestBase):
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.entity_list))
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
+        mock_clear_project_owner_cache.assert_has_calls(
+            [call(self.project.pk), call(self.project.pk)]
+        )
         mock_safe_cache_delete.assert_has_calls(
             [
-                call(f"ps-project_owner-{self.project.pk}"),
+                call(f"ps-project_permissions-{self.project.pk}"),
                 call(f"ps-project_permissions-{self.project.pk}"),
             ]
         )

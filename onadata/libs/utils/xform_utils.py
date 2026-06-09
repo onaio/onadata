@@ -29,10 +29,10 @@ from onadata.libs.permissions import (
     set_project_perms_to_object,
 )
 from onadata.libs.utils.cache_tools import (
-    PROJ_OWNER_CACHE,
     XFORM_DATA_VERSIONS,
     XFORM_METADATA_CACHE,
     XFORM_PERMISSIONS_CACHE,
+    clear_project_owner_cache,
     safe_cache_delete,
 )
 from onadata.libs.utils.common_tags import MEMBERS
@@ -147,7 +147,7 @@ def get_xform_users(xform):
 
 
 def clear_permissions_cache(xform):
-    safe_cache_delete(f"{PROJ_OWNER_CACHE}{xform.project.pk}")
+    clear_project_owner_cache(xform.project.pk)
     safe_cache_delete(f"{XFORM_METADATA_CACHE}{xform.pk}")
     safe_cache_delete(f"{XFORM_DATA_VERSIONS}{xform.pk}")
     safe_cache_delete(f"{XFORM_PERMISSIONS_CACHE}{xform.pk}")
