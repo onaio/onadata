@@ -225,10 +225,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
 
     def get_unique_version(self, version):
         """Return ``version`` unchanged if no XFormVersion exists for this xform
-        with that string; otherwise append "-N" with the smallest unused N >= 2.
-        Empty / None versions pass through unchanged (no sensible suffix)."""
-        if not version:
-            return version
+        with that string; otherwise append "-N" with the smallest unused N >= 2."""
         existing = set(
             XFormVersion.objects.filter(xform_id=self.pk).values_list(
                 "version", flat=True

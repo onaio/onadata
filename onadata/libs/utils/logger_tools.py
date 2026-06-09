@@ -1198,7 +1198,9 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     xml_version = _get_version_from_xform_xml(xml, survey.id_string)
     if id_string:
         dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
-        new_version = dd.get_unique_version(xml_version)
+        new_version = xml_version
+        if xml_version:
+            new_version = dd.get_unique_version(xml_version)
         if new_version != xml_version:
             xml = _set_version_in_xform_xml(xml, dd.id_string, new_version)
         dd.version = new_version
