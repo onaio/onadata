@@ -643,6 +643,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
 
     def test_orgs_create_with_hyphen_rejected(self):
+        """An organization username containing a hyphen is rejected."""
         data = {
             "name": "deno inc",
             "org": "deno-inc",
@@ -667,6 +668,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         )
 
     def test_orgs_create_with_underscore_allowed(self):
+        """An organization username containing an underscore is accepted."""
         data = {
             "name": "deno inc",
             "org": "deno_inc",
@@ -688,6 +690,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["org"], "deno_inc")
 
     def test_orgs_create_existing_username_case_insensitive(self):
+        """An organization is rejected when a username already exists in a
+        different case."""
         # a username stored with mixed case (e.g. legacy/external data)
         User.objects.create(username="MixedOrg")
         data = {
