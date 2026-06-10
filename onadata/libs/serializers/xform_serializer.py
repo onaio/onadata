@@ -673,6 +673,24 @@ class XFormCreateSerializer(XFormSerializer):
         fields = XFormSerializer.Meta.fields + ("has_id_string_changed",)
 
 
+# pylint: disable=abstract-method,too-many-ancestors
+class XFormUpdateSerializer(XFormSerializer):
+    """
+    XForm serializer used when replacing/updating an existing form.
+    """
+
+    has_version_changed = serializers.SerializerMethodField()
+
+    def get_has_version_changed(self, obj):
+        """
+        Returns the value of ``obj.has_version_changed``
+        """
+        return obj.has_version_changed
+
+    class Meta(XFormSerializer.Meta):
+        fields = XFormSerializer.Meta.fields + ("has_version_changed",)
+
+
 # pylint: disable=abstract-method
 class XFormListSerializer(serializers.Serializer):
     """

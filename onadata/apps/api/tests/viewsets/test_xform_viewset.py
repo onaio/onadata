@@ -4234,8 +4234,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 )
                 response = view(request, pk=self.xform.pk)
                 self.assertEqual(response.status_code, 200)
+                # the response carries the bumped version and flags the change
+                self.assertEqual(response.data["version"], f"{initial_version}-2")
+                self.assertTrue(response.data["has_version_changed"])
 
             self.xform.refresh_from_db()
+            self.assertEqual(response.data["version"], self.xform.version)
             self.assertEqual(
                 XFormVersion.objects.filter(xform=self.xform).count(),
                 initial_count + 1,
@@ -4283,6 +4287,43 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                     _xml_data_node_version(self.xform.xml, self.xform.id_string),
                     expected_version,
                 )
+
+    def test_replace_form_new_version_not_flagged(self):
+        """Replacing with a form whose version is not already used keeps the
+        submitted version and reports has_version_changed as False."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view({"patch": "partial_update"})
+            path = os.path.join(
+                settings.PROJECT_ROOT,
+                "apps",
+                "main",
+                "tests",
+                "fixtures",
+                "transportation",
+                "transportation_version.xlsx",
+            )
+            with open(path, "rb") as xls_file:
+                request = self.factory.patch(
+                    "/", data={"xls_file": xls_file}, **self.extra
+                )
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 200)
+                # version "212121211" is new, so it is used as-is, no flag
+                self.assertEqual(response.data["version"], "212121211")
+                self.assertFalse(response.data["has_version_changed"])
+
+    def test_has_version_changed_absent_on_form_retrieve(self):
+        """has_version_changed is scoped to the replace response; a plain
+        form retrieve does not include it."""
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({"get": "retrieve"})
+            request = self.factory.get("/", **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn("has_version_changed", response.data)
 
     def test_versions_endpoint(self):
         """
