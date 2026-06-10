@@ -1201,8 +1201,9 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
         new_version = xml_version
         if xml_version:
             new_version = dd.get_unique_version(xml_version)
-        dd._version_changed = new_version != xml_version
-        if new_version != xml_version:
+        version_changed = new_version != xml_version
+        dd._version_changed = version_changed  # pylint: disable=protected-access
+        if version_changed:
             xml = _set_version_in_xform_xml(xml, dd.id_string, new_version)
         dd.version = new_version
         dd.xml = xml
