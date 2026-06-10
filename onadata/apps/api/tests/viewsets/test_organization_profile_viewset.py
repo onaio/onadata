@@ -642,6 +642,51 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "Organization %s already exists." % data["org"], response.data["org"]
         )
 
+    def test_orgs_create_with_hyphen_rejected(self):
+        data = {
+            "name": "deno inc",
+            "org": "deno-inc",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Organization may only contain alpha-numeric characters and underscores",
+            response.data["org"],
+        )
+
+    def test_orgs_create_with_underscore_allowed(self):
+        data = {
+            "name": "deno inc",
+            "org": "deno_inc",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["org"], "deno_inc")
+
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
         project_data = {"owner": self.company_data["user"]}
