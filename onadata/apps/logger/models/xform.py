@@ -9,7 +9,6 @@ import json
 import os
 import re
 import uuid
-from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from xml.dom import Node
@@ -274,7 +273,7 @@ def check_version_set(survey):
 
     # get the json and check for the version key
     if survey.version == "":
-        survey.version = datetime.utcnow().strftime("%Y%m%d%H%M")
+        survey.version = timezone.now().strftime("%Y%m%d%H%M")
     return survey
 
 
