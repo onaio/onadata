@@ -687,6 +687,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["org"], "deno_inc")
 
+    def test_orgs_create_existing_username_case_insensitive(self):
+        # a username stored with mixed case (e.g. legacy/external data)
+        User.objects.create(username="MixedOrg")
+        data = {
+            "name": "mixed org",
+            "org": "mixedorg",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Organization mixedorg already exists.", response.data["org"])
+
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
         project_data = {"owner": self.company_data["user"]}
