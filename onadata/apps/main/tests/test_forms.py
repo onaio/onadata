@@ -6,11 +6,18 @@ Tests for onadata.apps.main.forms helpers.
 from unittest.mock import patch
 
 from django import forms
-from django.test import SimpleTestCase, override_settings
+from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase, TestCase, override_settings
 
 import requests
 
-from onadata.apps.main.forms import _assert_url_not_internal, _get_with_ssrf_guard
+from onadata.apps.main.forms import (
+    RegistrationFormUserProfile,
+    _assert_url_not_internal,
+    _get_with_ssrf_guard,
+)
+
+User = get_user_model()
 
 
 def _redirect_to(location):
@@ -87,3 +94,15 @@ class GetWithSsrfGuardTestCase(SimpleTestCase):
 
         self.assertIs(_get_with_ssrf_guard("https://8.8.8.8/form.xlsx"), ok_response)
         self.assertEqual(mock_get.call_count, 1)
+
+
+class RegistrationFormUserProfileTestCase(TestCase):
+    """Tests for RegistrationFormUserProfile username validation."""
+
+    def test_existing_username_case_insensitive(self):
+        """Registration is rejected when the username already exists in a
+        different case."""
+        User.objects.create(username="MixedUser")
+        form = RegistrationFormUserProfile(data={"username": "mixeduser"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("mixeduser already exists", form.errors["username"][0])

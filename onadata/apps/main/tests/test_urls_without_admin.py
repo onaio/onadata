@@ -4,7 +4,13 @@ import importlib
 
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
-from django.urls import NoReverseMatch, clear_url_caches, resolve, reverse
+from django.urls import (
+    NoReverseMatch,
+    Resolver404,
+    clear_url_caches,
+    resolve,
+    reverse,
+)
 
 from onadata.apps.api.urls import v1_urls as api_v1_urls_module
 from onadata.apps.main import urls as main_urls_module
@@ -77,3 +83,58 @@ class TestUrlsAdminToggle(SimpleTestCase):
             self._reload_urlconfs()
             # Should not raise.
             reverse("admin:index")
+
+
+class TestHyphenatedUsernameUrls(SimpleTestCase):
+    """Username-scoped URLs must reverse for usernames containing a hyphen."""
+
+    def test_download_xform_reverse_with_hyphenated_username(self):
+        """download_xform reverses for a hyphenated username (id_string and pk)."""
+        url = reverse(
+            "download_xform",
+            kwargs={"username": "alpha-project", "id_string": "myform"},
+        )
+        self.assertIn("alpha-project", url)
+
+        url_pk = reverse(
+            "download_xform",
+            kwargs={"username": "alpha-project", "pk": 885480},
+        )
+        self.assertIn("alpha-project", url_pk)
+
+    def test_username_scoped_urls_reverse_with_hyphenated_username(self):
+        """A representative set of username-scoped URLs reverse with a hyphen."""
+        username = "alpha-project"
+        cases = [
+            ("form-list", {"username": username}),
+            ("submissions", {"username": username}),
+            ("download_xlsform", {"username": username, "id_string": "myform"}),
+            ("download_jsonform", {"username": username, "id_string": "myform"}),
+            ("enter_data", {"username": username, "id_string": "myform"}),
+            ("data-view", {"username": username, "id_string": "myform"}),
+            ("manifest-url", {"username": username, "pk": 885480}),
+            (
+                "export-download",
+                {
+                    "username": username,
+                    "id_string": "myform",
+                    "export_type": "csv",
+                    "filename": "data.csv",
+                },
+            ),
+        ]
+        for name, kwargs in cases:
+            with self.subTest(url=name):
+                self.assertIn(username, reverse(name, kwargs=kwargs))
+
+    def test_metacharacter_username_does_not_match_routes(self):
+        """Usernames with HTML metacharacters do not match username routes.
+
+        The username group uses USERNAME_LOOKUP_REGEX (not the looser
+        ``[^/]+``), so characters such as ``<>"'`` that cannot appear in a
+        valid username never reach the underlying views.
+        """
+        for path in ("/<script>/formList", "/a\"b/submission", "/a'b/formUpload"):
+            with self.subTest(path=path):
+                with self.assertRaises(Resolver404):
+                    resolve(path)

@@ -1228,6 +1228,29 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         # Username should be normalized to lowercase
         self.assertEqual(response.data["username"], "user@example.com")
 
+    def test_profile_create_existing_username_case_insensitive(self):
+        """A profile cannot be created when the username already exists in a
+        different case."""
+        User.objects.create(username="MixedUser")
+        data = {
+            "username": "mixeduser",
+            "name": "Mixed User",
+            "email": "mixed@example.com",
+            "city": "TestCity",
+            "country": "US",
+            "password": "testpass123",
+            "is_org": False,
+        }
+        request = self.factory.post(
+            "/api/v1/profiles",
+            data=json.dumps(data),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("mixeduser already exists", response.data["username"])
+
     def test_username_boundary_cases(self):
         """Test boundary cases for username validation"""
         # Username ending with .tx (not blocked)

@@ -155,12 +155,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                     "underscores"
                 )
             )
-        try:
-            User.objects.get(username=org)
-        except User.DoesNotExist:
-            return org
+        if User.objects.filter(username__iexact=org).exists():
+            raise serializers.ValidationError(_(f"Organization {org} already exists."))
 
-        raise serializers.ValidationError(_(f"Organization {org} already exists."))
+        return org
 
     def get_users(self, obj):
         """
