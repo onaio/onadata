@@ -340,7 +340,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _("Username must have 3 or more characters")
             )
-        users = User.objects.filter(username=username)
+        users = User.objects.filter(username__iexact=username)
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
         if users.exists():
