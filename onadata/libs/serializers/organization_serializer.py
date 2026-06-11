@@ -3,8 +3,6 @@
 Organization Serializer
 """
 
-import re
-
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.query import QuerySet
@@ -13,7 +11,6 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from onadata.apps.api import tools
-from onadata.apps.api.constants import ORGANIZATION_USERNAME_VALIDATION_REGEX
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import (
     _get_first_last_names,
@@ -30,8 +27,6 @@ from onadata.libs.serializers.fields.json_field import JsonField
 
 # pylint: disable=invalid-name
 User = get_user_model()
-
-ORG_USERNAME_RE = re.compile(ORGANIZATION_USERNAME_VALIDATION_REGEX)
 
 
 class KMSKeyInlineSerializer(serializers.ModelSerializer):
@@ -153,7 +148,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             raise serializers.ValidationError(
                 _(f"{org} is a reserved name, please choose another")
             )
-        if not ORG_USERNAME_RE.match(org):
+        if not RegistrationFormUserProfile.legal_usernames_re.search(org):
             raise serializers.ValidationError(
                 _(
                     "Organization may only contain alpha-numeric characters and "

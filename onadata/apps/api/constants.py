@@ -26,10 +26,3 @@ USERNAME_VALIDATION_REGEX = (
     r"^(?!.*\.(?:json|csv|xls|xlsx|kml)$)"
     r"(?:[\w.-]+|\+?[\d.\-]+|[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,})$"
 )
-
-# Organization username validation regex
-# Stricter than the user regex: only alphanumeric characters and underscores
-# are allowed (no hyphens, dots, emails, or phone numbers).
-# Note: Uses ^ and $ anchors since we use match() on the full value.
-# Note: \w in Python 3 matches Unicode word characters (letters, digits, underscore)
-ORGANIZATION_USERNAME_VALIDATION_REGEX = r"^\w+$"

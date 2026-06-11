@@ -642,8 +642,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "Organization %s already exists." % data["org"], response.data["org"]
         )
 
-    def test_orgs_create_with_hyphen_rejected(self):
-        """An organization username containing a hyphen is rejected."""
+    def test_orgs_create_with_hyphen_allowed(self):
+        """An organization username containing a hyphen is accepted."""
         data = {
             "name": "deno inc",
             "org": "deno-inc",
@@ -661,11 +661,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "/", data=json.dumps(data), content_type="application/json", **self.extra
         )
         response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn(
-            "Organization may only contain alpha-numeric characters and underscores",
-            response.data["org"],
-        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["org"], "deno-inc")
 
     def test_orgs_create_with_underscore_allowed(self):
         """An organization username containing an underscore is accepted."""
