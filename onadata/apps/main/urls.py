@@ -15,6 +15,7 @@ from django.views.generic import RedirectView
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps import sms_support
+from onadata.apps.api.constants import USERNAME_LOOKUP_REGEX
 from onadata.apps.api.urls.v1_urls import (
     BriefcaseViewset,
     XFormListViewSet,
@@ -252,7 +253,7 @@ urlpatterns += [
     ),
     # briefcase api urls
     re_path(
-        r"^(?P<username>\w+)/view/submissionList$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/view/submissionList$",
         BriefcaseViewset.as_view({"get": "list", "head": "list"}),
         name="view-submission-list",
     ),
@@ -267,7 +268,7 @@ urlpatterns += [
         name="view-submission-list",
     ),
     re_path(
-        r"^(?P<username>\w+)/view/downloadSubmission$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/view/downloadSubmission$",
         BriefcaseViewset.as_view({"get": "retrieve", "head": "retrieve"}),
         name="view-download-submission",
     ),
@@ -282,117 +283,117 @@ urlpatterns += [
         name="view-download-submission",
     ),
     re_path(
-        r"^(?P<username>\w+)/formUpload$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/formUpload$",
         BriefcaseViewset.as_view({"post": "create", "head": "create"}),
         name="form-upload",
     ),
     re_path(
-        r"^(?P<username>\w+)/upload$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/upload$",
         BriefcaseViewset.as_view({"post": "create", "head": "create"}),
         name="upload",
     ),
     # exporting stuff
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.csv$",
         viewer_views.data_export,
         name="csv_export",
         kwargs={"export_type": "csv"},
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.xls",
         viewer_views.data_export,
         name="xlsx_export",
         kwargs={"export_type": "xlsx"},
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv.zip",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.csv.zip",
         viewer_views.data_export,
         name="csv_zip_export",
         kwargs={"export_type": "csv_zip"},
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.sav.zip",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.sav.zip",
         viewer_views.data_export,
         name="sav_zip_export",
         kwargs={"export_type": "sav_zip"},
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.kml$",
         viewer_views.kml_export,
         name="kml-export",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/data\.zip",
         viewer_views.zip_export,
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/gdocs$",
         viewer_views.google_xlsx_export,
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/map_embed",
         viewer_views.map_embed_view,
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/map",
         viewer_views.map_view,
         name="map-view",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/instance",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/instance",
         viewer_views.instance,
         name="submission-instance",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/enter-data",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/enter-data",
         logger_views.enter_data,
         name="enter_data",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/add-submission-with",  # noqa
         viewer_views.add_submission_with,
         name="add_submission_with",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/thank_you_submission",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/thank_you_submission",  # noqa
         viewer_views.thank_you_submission,
         name="thank_you_submission",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>\d+)$",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>\d+)$",  # noqa
         logger_views.edit_data,
         name="edit_data",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/view-data",
         viewer_views.data_view,
         name="data-view",
     ),
     re_path(
-        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/new$",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/new$",  # noqa
         viewer_views.create_export,
         name="new-export",
     ),
     re_path(
-        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
         "/delete$",
         viewer_views.delete_export,
         name="delete-export",
     ),
     re_path(
-        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
         "/progress$",
         viewer_views.export_progress,
         name="export-progress",
     ),
     re_path(
-        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
         "/$",
         viewer_views.export_list,
         name="export-list",
     ),
     re_path(
-        r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)"  # noqa
         "/(?P<filename>[^/]+)$",
         viewer_views.export_download,
         name="export-download",
@@ -421,7 +422,7 @@ urlpatterns += [
         name="form-list",
     ),
     re_path(
-        r"^(?P<username>\w+)/formList$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
@@ -451,22 +452,22 @@ urlpatterns += [
         name="form-list",
     ),
     re_path(
-        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/formList$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/(?P<xform_pk>\d+)/formList$",
         XFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
     re_path(
-        r"^preview/(?P<username>\w+)/(?P<xform_pk>\d+)/formList$",
+        rf"^preview/(?P<username>{USERNAME_LOOKUP_REGEX})/(?P<xform_pk>\d+)/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
     re_path(
-        r"^preview/(?P<username>\w+)/formList$",
+        rf"^preview/(?P<username>{USERNAME_LOOKUP_REGEX})/formList$",
         PreviewXFormListViewSet.as_view({"get": "list", "head": "list"}),
         name="form-list",
     ),
     re_path(
-        r"^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/xformsManifest/(?P<pk>[\d+^/]+)$",
         XFormListViewSet.as_view({"get": "manifest", "head": "manifest"}),
         name="manifest-url",
     ),
@@ -476,13 +477,13 @@ urlpatterns += [
         name="manifest-url",
     ),
     re_path(
-        r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$",  # noqa
         XFormListViewSet.as_view({"get": "media", "head": "media"}),
         name="xform-media",
     ),
     re_path(
         # pylint: disable=line-too-long
-        r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$",  # noqa
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$",  # noqa
         XFormListViewSet.as_view({"get": "media", "head": "media"}),
         name="xform-media",
     ),
@@ -498,7 +499,7 @@ urlpatterns += [
         name="xform-media",
     ),
     re_path(
-        r"^(?P<username>\w+)/submission$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
@@ -523,41 +524,41 @@ urlpatterns += [
         name="submissions",
     ),
     re_path(
-        r"^(?P<username>\w+)/(?P<xform_pk>\d+)/submission$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/(?P<xform_pk>\d+)/submission$",
         XFormSubmissionViewSet.as_view({"post": "create", "head": "create"}),
         name="submissions",
     ),
-    re_path(r"^(?P<username>\w+)/bulk-submission$", logger_views.bulksubmission),
+    re_path(rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/bulk-submission$", logger_views.bulksubmission),
     re_path(
-        r"^(?P<username>\w+)/bulk-submission-form$", logger_views.bulksubmission_form
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/bulk-submission-form$", logger_views.bulksubmission_form
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<pk>[\d+^/]+)/form\.xml$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<pk>[\d+^/]+)/form\.xml$",
         XFormListViewSet.as_view({"get": "retrieve", "head": "retrieve"}),
         name="download_xform",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xml$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/form\.xml$",
         logger_views.download_xform,
         name="download_xform",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xls$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/form\.xls$",
         logger_views.download_xlsform,
         name="download_xlsform",
     ),
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.json",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/form\.json",
         logger_views.download_jsonform,
         name="download_jsonform",
     ),
     re_path(
-        r"^(?P<username>\w+)/delete/(?P<id_string>[^/]+)/$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/delete/(?P<id_string>[^/]+)/$",
         logger_views.delete_xform,
         name="delete-xform",
     ),
     re_path(
-        r"^(?P<username>\w+)/(?P<id_string>[^/]+)/toggle_downloadable/$",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/(?P<id_string>[^/]+)/toggle_downloadable/$",
         logger_views.toggle_downloadable,
         name="toggle-downloadable",
     ),
@@ -595,7 +596,7 @@ urlpatterns += [
     ),
     # Stats tables
     re_path(
-        r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
+        rf"^(?P<username>{USERNAME_LOOKUP_REGEX})/forms/(?P<id_string>[^/]+)/tables",
         viewer_views.stats_tables,
         name="stats-tables",
     ),
