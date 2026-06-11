@@ -119,6 +119,11 @@ urlpatterns += [
         main_views.OnaAuthorizationView.as_view(),
         name="oauth2_provider_authorize",
     ),
+    re_path(
+        r"^o/token/$",
+        main_views.LockoutTokenView.as_view(),
+        name="oauth2_provider_token",
+    ),
     re_path(r"^o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     # main website views
     re_path(r"^$", main_views.home),
@@ -534,9 +539,7 @@ urlpatterns += [
         name="submissions",
     ),
     re_path(rf"^{_USERNAME}/bulk-submission$", logger_views.bulksubmission),
-    re_path(
-        rf"^{_USERNAME}/bulk-submission-form$", logger_views.bulksubmission_form
-    ),
+    re_path(rf"^{_USERNAME}/bulk-submission-form$", logger_views.bulksubmission_form),
     re_path(
         rf"^{_USERNAME}/forms/(?P<pk>[\d+^/]+)/form\.xml$",
         XFormListViewSet.as_view({"get": "retrieve", "head": "retrieve"}),

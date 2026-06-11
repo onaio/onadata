@@ -35,8 +35,9 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from bson import json_util
 from bson.objectid import ObjectId
 from guardian.shortcuts import assign_perm, remove_perm
-from oauth2_provider.views.base import AuthorizationView
+from oauth2_provider.views.base import AuthorizationView, TokenView
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import AuthenticationFailed
 
 import onadata
 from onadata.apps.logger.models import Instance, XForm
@@ -72,6 +73,12 @@ from onadata.apps.viewer.models.parsed_instance import (
     query_fields_data,
 )
 from onadata.apps.viewer.views import attachment_url
+from onadata.libs.authentication import (
+    add_login_attempt,
+    assert_not_locked_out,
+    get_client_ip,
+    get_lockout_username,
+)
 from onadata.libs.exceptions import EnketoError
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.export_tools import upload_template_for_external_export
@@ -1633,3 +1640,59 @@ class OnaAuthorizationView(AuthorizationView):
         context["user"] = self.request.user
         context["request_path"] = self.request.get_full_path()
         return context
+
+
+class LockoutTokenView(TokenView):
+    """OAuth2 token endpoint with failed-login lockout on the password grant.
+
+    The Resource Owner Password Credentials grant accepts a username +
+    password and is otherwise brute-forceable with no lockout. The lockout
+    reuses the same IP + username machinery as the other password flows
+    (digest, basic, the web login form), so attempts accumulate against a
+    single counter. Other grants (authorization_code, client_credentials,
+    refresh_token, device_code) do not submit a user password and pass
+    straight through.
+    """
+
+    @staticmethod
+    def _password_grant_identity(request):
+        """Return the (ip_address, username) for a password-grant request.
+
+        ``username`` is ``None`` for any other grant or when no username is
+        supplied, in which case no lockout is tracked.
+        """
+        if request.POST.get("grant_type") != "password":
+            return None, None
+        username = request.POST.get("username")
+        if not username:
+            return None, None
+        return get_client_ip(request), get_lockout_username(username)
+
+    @staticmethod
+    def _lockout_response(exc):
+        detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        return JsonResponse(
+            {"error": "locked_out", "error_description": detail},
+            status=429,
+        )
+
+    def post(self, request, *args, **kwargs):
+        ip_address, username = self._password_grant_identity(request)
+
+        if username:
+            try:
+                assert_not_locked_out(ip_address, username)
+            except AuthenticationFailed as exc:
+                return self._lockout_response(exc)
+
+        response = super().post(request, *args, **kwargs)
+
+        # add_login_attempt raises AuthenticationFailed on the attempt that
+        # trips the lockout, so convert that to the lockout response too.
+        if username and response.status_code != 200:
+            try:
+                add_login_attempt(ip_address, username)
+            except AuthenticationFailed as exc:
+                return self._lockout_response(exc)
+
+        return response

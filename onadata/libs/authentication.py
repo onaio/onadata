@@ -5,6 +5,8 @@ Authentication classes.
 
 from __future__ import unicode_literals
 
+import base64
+import binascii
 from datetime import datetime
 from typing import Optional, Tuple
 
@@ -27,6 +29,7 @@ from oidc.utils import authenticate_sso
 from rest_framework import exceptions
 from rest_framework.authentication import (
     BaseAuthentication,
+    BasicAuthentication,
     TokenAuthentication,
     get_authorization_header,
 )
@@ -139,6 +142,58 @@ class DigestAuthentication(BaseAuthentication):
         response = self.authenticator.build_challenge_response()
 
         return response["WWW-Authenticate"]
+
+
+class LockoutBasicAuthentication(BasicAuthentication):
+    """HTTP Basic authentication with failed-login lockout.
+
+    Stock ``BasicAuthentication`` returns ``401`` indefinitely on wrong
+    credentials, so basic auth on the API can be brute-forced at full speed.
+    This subclass rejects requests from a locked-out IP + username before
+    checking credentials, and records a failed attempt — locking out after
+    ``MAX_LOGIN_ATTEMPTS`` — whenever authentication fails.
+    """
+
+    def _lockout_identity(self, request):
+        """Return the (ip_address, username) the basic credentials key on.
+
+        ``username`` is ``None`` when there is no usable Basic username (the
+        header is malformed/absent), in which case no lockout is tracked and
+        the parent class surfaces the error.
+        """
+        ip_address = get_client_ip(request)
+        auth = get_authorization_header(request).split()
+        if len(auth) != 2 or auth[0].lower() != b"basic":
+            return ip_address, None
+        try:
+            decoded = base64.b64decode(auth[1]).decode("utf-8")
+            userid = decoded.split(":", 1)[0]
+        except (TypeError, ValueError, binascii.Error):
+            return ip_address, None
+        if not userid:
+            return ip_address, None
+        return ip_address, get_lockout_username(userid)
+
+    def authenticate(self, request):
+        auth = get_authorization_header(request).split()
+        if not auth or auth[0].lower() != b"basic":
+            return None
+
+        # Exempt high-frequency OpenRosa endpoints, mirroring check_lockout.
+        if is_lockout_excluded_path(request):
+            return super().authenticate(request)
+
+        ip_address, username = self._lockout_identity(request)
+        assert_not_locked_out(ip_address, username)
+
+        try:
+            return super().authenticate(request)
+        except AuthenticationFailed:
+            if username:
+                # Records the attempt and raises the lockout error itself once
+                # MAX_LOGIN_ATTEMPTS is reached.
+                add_login_attempt(ip_address, username)
+            raise
 
 
 class TempTokenAuthentication(TokenAuthentication):
@@ -353,6 +408,17 @@ def add_login_attempt(ip_address, username):
     return safe_cache_get(attempts_key)
 
 
+def is_lockout_excluded_path(request) -> bool:
+    """Return True when the request path is exempt from lockout.
+
+    OpenRosa/Briefcase endpoints (see LOCKOUT_EXCLUDED_PATHS) are hit
+    frequently by ODK clients, so they are not subject to failed-login
+    lockout.
+    """
+    uri_path = request.get_full_path()
+    return any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/"))
+
+
 def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
     """Check request user is not locked out on authentication.
 
@@ -360,8 +426,7 @@ def check_lockout(request) -> Tuple[Optional[str], Optional[str]]:
     LOCKOUT_EXCLUDED_PATHS.
     Raises AuthenticationFailed on lockout.
     """
-    uri_path = request.get_full_path()
-    if not any(part in LOCKOUT_EXCLUDED_PATHS for part in uri_path.split("/")):
+    if not is_lockout_excluded_path(request):
         ip_address, username = retrieve_user_identification(request)
         assert_not_locked_out(ip_address, username)
         return ip_address, username
