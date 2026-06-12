@@ -6,7 +6,8 @@ from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponseRedirect
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.urls import resolve
 
 import jwt
 from rest_framework import status
@@ -285,3 +286,52 @@ class TestOIDCLoginStaleCookieCleanup(TestCase):
         cookie = response.cookies.get("csrftoken")
         self.assertIsNotNone(cookie)
         self.assertEqual(cookie["max-age"], 0)
+
+
+class TestOIDCAccountProxyRouting(SimpleTestCase):
+    """Account-proxy URLs must route to their own viewset actions.
+
+    Regression for Sentry zonkey-frontend 127462610: the unanchored
+    ``session`` URL pattern shadowed ``/oidc/<server>/sessions``, so the
+    SPA's sessions-list request was answered by the session probe (a
+    user object, not a list) and the profile page crashed on
+    ``sessions.some is not a function``.
+    """
+
+    def assert_routes_to(self, path, action_map):
+        match = resolve(path)
+        self.assertEqual(match.func.actions, action_map)
+
+    def test_session_probe_requires_exact_match(self):
+        self.assert_routes_to("/oidc/microsoft/session", {"get": "session"})
+
+    def test_sessions_list_is_not_shadowed_by_session_probe(self):
+        self.assert_routes_to(
+            "/oidc/microsoft/sessions",
+            {"get": "sessions_list", "delete": "sessions_revoke_others"},
+        )
+
+    def test_sessions_revoke_one(self):
+        self.assert_routes_to(
+            "/oidc/microsoft/sessions/abc-123",
+            {"delete": "sessions_revoke_one"},
+        )
+
+    def test_account_update(self):
+        self.assert_routes_to("/oidc/microsoft/account", {"post": "account"})
+
+    def test_linked_accounts(self):
+        self.assert_routes_to("/oidc/microsoft/linked-accounts", {"get": "linked_list"})
+        self.assert_routes_to(
+            "/oidc/microsoft/linked-accounts/github",
+            {"delete": "linked_unlink"},
+        )
+        self.assert_routes_to(
+            "/oidc/microsoft/linked-accounts/github/link-url",
+            {"get": "linked_link_url"},
+        )
+
+    def test_credentials(self):
+        self.assert_routes_to(
+            "/oidc/microsoft/credentials", {"get": "credentials_list"}
+        )
