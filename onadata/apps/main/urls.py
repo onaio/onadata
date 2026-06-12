@@ -92,14 +92,64 @@ urlpatterns += [
                         OnaOpenIDConnectViewset.as_view({"get": "logout"}),
                         name="openid_connect_logout",
                     ),
+                    # Anchored: without the `$` this pattern also matched
+                    # /oidc/<server>/sessions, so the SPA's sessions-list
+                    # request was answered by the probe's user object.
                     re_path(
-                        r"^oidc/(?P<auth_server>\w+)/session",
+                        r"^oidc/(?P<auth_server>\w+)/session$",
                         OnaOpenIDConnectViewset.as_view(
                             {"get": "session"},
                             authentication_classes=[],
                             renderer_classes=[JSONRenderer],
                         ),
                         name="openid_connect_session",
+                    ),
+                    # Keycloak Account REST proxy actions (ona-oidc#124),
+                    # mirroring upstream oidc/urls.py.
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/account$",
+                        OnaOpenIDConnectViewset.as_view({"post": "account"}),
+                        name="openid_connect_account",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/sessions$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {
+                                "get": "sessions_list",
+                                "delete": "sessions_revoke_others",
+                            }
+                        ),
+                        name="openid_connect_sessions",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/sessions/"
+                        r"(?P<session_id>[a-zA-Z0-9._-]+)$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"delete": "sessions_revoke_one"}
+                        ),
+                        name="openid_connect_sessions_revoke_one",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts$",
+                        OnaOpenIDConnectViewset.as_view({"get": "linked_list"}),
+                        name="openid_connect_linked_list",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts/"
+                        r"(?P<provider>[^/]+)/link-url$",
+                        OnaOpenIDConnectViewset.as_view({"get": "linked_link_url"}),
+                        name="openid_connect_linked_link_url",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts/"
+                        r"(?P<provider>[^/]+)$",
+                        OnaOpenIDConnectViewset.as_view({"delete": "linked_unlink"}),
+                        name="openid_connect_linked_unlink",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/credentials$",
+                        OnaOpenIDConnectViewset.as_view({"get": "credentials_list"}),
+                        name="openid_connect_credentials",
                     ),
                 ],
                 "oidc",
@@ -534,9 +584,7 @@ urlpatterns += [
         name="submissions",
     ),
     re_path(rf"^{_USERNAME}/bulk-submission$", logger_views.bulksubmission),
-    re_path(
-        rf"^{_USERNAME}/bulk-submission-form$", logger_views.bulksubmission_form
-    ),
+    re_path(rf"^{_USERNAME}/bulk-submission-form$", logger_views.bulksubmission_form),
     re_path(
         rf"^{_USERNAME}/forms/(?P<pk>[\d+^/]+)/form\.xml$",
         XFormListViewSet.as_view({"get": "retrieve", "head": "retrieve"}),
