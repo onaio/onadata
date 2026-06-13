@@ -29,7 +29,7 @@ from onadata.apps.messaging.constants import (
 )
 from onadata.apps.viewer.models.parsed_instance import query_count, query_data
 from onadata.apps.viewer.signals import process_submission
-from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
+from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED, LAST_EDITED_BY
 
 
 # NOQA https://medium.freecodecamp.org/how-to-testing-django-signals-like-a-pro-c7ed74279311
@@ -302,6 +302,7 @@ class TestFormSubmission(TestBase):
 
         # check that '_last_edited' key is not in the json
         self.assertIsNone(initial_instance.json.get(LAST_EDITED))
+        self.assertIsNone(initial_instance.json.get(LAST_EDITED_BY))
 
         # no new record in instances history
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history)
@@ -375,6 +376,7 @@ class TestFormSubmission(TestBase):
         )
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
+        self.assertEqual(edited_instance.json.get(LAST_EDITED_BY), "alice")
 
         count = query_count(**query_args)
         self.assertEqual(count, num_data_instances + 1)
@@ -420,6 +422,7 @@ class TestFormSubmission(TestBase):
 
         # check that '_last_edited' key is not in the json
         self.assertIn(LAST_EDITED, edited_instance.json)
+        self.assertEqual(edited_instance.json.get(LAST_EDITED_BY), "bob")
         self.assertEqual(record["name"], "Tom and Jerry")
         self.assertEqual(InstanceHistory.objects.count(), num_instances_history + 2)
         # submitting original submission is treated as a duplicate

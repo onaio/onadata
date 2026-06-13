@@ -32,6 +32,7 @@ from onadata.libs.utils.common_tags import (
     EDITED,
     GEOLOCATION,
     ID,
+    LAST_EDITED_BY,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
     MONGO_STRFTIME,
@@ -524,6 +525,13 @@ class ParsedInstance(models.Model):
                     data[REVIEW_COMMENT] = review.get_note_text()
 
         data[EDITED] = self.instance.submission_history.count() > 0
+
+        if data[EDITED]:
+            data[LAST_EDITED_BY] = (
+                self.instance.last_edited_by.username
+                if self.instance.last_edited_by
+                else None
+            )
 
         data_dict.update(data)
 

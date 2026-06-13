@@ -588,6 +588,7 @@ class TestExportBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "osm_road:ctr:lat",
             "osm_road:ctr:lon",
             "osm_road:highway",
@@ -672,6 +673,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             rows = list(reader)
             actual_headers = list(rows[0])
@@ -1818,6 +1820,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             column_headers = list(main_sheet.values)[0]
             self.assertEqual(
@@ -1847,6 +1850,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             column_headers = list(childrens_sheet.values)[0]
             self.assertEqual(
@@ -1868,6 +1872,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             column_headers = list(cartoons_sheet.values)[0]
             self.assertEqual(
@@ -1889,6 +1894,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             column_headers = list(characters_sheet.values)[0]
             self.assertEqual(
@@ -1931,6 +1937,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             column_headers = list(main_sheet.values)[0]
             self.assertEqual(
@@ -2370,6 +2377,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             self.assertEqual(expected_headers, list(tuple(gps_sheet.values)[0]))
             # test exported data
@@ -2405,6 +2413,7 @@ class TestExportBuilder(TestBase):
                 "vTEmiygu2uLZpPHBYX8jKj",
                 31,
                 "bob",
+                None,
             ]
             actual_data = list(tuple(gps_sheet.values)[1])
             # remove submission time
@@ -2457,6 +2466,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             rows = list(reader)
             actual_headers = list(rows[0])
@@ -2569,6 +2579,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             expected_labels = [
                 "3.1 Childs name",
@@ -2592,6 +2603,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             rows = list(reader)
             actual_headers = list(rows[0])
@@ -2653,6 +2665,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
             ]
             rows = list(reader)
             actual_headers = list(rows[0])
@@ -2713,6 +2726,7 @@ class TestExportBuilder(TestBase):
                         "_parent_table_name",
                         "_submission_time",
                         "_submitted_by",
+                        "_last_edited_by",
                         "_tags",
                         "_uuid",
                         "_version",
@@ -3066,8 +3080,8 @@ class TestExportBuilder(TestBase):
             self.assertIn(REVIEW_DATE, sorted(actual_headers))
             self.assertIn(REVIEW_STATUS, sorted(actual_headers))
             submission = rows[1]
-            self.assertEqual(submission[35], "2")
-            self.assertEqual(submission[36], "Wrong Location")
+            self.assertEqual(submission[36], "2")
+            self.assertEqual(submission[37], "Wrong Location")
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
 
@@ -3101,8 +3115,8 @@ class TestExportBuilder(TestBase):
         self.assertIn(REVIEW_COMMENT, sorted(xls_headers))
         self.assertIn(REVIEW_DATE, sorted(xls_headers))
         self.assertIn(REVIEW_STATUS, sorted(xls_headers))
-        self.assertEqual(xls_data[35], "2")
-        self.assertEqual(xls_data[36], "Wrong Location")
+        self.assertEqual(xls_data[36], "2")
+        self.assertEqual(xls_data[37], "Wrong Location")
 
     # pylint: disable=invalid-name
     def test_zipped_sav_has_submission_review_fields(self):
@@ -3148,6 +3162,7 @@ class TestExportBuilder(TestBase):
                 "@_version",
                 "@_duration",
                 "@_submitted_by",
+                "@_last_edited_by",
                 "image1",
                 "transport.available_transportation_types_to_referral_facility",
                 "transport.available_transportation_types_to_referral_facility.am",
@@ -3174,8 +3189,8 @@ class TestExportBuilder(TestBase):
             ]
             actual_headers = list(map(_str_if_bytes, rows[0]))
             self.assertEqual(sorted(actual_headers), sorted(expected_column_headers))
-            self.assertEqual(_str_if_bytes(rows[1][35]), "2")
-            self.assertEqual(_str_if_bytes(rows[1][36]), "Wrong Location")
+            self.assertEqual(_str_if_bytes(rows[1][36]), "2")
+            self.assertEqual(_str_if_bytes(rows[1][37]), "Wrong Location")
 
     # pylint: disable=invalid-name
     def test_zipped_csv_export_with_osm_data(self):
@@ -3215,6 +3230,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
                 "osm_road:ctr:lat",
                 "osm_road:ctr:lon",
                 "osm_road:highway",
@@ -3292,6 +3308,7 @@ class TestExportBuilder(TestBase):
                 "@_version",
                 "@_duration",
                 "@_submitted_by",
+                "@_last_edited_by",
                 "osm_road_ctr_lat",
                 "osm_road_ctr_lon",
                 "osm_road_highway",
@@ -3756,6 +3773,7 @@ class TestExportBuilder(TestBase):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
                 "_total_media",
                 "_media_count",
                 "_media_all_received",
@@ -3791,6 +3809,7 @@ class TestExportBuilder(TestBase):
                 "vTEmiygu2uLZpPHBYX8jKj",
                 "31.0",
                 "bob",
+                "",
                 "0",
                 "0",
                 "True",
@@ -3862,6 +3881,7 @@ class TestExportBuilder(TestBase):
                 "@_version",
                 "@_duration",
                 "@_submitted_by",
+                "@_last_edited_by",
             ],
             [
                 "4.0 36.1 5000 20",
@@ -3881,6 +3901,7 @@ class TestExportBuilder(TestBase):
                 1.0,
                 "",
                 -1.0,
+                "",
                 "",
                 "",
                 "",
@@ -3920,6 +3941,7 @@ class TestExportBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
         ]
 
         for extra_col in extra_cols:

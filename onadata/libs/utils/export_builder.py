@@ -36,6 +36,7 @@ from onadata.libs.utils.common_tags import (
     GEOLOCATION,
     ID,
     INDEX,
+    LAST_EDITED_BY,
     MULTIPLE_SELECT_TYPE,
     NOTES,
     PARENT_INDEX,
@@ -312,6 +313,7 @@ class ExportBuilder:
         VERSION,
         DURATION,
         SUBMITTED_BY,
+        LAST_EDITED_BY,
     ]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
@@ -1496,6 +1498,7 @@ class ExportBuilder:
                 section_name = section["name"]
                 sav_def = sav_defs[section_name]
                 fields = [element["xpath"] for element in section["elements"]]
+                fields += self.extra_columns
                 sav_writer = sav_def["sav_writer"]
                 row = output.get(section_name, None)
                 if isinstance(row, dict):

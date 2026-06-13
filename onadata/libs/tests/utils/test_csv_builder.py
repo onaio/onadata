@@ -188,9 +188,22 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         try:
             expected_columns.remove("_deleted_at")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_status")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_comment")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_date")
+        except ValueError:
+            pass
+        try:
+            expected_columns.remove("_last_edited_by")
         except ValueError:
             pass
         self.maxDiff = None
@@ -665,6 +678,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -727,6 +741,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -800,6 +815,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -837,6 +853,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -911,6 +928,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1042,6 +1060,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1472,6 +1491,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1528,6 +1548,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1577,6 +1598,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1745,6 +1767,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1907,6 +1930,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1926,6 +1950,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "True",
             "False",
             "False",
+            "n/a",
             "n/a",
             "n/a",
             "n/a",
@@ -2017,6 +2042,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -2030,6 +2056,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "firefox safari",
             "2011",
             "firefox chrome",
+            "n/a",
             "n/a",
             "n/a",
             "n/a",
@@ -2146,6 +2173,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",

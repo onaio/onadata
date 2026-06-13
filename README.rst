@@ -51,6 +51,21 @@ Contributing
 If you would like to contribute code please read
 `Contributing Code to Ona Data <CONTRIBUTING.MD>`_.
 
+Running tests
+-------------
+
+Use the non-interactive test settings for local or CI-style runs:
+
+.. code-block:: sh
+
+    make test TEST_LABELS="onadata.apps.api.tests.viewsets.v2.test_project_viewset"
+
+Reuse the test database for faster repeated runs:
+
+.. code-block:: sh
+
+    make test-keepdb TEST_LABELS="onadata.apps.api.tests.viewsets.v2.test_project_viewset"
+
 **Security Acknowledgments**
 
 We would like to thank the following security researchers for responsibly disclosing security issues:
