@@ -517,17 +517,12 @@ class InstanceBaseClass:
 
         doc[EDITED] = edited
 
+        doc[LAST_EDITED_BY] = (
+            self.last_edited_by.username if self.last_edited_by is not None else None
+        )
+
         if edited:
             doc.update({LAST_EDITED: convert_to_serializable_date(self.last_edited)})
-            doc.update(
-                {
-                    LAST_EDITED_BY: (
-                        self.last_edited_by.username
-                        if self.last_edited_by is not None
-                        else None
-                    )
-                }
-            )
 
         if self.id:
             doc[ID] = self.id

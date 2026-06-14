@@ -525,13 +525,9 @@ class ParsedInstance(models.Model):
                     data[REVIEW_COMMENT] = review.get_note_text()
 
         data[EDITED] = self.instance.submission_history.count() > 0
-
-        if data[EDITED]:
-            data[LAST_EDITED_BY] = (
-                self.instance.last_edited_by.username
-                if self.instance.last_edited_by
-                else None
-            )
+        data[LAST_EDITED_BY] = (
+            self.instance.last_edited_by.username if self.instance.last_edited_by else None
+        )
 
         data_dict.update(data)
 
