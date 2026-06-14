@@ -31,10 +31,9 @@ class Command(BaseCommand):
         ids_query = Instance.objects.filter(
             last_edited__isnull=False,
             last_edited_by__isnull=True,
-            pk__in=InstanceHistory.objects.filter(user__isnull=False)
-            .values_list("xform_instance_id", flat=True)
-            .distinct(),
+            submission_history__user__isnull=False,
         ).values_list("pk", flat=True)
+        ids_query = ids_query.distinct()
         for instance_id in ids_query.iterator():
             ids.append(instance_id)
             if len(ids) >= batch_size:
