@@ -3694,7 +3694,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<?xml version="1.0" encoding="utf-8"?>\n'
             f'<submission-batch serverTime="{server_time}">'  # noqa
             f'<submission-item bambooDatasetId="" dateCreated="{instance.date_created.isoformat()}" duration="" edited="{edited}" formVersion="{instance.version}"'  # noqa
-            f' lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{instance.media_count}" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
+            f' lastEditedBy="{instance.last_edited_by}" lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{instance.media_count}" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
             f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="{instance.total_media}">'  # noqa
             f'<transportation id="{instance.xform.id_string}" version="{instance.version}">'  # noqa
             "<transport>"
