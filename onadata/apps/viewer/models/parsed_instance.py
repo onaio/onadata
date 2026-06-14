@@ -526,7 +526,9 @@ class ParsedInstance(models.Model):
 
         data[EDITED] = self.instance.submission_history.count() > 0
         data[LAST_EDITED_BY] = (
-            self.instance.last_edited_by.username if self.instance.last_edited_by else None
+            self.instance.last_edited_by.username
+            if self.instance.last_edited_by
+            else None
         )
 
         data_dict.update(data)
