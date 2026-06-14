@@ -4435,7 +4435,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 + "\n\ufeff"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,n/a,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(content, expected_content)
             headers = dict(response.items())
@@ -4458,7 +4458,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "#age" + "," * 15 + "\n"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16"
                 ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,n/a,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
 
             self.assertEqual(expected_content, content)
@@ -4525,7 +4525,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "_last_edited_by,_total_media,_media_count,_media_all_received\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                f"{date_modified},,,201604121155,,bob,n/a,0,0,True\n"
+                f"{date_modified},,,201604121155,,bob,,0,0,True\n"
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
@@ -4548,7 +4548,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 "#age" + "," * 15 + "\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00"
-                ",%s,,,201604121155,,bob,n/a,0,0,True\n" % (data_id, date_modified)
+                ",%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
