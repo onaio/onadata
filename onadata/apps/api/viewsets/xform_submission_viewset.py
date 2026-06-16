@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 
 from rest_framework import mixins, permissions, status, viewsets
-from rest_framework.authentication import BasicAuthentication, TokenAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.response import Response
@@ -18,7 +18,11 @@ from onadata.apps.api.permissions import IsAuthenticatedSubmission
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Instance
 from onadata.libs import filters
-from onadata.libs.authentication import DigestAuthentication, EnketoTokenAuthentication
+from onadata.libs.authentication import (
+    DigestAuthentication,
+    EnketoTokenAuthentication,
+    LockoutBasicAuthentication,
+)
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import FLOIPRenderer, TemplateXMLRenderer
@@ -65,7 +69,7 @@ class XFormSubmissionViewSet(
 
     authentication_classes = (
         DigestAuthentication,
-        BasicAuthentication,
+        LockoutBasicAuthentication,
         TokenAuthentication,
         EnketoTokenAuthentication,
     )

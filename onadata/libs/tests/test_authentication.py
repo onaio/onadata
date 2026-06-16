@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -5,16 +6,17 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.http.request import HttpRequest
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 import jwt
-from oauth2_provider.models import AccessToken
+from oauth2_provider.models import AccessToken, get_application_model
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.authentication import (
     DigestAuthentication,
+    LockoutBasicAuthentication,
     MasterReplicaOAuth2Validator,
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication,
@@ -23,6 +25,7 @@ from onadata.libs.authentication import (
     get_api_token,
     get_client_ip,
     get_lockout_username,
+    is_lockout_excluded_path,
 )
 from onadata.libs.utils.cache_tools import LOCKOUT_IP, safe_cache_set, safe_key
 from onadata.libs.utils.common_tags import API_TOKEN
@@ -179,6 +182,41 @@ class TestLockout(TestCase):
             check_lockout(request)
 
 
+class TestIsLockoutExcludedPath(TestCase):
+    """Test is_lockout_excluded_path() function."""
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def test_true_for_excluded_openrosa_paths(self):
+        """OpenRosa/Briefcase endpoints are exempt from lockout."""
+        for path in (
+            "/formList",
+            "/bob/formList",
+            "/submission",
+            "/bob/submission",
+            "/xformsManifest/123",
+            "/123/form.xml",
+            "/submissionList",
+            "/downloadSubmission",
+        ):
+            with self.subTest(path=path):
+                request = self.factory.get(path)
+                self.assertTrue(is_lockout_excluded_path(request))
+
+    def test_false_for_regular_paths(self):
+        """Regular API paths are subject to lockout."""
+        for path in ("/", "/api/v1/user.json", "/api/v1/forms"):
+            with self.subTest(path=path):
+                request = self.factory.get(path)
+                self.assertFalse(is_lockout_excluded_path(request))
+
+    def test_matches_excluded_segment_anywhere_in_path(self):
+        """The exemption matches an excluded segment in any path position."""
+        request = self.factory.get("/enketo/123/submission")
+        self.assertTrue(is_lockout_excluded_path(request))
+
+
 class TestGetClientIp(TestCase):
     """Test get_client_ip() function."""
 
@@ -296,3 +334,179 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         )
         self.assertEqual(req.access_token, token)
         self.assertEqual(req.user, token.user)
+
+
+def _basic_header(username, password):
+    """Build an HTTP Basic ``Authorization`` header value for credentials."""
+    raw = f"{username}:{password}".encode("utf-8")
+    return b"Basic " + base64.b64encode(raw)
+
+
+MAX_LOGIN_ATTEMPTS = 3
+
+
+@override_settings(MAX_LOGIN_ATTEMPTS=MAX_LOGIN_ATTEMPTS)
+class TestLockoutBasicAuthentication(TestCase):
+    """Test failed-login lockout on HTTP Basic authentication (ONADATA-1304)."""
+
+    def setUp(self):
+        cache.clear()
+        self.factory = APIRequestFactory()
+        self.auth = LockoutBasicAuthentication()
+        self.user = User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_authenticates_with_valid_credentials(self):
+        """Valid Basic credentials return the authenticated user."""
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=_basic_header("bob", "secret")
+        )
+        user, _auth = self.auth.authenticate(request)
+        self.assertEqual(user, self.user)
+
+    def test_returns_none_without_basic_header(self):
+        """Non-Basic requests are ignored so other authenticators can run."""
+        request = self.factory.get("/", HTTP_AUTHORIZATION=b'Digest username="bob",')
+        self.assertIsNone(self.auth.authenticate(request))
+
+    def test_locks_out_after_max_failed_attempts(self):
+        """Repeated wrong passwords lock the IP + username out."""
+        header = _basic_header("bob", "wrong")
+        for _i in range(MAX_LOGIN_ATTEMPTS):
+            request = self.factory.get("/", HTTP_AUTHORIZATION=header)
+            with self.assertRaises(AuthenticationFailed):
+                self.auth.authenticate(request)
+
+        # The IP + username is now locked out: even the correct password fails.
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=_basic_header("bob", "secret")
+        )
+        with self.assertRaises(AuthenticationFailed) as ctx:
+            self.auth.authenticate(request)
+        self.assertIn("Locked out", str(ctx.exception))
+
+    def test_lockout_is_keyed_per_username(self):
+        """Locking one username does not lock another from the same IP."""
+        User.objects.create_user(username="alice", password="secret")
+        for _i in range(MAX_LOGIN_ATTEMPTS):
+            request = self.factory.get(
+                "/", HTTP_AUTHORIZATION=_basic_header("bob", "wrong")
+            )
+            with self.assertRaises(AuthenticationFailed):
+                self.auth.authenticate(request)
+
+        # alice, same IP, is unaffected and authenticates normally.
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=_basic_header("alice", "secret")
+        )
+        user, _auth = self.auth.authenticate(request)
+        self.assertEqual(user.username, "alice")
+
+    def test_excluded_paths_are_not_locked_out(self):
+        """OpenRosa endpoints (e.g. /submission) are exempt from lockout,
+        mirroring DigestAuthentication, so high-frequency clients aren't locked
+        out."""
+        for _i in range(MAX_LOGIN_ATTEMPTS + 5):
+            request = self.factory.post(
+                "/submission", HTTP_AUTHORIZATION=_basic_header("bob", "wrong")
+            )
+            with self.assertRaises(AuthenticationFailed) as ctx:
+                self.auth.authenticate(request)
+            # Always the plain credential error, never a lockout.
+            self.assertNotIn("Locked out", str(ctx.exception))
+
+        # The correct password still works on the excluded path.
+        request = self.factory.post(
+            "/submission", HTTP_AUTHORIZATION=_basic_header("bob", "secret")
+        )
+        user, _auth = self.auth.authenticate(request)
+        self.assertEqual(user, self.user)
+
+    def test_lockout_counter_canonicalises_identifier(self):
+        """Case/email variants of a username share one lockout counter."""
+        # Mix bare username, uppercase, and email forms — all resolve to "bob".
+        identifiers = (["BOB", "bob@example.com"] * MAX_LOGIN_ATTEMPTS)[
+            :MAX_LOGIN_ATTEMPTS
+        ]
+        for identifier in identifiers:
+            request = self.factory.get(
+                "/", HTTP_AUTHORIZATION=_basic_header(identifier, "wrong")
+            )
+            with self.assertRaises(AuthenticationFailed):
+                self.auth.authenticate(request)
+
+        # The canonical account is now locked out despite the varied inputs.
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=_basic_header("bob", "secret")
+        )
+        with self.assertRaises(AuthenticationFailed) as ctx:
+            self.auth.authenticate(request)
+        self.assertIn("Locked out", str(ctx.exception))
+
+
+@override_settings(MAX_LOGIN_ATTEMPTS=MAX_LOGIN_ATTEMPTS)
+class TestLockoutTokenView(TestCase):
+    """Test failed-login lockout on the OAuth2 password grant (/o/token/)."""
+
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="bob", email="bob@example.com", password="secret"
+        )
+        application_model = get_application_model()
+        self.client_secret = "test-client-secret"
+        self.application = application_model(
+            name="password-grant-app",
+            user=self.user,
+            client_id="test-client-id",
+            client_secret=self.client_secret,
+            client_type=application_model.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=application_model.GRANT_PASSWORD,
+        )
+        self.application.save()
+
+    def tearDown(self):
+        cache.clear()
+
+    def _token_request(self, password):
+        return self.client.post(
+            "/o/token/",
+            {
+                "grant_type": "password",
+                "username": "bob",
+                "password": password,
+                "client_id": "test-client-id",
+                "client_secret": self.client_secret,
+            },
+        )
+
+    def test_locks_out_after_max_failed_password_grants(self):
+        """Repeated wrong passwords lock the IP + username out of /o/token/."""
+        for _i in range(MAX_LOGIN_ATTEMPTS):
+            response = self._token_request("wrong")
+            self.assertNotEqual(response.status_code, 200)
+
+        # Even the correct password is now rejected with the lockout response.
+        response = self._token_request("secret")
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["error"], "locked_out")
+
+    def test_valid_password_grant_issues_token(self):
+        """Valid credentials still return an access token through the view."""
+        response = self._token_request("secret")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access_token", response.json())
+
+    def test_failure_below_threshold_returns_oauth_error(self):
+        """A failed attempt below the threshold returns the normal OAuth error,
+        not the lockout response."""
+        response = self._token_request("wrong")
+        self.assertEqual(response.status_code, 400)
+        self.assertNotEqual(response.status_code, 429)
+        # The account is not yet locked: the correct password still works.
+        response = self._token_request("secret")
+        self.assertEqual(response.status_code, 200)
