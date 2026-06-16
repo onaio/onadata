@@ -642,6 +642,75 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             "Organization %s already exists." % data["org"], response.data["org"]
         )
 
+    def test_orgs_create_with_hyphen_allowed(self):
+        """An organization username containing a hyphen is accepted."""
+        data = {
+            "name": "deno inc",
+            "org": "deno-inc",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["org"], "deno-inc")
+
+    def test_orgs_create_with_underscore_allowed(self):
+        """An organization username containing an underscore is accepted."""
+        data = {
+            "name": "deno inc",
+            "org": "deno_inc",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["org"], "deno_inc")
+
+    def test_orgs_create_existing_username_case_insensitive(self):
+        """An organization is rejected when a username already exists in a
+        different case."""
+        # a username stored with mixed case (e.g. legacy/external data)
+        User.objects.create(username="MixedOrg")
+        data = {
+            "name": "mixed org",
+            "org": "mixedorg",
+            "city": "Denoville",
+            "country": "US",
+            "home_page": "deno.com",
+            "twitter": "denoinc",
+            "description": "",
+            "email": "user@mail.com",
+            "address": "",
+            "phonenumber": "",
+            "require_auth": False,
+        }
+        request = self.factory.post(
+            "/", data=json.dumps(data), content_type="application/json", **self.extra
+        )
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Organization mixedorg already exists.", response.data["org"])
+
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
         project_data = {"owner": self.company_data["user"]}

@@ -391,12 +391,10 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail, UserProfileFormRe
                     ".json, .csv, .xls, .xlsx, or .kml"
                 )
             )
-        try:
-            User.objects.get(username=username)
-        except User.DoesNotExist:
-            return username
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError(_("%s already exists") % username)
 
-        raise forms.ValidationError(_("%s already exists") % username)
+        return username
 
 
 class SourceForm(forms.Form):
