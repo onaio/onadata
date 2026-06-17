@@ -3,6 +3,34 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.20.0(2026-06-17)
+-------------------
+- chore: bump cryptography, valigetta, and lxml
+  [@FrankApiyo]
+  `PR #3119 https://github.com/onaio/onadata/pull/3119`
+- fix(security): key login lockout on canonical username
+  [@kelvin-muchiri]
+  `PR #3118 https://github.com/onaio/onadata/pull/3118`
+- Include filenames in upload validation errors
+  [@ukanga]
+  `PR #3121 https://github.com/onaio/onadata/pull/3121`
+- Fix public project response caching
+  [@ukanga]
+  `PR #3120 https://github.com/onaio/onadata/pull/3120`
+- fix: rate limit password reset requests
+  [@ukanga]
+  `PR #3122 https://github.com/onaio/onadata/pull/3122`
+- fix: save a new form version when a form is replaced
+  [@kelvin-muchiri]
+  `PR #3075 https://github.com/onaio/onadata/pull/3075`
+- fix: case-insensitive username uniqueness + hyphenated username URL support
+  [@kelvin-muchiri]
+  `PR #3126 https://github.com/onaio/onadata/pull/3126`
+- feat(security): rate-limit HTTP Basic and OAuth2 password-grant logins
+  [@kelvin-muchiri]
+  `PR #3127 https://github.com/onaio/onadata/pull/3127`
+
+
 v5.19.0(2026-06-04)
 -------------------
 - Add bbox endpoint for forms, dataviews, and merged datasets
