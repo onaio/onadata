@@ -29,6 +29,9 @@ v5.20.0(2026-06-17)
 - feat(security): rate-limit HTTP Basic and OAuth2 password-grant logins
   [@kelvin-muchiri]
   `PR #3127 https://github.com/onaio/onadata/pull/3127`
+- fix: exclude inactive users from project users list
+  [@kelvin-muchiri]
+  `PR #3131 https://github.com/onaio/onadata/pull/3131`
 
 
 v5.19.0(2026-06-04)
