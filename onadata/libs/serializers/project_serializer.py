@@ -162,7 +162,7 @@ def get_users(project, context, all_perms=True):
     else:
         request_user_is_admin = False
 
-    for perm in project.projectuserobjectpermission_set.all():
+    for perm in project.projectuserobjectpermission_set.filter(user__is_active=True):
         if perm.user_id not in data:
             user = perm.user
 
