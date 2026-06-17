@@ -2517,6 +2517,42 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user, self.project))
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user, self.xform))
 
+    def test_project_users_excludes_inactive_users(self):
+        """Inactive users are not listed among the project users"""
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {"username": "alice", "email": "alice@localhost.com"}
+        alice_profile = self._create_user_profile(alice_data)
+
+        projectid = self.project.pk
+
+        # share the project with alice while she is still active
+        data = {"username": "alice", "role": ReadOnlyRole.name}
+        request = self.factory.put("/", data=data, **self.extra)
+        view = ProjectViewSet.as_view({"put": "share", "get": "retrieve"})
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+
+        # alice is listed while active
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=projectid)
+        usernames = [user.get("user") for user in response.data.get("users")]
+        self.assertIn("alice", usernames)
+
+        # deactivate alice
+        alice_profile.user.is_active = False
+        alice_profile.user.save()
+
+        # simulate a fresh fetch (cached project detail/permissions expire)
+        cache.clear()
+
+        # alice is no longer listed once inactive
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=projectid)
+        usernames = [user.get("user") for user in response.data.get("users")]
+        self.assertNotIn("alice", usernames)
+        self.assertIn("bob", usernames)
+
     def test_project_share_readonly_no_downloads(self):
         # create project and publish form to project
         self._publish_xls_form_to_project()
