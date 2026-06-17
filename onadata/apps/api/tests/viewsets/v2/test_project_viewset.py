@@ -409,6 +409,32 @@ class GetProjectUsersTestCase(TestAbstractViewSet):
         usernames = sorted(entry["user"] for entry in response.data)
         self.assertEqual(usernames, ["alice", self.user.username])
 
+    def test_inactive_users_excluded(self):
+        """Inactive users are not listed among the project users"""
+        alice_profile = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        )
+        ShareProject(self.project, "alice", "readonly").save()
+
+        # alice is listed while active
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        usernames = sorted(entry["user"] for entry in response.data)
+        self.assertEqual(usernames, ["alice", self.user.username])
+
+        # deactivate alice
+        alice_profile.user.is_active = False
+        alice_profile.user.save()
+
+        # simulate the cached permissions list expiring
+        cache.clear()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request, pk=self.project.pk)
+        usernames = [entry["user"] for entry in response.data]
+        self.assertNotIn("alice", usernames)
+        self.assertEqual(usernames, [self.user.username])
+
     def test_non_member_denied(self):
         """A user with no role on the project cannot view the users"""
         alice_profile = self._create_user_profile(
