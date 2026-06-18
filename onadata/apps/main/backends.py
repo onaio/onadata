@@ -2,8 +2,7 @@
 """
 A custom ModelBackend class module.
 """
-# The onadata import below is ordered per the project's isort config
-# (known-first-party=onadata); silence Codacy's stricter pylint import checks.
+# The onadata import below is ordered per the project's isort config.
 # pylint: disable=wrong-import-position,ungrouped-imports
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend as DjangoModelBackend
