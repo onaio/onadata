@@ -202,10 +202,6 @@ class TestCSVDataFrameBuilder(TestBase):
             expected_columns.remove("_review_date")
         except ValueError:
             pass
-        try:
-            expected_columns.remove("_last_edited_by")
-        except ValueError:
-            pass
         self.maxDiff = None
         self.assertEqual(sorted(expected_columns), sorted(columns))
 
@@ -609,6 +605,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_geolocation": [-1.2626156, 36.7923571],
             "_duration": "",
             "_edited": False,
+            "_last_edited_by": None,
             "_gps_latitude": "-1.2626156",
             "_gps_longitude": "36.7923571",
             "_gps_altitude": "0.0",
@@ -1152,6 +1149,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_geolocation": [-1.2626156, 36.7923571],
             "_duration": "",
             "_edited": False,
+            "_last_edited_by": None,
             "_gps_latitude": "-1.2626156",
             "_gps_longitude": "36.7923571",
             "_gps_altitude": "0.0",

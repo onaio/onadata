@@ -520,8 +520,6 @@ class InstanceBaseClass:
         last_edited_by = None
         if hasattr(self, "last_edited_by"):
             last_edited_by = self.last_edited_by
-        elif hasattr(self, "user"):
-            last_edited_by = self.user
 
         doc[LAST_EDITED_BY] = (
             last_edited_by.username if last_edited_by is not None else None
