@@ -408,6 +408,11 @@ class XFormMixin:
         """Returns the boolean value of `_id_string_changed`."""
         return getattr(self, "_id_string_changed", False)
 
+    @property
+    def has_version_changed(self):
+        """Whether the version was auto-bumped during a form replace."""
+        return getattr(self, "_version_changed", False)
+
     def add_instances(self):
         """Returns all instances as a list of python objects."""
         _get_observation_from_dict = DictOrganizer().get_observation_from_dict
