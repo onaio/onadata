@@ -4430,11 +4430,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
-                "_total_media,_media_count,_media_all_received\n\ufeff#age"
-                ",,,,,,,,,,,,,,\n\ufeff"
+                "_last_edited_by,_total_media,_media_count,_media_all_received\n\ufeff#age"
+                + "," * 15
+                + "\n\ufeff"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(content, expected_content)
             headers = dict(response.items())
@@ -4453,11 +4454,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submi"
-                "tted_by,_total_media,_media_count,_media_all_received\n"
-                "#age,,,,,,,,,,,,,,\n"
+                "tted_by,_last_edited_by,_total_media,_media_count,_media_all_received\n"
+                "#age" + "," * 15 + "\n"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16"
                 ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
 
             self.assertEqual(expected_content, content)
@@ -4521,10 +4522,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
-                "_total_media,_media_count,_media_all_received\n"
+                "_last_edited_by,_total_media,_media_count,_media_all_received\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                f"{date_modified},,,201604121155,,bob,0,0,True\n"
+                f"{date_modified},,,201604121155,,bob,,0,0,True\n"
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
@@ -4542,12 +4543,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,"
-                "_submitted_by,_total_media,_media_count,"
+                "_submitted_by,_last_edited_by,_total_media,_media_count,"
                 "_media_all_received\n"
-                "#age,,,,,,,,,,,,,,\n"
+                "#age" + "," * 15 + "\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00"
-                ",%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                ",%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
@@ -5194,6 +5195,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 )
 
             attachment_id = Attachment.objects.all().last().pk
+            attachment = Attachment.objects.get(pk=attachment_id)
 
             view = XFormViewSet.as_view({"get": "retrieve"})
 
@@ -5205,10 +5207,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             expected_data = [
-                "http://example.com/api/v1/files/{}?"
-                "filename=bob/attachments/{}_{}/"
-                "1442323232322.jpg".format(
-                    attachment_id, self.xform.id, self.xform.id_string
+                "http://example.com/api/v1/files/{}?filename={}".format(
+                    attachment_id, attachment.media_file.name
                 )
             ]
             key = "photo"

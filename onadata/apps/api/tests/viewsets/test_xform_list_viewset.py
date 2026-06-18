@@ -1067,7 +1067,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             "hospital.hiv_medication.person_repeat_2_.person.last_name,"
             "hospital.hiv_medication.person_repeat_2_.person.age,"
             "meta.instanceID,_id,_uuid,_submission_time,_date_modified,_tags,"
-            "_notes,_version,_duration,_submitted_by,_total_media,"
+            "_notes,_version,_duration,_submitted_by,_last_edited_by,_total_media,"
             "_media_count,_media_all_received"
         )
         self.assertEqual(first_line, expected_headers)

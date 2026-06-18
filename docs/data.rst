@@ -476,7 +476,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://api.ona.io/api/v1/data/513322.json?fields=["_id", "_last_edited"]
+       curl -X GET https://api.ona.io/api/v1/data/513322.json?fields=["_id", "_last_edited", "_last_edited_by"]
 
 Response
 ^^^^^^^^^
@@ -485,27 +485,33 @@ Response
     [
         {
             "_id": 64999942,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         },
         {
             "_id": 64999819,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         },
         {
             "_id": 64999278,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         },
         {
             "_id": 64999082,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         },
         {
             "_id": 60549177,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         },
         {
             "_id": 60549136,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         }
     ]
 
@@ -1414,14 +1420,14 @@ Response
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?fields=<code>{_id,_last_edited}</code>
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?fields=<code>{_id,_last_edited,_last_edited_by}</code>
   </pre>
 
 Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://api.ona.io/api/v1/data/513322/60549136.geojson?fields=_id,_last_edited
+      curl -X GET https://api.ona.io/api/v1/data/513322/60549136.geojson?fields=_id,_last_edited,_last_edited_by
 
 Response
 ^^^^^^^^^
@@ -1450,7 +1456,8 @@ Response
             "id": 60549136,
             "xform": 513322,
             "_id": 60549136,
-            "_last_edited": null
+            "_last_edited": null,
+            "_last_edited_by": null
         }
     }
 

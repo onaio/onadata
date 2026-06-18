@@ -16,9 +16,6 @@ from io import StringIO
 from tempfile import NamedTemporaryFile
 from unittest.mock import Mock, patch
 
-import defusedxml.ElementTree as ET
-import geojson
-import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.db.utils import OperationalError
@@ -26,6 +23,10 @@ from django.test import RequestFactory
 from django.test.testcases import SerializeMixin
 from django.test.utils import override_settings
 from django.utils import timezone
+
+import defusedxml.ElementTree as ET
+import geojson
+import requests
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from httmock import HTTMock, urlmatch
@@ -1690,7 +1691,9 @@ class TestDataViewSet(SerializeMixin, TestBase):
         ]
         self.maxDiff = None
         response = view(request, pk=formid)
-        self.assertLessEqual(sorted([data])[0].items(), sorted(response.data)[0].items())
+        self.assertLessEqual(
+            sorted([data])[0].items(), sorted(response.data)[0].items()
+        )
         self.assertEqual(response.status_code, 200)
         submission_file.close()
         os.unlink(submission_file.name)
@@ -3691,7 +3694,7 @@ class TestDataViewSet(SerializeMixin, TestBase):
             '<?xml version="1.0" encoding="utf-8"?>\n'
             f'<submission-batch serverTime="{server_time}">'  # noqa
             f'<submission-item bambooDatasetId="" dateCreated="{instance.date_created.isoformat()}" duration="" edited="{edited}" formVersion="{instance.version}"'  # noqa
-            f' lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{instance.media_count}" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
+            f' lastEditedBy="{instance.last_edited_by}" lastModified="{instance.date_modified.isoformat()}" mediaAllReceived="{instance.media_all_received}" mediaCount="{instance.media_count}" objectID="{instance.id}" reviewComment="" reviewStatus=""'  # noqa
             f' status="{instance.status}" submissionTime="{submission_time}" submittedBy="{instance.user.username}" totalMedia="{instance.total_media}">'  # noqa
             f'<transportation id="{instance.xform.id_string}" version="{instance.version}">'  # noqa
             "<transport>"
@@ -4222,6 +4225,7 @@ class ExportDataTestCase(SerializeMixin, TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -4278,6 +4282,7 @@ class ExportDataTestCase(SerializeMixin, TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",

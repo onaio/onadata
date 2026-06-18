@@ -70,6 +70,7 @@ DATE_MODIFIED = "_date_modified"
 # instance flags
 EDITED = "_edited"
 LAST_EDITED = "_last_edited"
+LAST_EDITED_BY = "_last_edited_by"
 # datetime format that we store in mongo
 MONGO_STRFTIME = "%Y-%m-%dT%H:%M:%S"
 DATE_FORMAT = "%Y-%m-%d"
@@ -205,6 +206,7 @@ METADATA_FIELDS = [
     SUBMISSION_TIME,
     XFORM_ID,
     DATE_MODIFIED,
+    LAST_EDITED_BY,
 ]
 
 INSTANCE_CREATE_EVENT = "Submission created"
