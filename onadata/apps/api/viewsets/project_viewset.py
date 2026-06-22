@@ -259,9 +259,11 @@ class ProjectViewSet(
         if request.method == "DELETE":
             project.user_stars.remove(user)
             project.save()
+            safe_cache_delete(f"{PROJ_OWNER_CACHE}{project.pk}")
         elif request.method == "POST":
             project.user_stars.add(user)
             project.save()
+            safe_cache_delete(f"{PROJ_OWNER_CACHE}{project.pk}")
         elif request.method == "GET":
             users = project.user_stars.values("pk")
             user_profiles = UserProfile.objects.filter(user__in=users)
