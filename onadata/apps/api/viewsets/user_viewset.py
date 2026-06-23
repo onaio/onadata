@@ -46,7 +46,9 @@ class UserViewSet(
         filters.SearchFilter,
         UserNoOrganizationsFilter,
     )
-    search_fields = ("=email",)
+    # `=email`   -> case-insensitive exact match (iexact)
+    # `username` -> case-insensitive partial match (icontains)
+    search_fields = ("=email", "username")
 
     def get_object(self):
         """Lookup a  username by pk else use lookup_field"""
