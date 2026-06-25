@@ -3,6 +3,19 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.21.0(2026-06-24)*
+--------------------
+- Add last_edited_by to submissions
+  [@ukanga]
+  `PR #3128 https://github.com/onaio/onadata/pull/3128`
+- feat: case-insensitive partial username search on /users
+  [@kelvin-muchiri]
+  `PR #3133 https://github.com/onaio/onadata/pull/3133`
+- fix: invalidate team-users cache when a team's project role changes
+  [@FrankApiyo]
+  `PR #3134 https://github.com/onaio/onadata/pull/3134`
+
+
 v5.20.0(2026-06-17)
 -------------------
 - chore: bump cryptography, valigetta, and lxml
