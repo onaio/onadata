@@ -78,6 +78,27 @@ class TestXForm(TestBase):
         self.xform._set_title()  # pylint: disable=W0212
         self.assertIn(self.xform.title, self.xform.xml)
 
+    def test_version_number_title_not_treated_as_url(self):
+        """A version number like '1.0' anywhere in a title is not a URL."""
+        self._publish_transportation_form()
+
+        # A version number is allowed wherever it appears in the title.
+        for valid_title in ("Transport 1.0", "1.0 Transport", "Transport 1.0 Survey"):
+            xform = XForm.objects.get(pk=self.xform.pk)
+            xform.title = valid_title
+            xform.save()
+            self.assertEqual(XForm.objects.get(pk=xform.pk).title, valid_title)
+
+        # A real URL anywhere in the title is still rejected.
+        for url_title in ("deno.com", "Survey deno.com data"):
+            xform = XForm.objects.get(pk=self.xform.pk)
+            xform.title = url_title
+            with self.assertRaises(XLSFormError) as err:
+                xform.save()
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL", str(err.exception)
+            )
+
     def test_version_length(self):
         """Test Xform.version can store more than 12 chars"""
         self._publish_transportation_form_and_submit_instance()

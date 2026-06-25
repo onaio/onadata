@@ -86,9 +86,14 @@ XFORM_TITLE_LENGTH = 255
 TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 
 
+# A title is treated as a URL when it either uses an explicit http(s) scheme
+# (any host, including IP addresses) or is a scheme-less bare domain. Requiring
+# an alphabetic TLD for scheme-less matches keeps version suffixes such as
+# "1.0" from being misread as URLs (see issue #3138).
 URL_PATTERN = (
-    r"(?:https?://)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\."
-    r"[a-zA-Z0-9()]{1,6}\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
+    r"(?:https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}"
+    r"|(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z][a-zA-Z0-9()]{0,5})"
+    r"\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
 )
 
 
