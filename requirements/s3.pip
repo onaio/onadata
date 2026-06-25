@@ -12,7 +12,7 @@ botocore==1.42.86
     # via
     #   boto3
     #   s3transfer
-django==5.2.13
+django==5.2.14
     # via
     #   -r requirements/s3.in
     #   django-storages
@@ -30,5 +30,7 @@ six==1.17.0
     # via python-dateutil
 sqlparse==0.5.5
     # via django
-urllib3==2.6.3
-    # via botocore
+urllib3==2.7.0
+    # via
+    #   -r requirements/s3.in
+    #   botocore

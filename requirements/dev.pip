@@ -77,7 +77,7 @@ click-repl==0.3.0
     # via celery
 codetiming==1.4.0
     # via -r requirements/base.in
-cryptography==46.0.5
+cryptography==48.0.1
     # via
     #   google-auth
     #   jwcrypto
@@ -108,7 +108,7 @@ dill==0.4.1
     # via pylint
 distlib==0.4.0
     # via virtualenv
-django==5.2.13
+django==5.2.14
     # via
     #   django-activity-stream
     #   django-cors-headers
@@ -235,8 +235,10 @@ httplib2==0.31.2
     # via onadata
 identify==2.6.18
     # via pre-commit
-idna==3.11
-    # via requests
+idna==3.15
+    # via
+    #   -r requirements/base.in
+    #   requests
 ijson==3.5.0
     # via dataflows-tabulator
 inflection==0.5.1
@@ -381,7 +383,7 @@ pygments==2.20.0
     # via
     #   ipython
     #   ipython-pygments-lexers
-pyjwt[crypto]==2.12.1
+pyjwt[crypto]==2.13.0
     # via
     #   ona-oidc
     #   onadata
@@ -526,7 +528,7 @@ tzdata==2026.1
     # via kombu
 tzlocal==5.3.1
     # via celery
-ujson==5.12.0
+ujson==5.12.1
     # via onadata
 unicodecsv==0.14.1
     # via
@@ -534,8 +536,9 @@ unicodecsv==0.14.1
     #   datapackage
     #   onadata
     #   tableschema
-urllib3==2.6.3
+urllib3==2.7.0
     # via
+    #   -r requirements/base.in
     #   botocore
     #   requests
     #   responses
