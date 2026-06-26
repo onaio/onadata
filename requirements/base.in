@@ -1,6 +1,10 @@
 # load from setup.py
 -e .
 
+# Security minimums for transitive runtime dependencies.
+idna>=3.15
+urllib3>=2.7.0
+
 # installed from Git
 git+https://github.com/onaio/python-digest.git@08267ca8afc1a52f91352ebb5385e8e6d074fc36#egg=python-digest
 git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92#egg=django-digest
