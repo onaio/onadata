@@ -38,11 +38,19 @@
   {% endif %}
 
   {% for cssfile in css_files %}
-    <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+    {% if cssfile|attr("filename") %}
+      {{ css_tag(cssfile) }}
+    {% else %}
+      <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+    {% endif %}
   {% endfor %}
 
   {% for cssfile in extra_css_files %}
-    <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+    {% if cssfile|attr("filename") %}
+      {{ css_tag(cssfile) }}
+    {% else %}
+      <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
+    {% endif %}
   {% endfor %}
 
   {%- block linktags %}
@@ -155,7 +163,11 @@
         };
     </script>
     {%- for scriptfile in script_files %}
-      <script type="text/javascript" src="{{ pathto(scriptfile, 1) }}"></script>
+      {% if scriptfile|attr("filename") %}
+        {{ js_tag(scriptfile) }}
+      {% else %}
+        <script type="text/javascript" src="{{ pathto(scriptfile, 1) }}"></script>
+      {% endif %}
     {%- endfor %}
 
   {% endif %}

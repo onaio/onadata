@@ -17,6 +17,7 @@ import sys
 from os.path import abspath, dirname, join
 
 import django
+from django.db.models.query import QuerySet
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -42,6 +43,19 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.imgmath",
 ]
+
+autodoc_default_options = {"exclude-members": "queryset"}
+
+
+def _autodoc_queryset_repr(queryset):
+    model_meta = getattr(getattr(queryset, "model", None), "_meta", None)
+    model_label = getattr(model_meta, "label", "unknown")
+    return f"<QuerySet model={model_label}>"
+
+
+# Sphinx 9 calls repr() on autodoc attributes. Django QuerySet.__repr__ evaluates
+# the query, which fails in the Docker docs stage where no database is available.
+QuerySet.__repr__ = _autodoc_queryset_repr
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
