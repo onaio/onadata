@@ -1808,8 +1808,13 @@ class SendKeyRotationReminderTestCase(TestBase):
         send_key_rotation_reminder()
         mock_send_mass_mail.assert_not_called()
 
-    def test_default_notification_duration(self, mock_send_mass_mail):
+    @patch("django.utils.timezone.now")
+    def test_default_notification_duration(self, mock_now, mock_send_mass_mail):
         """Default notification duration is 2 weeks."""
+        mock_now.return_value = datetime(2026, 6, 26, 1, 40, tzinfo=tz.utc)
+        self.kms_key.expiry_date = mock_now.return_value + timedelta(weeks=2)
+        self.kms_key.save()
+
         send_key_rotation_reminder()
 
         mock_send_mass_mail.assert_called_once()
@@ -1962,8 +1967,13 @@ class SendKeyGraceExpiryReminderTestCase(TestBase):
         send_key_grace_expiry_reminder()
         mock_send_mass_mail.assert_not_called()
 
-    def test_default_notification_duration(self, mock_send_mass_mail):
+    @patch("django.utils.timezone.now")
+    def test_default_notification_duration(self, mock_now, mock_send_mass_mail):
         """Default reminder notification duration is 1 day."""
+        mock_now.return_value = datetime(2026, 6, 26, 1, 40, tzinfo=tz.utc)
+        self.kms_key.grace_end_date = mock_now.return_value + timedelta(days=1)
+        self.kms_key.save()
+
         send_key_grace_expiry_reminder()
 
         mock_send_mass_mail.assert_called_once()

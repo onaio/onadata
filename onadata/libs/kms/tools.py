@@ -654,7 +654,7 @@ def _get_org_owners_emails(organization: OrganizationProfile) -> list[str]:
 def send_key_rotation_reminder():
     """Send email to organization admins that key rotation is scheduled."""
     notification_duration = _get_kms_rotation_reminder_duration()
-    target_date = (timezone.now() + notification_duration).date()
+    target_date = timezone.localdate(timezone.now() + notification_duration)
     kms_key_qs = KMSKey.objects.filter(
         expiry_date__date=target_date,
         disabled_at__isnull=True,
@@ -701,10 +701,12 @@ def send_key_grace_expiry_reminder():
     target_dates = []
 
     if isinstance(notification_duration, timedelta):
-        target_dates = [(now + notification_duration).date()]
+        target_dates = [timezone.localdate(now + notification_duration)]
 
     elif isinstance(notification_duration, list):
-        target_dates = [(now + duration).date() for duration in notification_duration]
+        target_dates = [
+            timezone.localdate(now + duration) for duration in notification_duration
+        ]
 
     # Any non-disabled key with a grace period date
     kms_key_qs = KMSKey.objects.filter(
