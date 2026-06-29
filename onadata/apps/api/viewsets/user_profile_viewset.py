@@ -386,6 +386,14 @@ class UserProfileViewSet(
         profile.metadata = {**(profile.metadata or {}), "is_email_verified": True}
         profile.save()
 
+        # Invalidate the cached profile response so the new email is served
+        # immediately. The retrieve() endpoint caches under
+        # USER_PROFILE_PREFIX + {username} + {request_username}; without this
+        # the old email keeps being served until the cache TTL expires.
+        username = kwargs.get("user")
+        request_username = request.user.username if request.user else ""
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+
         # Single-use: delete the pending row after successful apply.
         pec.delete()
 

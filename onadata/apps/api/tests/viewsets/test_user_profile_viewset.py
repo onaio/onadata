@@ -2214,6 +2214,27 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(self.user.profile.metadata.get("is_email_verified"))
         push.assert_called_once()
 
+    @patch("onadata.libs.utils.keycloak_email_push.push_email")
+    def test_confirm_invalidates_profile_cache(self, push):
+        """The cached profile response must be cleared so the new email is
+        served immediately, not stale until the cache TTL expires."""
+        from onadata.libs.utils.cache_tools import (
+            USER_PROFILE_PREFIX,
+            safe_cache_get,
+            safe_cache_set,
+        )
+
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "fresh@x.com")
+        # retrieve() caches under USER_PROFILE_PREFIX + username + request_username
+        cache_key = f"{USER_PROFILE_PREFIX}{self.user.username}{self.user.username}"
+        safe_cache_set(cache_key, {"email": "stale@x.com"})
+
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(safe_cache_get(cache_key))
+
     @patch(
         "onadata.libs.utils.keycloak_email_push.push_email",
         side_effect=Exception("kc down"),
