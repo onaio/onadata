@@ -10,6 +10,7 @@ import os
 from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import signals
@@ -30,6 +31,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.pending_email_change import PendingEmailChange
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
@@ -2122,3 +2124,52 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         user = User.objects.get(username=data["username"])
         self.assertFalse(user.is_active)
+
+    # ---------------------------------------------------------------------------
+    # request_email_change tests
+    # ---------------------------------------------------------------------------
+
+    def test_request_email_change_happy_path(self):
+        """Happy path: returns 200, creates PendingEmailChange, sends 1 email."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        mail.outbox = []
+        request = self.factory.post(
+            "/",
+            data={"new_email": "New@X.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(PendingEmailChange.objects.filter(user=self.user).exists())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["new@x.com"])
+        self.assertRegex(mail.outbox[0].body, r"\d{6}")
+
+    def test_request_email_change_bad_password(self):
+        """Wrong password returns 400 with a 'password' error key."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        request = self.factory.post(
+            "/",
+            data={"new_email": "other@example.com", "password": "wrongpass"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("password", response.data)
+
+    def test_request_email_change_duplicate_email(self):
+        """Email already in use (case-insensitive) returns 400 with new_email error."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        # Another user already owns taken@example.com; bob submits a
+        # case-variant of it and must be rejected as a duplicate.
+        User.objects.create_user(
+            username="claire", email="taken@example.com", password="clairepass"
+        )
+        request = self.factory.post(
+            "/",
+            data={"new_email": "TAKEN@Example.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("new_email", response.data)

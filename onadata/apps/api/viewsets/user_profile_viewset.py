@@ -7,6 +7,7 @@ import datetime
 import json
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import ValidationError
 from django.db.models import Count
@@ -32,6 +33,7 @@ from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.pending_email_change import PendingEmailChange
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -50,10 +52,15 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_incr,
     safe_cache_set,
 )
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+    send_email_change_code,
+)
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
+User = get_user_model()
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
 MAX_CHANGE_PASSWORD_ATTEMPTS = getattr(settings, "MAX_CHANGE_PASSWORD_ATTEMPTS", 10)
 
@@ -293,6 +300,49 @@ class UserProfileViewSet(
         data.update(invalidate_and_regen_tokens(user=user_profile.user))
 
         return Response(status=status.HTTP_200_OK, data=data)
+
+    @action(methods=["POST"], detail=True, url_path="request_email_change")
+    def request_email_change(self, request, *args, **kwargs):
+        """
+        Validate the user's password and email uniqueness, then send a 6-digit
+        OTP to the new address and store a pending email-change record.
+
+        Request body: ``{"new_email": "...", "password": "..."}``
+        Success: HTTP 200 ``{"sent": true}``
+        Errors: HTTP 400 with field-keyed error messages.
+        """
+        profile = self.get_object()
+        user = profile.user
+
+        new_email = (request.data.get("new_email") or "").strip().lower()
+        password = request.data.get("password") or ""
+
+        if not new_email:
+            return Response(
+                {"new_email": _("This field is required.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.check_password(password):
+            return Response(
+                {"password": _("Invalid password.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if (
+            User.objects.filter(email__iexact=new_email)
+            .exclude(pk=user.pk)
+            .exists()
+        ):
+            return Response(
+                {"new_email": _("This email address is already in use.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        _pec, code = PendingEmailChange.start(user, new_email)
+        send_email_change_code(new_email, code)
+
+        return Response({"sent": True}, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
