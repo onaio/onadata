@@ -349,10 +349,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return username
 
     def validate_email(self, value):
-        """
-        Checks if user with the same email has already been registered.
-        """
-        users = User.objects.filter(email=value)
+        """Reject any other user with the same email (case-insensitive); store lower-cased."""
+        value = value.strip().lower()
+        users = User.objects.filter(email__iexact=value)
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
 
