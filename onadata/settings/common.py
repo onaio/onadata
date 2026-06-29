@@ -188,6 +188,7 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "onadata.libs.utils.middleware.ActivityTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware",
     "onadata.libs.utils.middleware.OperationalErrorMiddleware",

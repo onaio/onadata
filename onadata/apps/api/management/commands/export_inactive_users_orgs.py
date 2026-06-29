@@ -33,16 +33,17 @@ import json
 import os
 from datetime import datetime, timedelta
 
-import boto3
-from azure.core.exceptions import AzureError
-from azure.storage.blob import BlobServiceClient
-from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils import timezone
 from django.utils.translation import gettext as _
+
+import boto3
+from azure.core.exceptions import AzureError
+from azure.storage.blob import BlobServiceClient
+from botocore.exceptions import BotoCoreError, ClientError
 
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
@@ -361,6 +362,11 @@ class Command(BaseCommand):
                 creator.email as creator_email,
                 creator.date_joined as creator_date_joined,
                 creator.last_login as creator_last_login,
+                COALESCE(
+                    creator_activity.last_activity,
+                    creator.last_login,
+                    creator.date_joined
+                ) as creator_last_activity,
                 MAX(xf.last_submission_time) as last_submission_date,
                 COUNT(DISTINCT p.id) as project_count,
                 COUNT(DISTINCT xf.id) as form_count,
@@ -369,6 +375,8 @@ class Command(BaseCommand):
             INNER JOIN main_userprofile up ON o.userprofile_ptr_id = up.id
             INNER JOIN auth_user org_user ON up.user_id = org_user.id
             INNER JOIN auth_user creator ON o.creator_id = creator.id
+            LEFT JOIN main_useractivity creator_activity
+                ON creator_activity.user_id = creator.id
             LEFT JOIN logger_project p ON p.organization_id = org_user.id
                 AND p.deleted_at IS NULL
             LEFT JOIN logger_xform xf ON xf.project_id = p.id
@@ -376,13 +384,13 @@ class Command(BaseCommand):
             WHERE org_user.is_active = true
             GROUP BY o.userprofile_ptr_id, up.name, org_user.username, o.email,
                      org_user.date_joined, creator.username, creator.email,
-                     creator.date_joined, creator.last_login
+                     creator.date_joined, creator.last_login,
+                     creator_activity.last_activity
         )
         SELECT * FROM org_activity
         WHERE (last_submission_date < %s
            OR last_submission_date IS NULL)
-          AND (creator_last_login < %s
-           OR creator_last_login IS NULL)"""
+          AND creator_last_activity < %s"""
 
         # Add exclusion clause if needed
         if excluded_usernames:
@@ -431,6 +439,7 @@ class Command(BaseCommand):
             u.first_name,
             u.last_name,
             u.last_login,
+            COALESCE(ua.last_activity, u.last_login, u.date_joined) as last_activity,
             u.date_joined,
             u.is_active,
             up.name as profile_name,
@@ -439,6 +448,7 @@ class Command(BaseCommand):
             COUNT(DISTINCT p.id) as project_count,
             COUNT(DISTINCT xf.id) as form_count
         FROM auth_user u
+        LEFT JOIN main_useractivity ua ON ua.user_id = u.id
         LEFT JOIN main_userprofile up ON up.user_id = u.id
         LEFT JOIN api_organizationprofile op ON op.userprofile_ptr_id = up.id
         LEFT JOIN logger_project p ON p.created_by_id = u.id
@@ -447,7 +457,7 @@ class Command(BaseCommand):
             AND xf.deleted_at IS NULL
         WHERE op.userprofile_ptr_id IS NULL  -- Exclude organization accounts
           AND u.is_active = true
-          AND (u.last_login < %s OR u.last_login IS NULL)"""
+          AND COALESCE(ua.last_activity, u.last_login, u.date_joined) < %s"""
 
         # Add exclusion clause if needed
         if excluded_usernames:
@@ -456,9 +466,9 @@ class Command(BaseCommand):
 
         query += """
         GROUP BY u.id, u.username, u.email, u.first_name, u.last_name,
-                 u.last_login, u.date_joined, u.is_active, up.name,
+                 u.last_login, ua.last_activity, u.date_joined, u.is_active, up.name,
                  up.organization, up.num_of_submissions
-        ORDER BY u.last_login DESC NULLS LAST"""
+        ORDER BY last_activity DESC NULLS LAST"""
 
         # Add LIMIT and OFFSET if specified
         if limit:
