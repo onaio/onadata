@@ -12,7 +12,14 @@ def _get_user_model(apps):
     return apps.get_model(app_label, model_name)
 
 
-def seed_user_activity(apps, _schema_editor):
+def _table_has_column(connection, table_name, column_name):
+    with connection.cursor() as cursor:
+        columns = connection.introspection.get_table_description(cursor, table_name)
+
+    return column_name in {column.name for column in columns}
+
+
+def seed_user_activity(apps, schema_editor):
     User = _get_user_model(apps)
     UserActivity = apps.get_model("main", "UserActivity")
     Instance = apps.get_model("logger", "Instance")
@@ -27,17 +34,24 @@ def seed_user_activity(apps, _schema_editor):
     ):
         latest_activity_times[user_id] = activity_time
 
-    for user_id, activity_time in (
-        Instance.objects.filter(
-            last_edited_by_id__isnull=False, last_edited__isnull=False
-        )
-        .values("last_edited_by_id")
-        .annotate(activity_time=Max("last_edited"))
-        .values_list("last_edited_by_id", "activity_time")
-    ):
-        current_activity_time = latest_activity_times.get(user_id)
-        if current_activity_time is None or activity_time > current_activity_time:
-            latest_activity_times[user_id] = activity_time
+    table_name = Instance._meta.db_table
+    if _table_has_column(schema_editor.connection, table_name, "last_edited_by_id"):
+        quoted_table_name = schema_editor.connection.ops.quote_name(table_name)
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT last_edited_by_id, MAX(last_edited) AS activity_time
+                FROM {quoted_table_name}
+                WHERE last_edited_by_id IS NOT NULL
+                    AND last_edited IS NOT NULL
+                GROUP BY last_edited_by_id
+                """)
+            for user_id, activity_time in cursor.fetchall():
+                current_activity_time = latest_activity_times.get(user_id)
+                if (
+                    current_activity_time is None
+                    or activity_time > current_activity_time
+                ):
+                    latest_activity_times[user_id] = activity_time
 
     activities = []
     for user in User.objects.only("id", "last_login", "date_joined").iterator(
@@ -79,7 +93,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("main", "0016_update_xform_meta_perms"),
-        ("logger", "0038_instance_last_edited_by"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
