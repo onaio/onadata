@@ -124,6 +124,9 @@ CSRF_COOKIE_SAMESITE = os.environ.get("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
 # CSRF_COOKIE_HTTPONLY is left at Django's default (False) because the
 # JS client reads the CSRF token from the cookie to set the X-CSRFToken
 # header on AJAX requests.
+# Send a failed login POST back to a fresh login (new token) instead of the
+# dead-end 403 page, so a stale/rotated CSRF token lets the user just retry.
+CSRF_FAILURE_VIEW = "onadata.libs.csrf_failure.csrf_failure"
 
 # Login URLs
 LOGIN_URL = "/accounts/login/"
