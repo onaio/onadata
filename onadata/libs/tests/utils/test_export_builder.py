@@ -799,6 +799,48 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     # pylint: disable=invalid-name
+    def test_zipped_sav_export_select_multiple_choice_name_with_ampersand(self):
+        """SAV export sanitizes SPSS-invalid characters in variable names.
+
+        A select_multiple choice name is the realistic path through which an
+        invalid character (here "&") reaches an SPSS variable name, since the
+        column is named "<question>.<choice>" and the choice name is free-form.
+        The export must replace the invalid character instead of raising
+        SPSSIOError (SPSS_NAME_BADCHAR).
+        """
+        md = """
+        | survey |
+        |        | type                  | name           | label |
+        |        | select_multiple food  | food_available | Food  |
+
+        | choices |
+        |         | list name | name      | label |
+        |         | food      | green&red | GR    |
+        |         | food      | 2         | Two   |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "exp"})
+        data = [{"food_available": "green&red"}]
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+            export_builder.to_zipped_sav(temp_zip_file.name, data)
+            temp_zip_file.seek(0)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                zip_file.extractall(temp_dir)
+
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, "exp.sav")))
+
+        with SavReader(os.path.join(temp_dir, "exp.sav"), returnHeader=True) as reader:
+            rows = list(reader)
+            header = list(map(_str_if_bytes, rows[0]))
+            # The "&" must be sanitized out of the SPSS variable name.
+            self.assertNotIn("food_available.green&red", header)
+            self.assertIn("food_available.green_red", header)
+
+        shutil.rmtree(temp_dir)
+
+    # pylint: disable=invalid-name
     def test_zipped_sav_export_dynamic_select_multiple(self):
         md = """
         | survey |
