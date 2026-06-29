@@ -5,7 +5,7 @@ This module contains the `PasswordHistory` model which is used to track
 password changes for a user.
 """
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.db import IntegrityError, models, transaction
 
 
 User = get_user_model()
@@ -35,7 +35,21 @@ class PasswordHistory(models.Model):
         if not created and instance.pk:
             current_password = User.objects.get(pk=instance.pk).password
             if current_password != instance.password and current_password:
-                cls.objects.create(user=instance, hashed_password=current_password)
+                # ``hashed_password`` is globally unique, so recording an
+                # already-stored hash raises IntegrityError. That happens
+                # whenever Django re-hashes/upgrades a stale password on login
+                # and re-saves the user: the previous hash is re-recorded. An
+                # unguarded create() would abort the whole User.save(), the
+                # upgraded hash would never persist, and every subsequent login
+                # would repeat the failure — a permanent lockout. Swallow the
+                # duplicate inside a savepoint so it never breaks the user save.
+                try:
+                    with transaction.atomic():
+                        cls.objects.create(
+                            user=instance, hashed_password=current_password
+                        )
+                except IntegrityError:
+                    pass
 
     class Meta:
         app_label = "main"
