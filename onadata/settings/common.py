@@ -363,6 +363,13 @@ AUTHENTICATION_BACKENDS = (
 # Settings for Django Registration
 ACCOUNT_ACTIVATION_DAYS = 1
 
+# Inactive account deactivation defaults.
+DEACTIVATION_INACTIVITY_DAYS = 365
+DEACTIVATION_WARNING_DAYS = [30, 7]
+DEACTIVATION_PERMISSION_POLICY = "revoke"
+DEACTIVATION_EXCLUDED_USER_IDS = []
+DEACTIVATION_EXCLUDED_USERNAMES = []
+
 
 def skip_suspicious_operations(record):
     """Prevent django from sending 500 error

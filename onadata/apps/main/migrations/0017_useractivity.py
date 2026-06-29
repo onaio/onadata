@@ -15,15 +15,29 @@ def _get_user_model(apps):
 def seed_user_activity(apps, _schema_editor):
     User = _get_user_model(apps)
     UserActivity = apps.get_model("main", "UserActivity")
-    XForm = apps.get_model("logger", "XForm")
+    Instance = apps.get_model("logger", "Instance")
     now = timezone.now()
 
-    latest_submission_times = dict(
-        XForm.objects.filter(user_id__isnull=False, last_submission_time__isnull=False)
+    latest_activity_times = {}
+    for user_id, activity_time in (
+        Instance.objects.filter(user_id__isnull=False, date_created__isnull=False)
         .values("user_id")
-        .annotate(last_submission_time=Max("last_submission_time"))
-        .values_list("user_id", "last_submission_time")
-    )
+        .annotate(activity_time=Max("date_created"))
+        .values_list("user_id", "activity_time")
+    ):
+        latest_activity_times[user_id] = activity_time
+
+    for user_id, activity_time in (
+        Instance.objects.filter(
+            last_edited_by_id__isnull=False, last_edited__isnull=False
+        )
+        .values("last_edited_by_id")
+        .annotate(activity_time=Max("last_edited"))
+        .values_list("last_edited_by_id", "activity_time")
+    ):
+        current_activity_time = latest_activity_times.get(user_id)
+        if current_activity_time is None or activity_time > current_activity_time:
+            latest_activity_times[user_id] = activity_time
 
     activities = []
     for user in User.objects.only("id", "last_login", "date_joined").iterator(
@@ -33,7 +47,7 @@ def seed_user_activity(apps, _schema_editor):
             value
             for value in (
                 user.last_login,
-                latest_submission_times.get(user.pk),
+                latest_activity_times.get(user.pk),
                 user.date_joined,
             )
             if value is not None

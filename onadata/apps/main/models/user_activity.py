@@ -7,12 +7,29 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import models
+from django.core.cache import cache
+from django.core.cache.backends.base import InvalidCacheBackendError
+from django.db import DatabaseError, models
 from django.db.models import Max
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from pylibmc import Error as PyLibMCError
+from redis.exceptions import RedisError
+
+from onadata.libs.utils.cache_tools import safe_cache_delete
+
 User = get_user_model()
+
+USER_ACTIVITY_CACHE_PREFIX = "user-activity-"
+USER_ACTIVITY_CACHE_ERRORS = (
+    InvalidCacheBackendError,
+    PyLibMCError,
+    RedisError,
+    ConnectionError,
+    OSError,
+    TimeoutError,
+)
 
 
 class UserActivity(models.Model):
@@ -41,20 +58,38 @@ def get_initial_last_activity(user):
     latest_submission_time = None
     if getattr(user, "pk", None):
         # Import here to avoid a model import cycle during app loading.
-        from onadata.apps.logger.models import XForm
+        from onadata.apps.logger.models import Instance
 
-        latest_submission_time = XForm.objects.filter(
-            user=user, last_submission_time__isnull=False
-        ).aggregate(last_submission_time=Max("last_submission_time"))[
-            "last_submission_time"
-        ]
+        latest_submission_time = Instance.objects.filter(
+            user=user, date_created__isnull=False
+        ).aggregate(last_submission_time=Max("date_created"))["last_submission_time"]
+        latest_edit_time = Instance.objects.filter(
+            last_edited_by=user, last_edited__isnull=False
+        ).aggregate(last_edit_time=Max("last_edited"))["last_edit_time"]
+    else:
+        latest_edit_time = None
 
     candidates = [
         value
-        for value in (user.last_login, latest_submission_time, user.date_joined)
+        for value in (
+            user.last_login,
+            latest_submission_time,
+            latest_edit_time,
+            user.date_joined,
+        )
         if value is not None
     ]
     return max(candidates) if candidates else timezone.now()
+
+
+def add_user_activity_cache_key(cache_key, timeout):
+    """
+    Add a per-user activity cache key.
+    """
+    try:
+        return cache.add(cache_key, True, timeout=timeout)
+    except USER_ACTIVITY_CACHE_ERRORS:
+        return None
 
 
 def record_user_activity(user, when=None, force=False):
@@ -68,9 +103,24 @@ def record_user_activity(user, when=None, force=False):
         return None
 
     when = when or timezone.now()
-    activity, created = UserActivity.objects.get_or_create(
-        user=user, defaults={"last_activity": when}
-    )
+    min_interval = getattr(settings, "ACTIVITY_TRACKING_MIN_INTERVAL_SECONDS", 300)
+    cache_key = f"{USER_ACTIVITY_CACHE_PREFIX}{user.pk}"
+    cache_acquired = False
+
+    if not force and min_interval > 0:
+        cache_added = add_user_activity_cache_key(cache_key, min_interval)
+        cache_acquired = cache_added is True
+        if cache_added is False:
+            return None
+
+    try:
+        activity, created = UserActivity.objects.get_or_create(
+            user=user, defaults={"last_activity": when}
+        )
+    except DatabaseError:
+        if cache_acquired:
+            safe_cache_delete(cache_key)
+        raise
 
     if created:
         return activity
@@ -78,19 +128,34 @@ def record_user_activity(user, when=None, force=False):
     if activity.last_activity and activity.last_activity >= when:
         return activity
 
-    min_interval = getattr(settings, "ACTIVITY_TRACKING_MIN_INTERVAL_SECONDS", 300)
     stale_before = when - timedelta(seconds=min_interval)
-    should_update = (
-        force
-        or activity.last_activity is None
-        or activity.last_activity <= stale_before
-    )
+    update_filter = {
+        "pk": activity.pk,
+        "last_activity__lt": when,
+    }
+    if not force:
+        update_filter["last_activity__lte"] = stale_before
 
-    if not should_update:
-        return activity
+    try:
+        updated = UserActivity.objects.filter(**update_filter).update(
+            last_activity=when, date_modified=timezone.now()
+        )
+    except DatabaseError:
+        if cache_acquired:
+            safe_cache_delete(cache_key)
+        raise
 
-    activity.last_activity = when
-    activity.save(update_fields=["last_activity", "date_modified"])
+    if updated:
+        activity.last_activity = when
+        post_save.send(
+            sender=UserActivity,
+            instance=activity,
+            created=False,
+            raw=False,
+            using=activity._state.db,
+            update_fields={"last_activity", "date_modified"},
+        )
+
     return activity
 
 
