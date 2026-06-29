@@ -121,6 +121,24 @@ def send_generic_email(email, message_txt, subject):
     email_message.send()
 
 
+def send_email_change_code(to_email: str, code: str) -> None:
+    """Send a 6-digit OTP to *to_email* as part of an email-change request.
+
+    Uses synchronous delivery so Django's test ``mail.outbox`` captures it
+    without requiring Celery workers.
+    """
+    ttl_minutes = 5  # matches PendingEmailChange.TTL_SECONDS / 60
+    subject = "Verify your new email address"
+    body = (
+        f"Your email-change verification code is: {code}\n\n"
+        f"This code expires in {ttl_minutes} minutes. "
+        "If you did not request an email change, you can safely ignore this message."
+    )
+    from_email = settings.DEFAULT_FROM_EMAIL
+    email_message = EmailMultiAlternatives(subject, body, from_email, [to_email])
+    email_message.send()
+
+
 def get_project_invitation_url(request: HttpRequest):
     """Get project invitation url"""
     invitation_url_setting: dict = getattr(settings, "PROJECT_INVITATION_URL", {})
