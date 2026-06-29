@@ -127,3 +127,33 @@ class TestUserProfileSerializer(TestAbstractViewSet):
          # assert that a validation error was raised for the username field
         self.assertEqual(user_serializer.errors['username'],
                          ["Username cannot be purely numeric."])
+
+    def test_email_uniqueness_is_case_insensitive(self):
+        """
+        Registering with an email that matches an existing email
+        case-insensitively must be rejected.
+        """
+        User.objects.create_user(
+            username='alice2', email='Bob@x.com', password='alice2alice2'
+        )
+        data = {
+            'username': 'charlie',
+            'email': 'bob@x.com',
+            'name': 'Charlie',
+        }
+        serializer = UserProfileSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("already in use", str(serializer.errors["email"]))
+
+    def test_email_normalized_lowercase(self):
+        """
+        validate_email normalizes the returned email value to lower-case.
+        """
+        data = {
+            'username': 'david',
+            'email': 'New@X.com',
+            'name': 'David',
+        }
+        serializer = UserProfileSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["email"], "new@x.com")
