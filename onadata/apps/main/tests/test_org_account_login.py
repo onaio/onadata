@@ -89,6 +89,14 @@ class TestBlockOrgAccountLogin(TestCase):
             self.regular,
         )
 
+    def test_backend_rejects_inactive_user(self):
+        self.regular.is_active = False
+        self.regular.save(update_fields=["is_active"])
+        backend = ModelBackend()
+        self.assertIsNone(
+            backend.authenticate(None, username="bob", password=TEST_CREDENTIAL)
+        )
+
     def test_backend_allows_user_without_profile(self):
         # A valid password but no profile must not crash the org check.
         noprofile = User.objects.create_user(
@@ -152,6 +160,7 @@ class TestBlockOrgAccountLogin(TestCase):
         token = MagicMock()
         token.is_valid.return_value = True
         token.user = user
+        token.user_id = user.pk
         token.application = "app"
         token.token = BEARER_VALUE
         request = HttpRequest()

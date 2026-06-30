@@ -530,7 +530,9 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
             # Organization accounts are not loginnable; refuse any token whose
             # user is an org. New org-user tokens can no longer be issued, but
             # this guards pre-existing tokens that remain valid until expiry.
-            if is_organization_user(access_token.user):
+            if is_organization_user(access_token.user) or not self._user_is_active(
+                access_token
+            ):
                 self._set_oauth2_error_on_request(request, access_token, scopes)
                 return False
             request.client = access_token.application
@@ -542,3 +544,20 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
         self._set_oauth2_error_on_request(request, access_token, scopes)
 
         return False
+
+    def _user_is_active(self, access_token):
+        user = getattr(access_token, "user", None)
+        user_id = getattr(access_token, "user_id", None)
+        if user is None and user_id is None:
+            return True
+
+        if not isinstance(user_id, (int, str)):
+            user_id = getattr(user, "pk", None)
+
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return True
+
+        with use_master:
+            return User.objects.filter(pk=user_id, is_active=True).exists()

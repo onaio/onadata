@@ -10,13 +10,18 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from oauth2_provider.models import AccessToken, RefreshToken
+from rest_framework.authtoken.models import Token
+
+from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.logger.models.project import ProjectUserObjectPermission
 from onadata.apps.logger.models.xform import XFormUserObjectPermission
 from onadata.apps.main.models.user_activity import (
@@ -244,6 +249,23 @@ class UserDeactivationActionPlan:
             permission_policy=self.permission_policy,
             dry_run_action_summary=self.dry_run_action_summary,
         )
+
+
+@dataclass(frozen=True)
+class UserDeactivationActionResult:
+    """Summary of a live deactivation action."""
+
+    state: UserDeactivationState
+    action: str
+    deactivated: bool
+    token_revocation_count: int = 0
+    permission_snapshot_count: int = 0
+    permission_revocation_count: int = 0
+
+    @property
+    def user(self):
+        """Return the user affected by this action."""
+        return self.state.user
 
 
 @dataclass(frozen=True)
@@ -540,6 +562,92 @@ def snapshot_revocable_user_permissions(state, when=None, run_id=""):
     return stored_count
 
 
+def revoke_user_tokens(user):
+    """
+    Revoke API, temporary, and ODK tokens for a user.
+    """
+    if user is None or not getattr(user, "pk", None):
+        return 0
+
+    revoked_count = 0
+    revoked_count += RefreshToken.objects.filter(user=user).delete()[0]
+    revoked_count += AccessToken.objects.filter(user=user).delete()[0]
+    revoked_count += Token.objects.filter(user=user).delete()[0]
+    revoked_count += TempToken.objects.filter(user=user).delete()[0]
+    revoked_count += ODKToken.objects.filter(user=user, status=ODKToken.ACTIVE).update(
+        status=ODKToken.INACTIVE
+    )
+
+    return revoked_count
+
+
+def revoke_revocable_user_permissions(state, when=None, run_id=""):
+    """
+    Snapshot and remove direct project/form permissions eligible for revoke mode.
+    """
+    if (
+        state is None
+        or not getattr(state, "pk", None)
+        or get_deactivation_permission_policy() != PERMISSION_POLICY_REVOKE
+    ):
+        return 0, 0
+
+    when = when or timezone.now()
+    run_id = run_id or get_deactivation_run_id(state)
+    permission_batch = []
+    stored_count = 0
+    revoked_count = 0
+    for permission_row in get_revocable_user_permission_rows(state.user):
+        permission_batch.append(permission_row)
+        if len(permission_batch) >= PERMISSION_SNAPSHOT_BATCH_SIZE:
+            stored_count += _snapshot_permission_batch(
+                state=state,
+                permission_rows=permission_batch,
+                removed_at=when,
+                run_id=run_id,
+            )
+            revoked_count += _delete_permission_batch(state.user, permission_batch)
+            permission_batch = []
+
+    if permission_batch:
+        stored_count += _snapshot_permission_batch(
+            state=state,
+            permission_rows=permission_batch,
+            removed_at=when,
+            run_id=run_id,
+        )
+        revoked_count += _delete_permission_batch(state.user, permission_batch)
+
+    return stored_count, revoked_count
+
+
+def get_deactivation_run_id(state):
+    """
+    Return a stable snapshot run id for the state's current deactivation schedule.
+    """
+    scheduled_at = state.deactivation_scheduled_at
+    timestamp = (
+        scheduled_at.strftime("%Y%m%d%H%M%S%f") if scheduled_at else "unscheduled"
+    )
+    return f"state-{state.pk}-{timestamp}"[:64]
+
+
+def _delete_permission_batch(user, permission_rows):
+    permission_ids_by_model = {}
+    for permission_row in permission_rows:
+        permission_ids_by_model.setdefault(permission_row._meta.model, []).append(
+            permission_row.pk
+        )
+
+    deleted_count = 0
+    for model, permission_ids in permission_ids_by_model.items():
+        deleted_count += model.objects.filter(
+            pk__in=permission_ids, user=user
+        ).delete()[0]
+
+    return deleted_count
+
+
 def _snapshot_permission_batch(state, permission_rows, removed_at, run_id):
     existing_keys = set(
         UserDeactivationPermissionSnapshot.objects.filter(
@@ -771,6 +879,106 @@ def get_pending_deactivation_actions(when=None):
                 )
 
     return tuple(actions_by_state_id.values())
+
+
+def perform_deactivation_action(action_plan, when=None, run_id=""):
+    """
+    Perform a live deactivation action plan.
+    """
+    if action_plan is None or action_plan.action != DEACTIVATION_ACTION_DEACTIVATE:
+        raise ValueError("Only deactivate action plans can be performed")
+
+    return deactivate_user(
+        action_plan.state,
+        when=when or action_plan.when,
+        run_id=run_id,
+    )
+
+
+def deactivate_user(state, when=None, run_id=""):
+    """
+    Disable a user and revoke live access for an inactive-account lifecycle state.
+    """
+    if state is None or not getattr(state, "pk", None):
+        raise ValueError("A persisted UserDeactivationState is required")
+
+    when = when or timezone.now()
+    with transaction.atomic():
+        state = (
+            UserDeactivationState.objects.select_for_update()
+            .select_related("user")
+            .get(pk=state.pk)
+        )
+        user = state.user
+        if _has_current_deactivation(state) and not user.is_active:
+            return UserDeactivationActionResult(
+                state=state,
+                action=DEACTIVATION_ACTION_DEACTIVATE,
+                deactivated=False,
+            )
+
+        if not _is_deactivation_due(state, when=when):
+            return UserDeactivationActionResult(
+                state=state,
+                action=DEACTIVATION_ACTION_DEACTIVATE,
+                deactivated=False,
+            )
+
+        exclusion_reason = get_deactivation_exclusion_reason(user)
+        if exclusion_reason:
+            raise ValueError(f"Cannot deactivate excluded user: {exclusion_reason}")
+
+        permission_policy = get_deactivation_permission_policy()
+        run_id = run_id or get_deactivation_run_id(state)
+        token_revocation_count = revoke_user_tokens(user)
+        permission_snapshot_count = 0
+        permission_revocation_count = 0
+        permissions_revoked_at = None
+
+        if permission_policy == PERMISSION_POLICY_REVOKE:
+            (
+                permission_snapshot_count,
+                permission_revocation_count,
+            ) = revoke_revocable_user_permissions(state, when=when, run_id=run_id)
+            permissions_revoked_at = when
+
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        state.deactivated_at = when
+        state.permissions_revoked_at = permissions_revoked_at
+        state.permission_policy_applied = permission_policy
+        state.save(
+            update_fields=[
+                "deactivated_at",
+                "permissions_revoked_at",
+                "permission_policy_applied",
+                "date_modified",
+            ]
+        )
+
+    return UserDeactivationActionResult(
+        state=state,
+        action=DEACTIVATION_ACTION_DEACTIVATE,
+        deactivated=True,
+        token_revocation_count=token_revocation_count,
+        permission_snapshot_count=permission_snapshot_count,
+        permission_revocation_count=permission_revocation_count,
+    )
+
+
+def _has_current_deactivation(state):
+    return state.deactivated_at and (
+        state.reactivated_at is None or state.reactivated_at <= state.deactivated_at
+    )
+
+
+def _is_deactivation_due(state, when=None):
+    return (
+        get_deactivation_states_due_for_deactivation(when=when)
+        .filter(pk=state.pk)
+        .exists()
+    )
 
 
 def get_next_deactivation_action(state, when=None):

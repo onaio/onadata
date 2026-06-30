@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.http.request import HttpRequest
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 import jwt
 from oauth2_provider.models import AccessToken, get_application_model
@@ -173,7 +174,7 @@ class TestLockout(TestCase):
         trailing whitespaces
         """
         trailing_space_name = " " * 300
-        extra = {"HTTP_AUTHORIZATION": f'Digest username="{ trailing_space_name }",'}
+        extra = {"HTTP_AUTHORIZATION": f'Digest username="{trailing_space_name}",'}
         request = self.factory.get("/", **extra)
 
         # Assert that an exception is raised when trailing_spaces are
@@ -313,9 +314,11 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         def is_valid_mock(*args, **kwargs):
             return True
 
+        user = User.objects.create_user(username="bob")
         token = MagicMock()
         token.is_valid = is_valid_mock
-        token.user = "bob"
+        token.user = user
+        token.user_id = user.pk
         token.application = "bob-test"
         token.token = "abc"
         mock_token_class.DoesNotExist = AccessToken.DoesNotExist
@@ -334,6 +337,57 @@ class TestMasterReplicaOAuth2Validator(TestCase):
         )
         self.assertEqual(req.access_token, token)
         self.assertEqual(req.user, token.user)
+
+    def test_rejects_inactive_user_access_token(self):
+        user = User.objects.create_user(username="inactive-oauth")
+        application_model = get_application_model()
+        application = application_model.objects.create(
+            name="inactive-oauth-app",
+            user=user,
+            client_id="inactive-oauth-client",
+            client_type=application_model.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=application_model.GRANT_PASSWORD,
+        )
+        access_token = AccessToken.objects.create(
+            user=user,
+            application=application,
+            token="inactive-oauth-access",
+            expires=timezone.now() + timedelta(days=1),
+            scope="read write",
+        )
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        req = HttpRequest()
+
+        self.assertFalse(
+            MasterReplicaOAuth2Validator().validate_bearer_token(
+                access_token.token, {}, req
+            )
+        )
+        self.assertFalse(hasattr(req, "user"))
+
+    def test_allows_userless_access_token(self):
+        application_model = get_application_model()
+        application = application_model.objects.create(
+            name="userless-oauth-app",
+            client_id="userless-oauth-client",
+            client_type=application_model.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=application_model.GRANT_CLIENT_CREDENTIALS,
+        )
+        access_token = AccessToken.objects.create(
+            application=application,
+            token="userless-oauth-access",
+            expires=timezone.now() + timedelta(days=1),
+            scope="read write",
+        )
+        req = HttpRequest()
+
+        self.assertTrue(
+            MasterReplicaOAuth2Validator().validate_bearer_token(
+                access_token.token, {}, req
+            )
+        )
+        self.assertIsNone(req.user)
 
 
 def _basic_header(username, password):
@@ -367,6 +421,17 @@ class TestLockoutBasicAuthentication(TestCase):
         )
         user, _auth = self.auth.authenticate(request)
         self.assertEqual(user, self.user)
+
+    def test_rejects_inactive_user(self):
+        """Inactive users cannot authenticate with valid Basic credentials."""
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=_basic_header("bob", "secret")
+        )
+
+        with self.assertRaises(AuthenticationFailed):
+            self.auth.authenticate(request)
 
     def test_returns_none_without_basic_header(self):
         """Non-Basic requests are ignored so other authenticators can run."""

@@ -2,6 +2,7 @@
 """
 A custom ModelBackend class module.
 """
+
 # The onadata import below is ordered per the project's isort config.
 # pylint: disable=wrong-import-position,ungrouped-imports
 from django.contrib.auth import get_user_model
@@ -30,6 +31,8 @@ class ModelBackend(DjangoModelBackend):
         ).first()
 
         if user and user.check_password(password):
+            if not self.user_can_authenticate(user):
+                return None
             # Organization accounts are not loginnable human accounts; their
             # User row exists only to hold permissions and ownership. Refuse
             # authentication so an org account can never establish a session.

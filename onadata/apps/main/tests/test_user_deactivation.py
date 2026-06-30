@@ -12,12 +12,18 @@ from django.test import override_settings
 from django.utils import timezone
 
 from guardian.shortcuts import assign_perm, get_perms, remove_perm
+from oauth2_provider.models import AccessToken, RefreshToken, get_application_model
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.api import tools
+from onadata.apps.api.models.odk_token import ODKToken
 from onadata.apps.api.models.organization_profile import (
     get_or_create_organization_owners_team,
 )
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.project import ProjectUserObjectPermission
+from onadata.apps.logger.models.xform import XFormUserObjectPermission
 from onadata.apps.main.models.user_activity import UserActivity, record_user_activity
 from onadata.apps.main.models.user_deactivation import (
     DEACTIVATION_ACTION_DEACTIVATE,
@@ -29,6 +35,7 @@ from onadata.apps.main.models.user_deactivation import (
     DEACTIVATION_REPORT_COHORT_RECENTLY_DEACTIVATED,
     DEACTIVATION_REPORT_COHORT_RECENTLY_REACTIVATED,
     DEACTIVATION_REPORT_COHORT_SKIPPED,
+    PERMISSION_POLICY_PRESERVE,
     PERMISSION_POLICY_REVOKE,
     UserDeactivationPermissionSnapshot,
     UserDeactivationState,
@@ -39,6 +46,7 @@ from onadata.apps.main.models.user_deactivation import (
     get_deactivation_states_due_for_warning,
     get_deactivation_warning_days,
     get_pending_deactivation_actions,
+    perform_deactivation_action,
     snapshot_revocable_user_permissions,
     sync_user_deactivation_state,
 )
@@ -333,6 +341,226 @@ class TestUserDeactivationState(TestBase):
         )
         warning_state.refresh_from_db()
         self.assertEqual(warning_state.warned_offsets, [])
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30],
+        DEACTIVATION_PERMISSION_POLICY="revoke",
+    )
+    def test_perform_deactivation_action_revokes_tokens_and_permissions(self):
+        now = timezone.now()
+        inactive_user = User.objects.create_user(username="live-deactivate")
+        org_creator = User.objects.create_user(username="live-org-creator")
+        owner_profile = self._create_organization(
+            "live-owner-org", "Live Owner Org", org_creator
+        )
+        shared_project = tools.create_organization_project(
+            owner_profile.user, "live-shared-project", org_creator
+        )
+        owned_project = get_user_default_project(inactive_user)
+        shared_xform = self._publish_test_form(
+            owner_profile.user, shared_project, "live_shared_form", org_creator
+        )
+        self._clear_user_object_permissions(
+            inactive_user, shared_project, owned_project, shared_xform
+        )
+        assign_perm("view_project", inactive_user, shared_project)
+        assign_perm("view_project", inactive_user, owned_project)
+        assign_perm("view_xform", inactive_user, shared_xform)
+        Token.objects.get_or_create(user=inactive_user)
+        TempToken.objects.create(user=inactive_user)
+        odk_token = ODKToken.objects.create(user=inactive_user)
+        application_model = get_application_model()
+        application = application_model.objects.create(
+            name="live-deactivate-app",
+            user=inactive_user,
+            client_id="live-deactivate-client",
+            client_type=application_model.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=application_model.GRANT_PASSWORD,
+        )
+        access_token = AccessToken.objects.create(
+            user=inactive_user,
+            application=application,
+            token="live-deactivate-access",
+            expires=now + timedelta(days=1),
+            scope="read write",
+        )
+        RefreshToken.objects.create(
+            user=inactive_user,
+            application=application,
+            token="live-deactivate-refresh",
+            access_token=access_token,
+        )
+        state = self._create_due_state(
+            inactive_user, now, warning_sent_at=now - timedelta(days=31)
+        )
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == inactive_user
+        )
+
+        result = perform_deactivation_action(
+            action, when=now, run_id="live-deactivate-test"
+        )
+        duplicate_result = perform_deactivation_action(
+            action, when=now + timedelta(seconds=1), run_id="live-deactivate-test"
+        )
+
+        self.assertTrue(result.deactivated)
+        self.assertFalse(duplicate_result.deactivated)
+        self.assertEqual(result.token_revocation_count, 5)
+        self.assertEqual(result.permission_snapshot_count, 2)
+        self.assertEqual(result.permission_revocation_count, 2)
+        inactive_user.refresh_from_db()
+        state.refresh_from_db()
+        odk_token.refresh_from_db()
+        self.assertFalse(inactive_user.is_active)
+        self.assertFalse(AccessToken.objects.filter(user=inactive_user).exists())
+        self.assertFalse(RefreshToken.objects.filter(user=inactive_user).exists())
+        self.assertFalse(Token.objects.filter(user=inactive_user).exists())
+        self.assertFalse(TempToken.objects.filter(user=inactive_user).exists())
+        self.assertEqual(odk_token.status, ODKToken.INACTIVE)
+        self.assertFalse(
+            ProjectUserObjectPermission.objects.filter(
+                user=inactive_user, content_object=shared_project
+            ).exists()
+        )
+        self.assertFalse(
+            XFormUserObjectPermission.objects.filter(
+                user=inactive_user, content_object=shared_xform
+            ).exists()
+        )
+        self.assertTrue(
+            ProjectUserObjectPermission.objects.filter(
+                user=inactive_user,
+                content_object=owned_project,
+                permission__codename="view_project",
+            ).exists()
+        )
+        self.assertEqual(state.deactivated_at, now)
+        self.assertEqual(state.permissions_revoked_at, now)
+        self.assertEqual(state.permission_policy_applied, PERMISSION_POLICY_REVOKE)
+        self.assertEqual(
+            UserDeactivationPermissionSnapshot.objects.filter(
+                state=state, deactivation_run_id="live-deactivate-test"
+            ).count(),
+            2,
+        )
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[],
+        DEACTIVATION_PERMISSION_POLICY="preserve",
+    )
+    def test_perform_deactivation_action_preserves_permissions(self):
+        now = timezone.now()
+        inactive_user = User.objects.create_user(username="live-preserve")
+        org_creator = User.objects.create_user(username="live-preserve-creator")
+        owner_profile = self._create_organization(
+            "live-preserve-org", "Live Preserve Org", org_creator
+        )
+        shared_project = tools.create_organization_project(
+            owner_profile.user, "live-preserve-project", org_creator
+        )
+        self._clear_user_object_permissions(inactive_user, shared_project)
+        assign_perm("view_project", inactive_user, shared_project)
+        Token.objects.get_or_create(user=inactive_user)
+        TempToken.objects.create(user=inactive_user)
+        state = self._create_due_state(inactive_user, now)
+        state.permissions_revoked_at = now - timedelta(days=1)
+        state.save(update_fields=["permissions_revoked_at"])
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == inactive_user
+        )
+
+        result = perform_deactivation_action(action, when=now)
+
+        inactive_user.refresh_from_db()
+        state.refresh_from_db()
+        self.assertTrue(result.deactivated)
+        self.assertEqual(result.permission_snapshot_count, 0)
+        self.assertEqual(result.permission_revocation_count, 0)
+        self.assertFalse(inactive_user.is_active)
+        self.assertFalse(Token.objects.filter(user=inactive_user).exists())
+        self.assertFalse(TempToken.objects.filter(user=inactive_user).exists())
+        self.assertTrue(
+            ProjectUserObjectPermission.objects.filter(
+                user=inactive_user,
+                content_object=shared_project,
+                permission__codename="view_project",
+            ).exists()
+        )
+        self.assertEqual(state.deactivated_at, now)
+        self.assertIsNone(state.permissions_revoked_at)
+        self.assertEqual(state.permission_policy_applied, PERMISSION_POLICY_PRESERVE)
+        self.assertFalse(
+            UserDeactivationPermissionSnapshot.objects.filter(state=state).exists()
+        )
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30],
+        DEACTIVATION_PERMISSION_POLICY="revoke",
+    )
+    def test_perform_deactivation_action_ignores_stale_action_plan(self):
+        now = timezone.now()
+        inactive_user = User.objects.create_user(username="live-stale-action")
+        Token.objects.get_or_create(user=inactive_user)
+        state = self._create_due_state(
+            inactive_user, now, warning_sent_at=now - timedelta(days=31)
+        )
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == inactive_user
+        )
+
+        record_user_activity(
+            inactive_user,
+            when=now + timedelta(hours=1),
+            force=True,
+        )
+        result = perform_deactivation_action(action, when=now)
+
+        inactive_user.refresh_from_db()
+        state.refresh_from_db()
+        self.assertFalse(result.deactivated)
+        self.assertTrue(inactive_user.is_active)
+        self.assertTrue(Token.objects.filter(user=inactive_user).exists())
+        self.assertGreater(state.deactivation_scheduled_at, now)
+        self.assertIsNone(state.deactivated_at)
+        self.assertIsNone(state.permission_policy_applied or None)
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30],
+        DEACTIVATION_PERMISSION_POLICY="revoke",
+    )
+    def test_perform_deactivation_action_ignores_newly_excluded_user(self):
+        now = timezone.now()
+        inactive_user = User.objects.create_user(username="live-newly-excluded")
+        Token.objects.get_or_create(user=inactive_user)
+        state = self._create_due_state(
+            inactive_user, now, warning_sent_at=now - timedelta(days=31)
+        )
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == inactive_user
+        )
+
+        inactive_user.is_active = False
+        inactive_user.save(update_fields=["is_active"])
+        result = perform_deactivation_action(action, when=now)
+
+        state.refresh_from_db()
+        self.assertFalse(result.deactivated)
+        self.assertTrue(Token.objects.filter(user=inactive_user).exists())
+        self.assertIsNone(state.deactivated_at)
+        self.assertIsNone(state.permission_policy_applied or None)
 
     @override_settings(
         DEACTIVATION_INACTIVITY_DAYS=365,
