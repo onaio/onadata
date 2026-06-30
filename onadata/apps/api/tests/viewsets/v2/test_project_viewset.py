@@ -286,46 +286,103 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
         )
         ShareProject(self.project, "alice", "readonly").save()
 
+        # Project owner who starred the project
+        self.project.refresh_from_db()
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["starred"])
-        self.assertIn("owner", response.data)
-        self.assertIn("current_user_role", response.data)
-        full_cache = cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}")
-        self.assertIsNotNone(full_cache)
-        self.assertIn("owner", full_cache)
-        self.assertNotIn("starred", full_cache)
-        self.assertNotIn("current_user_role", full_cache)
 
+        expected = {
+            "url": f"http://testserver/api/v2/projects/{self.project.pk}",
+            "projectid": self.project.pk,
+            "name": "Tree Monitoring",
+            "owner": (
+                f"http://testserver/api/v1/users/{self.organization.user.username}"
+            ),
+            "created_by": f"http://testserver/api/v1/users/{self.user.username}",
+            "metadata": {
+                "description": "Some description",
+                "location": "Naivasha, Kenya",
+                "category": "governance",
+            },
+            "starred": True,
+            "forms": [],
+            "public": True,
+            "tags": ["Agriculture", "Environment"],
+            "num_datasets": 0,
+            "current_user_role": "owner",
+            "last_submission_date": None,
+            "data_views": [],
+            "date_created": self.project.date_created.isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "date_modified": self.project.date_modified.isoformat().replace(
+                "+00:00", "Z"
+            ),
+        }
+        actual = response.data.copy()
+        actual["tags"] = sorted(actual["tags"])
+        expected["tags"] = sorted(expected["tags"])
+        self.assertEqual(actual, expected)
+
+        # Cache holds the shared base data without user-specific fields
+        expected_cache = {
+            key: value
+            for key, value in expected.items()
+            if key not in ("starred", "current_user_role")
+        }
+        full_cache = cache.get(f"{PROJ_V2_OWNER_CACHE}{self.project.pk}")
+        actual_cache = full_cache.copy()
+        actual_cache["tags"] = sorted(actual_cache["tags"])
+        self.assertEqual(actual_cache, expected_cache)
+
+        # Alice with readonly who did not star the project
         request = self.factory.get(
             "/",
             **{"HTTP_AUTHORIZATION": f"Token {alice_profile.user.auth_token}"},
         )
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["starred"])
-        self.assertIn("owner", response.data)
-        self.assertEqual(response.data["current_user_role"], "readonly")
+        expected_alice = {
+            **expected,
+            "starred": False,
+            "current_user_role": "readonly",
+        }
+        actual = response.data.copy()
+        actual["tags"] = sorted(actual["tags"])
+        expected_alice["tags"] = sorted(expected_alice["tags"])
+        self.assertEqual(actual, expected_alice)
 
+        # Anonymous user: public variant, admin and user-specific fields omitted
         request = self.factory.get("/")
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["starred"])
-        public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
-        self.assertFalse(public_excluded_fields & set(response.data))
+
+        excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {
+            "starred",
+            "current_user_role",
+        }
+        expected_public = {
+            key: value for key, value in expected.items() if key not in excluded_fields
+        }
+        actual = response.data.copy()
+        actual["tags"] = sorted(actual["tags"])
+        expected_public["tags"] = sorted(expected_public["tags"])
+        self.assertEqual(actual, expected_public)
+
         public_cache = cache.get(f"{PROJ_V2_PUBLIC_OWNER_CACHE}{self.project.pk}")
-        self.assertIsNotNone(public_cache)
-        self.assertNotIn("starred", public_cache)
-        self.assertFalse(public_excluded_fields & set(public_cache))
+        actual_public_cache = public_cache.copy()
+        actual_public_cache["tags"] = sorted(actual_public_cache["tags"])
+        self.assertEqual(actual_public_cache, expected_public)
 
         cache.clear()
 
         request = self.factory.get("/")
         response = self.view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["starred"])
-        self.assertFalse(public_excluded_fields & set(response.data))
+        actual = response.data.copy()
+        actual["tags"] = sorted(actual["tags"])
+        self.assertEqual(actual, expected_public)
 
         request = self.factory.get("/", **self.extra)
         response = self.view(request, pk=self.project.pk)
