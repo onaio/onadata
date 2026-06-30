@@ -160,14 +160,32 @@ def sanitized_original_filename(name):
     return basename
 
 
+MAX_REASON_LENGTH = 200
+
+
+def _sanitize_reason(reason):
+    """Return a safe, single-line, length-capped reason string.
+
+    The validators raise static, non-sensitive descriptions of the rule that
+    was violated (e.g. "CSV files must be UTF-8 encoded."). Sanitizing here is
+    defence-in-depth: it guarantees that even if a future caller passes an
+    unexpected value, only a short single line of text can ever be surfaced —
+    never a multi-line traceback or internal detail.
+    """
+    if reason is None:
+        return ""
+    # Collapse all runs of whitespace (incl. newlines) to single spaces so a
+    # multi-line value cannot be surfaced, then cap the length.
+    return " ".join(str(reason).split())[:MAX_REASON_LENGTH]
+
+
 def generic_upload_validation_error_message(uploaded_file, reason=None):
     """Return an API validation error that identifies the upload.
 
     When ``reason`` is provided (typically the :class:`UploadValidationError`
-    raised by the validators), it is appended so API clients learn *why* the
-    upload failed instead of only seeing the generic text. The validators
-    raise static, non-sensitive descriptions of the rule that was violated
-    (e.g. "CSV files must be UTF-8 encoded."), so surfacing them is safe.
+    raised by the validators), a sanitized, single-line, length-capped form of
+    it is appended so API clients learn *why* the upload failed instead of only
+    seeing the generic text. See :func:`_sanitize_reason` for the guarantees.
     """
     filename = sanitized_original_filename(getattr(uploaded_file, "name", ""))
 
@@ -178,7 +196,7 @@ def generic_upload_validation_error_message(uploaded_file, reason=None):
     else:
         message = _("The uploaded file could not be validated.")
 
-    reason_text = str(reason).strip() if reason is not None else ""
+    reason_text = _sanitize_reason(reason)
     if reason_text:
         return f"{message} {reason_text}"
 
