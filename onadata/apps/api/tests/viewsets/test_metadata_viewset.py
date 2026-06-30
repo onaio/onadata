@@ -701,10 +701,16 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         return view(request)
 
     def assert_upload_validation_error(self, response, filename):
-        """Assert the API returns a generic file validation error."""
-        self.assertEqual(
+        """Assert the API returns a file validation error identifying the file.
+
+        The message starts with the generic, file-identifying text and may be
+        followed by the specific reason the upload failed.
+        """
+        self.assertTrue(
+            response.data["data_file"][0].startswith(
+                f"The uploaded file '{filename}' could not be validated."
+            ),
             response.data["data_file"][0],
-            f"The uploaded file '{filename}' could not be validated.",
         )
 
     def test_media_upload_rejects_double_extension(self):
