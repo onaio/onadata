@@ -248,10 +248,8 @@ class ProjectViewSet(
 
         if request.method == "DELETE":
             project.user_stars.remove(user)
-            project.save()
         elif request.method == "POST":
             project.user_stars.add(user)
-            project.save()
         elif request.method == "GET":
             users = project.user_stars.values("pk")
             user_profiles = UserProfile.objects.filter(user__in=users)

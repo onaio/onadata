@@ -50,9 +50,8 @@ class ProjectViewSet(ProjectViewSetV1):
         base_data = safe_cache_get(cache_key)
 
         if base_data is None:
-            base_data = get_shared_project_detail_cache_data(
-                ProjectSerializer(project, context={"request": request}).data
-            )
+            serializer = ProjectSerializer(project, context={"request": request})
+            base_data = get_shared_project_detail_cache_data(serializer.data)
             safe_cache_set(cache_key, base_data)
         else:
             base_data = get_shared_project_detail_cache_data(base_data)
