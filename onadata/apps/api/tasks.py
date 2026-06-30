@@ -138,6 +138,12 @@ def send_account_lockout_email(email, message_txt, subject):
 
 
 @app.task(base=AutoRetryTask)
+def send_account_deactivation_email(email, message_txt, subject):
+    """Sends inactive-account deactivation warning email."""
+    send_generic_email(email, message_txt, subject)
+
+
+@app.task(base=AutoRetryTask)
 def delete_inactive_submissions():
     """
     Task to periodically delete soft deleted submissions from db

@@ -7,6 +7,7 @@ import csv
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
+from math import ceil
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -29,6 +30,7 @@ from onadata.apps.main.models.user_activity import (
     UserActivity,
     get_initial_last_activity,
 )
+from onadata.libs.utils.email import get_account_deactivation_email_data
 
 User = get_user_model()
 
@@ -132,10 +134,15 @@ class UserDeactivationState(models.Model):
         """
         Record that a warning offset has been sent.
         """
+        self.mark_warning_offsets_sent([offset_days], when=when)
+
+    def mark_warning_offsets_sent(self, offsets, when=None):
+        """
+        Record that warning offsets have been sent.
+        """
         when = when or timezone.now()
-        offset_days = int(offset_days)
         warned_offsets = normalize_warning_days(
-            [*(self.warned_offsets or []), offset_days]
+            [*(self.warned_offsets or []), *normalize_warning_days(offsets)]
         )
 
         if self.first_warning_sent_at is None:
@@ -267,6 +274,22 @@ class UserDeactivationActionResult:
     @property
     def user(self):
         """Return the user affected by this action."""
+        return self.state.user
+
+
+@dataclass(frozen=True)
+class UserDeactivationWarningResult:
+    """Summary of an inactive-account warning dispatch."""
+
+    state: UserDeactivationState
+    action: str
+    warning_offsets: tuple = ()
+    email: str = ""
+    sent: bool = False
+
+    @property
+    def user(self):
+        """Return the user affected by this warning."""
         return self.state.user
 
 
@@ -435,6 +458,44 @@ def get_deactivation_action_summary(action, warning_offsets=(), permission_polic
         return f"{summary}; would preserve direct project/form permissions"
 
     return "no action"
+
+
+def get_deactivation_days_remaining(deactivation_scheduled_at, when=None):
+    """
+    Return rounded-up days remaining before scheduled deactivation.
+    """
+    if deactivation_scheduled_at is None:
+        return 0
+
+    when = when or timezone.now()
+    seconds_remaining = (deactivation_scheduled_at - when).total_seconds()
+    return max(0, int(ceil(seconds_remaining / 86400.0)))
+
+
+def get_effective_deactivation_scheduled_at(state, when=None):
+    """
+    Return the enforceable deactivation deadline for a lifecycle state.
+    """
+    if state is None or state.deactivation_scheduled_at is None:
+        return None
+
+    scheduled_at = state.deactivation_scheduled_at
+    warning_days = get_deactivation_warning_days()
+    if not warning_days:
+        return scheduled_at
+
+    required_warning_days = warning_days[0]
+    warned_offsets = {int(offset) for offset in state.warned_offsets or []}
+    if required_warning_days in warned_offsets:
+        if state.first_warning_sent_at is None:
+            return scheduled_at
+        return max(
+            scheduled_at,
+            state.first_warning_sent_at + timedelta(days=required_warning_days),
+        )
+
+    when = when or timezone.now()
+    return max(scheduled_at, when + timedelta(days=required_warning_days))
 
 
 def format_warning_labels(offsets):
@@ -805,15 +866,22 @@ def get_deactivation_states_due_for_warning(offset_days, when=None):
     when = when or timezone.now()
     offset_days = int(offset_days)
     warning_cutoff = when + timedelta(days=offset_days)
-
-    return (
-        get_active_deactivation_states()
-        .filter(
-            deactivation_scheduled_at__gt=when,
-            deactivation_scheduled_at__lte=warning_cutoff,
-        )
-        .exclude(warned_offsets__contains=[offset_days])
+    queryset = get_active_deactivation_states().exclude(
+        warned_offsets__contains=[offset_days]
     )
+    warning_filter = Q(
+        deactivation_scheduled_at__gt=when,
+        deactivation_scheduled_at__lte=warning_cutoff,
+    )
+    warning_days = get_deactivation_warning_days()
+    if warning_days:
+        required_warning_days = warning_days[0]
+        if offset_days == required_warning_days:
+            warning_filter |= Q(deactivation_scheduled_at__lte=when)
+        else:
+            queryset = queryset.filter(warned_offsets__contains=[required_warning_days])
+
+    return queryset.filter(warning_filter)
 
 
 def get_deactivation_states_due_for_deactivation(when=None):
@@ -881,6 +949,77 @@ def get_pending_deactivation_actions(when=None):
                 )
 
     return tuple(actions_by_state_id.values())
+
+
+def dispatch_deactivation_warning(action_plan, dispatch_func, when=None):
+    """
+    Dispatch a warning email for a live warning action plan.
+    """
+    if action_plan is None or action_plan.action != DEACTIVATION_ACTION_SEND_WARNING:
+        raise ValueError("Only send warning action plans can be dispatched")
+    if dispatch_func is None:
+        raise ValueError("A warning dispatch function is required")
+
+    when = when or action_plan.when or timezone.now()
+    with transaction.atomic():
+        state = (
+            UserDeactivationState.objects.select_for_update()
+            .select_related("user")
+            .get(pk=action_plan.state.pk)
+        )
+        warning_offsets = _get_due_warning_offsets(
+            state,
+            action_plan.warning_offsets,
+            when=when,
+        )
+        email = state.user.email
+        if not warning_offsets or not email:
+            return UserDeactivationWarningResult(
+                state=state,
+                action=DEACTIVATION_ACTION_SEND_WARNING,
+                warning_offsets=warning_offsets,
+                email=email,
+                sent=False,
+            )
+
+        warning_offsets = _apply_required_warning_grace(
+            state, warning_offsets, when=when
+        )
+        email_data = get_deactivation_warning_email_data(state, when=when)
+        dispatch_func(
+            email_data["email"],
+            email_data["message_txt"],
+            email_data["subject"],
+        )
+        state.mark_warning_offsets_sent(warning_offsets, when=when)
+
+    return UserDeactivationWarningResult(
+        state=state,
+        action=DEACTIVATION_ACTION_SEND_WARNING,
+        warning_offsets=warning_offsets,
+        email=email,
+        sent=True,
+    )
+
+
+def get_deactivation_warning_email_data(state, when=None):
+    """
+    Return rendered email data for a deactivation warning.
+    """
+    when = when or timezone.now()
+    deactivation_scheduled_at = get_effective_deactivation_scheduled_at(
+        state,
+        when=when,
+    )
+    return get_account_deactivation_email_data(
+        email=state.user.email,
+        username=state.user.username,
+        days_remaining=get_deactivation_days_remaining(
+            deactivation_scheduled_at,
+            when=when,
+        ),
+        deactivation_date=deactivation_scheduled_at,
+    )
 
 
 def perform_deactivation_action(action_plan, when=None, run_id=""):
@@ -983,6 +1122,47 @@ def _is_deactivation_due(state, when=None):
     )
 
 
+def _get_due_warning_offsets(state, warning_offsets, when=None):
+    due_offsets = []
+    for offset_days in normalize_warning_days(warning_offsets):
+        if (
+            get_deactivation_states_due_for_warning(offset_days, when=when)
+            .filter(pk=state.pk)
+            .exists()
+        ):
+            due_offsets.append(offset_days)
+
+    return normalize_warning_days(due_offsets)
+
+
+def _apply_required_warning_grace(state, warning_offsets, when=None):
+    when = when or timezone.now()
+    warning_days = get_deactivation_warning_days()
+    if not warning_days:
+        return warning_offsets
+
+    required_warning_days = warning_days[0]
+    warning_offsets = normalize_warning_days(warning_offsets)
+    if required_warning_days not in warning_offsets:
+        return warning_offsets
+
+    deactivation_scheduled_at = get_effective_deactivation_scheduled_at(
+        state, when=when
+    )
+    if (
+        deactivation_scheduled_at is not None
+        and state.deactivation_scheduled_at < deactivation_scheduled_at
+    ):
+        state.deactivation_scheduled_at = deactivation_scheduled_at
+        state.save(update_fields=["deactivation_scheduled_at", "date_modified"])
+
+    return tuple(
+        offset_days
+        for offset_days in warning_offsets
+        if state.deactivation_scheduled_at - timedelta(days=offset_days) <= when
+    )
+
+
 def get_next_deactivation_action(state, when=None):
     """
     Return the next expected action/date/offsets for a lifecycle state.
@@ -996,24 +1176,22 @@ def get_next_deactivation_action(state, when=None):
         return DEACTIVATION_ACTION_NONE, None, ()
 
     warning_days = get_deactivation_warning_days()
+    effective_deactivation_at = get_effective_deactivation_scheduled_at(
+        state, when=when
+    )
     warned_offsets = {int(offset) for offset in state.warned_offsets or []}
     for offset_days in warning_days:
         if offset_days in warned_offsets:
             continue
 
-        warning_at = state.deactivation_scheduled_at - timedelta(days=offset_days)
+        warning_at = effective_deactivation_at - timedelta(days=offset_days)
         return (
             DEACTIVATION_ACTION_SEND_WARNING,
             max(warning_at, when),
             (offset_days,),
         )
 
-    deactivation_at = state.deactivation_scheduled_at
-    if warning_days and state.first_warning_sent_at:
-        deactivation_at = max(
-            deactivation_at,
-            state.first_warning_sent_at + timedelta(days=warning_days[0]),
-        )
+    deactivation_at = effective_deactivation_at
 
     return (
         DEACTIVATION_ACTION_DEACTIVATE,

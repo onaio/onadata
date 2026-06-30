@@ -88,7 +88,7 @@ class TestReportInactiveUsersCommand(TestBase):
         self.assertEqual(warning_row["permission_policy"], "revoke")
         self.assertEqual(
             warning_row["dry_run_action_summary"],
-            "would send 30-day and 7-day warning email",
+            "would send 30-day warning email",
         )
 
     @override_settings(

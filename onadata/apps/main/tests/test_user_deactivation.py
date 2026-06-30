@@ -4,7 +4,7 @@ Test user deactivation lifecycle state.
 """
 
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -39,6 +39,7 @@ from onadata.apps.main.models.user_deactivation import (
     PERMISSION_POLICY_REVOKE,
     UserDeactivationPermissionSnapshot,
     UserDeactivationState,
+    dispatch_deactivation_warning,
     get_deactivation_exclusion_reason,
     get_deactivation_permission_policy,
     get_deactivation_report_rows,
@@ -300,6 +301,34 @@ class TestUserDeactivationState(TestBase):
     @override_settings(
         DEACTIVATION_INACTIVITY_DAYS=365,
         DEACTIVATION_WARNING_DAYS=[30, 7],
+    )
+    def test_pending_actions_send_required_warning_for_overdue_unwarned_state(self):
+        now = timezone.now()
+        user = User.objects.create_user(username="overdue-warning-required")
+        state = self._create_due_state(user, now)
+
+        actions_by_username = {
+            action.user.username: action
+            for action in get_pending_deactivation_actions(when=now)
+        }
+
+        self.assertFalse(
+            get_deactivation_states_due_for_deactivation(when=now)
+            .filter(pk=state.pk)
+            .exists()
+        )
+        self.assertEqual(
+            actions_by_username["overdue-warning-required"].action,
+            DEACTIVATION_ACTION_SEND_WARNING,
+        )
+        self.assertEqual(
+            actions_by_username["overdue-warning-required"].warning_offsets,
+            (30,),
+        )
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30, 7],
         DEACTIVATION_PERMISSION_POLICY="revoke",
     )
     def test_pending_deactivation_actions_builds_warning_and_deactivation_plans(self):
@@ -322,10 +351,10 @@ class TestUserDeactivationState(TestBase):
             actions_by_username["action-warning"].action,
             DEACTIVATION_ACTION_SEND_WARNING,
         )
-        self.assertEqual(actions_by_username["action-warning"].warning_offsets, (30, 7))
+        self.assertEqual(actions_by_username["action-warning"].warning_offsets, (30,))
         self.assertEqual(
             actions_by_username["action-warning"].dry_run_action_summary,
-            "would send 30-day and 7-day warning email",
+            "would send 30-day warning email",
         )
         self.assertEqual(
             actions_by_username["action-deactivate"].action,
@@ -341,6 +370,116 @@ class TestUserDeactivationState(TestBase):
         )
         warning_state.refresh_from_db()
         self.assertEqual(warning_state.warned_offsets, [])
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30, 7],
+        DEPLOYMENT_NAME="Test Deployment",
+        SUPPORT_EMAIL="support@example.com",
+    )
+    def test_dispatch_deactivation_warning_sends_email_and_marks_offsets(self):
+        now = timezone.now()
+        warning_user = User.objects.create_user(
+            username="dispatch-warning",
+            email="dispatch-warning@example.com",
+        )
+        warning_activity = now - timedelta(days=360)
+        UserActivity.objects.filter(user=warning_user).update(
+            last_activity=warning_activity
+        )
+        state = sync_user_deactivation_state(warning_user)
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == warning_user
+        )
+        dispatch_func = Mock()
+
+        result = dispatch_deactivation_warning(action, dispatch_func, when=now)
+
+        state.refresh_from_db()
+        self.assertTrue(result.sent)
+        self.assertEqual(result.warning_offsets, (30,))
+        self.assertEqual(state.first_warning_sent_at, now)
+        self.assertEqual(state.warned_offsets, [30])
+        self.assertEqual(
+            state.deactivation_scheduled_at,
+            now + timedelta(days=30),
+        )
+        dispatch_func.assert_called_once()
+        email, message_txt, subject = dispatch_func.call_args[0]
+        self.assertEqual(email, "dispatch-warning@example.com")
+        self.assertEqual(
+            subject,
+            "Test Deployment account scheduled for deactivation",
+        )
+        self.assertIn("Hi dispatch-warning", message_txt)
+        self.assertIn("in 30 days", message_txt)
+        self.assertIn("support@example.com", message_txt)
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30],
+    )
+    def test_dispatch_deactivation_warning_ignores_stale_action_plan(self):
+        now = timezone.now()
+        warning_user = User.objects.create_user(
+            username="dispatch-stale",
+            email="dispatch-stale@example.com",
+        )
+        warning_activity = now - timedelta(days=340)
+        UserActivity.objects.filter(user=warning_user).update(
+            last_activity=warning_activity
+        )
+        state = sync_user_deactivation_state(warning_user)
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == warning_user
+        )
+        dispatch_func = Mock()
+
+        record_user_activity(
+            warning_user,
+            when=now + timedelta(hours=1),
+            force=True,
+        )
+        result = dispatch_deactivation_warning(action, dispatch_func, when=now)
+
+        state.refresh_from_db()
+        self.assertFalse(result.sent)
+        self.assertEqual(result.warning_offsets, ())
+        self.assertEqual(state.warned_offsets, [])
+        self.assertIsNone(state.first_warning_sent_at)
+        dispatch_func.assert_not_called()
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30],
+    )
+    def test_dispatch_deactivation_warning_skips_users_without_email(self):
+        now = timezone.now()
+        warning_user = User.objects.create_user(username="dispatch-no-email")
+        warning_activity = now - timedelta(days=340)
+        UserActivity.objects.filter(user=warning_user).update(
+            last_activity=warning_activity
+        )
+        state = sync_user_deactivation_state(warning_user)
+        action = next(
+            action
+            for action in get_pending_deactivation_actions(when=now)
+            if action.user == warning_user
+        )
+        dispatch_func = Mock()
+
+        result = dispatch_deactivation_warning(action, dispatch_func, when=now)
+
+        state.refresh_from_db()
+        self.assertFalse(result.sent)
+        self.assertEqual(result.warning_offsets, (30,))
+        self.assertEqual(state.warned_offsets, [])
+        self.assertIsNone(state.first_warning_sent_at)
+        dispatch_func.assert_not_called()
 
     @override_settings(
         DEACTIVATION_INACTIVITY_DAYS=365,
@@ -643,7 +782,7 @@ class TestUserDeactivationState(TestBase):
             ("report-warning", DEACTIVATION_REPORT_COHORT_DUE_WARNING)
         ]
         self.assertEqual(warning_row.next_action, DEACTIVATION_ACTION_SEND_WARNING)
-        self.assertEqual(warning_row.warning_offsets, (30, 7))
+        self.assertEqual(warning_row.warning_offsets, (30,))
         self.assertEqual(
             warning_row.as_dict()["computed_last_activity"], warning_activity
         )
