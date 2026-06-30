@@ -294,6 +294,21 @@ class UserDeactivationWarningResult:
 
 
 @dataclass(frozen=True)
+class UserReactivationResult:
+    """Summary of a lifecycle reactivation action."""
+
+    state: UserDeactivationState
+    reactivated: bool
+    token_created: bool = False
+    temp_token_created: bool = False
+
+    @property
+    def user(self):
+        """Return the user affected by this reactivation."""
+        return self.state.user
+
+
+@dataclass(frozen=True)
 class UserDeactivationReportRow:
     """A normalized row for inactive-account reports."""
 
@@ -1105,6 +1120,69 @@ def deactivate_user(state, when=None, run_id=""):
         token_revocation_count=token_revocation_count,
         permission_snapshot_count=permission_snapshot_count,
         permission_revocation_count=permission_revocation_count,
+    )
+
+
+def reactivate_user(state, when=None):
+    """
+    Reactivate a user currently disabled by the inactive-account lifecycle.
+    """
+    if state is None or not getattr(state, "pk", None):
+        raise ValueError("A persisted UserDeactivationState is required")
+
+    when = when or timezone.now()
+    with transaction.atomic():
+        state = (
+            UserDeactivationState.objects.select_for_update()
+            .select_related("user")
+            .get(pk=state.pk)
+        )
+        if not has_current_deactivation(state):
+            return UserReactivationResult(state=state, reactivated=False)
+
+        user = state.user
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+
+        activity, activity_created = UserActivity.objects.get_or_create(
+            user=user,
+            defaults={"last_activity": when},
+        )
+        if not activity_created and activity.last_activity != when:
+            UserActivity.objects.filter(pk=activity.pk).update(last_activity=when)
+            activity.last_activity = when
+
+        _token, token_created = Token.objects.get_or_create(user=user)
+        _temp_token, temp_token_created = TempToken.objects.get_or_create(user=user)
+
+        state.reactivated_at = when
+        state.deactivation_scheduled_at = get_deactivation_scheduled_at(when)
+        state.clear_warning_state(save=False)
+        state.save(
+            update_fields=[
+                "reactivated_at",
+                "deactivation_scheduled_at",
+                "first_warning_sent_at",
+                "warned_offsets",
+                "date_modified",
+            ]
+        )
+
+    return UserReactivationResult(
+        state=state,
+        reactivated=True,
+        token_created=token_created,
+        temp_token_created=temp_token_created,
+    )
+
+
+def has_current_deactivation(state):
+    """
+    Return whether a lifecycle state represents a current deactivation.
+    """
+    return bool(
+        state and getattr(state, "pk", None) and _has_current_deactivation(state)
     )
 
 

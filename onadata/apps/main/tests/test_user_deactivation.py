@@ -48,6 +48,7 @@ from onadata.apps.main.models.user_deactivation import (
     get_deactivation_warning_days,
     get_pending_deactivation_actions,
     perform_deactivation_action,
+    reactivate_user,
     snapshot_revocable_user_permissions,
     sync_user_deactivation_state,
 )
@@ -700,6 +701,68 @@ class TestUserDeactivationState(TestBase):
         self.assertTrue(Token.objects.filter(user=inactive_user).exists())
         self.assertIsNone(state.deactivated_at)
         self.assertIsNone(state.permission_policy_applied or None)
+
+    @override_settings(DEACTIVATION_INACTIVITY_DAYS=365)
+    def test_reactivate_user_restores_account_access_and_resets_schedule(self):
+        now = timezone.now()
+        inactive_user = User.objects.create_user(
+            username="reactivate-user",
+            is_active=False,
+        )
+        state = sync_user_deactivation_state(inactive_user)
+        state.deactivated_at = now - timedelta(days=1)
+        state.first_warning_sent_at = now - timedelta(days=31)
+        state.warned_offsets = [30, 7]
+        state.permissions_revoked_at = now - timedelta(days=1)
+        state.permission_policy_applied = PERMISSION_POLICY_REVOKE
+        state.save(
+            update_fields=[
+                "deactivated_at",
+                "first_warning_sent_at",
+                "warned_offsets",
+                "permissions_revoked_at",
+                "permission_policy_applied",
+            ]
+        )
+        Token.objects.filter(user=inactive_user).delete()
+        TempToken.objects.filter(user=inactive_user).delete()
+
+        result = reactivate_user(state, when=now)
+
+        inactive_user.refresh_from_db()
+        state.refresh_from_db()
+        self.assertTrue(result.reactivated)
+        self.assertTrue(result.token_created)
+        self.assertTrue(result.temp_token_created)
+        self.assertTrue(inactive_user.is_active)
+        self.assertTrue(Token.objects.filter(user=inactive_user).exists())
+        self.assertTrue(TempToken.objects.filter(user=inactive_user).exists())
+        self.assertEqual(inactive_user.activity.last_activity, now)
+        self.assertEqual(state.reactivated_at, now)
+        self.assertEqual(state.deactivation_scheduled_at, now + timedelta(days=365))
+        self.assertIsNone(state.first_warning_sent_at)
+        self.assertEqual(state.warned_offsets, [])
+        self.assertEqual(state.deactivated_at, now - timedelta(days=1))
+        self.assertEqual(state.permissions_revoked_at, now - timedelta(days=1))
+        self.assertEqual(state.permission_policy_applied, PERMISSION_POLICY_REVOKE)
+
+    def test_reactivate_user_ignores_users_without_current_deactivation(self):
+        now = timezone.now()
+        user = User.objects.create_user(username="reactivate-not-current")
+        state = sync_user_deactivation_state(user)
+        state.deactivated_at = now - timedelta(days=2)
+        state.reactivated_at = now - timedelta(days=1)
+        state.save(update_fields=["deactivated_at", "reactivated_at"])
+        Token.objects.filter(user=user).delete()
+        TempToken.objects.filter(user=user).delete()
+
+        result = reactivate_user(state, when=now)
+
+        state.refresh_from_db()
+        self.assertFalse(result.reactivated)
+        self.assertEqual(state.reactivated_at, now - timedelta(days=1))
+        self.assertFalse(Token.objects.filter(user=user).exists())
+        self.assertFalse(TempToken.objects.filter(user=user).exists())
 
     @override_settings(
         DEACTIVATION_INACTIVITY_DAYS=365,
