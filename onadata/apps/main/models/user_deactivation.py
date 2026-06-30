@@ -3,9 +3,10 @@
 User deactivation lifecycle state.
 """
 
+import csv
 from collections import OrderedDict
 from dataclasses import dataclass, replace
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -62,6 +63,7 @@ DEFAULT_DEACTIVATION_WARNING_DAYS = (30, 7)
 DEFAULT_DEACTIVATION_PERMISSION_POLICY = PERMISSION_POLICY_REVOKE
 DEFAULT_DEACTIVATION_REPORT_WINDOW_DAYS = 30
 PERMISSION_SNAPSHOT_BATCH_SIZE = 1000
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 DEACTIVATION_REPORT_COLUMNS = (
     "username",
@@ -1069,6 +1071,45 @@ def get_deactivation_report_rows(window_days=None, when=None):
     )
 
     return tuple(rows)
+
+
+def serialize_deactivation_report_row(row):
+    """
+    Return a CSV-ready dictionary for a deactivation report row.
+    """
+    row_dict = row.as_dict()
+    return {
+        column: _format_deactivation_report_value(row_dict.get(column))
+        for column in DEACTIVATION_REPORT_COLUMNS
+    }
+
+
+def write_deactivation_report_csv(output, rows=None, window_days=None, when=None):
+    """
+    Write inactive-account report rows to ``output`` as CSV.
+    """
+    if rows is None:
+        rows = get_deactivation_report_rows(window_days=window_days, when=when)
+
+    writer = csv.DictWriter(output, fieldnames=DEACTIVATION_REPORT_COLUMNS)
+    writer.writeheader()
+
+    row_count = 0
+    for row in rows:
+        writer.writerow(serialize_deactivation_report_row(row))
+        row_count += 1
+
+    return row_count
+
+
+def _format_deactivation_report_value(value):
+    if value is None:
+        return ""
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, str) and value.startswith(CSV_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
 
 
 def _get_already_warned_report_rows(
