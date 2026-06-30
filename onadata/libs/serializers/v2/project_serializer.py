@@ -146,7 +146,6 @@ class ProjectSerializer(ProjectSerializerV1):
             "owner",
             "created_by",
             "metadata",
-            "starred",
             "forms",
             "public",
             "tags",
