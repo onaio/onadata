@@ -20,13 +20,25 @@ from onadata.apps.api.models.organization_profile import (
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models.user_activity import UserActivity, record_user_activity
 from onadata.apps.main.models.user_deactivation import (
+    DEACTIVATION_ACTION_DEACTIVATE,
+    DEACTIVATION_ACTION_SEND_WARNING,
+    DEACTIVATION_EXCLUSION_STAFF,
+    DEACTIVATION_REPORT_COHORT_ALREADY_WARNED,
+    DEACTIVATION_REPORT_COHORT_DUE_DEACTIVATION,
+    DEACTIVATION_REPORT_COHORT_DUE_WARNING,
+    DEACTIVATION_REPORT_COHORT_RECENTLY_DEACTIVATED,
+    DEACTIVATION_REPORT_COHORT_RECENTLY_REACTIVATED,
+    DEACTIVATION_REPORT_COHORT_SKIPPED,
     PERMISSION_POLICY_REVOKE,
     UserDeactivationPermissionSnapshot,
     UserDeactivationState,
+    get_deactivation_exclusion_reason,
     get_deactivation_permission_policy,
+    get_deactivation_report_rows,
     get_deactivation_states_due_for_deactivation,
     get_deactivation_states_due_for_warning,
     get_deactivation_warning_days,
+    get_pending_deactivation_actions,
     snapshot_revocable_user_permissions,
     sync_user_deactivation_state,
 )
@@ -275,6 +287,174 @@ class TestUserDeactivationState(TestBase):
             get_deactivation_states_due_for_deactivation(when=now)
             .filter(pk=state.pk)
             .exists()
+        )
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30, 7],
+        DEACTIVATION_PERMISSION_POLICY="revoke",
+    )
+    def test_pending_deactivation_actions_builds_warning_and_deactivation_plans(self):
+        now = timezone.now()
+        warning_user = User.objects.create_user(username="action-warning")
+        warning_activity = now - timedelta(days=360)
+        UserActivity.objects.filter(user=warning_user).update(
+            last_activity=warning_activity
+        )
+        warning_state = sync_user_deactivation_state(warning_user)
+        due_user = User.objects.create_user(username="action-deactivate")
+        self._create_due_state(due_user, now, warning_sent_at=now - timedelta(days=31))
+
+        actions_by_username = {
+            action.user.username: action
+            for action in get_pending_deactivation_actions(when=now)
+        }
+
+        self.assertEqual(
+            actions_by_username["action-warning"].action,
+            DEACTIVATION_ACTION_SEND_WARNING,
+        )
+        self.assertEqual(actions_by_username["action-warning"].warning_offsets, (30, 7))
+        self.assertEqual(
+            actions_by_username["action-warning"].dry_run_action_summary,
+            "would send 30-day and 7-day warning email",
+        )
+        self.assertEqual(
+            actions_by_username["action-deactivate"].action,
+            DEACTIVATION_ACTION_DEACTIVATE,
+        )
+        self.assertEqual(
+            actions_by_username["action-deactivate"].as_report_row().cohort,
+            DEACTIVATION_REPORT_COHORT_DUE_DEACTIVATION,
+        )
+        self.assertIn(
+            "would deactivate user and revoke tokens",
+            actions_by_username["action-deactivate"].dry_run_action_summary,
+        )
+        warning_state.refresh_from_db()
+        self.assertEqual(warning_state.warned_offsets, [])
+
+    @override_settings(
+        DEACTIVATION_INACTIVITY_DAYS=365,
+        DEACTIVATION_WARNING_DAYS=[30, 7],
+        DEACTIVATION_PERMISSION_POLICY="revoke",
+    )
+    def test_deactivation_report_rows_include_action_and_status_cohorts(self):
+        now = timezone.now()
+        warning_user = User.objects.create_user(
+            username="report-warning",
+            email="report-warning@example.com",
+            first_name="Report",
+            last_name="Warning",
+        )
+        warning_activity = now - timedelta(days=360)
+        UserActivity.objects.filter(user=warning_user).update(
+            last_activity=warning_activity
+        )
+        sync_user_deactivation_state(warning_user)
+        already_warned_user = User.objects.create_user(username="report-warned")
+        already_warned_activity = now - timedelta(days=340)
+        UserActivity.objects.filter(user=already_warned_user).update(
+            last_activity=already_warned_activity
+        )
+        already_warned_state = sync_user_deactivation_state(already_warned_user)
+        already_warned_state.mark_warning_sent(30, when=now - timedelta(days=5))
+        staff_user = User.objects.create_user(username="report-staff", is_staff=True)
+        UserActivity.objects.filter(user=staff_user).update(
+            last_activity=warning_activity
+        )
+        sync_user_deactivation_state(staff_user)
+        deactivated_user = User.objects.create_user(username="report-deactivated")
+        deactivated_state = sync_user_deactivation_state(deactivated_user)
+        deactivated_state.deactivated_at = now - timedelta(days=1)
+        deactivated_state.permission_policy_applied = PERMISSION_POLICY_REVOKE
+        deactivated_state.save(
+            update_fields=["deactivated_at", "permission_policy_applied"]
+        )
+        deactivated_user.is_active = False
+        deactivated_user.save(update_fields=["is_active"])
+        old_deactivated_user = User.objects.create_user(
+            username="report-old-deactivated"
+        )
+        old_deactivated_state = sync_user_deactivation_state(old_deactivated_user)
+        old_deactivated_state.deactivation_scheduled_at = now - timedelta(days=40)
+        old_deactivated_state.deactivated_at = now - timedelta(days=31)
+        old_deactivated_state.permission_policy_applied = PERMISSION_POLICY_REVOKE
+        old_deactivated_state.save(
+            update_fields=[
+                "deactivation_scheduled_at",
+                "deactivated_at",
+                "permission_policy_applied",
+            ]
+        )
+        old_deactivated_user.is_active = False
+        old_deactivated_user.save(update_fields=["is_active"])
+        reactivated_user = User.objects.create_user(username="report-reactivated")
+        reactivated_state = sync_user_deactivation_state(reactivated_user)
+        reactivated_state.deactivated_at = now - timedelta(days=2)
+        reactivated_state.reactivated_at = now - timedelta(days=1)
+        reactivated_state.permission_policy_applied = PERMISSION_POLICY_REVOKE
+        reactivated_state.deactivation_scheduled_at = now + timedelta(days=60)
+        reactivated_state.save(
+            update_fields=[
+                "deactivated_at",
+                "reactivated_at",
+                "permission_policy_applied",
+                "deactivation_scheduled_at",
+            ]
+        )
+
+        rows = get_deactivation_report_rows(window_days=30, when=now)
+        rows_by_key = {
+            (row.state.user.username, row.cohort): row
+            for row in rows
+            if row.state.user.username.startswith("report-")
+        }
+
+        warning_row = rows_by_key[
+            ("report-warning", DEACTIVATION_REPORT_COHORT_DUE_WARNING)
+        ]
+        self.assertEqual(warning_row.next_action, DEACTIVATION_ACTION_SEND_WARNING)
+        self.assertEqual(warning_row.warning_offsets, (30, 7))
+        self.assertEqual(
+            warning_row.as_dict()["computed_last_activity"], warning_activity
+        )
+        self.assertEqual(warning_row.as_dict()["display_name"], "Report Warning")
+        self.assertEqual(
+            rows_by_key[
+                ("report-warned", DEACTIVATION_REPORT_COHORT_ALREADY_WARNED)
+            ].next_action,
+            DEACTIVATION_ACTION_SEND_WARNING,
+        )
+        self.assertEqual(
+            rows_by_key[
+                ("report-staff", DEACTIVATION_REPORT_COHORT_SKIPPED)
+            ].exclusion_reason,
+            DEACTIVATION_EXCLUSION_STAFF,
+        )
+        self.assertEqual(
+            get_deactivation_exclusion_reason(staff_user),
+            DEACTIVATION_EXCLUSION_STAFF,
+        )
+        self.assertEqual(
+            rows_by_key[
+                (
+                    "report-deactivated",
+                    DEACTIVATION_REPORT_COHORT_RECENTLY_DEACTIVATED,
+                )
+            ].dry_run_action_summary,
+            "already deactivated",
+        )
+        self.assertNotIn(
+            ("report-old-deactivated", DEACTIVATION_REPORT_COHORT_SKIPPED),
+            rows_by_key,
+        )
+        self.assertIn(
+            (
+                "report-reactivated",
+                DEACTIVATION_REPORT_COHORT_RECENTLY_REACTIVATED,
+            ),
+            rows_by_key,
         )
 
     @override_settings(

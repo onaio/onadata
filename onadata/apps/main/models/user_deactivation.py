@@ -3,6 +3,8 @@
 User deactivation lifecycle state.
 """
 
+from collections import OrderedDict
+from dataclasses import dataclass, replace
 from datetime import timedelta
 
 from django.conf import settings
@@ -32,10 +34,45 @@ PERMISSION_POLICY_CHOICES = (
     (PERMISSION_POLICY_PRESERVE, "Preserve"),
 )
 
+DEACTIVATION_ACTION_SEND_WARNING = "send_warning"
+DEACTIVATION_ACTION_DEACTIVATE = "deactivate"
+DEACTIVATION_ACTION_NONE = "none"
+
+DEACTIVATION_REPORT_COHORT_DUE_WARNING = "due_for_warning"
+DEACTIVATION_REPORT_COHORT_DUE_DEACTIVATION = "due_for_deactivation"
+DEACTIVATION_REPORT_COHORT_ALREADY_WARNED = "already_warned"
+DEACTIVATION_REPORT_COHORT_SKIPPED = "skipped"
+DEACTIVATION_REPORT_COHORT_RECENTLY_DEACTIVATED = "recently_deactivated"
+DEACTIVATION_REPORT_COHORT_RECENTLY_REACTIVATED = "recently_reactivated"
+
+DEACTIVATION_EXCLUSION_INACTIVE = "inactive"
+DEACTIVATION_EXCLUSION_STAFF = "staff"
+DEACTIVATION_EXCLUSION_SUPERUSER = "superuser"
+DEACTIVATION_EXCLUSION_ORGANIZATION = "organization"
+DEACTIVATION_EXCLUSION_USER_ID = "excluded_user_id"
+DEACTIVATION_EXCLUSION_USERNAME = "excluded_username"
+
 DEFAULT_DEACTIVATION_INACTIVITY_DAYS = 365
 DEFAULT_DEACTIVATION_WARNING_DAYS = (30, 7)
 DEFAULT_DEACTIVATION_PERMISSION_POLICY = PERMISSION_POLICY_REVOKE
+DEFAULT_DEACTIVATION_REPORT_WINDOW_DAYS = 30
 PERMISSION_SNAPSHOT_BATCH_SIZE = 1000
+
+DEACTIVATION_REPORT_COLUMNS = (
+    "username",
+    "email",
+    "display_name",
+    "last_login",
+    "computed_last_activity",
+    "deactivation_scheduled_at",
+    "warnings_sent",
+    "cohort",
+    "next_action",
+    "next_action_date",
+    "exclusion_reason",
+    "permission_policy",
+    "dry_run_action_summary",
+)
 
 
 class UserDeactivationState(models.Model):
@@ -168,6 +205,80 @@ class UserDeactivationPermissionSnapshot(models.Model):
         )
 
 
+@dataclass(frozen=True)
+class UserDeactivationActionPlan:
+    """A non-mutating action that the deactivation runner should perform."""
+
+    state: UserDeactivationState
+    action: str
+    when: object
+    warning_offsets: tuple = ()
+    permission_policy: str = ""
+
+    @property
+    def user(self):
+        """Return the user for this planned action."""
+        return self.state.user
+
+    @property
+    def dry_run_action_summary(self):
+        """Return a concise dry-run summary for reporting."""
+        return get_deactivation_action_summary(
+            self.action,
+            warning_offsets=self.warning_offsets,
+            permission_policy=self.permission_policy,
+        )
+
+    def as_report_row(self):
+        """Return this action plan as a report row."""
+        cohort = DEACTIVATION_REPORT_COHORT_DUE_WARNING
+        if self.action == DEACTIVATION_ACTION_DEACTIVATE:
+            cohort = DEACTIVATION_REPORT_COHORT_DUE_DEACTIVATION
+
+        return UserDeactivationReportRow(
+            state=self.state,
+            cohort=cohort,
+            next_action=self.action,
+            next_action_date=self.when,
+            warning_offsets=self.warning_offsets,
+            permission_policy=self.permission_policy,
+            dry_run_action_summary=self.dry_run_action_summary,
+        )
+
+
+@dataclass(frozen=True)
+class UserDeactivationReportRow:
+    """A normalized row for inactive-account reports."""
+
+    state: UserDeactivationState
+    cohort: str
+    next_action: str = DEACTIVATION_ACTION_NONE
+    next_action_date: object = None
+    warning_offsets: tuple = ()
+    exclusion_reason: str = ""
+    permission_policy: str = ""
+    dry_run_action_summary: str = ""
+
+    def as_dict(self):
+        """Return a dictionary ready for CSV writing."""
+        user = self.state.user
+        return {
+            "username": user.username,
+            "email": user.email,
+            "display_name": user.get_full_name(),
+            "last_login": user.last_login,
+            "computed_last_activity": get_user_activity_at(user),
+            "deactivation_scheduled_at": self.state.deactivation_scheduled_at,
+            "warnings_sent": format_warning_offsets(self.state.warned_offsets),
+            "cohort": self.cohort,
+            "next_action": self.next_action,
+            "next_action_date": self.next_action_date,
+            "exclusion_reason": self.exclusion_reason,
+            "permission_policy": self.permission_policy,
+            "dry_run_action_summary": self.dry_run_action_summary,
+        }
+
+
 def get_deactivation_inactivity_days():
     """
     Return the configured inactivity threshold in days.
@@ -238,6 +349,80 @@ def get_deactivation_permission_policy():
             "DEACTIVATION_PERMISSION_POLICY must be 'preserve' or 'revoke'"
         )
     return policy
+
+
+def get_user_activity_at(user):
+    """
+    Return the user's tracked activity timestamp, if an activity row exists.
+    """
+    try:
+        return user.activity.last_activity
+    except UserActivity.DoesNotExist:
+        return None
+
+
+def format_warning_offsets(offsets):
+    """
+    Return warning offsets as a stable comma-separated string.
+    """
+    return ",".join(str(offset) for offset in normalize_warning_days(offsets or []))
+
+
+def get_deactivation_exclusion_reason(user):
+    """
+    Return why a user is excluded from automatic deactivation, or an empty string.
+    """
+    if user is None or not getattr(user, "pk", None):
+        return ""
+
+    if not user.is_active:
+        return DEACTIVATION_EXCLUSION_INACTIVE
+    if user.is_staff:
+        return DEACTIVATION_EXCLUSION_STAFF
+    if user.is_superuser:
+        return DEACTIVATION_EXCLUSION_SUPERUSER
+    if OrganizationProfile.objects.filter(user=user).exists():
+        return DEACTIVATION_EXCLUSION_ORGANIZATION
+    if user.pk in get_deactivation_excluded_user_ids():
+        return DEACTIVATION_EXCLUSION_USER_ID
+    if user.username in get_deactivation_excluded_usernames():
+        return DEACTIVATION_EXCLUSION_USERNAME
+
+    return ""
+
+
+def get_deactivation_action_summary(action, warning_offsets=(), permission_policy=None):
+    """
+    Return a dry-run summary for a planned deactivation lifecycle action.
+    """
+    permission_policy = permission_policy or get_deactivation_permission_policy()
+
+    if action == DEACTIVATION_ACTION_SEND_WARNING:
+        warning_label = format_warning_labels(warning_offsets)
+        return f"would send {warning_label} warning email"
+
+    if action == DEACTIVATION_ACTION_DEACTIVATE:
+        summary = "would deactivate user and revoke tokens"
+        if permission_policy == PERMISSION_POLICY_REVOKE:
+            return (
+                f"{summary}; would snapshot and revoke eligible direct "
+                "project/form permissions"
+            )
+        return f"{summary}; would preserve direct project/form permissions"
+
+    return "no action"
+
+
+def format_warning_labels(offsets):
+    """
+    Return warning offsets as human-readable day labels.
+    """
+    labels = [f"{offset}-day" for offset in normalize_warning_days(offsets or [])]
+    if not labels:
+        return "configured"
+    if len(labels) == 1:
+        return labels[0]
+    return f"{', '.join(labels[:-1])} and {labels[-1]}"
 
 
 def get_permission_revocation_protected_organization_ids(user):
@@ -481,7 +666,9 @@ def get_active_deactivation_states():
     """
     Return active users' lifecycle states that have not already been deactivated.
     """
-    queryset = UserDeactivationState.objects.select_related("user").filter(
+    queryset = UserDeactivationState.objects.select_related(
+        "user", "user__activity"
+    ).filter(
         Q(deactivated_at__isnull=True) | Q(reactivated_at__gt=F("deactivated_at")),
         user__is_active=True,
         user__is_staff=False,
@@ -536,6 +723,257 @@ def get_deactivation_states_due_for_deactivation(when=None):
         first_warning_sent_at__lte=when - timedelta(days=required_warning_days),
         warned_offsets__contains=[required_warning_days],
     )
+
+
+def get_pending_deactivation_actions(when=None):
+    """
+    Return non-mutating warning/deactivation actions due at ``when``.
+    """
+    when = when or timezone.now()
+    permission_policy = get_deactivation_permission_policy()
+    actions_by_state_id = OrderedDict()
+
+    for state in get_deactivation_states_due_for_deactivation(when=when).order_by(
+        "deactivation_scheduled_at", "user_id"
+    ):
+        actions_by_state_id[state.pk] = UserDeactivationActionPlan(
+            state=state,
+            action=DEACTIVATION_ACTION_DEACTIVATE,
+            when=when,
+            permission_policy=permission_policy,
+        )
+
+    deactivation_state_ids = tuple(actions_by_state_id.keys())
+    for offset_days in get_deactivation_warning_days():
+        warning_queryset = get_deactivation_states_due_for_warning(
+            offset_days, when=when
+        ).order_by("deactivation_scheduled_at", "user_id")
+
+        if deactivation_state_ids:
+            warning_queryset = warning_queryset.exclude(pk__in=deactivation_state_ids)
+
+        for state in warning_queryset:
+            action = actions_by_state_id.get(state.pk)
+            if action is None:
+                actions_by_state_id[state.pk] = UserDeactivationActionPlan(
+                    state=state,
+                    action=DEACTIVATION_ACTION_SEND_WARNING,
+                    when=when,
+                    warning_offsets=(offset_days,),
+                    permission_policy=permission_policy,
+                )
+            else:
+                warning_offsets = normalize_warning_days(
+                    [*action.warning_offsets, offset_days]
+                )
+                actions_by_state_id[state.pk] = replace(
+                    action, warning_offsets=warning_offsets
+                )
+
+    return tuple(actions_by_state_id.values())
+
+
+def get_next_deactivation_action(state, when=None):
+    """
+    Return the next expected action/date/offsets for a lifecycle state.
+    """
+    when = when or timezone.now()
+    if (
+        state is None
+        or state.deactivation_scheduled_at is None
+        or get_deactivation_exclusion_reason(state.user)
+    ):
+        return DEACTIVATION_ACTION_NONE, None, ()
+
+    warning_days = get_deactivation_warning_days()
+    warned_offsets = {int(offset) for offset in state.warned_offsets or []}
+    for offset_days in warning_days:
+        if offset_days in warned_offsets:
+            continue
+
+        warning_at = state.deactivation_scheduled_at - timedelta(days=offset_days)
+        return (
+            DEACTIVATION_ACTION_SEND_WARNING,
+            max(warning_at, when),
+            (offset_days,),
+        )
+
+    deactivation_at = state.deactivation_scheduled_at
+    if warning_days and state.first_warning_sent_at:
+        deactivation_at = max(
+            deactivation_at,
+            state.first_warning_sent_at + timedelta(days=warning_days[0]),
+        )
+
+    return (
+        DEACTIVATION_ACTION_DEACTIVATE,
+        max(deactivation_at, when),
+        (),
+    )
+
+
+def get_deactivation_report_rows(window_days=None, when=None):
+    """
+    Return normalized report rows for inactive-account lifecycle cohorts.
+    """
+    when = when or timezone.now()
+    window_days = (
+        DEFAULT_DEACTIVATION_REPORT_WINDOW_DAYS
+        if window_days is None
+        else int(window_days)
+    )
+    if window_days <= 0:
+        raise ValueError("window_days must be greater than zero")
+
+    permission_policy = get_deactivation_permission_policy()
+    rows = []
+    seen_state_ids = set()
+
+    for action in get_pending_deactivation_actions(when=when):
+        row = action.as_report_row()
+        rows.append(row)
+        seen_state_ids.add(row.state.pk)
+
+    window_start = when - timedelta(days=window_days)
+    window_end = when + timedelta(days=window_days)
+    rows.extend(
+        _get_already_warned_report_rows(
+            when=when,
+            window_end=window_end,
+            seen_state_ids=seen_state_ids,
+            permission_policy=permission_policy,
+        )
+    )
+    rows.extend(
+        _get_recent_lifecycle_report_rows(
+            when=when,
+            window_start=window_start,
+            seen_state_ids=seen_state_ids,
+            permission_policy=permission_policy,
+        )
+    )
+    rows.extend(
+        _get_skipped_report_rows(
+            window_end=window_end,
+            seen_state_ids=seen_state_ids,
+            permission_policy=permission_policy,
+        )
+    )
+
+    return tuple(rows)
+
+
+def _get_already_warned_report_rows(
+    when, window_end, seen_state_ids, permission_policy
+):
+    rows = []
+    queryset = (
+        get_active_deactivation_states()
+        .filter(
+            deactivation_scheduled_at__gt=when,
+            deactivation_scheduled_at__lte=window_end,
+            first_warning_sent_at__isnull=False,
+        )
+        .exclude(pk__in=seen_state_ids)
+        .order_by("deactivation_scheduled_at", "user_id")
+    )
+    for state in queryset:
+        action, action_date, warning_offsets = get_next_deactivation_action(
+            state, when=when
+        )
+        row = UserDeactivationReportRow(
+            state=state,
+            cohort=DEACTIVATION_REPORT_COHORT_ALREADY_WARNED,
+            next_action=action,
+            next_action_date=action_date,
+            warning_offsets=warning_offsets,
+            permission_policy=permission_policy,
+            dry_run_action_summary=get_deactivation_action_summary(
+                action,
+                warning_offsets=warning_offsets,
+                permission_policy=permission_policy,
+            ),
+        )
+        rows.append(row)
+        seen_state_ids.add(state.pk)
+
+    return rows
+
+
+def _get_recent_lifecycle_report_rows(
+    when, window_start, seen_state_ids, permission_policy
+):
+    rows = []
+    recent_deactivated = (
+        UserDeactivationState.objects.select_related("user", "user__activity")
+        .filter(deactivated_at__gte=window_start, deactivated_at__lte=when)
+        .filter(
+            Q(reactivated_at__isnull=True) | Q(reactivated_at__lte=F("deactivated_at"))
+        )
+        .exclude(pk__in=seen_state_ids)
+        .order_by("-deactivated_at", "user_id")
+    )
+    for state in recent_deactivated:
+        rows.append(
+            UserDeactivationReportRow(
+                state=state,
+                cohort=DEACTIVATION_REPORT_COHORT_RECENTLY_DEACTIVATED,
+                permission_policy=state.permission_policy_applied or permission_policy,
+                dry_run_action_summary="already deactivated",
+            )
+        )
+        seen_state_ids.add(state.pk)
+
+    recent_reactivated = (
+        UserDeactivationState.objects.select_related("user", "user__activity")
+        .filter(reactivated_at__gte=window_start, reactivated_at__lte=when)
+        .exclude(pk__in=seen_state_ids)
+        .order_by("-reactivated_at", "user_id")
+    )
+    for state in recent_reactivated:
+        rows.append(
+            UserDeactivationReportRow(
+                state=state,
+                cohort=DEACTIVATION_REPORT_COHORT_RECENTLY_REACTIVATED,
+                permission_policy=state.permission_policy_applied or permission_policy,
+                dry_run_action_summary="already reactivated",
+            )
+        )
+        seen_state_ids.add(state.pk)
+
+    return rows
+
+
+def _get_skipped_report_rows(window_end, seen_state_ids, permission_policy):
+    rows = []
+    skipped_queryset = (
+        UserDeactivationState.objects.select_related("user", "user__activity")
+        .filter(
+            Q(deactivated_at__isnull=True) | Q(reactivated_at__gt=F("deactivated_at")),
+            deactivation_scheduled_at__isnull=False,
+            deactivation_scheduled_at__lte=window_end,
+        )
+        .exclude(pk__in=seen_state_ids)
+        .order_by("deactivation_scheduled_at", "user_id")
+    )
+
+    for state in skipped_queryset:
+        exclusion_reason = get_deactivation_exclusion_reason(state.user)
+        if not exclusion_reason:
+            continue
+
+        rows.append(
+            UserDeactivationReportRow(
+                state=state,
+                cohort=DEACTIVATION_REPORT_COHORT_SKIPPED,
+                exclusion_reason=exclusion_reason,
+                permission_policy=permission_policy,
+                dry_run_action_summary=f"skipped: {exclusion_reason}",
+            )
+        )
+        seen_state_ids.add(state.pk)
+
+    return rows
 
 
 # pylint: disable=unused-argument
