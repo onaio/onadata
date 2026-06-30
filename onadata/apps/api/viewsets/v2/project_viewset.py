@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
-from onadata.libs.serializers.project_serializer import get_teams, get_users, is_starred
+from onadata.libs.serializers.project_serializer import get_teams, get_users
 from onadata.libs.serializers.v2.project_serializer import (
     ProjectListSerializer,
     ProjectPrivateSerializer,
@@ -57,9 +57,8 @@ class ProjectViewSet(ProjectViewSetV1):
         else:
             base_data = get_shared_project_detail_cache_data(base_data)
 
-        base_data = {**base_data, "starred": is_starred(project, request)}
-
         if is_public_project_access(request, project):
+            # Public shape omits user-specific fields such as starred
             return Response(base_data)
 
         # Inject user specific fields
