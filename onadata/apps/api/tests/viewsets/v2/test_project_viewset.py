@@ -4,9 +4,7 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.project_viewset import (
-    ProjectViewSet as ProjectViewSetV1,
-)
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project
 from onadata.libs.models.share_project import ShareProject
@@ -53,7 +51,6 @@ class GetProjectListTestCase(TestAbstractViewSet):
                 "projectid": self.project.pk,
                 "name": "Tree Monitoring",
                 "owner": f"http://testserver/api/v1/users/{self.user.username}",
-                "created_by": f"http://testserver/api/v1/users/{self.user.username}",
                 "metadata": {
                     "description": "Some description",
                     "location": "Naivasha, Kenya",

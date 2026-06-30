@@ -11,9 +11,7 @@ from rest_framework import serializers
 from onadata.apps.logger.models.project import Project
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
-from onadata.libs.serializers.project_serializer import (
-    PROJECT_PUBLIC_EXCLUDED_FIELDS,
-)
+from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
 from onadata.libs.serializers.project_serializer import (
     ProjectSerializer as ProjectSerializerV1,
 )
@@ -56,9 +54,6 @@ class ProjectListSerializer(
             username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
         ),
     )
-    created_by = serializers.HyperlinkedRelatedField(
-        view_name="user-detail", lookup_field="username", read_only=True
-    )
     metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
     public = serializers.BooleanField(source="shared")
@@ -75,7 +70,6 @@ class ProjectListSerializer(
             "projectid",
             "name",
             "owner",
-            "created_by",
             "metadata",
             "starred",
             "public",
