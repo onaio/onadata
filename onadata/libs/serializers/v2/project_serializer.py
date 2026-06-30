@@ -116,14 +116,19 @@ class ProjectPrivateSerializer(serializers.ModelSerializer):
     """User specific fields for a Project"""
 
     current_user_role = serializers.SerializerMethodField()
+    starred = serializers.SerializerMethodField()
 
     def get_current_user_role(self, obj):
         """Return the role of the request user in the project."""
         return get_current_user_role(obj, self.context["request"])
 
+    def get_starred(self, obj):
+        """Return True if request user has starred this project."""
+        return is_starred(obj, self.context["request"])
+
     class Meta:
         model = Project
-        fields = ("current_user_role",)
+        fields = ("current_user_role", "starred")
 
 
 class ProjectSerializer(ProjectSerializerV1):
