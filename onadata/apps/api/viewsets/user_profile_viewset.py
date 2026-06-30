@@ -5,6 +5,7 @@ UserProfileViewSet module.
 
 import datetime
 import json
+import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -61,6 +62,7 @@ from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
 User = get_user_model()
+logger = logging.getLogger(__name__)
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
 MAX_CHANGE_PASSWORD_ATTEMPTS = getattr(settings, "MAX_CHANGE_PASSWORD_ATTEMPTS", 10)
 
@@ -343,6 +345,54 @@ class UserProfileViewSet(
         send_email_change_code(new_email, code)
 
         return Response({"sent": True}, status=status.HTTP_200_OK)
+
+    @action(methods=["POST"], detail=True, url_path="confirm_email_change")
+    def confirm_email_change(self, request, *args, **kwargs):
+        """
+        Verify the OTP submitted by the user, apply the new email address,
+        set ``is_email_verified`` in the profile metadata, and delete the
+        pending-change row (single-use enforcement).
+
+        Request body: ``{"otp": "<6-digit code>"}``
+        Success: HTTP 200 ``{"email": "<applied email>"}``
+        Errors: HTTP 400 with field-keyed error messages.
+        """
+        profile = self.get_object()
+        user = profile.user
+
+        pec = PendingEmailChange.objects.filter(user=user).first()
+        if not pec or not pec.verify(request.data.get("otp")):
+            return Response(
+                {"otp": _("Invalid or expired code.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Re-check uniqueness at confirm time (race guard).
+        if User.objects.filter(email__iexact=pec.new_email).exclude(pk=user.pk).exists():
+            pec.delete()
+            return Response(
+                {"new_email": _("This email address is already in use.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.email = pec.new_email
+        user.save(update_fields=["email"])
+
+        profile.metadata = {**(profile.metadata or {}), "is_email_verified": True}
+        profile.save()
+
+        # Invalidate the cached profile response so the new email is served
+        # immediately. The retrieve() endpoint caches under
+        # USER_PROFILE_PREFIX + {username} + {request_username}; without this
+        # the old email keeps being served until the cache TTL expires.
+        username = kwargs.get("user")
+        request_username = request.user.username if request.user else ""
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+
+        # Single-use: delete the pending row after successful apply.
+        pec.delete()
+
+        return Response({"email": user.email}, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""

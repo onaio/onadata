@@ -2173,3 +2173,86 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user="bob")
         self.assertEqual(response.status_code, 400)
         self.assertIn("new_email", response.data)
+
+    # ---------------------------------------------------------------------------
+    # confirm_email_change tests
+    # ---------------------------------------------------------------------------
+
+    def test_confirm_email_change_bad_otp(self):
+        """Invalid OTP returns 400 with an 'otp' error key; email is not changed."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        PendingEmailChange.start(self.user, "new@x.com")
+        request = self.factory.post("/", data={"otp": "000000"}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("otp", response.data)
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.email, "new@x.com")
+
+    def test_confirm_email_change_no_pending(self):
+        """No pending record returns 400."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        request = self.factory.post("/", data={"otp": "123456"}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("otp", response.data)
+
+    def test_confirm_applies_email(self):
+        """Happy path: applies new email, deletes pending row, sets
+        is_email_verified, returns 200 with the new email."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "new@x.com")
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("email"), "new@x.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "new@x.com")
+        self.assertFalse(PendingEmailChange.objects.filter(user=self.user).exists())
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.metadata.get("is_email_verified"))
+
+    def test_confirm_invalidates_profile_cache(self):
+        """The cached profile response must be cleared so the new email is
+        served immediately, not stale until the cache TTL expires."""
+        from onadata.libs.utils.cache_tools import (
+            USER_PROFILE_PREFIX,
+            safe_cache_get,
+            safe_cache_set,
+        )
+
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "fresh@x.com")
+        # retrieve() caches under USER_PROFILE_PREFIX + username + request_username
+        cache_key = f"{USER_PROFILE_PREFIX}{self.user.username}{self.user.username}"
+        safe_cache_set(cache_key, {"email": "stale@x.com"})
+
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(safe_cache_get(cache_key))
+
+    def test_confirm_race_email_taken(self):
+        """If the new email is taken between request and confirm, delete pending and 400."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "raced@x.com")
+        # Another user registers the target email before bob confirms
+        User.objects.create_user(
+            username="racer", email="raced@x.com", password="racerpass"
+        )
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("new_email", response.data)
+        self.assertFalse(PendingEmailChange.objects.filter(user=self.user).exists())
+
+    def test_confirm_single_use(self):
+        """Replaying the same OTP a second time returns 400 (pending row deleted on success)."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "once@x.com")
+        req1 = self.factory.post("/", data={"otp": code}, **self.extra)
+        resp1 = view_confirm(req1, user="bob")
+        self.assertEqual(resp1.status_code, 200)
+        req2 = self.factory.post("/", data={"otp": code}, **self.extra)
+        resp2 = view_confirm(req2, user="bob")
+        self.assertEqual(resp2.status_code, 400)
