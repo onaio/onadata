@@ -47,26 +47,20 @@ class StandardPageNumberPagination(PageNumberPagination):
 
         return replace_query_param(url, self.page_query_param, self.paginator.num_pages)
 
-    def generate_link_header(self, request: Request, queryset: QuerySet, count=None):
-        """Generates pagination headers for a HTTP response object.
-
-        When ``count`` is provided it is passed to the paginator as a
-        ``count_override`` to avoid an extra COUNT(*); this requires a
-        count-overridable ``django_paginator_class`` (e.g.
-        ``CountOverridablePageNumberPagination``).
-        """
-        links = []
+    def generate_link_header(self, request: Request, queryset: QuerySet):
+        """Generates pagination headers for a HTTP response object"""
         page_size = self.get_page_size(request)
         if not page_size:
             return {}
+        # pylint: disable=attribute-defined-outside-init
+        self.paginator = self.django_paginator_class(queryset, page_size)
+        return self._build_link_header(request)
+
+    def _build_link_header(self, request: Request):
+        """Builds the ``Link`` header dict from ``self.paginator``."""
+        links = []
         page_number = request.query_params.get(self.page_query_param, 1)
         # pylint: disable=attribute-defined-outside-init
-        if count is None:
-            self.paginator = self.django_paginator_class(queryset, page_size)
-        else:
-            self.paginator = self.django_paginator_class(
-                queryset, page_size, count_override=count
-            )
         self.request = request
 
         try:
@@ -154,6 +148,21 @@ class CountOverridablePageNumberPagination(StandardPageNumberPagination):
 
         self.request = request
         return list(self.page)
+
+    def generate_link_header(self, request: Request, queryset: QuerySet, count=None):
+        """Generate ``Link`` headers, reusing a precomputed ``count``.
+
+        Passing ``count`` avoids an additional COUNT(*) by overriding the
+        paginator's count.
+        """
+        page_size = self.get_page_size(request)
+        if not page_size:
+            return {}
+        # pylint: disable=attribute-defined-outside-init
+        self.paginator = self.django_paginator_class(
+            queryset, page_size, count_override=count
+        )
+        return self._build_link_header(request)
 
 
 class RawSQLQueryPaginator(CountOverridablePaginator):
