@@ -5,6 +5,9 @@ Messaging /messaging viewsets.
 from __future__ import unicode_literals
 
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
@@ -24,6 +27,7 @@ from onadata.libs.pagination import StandardPageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
+@method_decorator(cache_page(30 * 60), name="list")
 class MessagingViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -51,7 +55,7 @@ class MessagingViewSet(
         headers = None
         queryset = self.filter_queryset(self.get_queryset())
         no_of_records = queryset.count()
-        retrieval_threshold = getattr(settings, "MESSAGE_RETRIEVAL_THRESHOLD", 10000)
+        retrieval_threshold = getattr(settings, "MESSAGE_RETRIEVAL_THRESHOLD", 500)
         pagination_keys = [
             self.paginator.page_query_param,
             self.paginator.page_size_query_param,
