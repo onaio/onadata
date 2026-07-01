@@ -58,13 +58,14 @@ class MessagingViewSet(
         """Returns a paginated queryset"""
         if self.paginator is None:
             return None
+
+        self.record_count = queryset.count()
         return self.paginator.paginate_queryset(
             queryset, self.request, view=self, count=self.record_count
         )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        self.record_count = queryset.count()
         page = self.paginate_queryset(queryset)
 
         if page is not None:
