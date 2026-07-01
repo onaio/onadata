@@ -47,15 +47,26 @@ class StandardPageNumberPagination(PageNumberPagination):
 
         return replace_query_param(url, self.page_query_param, self.paginator.num_pages)
 
-    def generate_link_header(self, request: Request, queryset: QuerySet):
-        """Generates pagination headers for a HTTP response object"""
+    def generate_link_header(self, request: Request, queryset: QuerySet, count=None):
+        """Generates pagination headers for a HTTP response object.
+
+        When ``count`` is provided it is passed to the paginator as a
+        ``count_override`` to avoid an extra COUNT(*); this requires a
+        count-overridable ``django_paginator_class`` (e.g.
+        ``CountOverridablePageNumberPagination``).
+        """
         links = []
         page_size = self.get_page_size(request)
         if not page_size:
             return {}
         page_number = request.query_params.get(self.page_query_param, 1)
         # pylint: disable=attribute-defined-outside-init
-        self.paginator = self.django_paginator_class(queryset, page_size)
+        if count is None:
+            self.paginator = self.django_paginator_class(queryset, page_size)
+        else:
+            self.paginator = self.django_paginator_class(
+                queryset, page_size, count_override=count
+            )
         self.request = request
 
         try:
