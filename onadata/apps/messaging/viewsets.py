@@ -56,6 +56,10 @@ class MessagingViewSet(
     record_count = None
 
     def paginate_queryset(self, queryset):
+        """Return a paginated queryset
+
+        Overrides super().paginate_queryset()
+        """
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(
