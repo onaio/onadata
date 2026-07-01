@@ -66,8 +66,13 @@ class MessagingViewSet(
         queryset = self.filter_queryset(self.get_queryset())
         self.record_count = queryset.count()
         page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        headers = self.paginator.generate_link_header(
-            self.request, queryset, count=self.record_count
-        )
-        return Response(serializer.data, headers=headers)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            headers = self.paginator.generate_link_header(
+                self.request, queryset, count=self.record_count
+            )
+            return Response(serializer.data, headers=headers)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
