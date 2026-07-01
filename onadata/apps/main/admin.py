@@ -75,7 +75,8 @@ class UserDeactivationStateAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 _(
-                    f"Skipped {skipped_count} users that were not currently deactivated."
+                    f"Skipped {skipped_count} users that were not currently "
+                    "deactivated."
                 ),
                 level=messages.WARNING,
             )

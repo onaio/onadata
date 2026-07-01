@@ -41,7 +41,7 @@ class TestBackfillEditedUserActivityCommand(TestBase):
             title="edited_activity_form",
         )
         self.xform = XForm.objects.get(pk=data_dictionary.pk)
-        self.survey_type, _created = SurveyType.objects.get_or_create(
+        self.survey_type, _ = SurveyType.objects.get_or_create(
             slug="edited-activity-command"
         )
 

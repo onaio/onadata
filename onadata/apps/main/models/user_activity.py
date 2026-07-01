@@ -17,6 +17,7 @@ from django.utils import timezone
 from pylibmc import Error as PyLibMCError
 from redis.exceptions import RedisError
 
+from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.cache_tools import safe_cache_delete
 
 User = get_user_model()
@@ -57,9 +58,6 @@ def get_initial_last_activity(user):
     """
     latest_submission_time = None
     if getattr(user, "pk", None):
-        # Import here to avoid a model import cycle during app loading.
-        from onadata.apps.logger.models import Instance
-
         latest_submission_time = Instance.objects.filter(
             user=user, date_created__isnull=False
         ).aggregate(last_submission_time=Max("date_created"))["last_submission_time"]
@@ -152,7 +150,7 @@ def record_user_activity(user, when=None, force=False):
             instance=activity,
             created=False,
             raw=False,
-            using=activity._state.db,
+            using=UserActivity.objects.db,
             update_fields={"last_activity", "date_modified"},
         )
 

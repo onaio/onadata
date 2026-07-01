@@ -3,7 +3,7 @@
 Backfill user activity from edited submissions.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -39,6 +39,52 @@ class BackfillStats:
         self.activities_updated += other.activities_updated
         self.states_created += other.states_created
         self.states_updated += other.states_updated
+
+
+@dataclass
+class BackfillBatchChanges:
+    """Objects to write for one backfill batch."""
+
+    stats: BackfillStats
+    activities_to_create: list = field(default_factory=list)
+    activities_to_update: list = field(default_factory=list)
+    states_to_create: list = field(default_factory=list)
+    states_to_update: list = field(default_factory=list)
+
+    def finalize_stats(self):
+        """Populate stats from the accumulated write lists."""
+        self.stats.activities_created = len(self.activities_to_create)
+        self.stats.activities_updated = len(self.activities_to_update)
+        self.stats.states_created = len(self.states_to_create)
+        self.stats.states_updated = len(self.states_to_update)
+
+    def write(self):
+        """Persist accumulated backfill changes."""
+        UserActivity.objects.bulk_create(
+            self.activities_to_create,
+            batch_size=len(self.activities_to_create) or None,
+            ignore_conflicts=True,
+        )
+        UserActivity.objects.bulk_update(
+            self.activities_to_update,
+            fields=["last_activity", "date_modified"],
+            batch_size=len(self.activities_to_update) or None,
+        )
+        UserDeactivationState.objects.bulk_create(
+            self.states_to_create,
+            batch_size=len(self.states_to_create) or None,
+            ignore_conflicts=True,
+        )
+        UserDeactivationState.objects.bulk_update(
+            self.states_to_update,
+            fields=[
+                "deactivation_scheduled_at",
+                "first_warning_sent_at",
+                "warned_offsets",
+                "date_modified",
+            ],
+            batch_size=len(self.states_to_update) or None,
+        )
 
 
 def get_editor_user_id_batch(after_user_id, batch_size):
@@ -85,11 +131,9 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
     states_by_user_id = UserDeactivationState.objects.filter(
         user_id__in=editor_user_ids
     ).in_bulk(field_name="user_id")
-    stats = BackfillStats(editor_users_seen=len(latest_edit_times))
-    activities_to_create = []
-    activities_to_update = []
-    states_to_create = []
-    states_to_update = []
+    changes = BackfillBatchChanges(
+        stats=BackfillStats(editor_users_seen=len(latest_edit_times))
+    )
 
     for user_id, edit_time in latest_edit_times.items():
         activity = activities_by_user_id.get(user_id)
@@ -97,7 +141,7 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
         if activity is None:
             effective_activity = edit_time
             activity_changed = True
-            activities_to_create.append(
+            changes.activities_to_create.append(
                 UserActivity(
                     user_id=user_id,
                     last_activity=edit_time,
@@ -111,9 +155,10 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
                 activity_changed = True
                 activity.last_activity = edit_time
                 activity.date_modified = when
-                activities_to_update.append(activity)
+                changes.activities_to_update.append(activity)
 
         state = states_by_user_id.get(user_id)
+        scheduled_at = None
         if state is None or activity_changed:
             scheduled_at = get_deactivation_scheduled_at(
                 effective_activity,
@@ -122,7 +167,7 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
             )
 
         if state is None:
-            states_to_create.append(
+            changes.states_to_create.append(
                 UserDeactivationState(
                     user_id=user_id,
                     deactivation_scheduled_at=scheduled_at,
@@ -135,43 +180,14 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
             state.first_warning_sent_at = None
             state.warned_offsets = []
             state.date_modified = when
-            states_to_update.append(state)
+            changes.states_to_update.append(state)
 
-    stats.activities_created = len(activities_to_create)
-    stats.activities_updated = len(activities_to_update)
-    stats.states_created = len(states_to_create)
-    stats.states_updated = len(states_to_update)
-
+    changes.finalize_stats()
     if dry_run:
-        return stats
+        return changes.stats
 
-    UserActivity.objects.bulk_create(
-        activities_to_create,
-        batch_size=len(activities_to_create) or None,
-        ignore_conflicts=True,
-    )
-    UserActivity.objects.bulk_update(
-        activities_to_update,
-        fields=["last_activity", "date_modified"],
-        batch_size=len(activities_to_update) or None,
-    )
-    UserDeactivationState.objects.bulk_create(
-        states_to_create,
-        batch_size=len(states_to_create) or None,
-        ignore_conflicts=True,
-    )
-    UserDeactivationState.objects.bulk_update(
-        states_to_update,
-        fields=[
-            "deactivation_scheduled_at",
-            "first_warning_sent_at",
-            "warned_offsets",
-            "date_modified",
-        ],
-        batch_size=len(states_to_update) or None,
-    )
-
-    return stats
+    changes.write()
+    return changes.stats
 
 
 def backfill_edited_user_activity(
@@ -179,8 +195,7 @@ def backfill_edited_user_activity(
     start_after_user_id=0,
     max_users=None,
     dry_run=False,
-    stdout=None,
-    verbosity=1,
+    progress_callback=None,
 ):
     """
     Backfill edited-submission activity in bounded batches.
@@ -209,11 +224,8 @@ def backfill_edited_user_activity(
         total_stats.add(batch_stats)
         after_user_id = user_ids[-1]
 
-        if stdout is not None and verbosity > 1:
-            stdout.write(
-                "Processed editor users through "
-                f"user id {after_user_id}: {batch_stats.editor_users_seen}"
-            )
+        if progress_callback is not None:
+            progress_callback(after_user_id, batch_stats)
 
     return total_stats
 
@@ -262,13 +274,23 @@ class Command(BaseCommand):
         if max_users is not None and max_users < 1:
             raise CommandError("--max-users must be greater than zero.")
 
+        progress_callback = None
+        if options["verbosity"] > 1:
+
+            def write_progress(after_user_id, batch_stats):
+                self.stdout.write(
+                    "Processed editor users through "
+                    f"user id {after_user_id}: {batch_stats.editor_users_seen}"
+                )
+
+            progress_callback = write_progress
+
         stats = backfill_edited_user_activity(
             batch_size=batch_size,
             start_after_user_id=start_after_user_id,
             max_users=max_users,
             dry_run=options["dry_run"],
-            stdout=self.stdout,
-            verbosity=options["verbosity"],
+            progress_callback=progress_callback,
         )
         if options["verbosity"] > 0:
             action = "Would process" if options["dry_run"] else "Processed"

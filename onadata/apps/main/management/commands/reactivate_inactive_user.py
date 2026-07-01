@@ -42,38 +42,14 @@ class Command(BaseCommand):
         skipped_count = 0
 
         for identifier, state in states_by_identifier:
-            if state is None:
-                skipped_count += 1
-                if options["verbosity"] > 0:
-                    self.stdout.write(f"Skipped {identifier}: no lifecycle state.")
-                continue
-
-            if options["dry_run"]:
-                if has_current_deactivation(state):
-                    reactivated_count += 1
-                    if options["verbosity"] > 0:
-                        self.stdout.write(f"Would reactivate {state.user.username}.")
-                else:
-                    skipped_count += 1
-                    if options["verbosity"] > 0:
-                        self.stdout.write(
-                            f"Skipped {state.user.username}: not currently deactivated."
-                        )
-                continue
-
-            result = reactivate_user(state, when=when)
-            if result.reactivated:
-                reactivated_count += 1
-                if options["verbosity"] > 0:
-                    self.stdout.write(
-                        self.style.SUCCESS(f"Reactivated {result.user.username}.")
-                    )
-            else:
-                skipped_count += 1
-                if options["verbosity"] > 0:
-                    self.stdout.write(
-                        f"Skipped {result.user.username}: not currently deactivated."
-                    )
+            reactivated, skipped = self._process_state(
+                identifier,
+                state,
+                options,
+                when=when,
+            )
+            reactivated_count += int(reactivated)
+            skipped_count += int(skipped)
 
         if options["verbosity"] > 0:
             action = "Would reactivate" if options["dry_run"] else "Reactivated"
@@ -81,6 +57,42 @@ class Command(BaseCommand):
                 f"{action} {reactivated_count} inactive users; "
                 f"skipped {skipped_count}."
             )
+
+    def _process_state(self, identifier, state, options, when):
+        verbosity = options["verbosity"]
+        if state is None:
+            if verbosity > 0:
+                self.stdout.write(f"Skipped {identifier}: no lifecycle state.")
+            return False, True
+
+        if options["dry_run"]:
+            return self._process_dry_run_state(state, verbosity)
+
+        result = reactivate_user(state, when=when)
+        if result.reactivated:
+            if verbosity > 0:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Reactivated {result.user.username}.")
+                )
+            return True, False
+
+        if verbosity > 0:
+            self.stdout.write(
+                f"Skipped {result.user.username}: not currently deactivated."
+            )
+        return False, True
+
+    def _process_dry_run_state(self, state, verbosity):
+        if has_current_deactivation(state):
+            if verbosity > 0:
+                self.stdout.write(f"Would reactivate {state.user.username}.")
+            return True, False
+
+        if verbosity > 0:
+            self.stdout.write(
+                f"Skipped {state.user.username}: not currently deactivated."
+            )
+        return False, True
 
     def _resolve_states(self, identifiers):
         resolved = []

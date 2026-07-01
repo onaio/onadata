@@ -3,6 +3,8 @@
 User deactivation lifecycle state.
 """
 
+# pylint: disable=too-many-lines
+
 import csv
 from collections import OrderedDict
 from dataclasses import dataclass, replace
@@ -309,6 +311,7 @@ class UserReactivationResult:
 
 
 @dataclass(frozen=True)
+# pylint: disable-next=too-many-instance-attributes
 class UserDeactivationReportRow:
     """A normalized row for inactive-account reports."""
 
@@ -438,19 +441,21 @@ def get_deactivation_exclusion_reason(user):
         return ""
 
     if not user.is_active:
-        return DEACTIVATION_EXCLUSION_INACTIVE
-    if user.is_staff:
-        return DEACTIVATION_EXCLUSION_STAFF
-    if user.is_superuser:
-        return DEACTIVATION_EXCLUSION_SUPERUSER
-    if OrganizationProfile.objects.filter(user=user).exists():
-        return DEACTIVATION_EXCLUSION_ORGANIZATION
-    if user.pk in get_deactivation_excluded_user_ids():
-        return DEACTIVATION_EXCLUSION_USER_ID
-    if user.username in get_deactivation_excluded_usernames():
-        return DEACTIVATION_EXCLUSION_USERNAME
+        reason = DEACTIVATION_EXCLUSION_INACTIVE
+    elif user.is_staff:
+        reason = DEACTIVATION_EXCLUSION_STAFF
+    elif user.is_superuser:
+        reason = DEACTIVATION_EXCLUSION_SUPERUSER
+    elif OrganizationProfile.objects.filter(user=user).exists():
+        reason = DEACTIVATION_EXCLUSION_ORGANIZATION
+    elif user.pk in get_deactivation_excluded_user_ids():
+        reason = DEACTIVATION_EXCLUSION_USER_ID
+    elif user.username in get_deactivation_excluded_usernames():
+        reason = DEACTIVATION_EXCLUSION_USERNAME
+    else:
+        reason = ""
 
-    return ""
+    return reason
 
 
 def get_deactivation_action_summary(action, warning_offsets=(), permission_policy=None):
