@@ -3,6 +3,24 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.22.0(2026-07-01)*
+--------------------
+- fix: don't classify version numbers in form titles as URLs
+  [@kelvin-muchiri]
+  `PR #3139 https://github.com/onaio/onadata/pull/3139`
+- Address security update findings
+  [@ukanga]
+  `PR #3136 https://github.com/onaio/onadata/pull/3136`
+- fix(exports): sanitize SPSS-invalid characters in SAV export variable names
+  [@kelvin-muchiri]
+  `PR #3146 https://github.com/onaio/onadata/pull/3146`
+- chore: clean up v2 project endpoints and star/unstar handling
+  [@kelvin-muchiri]
+  `PR #3152 https://github.com/onaio/onadata/pull/3152`
+- Add inactive account deactivation lifecycle
+  [@ukanga]
+  `PR #3156 https://github.com/onaio/onadata/pull/3156`
+
 v5.21.0(2026-06-24)*
 --------------------
 - Add last_edited_by to submissions
