@@ -1,0 +1,13 @@
+{% load i18n %}
+{% blocktranslate with username=username deployment_name=deployment_name days_remaining=days_remaining deactivation_date=deactivation_date support_email=support_email %}
+Hi {{ username }},
+
+Your {{ deployment_name }} account is scheduled for deactivation in {{ days_remaining }} days on {{ deactivation_date }} because it has been inactive.
+
+To keep the account active, sign in or use the platform before that date.
+
+If you need help, contact Support at {{ support_email }}.
+
+Thanks,
+The Team at {{ deployment_name }}
+{% endblocktranslate %}

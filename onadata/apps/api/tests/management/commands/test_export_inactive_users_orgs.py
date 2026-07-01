@@ -21,6 +21,7 @@ from onadata.apps.api.management.commands.export_inactive_users_orgs import (
     Command,
     calculate_azure_storage_size,
 )
+from onadata.apps.main.models.user_activity import UserActivity
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.inactive_export_tracker import InactiveExportTracker
 
@@ -29,6 +30,11 @@ User = get_user_model()
 
 class TestExportInactiveUsersOrgs(TestBase):
     """Test export_inactive_users_orgs management command"""
+
+    def _set_user_activity(self, user, activity_at):
+        UserActivity.objects.update_or_create(
+            user=user, defaults={"last_activity": activity_at}
+        )
 
     def setUp(self):
         """Set up test data"""
@@ -49,6 +55,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         inactive_user.last_name = "User"
         inactive_user.email = "inactive@example.com"
         inactive_user.save()
+        self._set_user_activity(inactive_user, two_years_ago)
 
         # Create inactive organization with old submission date and creator login
         inactive_org_creator = self._create_user(
@@ -57,6 +64,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         inactive_org_creator.date_joined = two_years_ago
         inactive_org_creator.last_login = two_years_ago
         inactive_org_creator.save()
+        self._set_user_activity(inactive_org_creator, two_years_ago)
 
         self._create_organization(
             "inactive_org", "Inactive Organization", inactive_org_creator
@@ -70,6 +78,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         recent_creator.date_joined = two_years_ago
         recent_creator.last_login = one_year_ago  # Recent login
         recent_creator.save()
+        self._set_user_activity(recent_creator, one_year_ago)
 
         self._create_organization(
             "org_recent_creator", "Org with Recent Creator", recent_creator
@@ -86,6 +95,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         old_creator_no_submissions.date_joined = two_years_ago
         old_creator_no_submissions.last_login = two_years_ago  # Old login
         old_creator_no_submissions.save()
+        self._set_user_activity(old_creator_no_submissions, two_years_ago)
 
         self._create_organization(
             "org_old_creator_no_subs",
@@ -101,6 +111,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         active_user.last_name = "User"
         active_user.email = "active@example.com"
         active_user.save()
+        self._set_user_activity(active_user, one_year_ago)
 
         # Create user inactive for 2.5 years (for testing custom years parameter)
         two_and_half_years_ago = timezone.now() - timedelta(days=912)  # ~2.5 years
@@ -113,6 +124,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         user_2_5_years.last_name = "Years"
         user_2_5_years.email = "twohalf@example.com"
         user_2_5_years.save()
+        self._set_user_activity(user_2_5_years, two_and_half_years_ago)
 
         # Create user inactive for 3.5 years (for testing custom years parameter)
         three_and_half_years_ago = timezone.now() - timedelta(days=1277)  # ~3.5 years
@@ -125,6 +137,7 @@ class TestExportInactiveUsersOrgs(TestBase):
         user_3_5_years.last_name = "Years"
         user_3_5_years.email = "threehalf@example.com"
         user_3_5_years.save()
+        self._set_user_activity(user_3_5_years, three_and_half_years_ago)
 
     def tearDown(self):
         """Clean up test files"""
@@ -205,6 +218,45 @@ class TestExportInactiveUsersOrgs(TestBase):
             self.assertNotIn(
                 "active_user", exported_usernames, "Active user should NOT be exported"
             )
+
+    def test_recent_user_activity_excludes_stale_last_login(self):
+        """Recent tracked activity keeps a user out of the inactive export."""
+        two_years_ago = timezone.now() - timedelta(days=750)
+        one_year_ago = timezone.now() - timedelta(days=365)
+        api_active_user = self._create_user(
+            "api_active_user", "password", create_profile=True
+        )
+        api_active_user.last_login = two_years_ago
+        api_active_user.date_joined = two_years_ago
+        api_active_user.save()
+        self._set_user_activity(api_active_user, one_year_ago)
+
+        users = Command().get_inactive_users(years=2)
+        usernames = [user["username"] for user in users]
+
+        self.assertNotIn("api_active_user", usernames)
+
+    def test_recent_creator_activity_excludes_stale_organization(self):
+        """Recent tracked creator activity keeps an organization out of export."""
+        two_years_ago = timezone.now() - timedelta(days=750)
+        one_year_ago = timezone.now() - timedelta(days=365)
+        api_active_creator = self._create_user(
+            "api_active_creator", "password", create_profile=True
+        )
+        api_active_creator.last_login = two_years_ago
+        api_active_creator.date_joined = two_years_ago
+        api_active_creator.save()
+        self._set_user_activity(api_active_creator, one_year_ago)
+        self._create_organization(
+            "org_recent_creator_activity",
+            "Org with Recent Creator Activity",
+            api_active_creator,
+        )
+
+        organizations = Command().get_inactive_organizations(years=2)
+        org_usernames = [organization["org_username"] for organization in organizations]
+
+        self.assertNotIn("org_recent_creator_activity", org_usernames)
 
     def test_csv_file_format(self):
         """Test that CSV files have correct format and headers"""
@@ -357,8 +409,8 @@ class TestExportInactiveUsersOrgs(TestBase):
             self.assertIn("storage_size_mb", headers)
             self.assertIn("storage_breakdown", headers)
 
-            # Read first row
-            row = next(reader)
+            rows = list(reader)
+            row = next(row for row in rows if row["username"] == "inactive_user")
             self.assertEqual(row["username"], "inactive_user")
             # Total: 1MB + 2MB + 0.5MB = 3.5MB (allow small rounding difference)
             self.assertAlmostEqual(float(row["storage_size_mb"]), 3.5, places=1)
@@ -402,6 +454,7 @@ class TestExportInactiveUsersOrgs(TestBase):
             extra_user.last_login = two_years_ago
             extra_user.date_joined = two_years_ago
             extra_user.save()
+            self._set_user_activity(extra_user, two_years_ago)
 
         # Run command with limit
         call_command(
