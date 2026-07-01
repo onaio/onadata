@@ -50,16 +50,24 @@ class MessagingViewSet(
     )
     filterset_class = ActionFilterSet
     pagination_class = CountOverridablePageNumberPagination
+    # count of the filtered queryset for the current request, reused across
+    # pagination and Link header generation to avoid repeat COUNT(*)
+    record_count = None
+
+    def paginate_queryset(self, queryset):
+        """Returns a paginated queryset"""
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(
+            queryset, self.request, view=self, count=self.record_count
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        # single count reused by pagination and the Link header
-        record_count = queryset.count()
-        page = self.paginator.paginate_queryset(
-            queryset, self.request, view=self, count=record_count
-        )
+        self.record_count = queryset.count()
+        page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
         headers = self.paginator.generate_link_header(
-            self.request, queryset, count=record_count
+            self.request, queryset, count=self.record_count
         )
         return Response(serializer.data, headers=headers)
