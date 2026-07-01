@@ -78,6 +78,9 @@ class StandardPageNumberPagination(PageNumberPagination):
             if link:
                 links.append(f'<{link}>; rel="{rel}"')
 
+        if not links:
+            return {}
+
         return {"Link": ", ".join(links)}
 
     def get_paginated_response(self, data):
