@@ -2,6 +2,7 @@
 """
 Messaging /messaging viewsets.
 """
+
 from __future__ import unicode_literals
 
 from django.conf import settings
@@ -27,7 +28,7 @@ from onadata.libs.pagination import CountOverridablePageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
-@method_decorator(cache_page(30 * 60), name="list")
+@method_decorator(cache_page(10 * 60), name="list")
 class MessagingViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -77,7 +78,9 @@ class MessagingViewSet(
         if not has_pagination_params:
             self.record_count = queryset.count()
 
-        should_paginate = has_pagination_params or self.record_count > retrieval_threshold
+        should_paginate = (
+            has_pagination_params or self.record_count > retrieval_threshold
+        )
 
         if should_paginate:
             if "page_size" not in self.request.query_params.keys():
