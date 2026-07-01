@@ -349,7 +349,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return username
 
     def validate_email(self, value):
-        """Reject any other user with the same email (case-insensitive); store lower-cased."""
+        """Reject a duplicate email (case-insensitive) and store it lower-cased."""
         value = value.strip().lower()
         users = User.objects.filter(email__iexact=value)
         if self.instance:

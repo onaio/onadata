@@ -368,7 +368,12 @@ class UserProfileViewSet(
             )
 
         # Re-check uniqueness at confirm time (race guard).
-        if User.objects.filter(email__iexact=pec.new_email).exclude(pk=user.pk).exists():
+        clash = (
+            User.objects.filter(email__iexact=pec.new_email)
+            .exclude(pk=user.pk)
+            .exists()
+        )
+        if clash:
             pec.delete()
             return Response(
                 {"new_email": _("This email address is already in use.")},
