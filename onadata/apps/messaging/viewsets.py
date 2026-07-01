@@ -65,7 +65,7 @@ class MessagingViewSet(
     def list(self, request, *args, **kwargs):
         headers = None
         queryset = self.filter_queryset(self.get_queryset())
-        retrieval_threshold = getattr(settings, "MESSAGE_RETRIEVAL_THRESHOLD", 500)
+        retrieval_threshold = getattr(settings, "MESSAGE_RETRIEVAL_THRESHOLD", 100)
         pagination_keys = [
             self.paginator.page_query_param,
             self.paginator.page_size_query_param,
