@@ -73,8 +73,6 @@ class MessagingViewSet(
         query_param_keys = self.request.query_params
         has_pagination_params = any(k in query_param_keys for k in pagination_keys)
 
-        # Only count to decide auto-pagination; when pagination is explicitly
-        # requested the count is deferred to the pagination step below.
         if not has_pagination_params:
             self.record_count = queryset.count()
 
