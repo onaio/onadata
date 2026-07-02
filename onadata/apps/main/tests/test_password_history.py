@@ -79,3 +79,23 @@ class TestPasswordHistory(TestCase):
         self.assertEqual(
             PasswordHistory.objects.filter(hashed_password=old_hash).count(), 1
         )
+
+    def test_same_hash_allowed_for_different_users(self):
+        """Uniqueness is per-user, not global: two users may share a hash.
+
+        A global unique constraint on hashed_password is the wrong invariant —
+        it makes one user's history collide with another's and is what caused
+        the login lockout. Recording the same hash for two different users
+        must succeed.
+        """
+        user_a = User.objects.create_user(username="a", password="x")
+        user_b = User.objects.create_user(username="b", password="x")
+        shared_hash = "pbkdf2_sha256$shared$deadbeef"
+
+        PasswordHistory.objects.create(user=user_a, hashed_password=shared_hash)
+        # Same hash, different user — must not raise.
+        PasswordHistory.objects.create(user=user_b, hashed_password=shared_hash)
+
+        self.assertEqual(
+            PasswordHistory.objects.filter(hashed_password=shared_hash).count(), 2
+        )
