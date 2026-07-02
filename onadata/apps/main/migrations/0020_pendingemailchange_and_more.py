@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('main', '0016_update_xform_meta_perms'),
+        ('main', '0019_userdeactivationpermissionsnapshot'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
