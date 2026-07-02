@@ -157,6 +157,63 @@ Sample response with link header
           }
       ]
 
+GET Grouped activity counts
+---------------------------
+
+Passing one or more ``group_by`` parameters returns activity counts instead of
+individual event messages, grouped by the requested dimension(s). The supported
+dimensions are ``user`` and ``verb``; repeat the parameter to group by both.
+The same ``target_type``, ``target_id`` and optional ``user`` filters apply.
+The results are paginated and ordered by most recent activity first. Any other
+``group_by`` value returns an HTTP 400 response.
+
+- ``group_by=verb`` - Counts per verb, aggregated across users.
+- ``group_by=user`` - Counts per user, aggregated across verbs.
+- ``group_by=user&group_by=verb`` - Counts per ``(user, verb)``.
+
+Each row always contains:
+
+- ``count`` - The number of events in the group.
+- ``latest_timestamp`` - The timestamp of the most recent event in the group.
+
+The requested dimensions are also included in each row:
+
+- ``user`` - The username of the acting user. This is ``null`` when the actor
+  id no longer resolves to a user.
+- ``verb`` - The action that occurred on the target.
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/messaging?target_type=<code>{type}</code>&target_id=<code>{form_id}</code>&group_by=<code>user</code>&group_by=<code>verb</code>
+  </pre>
+
+Example
+^^^^^^^^
+::
+
+    curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&group_by=user&group_by=verb
+
+
+Response
+^^^^^^^^^
+::
+
+    [
+        {
+            "user": "bob",
+            "verb": "submission_created",
+            "count": 14,
+            "latest_timestamp": "2021-02-26T03:32:57.799647-05:00"
+        },
+        {
+            "user": "bob",
+            "verb": "submission_edited",
+            "count": 2,
+            "latest_timestamp": "2020-12-14T02:57:23.264655-05:00"
+        }
+    ]
+
 Query events of a target using timestamp
 ----------------------------------------
 

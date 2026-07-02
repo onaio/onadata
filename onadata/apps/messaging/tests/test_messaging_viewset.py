@@ -2,17 +2,24 @@
 """
 Tests Messaging app viewsets.
 """
+
 from __future__ import unicode_literals
 
 from builtins import str as text
+from datetime import timedelta
 
-from actstream.models import Action
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.utils import override_settings
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from actstream.models import Action
+from actstream.signals import action
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED
 from onadata.apps.messaging.tests.test_base import _create_user
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
@@ -654,3 +661,210 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+
+    def test_group_by_user_and_verb_returns_counts(self):
+        """
+        group_by=user&group_by=verb returns per-(user, verb) counts.
+        """
+        user = _create_user()
+        for _ in range(2):
+            action.send(user, verb=EXPORT_CREATED, target=user)
+        for _ in range(3):
+            action.send(user, verb=SUBMISSION_CREATED, target=user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": user.pk,
+                "group_by": ["user", "verb"],
+            },
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {(row["user"], row["verb"]): row["count"] for row in response.data}
+        self.assertEqual(counts[(user.username, EXPORT_CREATED)], 2)
+        self.assertEqual(counts[(user.username, SUBMISSION_CREATED)], 3)
+        for row in response.data:
+            self.assertIn("latest_timestamp", row)
+
+    def test_group_by_verb_orders_by_recent_activity(self):
+        """
+        Grouped rows are ordered most-recent-activity first.
+        """
+        user = _create_user()
+        older = timezone.now() - timedelta(days=2)
+        newer = timezone.now()
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=older)
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=newer)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        verbs_in_order = [row["verb"] for row in response.data]
+        self.assertEqual(verbs_in_order, [SUBMISSION_CREATED, EXPORT_CREATED])
+
+    def test_group_by_verb_latest_timestamp_is_newest(self):
+        """
+        A group's latest_timestamp equals its newest action's timestamp.
+        """
+        user = _create_user()
+        older = timezone.now() - timedelta(days=1)
+        newest = timezone.now()
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=older)
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=newest)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        row = response.data[0]
+        self.assertEqual(row["count"], 2)
+        self.assertEqual(parse_datetime(row["latest_timestamp"]), newest)
+
+    def test_group_by_verb_null_user_for_unresolvable_actor(self):
+        """
+        A group whose actor id no longer resolves to a user is returned with
+        user null and the row is retained.
+        """
+        target_user = _create_user("target")
+        actor_user = _create_user("ghost")
+        action.send(actor_user, verb=SUBMISSION_CREATED, target=target_user)
+        # Simulate a dangling actor reference (e.g. data left behind by a raw
+        # delete) without triggering actstream's GenericRelation cascade, which
+        # deleting the user would otherwise use to remove the action too.
+        Action.objects.filter(actor_object_id=actor_user.pk).update(
+            actor_object_id=9999999
+        )
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": target_user.pk,
+                "group_by": ["user", "verb"],
+            },
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.assertEqual(len(response.data), 1)
+        row = response.data[0]
+        self.assertEqual(row["verb"], SUBMISSION_CREATED)
+        self.assertEqual(row["count"], 1)
+        self.assertIsNone(row["user"])
+
+    def test_group_by_user_only(self):
+        """
+        group_by=user groups by actor only, aggregating across verbs, and the
+        rows carry no verb field.
+        """
+        target_user = _create_user("target")
+        alice = _create_user("alice")
+        bob = _create_user("bob")
+        action.send(alice, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=EXPORT_CREATED, target=target_user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": target_user.pk, "group_by": "user"},
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {row["user"]: row["count"] for row in response.data}
+        self.assertEqual(counts["alice"], 1)
+        self.assertEqual(counts["bob"], 2)
+        for row in response.data:
+            self.assertNotIn("verb", row)
+
+    def test_group_by_validation(self):
+        """
+        group_by rejects unsupported values and still requires a target.
+        """
+        user = _create_user()
+        action.send(user, verb=SUBMISSION_CREATED, target=user)
+        view = MessagingViewSet.as_view({"get": "list"})
+
+        # an unsupported group_by value is rejected
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "actor"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Unsupported group_by value 'actor'"}
+        )
+
+        # an unsupported value alongside a valid one is still rejected
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": user.pk,
+                "group_by": ["verb", "actor"],
+            },
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Unsupported group_by value 'actor'"}
+        )
+
+        # grouped mode still requires a target (contract unchanged)
+        request = self.factory.get("/messaging", {"group_by": "verb"})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Parameter 'target_type' is missing."}
+        )
+
+    def test_group_by_verb_only(self):
+        """
+        group_by=verb groups by verb only, aggregating across actors, and the
+        rows carry no user field.
+        """
+        target_user = _create_user("target")
+        alice = _create_user("alice")
+        bob = _create_user("bob")
+        action.send(alice, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=EXPORT_CREATED, target=target_user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": target_user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {row["verb"]: row["count"] for row in response.data}
+        self.assertEqual(counts[SUBMISSION_CREATED], 2)
+        self.assertEqual(counts[EXPORT_CREATED], 1)
+        for row in response.data:
+            self.assertNotIn("user", row)
