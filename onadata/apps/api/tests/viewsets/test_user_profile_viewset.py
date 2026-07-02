@@ -2174,6 +2174,37 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIn("new_email", response.data)
 
+    def test_request_email_change_throttled(self):
+        """OTP send is rate-limited so it can't spam the target address."""
+        from django.core.cache import cache
+
+        from onadata.apps.api.viewsets.user_profile_viewset import (
+            MAX_EMAIL_CHANGE_REQUESTS,
+        )
+
+        cache.clear()
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        mail.outbox = []
+
+        # The budget of sends all succeed.
+        for _ in range(MAX_EMAIL_CHANGE_REQUESTS):
+            request = self.factory.post(
+                "/",
+                data={"new_email": "new@x.com", "password": "bobbob"},
+                **self.extra,
+            )
+            self.assertEqual(view(request, user="bob").status_code, 200)
+
+        # The next one is blocked and sends no further mail.
+        blocked = self.factory.post(
+            "/",
+            data={"new_email": "new@x.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(blocked, user="bob")
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(len(mail.outbox), MAX_EMAIL_CHANGE_REQUESTS)
+
     # ---------------------------------------------------------------------------
     # confirm_email_change tests
     # ---------------------------------------------------------------------------

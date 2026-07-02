@@ -46,6 +46,7 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
+    EMAIL_CHANGE_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
     safe_cache_delete,
@@ -54,8 +55,10 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.email import (
+    email_in_use,
     get_verification_email_data,
     get_verification_url,
+    normalize_email,
     send_email_change_code,
 )
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
@@ -65,6 +68,11 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
 MAX_CHANGE_PASSWORD_ATTEMPTS = getattr(settings, "MAX_CHANGE_PASSWORD_ATTEMPTS", 10)
+# Email-change OTP send throttle: cap how many verification codes a user can
+# request in a rolling window, so the endpoint can't be used to spam a
+# caller-supplied address.
+MAX_EMAIL_CHANGE_REQUESTS = getattr(settings, "MAX_EMAIL_CHANGE_REQUESTS", 5)
+EMAIL_CHANGE_ATTEMPTS_TTL = getattr(settings, "EMAIL_CHANGE_ATTEMPTS_TTL", 3600)
 
 
 def replace_key_value(lookup, new_value, expected_dict):
@@ -159,6 +167,26 @@ def change_password_attempts(request):
     safe_cache_set(password_attempts, 1)
 
     return 1
+
+
+def email_change_send_allowed(username):
+    """Best-effort rate limit for email-change OTP sends.
+
+    Counts sends per user in a rolling window and returns ``False`` once
+    ``MAX_EMAIL_CHANGE_REQUESTS`` is exceeded, so ``request_email_change``
+    can't be used to spam a caller-supplied address. Uses the same cache
+    primitives as ``change_password_attempts`` above — one throttle
+    mechanism, keyed per scope.
+    """
+    key = f"{EMAIL_CHANGE_ATTEMPTS}{username}"
+    attempts = safe_cache_get(key)
+    if attempts:
+        if attempts >= MAX_EMAIL_CHANGE_REQUESTS:
+            return False
+        safe_cache_incr(key)
+        return True
+    safe_cache_set(key, 1, EMAIL_CHANGE_ATTEMPTS_TTL)
+    return True
 
 
 # pylint: disable=too-many-ancestors
@@ -316,7 +344,7 @@ class UserProfileViewSet(
         profile = self.get_object()
         user = profile.user
 
-        new_email = (request.data.get("new_email") or "").strip().lower()
+        new_email = normalize_email(request.data.get("new_email"))
         password = request.data.get("password") or ""
 
         if not new_email:
@@ -331,14 +359,17 @@ class UserProfileViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if (
-            User.objects.filter(email__iexact=new_email)
-            .exclude(pk=user.pk)
-            .exists()
-        ):
+        if email_in_use(new_email, exclude_user=user):
             return Response(
                 {"new_email": _("This email address is already in use.")},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Throttle OTP sends so this endpoint can't spam the target address.
+        if not email_change_send_allowed(user.username):
+            return Response(
+                {"error": _("Too many email-change requests. Try again later.")},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         _pec, code = PendingEmailChange.start(user, new_email)
@@ -361,26 +392,24 @@ class UserProfileViewSet(
         user = profile.user
 
         pec = PendingEmailChange.objects.filter(user=user).first()
-        if not pec or not pec.verify(request.data.get("otp")):
+        # consume() verifies the OTP and, on success, retires the row (the
+        # one-time semantics live in the model, not here).
+        new_email = pec.consume(request.data.get("otp")) if pec else None
+        if new_email is None:
             return Response(
                 {"otp": _("Invalid or expired code.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Re-check uniqueness at confirm time (race guard).
-        clash = (
-            User.objects.filter(email__iexact=pec.new_email)
-            .exclude(pk=user.pk)
-            .exists()
-        )
-        if clash:
-            pec.delete()
+        # Re-check uniqueness at confirm time (race guard): the address may
+        # have been taken between request and confirm.
+        if email_in_use(new_email, exclude_user=user):
             return Response(
                 {"new_email": _("This email address is already in use.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.email = pec.new_email
+        user.email = new_email
         user.save(update_fields=["email"])
 
         profile.metadata = {**(profile.metadata or {}), "is_email_verified": True}
@@ -393,9 +422,6 @@ class UserProfileViewSet(
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
-
-        # Single-use: delete the pending row after successful apply.
-        pec.delete()
 
         return Response({"email": user.email}, status=status.HTTP_200_OK)
 

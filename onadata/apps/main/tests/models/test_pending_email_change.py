@@ -39,3 +39,23 @@ class PendingEmailChangeTests(TestCase):
         for _ in range(PendingEmailChange.MAX_ATTEMPTS):
             pec.verify("000000")
         self.assertFalse(pec.verify(code))  # correct code now rejected
+
+    def test_hash_is_keyed_not_bare_sha256(self):
+        """code_hash is a keyed HMAC, not a reversible bare SHA-256 digest."""
+        import hashlib
+
+        pec, code = PendingEmailChange.start(self.user, "n@x.com")
+        self.assertNotEqual(pec.code_hash, hashlib.sha256(code.encode()).hexdigest())
+        self.assertTrue(pec.verify(code))  # correct code still validates
+
+    def test_consume_returns_email_and_retires_row(self):
+        pec, code = PendingEmailChange.start(self.user, "New@X.com")
+        self.assertEqual(pec.consume(code), "new@x.com")
+        self.assertFalse(
+            PendingEmailChange.objects.filter(user=self.user).exists()
+        )
+
+    def test_consume_wrong_code_returns_none_and_keeps_row(self):
+        pec, _ = PendingEmailChange.start(self.user, "n@x.com")
+        self.assertIsNone(pec.consume("000000"))
+        self.assertTrue(PendingEmailChange.objects.filter(user=self.user).exists())

@@ -31,7 +31,12 @@ from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_get, safe_cache_set
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    email_in_use,
+    get_verification_email_data,
+    get_verification_url,
+    normalize_email,
+)
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
@@ -350,12 +355,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def validate_email(self, value):
         """Reject a duplicate email (case-insensitive) and store it lower-cased."""
-        value = value.strip().lower()
-        users = User.objects.filter(email__iexact=value)
-        if self.instance:
-            users = users.exclude(pk=self.instance.user.pk)
-
-        if users.exists():
+        value = normalize_email(value)
+        exclude_user = self.instance.user if self.instance else None
+        if email_in_use(value, exclude_user=exclude_user):
             raise serializers.ValidationError(
                 _("This email address is already in use. ")
             )
