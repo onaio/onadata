@@ -138,6 +138,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return instance
 
 
+# pylint: disable=abstract-method
 class GroupedActivitySerializer(serializers.Serializer):
     """Serializer for grouped activity counts.
 
