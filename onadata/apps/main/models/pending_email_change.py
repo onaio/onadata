@@ -119,3 +119,16 @@ class PendingEmailChange(models.Model):
             self.delete()
             return new_email
         return None
+
+    @classmethod
+    def purge_expired(cls):
+        """Delete pending changes whose OTP has expired.
+
+        Rows are single-use (``consume`` deletes on success) and one-per-user
+        (OneToOne + ``update_or_create``), so a completed or superseded change
+        leaves nothing behind. This only clears entries a user *abandoned* or
+        let lapse, which would otherwise linger indefinitely. Returns the
+        number of rows deleted. Safe to run on a schedule.
+        """
+        deleted, _ = cls.objects.filter(expires_at__lt=timezone.now()).delete()
+        return deleted

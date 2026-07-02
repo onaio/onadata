@@ -1,6 +1,7 @@
 """
 Tests for PendingEmailChange model and OTP helpers.
 """
+
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -51,11 +52,23 @@ class PendingEmailChangeTests(TestCase):
     def test_consume_returns_email_and_retires_row(self):
         pec, code = PendingEmailChange.start(self.user, "New@X.com")
         self.assertEqual(pec.consume(code), "new@x.com")
-        self.assertFalse(
-            PendingEmailChange.objects.filter(user=self.user).exists()
-        )
+        self.assertFalse(PendingEmailChange.objects.filter(user=self.user).exists())
 
     def test_consume_wrong_code_returns_none_and_keeps_row(self):
         pec, _ = PendingEmailChange.start(self.user, "n@x.com")
         self.assertIsNone(pec.consume("000000"))
         self.assertTrue(PendingEmailChange.objects.filter(user=self.user).exists())
+
+    def test_purge_expired_deletes_only_expired(self):
+        """Abandoned/expired rows are purged; live ones are kept."""
+        other = User.objects.create(username="carol", email="carol@x.com")
+        PendingEmailChange.start(self.user, "live@x.com")  # live
+        stale, _ = PendingEmailChange.start(other, "old@x.com")
+        stale.expires_at = timezone.now() - timedelta(seconds=1)
+        stale.save(update_fields=["expires_at"])
+
+        deleted = PendingEmailChange.purge_expired()
+
+        self.assertEqual(deleted, 1)
+        self.assertTrue(PendingEmailChange.objects.filter(user=self.user).exists())
+        self.assertFalse(PendingEmailChange.objects.filter(user=other).exists())
