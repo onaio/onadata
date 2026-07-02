@@ -138,6 +138,29 @@ class MessageSerializer(serializers.ModelSerializer):
         return instance
 
 
+# pylint: disable=abstract-method
+class GroupedActivitySerializer(serializers.Serializer):
+    """Serializer for grouped activity counts.
+
+    ``user`` and ``verb`` are grouping dimensions and are only included when
+    requested via the ``dimensions`` context; ``count`` and
+    ``latest_timestamp`` are always present.
+    """
+
+    user = serializers.CharField(allow_null=True, required=False)
+    verb = serializers.CharField(required=False)
+    count = serializers.IntegerField()
+    latest_timestamp = serializers.DateTimeField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        dimensions = self.context.get("dimensions")
+        if dimensions is not None:
+            for field in ("user", "verb"):
+                if field not in dimensions:
+                    self.fields.pop(field, None)
+
+
 # pylint: disable=too-many-arguments,too-many-positional-arguments
 def send_message(
     instance_id: Union[list, int],
