@@ -16,6 +16,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from onadata.libs.utils.email_identity import normalize_email
+
 # Deployment-tunable OTP policy — single source of truth (see email.py, which
 # derives the notification's stated expiry from OTP_TTL_SECONDS).
 OTP_TTL_SECONDS = getattr(settings, "EMAIL_CHANGE_OTP_TTL_SECONDS", 300)
@@ -79,7 +81,7 @@ class PendingEmailChange(models.Model):
         pec, _ = cls.objects.update_or_create(
             user=user,
             defaults={
-                "new_email": new_email.strip().lower(),
+                "new_email": normalize_email(new_email),
                 "code_hash": _hash_code(code),
                 "expires_at": timezone.now() + timedelta(seconds=cls.TTL_SECONDS),
                 "attempts": 0,

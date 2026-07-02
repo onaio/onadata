@@ -55,12 +55,11 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.email import (
-    email_in_use,
     get_verification_email_data,
     get_verification_url,
-    normalize_email,
     send_email_change_code,
 )
+from onadata.libs.utils.email_identity import email_in_use, normalize_email
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
@@ -143,49 +142,51 @@ def check_user_lockout(request):
     return None
 
 
-def change_password_attempts(request):
-    """Track number of login attempts made by user within a specified amount
-    of time"""
-    username = request.user.username
-    password_attempts = f"{CHANGE_PASSWORD_ATTEMPTS}{username}"
-    attempts = safe_cache_get(password_attempts)
+def bump_attempts(cache_key, ttl=None):
+    """Increment a windowed attempt counter and return the new count.
 
-    if attempts:
-        safe_cache_incr(password_attempts)
-        attempts = safe_cache_get(password_attempts)
-        if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
-            safe_cache_set(
-                f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
-                datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                LOCKOUT_TIME,
-            )
-            if check_user_lockout(request):
-                return check_user_lockout(request)
-
-        return attempts
-
-    safe_cache_set(password_attempts, 1)
-
+    Shared primitive behind the password-change and email-change throttles:
+    it creates the key on first use (with *ttl* when given, otherwise the
+    cache default) and increments it thereafter, keeping the original window.
+    """
+    if safe_cache_get(cache_key):
+        safe_cache_incr(cache_key)
+        return safe_cache_get(cache_key)
+    if ttl is None:
+        safe_cache_set(cache_key, 1)
+    else:
+        safe_cache_set(cache_key, 1, ttl)
     return 1
 
 
-def email_change_send_allowed(username):
-    """Best-effort rate limit for email-change OTP sends.
+def change_password_attempts(request):
+    """Track password-change attempts; lock the user out past the budget."""
+    username = request.user.username
+    attempts = bump_attempts(f"{CHANGE_PASSWORD_ATTEMPTS}{username}")
+    if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
+        safe_cache_set(
+            f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
+            datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            LOCKOUT_TIME,
+        )
+        lockout = check_user_lockout(request)
+        if lockout:
+            return lockout
+    return attempts
 
-    Counts sends per user in a rolling window and returns ``False`` once
-    ``MAX_EMAIL_CHANGE_REQUESTS`` is exceeded, so ``request_email_change``
-    can't be used to spam a caller-supplied address. Uses the same cache
-    primitives as ``change_password_attempts`` above — one throttle
-    mechanism, keyed per scope.
+
+def email_change_send_allowed(username):
+    """Best-effort per-user rate limit for email-change OTP sends.
+
+    Returns ``False`` once ``MAX_EMAIL_CHANGE_REQUESTS`` sends have occurred
+    in the window, so ``request_email_change`` can't be used to spam a
+    caller-supplied address. Shares the ``bump_attempts`` counter mechanism
+    with the password-change throttle above.
     """
-    key = f"{EMAIL_CHANGE_ATTEMPTS}{username}"
-    attempts = safe_cache_get(key)
-    if attempts:
-        if attempts >= MAX_EMAIL_CHANGE_REQUESTS:
-            return False
-        safe_cache_incr(key)
-        return True
-    safe_cache_set(key, 1, EMAIL_CHANGE_ATTEMPTS_TTL)
+    cache_key = f"{EMAIL_CHANGE_ATTEMPTS}{username}"
+    if (safe_cache_get(cache_key) or 0) >= MAX_EMAIL_CHANGE_REQUESTS:
+        return False
+    bump_attempts(cache_key, EMAIL_CHANGE_ATTEMPTS_TTL)
     return True
 
 
@@ -344,6 +345,15 @@ class UserProfileViewSet(
         profile = self.get_object()
         user = profile.user
 
+        # Rate-limit first, so the checks below can't be exercised as
+        # unbounded oracles: the password check and the uniqueness probe both
+        # sit behind this gate, not just the final OTP send.
+        if not email_change_send_allowed(user.username):
+            return Response(
+                {"error": _("Too many email-change requests. Try again later.")},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         new_email = normalize_email(request.data.get("new_email"))
         password = request.data.get("password") or ""
 
@@ -363,13 +373,6 @@ class UserProfileViewSet(
             return Response(
                 {"new_email": _("This email address is already in use.")},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Throttle OTP sends so this endpoint can't spam the target address.
-        if not email_change_send_allowed(user.username):
-            return Response(
-                {"error": _("Too many email-change requests. Try again later.")},
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         _pec, code = PendingEmailChange.start(user, new_email)

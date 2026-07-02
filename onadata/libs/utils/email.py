@@ -121,29 +121,6 @@ def send_generic_email(email, message_txt, subject):
     email_message.send()
 
 
-def normalize_email(value):
-    """Canonical form used everywhere an email is stored or compared."""
-    return (value or "").strip().lower()
-
-
-def email_in_use(email, exclude_user=None):
-    """Whether *email* already belongs to a user (case-insensitive).
-
-    Single source of truth for the email-uniqueness invariant — the profile
-    serializer and both email-change actions call this instead of each
-    re-implementing the ``email__iexact`` + ``exclude(self)`` query.
-    """
-    # Imported here to avoid a model import at module load (email.py is a
-    # low-level util pulled in early).
-    from django.contrib.auth import get_user_model  # noqa: PLC0415
-
-    user_model = get_user_model()
-    queryset = user_model.objects.filter(email__iexact=normalize_email(email))
-    if exclude_user is not None:
-        queryset = queryset.exclude(pk=exclude_user.pk)
-    return queryset.exists()
-
-
 def send_email_change_code(to_email: str, code: str) -> None:
     """Send a numeric OTP to *to_email* as part of an email-change request.
 

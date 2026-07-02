@@ -2131,6 +2131,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_request_email_change_happy_path(self):
         """Happy path: returns 200, creates PendingEmailChange, sends 1 email."""
+        cache.clear()  # start with a clean send-throttle counter
         view = UserProfileViewSet.as_view({"post": "request_email_change"})
         mail.outbox = []
         request = self.factory.post(
@@ -2147,6 +2148,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_request_email_change_bad_password(self):
         """Wrong password returns 400 with a 'password' error key."""
+        cache.clear()  # clean send-throttle counter
         view = UserProfileViewSet.as_view({"post": "request_email_change"})
         request = self.factory.post(
             "/",
@@ -2159,6 +2161,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_request_email_change_duplicate_email(self):
         """Email already in use (case-insensitive) returns 400 with new_email error."""
+        cache.clear()  # clean send-throttle counter
         view = UserProfileViewSet.as_view({"post": "request_email_change"})
         # Another user already owns taken@example.com; bob submits a
         # case-variant of it and must be rejected as a duplicate.
@@ -2176,8 +2179,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_request_email_change_throttled(self):
         """OTP send is rate-limited so it can't spam the target address."""
-        from django.core.cache import cache
-
         from onadata.apps.api.viewsets.user_profile_viewset import (
             MAX_EMAIL_CHANGE_REQUESTS,
         )
@@ -2204,6 +2205,34 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(blocked, user="bob")
         self.assertEqual(response.status_code, 429)
         self.assertEqual(len(mail.outbox), MAX_EMAIL_CHANGE_REQUESTS)
+
+    def test_request_email_change_throttle_gates_entry(self):
+        """The rate limit gates entry, not just the send: even calls that fail
+        the password check count against the budget, so the password/uniqueness
+        checks can't be exercised as unbounded oracles."""
+        from onadata.apps.api.viewsets.user_profile_viewset import (
+            MAX_EMAIL_CHANGE_REQUESTS,
+        )
+
+        cache.clear()
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+
+        # Exhaust the budget with wrong-password calls (each returns 400).
+        for _ in range(MAX_EMAIL_CHANGE_REQUESTS):
+            bad = self.factory.post(
+                "/",
+                data={"new_email": "probe@x.com", "password": "wrongpass"},
+                **self.extra,
+            )
+            self.assertEqual(view(bad, user="bob").status_code, 400)
+
+        # The next call is throttled (429) before it can reach the checks.
+        blocked = self.factory.post(
+            "/",
+            data={"new_email": "probe@x.com", "password": "wrongpass"},
+            **self.extra,
+        )
+        self.assertEqual(view(blocked, user="bob").status_code, 429)
 
     # ---------------------------------------------------------------------------
     # confirm_email_change tests

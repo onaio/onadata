@@ -32,11 +32,10 @@ from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import IS_ORG, safe_cache_get, safe_cache_set
 from onadata.libs.utils.email import (
-    email_in_use,
     get_verification_email_data,
     get_verification_url,
-    normalize_email,
 )
+from onadata.libs.utils.email_identity import email_in_use, normalize_email
 
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
