@@ -99,7 +99,7 @@ class DataViewViewSet(
         """
         Get a serializer class based on request format
         """
-        export_type = self.kwargs.get("format")
+        export_type = self.kwargs.get("format", self.request.GET.get("format"))
         if self.action == "data" and export_type == "geojson":
             serializer_class = GeoJsonSerializer
         elif self.action == "data":
