@@ -1,15 +1,16 @@
 """
 Tests onadata.libs.pagination module
 """
+
 from django.http.request import HttpRequest
 
 from rest_framework.request import Request
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.pagination import (
-    StandardPageNumberPagination,
     RawSQLQueryPageNumberPagination,
+    StandardPageNumberPagination,
 )
 
 
@@ -27,7 +28,9 @@ class TestPaginationModule(TestBase):
         self._publish_transportation_form()
         self._make_submissions()
         qs = Instance.objects.filter(xform=self.xform)
-        out = StandardPageNumberPagination().generate_link_header(Request(req), qs)
+        paginator = StandardPageNumberPagination()
+        paginator.paginate_queryset(qs, Request(req))
+        out = paginator.generate_link_header()
         expected_out = {
             "Link": '<http://testserver?page=2&page_size=1>; rel="next",'
             ' <http://testserver?page=4&page_size=1>; rel="last"'
@@ -37,7 +40,9 @@ class TestPaginationModule(TestBase):
         # First page link is created when not on the first page
         req.META["QUERY_STRING"] = "page=2&page_size=1"
         req.GET = {"page": 2, "page_size": 1}
-        out = StandardPageNumberPagination().generate_link_header(Request(req), qs)
+        paginator = StandardPageNumberPagination()
+        paginator.paginate_queryset(qs, Request(req))
+        out = paginator.generate_link_header()
         expected_out = {
             "Link": '<http://testserver?page_size=1>; rel="prev", '
             '<http://testserver?page=3&page_size=1>; rel="next", '
@@ -49,7 +54,9 @@ class TestPaginationModule(TestBase):
         # Last page link is not created on last page
         req.META["QUERY_STRING"] = "page=4&page_size=1"
         req.GET = {"page": 4, "page_size": 1}
-        out = StandardPageNumberPagination().generate_link_header(Request(req), qs)
+        paginator = StandardPageNumberPagination()
+        paginator.paginate_queryset(qs, Request(req))
+        out = paginator.generate_link_header()
         expected_out = {
             "Link": '<http://testserver?page=3&page_size=1>; rel="prev", '
             '<http://testserver?page=1&page_size=1>; rel="first"'

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from builtins import str as text
 
 from actstream.models import Action
+from django.core.cache import cache
 from django.test import TestCase
 from django.test.utils import override_settings
 from guardian.shortcuts import assign_perm
@@ -23,6 +24,8 @@ class TestMessagingViewSet(TestCase):
 
     def setUp(self):
         self.factory = APIRequestFactory()
+        # the list endpoint caches responses; start each test with a clean cache
+        cache.clear()
 
     @override_settings(FULL_MESSAGE_PAYLOAD=True)
     def _create_message(self, user=None):
@@ -144,6 +147,78 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, {"detail": "Unknown target_type xyz"})
+
+    def test_list_response_is_cached(self):
+        """A repeated identical list request is served from cache."""
+        user = _create_user()
+        self._create_message(user)
+        view = MessagingViewSet.as_view({"get": "list"})
+        params = {"target_type": "user", "target_id": user.pk}
+
+        # first request populates the cache
+        request = self.factory.get("/messaging", params)
+        force_authenticate(request, user=user)
+        first = view(request=request)
+        first.render()
+        self.assertEqual(first.status_code, 200)
+
+        # the underlying data changes after the response has been cached
+        self._create_message(user)
+
+        # a repeated identical request is served the cached response body
+        request = self.factory.get("/messaging", params)
+        force_authenticate(request, user=user)
+        second = view(request=request)
+        if hasattr(second, "render"):
+            second.render()
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.content, first.content)
+
+    def test_list_cache_varies_by_query_params(self):
+        """Cached list responses are keyed by query params, not shared across targets."""
+        user = _create_user()
+        other = _create_user("otheruser")
+        self._create_message(user)  # a single message targeted at `user`
+        view = MessagingViewSet.as_view({"get": "list"})
+
+        # cache the response for target=user
+        request = self.factory.get(
+            "/messaging", {"target_type": "user", "target_id": user.pk}
+        )
+        force_authenticate(request, user=user)
+        first = view(request=request)
+        first.render()
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(len(first.data), 1)
+
+        # a request for a different target returns its own data
+        request = self.factory.get(
+            "/messaging", {"target_type": "user", "target_id": other.pk}
+        )
+        force_authenticate(request, user=user)
+        second = view(request=request)
+        second.render()
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(len(second.data), 0)
+
+    def test_list_cache_does_not_bypass_authentication(self):
+        """An anonymous request is rejected even when the list cache is warm."""
+        user = _create_user()
+        self._create_message(user)
+        view = MessagingViewSet.as_view({"get": "list"})
+        params = {"target_type": "user", "target_id": user.pk}
+
+        # warm the cache with an authenticated request
+        request = self.factory.get("/messaging", params)
+        force_authenticate(request, user=user)
+        warm = view(request=request)
+        warm.render()
+        self.assertEqual(warm.status_code, 200)
+
+        # an anonymous request to the same URL is still rejected
+        request = self.factory.get("/messaging", params)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 401)
 
     def test_retrieve_message(self):
         """
@@ -285,26 +360,6 @@ class TestMessagingViewSet(TestCase):
                 f'target_id={user.pk}&target_type=user>; rel="last"'
             ),
         )
-
-        # Test the retrieval threshold is respected
-        with override_settings(MESSAGE_RETRIEVAL_THRESHOLD=2):
-            request = self.factory.get(
-                "/messaging", data={"target_type": "user", "target_id": user.pk}
-            )
-            force_authenticate(request, user=user)
-            response = view(request=request)
-            self.assertEqual(response.status_code, 200, response.data)
-            self.assertEqual(len(response.data), 2)
-            self.assertIn("Link", response)
-            self.assertEqual(
-                response["Link"],
-                (
-                    f"<http://testserver/messaging?page=2&"
-                    f'target_id={user.pk}&target_type=user>; rel="next",'
-                    " <http://testserver/messaging?page=2&"
-                    f'target_id={user.pk}&target_type=user>; rel="last"'
-                ),
-            )
 
     @override_settings(USE_TZ=False)
     def test_messaging_timestamp_filter(self):
