@@ -12,7 +12,6 @@ from actstream.models import Action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 
 from onadata.apps.messaging.constants import MESSAGE_VERBS
 from onadata.apps.messaging.filters import (
@@ -23,7 +22,7 @@ from onadata.apps.messaging.filters import (
 )
 from onadata.apps.messaging.permissions import TargetObjectPermissions
 from onadata.apps.messaging.serializers import MessageSerializer
-from onadata.libs.pagination import CountOverridablePageNumberPagination
+from onadata.libs.pagination import StandardPageNumberPagination
 
 
 # pylint: disable=too-many-ancestors
@@ -49,31 +48,4 @@ class MessagingViewSet(
         DjangoFilterBackend,
     )
     filterset_class = ActionFilterSet
-    pagination_class = CountOverridablePageNumberPagination
-    # count of the filtered queryset for the current request, reused across
-    # pagination and Link header generation to avoid repeat COUNT(*)
-    record_count = None
-
-    def paginate_queryset(self, queryset):
-        """Returns a paginated queryset"""
-        if self.paginator is None:
-            return None
-
-        self.record_count = queryset.count()
-        return self.paginator.paginate_queryset(
-            queryset, self.request, view=self, count=self.record_count
-        )
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            headers = self.paginator.generate_link_header(
-                self.request, queryset, count=self.record_count
-            )
-            return Response(serializer.data, headers=headers)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    pagination_class = StandardPageNumberPagination

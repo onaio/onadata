@@ -2,10 +2,11 @@
 """
 Pagination classes.
 """
+
 from typing import Tuple
+
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import QuerySet
 from django.utils.functional import cached_property
 
 from rest_framework.pagination import (
@@ -14,7 +15,6 @@ from rest_framework.pagination import (
     PageNumberPagination,
     replace_query_param,
 )
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 
@@ -49,25 +49,9 @@ class StandardPageNumberPagination(PageNumberPagination):
             url, self.page_query_param, self.page.paginator.num_pages
         )
 
-    def generate_link_header(self, request: Request, queryset: QuerySet):
+    def generate_link_header(self):
         """Generates pagination headers for a HTTP response object"""
-        page_size = self.get_page_size(request)
-        if not page_size:
-            return {}
-        paginator = self.django_paginator_class(queryset, page_size)
-        return self._build_link_header(request, paginator)
-
-    def _build_link_header(self, request: Request, paginator):
-        """Builds the ``Link`` header dict from the given paginator."""
         links = []
-        page_number = request.query_params.get(self.page_query_param, 1)
-        # pylint: disable=attribute-defined-outside-init
-        self.request = request
-
-        try:
-            self.page = paginator.page(page_number)
-        except InvalidPage:
-            return {}
 
         for rel, link in (
             ("prev", self.get_previous_link()),
@@ -84,8 +68,8 @@ class StandardPageNumberPagination(PageNumberPagination):
         return {"Link": ", ".join(links)}
 
     def get_paginated_response(self, data):
-        """Override to remove the OrderedDict response"""
-        return Response(data)
+        """Override to remove the OrderedDict response and use headers"""
+        return Response(data, headers=self.generate_link_header())
 
 
 class CountOverridablePaginator(Paginator):
@@ -152,20 +136,6 @@ class CountOverridablePageNumberPagination(StandardPageNumberPagination):
 
         self.request = request
         return list(self.page)
-
-    def generate_link_header(self, request: Request, queryset: QuerySet, count=None):
-        """Generate ``Link`` headers, reusing a precomputed ``count``.
-
-        Passing ``count`` avoids an additional COUNT(*) by overriding the
-        paginator's count.
-        """
-        page_size = self.get_page_size(request)
-        if not page_size:
-            return {}
-        paginator = self.django_paginator_class(
-            queryset, page_size, count_override=count
-        )
-        return self._build_link_header(request, paginator)
 
 
 class RawSQLQueryPaginator(CountOverridablePaginator):
