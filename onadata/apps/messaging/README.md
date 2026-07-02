@@ -26,6 +26,45 @@ Returns an empty list, will return a list of messages given `target_type` and `t
 curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337
 ```
 
+#### Grouping activity counts
+
+Passing one or more `group_by` parameters returns activity counts instead of
+individual messages, grouped by the requested dimension(s). The supported
+dimensions are `user` and `verb`; repeat the parameter to group by both. The
+same `target_type`/`target_id` (and optional `user`) filters apply. Any other
+`group_by` value returns `400`. Each row always carries `count` and
+`latest_timestamp`, and rows are ordered by most recent activity first and
+paginated.
+
+- `group_by=verb` — counts per verb (aggregated across users).
+- `group_by=user` — counts per user (aggregated across verbs).
+- `group_by=user&group_by=verb` — counts per `(user, verb)`.
+
+```console
+curl -X GET "https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337&group_by=user&group_by=verb"
+```
+
+```json
+[
+    {
+        "user": "joe",
+        "verb": "export_created",
+        "count": 3,
+        "latest_timestamp": "2026-06-12T12:00:00+00:00"
+    },
+    {
+        "user": "joe",
+        "verb": "submission_created",
+        "count": 14,
+        "latest_timestamp": "2025-10-03T10:04:00+00:00"
+    }
+]
+```
+
+Only the requested dimensions appear in each row (e.g. `group_by=verb` omits
+`user`). When `user` is a grouping dimension, it is `null` if the actor id no
+longer resolves to a user.
+
 ### GET /api/messaging/[pk]
 
 Returns a specific message with matching pk.
