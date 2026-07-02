@@ -49,7 +49,10 @@ class PasswordHistory(models.Model):
                             user=instance, hashed_password=current_password
                         )
                 except IntegrityError:
-                    pass
+                    # Duplicate hash already on record — the expected case
+                    # described above. Nothing to store; return so the
+                    # in-progress User.save() completes normally.
+                    return
 
     class Meta:
         app_label = "main"
