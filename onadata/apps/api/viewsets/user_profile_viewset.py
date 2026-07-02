@@ -119,7 +119,10 @@ def serializer_from_settings():
 
 def set_is_email_verified(profile, is_email_verified):
     """Sets is_email_verified value in the profile's metadata object."""
-    profile.metadata.update({"is_email_verified": is_email_verified})
+    profile.metadata = {
+        **(profile.metadata or {}),
+        "is_email_verified": is_email_verified,
+    }
     profile.save()
 
 
@@ -167,10 +170,8 @@ def email_change_send_allowed(username):
     with the password-change throttle above.
     """
     cache_key = f"{EMAIL_CHANGE_ATTEMPTS}{username}"
-    if (safe_cache_get(cache_key) or 0) >= MAX_EMAIL_CHANGE_REQUESTS:
-        return False
-    bump_attempts(cache_key, EMAIL_CHANGE_ATTEMPTS_TTL)
-    return True
+    count = bump_attempts(cache_key, EMAIL_CHANGE_ATTEMPTS_TTL)
+    return count <= MAX_EMAIL_CHANGE_REQUESTS
 
 
 # pylint: disable=too-many-ancestors
@@ -402,8 +403,7 @@ class UserProfileViewSet(
         user.email = new_email
         user.save(update_fields=["email"])
 
-        profile.metadata = {**(profile.metadata or {}), "is_email_verified": True}
-        profile.save()
+        set_is_email_verified(profile, True)
 
         # Invalidate the cached profile response so the new email is served
         # immediately. The retrieve() endpoint caches under

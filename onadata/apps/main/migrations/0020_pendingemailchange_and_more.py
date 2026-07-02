@@ -24,11 +24,6 @@ class Migration(migrations.Migration):
                 ('attempts', models.PositiveIntegerField(default=0)),
             ],
         ),
-        migrations.RenameIndex(
-            model_name='metadata',
-            new_name='main_metada_object__3d1433_idx',
-            old_name='main_metada_object__363d70_idx',
-        ),
         migrations.AddField(
             model_name='pendingemailchange',
             name='user',
