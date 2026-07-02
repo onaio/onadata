@@ -121,6 +121,16 @@ class PendingEmailChange(models.Model):
         return None
 
     @classmethod
+    def expired(cls):
+        """Rows whose OTP window has closed.
+
+        Single definition of "expired" — uses the same boundary as
+        ``verify()`` (``now >= expires_at``), so a row `verify` would reject
+        is exactly a row this considers purgeable.
+        """
+        return cls.objects.filter(expires_at__lte=timezone.now())
+
+    @classmethod
     def purge_expired(cls):
         """Delete pending changes whose OTP has expired.
 
@@ -130,5 +140,5 @@ class PendingEmailChange(models.Model):
         let lapse, which would otherwise linger indefinitely. Returns the
         number of rows deleted. Safe to run on a schedule.
         """
-        deleted, _ = cls.objects.filter(expires_at__lt=timezone.now()).delete()
+        deleted, _ = cls.expired().delete()
         return deleted

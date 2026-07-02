@@ -4,7 +4,6 @@ Delete expired, unconfirmed PendingEmailChange rows.
 """
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from onadata.apps.main.models.pending_email_change import PendingEmailChange
@@ -26,9 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options["dry_run"]:
-            due = PendingEmailChange.objects.filter(
-                expires_at__lt=timezone.now()
-            ).count()
+            due = PendingEmailChange.expired().count()
             if options["verbosity"] > 0:
                 self.stdout.write(f"Would delete {due} expired email-change requests.")
             return
