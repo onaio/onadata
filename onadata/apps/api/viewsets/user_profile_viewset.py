@@ -49,9 +49,9 @@ from onadata.libs.utils.cache_tools import (
     EMAIL_CHANGE_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
+    bump_attempts,
     safe_cache_delete,
     safe_cache_get,
-    safe_cache_incr,
     safe_cache_set,
 )
 from onadata.libs.utils.email import (
@@ -140,23 +140,6 @@ def check_user_lockout(request):
         }
         return response_obj
     return None
-
-
-def bump_attempts(cache_key, ttl=None):
-    """Increment a windowed attempt counter and return the new count.
-
-    Shared primitive behind the password-change and email-change throttles:
-    it creates the key on first use (with *ttl* when given, otherwise the
-    cache default) and increments it thereafter, keeping the original window.
-    """
-    if safe_cache_get(cache_key):
-        safe_cache_incr(cache_key)
-        return safe_cache_get(cache_key)
-    if ttl is None:
-        safe_cache_set(cache_key, 1)
-    else:
-        safe_cache_set(cache_key, 1, ttl)
-    return 1
 
 
 def change_password_attempts(request):
@@ -341,6 +324,10 @@ class UserProfileViewSet(
         Request body: ``{"new_email": "...", "password": "..."}``
         Success: HTTP 200 ``{"sent": true}``
         Errors: HTTP 400 with field-keyed error messages.
+
+        Note: the "already in use" error deliberately discloses whether an
+        address is registered — this is intentional UX, kept bounded by the
+        per-user send throttle (which gates entry, below) rather than hidden.
         """
         profile = self.get_object()
         user = profile.user

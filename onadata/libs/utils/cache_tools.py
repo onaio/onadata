@@ -313,6 +313,26 @@ def safe_cache_decr(key, delta=1):
     return _safe_cache_operation(lambda: cache.decr(key, delta))
 
 
+def bump_attempts(cache_key, ttl=None):
+    """Increment a windowed attempt counter and return the new count.
+
+    Shared primitive behind rate-limit throttles: it creates ``cache_key`` on
+    first use (with ``ttl`` when given, otherwise the cache default) and
+    increments it thereafter, keeping the original window. Always returns an
+    ``int`` — never ``None`` — so callers can compare it against a budget even
+    when the cache is evicting or briefly unreachable (fail-open, no crash).
+    """
+    if safe_cache_get(cache_key):
+        # safe_cache_incr returns the new count directly; `or 0` guards the
+        # cache-down / just-evicted case so callers never compare with None.
+        return safe_cache_incr(cache_key) or 0
+    if ttl is None:
+        safe_cache_set(cache_key, 1)
+    else:
+        safe_cache_set(cache_key, 1, ttl)
+    return 1
+
+
 class CacheLockError(Exception):
     """Custom exception raised when a cache lock cannot be acquired."""
 
