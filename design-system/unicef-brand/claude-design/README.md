@@ -23,7 +23,10 @@ renders standalone.
 | Components | Cards | `components/cards.html` |
 | Components | Form fields | `components/forms.html` |
 | Components | Data table | `components/tables.html` |
+| Components | Navigation & header | `components/navigation.html` |
 | Data visualization | Charts & palette | `dataviz/charts-and-palette.html` |
+| Imagery | Photography | `imagery/photography.html` |
+| Imagery | Iconography | `imagery/iconography.html` |
 | Layouts | Slide layouts | `layouts/slides.html` |
 | Layouts | Document cover | `layouts/document-cover.html` |
 

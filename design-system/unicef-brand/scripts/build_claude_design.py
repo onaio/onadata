@@ -550,6 +550,118 @@ files.append(("layouts", "document-cover.html",
                    body, "Layouts — Document cover", "Word & publication cover: blue field, single photo, Noto Sans title.")))
 
 # ---------------------------------------------------------------------------
+# IMAGERY — Photography treatment  (no real/AI photos: labelled placeholders +
+# composition and rules, per Brand Book p.64-67)
+# ---------------------------------------------------------------------------
+def photo_ph(icon_inner, label, sub):
+    return f'''<div style="border-radius:12px;overflow:hidden;border:1px solid {B['hair']}">
+      <div style="aspect-ratio:4/3;background:linear-gradient(135deg,{B['ltcyan']},{B['blue']});display:flex;align-items:center;justify-content:center;position:relative">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.85">{icon_inner}</svg>
+        <span style="position:absolute;left:9px;bottom:8px;font-size:9px;color:#fff;background:rgba(0,0,0,.32);padding:2px 6px;border-radius:4px">placeholder</span>
+      </div>
+      <div style="padding:10px 12px;background:{B['panel']}">
+        <div style="font-weight:700;font-size:13px">{label}</div>
+        <div style="font-size:11.5px;color:{B['muted']};margin-top:2px">{sub}</div>
+      </div></div>'''
+I_CHILD = '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>'
+I_ACTION = '<path d="M20 7h-4l-2-2H8L6 7H2v13h18z"/><circle cx="11" cy="13" r="3.5"/>'
+I_LIFT = '<circle cx="12" cy="5" r="2.4"/><path d="M8 21l1.5-6L7 12l2-3h6l2 3-2.5 3L16 21"/>'
+dodont = lambda items, c: "".join(f'<li style="font-size:12.5px;padding-left:16px;position:relative;margin-bottom:7px;list-style:none"><span style="position:absolute;left:0;top:6px;width:6px;height:6px;border-radius:50%;background:{c}"></span>{t}</li>' for t in items)
+body = f'''
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+  {photo_ph(I_CHILD, "Child-focused", "Direct gaze into the camera; conveys hope.")}
+  {photo_ph(I_ACTION, "UNICEF in action", "Staff or supplies showing our role; caption it.")}
+  {photo_ph(I_LIFT, "Caregiver lifting a child", "The emblem gesture — security and joy.")}
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">
+  <div style="border:1px solid {B['hair']};border-radius:12px;padding:16px 18px;background:{B['panel']}">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:{B['green']};color:#fff;display:grid;place-items:center;font-size:12px">✓</span>Do</div>
+    <ul style="margin:0;padding:0">{dodont(["Obtain informed consent; use written releases.","Credit every photo — ©UNICEF/UN062441/LeMoyne.","Reflect real diversity; represent people as equals.","Cropping and flipping are fine (if no text in frame).","Keep captions consistent with the photo's content."], B['green'])}</ul>
+  </div>
+  <div style="border:1px solid {B['hair']};border-radius:12px;padding:16px 18px;background:{B['panel']}">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:{B['red']};color:#fff;display:grid;place-items:center;font-size:12px">✕</span>Don't</div>
+    <ul style="margin:0;padding:0">{dodont(["No synthetic or AI-generated images — ever.","No generative fill, manipulation, or composites.","Don't add/remove content or change the meaning.","Never reveal identities of children at risk.","No commercial use of UNICEF photography."], B['red'])}</ul>
+  </div>
+</div>
+<div style="margin-top:14px;padding:11px 15px;border-radius:10px;background:{B['panel2']};border-left:4px solid {B['blue']};font-size:12px">
+Credit-line format: <code style="font-family:inherit;font-weight:700;background:#fff;padding:1px 6px;border-radius:4px;border:1px solid {B['hair']}">©UNICEF/UN062441/LeMoyne</code> &nbsp;·&nbsp; <i>Brand Book 4.0, p.64–67. Frames are placeholders — source real imagery from the WeShare Photography Guidelines.</i>
+</div>'''
+files.append(("imagery", "photography.html",
+              page("Imagery", "Photography", "Three image types · rules · credit line",
+                   body, "Imagery — Photography", "Children, direct gaze, dignity — and never AI-generated or manipulated.")))
+
+# ---------------------------------------------------------------------------
+# IMAGERY — Iconography  (single-colour line icons, consistent stroke)
+# ---------------------------------------------------------------------------
+ICONS = [
+    ("Health", '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8z"/>'),
+    ("Education", '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/>'),
+    ("Water", '<path d="M12 2.7l5.7 6.4a8 8 0 1 1-11.4 0z"/>'),
+    ("Nutrition", '<path d="M12 8c0-3 2-5 5-5 0 3-2 5-5 5z"/><path d="M12 8c-1.7-1.7-4.5-1.7-6 .3C4 11 5 17 8 20c1.2 1.2 2.8 1.2 4 0 1.2 1.2 2.8 1.2 4 0 3-3 4-9 2-11.7-1.5-2-4.3-2-6-.3z"/>'),
+    ("Protection", '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+    ("Every child", '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>'),
+    ("Vaccines", '<path d="M18 2l4 4"/><path d="M15 5l4 4"/><path d="M16.5 6.5L8 15l-2 4-2-2 4-2 8.5-8.5"/><path d="M9 11l2 2"/>'),
+    ("Global", '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5a15 15 0 0 1 0 19a15 15 0 0 1 0-19z"/>'),
+    ("Impact", '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'),
+    ("Hope", '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+]
+def icon_tile(name, inner, color=B["blue"], bg="#fff"):
+    return f'''<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1px solid {B['hair']};border-radius:12px;background:{bg}">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>
+      <span style="font-size:11px;color:{('#fff' if bg!='#fff' else B['muted'])}">{name}</span></div>'''
+grid_icons = "".join(icon_tile(n, i) for n, i in ICONS)
+onblue = "".join(icon_tile(n, i, color="#fff", bg=B["blue"]) for n, i in ICONS[:5])
+body = f'''
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">{grid_icons}</div>
+<div style="margin-top:18px;font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">On UNICEF Blue</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">{onblue}</div>
+<div style="margin-top:16px;padding:11px 15px;border-radius:10px;background:{B['panel2']};border-left:4px solid {B['blue']};font-size:12px">
+Single-colour line icons — consistent <b>1.75</b> stroke, rounded caps, 24-unit grid. UNICEF Blue on light; white on blue. A full official set is on WeShare; these illustrate the treatment.
+</div>'''
+files.append(("imagery", "iconography.html",
+              page("Imagery", "Iconography", "Single-colour line icons · consistent stroke",
+                   body, "Imagery — Iconography", "One weight, one colour, rounded caps — calm and consistent.")))
+
+# ---------------------------------------------------------------------------
+# COMPONENTS — Navigation & header
+# ---------------------------------------------------------------------------
+def navlink(text, active=False):
+    if active:
+        return f'<span style="font-size:13.5px;font-weight:700;color:#fff;padding-bottom:3px;border-bottom:2px solid #fff">{text}</span>'
+    return f'<span style="font-size:13.5px;color:rgba(255,255,255,.85)">{text}</span>'
+def tab(text, active=False):
+    if active:
+        return f'<span style="font-size:13.5px;font-weight:700;color:{B["blue"]};padding:0 2px 10px;border-bottom:2.5px solid {B["blue"]}">{text}</span>'
+    return f'<span style="font-size:13.5px;color:{B["muted"]};padding:0 2px 10px">{text}</span>'
+body = f'''
+<div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Primary header</div>
+<div style="background:{B['blue']};border-radius:12px 12px 0 0;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:28px">
+    <span style="font-size:13px;font-weight:700;color:#fff;border:1.5px solid rgba(255,255,255,.6);padding:5px 9px;border-radius:4px">UNICEF ▸ logo</span>
+    <div style="display:flex;gap:22px;align-items:center">{navlink("Our work", True)}{navlink("Stories")}{navlink("Research")}{navlink("About")}</div>
+  </div>
+  <button style="font-family:inherit;font-size:13px;font-weight:700;background:#fff;color:{B['blueInk']};border:none;padding:9px 18px;border-radius:7px;cursor:pointer">Donate</button>
+</div>
+<div style="border:1px solid {B['hair']};border-top:none;border-radius:0 0 12px 12px;padding:0 20px;background:#fff">
+  <div style="display:flex;gap:26px;padding-top:14px">{tab("Overview", True)}{tab("Programmes")}{tab("Results")}{tab("Reports")}</div>
+</div>
+
+<div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin:24px 0 8px">Breadcrumb</div>
+<div style="font-size:13px;color:{B['muted']}">Home <span style="opacity:.6">›</span> Our work <span style="opacity:.6">›</span> <span style="color:{B['blue']};font-weight:700">Nutrition</span></div>
+
+<div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin:24px 0 8px">Sidebar navigation</div>
+<div style="max-width:260px;border:1px solid {B['hair']};border-radius:12px;overflow:hidden">
+  <div style="padding:11px 16px;font-size:13.5px;font-weight:700;color:{B['blue']};background:{B['panel2']};border-left:3px solid {B['blue']}">Overview</div>
+  <div style="padding:11px 16px;font-size:13.5px;color:{B['ink']};border-top:1px solid {B['hair']}">Health &amp; nutrition</div>
+  <div style="padding:11px 16px;font-size:13.5px;color:{B['ink']};border-top:1px solid {B['hair']}">Education</div>
+  <div style="padding:11px 16px;font-size:13.5px;color:{B['ink']};border-top:1px solid {B['hair']}">Child protection</div>
+</div>
+<div style="margin-top:16px;font-size:11.5px;color:{B['muted']}">Header uses UNICEF Blue as the dominant field; the active state is a solid white/blue underline. Donate CTA is white with Accent Blue text (AA ✓).</div>'''
+files.append(("components", "navigation.html",
+              page("Components", "Navigation & header", "Header · tabs · breadcrumb · sidebar",
+                   body, "Components — Navigation", "Wayfinding built on the dominant blue field, with clear active states.")))
+
+# ---------------------------------------------------------------------------
 written = [write(g, f, h) for g, f, h in files]
 for w in written:
     print("  wrote", w)
