@@ -151,8 +151,8 @@ def propagate_project_permissions(
         if headers:
             session.headers.update(headers)
 
-        # Retrieve users who have access to the project
-        collaborators: List[str] = [
+        # Retrieve users who administer the project
+        admins: List[str] = [
             username
             for username, data in get_project_users(project).items()
             if not data.get("is_org") and data.get("role") in ["manager", "owner"]
@@ -167,8 +167,8 @@ def propagate_project_permissions(
                     ~Q(username=project.organization.username)
                 ).values_list("username", flat=True)
             )
-            collaborators += owners_team
-            collaborators = list(set(collaborators))
+            admins += owners_team
+            admins = list(set(admins))
 
         # Propagate permissions for XForms that were published by
         # Formbuilder
@@ -202,7 +202,7 @@ def propagate_project_permissions(
                 asset.id_string,
                 [
                     username
-                    for username in collaborators
+                    for username in admins
                     if username != asset.created_by.username
                 ],
                 session,

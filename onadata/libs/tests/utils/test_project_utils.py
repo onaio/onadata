@@ -196,14 +196,14 @@ class TestProjectUtils(TestBase):
 
     @override_settings(KPI_INTERNAL_SERVICE_URL="http://kpi.example.com")
     @patch("onadata.libs.utils.project_utils.requests.session")
-    def test_propagate_project_permissions_full_collaborator_set(self, mock_session):
+    def test_propagate_project_permissions_full_admin_set(self, mock_session):
         """
-        `propagate_project_permissions` sends the complete set of
-        manager/owner collaborators to the KPI bulk permission-assignments
-        endpoint, including collaborators already assigned on KPI
+        `propagate_project_permissions` sends the complete set of project
+        admins (managers/owners) to the KPI bulk permission-assignments
+        endpoint, including admins already assigned on KPI
 
         The bulk endpoint replaces the asset's assignments with the posted
-        set; a collaborator left out of the payload loses their permissions.
+        set; an admin left out of the payload loses their permissions.
         """
         self._publish_transportation_form()
         MetaData.published_by_formbuilder(self.xform, "True")
