@@ -194,9 +194,13 @@ def propagate_project_permissions(
 
             # The bulk endpoint is declarative: KPI replaces the asset's
             # assignments with the posted set, removing users left out of
-            # the payload. Always send the complete desired state. The
-            # asset owner is excluded because KPI rejects payloads that
-            # assign permissions to the owner.
+            # the payload. Always send the complete desired state.
+            # `created_by` is the user who deployed the form from the
+            # Formbuilder and is therefore the asset owner on KPI — unlike
+            # `xform.user`, which is the form owner on Onadata and may be
+            # an organization. The KPI asset owner is excluded because KPI
+            # rejects payloads that assign permissions to the owner; owners
+            # hold all permissions implicitly.
             assign_change_asset_permission(
                 service_url,
                 asset.id_string,
