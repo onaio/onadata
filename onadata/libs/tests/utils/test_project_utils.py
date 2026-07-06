@@ -3,15 +3,17 @@
 Test onadata.libs.utils.project_utils
 """
 
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.test.utils import override_settings
+
+from guardian.shortcuts import get_perms
 from kombu.exceptions import OperationalError
 from requests import Response
-from guardian.shortcuts import get_perms
 
 from onadata.apps.api.models import Team
 from onadata.apps.logger.models import Project
+from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import (
     DataEntryRole,
@@ -20,7 +22,10 @@ from onadata.libs.permissions import (
     set_project_perms_to_object,
 )
 from onadata.libs.utils.project_utils import (
+    ExternalServiceRequestError,
     assign_change_asset_permission,
+    propagate_project_permissions,
+    propagate_project_permissions_async,
     retrieve_asset_permissions,
 )
 from onadata.libs.utils.xform_utils import (
@@ -152,6 +157,118 @@ class TestProjectUtils(TestBase):
         self.assertEqual(
             ret, {"bob": ["http://example.com/api/v2/permission-assignments/some_uuid"]}
         )
+
+    def test_retrieve_asset_permission_special_usernames(self):
+        """
+        `retrieve_asset_permissions` returns full usernames for users
+        whose names contain characters such as ., -, + and @
+        """
+        session_mock = MagicMock()
+        asset_id = "some_id"
+        service_url = "http://example.com"
+        resp = Response()
+        resp.status_code = 200
+        # pylint: disable=protected-access
+        resp._content = (
+            b'[{"user": "http://example.com/api/v2/users/john.doe/", "url": '
+            b'"http://example.com/api/v2/permission-assignments/uuid1/"},'
+            b'{"user": "http://example.com/api/v2/users/mary-jane/", "url": '
+            b'"http://example.com/api/v2/permission-assignments/uuid2/"},'
+            b'{"user": "http://example.com/api/v2/users/user+1@example.com/", "url": '
+            b'"http://example.com/api/v2/permission-assignments/uuid3/"}]'
+        )
+        session_mock.get.return_value = resp
+
+        ret = retrieve_asset_permissions(service_url, asset_id, session_mock)
+
+        self.assertEqual(
+            ret,
+            {
+                "john.doe": ["http://example.com/api/v2/permission-assignments/uuid1/"],
+                "mary-jane": [
+                    "http://example.com/api/v2/permission-assignments/uuid2/"
+                ],
+                "user+1@example.com": [
+                    "http://example.com/api/v2/permission-assignments/uuid3/"
+                ],
+            },
+        )
+
+    @override_settings(KPI_INTERNAL_SERVICE_URL="http://kpi.example.com")
+    @patch("onadata.libs.utils.project_utils.requests.session")
+    def test_propagate_project_permissions_full_collaborator_set(self, mock_session):
+        """
+        `propagate_project_permissions` sends the complete set of
+        manager/owner collaborators to the KPI bulk permission-assignments
+        endpoint, including collaborators already assigned on KPI
+
+        The bulk endpoint replaces the asset's assignments with the posted
+        set; a collaborator left out of the payload loses their permissions.
+        """
+        self._publish_transportation_form()
+        MetaData.published_by_formbuilder(self.xform, "True")
+        alice = self._create_user("alice", "alice", create_profile=True)
+        carol = self._create_user("carol", "carol", create_profile=True)
+        ManagerRole.add(alice, self.project)
+        ManagerRole.add(carol, self.project)
+
+        session_mock = mock_session.return_value
+        # On KPI, the asset owner and alice are already assigned
+        get_resp = Response()
+        get_resp.status_code = 200
+        # pylint: disable=protected-access
+        get_resp._content = (
+            b'[{"user": "http://kpi.example.com/api/v2/users/bob/", "url": '
+            b'"http://kpi.example.com/api/v2/permission-assignments/uuid1/"},'
+            b'{"user": "http://kpi.example.com/api/v2/users/alice/", "url": '
+            b'"http://kpi.example.com/api/v2/permission-assignments/uuid2/"}]'
+        )
+        session_mock.get.return_value = get_resp
+        post_resp = Response()
+        post_resp.status_code = 200
+        session_mock.post.return_value = post_resp
+
+        propagate_project_permissions(self.project)
+
+        session_mock.post.assert_called_once()
+        args, kwargs = session_mock.post.call_args
+        self.assertEqual(
+            args[0],
+            f"http://kpi.example.com/api/v2/assets/{self.xform.id_string}"
+            "/permission-assignments/bulk/",
+        )
+        self.assertCountEqual(
+            kwargs["json"],
+            [
+                {
+                    "user": "http://kpi.example.com/api/v2/users/alice/",
+                    "permission": (
+                        "http://kpi.example.com/api/v2/permissions/change_asset/"
+                    ),
+                },
+                {
+                    "user": "http://kpi.example.com/api/v2/users/carol/",
+                    "permission": (
+                        "http://kpi.example.com/api/v2/permissions/change_asset/"
+                    ),
+                },
+            ],
+        )
+
+    @patch("onadata.libs.utils.project_utils.propagate_project_permissions")
+    def test_propagate_project_permissions_async_retry(self, mock_propagate):
+        """
+        `propagate_project_permissions_async` retries when the KPI request
+        fails with an `ExternalServiceRequestError`
+        """
+        self._publish_transportation_form()
+        error = ExternalServiceRequestError("KPI is unreachable")
+        mock_propagate.side_effect = error
+
+        with patch.object(propagate_project_permissions_async, "retry") as mock_retry:
+            propagate_project_permissions_async(self.project.pk)
+
+        mock_retry.assert_called_once_with(exc=error, countdown=0)
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch(

@@ -20,14 +20,8 @@ from requests.sessions import HTTPAdapter
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.celeryapp import app
-from onadata.libs.permissions import (
-    get_role,
-    is_organization,
-)
-from onadata.libs.utils.common_tags import (
-    API_TOKEN,
-    ONADATA_KOBOCAT_AUTH_HEADER,
-)
+from onadata.libs.permissions import get_role, is_organization
+from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADER
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -82,7 +76,7 @@ def retrieve_asset_permissions(
     data = resp.json()
     for permission in data:
         user = permission.get("user")
-        user = re.findall(r"\S\/api\/v2\/users\/(\w+)", user)[0]
+        user = re.search(r"/api/v2/users/([^/]+)", user).group(1)
 
         if user not in ret:
             ret[user] = []
@@ -128,7 +122,7 @@ def propagate_project_permissions_async(self, project_id: int):
             if self.request.retries > 3:
                 msg = f"Failed to propagate permissions for Project {project.pk}"
                 report_exception(msg, exc, sys.exc_info())
-            self.retry(exc=exc, countdown=60 * self.requests.retries)
+            self.retry(exc=exc, countdown=60 * self.request.retries)
 
 
 def propagate_project_permissions(
@@ -198,32 +192,18 @@ def propagate_project_permissions(
                     }
                 )
 
-            assigned_permissions = retrieve_asset_permissions(
-                service_url, asset.id_string, session
+            # The bulk endpoint is declarative: KPI replaces the asset's
+            # assignments with the posted set, removing users left out of
+            # the payload. Always send the complete desired state. The
+            # asset owner is excluded because KPI rejects payloads that
+            # assign permissions to the owner.
+            assign_change_asset_permission(
+                service_url,
+                asset.id_string,
+                [
+                    username
+                    for username in collaborators
+                    if username != asset.created_by.username
+                ],
+                session,
             )
-            new_users = [
-                username
-                for username in collaborators
-                if username not in assigned_permissions
-            ]
-            removed_permissions = [
-                (username, permissions)
-                for username, permissions in assigned_permissions.items()
-                if username not in collaborators
-            ]
-
-            # Unassign permissions granted to users who no longer have permissions
-            for _, permission_assignments in removed_permissions:
-                _ = [
-                    session.delete(permission_assignment)
-                    for permission_assignment in permission_assignments
-                ]
-
-            # Assign permissions to the new users
-            if new_users:
-                assign_change_asset_permission(
-                    service_url,
-                    asset.id_string,
-                    new_users,
-                    session,
-                )
