@@ -319,6 +319,237 @@ files.append(("components", "cards.html",
                    body, "Components — Cards", "Containers on white and on the dominant UNICEF Blue ground.")))
 
 # ---------------------------------------------------------------------------
+# COMPONENTS — Forms
+# ---------------------------------------------------------------------------
+field = (f"width:100%;font-family:inherit;font-size:14px;color:{B['ink']};"
+         f"padding:10px 12px;border:1.5px solid {B['hair']};border-radius:8px;"
+         f"background:#fff;outline:none")
+lab = f"display:block;font-size:12.5px;font-weight:700;color:{B['ink']};margin-bottom:6px"
+body = f'''
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;max-width:640px">
+  <div>
+    <label style="{lab}">Full name</label>
+    <input style="{field}" value="Sofia Okoro" readonly>
+    <div style="font-size:11.5px;color:{B['muted']};margin-top:5px">Help text sits quietly beneath the field.</div>
+  </div>
+  <div>
+    <label style="{lab}">Country / territory</label>
+    <div style="{field};display:flex;justify-content:space-between;align-items:center">Kenya <span style="color:{B['muted']}">▾</span></div>
+  </div>
+  <div>
+    <label style="{lab}">Focus area</label>
+    <div style="{field};border-color:{B['blue']};box-shadow:0 0 0 3px rgba(0,174,239,.18)">Nutrition<span style="border-right:2px solid {B['blue']};margin-left:1px">&nbsp;</span></div>
+    <div style="font-size:11.5px;color:{B['blue']};margin-top:5px;font-weight:600">Focus state — UNICEF Blue ring</div>
+  </div>
+  <div>
+    <label style="{lab}">Reference code</label>
+    <input style="{field};border-color:{B['red']}" value="UN-000">
+    <div style="font-size:11.5px;color:{B['red']};margin-top:5px;font-weight:600">Enter a valid 8-digit code.</div>
+  </div>
+</div>
+<div style="display:flex;gap:22px;margin-top:20px;align-items:center">
+  <label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><span style="width:18px;height:18px;border-radius:5px;background:{B['blue']};display:inline-grid;place-items:center;color:{B['ink']};font-size:12px;font-weight:700">✓</span> Consent given</label>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid {B['hair']}"></span> Subscribe</label>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><span style="width:18px;height:18px;border-radius:50%;border:5px solid {B['blue']};background:#fff"></span> Selected</label>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:{B['muted']}"><span style="width:18px;height:18px;border-radius:50%;border:1.5px solid {B['hair']}"></span> Option</label>
+</div>'''
+files.append(("components", "forms.html",
+              page("Components", "Form fields", "Inputs · select · states · choices",
+                   body, "Components — Forms", "Fields with the UNICEF Blue focus ring and a clear error state.")))
+
+# ---------------------------------------------------------------------------
+# COMPONENTS — Tables  (blue header, dark ink = AA; neutral zebra, no tint)
+# ---------------------------------------------------------------------------
+rows_data = [
+    ("Eastern & Southern Africa", "23.1M", "88%", "On track"),
+    ("West & Central Africa", "19.4M", "81%", "On track"),
+    ("South Asia", "31.7M", "76%", "Watch"),
+    ("Middle East & N. Africa", "9.8M", "84%", "On track"),
+]
+trs = ""
+for i, (region, reach, cov, status) in enumerate(rows_data):
+    bg = "#ffffff" if i % 2 == 0 else B["panel"]
+    scol = B["green"] if status == "On track" else B["orange"]
+    trs += f'''<tr style="background:{bg}">
+      <td style="padding:12px 16px;font-size:13.5px;border-bottom:1px solid {B['hair']}">{region}</td>
+      <td style="padding:12px 16px;font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid {B['hair']}">{reach}</td>
+      <td style="padding:12px 16px;font-size:13.5px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid {B['hair']}">{cov}</td>
+      <td style="padding:12px 16px;border-bottom:1px solid {B['hair']}"><span style="font-size:12px;font-weight:600;color:{scol}">● {status}</span></td>
+    </tr>'''
+body = f'''
+<div style="border:1px solid {B['hair']};border-radius:12px;overflow:hidden">
+<table style="width:100%;border-collapse:collapse">
+  <thead><tr style="background:{B['blue']}">
+    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:{B['ink']};letter-spacing:.02em">Region</th>
+    <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:700;color:{B['ink']}">Children reached</th>
+    <th style="padding:12px 16px;text-align:right;font-size:12px;font-weight:700;color:{B['ink']}">Coverage</th>
+    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:700;color:{B['ink']}">Status</th>
+  </tr></thead>
+  <tbody>{trs}</tbody>
+</table></div>
+<div style="font-size:11.5px;color:{B['muted']};margin-top:10px">Header: dark ink on UNICEF Blue (8.6:1, AA ✓). Zebra rows use a neutral tint, not a brand-colour tint.</div>'''
+files.append(("components", "tables.html",
+              page("Components", "Data table", "Blue header · zebra rows · status",
+                   body, "Components — Tables", "Accessible header, neutral zebra rows, status encoded by colour + label.")))
+
+# ---------------------------------------------------------------------------
+# DATA VISUALIZATION — palette + bar + line
+# Validated (light) via the dataviz skill: sequential UNICEF Blue ramp is
+# monotonic; categorical set passes band/chroma/CVD (contrast relieved by
+# direct labels). Tints/steps are permitted in data-viz (Brand Book p.53).
+# ---------------------------------------------------------------------------
+SEQ = ["#C2ECFB", "#6FD0EF", "#00AEEF", "#0086C1", "#005A82"]
+CAT = ["#009BDC", "#F07B00", "#1B9E8A", "#5B7BD4", "#C99400"]
+GRID = "#e7eef1"
+
+def swrow(label, colors):
+    chips = "".join(
+        f'<div style="flex:1;min-width:0"><div style="height:34px;background:{c};border-radius:6px;border:1px solid rgba(0,0,0,.06)"></div>'
+        f'<div style="font-size:10.5px;color:{B["muted"]};margin-top:4px;text-align:center;font-variant-numeric:tabular-nums">{c}</div></div>'
+        for c in colors)
+    return (f'<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;letter-spacing:.1em;'
+            f'text-transform:uppercase;color:{B["muted"]};margin-bottom:7px">{label}</div>'
+            f'<div style="display:flex;gap:8px">{chips}</div></div>')
+
+# --- bar chart (single series, UNICEF Blue, direct value labels) ---
+bars = [("ESA", 88), ("WCA", 81), ("SA", 76), ("MENA", 84), ("EAP", 90), ("LAC", 85)]
+BW, BH, PL, PB, PT = 512, 190, 16, 26, 22
+n = len(bars); slot = (BW - PL) / n; bw = 34
+gl = ""
+for gy in (0, 25, 50, 75, 100):
+    y = PT + (BH - PT - PB) * (1 - gy / 100)
+    gl += f'<line x1="{PL}" y1="{y:.1f}" x2="{BW}" y2="{y:.1f}" stroke="{GRID}" stroke-width="1"/>'
+    gl += f'<text x="0" y="{y+3:.1f}" font-size="9" fill="{B["muted"]}">{gy}</text>'
+bar_marks = ""
+for i, (lbl, v) in enumerate(bars):
+    x = PL + slot * i + (slot - bw) / 2
+    h = (BH - PT - PB) * (v / 100)
+    y = (BH - PB) - h
+    bar_marks += f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw}" height="{h:.1f}" rx="4" fill="{B["blue"]}"/>'
+    bar_marks += f'<text x="{x+bw/2:.1f}" y="{y-5:.1f}" font-size="10.5" font-weight="700" fill="{B["ink"]}" text-anchor="middle">{v}</text>'
+    bar_marks += f'<text x="{x+bw/2:.1f}" y="{BH-PB+13:.1f}" font-size="9.5" fill="{B["muted"]}" text-anchor="middle">{lbl}</text>'
+barsvg = f'<svg viewBox="0 0 {BW} {BH}" width="100%" role="img" aria-label="Coverage by region"><line x1="{PL}" y1="{BH-PB}" x2="{BW}" y2="{BH-PB}" stroke="{B["hair"]}" stroke-width="1.5"/>{gl}{bar_marks}</svg>'
+
+# --- line chart (2 series, categorical, direct end-labels + legend) ---
+LW, LH, LPL, LPB, LPT, LPR = 512, 190, 20, 24, 16, 66
+years = [2019, 2020, 2021, 2022, 2023]
+s1 = [64, 61, 70, 79, 86]   # series A
+s2 = [52, 55, 60, 66, 72]   # series B
+def line_pts(series):
+    pts = []
+    for i, v in enumerate(series):
+        x = LPL + (LW - LPL - LPR) * (i / (len(series) - 1))
+        y = LPT + (LH - LPT - LPB) * (1 - (v - 40) / 60)
+        pts.append((x, y, v))
+    return pts
+lgrid = ""
+for gy in (40, 60, 80, 100):
+    y = LPT + (LH - LPT - LPB) * (1 - (gy - 40) / 60)
+    lgrid += f'<line x1="{LPL}" y1="{y:.1f}" x2="{LW-LPR}" y2="{y:.1f}" stroke="{GRID}" stroke-width="1"/>'
+    lgrid += f'<text x="0" y="{y+3:.1f}" font-size="9" fill="{B["muted"]}">{gy}</text>'
+def series_svg(series, color, name):
+    pts = line_pts(series)
+    d = "M" + " L".join(f"{x:.1f} {y:.1f}" for x, y, _ in pts)
+    marks = f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    for x, y, _ in pts:
+        marks += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#fff" stroke="{color}" stroke-width="2"/>'
+    ex, ey, ev = pts[-1]
+    marks += f'<text x="{ex+7:.1f}" y="{ey+3:.1f}" font-size="10" font-weight="700" fill="{color}">{name} {ev}</text>'
+    return marks
+xlab = "".join(f'<text x="{LPL+(LW-LPL-LPR)*(i/(len(years)-1)):.1f}" y="{LH-LPB+13:.1f}" font-size="9.5" fill="{B["muted"]}" text-anchor="middle">{y}</text>' for i, y in enumerate(years))
+linesvg = (f'<svg viewBox="0 0 {LW} {LH}" width="100%" role="img" aria-label="Trend by year">'
+           f'<line x1="{LPL}" y1="{LH-LPB}" x2="{LW-LPR}" y2="{LH-LPB}" stroke="{B["hair"]}" stroke-width="1.5"/>'
+           f'{lgrid}{xlab}{series_svg(s1, CAT[0], "Girls")}{series_svg(s2, CAT[1], "Boys")}</svg>')
+
+body = f'''
+{swrow("Sequential — UNICEF Blue (magnitude)", SEQ)}
+{swrow("Categorical — series (identity, direct-labelled)", CAT)}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px">
+  <div>
+    <div style="font-size:12.5px;font-weight:700;margin-bottom:8px">Coverage by region <span style="color:{B['muted']};font-weight:400">— % reached</span></div>
+    {barsvg}
+  </div>
+  <div>
+    <div style="font-size:12.5px;font-weight:700;margin-bottom:8px">Coverage trend <span style="color:{B['muted']};font-weight:400">— by year</span></div>
+    {linesvg}
+  </div>
+</div>
+<div style="font-size:11.5px;color:{B['muted']};margin-top:14px">Single measure → sequential UNICEF Blue. Categories → the validated series set, always direct-labelled (never colour alone). One y-axis; recessive grid. Tints/steps are permitted in data-viz (Brand Book p.53).</div>'''
+files.append(("dataviz", "charts-and-palette.html",
+              page("Data visualization", "Charts & palette", "Sequential ramp · series colours · bar · line",
+                   body, "Data visualization — Charts", "UNICEF Blue leads; a validated series set covers categories, direct-labelled.")))
+
+# ---------------------------------------------------------------------------
+# LAYOUTS — Slide layouts (16:9 previews) and document cover
+# ---------------------------------------------------------------------------
+def slide_frame(inner, ratio=56.25):
+    return (f'<div style="position:relative;width:100%;padding-top:{ratio}%;'
+            f'border:1px solid {B["hair"]};border-radius:12px;overflow:hidden;box-shadow:0 8px 24px -12px rgba(0,74,120,.25)">'
+            f'<div style="position:absolute;inset:0">{inner}</div></div>')
+
+stmt = f'<span style="font-weight:400">for every child,</span> <span style="font-weight:700">{{kw}}</span>'
+title_slide = slide_frame(f'''<div style="width:100%;height:100%;background:{B['blue']};color:#fff;padding:9% 8%;display:flex;flex-direction:column;justify-content:center">
+  <div style="font-size:2.4vw;font-weight:700;letter-spacing:-.02em;line-height:1.05">Every child deserves<br>a fair chance</div>
+  <div style="font-size:1.2vw;margin-top:2.5%;opacity:.9">Subtitle · author · date</div>
+  <div style="position:absolute;left:8%;bottom:7%;font-size:1.1vw;text-transform:lowercase">{stmt.format(kw="every right")}</div>
+  <div style="position:absolute;right:7%;top:8%;font-size:1vw;font-weight:700;border:1.5px solid rgba(255,255,255,.6);padding:.5% 1.5%;border-radius:3px">UNICEF ▸ logo</div>
+</div>''')
+section_slide = slide_frame(f'''<div style="width:100%;height:100%;background:#fff;padding:0 8%;display:flex;align-items:center;position:relative">
+  <div style="position:absolute;left:0;top:34%;bottom:34%;width:2.2%;background:{B['blue']};border-radius:0 3px 3px 0"></div>
+  <div style="font-size:2.2vw;font-weight:700;color:{B['blue']};letter-spacing:-.02em">01 — Our approach</div>
+  <div style="position:absolute;left:8%;bottom:7%;font-size:1.1vw;text-transform:lowercase;color:{B['blue']}">{stmt.format(kw="opportunity")}</div>
+</div>''')
+content_slide = slide_frame(f'''<div style="width:100%;height:100%;background:#fff;padding:6% 8%;position:relative">
+  <div style="font-size:1.7vw;font-weight:700;color:{B['blue']}">Content heading</div>
+  <div style="width:16%;height:2.5px;background:{B['blue']};margin:1.6% 0 3%"></div>
+  <div style="font-size:1.15vw;color:{B['ink']};line-height:1.7">
+    • Body text in Noto Sans Regular, kept uncluttered.<br>
+    • UNICEF Blue stays the dominant colour.<br>
+    • Accents support, never overpower.</div>
+  <div style="position:absolute;left:8%;bottom:7%;font-size:1vw;text-transform:lowercase;color:{B['blue']}">{stmt.format(kw="education")}</div>
+</div>''')
+body = f'''
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div><div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Title (16:9)</div>{title_slide}</div>
+  <div><div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Section divider</div>{section_slide}</div>
+  <div style="grid-column:1/-1"><div style="font-size:12px;font-weight:700;color:{B['muted']};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Content</div>{content_slide}</div>
+</div>'''
+files.append(("layouts", "slides.html",
+              page("Layouts", "Slide layouts", "Title · section · content (16:9)",
+                   body, "Layouts — Slides", "The PowerPoint template as previews: blue cover, ruled section, clean content.")))
+
+# document cover (A4 portrait)
+cover = f'''<div style="position:relative;width:64%;margin:0 auto;padding-top:90%;border:1px solid {B['hair']};border-radius:8px;overflow:hidden;box-shadow:0 10px 30px -14px rgba(0,74,120,.3)">
+  <div style="position:absolute;inset:0;background:#fff;display:flex;flex-direction:column">
+    <div style="height:52%;background:{B['blue']};position:relative">
+      <div style="position:absolute;right:8%;top:7%;font-size:11px;font-weight:700;color:#fff;border:1.5px solid rgba(255,255,255,.6);padding:4px 8px;border-radius:3px">UNICEF ▸ logo</div>
+    </div>
+    <div style="padding:8% 9%;flex:1;display:flex;flex-direction:column">
+      <div style="font-size:15px;font-weight:700;color:{B['blue']};letter-spacing:-.01em;line-height:1.15">The State of the<br>World's Children</div>
+      <div style="font-size:11px;color:{B['muted']};margin-top:6px">Flagship report · 2026</div>
+      <div style="margin-top:auto;font-size:11px;text-transform:lowercase;color:{B['blue']}"><span style="font-weight:400">for every child,</span> <span style="font-weight:700">a future</span></div>
+    </div>
+  </div>
+</div>'''
+body = f'''
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+  {cover}
+  <div style="padding-top:8px">
+    <div style="font-size:14px;font-weight:700;margin-bottom:10px">Cover anatomy</div>
+    <ul style="margin:0;padding:0;list-style:none;display:grid;gap:10px">
+      <li style="font-size:13.5px;padding-left:18px;position:relative"><span style="position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:{B['blue']}"></span>Logo (with container) top or bottom of the cover.</li>
+      <li style="font-size:13.5px;padding-left:18px;position:relative"><span style="position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:{B['blue']}"></span>Single strong photograph, ideally full-bleed.</li>
+      <li style="font-size:13.5px;padding-left:18px;position:relative"><span style="position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:{B['blue']}"></span>Title / subtitle in Noto Sans; add a cyan or white bar if contrast is low.</li>
+      <li style="font-size:13.5px;padding-left:18px;position:relative"><span style="position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:{B['blue']}"></span>Back cover is UNICEF Blue with logo + contact info.</li>
+    </ul>
+    <div style="font-size:11.5px;color:{B['muted']};margin-top:14px"><i>Brand Book 4.0, p.72–73. Logo shown as a placeholder — use official WeShare assets.</i></div>
+  </div>
+</div>'''
+files.append(("layouts", "document-cover.html",
+              page("Layouts", "Document cover", "Publication / report cover",
+                   body, "Layouts — Document cover", "Word & publication cover: blue field, single photo, Noto Sans title.")))
+
+# ---------------------------------------------------------------------------
 written = [write(g, f, h) for g, f, h in files]
 for w in written:
     print("  wrote", w)

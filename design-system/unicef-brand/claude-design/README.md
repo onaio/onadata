@@ -21,6 +21,23 @@ renders standalone.
 | Components | Tags & pills | `components/tags.html` |
 | Components | Callouts | `components/callouts.html` |
 | Components | Cards | `components/cards.html` |
+| Components | Form fields | `components/forms.html` |
+| Components | Data table | `components/tables.html` |
+| Data visualization | Charts & palette | `dataviz/charts-and-palette.html` |
+| Layouts | Slide layouts | `layouts/slides.html` |
+| Layouts | Document cover | `layouts/document-cover.html` |
+
+### Data-visualization palette
+
+Charts follow the brand's data-viz allowance (tints/steps permitted, Brand Book
+p.53) and were validated for colour-blind separation and contrast:
+
+- **Sequential** (magnitude, one measure) — UNICEF Blue ramp:
+  `#C2ECFB · #6FD0EF · #00AEEF · #0086C1 · #005A82`
+- **Categorical** (series identity, always direct-labelled) —
+  `#009BDC · #F07B00 · #1B9E8A · #5B7BD4 · #C99400`
+
+One y-axis, recessive grid, direct labels over colour-only encoding.
 
 ## How to import into Claude Design
 
