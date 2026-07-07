@@ -30,40 +30,51 @@ curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337
 
 Passing one or more `group_by` parameters returns activity counts instead of
 individual messages, grouped by the requested dimension(s). The supported
-dimensions are `user` and `verb`; repeat the parameter to group by both. The
-same `target_type`/`target_id` (and optional `user`) filters apply. Any other
-`group_by` value returns `400`. Each row always carries `count` and
-`latest_timestamp`, and rows are ordered by most recent activity first and
-paginated.
+dimensions are `user`, `verb` and a time bucket (one of `hour`, `day`, `week`,
+`month` or `year`); repeat the parameter to combine them. At most one time
+bucket may be combined per request. The same `target_type`/`target_id` (and
+optional `user`) filters apply. Any other `group_by` value, or more than one
+time bucket, returns `400`. Each row always carries `count`,
+`earliest_timestamp` and `latest_timestamp`, and rows are ordered by most recent
+activity first and paginated. All timestamps are rendered in UTC.
 
 - `group_by=verb` — counts per verb (aggregated across users).
 - `group_by=user` — counts per user (aggregated across verbs).
 - `group_by=user&group_by=verb` — counts per `(user, verb)`.
+- `group_by=day` — counts per UTC day (aggregated across users and verbs).
+- `group_by=day&group_by=user&group_by=verb` — counts per `(day, user, verb)`.
 
 ```console
-curl -X GET "https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337&group_by=user&group_by=verb"
+curl -X GET "https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1337&group_by=day&group_by=user&group_by=verb"
 ```
 
 ```json
 [
     {
+        "period_start": "2026-06-12T00:00:00Z",
         "user": "joe",
         "verb": "export_created",
         "count": 3,
-        "latest_timestamp": "2026-06-12T12:00:00+00:00"
+        "earliest_timestamp": "2026-06-12T08:15:00Z",
+        "latest_timestamp": "2026-06-12T12:00:00Z"
     },
     {
+        "period_start": "2025-10-03T00:00:00Z",
         "user": "joe",
         "verb": "submission_created",
         "count": 14,
-        "latest_timestamp": "2025-10-03T10:04:00+00:00"
+        "earliest_timestamp": "2025-10-03T06:22:00Z",
+        "latest_timestamp": "2025-10-03T10:04:00Z"
     }
 ]
 ```
 
 Only the requested dimensions appear in each row (e.g. `group_by=verb` omits
-`user`). When `user` is a grouping dimension, it is `null` if the actor id no
-longer resolves to a user.
+`user`, and `period_start` is present only when a time bucket is requested).
+When `user` is a grouping dimension, it is `null` if the actor id no longer
+resolves to a user. Time bucket boundaries are computed in UTC; a client can
+render an event range by merging adjacent buckets using `earliest_timestamp`
+and `latest_timestamp`.
 
 ### GET /api/messaging/[pk]
 

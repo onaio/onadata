@@ -162,37 +162,50 @@ GET Grouped activity counts
 
 Passing one or more ``group_by`` parameters returns activity counts instead of
 individual event messages, grouped by the requested dimension(s). The supported
-dimensions are ``user`` and ``verb``; repeat the parameter to group by both.
-The same ``target_type``, ``target_id`` and optional ``user`` filters apply.
-The results are paginated and ordered by most recent activity first. Any other
-``group_by`` value returns an HTTP 400 response.
+dimensions are ``user``, ``verb`` and a time bucket (one of ``hour``, ``day``,
+``week``, ``month`` or ``year``); repeat the parameter to combine them. At most
+one time bucket may be combined per request. The same ``target_type``,
+``target_id`` and optional ``user`` filters apply. The results are paginated and
+ordered by most recent activity first. Any other ``group_by`` value, or more
+than one time bucket, returns an HTTP 400 response.
 
 - ``group_by=verb`` - Counts per verb, aggregated across users.
 - ``group_by=user`` - Counts per user, aggregated across verbs.
 - ``group_by=user&group_by=verb`` - Counts per ``(user, verb)``.
+- ``group_by=day`` - Counts per UTC day, aggregated across users and verbs.
+- ``group_by=day&group_by=user&group_by=verb`` - Counts per
+  ``(day, user, verb)``.
 
 Each row always contains:
 
 - ``count`` - The number of events in the group.
+- ``earliest_timestamp`` - The timestamp of the oldest event in the group.
 - ``latest_timestamp`` - The timestamp of the most recent event in the group.
 
 The requested dimensions are also included in each row:
 
+- ``period_start`` - The UTC start of the time bucket. Only present when a time
+  bucket was requested. Time bucket boundaries are computed in UTC.
 - ``user`` - The username of the acting user. This is ``null`` when the actor
   id no longer resolves to a user.
 - ``verb`` - The action that occurred on the target.
 
+All timestamps in grouped responses are rendered in UTC. Because a time bucket
+also reports ``earliest_timestamp`` and ``latest_timestamp``, a client can
+render an event range (e.g. "15 submissions from 09:00 to 10:00") by merging
+adjacent buckets; the endpoint does not collapse bursts on the server.
+
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/messaging?target_type=<code>{type}</code>&target_id=<code>{form_id}</code>&group_by=<code>user</code>&group_by=<code>verb</code>
+  <b>GET</b> /api/v1/messaging?target_type=<code>{type}</code>&target_id=<code>{form_id}</code>&group_by=<code>day</code>&group_by=<code>user</code>&group_by=<code>verb</code>
   </pre>
 
 Example
 ^^^^^^^^
 ::
 
-    curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&group_by=user&group_by=verb
+    curl -X GET https://api.ona.io/api/v1/messaging?target_type=xform&target_id=1&group_by=day&group_by=user&group_by=verb
 
 
 Response
@@ -201,16 +214,20 @@ Response
 
     [
         {
+            "period_start": "2026-03-15T00:00:00Z",
             "user": "bob",
             "verb": "submission_created",
             "count": 14,
-            "latest_timestamp": "2021-02-26T03:32:57.799647-05:00"
+            "earliest_timestamp": "2026-03-15T06:10:00Z",
+            "latest_timestamp": "2026-03-15T18:22:57Z"
         },
         {
+            "period_start": "2026-03-14T00:00:00Z",
             "user": "bob",
             "verb": "submission_edited",
             "count": 2,
-            "latest_timestamp": "2020-12-14T02:57:23.264655-05:00"
+            "earliest_timestamp": "2026-03-14T02:57:23Z",
+            "latest_timestamp": "2026-03-14T09:41:05Z"
         }
     ]
 
