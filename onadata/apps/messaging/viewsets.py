@@ -82,6 +82,7 @@ class MessagingViewSet(
         "year": TruncYear,
     }
 
+    # pylint: disable=too-many-locals
     def list(self, request, *args, **kwargs):
         requested = request.query_params.getlist("group_by")
 
