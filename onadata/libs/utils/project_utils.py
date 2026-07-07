@@ -57,6 +57,33 @@ def get_project_users(project):
     return ret
 
 
+def get_kpi_asset_uid(xform) -> Optional[str]:
+    """
+    Return the KPI asset uid for an XForm, or None if the form has no
+    Formbuilder counterpart
+
+    A form published on Onadata then edited on the Formbuilder keeps its
+    original `id_string`; the KPI asset uid is only recorded in the URL of
+    its `source` metadata. A form originally authored on the Formbuilder
+    has no `source` metadata, but its `id_string` matches the asset uid
+    and it is marked with `published_by_formbuilder` metadata.
+    """
+    source = xform.metadata_set.filter(data_type="source").first()
+
+    if source is not None:
+        match = re.search(r"/assets/([a-zA-Z0-9]+)", source.data_value or "")
+
+        if match is not None:
+            return match.group(1)
+
+    if xform.metadata_set.filter(
+        data_type="published_by_formbuilder", data_value=True
+    ).exists():
+        return xform.id_string
+
+    return None
+
+
 def retrieve_asset_permissions(
     service_url: str, asset_id: str, session: requests.Session
 ) -> Dict[str, List[str]]:
@@ -170,15 +197,11 @@ def propagate_project_permissions(
             admins += owners_team
             admins = list(set(admins))
 
-        # Propagate permissions for XForms that were published by
-        # Formbuilder
+        # Propagate permissions for XForms that exist on the Formbuilder
         for asset in project.xform_set.filter(deleted_at__isnull=True).iterator():
-            if (
-                asset.metadata_set.filter(
-                    data_type="published_by_formbuilder", data_value=True
-                ).count()
-                == 0
-            ):
+            asset_uid = get_kpi_asset_uid(asset)
+
+            if asset_uid is None:
                 continue
 
             if use_asset_owner_auth:
@@ -195,15 +218,15 @@ def propagate_project_permissions(
             # The bulk endpoint is declarative: KPI replaces the asset's
             # assignments with the posted set, removing users left out of
             # the payload. Always send the complete desired state.
-            # `created_by` is the user who deployed the form from the
-            # Formbuilder and is therefore the asset owner on KPI — unlike
-            # `xform.user`, which is the form owner on Onadata and may be
-            # an organization. The KPI asset owner is excluded because KPI
-            # rejects payloads that assign permissions to the owner; owners
-            # hold all permissions implicitly.
+            # For forms authored on the Formbuilder, `created_by` is the
+            # user who deployed the form and is therefore the asset owner
+            # on KPI — unlike `xform.user`, which is the form owner on
+            # Onadata and may be an organization. The KPI asset owner is
+            # excluded because KPI rejects payloads that assign permissions
+            # to the owner; owners hold all permissions implicitly.
             assign_change_asset_permission(
                 service_url,
-                asset.id_string,
+                asset_uid,
                 [
                     username
                     for username in admins

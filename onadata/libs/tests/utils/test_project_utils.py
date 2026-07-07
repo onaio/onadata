@@ -24,6 +24,7 @@ from onadata.libs.permissions import (
 from onadata.libs.utils.project_utils import (
     ExternalServiceRequestError,
     assign_change_asset_permission,
+    get_kpi_asset_uid,
     propagate_project_permissions,
     propagate_project_permissions_async,
     retrieve_asset_permissions,
@@ -255,6 +256,50 @@ class TestProjectUtils(TestBase):
             ],
         )
 
+    @override_settings(KPI_INTERNAL_SERVICE_URL="http://kpi.example.com")
+    @patch("onadata.libs.utils.project_utils.requests.session")
+    def test_propagate_project_permissions_source_metadata(self, mock_session):
+        """
+        `propagate_project_permissions` propagates permissions for a form
+        published on Onadata then edited on the Formbuilder
+
+        Such forms have no `published_by_formbuilder` metadata; the link to
+        the KPI asset is the `source` metadata and the asset uid is parsed
+        from its URL instead of using the XForm `id_string`.
+        """
+        self._publish_transportation_form()
+        MetaData.source(
+            self.xform, "http://kpi.example.com/assets/aTestAssetUid123.json"
+        )
+        alice = self._create_user("alice", "alice", create_profile=True)
+        ManagerRole.add(alice, self.project)
+
+        session_mock = mock_session.return_value
+        post_resp = Response()
+        post_resp.status_code = 200
+        session_mock.post.return_value = post_resp
+
+        propagate_project_permissions(self.project)
+
+        session_mock.post.assert_called_once()
+        args, kwargs = session_mock.post.call_args
+        self.assertEqual(
+            args[0],
+            "http://kpi.example.com/api/v2/assets/aTestAssetUid123"
+            "/permission-assignments/bulk/",
+        )
+        self.assertCountEqual(
+            kwargs["json"],
+            [
+                {
+                    "user": "http://kpi.example.com/api/v2/users/alice/",
+                    "permission": (
+                        "http://kpi.example.com/api/v2/permissions/change_asset/"
+                    ),
+                },
+            ],
+        )
+
     @patch("onadata.libs.utils.project_utils.propagate_project_permissions")
     def test_propagate_project_permissions_async_retry(self, mock_propagate):
         """
@@ -326,3 +371,62 @@ class SetProjectPermsToObjectTestCase(TestBase):
         set_project_perms_to_object(self.xform, self.project)
 
         self.assertTrue(OwnerRole.user_has_role(self.alice, self.xform))
+
+
+class GetKpiAssetUidTestCase(TestBase):
+    """Tests for get_kpi_asset_uid"""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_transportation_form()
+
+    def test_source_metadata(self):
+        """Asset uid is parsed from the `source` metadata URL
+
+        A form published on Onadata then edited on the Formbuilder keeps
+        its original `id_string`; the KPI asset uid is only recorded in
+        the URL of its `source` metadata.
+        """
+        MetaData.source(
+            self.xform, "http://kpi.example.com/assets/aTestAssetUid123.json"
+        )
+
+        self.assertEqual(get_kpi_asset_uid(self.xform), "aTestAssetUid123")
+
+    def test_published_by_formbuilder(self):
+        """XForm `id_string` is returned for a form authored on the Formbuilder
+
+        Such forms are marked with `published_by_formbuilder` metadata and
+        their `id_string` matches the KPI asset uid.
+        """
+        MetaData.published_by_formbuilder(self.xform, "True")
+
+        self.assertEqual(get_kpi_asset_uid(self.xform), self.xform.id_string)
+
+    def test_source_metadata_priority(self):
+        """Asset uid from the `source` metadata takes priority over the
+        XForm `id_string` when a form has both `source` and
+        `published_by_formbuilder` metadata
+        """
+        MetaData.source(
+            self.xform, "http://kpi.example.com/assets/aTestAssetUid123.json"
+        )
+        MetaData.published_by_formbuilder(self.xform, "True")
+
+        self.assertEqual(get_kpi_asset_uid(self.xform), "aTestAssetUid123")
+
+    def test_source_metadata_not_kpi_asset_url(self):
+        """XForm `id_string` is returned when the `source` metadata is not
+        a KPI asset URL
+
+        The `source` data_type is also used for source documents attached
+        to a form; only a URL referencing a KPI asset records the uid.
+        """
+        MetaData.source(self.xform, "http://docs.example.com/manual.pdf")
+        MetaData.published_by_formbuilder(self.xform, "True")
+
+        self.assertEqual(get_kpi_asset_uid(self.xform), self.xform.id_string)
+
+    def test_no_formbuilder_counterpart(self):
+        """None is returned for a form that has no Formbuilder counterpart"""
+        self.assertIsNone(get_kpi_asset_uid(self.xform))
