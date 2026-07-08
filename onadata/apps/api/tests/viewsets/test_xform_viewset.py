@@ -2172,10 +2172,25 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             ):
                 morsel = cookies[cookie_name]
                 self.assertTrue(morsel["secure"], f"{cookie_name} missing Secure flag")
-                self.assertTrue(
-                    morsel["httponly"], f"{cookie_name} missing HttpOnly flag"
-                )
                 self.assertEqual(morsel["samesite"], "Lax")
+
+            # The auth token and uid cookies are server-only, so HttpOnly.
+            for cookie_name in (
+                settings.ENKETO_META_UID_COOKIE,
+                settings.ENKETO_AUTH_COOKIE,
+            ):
+                self.assertTrue(
+                    cookies[cookie_name]["httponly"],
+                    f"{cookie_name} missing HttpOnly flag",
+                )
+
+            # __enketo_meta_username is read client-side by enketo-core
+            # (document.cookie) to populate the `username` form session
+            # metadata, so it must NOT be HttpOnly.
+            self.assertFalse(
+                cookies[settings.ENKETO_META_USERNAME_COOKIE]["httponly"],
+                "username cookie must not be HttpOnly",
+            )
 
     @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):

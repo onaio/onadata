@@ -776,8 +776,16 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
         enketo_meta_uid["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
         enketo["domain"] = settings.ENKETO_AUTH_COOKIE_DOMAIN
 
+    # The username cookie is read by client-side JS (enketo-core reads
+    # document.cookie) to populate the `username` form session metadata,
+    # so it must NOT be HttpOnly -- otherwise submissions record
+    # "username not found". It inherits max_age/domain from the uid cookie.
+    enketo_meta_username = {**enketo_meta_uid, "httponly": False}
+
     resp.set_signed_cookie(ENKETO_META_UID_COOKIE, username, **enketo_meta_uid)
-    resp.set_signed_cookie(ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_uid)
+    resp.set_signed_cookie(
+        ENKETO_META_USERNAME_COOKIE, username, **enketo_meta_username
+    )
     resp.set_signed_cookie(ENKETO_AUTH_COOKIE, json_web_token, **enketo)
 
     return resp
