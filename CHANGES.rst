@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.22.1(2026-07-08)
+-------------------
+- perf(messaging): cache list endpoint responses
+  [@kelvin-muchiri]
+  `PR #3158 https://github.com/onaio/onadata/pull/3158`
+- fix: project permission propagation to KPI
+  [@kelvin-muchiri]
+  `PR #3161 https://github.com/onaio/onadata/pull/3161`
+- fix(kpi): resolve asset uid from source metadata when propagating permissions
+  [@kelvin-muchiri]
+  `PR #3164 https://github.com/onaio/onadata/pull/3164`
+- fix: don't mark __enketo_meta_username cookie HttpOnly
+  [@FrankApiyo]
+  `PR #3165 https://github.com/onaio/onadata/pull/3165`
+
 v5.22.0(2026-07-01)*
 --------------------
 - fix: don't classify version numbers in form titles as URLs
