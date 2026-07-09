@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.22.3(2026-07-09)
+-------------------
+- fix: register XForm with django-reversion
+  [@kelvin-muchiri]
+  `PR #3170 https://github.com/onaio/onadata/pull/3170`
+
 v5.22.2(2026-07-09)
 -------------------
 - refactor: move user activity backfill out of migrations
