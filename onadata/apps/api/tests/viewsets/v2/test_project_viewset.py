@@ -707,3 +707,10 @@ class ProjectOrderingTestCase(TestAbstractViewSet):
         request = self.factory.get("/", {"ordering": "-created"}, **self.extra)
         response = self.view(request)
         self.assertEqual(self._names(response), ["Cherry", "Apple", "Banana"])
+
+    def test_order_by_created_asc(self):
+        request = self.factory.get("/", {"ordering": "created"}, **self.extra)
+        response = self.view(request)
+        # Ascending created differs from the default -date_created order,
+        # so this fails if OrderingFilter/ordering_fields is broken or dropped.
+        self.assertEqual(self._names(response), ["Banana", "Apple", "Cherry"])
