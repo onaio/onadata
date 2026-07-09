@@ -810,3 +810,48 @@ class ProjectStarredFilterTestCase(TestAbstractViewSet):
         request = self.factory.get("/", {"starred": "false"}, **self.extra)
         response = self.view(request)
         self.assertEqual(self._names(response), ["Plain One"])
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectRoleFilterTestCase(TestAbstractViewSet):
+    """?role= returns projects where the requesting user's role is in the set."""
+
+    def setUp(self):
+        super().setUp()
+        # self.user (bob) owns everything; share each project to a second user
+        # (alice) at a distinct role, then query the list AS alice.
+        self.member = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        self.member_extra = {
+            "HTTP_AUTHORIZATION": f"Token {self.member.auth_token}"
+        }
+
+        self.owner_p = self._make_shared_project("Owner Proj", "owner")
+        self.manager_p = self._make_shared_project("Manager Proj", "manager")
+        self.editor_p = self._make_shared_project("Editor Proj", "editor")
+        self.readonly_p = self._make_shared_project("Readonly Proj", "readonly")
+
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _make_shared_project(self, name, role):
+        proj = Project.objects.create(
+            name=name, organization=self.user, created_by=self.user
+        )
+        ShareProject(proj, "alice", role).save()
+        return proj
+
+    def _names(self, response):
+        return sorted(p["name"] for p in response.data)
+
+    def test_role_owner_only(self):
+        request = self.factory.get("/", {"role": "owner"}, **self.member_extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Owner Proj"])
+
+    def test_role_owner_or_manager(self):
+        request = self.factory.get(
+            "/", {"role": "owner,manager"}, **self.member_extra
+        )
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Manager Proj", "Owner Proj"])

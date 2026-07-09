@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404
 
 import six
 from django_filters import rest_framework as django_filter_filters
+from guardian.shortcuts import get_objects_for_user
 from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
@@ -28,7 +29,11 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.apps.viewer.models import Export
-from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
+from onadata.libs.permissions import (
+    ROLES,
+    ROLES_ORDERED,
+    exclude_items_from_queryset_using_xform_meta_perms,
+)
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
 from onadata.libs.utils.numeric import int_or_parse_error
 
@@ -150,6 +155,7 @@ class ProjectFilterSet(django_filter_filters.FilterSet):
 
     shared = django_filter_filters.BooleanFilter(field_name="shared")
     starred = django_filter_filters.BooleanFilter(method="filter_starred")
+    role = django_filter_filters.CharFilter(method="filter_role")
 
     # pylint: disable=missing-class-docstring
     class Meta:
@@ -165,6 +171,35 @@ class ProjectFilterSet(django_filter_filters.FilterSet):
         if value is False:
             return queryset.exclude(user_stars=user)
         return queryset
+
+    # pylint: disable=unused-argument
+    def filter_role(self, queryset, name, value):
+        """Filter by the requesting user's role (from object permissions).
+
+        ``?role=owner,manager`` returns projects where the user's role is in
+        the requested set. Roles are derived from django-guardian object
+        permissions, so we take the lowest-ranked requested role and require
+        its full Project permission set: higher roles hold a superset of a
+        lower role's permissions, so this yields "that role and above" —
+        which equals the requested set for our top-contiguous role sets.
+        """
+        requested = [r.strip() for r in value.split(",") if r.strip() in ROLES]
+        if not requested:
+            return queryset
+        lowest = min(requested, key=lambda n: ROLES_ORDERED.index(ROLES[n]))
+        perms = [
+            f"logger.{codename}"
+            for codename in ROLES[lowest].class_to_permissions[Project]
+        ]
+        allowed = get_objects_for_user(
+            self.request.user,
+            perms,
+            klass=queryset,
+            any_perm=False,
+            accept_global_perms=False,
+            with_superuser=False,
+        )
+        return queryset.filter(pk__in=allowed.values("pk"))
 
 
 # pylint: disable=too-few-public-methods
