@@ -3,13 +3,10 @@
 Message serializers
 """
 
-import json
 import sys
-from typing import Optional, Union
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import HttpRequest
 from django.utils.translation import gettext as _
 
 from actstream.actions import action_handler
@@ -136,56 +133,3 @@ class MessageSerializer(serializers.ModelSerializer):
                 "Message not created. Please retry."
             ) from exc
         return instance
-
-
-# pylint: disable=too-many-arguments,too-many-positional-arguments
-def send_message(
-    instance_id: Union[list, int],
-    target_id: int,
-    target_type: str,
-    user: User,
-    message_verb: str,
-    message_description: Optional[str] = None,
-):
-    """
-    Send a message.
-    :param id: A single ID or list of IDs that have been affected by an action
-    :param target_id: id of the target_type
-    :param target_type: any of these three ['xform', 'project', 'user']
-    :param request: http request object
-    :return:
-    """
-    message_id_limit = getattr(settings, "NOTIFICATION_ID_LIMIT", 100)
-    if user:
-        if isinstance(instance_id, int):
-            instance_id = [instance_id]
-        request = HttpRequest()
-        request.user = user
-
-        data = {
-            "target_id": target_id,
-            "target_type": target_type,
-            "verb": message_verb,
-        }
-
-        # Split the ids into chunks
-        if isinstance(instance_id, list):
-            ids = instance_id
-            while len(ids) > 0:
-                data["message"] = json.dumps(
-                    {
-                        "id": ids[:message_id_limit],
-                    }
-                    | create_description_map(message_description)
-                )
-                message = MessageSerializer(data=data, context={"request": request})
-                del ids[:message_id_limit]
-                if message.is_valid():
-                    message.save()
-
-
-def create_description_map(message_description):
-    """
-    Create a description map if message is provided
-    """
-    return {"description": message_description} if message_description else {}
