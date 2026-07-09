@@ -641,3 +641,40 @@ class GetProjectTeamsTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 403)
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectSearchTestCase(TestAbstractViewSet):
+    """?search= matches project name and owner username."""
+
+    def setUp(self):
+        super().setUp()
+        self.alpha = Project.objects.create(
+            name="Rainfall Survey", organization=self.user, created_by=self.user,
+        )
+        self.beta = Project.objects.create(
+            name="Household Census", organization=self.user, created_by=self.user,
+        )
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _names(self, response):
+        return sorted(p["name"] for p in response.data)
+
+    def test_search_by_name(self):
+        request = self.factory.get("/", {"search": "rain"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._names(response), ["Rainfall Survey"])
+
+    def test_search_by_owner_username(self):
+        # self.user.username is the owner of both projects.
+        request = self.factory.get("/", {"search": self.user.username}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
+
+    def test_search_no_match_returns_empty(self):
+        request = self.factory.get("/", {"search": "zzznotreal"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
