@@ -4,6 +4,7 @@ Project viewset for v2 API
 
 from django.db.models import Max, Q
 
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from rest_framework.response import Response
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.libs.filters import (
     AnonUserProjectFilter,
+    ProjectFilterSet,
     ProjectOwnerFilter,
     TagFilter,
 )
@@ -40,9 +42,11 @@ class ProjectViewSet(ProjectViewSetV1):
         AnonUserProjectFilter,  # permission scoping — MUST stay first
         ProjectOwnerFilter,  # ?owner=
         TagFilter,  # ?tags=
+        DjangoFilterBackend,  # ?shared=
         SearchFilter,  # ?search=
         OrderingFilter,  # ?ordering=
     )
+    filterset_class = ProjectFilterSet
     search_fields = ["name", "organization__username"]
     ordering_fields = [
         "name",

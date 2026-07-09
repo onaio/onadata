@@ -142,6 +142,20 @@ class FormIDFilter(django_filter_filters.FilterSet):
         fields = ["formID"]
 
 
+class ProjectFilterSet(django_filter_filters.FilterSet):
+    """Query-param filters for the v2 projects endpoint.
+
+    Supports ?shared=, ?starred=, ?role=.
+    """
+
+    shared = django_filter_filters.BooleanFilter(field_name="shared")
+
+    # pylint: disable=missing-class-docstring
+    class Meta:
+        model = Project
+        fields = []
+
+
 # pylint: disable=too-few-public-methods
 class OrganizationPermissionFilter(ObjectPermissionsFilter):
     """Organization profiles filter

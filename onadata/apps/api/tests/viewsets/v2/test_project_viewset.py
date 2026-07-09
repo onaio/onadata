@@ -755,3 +755,31 @@ class ProjectOrderingDerivedTestCase(TestAbstractViewSet):
         # No submissions on either → both null; assert the ordering param is
         # accepted (200) and returns both projects rather than erroring.
         self.assertEqual(sorted(self._names(response)), ["Agri", "Gov"])
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectSharedFilterTestCase(TestAbstractViewSet):
+    """?shared= filters public/private projects."""
+
+    def setUp(self):
+        super().setUp()
+        self.public = Project.objects.create(
+            name="Public One", organization=self.user, created_by=self.user,
+            shared=True)
+        self.private = Project.objects.create(
+            name="Private One", organization=self.user, created_by=self.user,
+            shared=False)
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _names(self, response):
+        return sorted(p["name"] for p in response.data)
+
+    def test_filter_shared_true(self):
+        request = self.factory.get("/", {"shared": "true"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Public One"])
+
+    def test_filter_shared_false(self):
+        request = self.factory.get("/", {"shared": "false"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Private One"])
