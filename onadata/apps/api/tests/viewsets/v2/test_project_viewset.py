@@ -739,13 +739,17 @@ class ProjectOrderingDerivedTestCase(TestAbstractViewSet):
         return [p["name"] for p in response.data]
 
     def test_order_by_category_asc(self):
-        request = self.factory.get("/", {"ordering": "metadata__category"}, **self.extra)
+        request = self.factory.get(
+            "/", {"ordering": "metadata__category"}, **self.extra
+        )
         response = self.view(request)
         # agriculture < governance
         self.assertEqual(self._names(response), ["Agri", "Gov"])
 
     def test_order_by_last_submission_desc(self):
-        request = self.factory.get("/", {"ordering": "-last_submission_date"}, **self.extra)
+        request = self.factory.get(
+            "/", {"ordering": "-last_submission_date"}, **self.extra
+        )
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         # No submissions on either → both null; assert the ordering param is
