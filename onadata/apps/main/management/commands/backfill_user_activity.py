@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Backfill user activity from edited submissions.
+Backfill historical user activity in bounded batches.
 """
 
 from dataclasses import dataclass, field
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.db.models import Max
@@ -26,7 +27,7 @@ MAX_BATCH_SIZE = 10000
 class BackfillStats:
     """Counts for a backfill run or batch."""
 
-    editor_users_seen: int = 0
+    users_seen: int = 0
     activities_created: int = 0
     activities_updated: int = 0
     states_created: int = 0
@@ -34,7 +35,7 @@ class BackfillStats:
 
     def add(self, other):
         """Add another stats object to this one."""
-        self.editor_users_seen += other.editor_users_seen
+        self.users_seen += other.users_seen
         self.activities_created += other.activities_created
         self.activities_updated += other.activities_updated
         self.states_created += other.states_created
@@ -137,25 +138,36 @@ class BackfillBatchChanges:
         )
 
 
-def get_editor_user_id_batch(after_user_id, batch_size):
+def get_user_id_batch(after_user_id, batch_size):
     """
-    Return the next ordered batch of users who edited submissions.
+    Return the next ordered batch of user ids.
     """
+    user_model = get_user_model()
     return list(
+        user_model.objects.filter(pk__gt=after_user_id)
+        .order_by("pk")
+        .values_list("pk", flat=True)[:batch_size]
+    )
+
+
+def get_latest_submission_times(user_ids):
+    """
+    Return the latest submission timestamp for each submitter user id.
+    """
+    return dict(
         Instance.objects.filter(
-            last_edited_by_id__isnull=False,
-            last_edited__isnull=False,
-            last_edited_by_id__gt=after_user_id,
+            user_id__in=user_ids,
+            date_created__isnull=False,
         )
-        .order_by("last_edited_by_id")
-        .values_list("last_edited_by_id", flat=True)
-        .distinct()[:batch_size]
+        .values("user_id")
+        .annotate(activity_time=Max("date_created"))
+        .values_list("user_id", "activity_time")
     )
 
 
 def get_latest_edit_times(user_ids):
     """
-    Return the latest edit timestamp for each user id in the batch.
+    Return the latest edit timestamp for each editor user id.
     """
     return dict(
         Instance.objects.filter(
@@ -166,6 +178,31 @@ def get_latest_edit_times(user_ids):
         .annotate(activity_time=Max("last_edited"))
         .values_list("last_edited_by_id", "activity_time")
     )
+
+
+def get_activity_time(user, latest_submission_times, latest_edit_times):
+    """
+    Return the best available historical activity timestamp for a user.
+    """
+    candidates = [
+        value
+        for value in (
+            user.last_login,
+            latest_submission_times.get(user.pk),
+            latest_edit_times.get(user.pk),
+            user.date_joined,
+        )
+        if value is not None
+    ]
+    return max(candidates) if candidates else None
+
+
+def get_users_by_id(user_ids):
+    """
+    Return users keyed by id.
+    """
+    user_model = get_user_model()
+    return user_model.objects.filter(pk__in=user_ids).in_bulk()
 
 
 def get_existing_activity_and_state(user_ids, dry_run=False):
@@ -184,23 +221,36 @@ def get_existing_activity_and_state(user_ids, dry_run=False):
     )
 
 
-def process_editor_user_batch(user_ids, dry_run=False, when=None):
+def process_user_batch(user_ids, dry_run=False, when=None):
     """
-    Backfill activity and deactivation state for one editor user-id batch.
+    Backfill activity and deactivation state for one user-id batch.
     """
     when = when or timezone.now()
+    users_by_id = get_users_by_id(user_ids)
+    latest_submission_times = get_latest_submission_times(user_ids)
     latest_edit_times = get_latest_edit_times(user_ids)
     activities_by_user_id, states_by_user_id = get_existing_activity_and_state(
-        latest_edit_times.keys(), dry_run=dry_run
+        user_ids, dry_run=dry_run
     )
     changes = BackfillBatchChanges(
-        stats=BackfillStats(editor_users_seen=len(latest_edit_times)),
-        when=when,
+        stats=BackfillStats(users_seen=len(users_by_id)), when=when
     )
 
-    for user_id, edit_time in latest_edit_times.items():
+    for user_id in user_ids:
+        user = users_by_id.get(user_id)
+        if user is None:
+            continue
+
+        activity_time = get_activity_time(
+            user,
+            latest_submission_times,
+            latest_edit_times,
+        )
+        if activity_time is None:
+            continue
+
         effective_activity, activity_changed = changes.stage_activity(
-            user_id, edit_time, activities_by_user_id.get(user_id)
+            user_id, activity_time, activities_by_user_id.get(user_id)
         )
         changes.stage_deactivation_state(
             user_id,
@@ -217,7 +267,7 @@ def process_editor_user_batch(user_ids, dry_run=False, when=None):
     return changes.stats
 
 
-def backfill_edited_user_activity(
+def backfill_user_activity(
     batch_size=DEFAULT_BATCH_SIZE,
     start_after_user_id=0,
     max_users=None,
@@ -225,7 +275,7 @@ def backfill_edited_user_activity(
     progress_callback=None,
 ):
     """
-    Backfill edited-submission activity in bounded batches.
+    Backfill historical user activity in bounded batches.
     """
     total_stats = BackfillStats()
     after_user_id = start_after_user_id
@@ -233,20 +283,20 @@ def backfill_edited_user_activity(
     while True:
         next_batch_size = batch_size
         if max_users is not None:
-            remaining = max_users - total_stats.editor_users_seen
+            remaining = max_users - total_stats.users_seen
             if remaining <= 0:
                 break
             next_batch_size = min(next_batch_size, remaining)
 
-        user_ids = get_editor_user_id_batch(after_user_id, next_batch_size)
+        user_ids = get_user_id_batch(after_user_id, next_batch_size)
         if not user_ids:
             break
 
         if dry_run:
-            batch_stats = process_editor_user_batch(user_ids, dry_run=True)
+            batch_stats = process_user_batch(user_ids, dry_run=True)
         else:
             with transaction.atomic():
-                batch_stats = process_editor_user_batch(user_ids)
+                batch_stats = process_user_batch(user_ids)
 
         total_stats.add(batch_stats)
         after_user_id = user_ids[-1]
@@ -258,10 +308,10 @@ def backfill_edited_user_activity(
 
 
 class Command(BaseCommand):
-    """Backfill user activity from edited submissions."""
+    """Backfill historical user activity."""
 
     help = gettext_lazy(
-        "Backfill UserActivity and UserDeactivationState from edited submissions."
+        "Backfill UserActivity and UserDeactivationState for existing users."
     )
 
     def add_arguments(self, parser):
@@ -269,20 +319,18 @@ class Command(BaseCommand):
             "--batch-size",
             type=int,
             default=DEFAULT_BATCH_SIZE,
-            help=gettext_lazy(
-                "Number of distinct editor user ids to process per batch."
-            ),
+            help=gettext_lazy("Number of users to process per batch."),
         )
         parser.add_argument(
             "--start-after-user-id",
             type=int,
             default=0,
-            help=gettext_lazy("Resume after this editor user id."),
+            help=gettext_lazy("Resume after this user id."),
         )
         parser.add_argument(
             "--max-users",
             type=int,
-            help=gettext_lazy("Maximum distinct editor users to process."),
+            help=gettext_lazy("Maximum users to process."),
         )
         parser.add_argument(
             "--dry-run",
@@ -306,13 +354,13 @@ class Command(BaseCommand):
 
             def write_progress(after_user_id, batch_stats):
                 self.stdout.write(
-                    "Processed editor users through "
-                    f"user id {after_user_id}: {batch_stats.editor_users_seen}"
+                    "Processed users through "
+                    f"user id {after_user_id}: {batch_stats.users_seen}"
                 )
 
             progress_callback = write_progress
 
-        stats = backfill_edited_user_activity(
+        stats = backfill_user_activity(
             batch_size=batch_size,
             start_after_user_id=start_after_user_id,
             max_users=max_users,
@@ -323,7 +371,7 @@ class Command(BaseCommand):
             action = "Would process" if options["dry_run"] else "Processed"
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"{action} {stats.editor_users_seen} editor users; "
+                    f"{action} {stats.users_seen} users; "
                     f"activities created={stats.activities_created}, "
                     f"activities updated={stats.activities_updated}, "
                     f"states created={stats.states_created}, "
