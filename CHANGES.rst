@@ -3,6 +3,12 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.22.2(2026-07-09)
+-------------------
+- refactor: move user activity backfill out of migrations
+  [@ukanga]
+  `PR #3167 https://github.com/onaio/onadata/pull/3167`
+
 v5.22.1(2026-07-08)
 -------------------
 - perf(messaging): cache list endpoint responses
