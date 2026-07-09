@@ -149,11 +149,22 @@ class ProjectFilterSet(django_filter_filters.FilterSet):
     """
 
     shared = django_filter_filters.BooleanFilter(field_name="shared")
+    starred = django_filter_filters.BooleanFilter(method="filter_starred")
 
     # pylint: disable=missing-class-docstring
     class Meta:
         model = Project
         fields = []
+
+    # pylint: disable=unused-argument
+    def filter_starred(self, queryset, name, value):
+        """Filter by the requesting user's starred (favorited) projects."""
+        user = self.request.user
+        if value is True:
+            return queryset.filter(user_stars=user)
+        if value is False:
+            return queryset.exclude(user_stars=user)
+        return queryset
 
 
 # pylint: disable=too-few-public-methods

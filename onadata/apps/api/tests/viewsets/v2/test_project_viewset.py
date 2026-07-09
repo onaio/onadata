@@ -783,3 +783,30 @@ class ProjectSharedFilterTestCase(TestAbstractViewSet):
         request = self.factory.get("/", {"shared": "false"}, **self.extra)
         response = self.view(request)
         self.assertEqual(self._names(response), ["Private One"])
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectStarredFilterTestCase(TestAbstractViewSet):
+    """?starred= filters by the requesting user's stars."""
+
+    def setUp(self):
+        super().setUp()
+        self.starred = Project.objects.create(
+            name="Starred One", organization=self.user, created_by=self.user)
+        self.plain = Project.objects.create(
+            name="Plain One", organization=self.user, created_by=self.user)
+        self.starred.user_stars.add(self.user)
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _names(self, response):
+        return sorted(p["name"] for p in response.data)
+
+    def test_filter_starred_true(self):
+        request = self.factory.get("/", {"starred": "true"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Starred One"])
+
+    def test_filter_starred_false(self):
+        request = self.factory.get("/", {"starred": "false"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Plain One"])
