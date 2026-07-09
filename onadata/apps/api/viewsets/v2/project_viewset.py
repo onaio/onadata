@@ -42,10 +42,7 @@ class ProjectViewSet(ProjectViewSetV1):
         OrderingFilter,  # ?ordering=
     )
     search_fields = ["name", "organization__username"]
-    ordering_fields = (
-        ("name", "name"),
-        ("date_created", "created"),
-    )
+    ordering_fields = ["name", "date_created"]
 
     def get_serializer_class(self):
         """Get serializer class based on action
