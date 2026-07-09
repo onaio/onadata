@@ -12,8 +12,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils import timezone
 
+import reversion
 from pyxform.builder import SurveyElementBuilder as RealBuilder
 from pyxform.errors import PyXFormError
+from reversion import revisions
+from reversion.models import Version
 
 from onadata.apps.logger.models import DataView, Instance, KMSKey, XForm
 from onadata.apps.logger.models.kms import XFormKey
@@ -24,6 +27,7 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
@@ -625,3 +629,40 @@ class TestXForm(TestBase):
         )
 
         self.assertTrue(self.xform.is_was_managed)
+
+
+class XFormReversionRegistrationTestCase(TestBase):
+    """Test XForm is registered with django-reversion."""
+
+    def setUp(self):
+        super().setUp()
+        # Mirror production, where django.contrib.admin is installed and
+        # DataDictionaryAdmin(VersionAdmin) auto-registers DataDictionary
+        # with default options on startup.
+        if not reversion.is_registered(DataDictionary):
+            reversion.register(DataDictionary)
+            self.addCleanup(reversion.unregister, DataDictionary)
+
+    def test_xform_is_registered(self):
+        """XForm is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(XForm))
+
+    def test_data_dictionary_revision_committed_and_read(self):
+        """A revision containing a DataDictionary is committed and readable.
+
+        DataDictionary is a proxy of XForm, so its versions are stored
+        under XForm's content type. Committing the revision
+        (e.g. publishing a form via /projects/{pk}/forms, which
+        RevisionMixin wraps in a revision) and reading it back (e.g. the
+        admin history and recover views) both resolve XForm from the
+        stored content type.
+        """
+        self._publish_transportation_form()
+        data_dictionary = DataDictionary.objects.get(pk=self.xform.pk)
+
+        with revisions.create_revision():
+            revisions.add_to_revision(data_dictionary)
+
+        version = Version.objects.get_for_object(data_dictionary).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["id_string"], self.xform.id_string)

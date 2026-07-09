@@ -27,6 +27,7 @@ from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
@@ -1546,6 +1547,11 @@ def xform_post_delete_callback(sender, instance, **kwargs):
 post_delete.connect(
     xform_post_delete_callback, sender=XForm, dispatch_uid="xform_post_delete_callback"
 )
+
+# DataDictionary is a proxy of XForm whose versions are stored under XForm's
+# content type, so reversion must be able to resolve XForm when saving or
+# reverting them.
+reversion.register(XForm)
 
 
 # pylint: disable=too-few-public-methods
