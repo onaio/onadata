@@ -572,8 +572,6 @@ post_save.connect(
     dispatch_uid="auto_encrypt_xform",
 )
 
-# Register explicitly so DataDictionary saves are versioned regardless of
-# whether the admin app (whose DataDictionaryAdmin would auto-register it)
-# is installed. Django dispatches post_save with the proxy as sender, so
-# XForm's registration does not cover DataDictionary saves.
+# Register DataDictionary in django-reversion, XForm's registration
+# does not cover DataDictionary
 reversion.register(DataDictionary)

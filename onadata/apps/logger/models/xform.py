@@ -1548,9 +1548,7 @@ post_delete.connect(
     xform_post_delete_callback, sender=XForm, dispatch_uid="xform_post_delete_callback"
 )
 
-# DataDictionary is a proxy of XForm whose versions are stored under XForm's
-# content type, so reversion must be able to resolve XForm when saving or
-# reverting them.
+# Register XForm in django-reversion
 reversion.register(XForm)
 
 
