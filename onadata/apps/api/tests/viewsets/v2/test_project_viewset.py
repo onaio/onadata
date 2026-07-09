@@ -714,3 +714,40 @@ class ProjectOrderingTestCase(TestAbstractViewSet):
         # Ascending date_created differs from the default -date_created order,
         # so this fails if OrderingFilter/ordering_fields is broken or dropped.
         self.assertEqual(self._names(response), ["Banana", "Apple", "Cherry"])
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectOrderingDerivedTestCase(TestAbstractViewSet):
+    """?ordering=last_submission and ?ordering=category."""
+
+    def setUp(self):
+        super().setUp()
+        # Create Agri before Gov (oldest -> newest) so the default queryset
+        # ordering (-date_created) puts Gov first. This decouples the
+        # ?ordering=metadata__category assertion below from the fallback
+        # ordering used when the field isn't recognised — without this,
+        # the test would pass even before ordering_fields is extended.
+        self.p_agri = Project.objects.create(
+            name="Agri", organization=self.user, created_by=self.user,
+            metadata={"category": "agriculture"})
+        self.p_gov = Project.objects.create(
+            name="Gov", organization=self.user, created_by=self.user,
+            metadata={"category": "governance"})
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _names(self, response):
+        return [p["name"] for p in response.data]
+
+    def test_order_by_category_asc(self):
+        request = self.factory.get("/", {"ordering": "metadata__category"}, **self.extra)
+        response = self.view(request)
+        # agriculture < governance
+        self.assertEqual(self._names(response), ["Agri", "Gov"])
+
+    def test_order_by_last_submission_desc(self):
+        request = self.factory.get("/", {"ordering": "-last_submission_date"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        # No submissions on either → both null; assert the ordering param is
+        # accepted (200) and returns both projects rather than erroring.
+        self.assertEqual(sorted(self._names(response)), ["Agri", "Gov"])
