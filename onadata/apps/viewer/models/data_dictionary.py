@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import openpyxl
+import reversion
 import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
@@ -570,3 +571,7 @@ post_save.connect(
     sender=DataDictionary,
     dispatch_uid="auto_encrypt_xform",
 )
+
+# Register DataDictionary in django-reversion, XForm's registration
+# does not cover DataDictionary
+reversion.register(DataDictionary)

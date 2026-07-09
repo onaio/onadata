@@ -1,10 +1,12 @@
 """Tests for onadata.apps.viewer.models.data_dictionary"""
 
-import json
-
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.test import override_settings
+
+import reversion
+from reversion import revisions
+from reversion.models import Version
 
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.follow_up_form import FollowUpForm
@@ -13,6 +15,7 @@ from onadata.apps.logger.models.registration_form import RegistrationForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.permissions import ROLES
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -526,3 +529,23 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertFalse(xform.encrypted)
+
+
+class DataDictionaryReversionRegistrationTestCase(TestBase):
+    """Test DataDictionary is registered with django-reversion."""
+
+    def test_data_dictionary_is_registered(self):
+        """DataDictionary is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(DataDictionary))
+
+    def test_revision_recorded_and_read(self):
+        """A DataDictionary saved in a revision is recorded and readable."""
+        self._publish_transportation_form()
+        data_dictionary = DataDictionary.objects.get(pk=self.xform.pk)
+
+        with revisions.create_revision():
+            revisions.add_to_revision(data_dictionary)
+
+        version = Version.objects.get_for_object(data_dictionary).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["id_string"], self.xform.id_string)

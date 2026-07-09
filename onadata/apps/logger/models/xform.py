@@ -27,6 +27,7 @@ from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
@@ -1546,6 +1547,9 @@ def xform_post_delete_callback(sender, instance, **kwargs):
 post_delete.connect(
     xform_post_delete_callback, sender=XForm, dispatch_uid="xform_post_delete_callback"
 )
+
+# Register XForm in django-reversion
+reversion.register(XForm)
 
 
 # pylint: disable=too-few-public-methods

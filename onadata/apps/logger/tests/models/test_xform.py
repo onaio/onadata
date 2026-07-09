@@ -12,8 +12,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils import timezone
 
+import reversion
 from pyxform.builder import SurveyElementBuilder as RealBuilder
 from pyxform.errors import PyXFormError
+from reversion import revisions
+from reversion.models import Version
 
 from onadata.apps.logger.models import DataView, Instance, KMSKey, XForm
 from onadata.apps.logger.models.kms import XFormKey
@@ -625,3 +628,22 @@ class TestXForm(TestBase):
         )
 
         self.assertTrue(self.xform.is_was_managed)
+
+
+class XFormReversionRegistrationTestCase(TestBase):
+    """Test XForm is registered with django-reversion."""
+
+    def test_xform_is_registered(self):
+        """XForm is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(XForm))
+
+    def test_revision_recorded_and_read(self):
+        """An XForm saved in a revision is recorded and readable."""
+        self._publish_transportation_form()
+
+        with revisions.create_revision():
+            revisions.add_to_revision(self.xform)
+
+        version = Version.objects.get_for_object(self.xform).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["id_string"], self.xform.id_string)
