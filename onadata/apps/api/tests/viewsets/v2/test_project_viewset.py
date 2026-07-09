@@ -678,3 +678,32 @@ class ProjectSearchTestCase(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectOrderingTestCase(TestAbstractViewSet):
+    """?ordering= sorts by name / created."""
+
+    def setUp(self):
+        super().setUp()
+        # Created oldest → newest: Banana, Apple, Cherry
+        self.banana = Project.objects.create(
+            name="Banana", organization=self.user, created_by=self.user)
+        self.apple = Project.objects.create(
+            name="Apple", organization=self.user, created_by=self.user)
+        self.cherry = Project.objects.create(
+            name="Cherry", organization=self.user, created_by=self.user)
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _names(self, response):
+        return [p["name"] for p in response.data]
+
+    def test_order_by_name_asc(self):
+        request = self.factory.get("/", {"ordering": "name"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Apple", "Banana", "Cherry"])
+
+    def test_order_by_created_desc(self):
+        request = self.factory.get("/", {"ordering": "-created"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(self._names(response), ["Cherry", "Apple", "Banana"])

@@ -3,7 +3,7 @@ Project viewset for v2 API
 """
 
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
@@ -39,8 +39,13 @@ class ProjectViewSet(ProjectViewSetV1):
         ProjectOwnerFilter,  # ?owner=
         TagFilter,  # ?tags=
         SearchFilter,  # ?search=
+        OrderingFilter,  # ?ordering=
     )
     search_fields = ["name", "organization__username"]
+    ordering_fields = (
+        ("name", "name"),
+        ("date_created", "created"),
+    )
 
     def get_serializer_class(self):
         """Get serializer class based on action
