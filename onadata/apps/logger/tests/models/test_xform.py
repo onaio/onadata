@@ -27,7 +27,6 @@ from onadata.apps.logger.models.xform import (
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 
@@ -638,22 +637,13 @@ class XFormReversionRegistrationTestCase(TestBase):
         """XForm is registered with django-reversion."""
         self.assertTrue(reversion.is_registered(XForm))
 
-    def test_data_dictionary_revision_committed_and_read(self):
-        """A revision containing a DataDictionary is committed and readable.
-
-        DataDictionary is a proxy of XForm, so its versions are stored
-        under XForm's content type. Committing the revision
-        (e.g. publishing a form via /projects/{pk}/forms, which
-        RevisionMixin wraps in a revision) and reading it back (e.g. the
-        admin history and recover views) both resolve XForm from the
-        stored content type.
-        """
+    def test_revision_recorded_and_read(self):
+        """An XForm saved in a revision is recorded and readable."""
         self._publish_transportation_form()
-        data_dictionary = DataDictionary.objects.get(pk=self.xform.pk)
 
         with revisions.create_revision():
-            revisions.add_to_revision(data_dictionary)
+            revisions.add_to_revision(self.xform)
 
-        version = Version.objects.get_for_object(data_dictionary).first()
+        version = Version.objects.get_for_object(self.xform).first()
         self.assertIsNotNone(version)
         self.assertEqual(version.field_dict["id_string"], self.xform.id_string)

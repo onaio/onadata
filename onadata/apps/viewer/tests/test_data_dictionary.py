@@ -539,12 +539,7 @@ class DataDictionaryReversionRegistrationTestCase(TestBase):
         self.assertTrue(reversion.is_registered(DataDictionary))
 
     def test_revision_recorded_and_read(self):
-        """A DataDictionary saved in a revision is recorded and readable.
-
-        Publishing a form via /projects/{pk}/forms saves a DataDictionary
-        inside the revision opened by RevisionMixin; the snapshot must be
-        recorded on commit and deserializable when read back.
-        """
+        """A DataDictionary saved in a revision is recorded and readable."""
         self._publish_transportation_form()
         data_dictionary = DataDictionary.objects.get(pk=self.xform.pk)
 
