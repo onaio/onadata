@@ -634,15 +634,6 @@ class TestXForm(TestBase):
 class XFormReversionRegistrationTestCase(TestBase):
     """Test XForm is registered with django-reversion."""
 
-    def setUp(self):
-        super().setUp()
-        # Mirror production, where django.contrib.admin is installed and
-        # DataDictionaryAdmin(VersionAdmin) auto-registers DataDictionary
-        # with default options on startup.
-        if not reversion.is_registered(DataDictionary):
-            reversion.register(DataDictionary)
-            self.addCleanup(reversion.unregister, DataDictionary)
-
     def test_xform_is_registered(self):
         """XForm is registered with django-reversion."""
         self.assertTrue(reversion.is_registered(XForm))

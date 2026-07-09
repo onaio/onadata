@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 import openpyxl
+import reversion
 import unicodecsv as csv
 from floip import FloipSurvey
 from kombu.exceptions import OperationalError
@@ -570,3 +571,9 @@ post_save.connect(
     sender=DataDictionary,
     dispatch_uid="auto_encrypt_xform",
 )
+
+# Register explicitly so DataDictionary saves are versioned regardless of
+# whether the admin app (whose DataDictionaryAdmin would auto-register it)
+# is installed. Django dispatches post_save with the proxy as sender, so
+# XForm's registration does not cover DataDictionary saves.
+reversion.register(DataDictionary)
