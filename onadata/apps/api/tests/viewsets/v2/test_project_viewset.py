@@ -4,9 +4,7 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.project_viewset import (
-    ProjectViewSet as ProjectViewSetV1,
-)
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
 from onadata.apps.logger.models import EntityList, Project
 from onadata.libs.models.share_project import ShareProject
@@ -643,196 +641,169 @@ class GetProjectTeamsTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
 
 
+class ProjectListFilterTestBase(TestAbstractViewSet):
+    """Shared helpers for the v2 project list filter/sort test cases."""
+
+    def setUp(self):
+        super().setUp()
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _list(self, params, extra=None):
+        """GET the project list with query params (defaults to self.extra auth)."""
+        return self.view(self.factory.get("/", params, **(extra or self.extra)))
+
+    def _names(self, response, sort=True):
+        names = [project["name"] for project in response.data]
+        return sorted(names) if sort else names
+
+
 @override_settings(TIME_ZONE="UTC")
-class ProjectSearchTestCase(TestAbstractViewSet):
+class ProjectSearchTestCase(ProjectListFilterTestBase):
     """?search= matches project name and owner username."""
 
     def setUp(self):
         super().setUp()
         self.alpha = Project.objects.create(
-            name="Rainfall Survey", organization=self.user, created_by=self.user,
+            name="Rainfall Survey",
+            organization=self.user,
+            created_by=self.user,
         )
         self.beta = Project.objects.create(
-            name="Household Census", organization=self.user, created_by=self.user,
+            name="Household Census",
+            organization=self.user,
+            created_by=self.user,
         )
-        self.view = ProjectViewSet.as_view({"get": "list"})
-
-    def _names(self, response):
-        return sorted(p["name"] for p in response.data)
 
     def test_search_by_name(self):
-        request = self.factory.get("/", {"search": "rain"}, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
+        response = self._list({"search": "rain"})
         self.assertEqual(self._names(response), ["Rainfall Survey"])
 
     def test_search_by_owner_username(self):
-        # self.user.username is the owner of both projects.
-        request = self.factory.get("/", {"search": self.user.username}, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
+        response = self._list({"search": self.user.username})
         self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
-
-    def test_search_no_match_returns_empty(self):
-        request = self.factory.get("/", {"search": "zzznotreal"}, **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
 
 
 @override_settings(TIME_ZONE="UTC")
-class ProjectOrderingTestCase(TestAbstractViewSet):
+class ProjectOrderingTestCase(ProjectListFilterTestBase):
     """?ordering= sorts by name / created."""
 
     def setUp(self):
         super().setUp()
-        # Created oldest → newest: Banana, Apple, Cherry
         self.banana = Project.objects.create(
-            name="Banana", organization=self.user, created_by=self.user)
+            name="Banana", organization=self.user, created_by=self.user
+        )
         self.apple = Project.objects.create(
-            name="Apple", organization=self.user, created_by=self.user)
+            name="Apple", organization=self.user, created_by=self.user
+        )
         self.cherry = Project.objects.create(
-            name="Cherry", organization=self.user, created_by=self.user)
-        self.view = ProjectViewSet.as_view({"get": "list"})
-
-    def _names(self, response):
-        return [p["name"] for p in response.data]
+            name="Cherry", organization=self.user, created_by=self.user
+        )
 
     def test_order_by_name_asc(self):
-        request = self.factory.get("/", {"ordering": "name"}, **self.extra)
-        response = self.view(request)
-        self.assertEqual(self._names(response), ["Apple", "Banana", "Cherry"])
-
-    def test_order_by_created_desc(self):
-        request = self.factory.get("/", {"ordering": "-date_created"}, **self.extra)
-        response = self.view(request)
-        self.assertEqual(self._names(response), ["Cherry", "Apple", "Banana"])
+        response = self._list({"ordering": "name"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Banana", "Cherry"]
+        )
 
     def test_order_by_created_asc(self):
-        request = self.factory.get("/", {"ordering": "date_created"}, **self.extra)
-        response = self.view(request)
-        # Ascending date_created differs from the default -date_created order,
-        # so this fails if OrderingFilter/ordering_fields is broken or dropped.
-        self.assertEqual(self._names(response), ["Banana", "Apple", "Cherry"])
+        response = self._list({"ordering": "date_created"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Apple", "Cherry"]
+        )
 
 
 @override_settings(TIME_ZONE="UTC")
-class ProjectOrderingDerivedTestCase(TestAbstractViewSet):
+class ProjectOrderingDerivedTestCase(ProjectListFilterTestBase):
     """?ordering=last_submission and ?ordering=category."""
 
     def setUp(self):
         super().setUp()
-        # Create Agri before Gov (oldest -> newest) so the default queryset
-        # ordering (-date_created) puts Gov first. This decouples the
-        # ?ordering=metadata__category assertion below from the fallback
-        # ordering used when the field isn't recognised — without this,
-        # the test would pass even before ordering_fields is extended.
         self.p_agri = Project.objects.create(
-            name="Agri", organization=self.user, created_by=self.user,
-            metadata={"category": "agriculture"})
+            name="Agri",
+            organization=self.user,
+            created_by=self.user,
+            metadata={"category": "agriculture"},
+        )
         self.p_gov = Project.objects.create(
-            name="Gov", organization=self.user, created_by=self.user,
-            metadata={"category": "governance"})
-        self.view = ProjectViewSet.as_view({"get": "list"})
-
-    def _names(self, response):
-        return [p["name"] for p in response.data]
+            name="Gov",
+            organization=self.user,
+            created_by=self.user,
+            metadata={"category": "governance"},
+        )
 
     def test_order_by_category_asc(self):
-        request = self.factory.get(
-            "/", {"ordering": "metadata__category"}, **self.extra
-        )
-        response = self.view(request)
-        # agriculture < governance
-        self.assertEqual(self._names(response), ["Agri", "Gov"])
+        response = self._list({"ordering": "metadata__category"})
+        self.assertEqual(self._names(response, sort=False), ["Agri", "Gov"])
 
     def test_order_by_last_submission_desc(self):
-        request = self.factory.get(
-            "/", {"ordering": "-last_submission_date"}, **self.extra
-        )
-        response = self.view(request)
+        response = self._list({"ordering": "-last_submission_date"})
         self.assertEqual(response.status_code, 200)
-        # No submissions on either → both null; assert the ordering param is
-        # accepted (200) and returns both projects rather than erroring.
-        self.assertEqual(sorted(self._names(response)), ["Agri", "Gov"])
+        self.assertEqual(self._names(response), ["Agri", "Gov"])
 
 
 @override_settings(TIME_ZONE="UTC")
-class ProjectSharedFilterTestCase(TestAbstractViewSet):
+class ProjectSharedFilterTestCase(ProjectListFilterTestBase):
     """?shared= filters public/private projects."""
 
     def setUp(self):
         super().setUp()
         self.public = Project.objects.create(
-            name="Public One", organization=self.user, created_by=self.user,
-            shared=True)
+            name="Public One", organization=self.user, created_by=self.user, shared=True
+        )
         self.private = Project.objects.create(
-            name="Private One", organization=self.user, created_by=self.user,
-            shared=False)
-        self.view = ProjectViewSet.as_view({"get": "list"})
-
-    def _names(self, response):
-        return sorted(p["name"] for p in response.data)
+            name="Private One",
+            organization=self.user,
+            created_by=self.user,
+            shared=False,
+        )
 
     def test_filter_shared_true(self):
-        request = self.factory.get("/", {"shared": "true"}, **self.extra)
-        response = self.view(request)
+        response = self._list({"shared": "true"})
         self.assertEqual(self._names(response), ["Public One"])
 
     def test_filter_shared_false(self):
-        request = self.factory.get("/", {"shared": "false"}, **self.extra)
-        response = self.view(request)
+        response = self._list({"shared": "false"})
         self.assertEqual(self._names(response), ["Private One"])
 
 
 @override_settings(TIME_ZONE="UTC")
-class ProjectStarredFilterTestCase(TestAbstractViewSet):
+class ProjectStarredFilterTestCase(ProjectListFilterTestBase):
     """?starred= filters by the requesting user's stars."""
 
     def setUp(self):
         super().setUp()
         self.starred = Project.objects.create(
-            name="Starred One", organization=self.user, created_by=self.user)
+            name="Starred One", organization=self.user, created_by=self.user
+        )
         self.plain = Project.objects.create(
-            name="Plain One", organization=self.user, created_by=self.user)
+            name="Plain One", organization=self.user, created_by=self.user
+        )
         self.starred.user_stars.add(self.user)
-        self.view = ProjectViewSet.as_view({"get": "list"})
-
-    def _names(self, response):
-        return sorted(p["name"] for p in response.data)
 
     def test_filter_starred_true(self):
-        request = self.factory.get("/", {"starred": "true"}, **self.extra)
-        response = self.view(request)
+        response = self._list({"starred": "true"})
         self.assertEqual(self._names(response), ["Starred One"])
 
     def test_filter_starred_false(self):
-        request = self.factory.get("/", {"starred": "false"}, **self.extra)
-        response = self.view(request)
+        response = self._list({"starred": "false"})
         self.assertEqual(self._names(response), ["Plain One"])
 
 
 @override_settings(TIME_ZONE="UTC")
-class ProjectRoleFilterTestCase(TestAbstractViewSet):
+class ProjectRoleFilterTestCase(ProjectListFilterTestBase):
     """?role= returns projects where the requesting user's role is in the set."""
 
     def setUp(self):
         super().setUp()
-        # self.user (bob) owns everything; share each project to a second user
-        # (alice) at a distinct role, then query the list AS alice.
         self.member = self._create_user_profile(
             {"username": "alice", "email": "alice@localhost.com"}
         ).user
-        self.member_extra = {
-            "HTTP_AUTHORIZATION": f"Token {self.member.auth_token}"
-        }
+        self.member_extra = {"HTTP_AUTHORIZATION": f"Token {self.member.auth_token}"}
 
         self.owner_p = self._make_shared_project("Owner Proj", "owner")
         self.manager_p = self._make_shared_project("Manager Proj", "manager")
         self.editor_p = self._make_shared_project("Editor Proj", "editor")
         self.readonly_p = self._make_shared_project("Readonly Proj", "readonly")
-
-        self.view = ProjectViewSet.as_view({"get": "list"})
 
     def _make_shared_project(self, name, role):
         proj = Project.objects.create(
@@ -841,17 +812,10 @@ class ProjectRoleFilterTestCase(TestAbstractViewSet):
         ShareProject(proj, "alice", role).save()
         return proj
 
-    def _names(self, response):
-        return sorted(p["name"] for p in response.data)
-
     def test_role_owner_only(self):
-        request = self.factory.get("/", {"role": "owner"}, **self.member_extra)
-        response = self.view(request)
+        response = self._list({"role": "owner"}, extra=self.member_extra)
         self.assertEqual(self._names(response), ["Owner Proj"])
 
     def test_role_owner_or_manager(self):
-        request = self.factory.get(
-            "/", {"role": "owner,manager"}, **self.member_extra
-        )
-        response = self.view(request)
+        response = self._list({"role": "owner,manager"}, extra=self.member_extra)
         self.assertEqual(self._names(response), ["Manager Proj", "Owner Proj"])

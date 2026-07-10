@@ -12,8 +12,9 @@ from rest_framework.response import Response
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.libs.filters import (
     AnonUserProjectFilter,
-    ProjectFilterSet,
     ProjectOwnerFilter,
+    ProjectRoleFilter,
+    ProjectStarredFilter,
     TagFilter,
 )
 from onadata.libs.serializers.project_serializer import get_teams, get_users
@@ -39,14 +40,16 @@ class ProjectViewSet(ProjectViewSetV1):
     api_version = "v2"
 
     filter_backends = (
-        AnonUserProjectFilter,  # permission scoping — MUST stay first
-        ProjectOwnerFilter,  # ?owner=
-        TagFilter,  # ?tags=
-        DjangoFilterBackend,  # ?shared=
-        SearchFilter,  # ?search=
-        OrderingFilter,  # ?ordering=
+        AnonUserProjectFilter,
+        ProjectOwnerFilter,
+        TagFilter,
+        DjangoFilterBackend,
+        ProjectStarredFilter,
+        ProjectRoleFilter,
+        SearchFilter,
+        OrderingFilter,
     )
-    filterset_class = ProjectFilterSet
+    filterset_fields = ("shared",)
     search_fields = ["name", "organization__username"]
     ordering_fields = [
         "name",

@@ -19,7 +19,6 @@ from rest_framework import filters
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.libs.utils.dataview_filters import get_filter_kwargs
 from onadata.apps.logger.models import (
     Attachment,
     DataView,
@@ -35,7 +34,9 @@ from onadata.libs.permissions import (
     exclude_items_from_queryset_using_xform_meta_perms,
 )
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.utils.dataview_filters import get_filter_kwargs
 from onadata.libs.utils.numeric import int_or_parse_error
+from onadata.libs.utils.string import str2bool
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -44,8 +45,10 @@ User = get_user_model()
 def _public_xform_id_or_none(export_id: int):
     export = Export.objects.filter(pk=export_id).first()
 
-    if export and export.xform.deleted_at is None and (
-        export.xform.shared_data or export.xform.shared
+    if (
+        export
+        and export.xform.deleted_at is None
+        and (export.xform.shared_data or export.xform.shared)
     ):
         return export.xform_id
 
@@ -147,43 +150,44 @@ class FormIDFilter(django_filter_filters.FilterSet):
         fields = ["formID"]
 
 
-class ProjectFilterSet(django_filter_filters.FilterSet):
-    """Query-param filters for the v2 projects endpoint.
-
-    Supports ?shared=, ?starred=, ?role=.
-    """
-
-    shared = django_filter_filters.BooleanFilter(field_name="shared")
-    starred = django_filter_filters.BooleanFilter(method="filter_starred")
-    role = django_filter_filters.CharFilter(method="filter_role")
-
-    # pylint: disable=missing-class-docstring
-    class Meta:
-        model = Project
-        fields = []
+# pylint: disable=too-few-public-methods
+class ProjectStarredFilter(filters.BaseFilterBackend):
+    """Project `starred` filter using the `starred` query parameter."""
 
     # pylint: disable=unused-argument
-    def filter_starred(self, queryset, name, value):
+    def filter_queryset(self, request, queryset, view):
         """Filter by the requesting user's starred (favorited) projects."""
-        user = self.request.user
-        if value is True:
-            return queryset.filter(user_stars=user)
-        if value is False:
-            return queryset.exclude(user_stars=user)
-        return queryset
+        starred = request.query_params.get("starred")
+
+        if starred is None:
+            return queryset
+
+        if str2bool(starred):
+            return queryset.filter(user_stars=request.user)
+
+        return queryset.exclude(user_stars=request.user)
+
+
+# pylint: disable=too-few-public-methods
+class ProjectRoleFilter(filters.BaseFilterBackend):
+    """Project `role` filter using the `role` query parameter."""
 
     # pylint: disable=unused-argument
-    def filter_role(self, queryset, name, value):
+    def filter_queryset(self, request, queryset, view):
         """Filter by the requesting user's role (from object permissions).
 
         ``?role=owner,manager`` returns projects where the user's role is in
         the requested set. Roles are derived from django-guardian object
         permissions, so we take the lowest-ranked requested role and require
         its full Project permission set: higher roles hold a superset of a
-        lower role's permissions, so this yields "that role and above" —
-        which equals the requested set for our top-contiguous role sets.
+        lower role's permissions, so this yields "that role and above".
         """
-        requested = [r.strip() for r in value.split(",") if r.strip() in ROLES]
+        role = request.query_params.get("role")
+
+        if not role:
+            return queryset
+
+        requested = [r.strip() for r in role.split(",") if r.strip() in ROLES]
         if not requested:
             return queryset
         lowest = min(requested, key=lambda n: ROLES_ORDERED.index(ROLES[n]))
@@ -192,7 +196,7 @@ class ProjectFilterSet(django_filter_filters.FilterSet):
             for codename in ROLES[lowest].class_to_permissions[Project]
         ]
         allowed = get_objects_for_user(
-            self.request.user,
+            request.user,
             perms,
             klass=queryset,
             any_perm=False,
