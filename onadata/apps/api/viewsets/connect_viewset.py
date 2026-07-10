@@ -29,7 +29,6 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.password_reset_serializer import (
     PasswordResetChangeSerializer,
-    PasswordResetSerializer,
     get_user_from_uid,
 )
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -118,24 +117,16 @@ class ConnectViewSet(
         """
         Implements the /reset endpoint
 
-        Allows a user to reset and change their password.
+        Sets a new password from the uid and token in a password reset email.
+        Reset emails are sent by the ``/accounts/password/reset/`` flow.
         """
         context = {"request": request}
         data = request.data if isinstance(request.data, Mapping) else {}
-        if "token" in data:
-            serializer = PasswordResetChangeSerializer(data=data, context=context)
-
-            if serializer.is_valid():
-                serializer.save()
-                user = get_user_from_uid(serializer.data["uid"])
-                return Response(
-                    data={"username": user.username}, status=status.HTTP_200_OK
-                )
-        else:
-            serializer = PasswordResetSerializer(data=data, context=context)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = PasswordResetChangeSerializer(data=data, context=context)
+        if serializer.is_valid():
+            serializer.save()
+            user = get_user_from_uid(serializer.data["uid"])
+            return Response(data={"username": user.username}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

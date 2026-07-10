@@ -3,41 +3,19 @@
 Password reset serializer.
 """
 
-import logging
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
-from django.template import loader
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.http import urlsafe_base64_decode
 from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
-from six.moves.urllib.parse import urlparse
 
-from onadata.apps.main.models.user_profile import UserProfile
-from onadata.libs.permissions import is_organization
-from onadata.libs.utils.cache_tools import (
-    PASSWORD_RESET_ATTEMPTS,
-    safe_cache_add,
-    safe_cache_get,
-    safe_cache_incr,
-    safe_cache_set,
-    safe_key,
-)
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 # pylint: disable=invalid-name
 User = get_user_model()
-logger = logging.getLogger(__name__)
-MAX_PASSWORD_RESET_ATTEMPTS = getattr(settings, "MAX_PASSWORD_RESET_ATTEMPTS", 3)
-PASSWORD_RESET_ATTEMPT_WINDOW = getattr(
-    settings, "PASSWORD_RESET_ATTEMPT_WINDOW", 15 * 60
-)
 
 
 class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
@@ -66,68 +44,6 @@ class CustomPasswordResetTokenGenerator(PasswordResetTokenGenerator):
 default_token_generator = CustomPasswordResetTokenGenerator()
 
 
-def password_reset_attempt_cache_key(email):
-    """Return the cache key for password reset attempts for an email."""
-    normalized_email = email.strip().lower()
-
-    return f"{PASSWORD_RESET_ATTEMPTS}{safe_key(normalized_email)}"
-
-
-def increment_password_reset_attempts(email):
-    """Increment and return the password reset attempts for an email."""
-    cache_key = password_reset_attempt_cache_key(email)
-
-    if safe_cache_add(cache_key, 1, PASSWORD_RESET_ATTEMPT_WINDOW):
-        return 1
-
-    attempts = safe_cache_incr(cache_key)
-    if attempts is not None:
-        return attempts
-
-    attempts = (safe_cache_get(cache_key, 0) or 0) + 1
-    safe_cache_set(cache_key, attempts, PASSWORD_RESET_ATTEMPT_WINDOW)
-
-    return attempts
-
-
-def log_excessive_password_reset_attempt():
-    """Log password reset attempts that exceed the configured limit."""
-    logger.warning("Password reset rate limit exceeded.")
-
-
-# pylint: disable=unused-argument,too-many-arguments, too-many-positional-arguments
-def get_password_reset_email(
-    user,
-    reset_url,
-    subject_template_name="registration/password_reset_subject.txt",  # noqa
-    email_template_name="api_password_reset_email.html",  # noqa
-    token_generator=default_token_generator,
-    email_subject=None,
-):
-    """Creates the subject and email body for password reset email."""
-    result = urlparse(reset_url)
-    site_name = domain = result.hostname
-    encoded_username = urlsafe_base64_encode(bytes(user.username.encode("utf-8")))
-    c = {
-        "email": user.email,
-        "domain": domain,
-        "path": result.path,
-        "site_name": site_name,
-        "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-        "username": user.username,
-        "encoded_username": encoded_username,
-        "token": token_generator.make_token(user),
-        "protocol": result.scheme if result.scheme != "" else "http",
-    }
-    # if subject email provided don't load the subject template
-    subject = email_subject or loader.render_to_string(subject_template_name, c)
-    # Email subject *must not* contain newlines
-    subject = "".join(subject.splitlines())
-    email = loader.render_to_string(email_template_name, c)
-
-    return subject, email
-
-
 def get_user_from_uid(uid):
     """
     Return user from base64 encoded ``uid``.
@@ -148,7 +64,8 @@ class PasswordResetChange:
     """
     Class resets and changes the password.
 
-    Class imitates a model functionality for use with PasswordResetSerializer
+    Class imitates a model functionality for use with
+    PasswordResetChangeSerializer
     """
 
     def __init__(self, uid, new_password, token):
@@ -165,127 +82,6 @@ class PasswordResetChange:
             user.set_password(self.new_password)
             user.save()
             invalidate_and_regen_tokens(user)
-
-
-# pylint: disable=too-few-public-methods
-class PasswordReset:
-    """
-    Class resets the password and sends the reset email.
-
-    Class imitates a model functionality for use with PasswordResetSerializer
-    """
-
-    def __init__(self, email, reset_url, email_subject=None, request=None):
-        self.email = email
-        self.reset_url = reset_url
-        self.email_subject = email_subject
-        self.request = request
-
-    # pylint: disable=unused-argument
-    def save(
-        self,
-        subject_template_name="registration/password_reset_subject.txt",
-        email_template_name="api_password_reset_email.html",
-        token_generator=default_token_generator,
-        from_email=None,
-    ):
-        """
-        Generates a one-use only link for resetting password and sends to the
-        user.
-        """
-        email = self.email
-        reset_url = self.reset_url
-        attempts = increment_password_reset_attempts(email)
-
-        if attempts > MAX_PASSWORD_RESET_ATTEMPTS:
-            log_excessive_password_reset_attempt()
-            return
-
-        active_users = [
-            profile.user
-            for profile in UserProfile.objects.filter(
-                user__email__iexact=email, user__is_active=True
-            )
-            if not is_organization(profile)
-        ]
-
-        for user in active_users:
-            # Make sure that no email is sent to a user that actually has
-            # a password marked as unusable
-            if not user.has_usable_password():
-                continue
-            subject, email = get_password_reset_email(
-                user,
-                reset_url,
-                subject_template_name,
-                email_template_name,
-                email_subject=self.email_subject,
-            )
-
-            send_mail(subject, email, from_email, [user.email])
-
-
-# pylint: disable=abstract-method
-class PasswordResetSerializer(serializers.Serializer):
-    """
-    Password reset serializer.
-    """
-
-    email = serializers.EmailField(label=_("Email"), max_length=254)
-    reset_url = serializers.URLField(label=_("Reset URL"), max_length=254)
-    email_subject = serializers.CharField(
-        label=_("Email Subject"), required=False, max_length=78, allow_blank=True
-    )
-
-    def validate_email(self, value):
-        """
-        Accept any valid email to avoid user enumeration.
-        """
-        return value
-
-    def validate_reset_url(self, value):
-        """Reject reset URLs whose scheme or host is not explicitly allowed.
-
-        Guards against password reset link poisoning. Fails closed: an empty
-        host allowlist rejects every host, and the scheme defaults to https.
-        """
-        result = urlparse(value)
-
-        allowed_schemes = getattr(
-            settings, "PASSWORD_RESET_URL_ALLOWED_SCHEMES", None
-        ) or ("https",)
-        if result.scheme not in allowed_schemes:
-            raise serializers.ValidationError(_("Reset URL scheme is not allowed."))
-
-        hostname = result.hostname
-        if not hostname:
-            raise serializers.ValidationError(
-                _("Could not determine the reset URL host.")
-            )
-
-        allowed_hosts = (
-            getattr(settings, "PASSWORD_RESET_URL_ALLOWED_HOSTS", None) or []
-        )
-        if hostname not in allowed_hosts:
-            raise serializers.ValidationError(_("Reset URL host is not allowed."))
-
-        return value
-
-    def validate_email_subject(self, value):
-        """
-        Validate the email subject is not empty.
-        """
-        if value:
-            return None
-
-        return value
-
-    def create(self, validated_data):
-        """Reset a user password."""
-        instance = PasswordReset(**validated_data, request=self.context.get("request"))
-        instance.save()
-
-        return instance
 
 
 class PasswordResetChangeSerializer(serializers.Serializer):
