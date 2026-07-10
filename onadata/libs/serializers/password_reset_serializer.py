@@ -243,6 +243,34 @@ class PasswordResetSerializer(serializers.Serializer):
         """
         return value
 
+    def validate_reset_url(self, value):
+        """Reject reset URLs whose scheme or host is not explicitly allowed.
+
+        Guards against password reset link poisoning. Fails closed: an empty
+        host allowlist rejects every host, and the scheme defaults to https.
+        """
+        result = urlparse(value)
+
+        allowed_schemes = getattr(
+            settings, "PASSWORD_RESET_URL_ALLOWED_SCHEMES", None
+        ) or ("https",)
+        if result.scheme not in allowed_schemes:
+            raise serializers.ValidationError(_("Reset URL scheme is not allowed."))
+
+        hostname = result.hostname
+        if not hostname:
+            raise serializers.ValidationError(
+                _("Could not determine the reset URL host.")
+            )
+
+        allowed_hosts = (
+            getattr(settings, "PASSWORD_RESET_URL_ALLOWED_HOSTS", None) or []
+        )
+        if hostname not in allowed_hosts:
+            raise serializers.ValidationError(_("Reset URL host is not allowed."))
+
+        return value
+
     def validate_email_subject(self, value):
         """
         Validate the email subject is not empty.

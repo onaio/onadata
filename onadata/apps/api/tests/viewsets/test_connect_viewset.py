@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.template.loader import render_to_string
+from django.test import override_settings
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
@@ -296,11 +297,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
 
+    @override_settings(PASSWORD_RESET_URL_ALLOWED_HOSTS=["testdomain.com"])
     @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
     def test_request_reset_password(self, mock_send_mail):
         data = {
             "email": self.user.email,
-            "reset_url": "http://testdomain.com/reset_form",
+            "reset_url": "https://testdomain.com/reset_form",
         }
         cache_key = f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}"
         cache.delete(cache_key)
@@ -324,6 +326,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         mock_send_mail.assert_not_called()
         self.assertEqual(response.status_code, 400)
 
+    @override_settings(PASSWORD_RESET_URL_ALLOWED_HOSTS=["testdomain.com"])
     @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
     def test_request_reset_password_unknown_email_returns_generic_success(
         self, mock_send_mail
@@ -332,7 +335,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}")
         data = {
             "email": email,
-            "reset_url": "http://testdomain.com/reset_form",
+            "reset_url": "https://testdomain.com/reset_form",
         }
 
         request = self.factory.post("/", data=data)
@@ -342,6 +345,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         mock_send_mail.assert_not_called()
         self.assertEqual(cache.get(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}"), 1)
 
+    @override_settings(PASSWORD_RESET_URL_ALLOWED_HOSTS=["testdomain.com"])
     @patch("onadata.libs.serializers.password_reset_serializer.logger")
     @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
     def test_request_reset_password_rate_limited_per_email(
@@ -352,7 +356,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         cache.delete(cache_key)
         data = {
             "email": email,
-            "reset_url": "http://testdomain.com/reset_form",
+            "reset_url": "https://testdomain.com/reset_form",
         }
 
         for _ in range(3):
@@ -435,11 +439,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertTrue("Invalid token" in response.data["non_field_errors"][0])
 
+    @override_settings(PASSWORD_RESET_URL_ALLOWED_HOSTS=["testdomain.com"])
     @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
     def test_request_reset_password_custom_email_subject(self, mock_send_mail):
         data = {
             "email": self.user.email,
-            "reset_url": "http://testdomain.com/reset_form",
+            "reset_url": "https://testdomain.com/reset_form",
             "email_subject": "You requested for a reset password",
         }
         cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}")
@@ -448,6 +453,23 @@ class TestConnectViewSet(TestAbstractViewSet):
 
         self.assertTrue(mock_send_mail.called)
         self.assertEqual(response.status_code, 204)
+
+    @override_settings(PASSWORD_RESET_URL_ALLOWED_HOSTS=["ona.io"])
+    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
+    def test_request_reset_password_rejects_poisoned_host(self, mock_send_mail):
+        """A reset_url on an attacker host is rejected with 400, no email sent."""
+        email = self.user.email
+        cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email.lower())}")
+        data = {
+            "email": email,
+            "reset_url": "https://attacker-controlled-test.example.com/reset",
+        }
+        request = self.factory.post("/", data=data)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("reset_url", response.data)
+        mock_send_mail.assert_not_called()
 
     def test_user_updates_email_wrong_password(self):
         # Clear cache
