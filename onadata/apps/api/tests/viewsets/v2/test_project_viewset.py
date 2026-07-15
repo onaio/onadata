@@ -767,7 +767,15 @@ class ProjectOrderingDerivedTestCase(ProjectListFilterTestBase):
             f'<data id="{id_string}"><name/></data>'
             "</instance></model></h:head><h:body/></h:html>"
         )
-        xform = XForm.objects.create(xml=xml, user=self.user, project=project, json={})
+        # sms_id_string is supplied so save() doesn't derive it from the
+        # pyxform JSON, which this minimal fixture doesn't carry.
+        xform = XForm.objects.create(
+            xml=xml,
+            user=self.user,
+            project=project,
+            json={},
+            sms_id_string=id_string,
+        )
         XForm.objects.filter(pk=xform.pk).update(
             last_submission_time=last_submission_time
         )
