@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Make PasswordHistory uniqueness per-user instead of global."""
+
 from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("main", "0020_pendingemailchange_and_more"),
+        ("main", "0019_userdeactivationpermissionsnapshot"),
     ]
 
     operations = [
