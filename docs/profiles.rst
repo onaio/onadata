@@ -239,6 +239,60 @@ Response
         "temp_token": "0c6a9f167c7074c781f635fe30cb60efa2473317"
     }
 
+Request a verified email change
+-------------------------------
+
+Starts a verified email change for the authenticated user. A 6-digit
+verification code is sent to the new address; the account email is not
+changed until the code is confirmed. Requests are rate-limited per user.
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>POST</b> /api/v1/profiles/{username}/request-email-change</pre>
+
+Example
+^^^^^^^
+
+::
+
+    curl -X POST -d '{"new_email": "new@example.com", "password": "password1"}' https://api.ona.io/api/v1/profiles/demouser/request-email-change -H "Content-Type: application/json"
+
+Response
+^^^^^^^^
+
+::
+
+    {
+        "sent": true
+    }
+
+Confirm a verified email change
+-------------------------------
+
+Completes the email change by submitting the verification code that was
+sent to the new address. On success the new email is applied to the
+account and returned.
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>POST</b> /api/v1/profiles/{username}/confirm-email-change</pre>
+
+Example
+^^^^^^^
+
+::
+
+    curl -X POST -d '{"otp": "123456"}' https://api.ona.io/api/v1/profiles/demouser/confirm-email-change -H "Content-Type: application/json"
+
+Response
+^^^^^^^^
+
+::
+
+    {
+        "email": "new@example.com"
+    }
+
 Get the total number of monthly submissions
 -------------------------------------------
 

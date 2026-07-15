@@ -5,8 +5,10 @@ UserProfileViewSet module.
 
 import datetime
 import json
+import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import ValidationError
 from django.db.models import Count
@@ -32,6 +34,7 @@ from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.pending_email_change import PendingEmailChange
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -43,17 +46,25 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
 from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
+    EMAIL_CHANGE_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
     USER_PROFILE_PREFIX,
+    bump_attempts,
     safe_cache_delete,
     safe_cache_get,
-    safe_cache_incr,
     safe_cache_set,
 )
-from onadata.libs.utils.email import get_verification_email_data, get_verification_url
+from onadata.libs.utils.email import (
+    get_verification_email_data,
+    get_verification_url,
+    send_email_change_code,
+)
+from onadata.libs.utils.email_identity import email_in_use, normalize_email
 from onadata.libs.utils.user_auth import invalidate_and_regen_tokens
 
 BaseViewset = get_baseviewset_class()  # pylint: disable=invalid-name
+User = get_user_model()
+logger = logging.getLogger(__name__)
 LOCKOUT_TIME = getattr(settings, "LOCKOUT_TIME", 1800)
 MAX_CHANGE_PASSWORD_ATTEMPTS = getattr(settings, "MAX_CHANGE_PASSWORD_ATTEMPTS", 10)
 
@@ -103,7 +114,10 @@ def serializer_from_settings():
 
 def set_is_email_verified(profile, is_email_verified):
     """Sets is_email_verified value in the profile's metadata object."""
-    profile.metadata.update({"is_email_verified": is_email_verified})
+    profile.metadata = {
+        **(profile.metadata or {}),
+        "is_email_verified": is_email_verified,
+    }
     profile.save()
 
 
@@ -127,29 +141,35 @@ def check_user_lockout(request):
 
 
 def change_password_attempts(request):
-    """Track number of login attempts made by user within a specified amount
-    of time"""
+    """Track password-change attempts; lock the user out past the budget."""
     username = request.user.username
-    password_attempts = f"{CHANGE_PASSWORD_ATTEMPTS}{username}"
-    attempts = safe_cache_get(password_attempts)
+    attempts = bump_attempts(f"{CHANGE_PASSWORD_ATTEMPTS}{username}")
+    if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
+        safe_cache_set(
+            f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
+            datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            LOCKOUT_TIME,
+        )
+        lockout = check_user_lockout(request)
+        if lockout:
+            return lockout
+    return attempts
 
-    if attempts:
-        safe_cache_incr(password_attempts)
-        attempts = safe_cache_get(password_attempts)
-        if attempts >= MAX_CHANGE_PASSWORD_ATTEMPTS:
-            safe_cache_set(
-                f"{LOCKOUT_CHANGE_PASSWORD_USER}{username}",
-                datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                LOCKOUT_TIME,
-            )
-            if check_user_lockout(request):
-                return check_user_lockout(request)
 
-        return attempts
+def email_change_send_allowed(username):
+    """Best-effort per-user rate limit for email-change OTP sends.
 
-    safe_cache_set(password_attempts, 1)
-
-    return 1
+    Returns ``False`` once ``settings.MAX_EMAIL_CHANGE_REQUESTS`` sends have
+    occurred in the window, so ``request_email_change`` can't be used to spam
+    a caller-supplied address. Shares the ``bump_attempts`` counter mechanism
+    with the password-change throttle above.
+    """
+    # Read at call time (not import time) so tests can use override_settings.
+    max_requests = getattr(settings, "MAX_EMAIL_CHANGE_REQUESTS", 5)
+    attempts_ttl = getattr(settings, "EMAIL_CHANGE_ATTEMPTS_TTL", 3600)
+    cache_key = f"{EMAIL_CHANGE_ATTEMPTS}{username}"
+    count = bump_attempts(cache_key, attempts_ttl)
+    return count <= max_requests
 
 
 # pylint: disable=too-many-ancestors
@@ -293,6 +313,101 @@ class UserProfileViewSet(
         data.update(invalidate_and_regen_tokens(user=user_profile.user))
 
         return Response(status=status.HTTP_200_OK, data=data)
+
+    @action(methods=["POST"], detail=True, url_path="request-email-change")
+    def request_email_change(self, request, *args, **kwargs):
+        """
+        Start a verified email change: OTP to the new address.
+
+        Request body: ``{"new_email": "...", "password": "..."}``
+        Success: HTTP 200 ``{"sent": true}``
+        Errors: HTTP 400 with field-keyed error messages.
+
+        Note: the "already in use" error deliberately discloses whether an
+        address is registered — this is intentional UX, kept bounded by the
+        per-user send throttle (which gates entry, below) rather than hidden.
+        """
+        profile = self.get_object()
+        user = profile.user
+
+        # Rate-limit first, so the checks below can't be exercised as
+        # unbounded oracles: the password check and the uniqueness probe both
+        # sit behind this gate, not just the final OTP send.
+        if not email_change_send_allowed(user.username):
+            return Response(
+                {"error": _("Too many email-change requests. Try again later.")},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        new_email = normalize_email(request.data.get("new_email"))
+        password = request.data.get("password") or ""
+
+        if not new_email:
+            return Response(
+                {"new_email": _("This field is required.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.check_password(password):
+            return Response(
+                {"password": _("Invalid password.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if email_in_use(new_email, exclude_user=user):
+            return Response(
+                {"new_email": _("This email address is already in use.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        _pec, code = PendingEmailChange.start(user, new_email)
+        send_email_change_code(new_email, code)
+
+        return Response({"sent": True}, status=status.HTTP_200_OK)
+
+    @action(methods=["POST"], detail=True, url_path="confirm-email-change")
+    def confirm_email_change(self, request, *args, **kwargs):
+        """
+        Complete a verified email change from the submitted OTP.
+
+        Request body: ``{"otp": "<6-digit code>"}``
+        Success: HTTP 200 ``{"email": "<applied email>"}``
+        Errors: HTTP 400 with field-keyed error messages.
+        """
+        profile = self.get_object()
+        user = profile.user
+
+        pec = PendingEmailChange.objects.filter(user=user).first()
+        # The one-time semantics live in consume(), not here.
+        new_email = pec.consume(request.data.get("otp")) if pec else None
+        if new_email is None:
+            return Response(
+                {"otp": _("Invalid or expired code.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Re-check uniqueness at confirm time (race guard): the address may
+        # have been taken between request and confirm.
+        if email_in_use(new_email, exclude_user=user):
+            return Response(
+                {"new_email": _("This email address is already in use.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.email = new_email
+        user.save(update_fields=["email"])
+
+        set_is_email_verified(profile, True)
+
+        # Invalidate the cached profile response so the new email is served
+        # immediately. The retrieve() endpoint caches under
+        # USER_PROFILE_PREFIX + {username} + {request_username}; without this
+        # the old email keeps being served until the cache TTL expires.
+        username = kwargs.get("user")
+        request_username = request.user.username if request.user else ""
+        safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
+
+        return Response({"email": user.email}, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
