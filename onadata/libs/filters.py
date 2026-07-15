@@ -11,11 +11,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 import six
 from django_filters import rest_framework as django_filter_filters
 from guardian.shortcuts import get_objects_for_user
 from rest_framework import filters
+from rest_framework.exceptions import ParseError
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
@@ -162,6 +164,13 @@ class ProjectStarredFilter(filters.BaseFilterBackend):
         if starred is None:
             return queryset
 
+        if starred.lower() not in ("true", "false"):
+            raise ParseError(_("Invalid starred value. Use true or false."))
+
+        if not request.user.is_authenticated:
+            # An anonymous user has no stars.
+            return queryset.none() if str2bool(starred) else queryset
+
         if str2bool(starred):
             return queryset.filter(user_stars=request.user)
 
@@ -176,25 +185,32 @@ class ProjectRoleFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         """Filter by the requesting user's role (from object permissions).
 
-        ``?role=owner,manager`` returns projects where the user's role is in
-        the requested set. Roles are derived from django-guardian object
-        permissions, so we take the lowest-ranked requested role and require
-        its full Project permission set: higher roles hold a superset of a
-        lower role's permissions, so this yields "that role and above".
+        ``?role=editor,owner`` returns projects where the user holds the
+        lowest-ranked requested role **or any higher role**. Roles are
+        derived from django-guardian object permissions, so we take the
+        lowest-ranked requested role and require its full Project permission
+        set: higher roles hold a superset of a lower role's permissions, so
+        this yields "that role and above". Unknown role names are a 400.
         """
         role = request.query_params.get("role")
 
         if not role:
             return queryset
 
-        requested = [r.strip() for r in role.split(",") if r.strip() in ROLES]
+        requested = [r.strip() for r in role.split(",") if r.strip()]
+        unknown = [r for r in requested if r not in ROLES]
+        if unknown:
+            raise ParseError(_(f"Unknown role(s): {', '.join(unknown)}"))
         if not requested:
             return queryset
         lowest = min(requested, key=lambda n: ROLES_ORDERED.index(ROLES[n]))
         perms = [
             f"logger.{codename}"
-            for codename in ROLES[lowest].class_to_permissions[Project]
+            for codename in ROLES[lowest].class_to_permissions.get(Project, [])
         ]
+        if not perms:
+            # A role that grants no Project permissions matches no project.
+            return queryset.none()
         allowed = get_objects_for_user(
             request.user,
             perms,

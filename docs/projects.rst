@@ -197,7 +197,7 @@ of projects the requesting user already has access to.
 - ``ordering`` - Sort the list by one of ``name``, ``date_created``, ``last_submission_date`` or ``metadata__category``. Prefix the value with ``-`` for descending order (for example ``-date_created``).
 - ``shared`` - ``true`` returns only public projects; ``false`` returns only private projects.
 - ``starred`` - ``true`` returns only the projects the requesting user has starred; ``false`` returns only those they have not.
-- ``role`` - Comma-separated list of role names (for example ``owner`` or ``owner,manager``). Returns projects where the requesting user's role is one of the listed roles.
+- ``role`` - Comma-separated list of role names (for example ``owner`` or ``owner,manager``). Returns projects where the requesting user holds the lowest-ranked listed role **or a higher one** — for example ``role=editor`` also returns projects where the user is a manager or owner. Unknown role names return an HTTP 400 error, as do values other than ``true``/``false`` for ``shared`` and ``starred``.
 
 .. raw:: html
 

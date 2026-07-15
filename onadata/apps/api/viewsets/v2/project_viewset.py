@@ -65,7 +65,8 @@ class ProjectViewSet(ProjectViewSetV1):
         """
         queryset = super().get_queryset()
         ordering = self.request.query_params.get("ordering", "")
-        if "last_submission" in ordering:
+        requested = {field.strip() for field in ordering.split(",")}
+        if requested & {"last_submission_date", "-last_submission_date"}:
             # Annotation is only for ordering; the serializer still computes
             # last_submission_date itself. Exclude soft-deleted forms.
             queryset = queryset.annotate(
