@@ -692,6 +692,17 @@ class ProjectSearchTestCase(ProjectListFilterTestBase):
         response = self._list({"search": self.user.username})
         self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
 
+    def test_search_by_owner_username_case_insensitive_substring(self):
+        """?search= matches a case-variant substring of the owner's username."""
+        response = self._list({"search": self.user.username[:-1].upper()})
+        self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
+
+    def test_search_no_match(self):
+        """?search= returns an empty list when nothing matches."""
+        response = self._list({"search": "no-such-project"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_search_combines_with_ordering(self):
         """?search= and ?ordering= can be combined in a single request."""
         response = self._list({"search": self.user.username, "ordering": "-name"})
@@ -703,7 +714,14 @@ class ProjectSearchTestCase(ProjectListFilterTestBase):
 
 @override_settings(TIME_ZONE="UTC")
 class ProjectOrderingTestCase(ProjectListFilterTestBase):
-    """?ordering= sorts by name / created."""
+    """?ordering= sorts by name / created / category / last submission.
+
+    ``setUp`` only creates the three bare projects; tests that sort on
+    ``metadata__category`` or ``last_submission_date`` add those fixtures
+    via ``_set_categories`` / ``_make_forms``. The fixture orders are
+    chosen so no two sort fields agree — a test can't pass by falling
+    back to another ordering.
+    """
 
     def setUp(self):
         super().setUp()
@@ -716,6 +734,39 @@ class ProjectOrderingTestCase(ProjectListFilterTestBase):
         self.cherry = Project.objects.create(
             name="Cherry", organization=self.user, created_by=self.user
         )
+
+    def _set_categories(self):
+        """Give each project a metadata category (asc: Banana, Cherry, Apple)."""
+        for project, category in (
+            (self.apple, "governance"),
+            (self.banana, "agriculture"),
+            (self.cherry, "energy"),
+        ):
+            Project.objects.filter(pk=project.pk).update(
+                metadata={"category": category}
+            )
+
+    def _make_form(self, project, id_string, last_submission_time):
+        """Publish a minimal form on *project* with a fixed last submission time."""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+        data_dict = self._publish_markdown(
+            md, self.user, project=project, id_string=id_string
+        )
+        XForm.objects.filter(pk=data_dict.pk).update(
+            last_submission_time=last_submission_time
+        )
+        return data_dict
+
+    def _make_forms(self):
+        """Give each project a form (last submitted-to, asc: Apple, Cherry, Banana)."""
+        now = timezone.now()
+        self._make_form(self.apple, "apple_form", now - timedelta(days=3))
+        self._make_form(self.cherry, "cherry_form", now - timedelta(days=2))
+        self._make_form(self.banana, "banana_form", now - timedelta(days=1))
 
     def test_order_by_name_asc(self):
         """?ordering=name sorts projects alphabetically."""
@@ -738,73 +789,49 @@ class ProjectOrderingTestCase(ProjectListFilterTestBase):
             self._names(response, sort=False), ["Banana", "Apple", "Cherry"]
         )
 
-
-@override_settings(TIME_ZONE="UTC")
-class ProjectOrderingDerivedTestCase(ProjectListFilterTestBase):
-    """?ordering=last_submission and ?ordering=category."""
-
-    def setUp(self):
-        super().setUp()
-        self.p_agri = Project.objects.create(
-            name="Agri",
-            organization=self.user,
-            created_by=self.user,
-            metadata={"category": "agriculture"},
+    def test_order_by_created_desc(self):
+        """?ordering=-date_created sorts the newest-created project first."""
+        response = self._list({"ordering": "-date_created"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Cherry", "Apple", "Banana"]
         )
-        self.p_gov = Project.objects.create(
-            name="Gov",
-            organization=self.user,
-            created_by=self.user,
-            metadata={"category": "governance"},
-        )
-
-    def _make_form(self, project, id_string, last_submission_time):
-        """Create a minimal XForm on *project* with a fixed last submission time."""
-        xml = (
-            '<?xml version="1.0"?><h:html xmlns="http://www.w3.org/2002/xforms" '
-            'xmlns:h="http://www.w3.org/1999/xhtml"><h:head>'
-            f"<h:title>{id_string}</h:title><model><instance>"
-            f'<data id="{id_string}"><name/></data>'
-            "</instance></model></h:head><h:body/></h:html>"
-        )
-        # sms_id_string is supplied so save() doesn't derive it from the
-        # pyxform JSON, which this minimal fixture doesn't carry.
-        xform = XForm.objects.create(
-            xml=xml,
-            user=self.user,
-            project=project,
-            json={},
-            sms_id_string=id_string,
-        )
-        XForm.objects.filter(pk=xform.pk).update(
-            last_submission_time=last_submission_time
-        )
-        return xform
 
     def test_order_by_category_asc(self):
         """?ordering=metadata__category sorts by the JSON category value."""
+        self._set_categories()
         response = self._list({"ordering": "metadata__category"})
-        self.assertEqual(self._names(response, sort=False), ["Agri", "Gov"])
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
+        )
+
+    def test_order_by_category_desc(self):
+        """?ordering=-metadata__category sorts by the JSON category value,
+        descending."""
+        self._set_categories()
+        response = self._list({"ordering": "-metadata__category"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+        )
 
     def test_order_by_last_submission_asc(self):
         """?ordering=last_submission_date puts the least recently submitted-to
         project first."""
-        now = timezone.now()
-        self._make_form(self.p_agri, "agri_form", now - timedelta(days=2))
-        self._make_form(self.p_gov, "gov_form", now - timedelta(days=1))
+        self._make_forms()
         response = self._list({"ordering": "last_submission_date"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(self._names(response, sort=False), ["Agri", "Gov"])
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+        )
 
     def test_order_by_last_submission_desc(self):
         """?ordering=-last_submission_date puts the most recently submitted-to
         project first."""
-        now = timezone.now()
-        self._make_form(self.p_agri, "agri_form", now - timedelta(days=2))
-        self._make_form(self.p_gov, "gov_form", now - timedelta(days=1))
+        self._make_forms()
         response = self._list({"ordering": "-last_submission_date"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(self._names(response, sort=False), ["Gov", "Agri"])
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
+        )
 
 
 @override_settings(TIME_ZONE="UTC")
@@ -832,6 +859,11 @@ class ProjectSharedFilterTestCase(ProjectListFilterTestBase):
         """?shared=false returns only private projects."""
         response = self._list({"shared": "false"})
         self.assertEqual(self._names(response), ["Private One"])
+
+    def test_filter_shared_invalid(self):
+        """?shared=invalid is a 400"""
+        response = self._list({"shared": "banana"})
+        self.assertEqual(response.status_code, 400)
 
 
 @override_settings(TIME_ZONE="UTC")
