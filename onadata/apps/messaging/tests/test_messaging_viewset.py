@@ -2,17 +2,24 @@
 """
 Tests Messaging app viewsets.
 """
+
 from __future__ import unicode_literals
 
 from builtins import str as text
+from datetime import datetime, timedelta, timezone as dt_timezone
 
-from actstream.models import Action
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.utils import override_settings
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from actstream.models import Action
+from actstream.signals import action
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED
 from onadata.apps.messaging.tests.test_base import _create_user
 from onadata.apps.messaging.viewsets import MessagingViewSet
 
@@ -654,3 +661,361 @@ class TestMessagingViewSet(TestCase):
         response = view(request=request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+
+    def test_group_by_user_and_verb_returns_counts(self):
+        """
+        group_by=user&group_by=verb returns per-(user, verb) counts.
+        """
+        user = _create_user()
+        for _ in range(2):
+            action.send(user, verb=EXPORT_CREATED, target=user)
+        for _ in range(3):
+            action.send(user, verb=SUBMISSION_CREATED, target=user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": user.pk,
+                "group_by": ["user", "verb"],
+            },
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {(row["user"], row["verb"]): row["count"] for row in response.data}
+        self.assertEqual(counts[(user.username, EXPORT_CREATED)], 2)
+        self.assertEqual(counts[(user.username, SUBMISSION_CREATED)], 3)
+        for row in response.data:
+            self.assertIn("latest_timestamp", row)
+
+    def test_group_by_verb_orders_by_recent_activity(self):
+        """
+        Grouped rows are ordered most-recent-activity first.
+        """
+        user = _create_user()
+        older = timezone.now() - timedelta(days=2)
+        newer = timezone.now()
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=older)
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=newer)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        verbs_in_order = [row["verb"] for row in response.data]
+        self.assertEqual(verbs_in_order, [SUBMISSION_CREATED, EXPORT_CREATED])
+
+    def test_group_by_verb_latest_timestamp_is_newest(self):
+        """
+        A group's latest_timestamp equals its newest action's timestamp.
+        """
+        user = _create_user()
+        older = timezone.now() - timedelta(days=1)
+        newest = timezone.now()
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=older)
+        action.send(user, verb=EXPORT_CREATED, target=user, timestamp=newest)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        row = response.data[0]
+        self.assertEqual(row["count"], 2)
+        self.assertEqual(parse_datetime(row["latest_timestamp"]), newest)
+
+    def test_group_by_verb_null_user_for_unresolvable_actor(self):
+        """
+        A group whose actor id no longer resolves to a user is returned with
+        user null and the row is retained.
+        """
+        target_user = _create_user("target")
+        actor_user = _create_user("ghost")
+        action.send(actor_user, verb=SUBMISSION_CREATED, target=target_user)
+        # Simulate a dangling actor reference (e.g. data left behind by a raw
+        # delete) without triggering actstream's GenericRelation cascade, which
+        # deleting the user would otherwise use to remove the action too.
+        Action.objects.filter(actor_object_id=actor_user.pk).update(
+            actor_object_id=9999999
+        )
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": target_user.pk,
+                "group_by": ["user", "verb"],
+            },
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.assertEqual(len(response.data), 1)
+        row = response.data[0]
+        self.assertEqual(row["verb"], SUBMISSION_CREATED)
+        self.assertEqual(row["count"], 1)
+        self.assertIsNone(row["user"])
+
+    def test_group_by_user_only(self):
+        """
+        group_by=user groups by actor only, aggregating across verbs, and the
+        rows carry no verb field.
+        """
+        target_user = _create_user("target")
+        alice = _create_user("alice")
+        bob = _create_user("bob")
+        action.send(alice, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=EXPORT_CREATED, target=target_user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": target_user.pk, "group_by": "user"},
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {row["user"]: row["count"] for row in response.data}
+        self.assertEqual(counts["alice"], 1)
+        self.assertEqual(counts["bob"], 2)
+        for row in response.data:
+            self.assertNotIn("verb", row)
+
+    def test_group_by_validation(self):
+        """
+        group_by rejects unsupported values and still requires a target.
+        """
+        user = _create_user()
+        action.send(user, verb=SUBMISSION_CREATED, target=user)
+        view = MessagingViewSet.as_view({"get": "list"})
+
+        # an unsupported group_by value is rejected
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "actor"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Unsupported group_by value 'actor'"}
+        )
+
+        # an unsupported value alongside a valid one is still rejected
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": user.pk,
+                "group_by": ["verb", "actor"],
+            },
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Unsupported group_by value 'actor'"}
+        )
+
+        # grouped mode still requires a target (contract unchanged)
+        request = self.factory.get("/messaging", {"group_by": "verb"})
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {"detail": "Parameter 'target_type' is missing."}
+        )
+
+    def test_group_by_verb_only(self):
+        """
+        group_by=verb groups by verb only, aggregating across actors, and the
+        rows carry no user field.
+        """
+        target_user = _create_user("target")
+        alice = _create_user("alice")
+        bob = _create_user("bob")
+        action.send(alice, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user)
+        action.send(bob, verb=EXPORT_CREATED, target=target_user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": target_user.pk, "group_by": "verb"},
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {row["verb"]: row["count"] for row in response.data}
+        self.assertEqual(counts[SUBMISSION_CREATED], 2)
+        self.assertEqual(counts[EXPORT_CREATED], 1)
+        for row in response.data:
+            self.assertNotIn("user", row)
+
+    def test_group_by_day_returns_period_buckets(self):
+        """
+        group_by=day returns one row per UTC day carrying period_start,
+        earliest_timestamp and latest_timestamp, ordered most-recent day first.
+        """
+        user = _create_user()
+        day_one = datetime(2026, 3, 10, 12, 0, tzinfo=dt_timezone.utc)
+        day_two = datetime(2026, 3, 12, 9, 0, tzinfo=dt_timezone.utc)
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=day_one)
+        action.send(
+            user,
+            verb=SUBMISSION_CREATED,
+            target=user,
+            timestamp=day_one + timedelta(hours=3),
+        )
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=day_two)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "day"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.assertEqual(len(response.data), 2)
+        periods = [parse_datetime(row["period_start"]) for row in response.data]
+        self.assertEqual(
+            periods,
+            [
+                datetime(2026, 3, 12, tzinfo=dt_timezone.utc),
+                datetime(2026, 3, 10, tzinfo=dt_timezone.utc),
+            ],
+        )
+
+        newest_day = response.data[0]
+        self.assertEqual(newest_day["count"], 1)
+        self.assertEqual(
+            parse_datetime(newest_day["latest_timestamp"]), day_two
+        )
+
+        oldest_day = response.data[1]
+        self.assertEqual(oldest_day["count"], 2)
+        self.assertEqual(
+            parse_datetime(oldest_day["earliest_timestamp"]), day_one
+        )
+        self.assertEqual(
+            parse_datetime(oldest_day["latest_timestamp"]),
+            day_one + timedelta(hours=3),
+        )
+
+    def test_group_by_day_buckets_boundaries_in_utc(self):
+        """
+        Day boundaries are computed in UTC, not the server timezone. Two events
+        on the same UTC day but different America/New_York days fall in one
+        bucket whose period_start is UTC midnight.
+        """
+        user = _create_user()
+        # Both on 2026-03-15 UTC; in America/New_York (EDT, UTC-4) the first is
+        # 2026-03-14 21:00 and the second is 2026-03-15 18:00 - different local
+        # days that must still collapse into a single UTC-day bucket.
+        early = datetime(2026, 3, 15, 1, 0, tzinfo=dt_timezone.utc)
+        late = datetime(2026, 3, 15, 22, 0, tzinfo=dt_timezone.utc)
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=early)
+        action.send(user, verb=SUBMISSION_CREATED, target=user, timestamp=late)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {"target_type": "user", "target_id": user.pk, "group_by": "day"},
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.assertEqual(len(response.data), 1)
+        row = response.data[0]
+        self.assertEqual(row["count"], 2)
+        self.assertEqual(
+            parse_datetime(row["period_start"]),
+            datetime(2026, 3, 15, tzinfo=dt_timezone.utc),
+        )
+
+    def test_group_by_rejects_multiple_time_buckets(self):
+        """
+        Combining more than one time bucket in a single request is rejected.
+        """
+        user = _create_user()
+        action.send(user, verb=SUBMISSION_CREATED, target=user)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": user.pk,
+                "group_by": ["day", "hour"],
+            },
+        )
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {"detail": "Only one time bucket may be combined per group_by request"},
+        )
+
+    def test_group_by_day_user_and_verb_composes(self):
+        """
+        A time bucket composes with user and verb: rows are per
+        (day, user, verb) and carry all requested dimensions.
+        """
+        target_user = _create_user("target")
+        bob = _create_user("bob")
+        sunday = datetime(2026, 3, 15, 10, 0, tzinfo=dt_timezone.utc)
+        monday = datetime(2026, 3, 16, 10, 0, tzinfo=dt_timezone.utc)
+        # Bob: two submissions on Sunday, one on Monday.
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user, timestamp=sunday)
+        action.send(
+            bob,
+            verb=SUBMISSION_CREATED,
+            target=target_user,
+            timestamp=sunday + timedelta(hours=2),
+        )
+        action.send(bob, verb=SUBMISSION_CREATED, target=target_user, timestamp=monday)
+
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": target_user.pk,
+                "group_by": ["day", "user", "verb"],
+            },
+        )
+        force_authenticate(request, user=target_user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 200, response.data)
+
+        counts = {
+            (parse_datetime(row["period_start"]), row["user"], row["verb"]): row[
+                "count"
+            ]
+            for row in response.data
+        }
+        sunday_bucket = datetime(2026, 3, 15, tzinfo=dt_timezone.utc)
+        monday_bucket = datetime(2026, 3, 16, tzinfo=dt_timezone.utc)
+        self.assertEqual(counts[(sunday_bucket, "bob", SUBMISSION_CREATED)], 2)
+        self.assertEqual(counts[(monday_bucket, "bob", SUBMISSION_CREATED)], 1)
