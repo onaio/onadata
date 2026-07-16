@@ -80,7 +80,13 @@ class DataViewViewSet(
     A simple ViewSet for viewing and editing DataViews.
     """
 
-    queryset = DataView.objects.filter(deleted_at__isnull=True).select_related()
+    queryset = DataView.objects.filter(
+        deleted_at__isnull=True,
+        xform__deleted_at__isnull=True,
+        xform__project__organization__is_active=True,
+        project__deleted_at__isnull=True,
+        project__organization__is_active=True,
+    ).select_related()
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = "pk"

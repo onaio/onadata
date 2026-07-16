@@ -22,7 +22,12 @@ from onadata.apps.logger.models import Project, ProjectInvitation, XForm
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.data import strtobool
-from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter, TagFilter
+from onadata.libs.filters import (
+    ActiveProjectOrganizationFilter,
+    AnonUserProjectFilter,
+    ProjectOwnerFilter,
+    TagFilter,
+)
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -83,7 +88,7 @@ class ProjectViewSet(
 
     # pylint: disable=no-member
     queryset = (
-        Project.objects.filter(deleted_at__isnull=True)
+        Project.objects.filter(deleted_at__isnull=True, organization__is_active=True)
         .order_by("-date_created")
         .select_related()
     )
@@ -91,7 +96,12 @@ class ProjectViewSet(
     lookup_field = "pk"
     extra_lookup_fields = None
     permission_classes = [ProjectPermissions]
-    filter_backends = (AnonUserProjectFilter, ProjectOwnerFilter, TagFilter)
+    filter_backends = (
+        AnonUserProjectFilter,
+        ProjectOwnerFilter,
+        TagFilter,
+        ActiveProjectOrganizationFilter,
+    )
     pagination_class = StandardPageNumberPagination
     api_version = "v1"
 
@@ -112,7 +122,7 @@ class ProjectViewSet(
         return super().get_serializer_class()
 
     def get_queryset(self):
-        """Use 'prepared' prefetched queryset for GET requests."""
+        """Use the active-organization prefetched queryset."""
         if self.request.method.upper() in ["GET", "OPTIONS"]:
             self.queryset = Project.prefetched.filter(
                 deleted_at__isnull=True, organization__is_active=True
@@ -184,7 +194,11 @@ class ProjectViewSet(
             logger.info("%s: %s", message_subject, error_message)
             return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-        xforms = XForm.objects.filter(project=project, deleted_at__isnull=True)
+        xforms = XForm.objects.filter(
+            project=project,
+            deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
         serializer = XFormSerializer(xforms, context={"request": request}, many=True)
 
         return Response(serializer.data)
@@ -244,7 +258,12 @@ class ProjectViewSet(
         """
         user = request.user
         # pylint: disable=attribute-defined-outside-init
-        self.object = project = get_object_or_404(Project, pk=kwargs.get("pk"))
+        self.object = project = get_object_or_404(
+            Project,
+            pk=kwargs.get("pk"),
+            deleted_at__isnull=True,
+            organization__is_active=True,
+        )
 
         if request.method == "DELETE":
             project.user_stars.remove(user)
