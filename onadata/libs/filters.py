@@ -155,7 +155,9 @@ class ProjectFilterSet(django_filter_filters.FilterSet):
     """Project FilterSet; rejects unrecognized ``shared`` values with a 400."""
 
     shared = django_filter_filters.TypedChoiceFilter(
-        choices=[(choice, choice) for choice in ("true", "false", "True", "False", "1", "0")],
+        choices=[
+            (choice, choice) for choice in ("true", "false", "True", "False", "1", "0")
+        ],
         coerce=str2bool,
         error_messages={"invalid_choice": _("Select either true or false.")},
     )
