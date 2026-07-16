@@ -2,6 +2,7 @@
 """
 Module containing custom validator classes for the User Model
 """
+
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
@@ -20,7 +21,9 @@ class PreviousPasswordValidator:
             if user.check_password(password):
                 raise ValidationError(self.message)
 
-            pw_history = user.password_history.all()[: self.history_limit]
+            pw_history = user.password_history.all().order_by("-created_at")[
+                : self.history_limit
+            ]
             for pw_hist in pw_history:
                 if check_password(password, pw_hist.hashed_password):
                     raise ValidationError(self.message)
