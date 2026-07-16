@@ -383,6 +383,26 @@ class TestProjectViewSet(TestAbstractViewSet):
             Version.objects.get_for_object(self.project).count(), version_count
         )
 
+    def test_projects_get_inactive_organization_not_found(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
     def test_project_get_deleted_form(self):
         self._publish_xls_form_to_project()
 
@@ -415,6 +435,27 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+
+    def test_project_forms_inactive_organization_not_found(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        view = ProjectViewSet.as_view({"get": "forms"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
 
     # pylint: disable=invalid-name
     def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
@@ -1768,6 +1809,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIn(alice_project_data, response.data)
         self.assertFalse(PROJECT_PUBLIC_EXCLUDED_FIELDS & set(response.data[0]))
+
+        self.project.organization.is_active = False
+        self.project.organization.save()
+        request = self.factory.get("/", {"owner": "alice"}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([], response.data)
+
+        self.project.organization.is_active = True
+        self.project.organization.save()
 
         # should show deleted project public project when filtered by owner
         self.project.soft_delete()

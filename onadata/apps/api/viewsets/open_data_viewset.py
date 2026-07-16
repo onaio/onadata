@@ -352,7 +352,12 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
             )
 
         if data_type == "xform":
-            xform = get_object_or_404(XForm, id=object_id)
+            xform = get_object_or_404(
+                XForm,
+                id=object_id,
+                deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
             if request.user.has_perm("change_xform", xform):
                 content_type = ContentType.objects.get_for_model(xform)
                 _open_data = get_object_or_404(

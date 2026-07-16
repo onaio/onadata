@@ -44,11 +44,16 @@ User = get_user_model()
 
 
 def _public_xform_id_or_none(export_id: int):
-    export = Export.objects.filter(pk=export_id).first()
+    export = (
+        Export.objects.select_related("xform__project__organization")
+        .filter(pk=export_id)
+        .first()
+    )
 
     if (
         export
         and export.xform.deleted_at is None
+        and export.xform.project.organization.is_active
         and (export.xform.shared_data or export.xform.shared)
     ):
         return export.xform_id
@@ -67,7 +72,9 @@ class AnonDjangoObjectPermissionFilter(ObjectPermissionsFilter):
         form_id = view.kwargs.get(view.lookup_field, view.kwargs.get("xform_pk"))
         lookup_field = view.lookup_field
 
-        queryset = queryset.filter(deleted_at=None)
+        queryset = queryset.filter(
+            deleted_at=None, project__organization__is_active=True
+        )
         if request.user.is_anonymous:
             return queryset
 
@@ -118,6 +125,24 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
     """XFormList permission filter with using [app].report_[model] form."""
 
     perm_format = "%(app_label)s.report_%(model_name)s"
+
+
+class ActiveXFormOrganizationFilter(filters.BaseFilterBackend):
+    """Limit form querysets to active project organizations."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        return queryset.filter(
+            deleted_at__isnull=True, project__organization__is_active=True
+        )
+
+
+class ActiveProjectOrganizationFilter(filters.BaseFilterBackend):
+    """Limit project querysets to active organizations."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        return queryset.filter(deleted_at__isnull=True, organization__is_active=True)
 
 
 class XFormListXFormPKFilter:
@@ -363,7 +388,10 @@ class ProjectOwnerFilter(filters.BaseFilterBackend):
             kwargs = {self.owner_prefix + "__username__iexact": owner}
 
             return queryset.filter(**kwargs) | Project.objects.filter(
-                shared=True, deleted_at__isnull=True, **kwargs
+                shared=True,
+                deleted_at__isnull=True,
+                organization__is_active=True,
+                **kwargs,
             )
 
         return queryset
@@ -466,12 +494,18 @@ class XFormPermissionFilterMixin:
             int_or_parse_error(
                 xform, "Invalid value for formid. It must be a positive integer."
             )
-            self.xform = get_object_or_404(XForm, pk=xform)
+            self.xform = get_object_or_404(
+                XForm,
+                pk=xform,
+                deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(
                 pk=self.xform.pk,
                 shared_data=True,
                 deleted_at__isnull=True,
+                project__organization__is_active=True,
             )
         elif filename:
             attachment = get_object_or_404(Attachment, pk=view.kwargs.get("pk"))
@@ -485,6 +519,7 @@ class XFormPermissionFilterMixin:
                 pk=self.xform.pk,
                 shared_data=True,
                 deleted_at__isnull=True,
+                project__organization__is_active=True,
             )
         else:
             if queryset is not None and "pk" in view.kwargs:
@@ -503,7 +538,9 @@ class XFormPermissionFilterMixin:
             else:
                 # No form filter supplied - return empty list.
                 xform_qs = XForm.objects.none()
-        xform_qs = xform_qs.filter(deleted_at=None)
+        xform_qs = xform_qs.filter(
+            deleted_at=None, project__organization__is_active=True
+        )
 
         if request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
@@ -529,10 +566,17 @@ class ProjectPermissionFilterMixin:
                 "Invalid value for projectid. It must be a positive integer.",
             )
 
-            project = get_object_or_404(Project, pk=project_id)
+            project = get_object_or_404(
+                Project,
+                pk=project_id,
+                deleted_at__isnull=True,
+                organization__is_active=True,
+            )
             project_qs = Project.objects.filter(pk=project.id)
         else:
-            project_qs = Project.objects.all()
+            project_qs = Project.objects.filter(
+                deleted_at__isnull=True, organization__is_active=True
+            )
 
         projects = super().filter_queryset(request, project_qs, view)
 
@@ -565,17 +609,32 @@ class InstancePermissionFilterMixin:
                     "Invalid value for instanceid. It must be a positive integer.",
                 )
 
-            instance = get_object_or_404(Instance, pk=instance_id)
+            instance = get_object_or_404(
+                Instance,
+                pk=instance_id,
+                xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
+            )
             # test if user has permissions on the project
 
             if xform_id:
-                xform = get_object_or_404(XForm, pk=xform_id)
+                xform = get_object_or_404(
+                    XForm,
+                    pk=xform_id,
+                    deleted_at__isnull=True,
+                    project__organization__is_active=True,
+                )
                 parent = xform.instances.filter(id=instance.id) and xform
 
             else:
                 return {}
 
-            project = get_object_or_404(Project, pk=project_id)
+            project = get_object_or_404(
+                Project,
+                pk=project_id,
+                deleted_at__isnull=True,
+                organization__is_active=True,
+            )
             project_qs = Project.objects.filter(pk=project.id)
 
             if parent and parent.project == project:
@@ -662,10 +721,18 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
         xform = getattr(self, "xform", None)
         # Ensure queryset is filtered by XForm meta permissions
         if xform is None:
-            xform_ids = list(set(queryset.values_list("xform", flat=True)))
+            xform_ids = [
+                xform_id
+                for xform_id in set(queryset.values_list("xform", flat=True))
+                if xform_id
+            ]
             if xform_ids:
                 # only the first form xform_ids[0]
-                xform = XForm.objects.get(pk=xform_ids[0])
+                xform = XForm.objects.get(
+                    pk=xform_ids[0],
+                    deleted_at__isnull=True,
+                    project__organization__is_active=True,
+                )
 
         if xform is not None:
             queryset = exclude_items_from_queryset_using_xform_meta_perms(
@@ -678,7 +745,12 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
                 instance_id,
                 "Invalid value for instance_id. It must be a positive integer.",
             )
-            instance = get_object_or_404(Instance, pk=instance_id)
+            instance = get_object_or_404(
+                Instance,
+                pk=instance_id,
+                xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
+            )
             queryset = queryset.filter(instance=instance)
 
         return queryset
@@ -814,7 +886,12 @@ class NoteFilter(filters.BaseFilterBackend):
                 "Invalid value for instance_id. It must be a positive integer",
             )
 
-            instance = get_object_or_404(Instance, pk=instance_id)
+            instance = get_object_or_404(
+                Instance,
+                pk=instance_id,
+                xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
+            )
             queryset = queryset.filter(instance=instance)
 
         return queryset
@@ -889,9 +966,16 @@ class EntityListProjectFilter(filters.BaseFilterBackend):
         project_id = request.query_params.get("project")
 
         if project_id:
-            return queryset.filter(project__pk=project_id)
+            return queryset.filter(
+                project__pk=project_id,
+                project__deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
 
-        return queryset
+        return queryset.filter(
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
 
 
 class AnonUserEntityListFilter(ObjectPermissionsFilter):
@@ -899,6 +983,17 @@ class AnonUserEntityListFilter(ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         if request.user.is_anonymous:
-            return queryset.filter(project__shared=True)
+            return queryset.filter(
+                project__shared=True,
+                project__deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
 
-        return super().filter_queryset(request, queryset, view)
+        return (
+            super()
+            .filter_queryset(request, queryset, view)
+            .filter(
+                project__deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
+        )

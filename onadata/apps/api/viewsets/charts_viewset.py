@@ -84,8 +84,13 @@ class ChartsViewSet(
     ChartsViewSet: /charts api endpoint for chart data and chart widgets
     """
 
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
-    queryset = XForm.objects.all()
+    filter_backends = (
+        filters.AnonDjangoObjectPermissionFilter,
+        filters.ActiveXFormOrganizationFilter,
+    )
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
     serializer_class = ChartSerializer
     lookup_field = "pk"
     renderer_classes = (

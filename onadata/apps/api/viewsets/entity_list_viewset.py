@@ -17,9 +17,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.mixins import (
     CreateModelMixin,
+    DestroyModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
-    DestroyModelMixin,
 )
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -64,7 +64,11 @@ class EntityListViewSet(
     DestroyModelMixin,
 ):
     queryset = (
-        EntityList.objects.filter(deleted_at__isnull=True)
+        EntityList.objects.filter(
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
         .order_by("pk")
         .prefetch_related(
             "registration_forms",
