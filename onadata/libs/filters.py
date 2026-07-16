@@ -151,6 +151,21 @@ class FormIDFilter(django_filter_filters.FilterSet):
         fields = ["formID"]
 
 
+class ProjectFilterSet(django_filter_filters.FilterSet):
+    """Project FilterSet; rejects unrecognized ``shared`` values with a 400."""
+
+    shared = django_filter_filters.TypedChoiceFilter(
+        choices=[(choice, choice) for choice in ("true", "false", "True", "False", "1", "0")],
+        coerce=str2bool,
+        error_messages={"invalid_choice": _("Select either true or false.")},
+    )
+
+    # pylint: disable=missing-class-docstring
+    class Meta:
+        model = Project
+        fields = ["shared"]
+
+
 # pylint: disable=too-few-public-methods
 class ProjectStarredFilter(filters.BaseFilterBackend):
     """Project `starred` filter using the `starred` query parameter."""

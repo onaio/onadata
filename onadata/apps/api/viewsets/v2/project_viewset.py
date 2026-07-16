@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.libs.filters import (
     AnonUserProjectFilter,
+    ProjectFilterSet,
     ProjectOwnerFilter,
     ProjectRoleFilter,
     ProjectStarredFilter,
@@ -49,7 +50,7 @@ class ProjectViewSet(ProjectViewSetV1):
         SearchFilter,
         OrderingFilter,
     )
-    filterset_fields = ("shared",)
+    filterset_class = ProjectFilterSet
     search_fields = ["name", "organization__username"]
     ordering_fields = [
         "name",
