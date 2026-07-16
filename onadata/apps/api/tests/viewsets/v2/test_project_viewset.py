@@ -1,14 +1,15 @@
 """Tests for onadata.apps.api.viewsets.v2.project_viewset"""
 
+from datetime import timedelta
+
 from django.core.cache import cache
 from django.test import override_settings
+from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from onadata.apps.api.viewsets.project_viewset import (
-    ProjectViewSet as ProjectViewSetV1,
-)
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
 from onadata.apps.api.viewsets.v2.project_viewset import ProjectViewSet
-from onadata.apps.logger.models import EntityList, Project
+from onadata.apps.logger.models import EntityList, Project, XForm
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.serializers.project_serializer import PROJECT_PUBLIC_EXCLUDED_FIELDS
 from onadata.libs.utils.cache_tools import (
@@ -641,3 +642,321 @@ class GetProjectTeamsTestCase(TestAbstractViewSet):
         response = self.view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 403)
+
+
+class ProjectListFilterTestBase(TestAbstractViewSet):
+    """Shared helpers for the v2 project list filter/sort test cases."""
+
+    def setUp(self):
+        super().setUp()
+        self.view = ProjectViewSet.as_view({"get": "list"})
+
+    def _list(self, params, extra=None):
+        """GET the project list with query params (defaults to self.extra auth).
+
+        Pass ``extra={}`` for an unauthenticated (anonymous) request.
+        """
+        if extra is None:
+            extra = self.extra
+        return self.view(self.factory.get("/", params, **extra))
+
+    def _names(self, response, sort=True):
+        names = [project["name"] for project in response.data]
+        return sorted(names) if sort else names
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectSearchTestCase(ProjectListFilterTestBase):
+    """?search= matches project name and owner username."""
+
+    def setUp(self):
+        super().setUp()
+        self.alpha = Project.objects.create(
+            name="Rainfall Survey",
+            organization=self.user,
+            created_by=self.user,
+        )
+        self.beta = Project.objects.create(
+            name="Household Census",
+            organization=self.user,
+            created_by=self.user,
+        )
+
+    def test_search_by_name(self):
+        """?search= matches projects by name, case-insensitively."""
+        response = self._list({"search": "rain"})
+        self.assertEqual(self._names(response), ["Rainfall Survey"])
+
+    def test_search_by_owner_username(self):
+        """?search= matches projects by the owner's username."""
+        response = self._list({"search": self.user.username})
+        self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
+
+    def test_search_by_owner_username_case_insensitive_substring(self):
+        """?search= matches a case-variant substring of the owner's username."""
+        response = self._list({"search": self.user.username[:-1].upper()})
+        self.assertEqual(self._names(response), ["Household Census", "Rainfall Survey"])
+
+    def test_search_no_match(self):
+        """?search= returns an empty list when nothing matches."""
+        response = self._list({"search": "no-such-project"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_search_combines_with_ordering(self):
+        """?search= and ?ordering= can be combined in a single request."""
+        response = self._list({"search": self.user.username, "ordering": "-name"})
+        self.assertEqual(
+            self._names(response, sort=False),
+            ["Rainfall Survey", "Household Census"],
+        )
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectOrderingTestCase(ProjectListFilterTestBase):
+    """?ordering= sorts by name / created / category / last submission.
+
+    ``setUp`` only creates the three bare projects; tests that sort on
+    ``metadata__category`` or ``last_submission_date`` add those fixtures
+    via ``_set_categories`` / ``_make_forms``. The fixture orders are
+    chosen so no two sort fields agree — a test can't pass by falling
+    back to another ordering.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.banana = Project.objects.create(
+            name="Banana", organization=self.user, created_by=self.user
+        )
+        self.apple = Project.objects.create(
+            name="Apple", organization=self.user, created_by=self.user
+        )
+        self.cherry = Project.objects.create(
+            name="Cherry", organization=self.user, created_by=self.user
+        )
+
+    def _set_categories(self):
+        """Give each project a metadata category (asc: Banana, Cherry, Apple)."""
+        for project, category in (
+            (self.apple, "governance"),
+            (self.banana, "agriculture"),
+            (self.cherry, "energy"),
+        ):
+            Project.objects.filter(pk=project.pk).update(
+                metadata={"category": category}
+            )
+
+    def _make_form(self, project, id_string, last_submission_time):
+        """Publish a minimal form on *project* with a fixed last submission time."""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | city | City? |
+        """
+        data_dict = self._publish_markdown(
+            md, self.user, project=project, id_string=id_string
+        )
+        XForm.objects.filter(pk=data_dict.pk).update(
+            last_submission_time=last_submission_time
+        )
+        return data_dict
+
+    def _make_forms(self):
+        """Give each project a form (last submitted-to, asc: Apple, Cherry, Banana)."""
+        now = timezone.now()
+        self._make_form(self.apple, "apple_form", now - timedelta(days=3))
+        self._make_form(self.cherry, "cherry_form", now - timedelta(days=2))
+        self._make_form(self.banana, "banana_form", now - timedelta(days=1))
+
+    def test_order_by_name_asc(self):
+        """?ordering=name sorts projects alphabetically."""
+        response = self._list({"ordering": "name"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Banana", "Cherry"]
+        )
+
+    def test_order_by_name_desc(self):
+        """?ordering=-name sorts projects reverse-alphabetically."""
+        response = self._list({"ordering": "-name"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Cherry", "Banana", "Apple"]
+        )
+
+    def test_order_by_created_asc(self):
+        """?ordering=date_created sorts the oldest-created project first."""
+        response = self._list({"ordering": "date_created"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Apple", "Cherry"]
+        )
+
+    def test_order_by_created_desc(self):
+        """?ordering=-date_created sorts the newest-created project first."""
+        response = self._list({"ordering": "-date_created"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Cherry", "Apple", "Banana"]
+        )
+
+    def test_order_by_category_asc(self):
+        """?ordering=metadata__category sorts by the JSON category value."""
+        self._set_categories()
+        response = self._list({"ordering": "metadata__category"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
+        )
+
+    def test_order_by_category_desc(self):
+        """?ordering=-metadata__category sorts by the JSON category value,
+        descending."""
+        self._set_categories()
+        response = self._list({"ordering": "-metadata__category"})
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+        )
+
+    def test_order_by_last_submission_asc(self):
+        """?ordering=last_submission_date puts the least recently submitted-to
+        project first."""
+        self._make_forms()
+        response = self._list({"ordering": "last_submission_date"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self._names(response, sort=False), ["Apple", "Cherry", "Banana"]
+        )
+
+    def test_order_by_last_submission_desc(self):
+        """?ordering=-last_submission_date puts the most recently submitted-to
+        project first."""
+        self._make_forms()
+        response = self._list({"ordering": "-last_submission_date"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self._names(response, sort=False), ["Banana", "Cherry", "Apple"]
+        )
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectSharedFilterTestCase(ProjectListFilterTestBase):
+    """?shared= filters public/private projects."""
+
+    def setUp(self):
+        super().setUp()
+        self.public = Project.objects.create(
+            name="Public One", organization=self.user, created_by=self.user, shared=True
+        )
+        self.private = Project.objects.create(
+            name="Private One",
+            organization=self.user,
+            created_by=self.user,
+            shared=False,
+        )
+
+    def test_filter_shared_true(self):
+        """?shared=true returns only public projects."""
+        response = self._list({"shared": "true"})
+        self.assertEqual(self._names(response), ["Public One"])
+
+    def test_filter_shared_false(self):
+        """?shared=false returns only private projects."""
+        response = self._list({"shared": "false"})
+        self.assertEqual(self._names(response), ["Private One"])
+
+    def test_filter_shared_invalid(self):
+        """?shared=invalid is a 400"""
+        response = self._list({"shared": "banana"})
+        self.assertEqual(response.status_code, 400)
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectStarredFilterTestCase(ProjectListFilterTestBase):
+    """?starred= filters by the requesting user's stars."""
+
+    def setUp(self):
+        super().setUp()
+        self.starred = Project.objects.create(
+            name="Starred One", organization=self.user, created_by=self.user
+        )
+        self.plain = Project.objects.create(
+            name="Plain One", organization=self.user, created_by=self.user
+        )
+        self.starred.user_stars.add(self.user)
+
+    def test_filter_starred_true(self):
+        """?starred=true returns only the requesting user's starred projects."""
+        response = self._list({"starred": "true"})
+        self.assertEqual(self._names(response), ["Starred One"])
+
+    def test_filter_starred_false(self):
+        """?starred=false returns only projects the user has not starred."""
+        response = self._list({"starred": "false"})
+        self.assertEqual(self._names(response), ["Plain One"])
+
+    def test_filter_starred_anonymous(self):
+        """An anonymous ?starred= request is handled gracefully, not a 500."""
+        Project.objects.filter(pk__in=[self.starred.pk, self.plain.pk]).update(
+            shared=True
+        )
+        response = self._list({"starred": "true"}, extra={})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._names(response), [])
+        response = self._list({"starred": "false"}, extra={})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._names(response), ["Plain One", "Starred One"])
+
+    def test_filter_starred_invalid_value(self):
+        """A ?starred= value other than true/false is a 400, not silently false."""
+        response = self._list({"starred": "banana"})
+        self.assertEqual(response.status_code, 400)
+
+
+@override_settings(TIME_ZONE="UTC")
+class ProjectRoleFilterTestCase(ProjectListFilterTestBase):
+    """?role= returns projects where the user holds that role or higher."""
+
+    def setUp(self):
+        super().setUp()
+        self.member = self._create_user_profile(
+            {"username": "alice", "email": "alice@localhost.com"}
+        ).user
+        self.member_extra = {"HTTP_AUTHORIZATION": f"Token {self.member.auth_token}"}
+
+        self.owner_p = self._make_shared_project("Owner Proj", "owner")
+        self.manager_p = self._make_shared_project("Manager Proj", "manager")
+        self.editor_p = self._make_shared_project("Editor Proj", "editor")
+        self.readonly_p = self._make_shared_project("Readonly Proj", "readonly")
+
+    def _make_shared_project(self, name, role):
+        proj = Project.objects.create(
+            name=name, organization=self.user, created_by=self.user
+        )
+        ShareProject(proj, "alice", role).save()
+        return proj
+
+    def test_role_owner_only(self):
+        """?role=owner returns only projects where the user is an owner."""
+        response = self._list({"role": "owner"}, extra=self.member_extra)
+        self.assertEqual(self._names(response), ["Owner Proj"])
+
+    def test_role_editor_includes_higher_roles(self):
+        """?role=editor means editor-and-above: manager and owner projects
+        are included because those roles hold every editor permission."""
+        response = self._list({"role": "editor"}, extra=self.member_extra)
+        self.assertEqual(
+            self._names(response), ["Editor Proj", "Manager Proj", "Owner Proj"]
+        )
+
+    def test_role_unknown_is_rejected(self):
+        """An unknown role name is a 400, not a silent no-op."""
+        response = self._list({"role": "bogus"}, extra=self.member_extra)
+        self.assertEqual(response.status_code, 400)
+
+    def test_user_not_shared_to_any_project(self):
+        """A user shared into no projects gets an empty list, not a 4xx."""
+        not_shared_user = self._create_user_profile(
+            {"username": "carol", "email": "carol@localhost.com"}
+        ).user
+        not_shared_user_extra = {
+            "HTTP_AUTHORIZATION": f"Token {not_shared_user.auth_token}"
+        }
+        response = self._list({"role": "owner"}, extra=not_shared_user_extra)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])

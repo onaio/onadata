@@ -2,10 +2,22 @@
 Project viewset for v2 API
 """
 
+from django.db.models import Max, Q
+
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet as ProjectViewSetV1
+from onadata.libs.filters import (
+    AnonUserProjectFilter,
+    ProjectFilterSet,
+    ProjectOwnerFilter,
+    ProjectRoleFilter,
+    ProjectStarredFilter,
+    TagFilter,
+)
 from onadata.libs.serializers.project_serializer import get_teams, get_users
 from onadata.libs.serializers.v2.project_serializer import (
     ProjectListSerializer,
@@ -27,6 +39,44 @@ class ProjectViewSet(ProjectViewSetV1):
 
     serializer_class = ProjectSerializer
     api_version = "v2"
+
+    filter_backends = (
+        AnonUserProjectFilter,
+        ProjectOwnerFilter,
+        TagFilter,
+        DjangoFilterBackend,
+        ProjectStarredFilter,
+        ProjectRoleFilter,
+        SearchFilter,
+        OrderingFilter,
+    )
+    filterset_class = ProjectFilterSet
+    search_fields = ["name", "organization__username"]
+    ordering_fields = [
+        "name",
+        "date_created",
+        "last_submission_date",
+        "metadata__category",
+    ]
+
+    def get_queryset(self):
+        """Annotate `last_submission_date` only when it is requested for ordering.
+
+        Overrides super().get_queryset()
+        """
+        queryset = super().get_queryset()
+        ordering = self.request.query_params.get("ordering", "")
+        requested = {field.strip().removeprefix("-") for field in ordering.split(",")}
+        if "last_submission_date" in requested:
+            # Annotation is only for ordering; the serializer still computes
+            # last_submission_date itself. Exclude soft-deleted forms.
+            queryset = queryset.annotate(
+                last_submission_date=Max(
+                    "xform__last_submission_time",
+                    filter=Q(xform__deleted_at__isnull=True),
+                )
+            )
+        return queryset
 
     def get_serializer_class(self):
         """Get serializer class based on action

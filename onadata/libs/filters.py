@@ -11,14 +11,16 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
 
 import six
 from django_filters import rest_framework as django_filter_filters
+from guardian.shortcuts import get_objects_for_user
 from rest_framework import filters
+from rest_framework.exceptions import ParseError
 from rest_framework_guardian.filters import ObjectPermissionsFilter
 
 from onadata.apps.api.models import OrganizationProfile, Team
-from onadata.libs.utils.dataview_filters import get_filter_kwargs
 from onadata.apps.logger.models import (
     Attachment,
     DataView,
@@ -28,9 +30,14 @@ from onadata.apps.logger.models import (
     XForm,
 )
 from onadata.apps.viewer.models import Export
-from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
+from onadata.libs.permissions import (
+    ROLES,
+    exclude_items_from_queryset_using_xform_meta_perms,
+)
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
+from onadata.libs.utils.dataview_filters import get_filter_kwargs
 from onadata.libs.utils.numeric import int_or_parse_error
+from onadata.libs.utils.string import str2bool
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -39,8 +46,10 @@ User = get_user_model()
 def _public_xform_id_or_none(export_id: int):
     export = Export.objects.filter(pk=export_id).first()
 
-    if export and export.xform.deleted_at is None and (
-        export.xform.shared_data or export.xform.shared
+    if (
+        export
+        and export.xform.deleted_at is None
+        and (export.xform.shared_data or export.xform.shared)
     ):
         return export.xform_id
 
@@ -140,6 +149,88 @@ class FormIDFilter(django_filter_filters.FilterSet):
     class Meta:
         model = XForm
         fields = ["formID"]
+
+
+class ProjectFilterSet(django_filter_filters.FilterSet):
+    """Project FilterSet; rejects unrecognized ``shared`` values with a 400."""
+
+    shared = django_filter_filters.TypedChoiceFilter(
+        choices=[
+            (choice, choice) for choice in ("true", "false", "True", "False", "1", "0")
+        ],
+        coerce=str2bool,
+        error_messages={"invalid_choice": _("Select either true or false.")},
+    )
+
+    # pylint: disable=missing-class-docstring
+    class Meta:
+        model = Project
+        fields = ["shared"]
+
+
+# pylint: disable=too-few-public-methods
+class ProjectStarredFilter(filters.BaseFilterBackend):
+    """Project `starred` filter using the `starred` query parameter."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        """Filter by the requesting user's starred (favorited) projects."""
+        starred = request.query_params.get("starred")
+
+        if starred is None:
+            return queryset
+
+        if starred.lower() not in ("true", "false"):
+            raise ParseError(_("Invalid starred value. Use true or false."))
+
+        if not request.user.is_authenticated:
+            # An anonymous user has no stars.
+            return queryset.none() if str2bool(starred) else queryset
+
+        if str2bool(starred):
+            return queryset.filter(user_stars=request.user)
+
+        return queryset.exclude(user_stars=request.user)
+
+
+# pylint: disable=too-few-public-methods
+class ProjectRoleFilter(filters.BaseFilterBackend):
+    """Project `role` filter using the `role` query parameter."""
+
+    # pylint: disable=unused-argument
+    def filter_queryset(self, request, queryset, view):
+        """Filter by the requesting user's role (from object permissions).
+
+        ``?role=editor`` returns projects where the user holds that role
+        **or any higher role**. Roles are derived from django-guardian
+        object permissions: we require the requested role's full Project
+        permission set, and higher roles hold a superset of a lower role's
+        permissions, so this yields "that role and above". Unknown role
+        names are a 400.
+        """
+        role = request.query_params.get("role")
+
+        if not role:
+            return queryset
+
+        role = role.strip()
+        if role not in ROLES:
+            raise ParseError(_(f"Unknown role: {role}"))
+        perms = [
+            f"logger.{codename}"
+            for codename in ROLES[role].class_to_permissions.get(Project, [])
+        ]
+        if not perms:
+            # A role that grants no Project permissions matches no project.
+            return queryset.none()
+        return get_objects_for_user(
+            request.user,
+            perms,
+            klass=queryset,
+            any_perm=False,
+            accept_global_perms=False,
+            with_superuser=False,
+        )
 
 
 # pylint: disable=too-few-public-methods
