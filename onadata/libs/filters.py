@@ -32,7 +32,6 @@ from onadata.apps.logger.models import (
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     ROLES,
-    ROLES_ORDERED,
     exclude_items_from_queryset_using_xform_meta_perms,
 )
 from onadata.libs.utils.common_tags import MEDIA_FILE_TYPES
@@ -185,33 +184,29 @@ class ProjectRoleFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         """Filter by the requesting user's role (from object permissions).
 
-        ``?role=editor,owner`` returns projects where the user holds the
-        lowest-ranked requested role **or any higher role**. Roles are
-        derived from django-guardian object permissions, so we take the
-        lowest-ranked requested role and require its full Project permission
-        set: higher roles hold a superset of a lower role's permissions, so
-        this yields "that role and above". Unknown role names are a 400.
+        ``?role=editor`` returns projects where the user holds that role
+        **or any higher role**. Roles are derived from django-guardian
+        object permissions: we require the requested role's full Project
+        permission set, and higher roles hold a superset of a lower role's
+        permissions, so this yields "that role and above". Unknown role
+        names are a 400.
         """
         role = request.query_params.get("role")
 
         if not role:
             return queryset
 
-        requested = [r.strip() for r in role.split(",") if r.strip()]
-        unknown = [r for r in requested if r not in ROLES]
-        if unknown:
-            raise ParseError(_(f"Unknown role(s): {', '.join(unknown)}"))
-        if not requested:
-            return queryset
-        lowest = min(requested, key=lambda n: ROLES_ORDERED.index(ROLES[n]))
+        role = role.strip()
+        if role not in ROLES:
+            raise ParseError(_(f"Unknown role: {role}"))
         perms = [
             f"logger.{codename}"
-            for codename in ROLES[lowest].class_to_permissions.get(Project, [])
+            for codename in ROLES[role].class_to_permissions.get(Project, [])
         ]
         if not perms:
             # A role that grants no Project permissions matches no project.
             return queryset.none()
-        allowed = get_objects_for_user(
+        return get_objects_for_user(
             request.user,
             perms,
             klass=queryset,
@@ -219,7 +214,6 @@ class ProjectRoleFilter(filters.BaseFilterBackend):
             accept_global_perms=False,
             with_superuser=False,
         )
-        return queryset.filter(pk__in=allowed.values("pk"))
 
 
 # pylint: disable=too-few-public-methods

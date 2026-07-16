@@ -878,7 +878,7 @@ class ProjectStarredFilterTestCase(ProjectListFilterTestBase):
 
 @override_settings(TIME_ZONE="UTC")
 class ProjectRoleFilterTestCase(ProjectListFilterTestBase):
-    """?role= returns projects where the requesting user's role is in the set."""
+    """?role= returns projects where the user holds that role or higher."""
 
     def setUp(self):
         super().setUp()
@@ -903,11 +903,6 @@ class ProjectRoleFilterTestCase(ProjectListFilterTestBase):
         """?role=owner returns only projects where the user is an owner."""
         response = self._list({"role": "owner"}, extra=self.member_extra)
         self.assertEqual(self._names(response), ["Owner Proj"])
-
-    def test_role_owner_or_manager(self):
-        """?role=owner,manager returns manager-and-above projects."""
-        response = self._list({"role": "owner,manager"}, extra=self.member_extra)
-        self.assertEqual(self._names(response), ["Manager Proj", "Owner Proj"])
 
     def test_role_editor_includes_higher_roles(self):
         """?role=editor means editor-and-above: manager and owner projects
