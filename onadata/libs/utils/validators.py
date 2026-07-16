@@ -21,7 +21,7 @@ class PreviousPasswordValidator:
             if user.check_password(password):
                 raise ValidationError(self.message)
 
-            pw_history = user.password_history.all().order_by("-created_at")[
+            pw_history = user.password_history.all().order_by("-changed_at")[
                 : self.history_limit
             ]
             for pw_hist in pw_history:
