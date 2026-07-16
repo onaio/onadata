@@ -197,19 +197,19 @@ of projects the requesting user already has access to.
 - ``ordering`` - Sort the list by one of ``name``, ``date_created``, ``last_submission_date`` or ``metadata__category``. Prefix the value with ``-`` for descending order (for example ``-date_created``).
 - ``shared`` - ``true`` returns only public projects; ``false`` returns only private projects.
 - ``starred`` - ``true`` returns only the projects the requesting user has starred; ``false`` returns only those they have not.
-- ``role`` - Comma-separated list of role names (for example ``owner`` or ``owner,manager``). Returns projects where the requesting user holds the lowest-ranked listed role **or a higher one** — for example ``role=editor`` also returns projects where the user is a manager or owner. Unknown role names return an HTTP 400 error, as do values other than ``true``/``false`` for ``shared`` and ``starred``.
+- ``role`` - A single role name (for example ``owner`` or ``editor``). Returns projects where the requesting user holds that role **or a higher one** — for example ``role=editor`` also returns projects where the user is a manager or owner. Unknown role names return an HTTP 400 error, as do values other than ``true``/``false`` for ``shared`` and ``starred``.
 
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v2/projects?<code>search</code>=<code>rainfall</code>&<code>ordering</code>=<code>-date_created</code>&<code>shared</code>=<code>true</code>&<code>starred</code>=<code>true</code>&<code>role</code>=<code>owner,manager</code>
+	<b>GET</b> /api/v2/projects?<code>search</code>=<code>rainfall</code>&<code>ordering</code>=<code>-date_created</code>&<code>shared</code>=<code>true</code>&<code>starred</code>=<code>true</code>&<code>role</code>=<code>manager</code>
 	</pre>
 
 Example
 ^^^^^^^^
 ::
 
-       curl -X GET "https://api.ona.io/api/v2/projects?search=rainfall&ordering=name&role=owner,manager"
+       curl -X GET "https://api.ona.io/api/v2/projects?search=rainfall&ordering=name&role=manager"
 
 Retrieve Project Information
 --------------------------------
