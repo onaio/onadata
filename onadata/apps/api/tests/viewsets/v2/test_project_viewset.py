@@ -921,3 +921,15 @@ class ProjectRoleFilterTestCase(ProjectListFilterTestBase):
         """An unknown role name is a 400, not a silent no-op."""
         response = self._list({"role": "bogus"}, extra=self.member_extra)
         self.assertEqual(response.status_code, 400)
+
+    def test_user_not_shared_to_any_project(self):
+        """A user shared into no projects gets an empty list, not a 4xx."""
+        not_shared_user = self._create_user_profile(
+            {"username": "carol", "email": "carol@localhost.com"}
+        ).user
+        not_shared_user_extra = {
+            "HTTP_AUTHORIZATION": f"Token {not_shared_user.auth_token}"
+        }
+        response = self._list({"role": "owner"}, extra=not_shared_user_extra)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
