@@ -134,7 +134,6 @@ class AttachmentViewSet(
                     xform = get_object_or_404(
                         XForm,
                         pk=xform,
-                        deleted_at__isnull=True,
                         project__organization__is_active=True,
                     )
                     if not xform.shared_data:
