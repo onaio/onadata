@@ -84,6 +84,7 @@ class PasswordResetChange:
             invalidate_and_regen_tokens(user)
 
 
+# pylint: disable=abstract-method
 class PasswordResetChangeSerializer(serializers.Serializer):
     """
     Reset and change password serializer.
