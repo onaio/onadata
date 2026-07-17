@@ -495,10 +495,7 @@ class XFormPermissionFilterMixin:
                 xform, "Invalid value for formid. It must be a positive integer."
             )
             self.xform = get_object_or_404(
-                XForm,
-                pk=xform,
-                deleted_at__isnull=True,
-                project__organization__is_active=True,
+                XForm, pk=xform, project__organization__is_active=True
             )
             xform_qs = XForm.objects.filter(pk=self.xform.pk)
             public_forms = XForm.objects.filter(
