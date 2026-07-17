@@ -390,14 +390,8 @@ class AttachmentObjectPermissions(
 
 class ConnectViewsetPermissions(IsAuthenticated):
     """
-    ConnectViewsetPermissions - allows reset passwords to all users.
+    ConnectViewsetPermissions - requires an authenticated user.
     """
-
-    def has_permission(self, request, view):
-        if view.action == "reset":
-            return True
-
-        return super().has_permission(request, view)
 
 
 class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
