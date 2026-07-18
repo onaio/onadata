@@ -5,6 +5,7 @@ Message serializers
 
 import json
 import sys
+from datetime import timezone as dt_timezone
 from typing import Optional, Union
 
 from django.conf import settings
@@ -136,6 +137,37 @@ class MessageSerializer(serializers.ModelSerializer):
                 "Message not created. Please retry."
             ) from exc
         return instance
+
+
+# pylint: disable=abstract-method
+class GroupedActivitySerializer(serializers.Serializer):
+    """Serializer for grouped activity counts.
+
+    ``user`` and ``verb`` are grouping dimensions and are only included when
+    requested via the ``dimensions`` context. ``period_start`` is the UTC start
+    of the time bucket and is only included when a time bucket was requested via
+    the ``time_bucket`` context. ``count``, ``earliest_timestamp`` and
+    ``latest_timestamp`` are always present. Timestamps are rendered in UTC.
+    """
+
+    period_start = serializers.DateTimeField(
+        default_timezone=dt_timezone.utc, required=False
+    )
+    user = serializers.CharField(allow_null=True, required=False)
+    verb = serializers.CharField(required=False)
+    count = serializers.IntegerField()
+    earliest_timestamp = serializers.DateTimeField(default_timezone=dt_timezone.utc)
+    latest_timestamp = serializers.DateTimeField(default_timezone=dt_timezone.utc)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        dimensions = self.context.get("dimensions")
+        if dimensions is not None:
+            for field in ("user", "verb"):
+                if field not in dimensions:
+                    self.fields.pop(field, None)
+        if not self.context.get("time_bucket"):
+            self.fields.pop("period_start", None)
 
 
 # pylint: disable=too-many-arguments,too-many-positional-arguments

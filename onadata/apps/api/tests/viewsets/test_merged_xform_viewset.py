@@ -567,6 +567,7 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
                 "_version",
                 "_duration",
                 "_submitted_by",
+                "_last_edited_by",
                 "_total_media",
                 "_media_count",
                 "_media_all_received",

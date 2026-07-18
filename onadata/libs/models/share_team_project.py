@@ -6,6 +6,7 @@ ShareTeamProject model - facilitate sharing a project to a team.
 from onadata.libs.permissions import ROLES
 from onadata.libs.utils.cache_tools import (
     PROJ_PERM_CACHE,
+    PROJ_TEAM_USERS_CACHE,
     clear_project_owner_cache,
     safe_cache_delete,
 )
@@ -47,6 +48,7 @@ class ShareTeamProject:
             # clear cache
             clear_project_owner_cache(self.project.pk)
             safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
+            safe_cache_delete(f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}")
 
     def remove_team(self):
         """Removes team permissions from a project."""
@@ -67,3 +69,4 @@ class ShareTeamProject:
             # clear cache
             clear_project_owner_cache(self.project.pk)
             safe_cache_delete(f"{PROJ_PERM_CACHE}{self.project.pk}")
+            safe_cache_delete(f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}")

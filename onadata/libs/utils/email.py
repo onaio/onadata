@@ -85,6 +85,31 @@ def get_account_lockout_email_data(username, ip_address, end=False):
     return email_data
 
 
+def get_account_deactivation_email_data(
+    email, username, days_remaining, deactivation_date
+):
+    """Generate inactive-account deactivation warning email content."""
+    ctx_dict = {
+        "username": username,
+        "days_remaining": days_remaining,
+        "deactivation_date": deactivation_date,
+        "deployment_name": getattr(settings, "DEPLOYMENT_NAME", "Ona"),
+        "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),
+    }
+
+    return {
+        "email": email,
+        "subject": render_to_string(
+            "account_deactivation/deactivation_warning_subject.txt",
+            ctx_dict,
+        ).strip(),
+        "message_txt": render_to_string(
+            "account_deactivation/deactivation_warning.txt",
+            ctx_dict,
+        ),
+    }
+
+
 def send_generic_email(email, message_txt, subject):
     """Sends an email."""
     if any(a in [None, ""] for a in [email, message_txt, subject]):

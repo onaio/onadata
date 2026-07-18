@@ -12,8 +12,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.utils import timezone
 
+import reversion
 from pyxform.builder import SurveyElementBuilder as RealBuilder
 from pyxform.errors import PyXFormError
+from reversion import revisions
+from reversion.models import Version
 
 from onadata.apps.logger.models import DataView, Instance, KMSKey, XForm
 from onadata.apps.logger.models.kms import XFormKey
@@ -77,6 +80,27 @@ class TestXForm(TestBase):
         # set title in xform xml
         self.xform._set_title()  # pylint: disable=W0212
         self.assertIn(self.xform.title, self.xform.xml)
+
+    def test_version_number_title_not_treated_as_url(self):
+        """A version number like '1.0' anywhere in a title is not a URL."""
+        self._publish_transportation_form()
+
+        # A version number is allowed wherever it appears in the title.
+        for valid_title in ("Transport 1.0", "1.0 Transport", "Transport 1.0 Survey"):
+            xform = XForm.objects.get(pk=self.xform.pk)
+            xform.title = valid_title
+            xform.save()
+            self.assertEqual(XForm.objects.get(pk=xform.pk).title, valid_title)
+
+        # A real URL anywhere in the title is still rejected.
+        for url_title in ("deno.com", "Survey deno.com data"):
+            xform = XForm.objects.get(pk=self.xform.pk)
+            xform.title = url_title
+            with self.assertRaises(XLSFormError) as err:
+                xform.save()
+            self.assertEqual(
+                "Invalid title value; value shouldn't match a URL", str(err.exception)
+            )
 
     def test_version_length(self):
         """Test Xform.version can store more than 12 chars"""
@@ -604,3 +628,22 @@ class TestXForm(TestBase):
         )
 
         self.assertTrue(self.xform.is_was_managed)
+
+
+class XFormReversionRegistrationTestCase(TestBase):
+    """Test XForm is registered with django-reversion."""
+
+    def test_xform_is_registered(self):
+        """XForm is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(XForm))
+
+    def test_revision_recorded_and_read(self):
+        """An XForm saved in a revision is recorded and readable."""
+        self._publish_transportation_form()
+
+        with revisions.create_revision():
+            revisions.add_to_revision(self.xform)
+
+        version = Version.objects.get_for_object(self.xform).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["id_string"], self.xform.id_string)

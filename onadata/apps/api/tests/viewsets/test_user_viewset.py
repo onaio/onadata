@@ -145,6 +145,45 @@ class TestUserViewSet(TestAbstractViewSet):
         # empty results
         self.assertEqual(response.data, [])
 
+    def test_search_by_username(self):
+        """Search filters the users list by username"""
+        self._create_user_profile({"username": "alice", "email": "alice@localhost.com"})
+
+        view = UserViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data={"search": "alice"}, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        usernames = [user["username"] for user in response.data]
+        self.assertIn("alice", usernames)
+        self.assertNotIn("bob", usernames)
+
+    def test_search_by_username_case_insensitive(self):
+        """Username search ignores case"""
+        self._create_user_profile({"username": "alice", "email": "alice@localhost.com"})
+
+        view = UserViewSet.as_view({"get": "list"})
+        request = self.factory.get("/", data={"search": "ALICE"}, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        usernames = [user["username"] for user in response.data]
+        self.assertIn("alice", usernames)
+
+    def test_search_by_username_partial(self):
+        """Username search matches on a substring, not only a prefix"""
+        self._create_user_profile({"username": "alice", "email": "alice@localhost.com"})
+
+        view = UserViewSet.as_view({"get": "list"})
+        # "lic" is in the middle of "alice"
+        request = self.factory.get("/", data={"search": "lic"}, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        usernames = [user["username"] for user in response.data]
+        self.assertIn("alice", usernames)
+        self.assertNotIn("bob", usernames)
+
     def test_get_non_org_users(self):
         self._org_create()
 

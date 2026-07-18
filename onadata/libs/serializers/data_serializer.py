@@ -23,6 +23,7 @@ from onadata.libs.utils.common_tags import (
     DECRYPTION_ERROR,
     DECRYPTION_FAILURE_MESSAGES,
     GEOLOCATION,
+    LAST_EDITED_BY,
     METADATA_FIELDS,
     NOTES,
     TAGS,
@@ -193,6 +194,8 @@ class DataInstanceXMLSerializer(serializers.ModelSerializer):
             if metadata not in excluded_metadata
         ]
         for attrib, meta_field in additional_attributes:
+            if meta_field == LAST_EDITED_BY and meta_field not in instance.json:
+                continue
             meta_value = instance.json.get(meta_field, "")
             if not isinstance(meta_value, str):
                 meta_value = str(meta_value)

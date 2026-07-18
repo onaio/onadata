@@ -10,6 +10,7 @@ from xml.etree.ElementTree import ParseError
 
 from django.http.request import HttpRequest
 from django.test import override_settings
+
 from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import (
@@ -65,6 +66,7 @@ class TestInstance(TestBase):
                 "_media_count": 0,
                 "_total_media": 1,
                 "_submitted_by": "bob",
+                "_last_edited_by": None,
                 "_date_modified": instance.date_modified.isoformat(),
                 "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
                 "_submission_time": instance.date_created.isoformat(),
@@ -130,10 +132,12 @@ class TestInstance(TestBase):
 
         for instance in instances:
             self.assertEqual(instance.json[SUBMITTED_BY], "bob")
+            self.assertIsNone(instance.json.get("_last_edited_by"))
             # check that the parsed instance's to_dict_for_mongo also contains
             # the _user key, which is what's used by the JSON REST service
             pi = ParsedInstance.objects.get(instance=instance)
             self.assertEqual(pi.to_dict_for_mongo()[SUBMITTED_BY], "bob")
+            self.assertIsNone(pi.to_dict_for_mongo().get("_last_edited_by"))
 
     def test_set_instances_with_geopoints_on_submission_false(self):
         self._publish_transportation_form()
@@ -416,6 +420,7 @@ class TestInstance(TestBase):
                 "_media_count": 0,
                 "_total_media": 1,
                 "_submitted_by": "bob",
+                "_last_edited_by": None,
                 "_date_modified": instance.date_modified.isoformat(),
                 "meta/instanceID": "uuid:5b2cc313-fc09-437e-8149-fcd32f695d41",
                 "_submission_time": instance.date_created.isoformat(),

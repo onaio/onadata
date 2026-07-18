@@ -2172,10 +2172,25 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
             ):
                 morsel = cookies[cookie_name]
                 self.assertTrue(morsel["secure"], f"{cookie_name} missing Secure flag")
-                self.assertTrue(
-                    morsel["httponly"], f"{cookie_name} missing HttpOnly flag"
-                )
                 self.assertEqual(morsel["samesite"], "Lax")
+
+            # The auth token and uid cookies are server-only, so HttpOnly.
+            for cookie_name in (
+                settings.ENKETO_META_UID_COOKIE,
+                settings.ENKETO_AUTH_COOKIE,
+            ):
+                self.assertTrue(
+                    cookies[cookie_name]["httponly"],
+                    f"{cookie_name} missing HttpOnly flag",
+                )
+
+            # __enketo_meta_username is read client-side by enketo-core
+            # (document.cookie) to populate the `username` form session
+            # metadata, so it must NOT be HttpOnly.
+            self.assertFalse(
+                cookies[settings.ENKETO_META_USERNAME_COOKIE]["httponly"],
+                "username cookie must not be HttpOnly",
+            )
 
     @patch("onadata.apps.api.viewsets.xform_viewset.XFormViewSet.list")
     def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
@@ -4430,11 +4445,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "\ufeffage,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
-                "_total_media,_media_count,_media_all_received\n\ufeff#age"
-                ",,,,,,,,,,,,,,\n\ufeff"
+                "_last_edited_by,_total_media,_media_count,_media_all_received\n\ufeff#age"
+                + "," * 15
+                + "\n\ufeff"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(content, expected_content)
             headers = dict(response.items())
@@ -4453,11 +4469,11 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submi"
-                "tted_by,_total_media,_media_count,_media_all_received\n"
-                "#age,,,,,,,,,,,,,,\n"
+                "tted_by,_last_edited_by,_total_media,_media_count,_media_all_received\n"
+                "#age" + "," * 15 + "\n"
                 "38,CR7,uuid:74ee8b73-48aa-4ced-9089-862f93d49c16"
                 ",%s,74ee8b73-48aa-4ced-9089-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                "%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                "%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
 
             self.assertEqual(expected_content, content)
@@ -4521,10 +4537,10 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,_submitted_by,"
-                "_total_media,_media_count,_media_all_received\n"
+                "_last_edited_by,_total_media,_media_count,_media_all_received\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 f"{data_id},74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00,"
-                f"{date_modified},,,201604121155,,bob,0,0,True\n"
+                f"{date_modified},,,201604121155,,bob,,0,0,True\n"
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
@@ -4542,12 +4558,12 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             expected_content = (
                 "age,name,meta/instanceID,_id,_uuid,_submission_time,"
                 "_date_modified,_tags,_notes,_version,_duration,"
-                "_submitted_by,_total_media,_media_count,"
+                "_submitted_by,_last_edited_by,_total_media,_media_count,"
                 "_media_all_received\n"
-                "#age,,,,,,,,,,,,,,\n"
+                "#age" + "," * 15 + "\n"
                 "29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,"
                 "%s,74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01+00:00"
-                ",%s,,,201604121155,,bob,0,0,True\n" % (data_id, date_modified)
+                ",%s,,,201604121155,,bob,,0,0,True\n" % (data_id, date_modified)
             )
             self.assertEqual(expected_content, content)
             headers = dict(response.items())
@@ -5194,6 +5210,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 )
 
             attachment_id = Attachment.objects.all().last().pk
+            attachment = Attachment.objects.get(pk=attachment_id)
 
             view = XFormViewSet.as_view({"get": "retrieve"})
 
@@ -5205,10 +5222,8 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
             self.assertEqual(response.status_code, 200)
 
             expected_data = [
-                "http://example.com/api/v1/files/{}?"
-                "filename=bob/attachments/{}_{}/"
-                "1442323232322.jpg".format(
-                    attachment_id, self.xform.id, self.xform.id_string
+                "http://example.com/api/v1/files/{}?filename={}".format(
+                    attachment_id, attachment.media_file.name
                 )
             ]
             key = "photo"

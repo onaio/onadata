@@ -36,6 +36,7 @@ from onadata.libs.utils.common_tags import (
     GEOLOCATION,
     ID,
     INDEX,
+    LAST_EDITED_BY,
     MULTIPLE_SELECT_TYPE,
     NOTES,
     PARENT_INDEX,
@@ -274,13 +275,11 @@ def _get_var_name(title, var_names):
     @param var_names - list of existing var_names
     @return valid varName and list of var_names with new var name appended
     """
-    var_name = (
-        title.replace("/", ".")
-        .replace("-", "_")
-        .replace(":", "_")
-        .replace("{", "")
-        .replace("}", "")
-    )
+    var_name = title.replace("/", ".").replace("{", "").replace("}", "")
+    # Replace any character that is invalid in an SPSS variable name (e.g.
+    # "&", "-", ":", embedded blanks) so the SAV writer does not raise
+    # SPSS_NAME_BADCHAR. SPSS only allows letters, digits and . _ $ # @.
+    var_name = re.sub(r"[^0-9A-Za-z._$#@]", "_", var_name)
     var_name = _check_sav_column(var_name, var_names)
     var_name = "@" + var_name if var_name.startswith("_") else var_name
     var_names.append(var_name)
@@ -312,6 +311,7 @@ class ExportBuilder:
         VERSION,
         DURATION,
         SUBMITTED_BY,
+        LAST_EDITED_BY,
     ]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
@@ -1496,6 +1496,7 @@ class ExportBuilder:
                 section_name = section["name"]
                 sav_def = sav_defs[section_name]
                 fields = [element["xpath"] for element in section["elements"]]
+                fields += self.extra_columns
                 sav_writer = sav_def["sav_writer"]
                 row = output.get(section_name, None)
                 if isinstance(row, dict):

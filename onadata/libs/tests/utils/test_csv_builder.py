@@ -188,8 +188,17 @@ class TestCSVDataFrameBuilder(TestBase):
         )
         try:
             expected_columns.remove("_deleted_at")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_status")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_comment")
+        except ValueError:
+            pass
+        try:
             expected_columns.remove("_review_date")
         except ValueError:
             pass
@@ -596,6 +605,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_geolocation": [-1.2626156, 36.7923571],
             "_duration": "",
             "_edited": False,
+            "_last_edited_by": None,
             "_gps_latitude": "-1.2626156",
             "_gps_longitude": "36.7923571",
             "_gps_altitude": "0.0",
@@ -665,6 +675,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -727,6 +738,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -800,6 +812,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -837,6 +850,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -911,6 +925,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1042,6 +1057,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1133,6 +1149,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_geolocation": [-1.2626156, 36.7923571],
             "_duration": "",
             "_edited": False,
+            "_last_edited_by": None,
             "_gps_latitude": "-1.2626156",
             "_gps_longitude": "36.7923571",
             "_gps_altitude": "0.0",
@@ -1472,6 +1489,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1528,6 +1546,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1577,6 +1596,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1745,6 +1765,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1907,6 +1928,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -1926,6 +1948,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "True",
             "False",
             "False",
+            "n/a",
             "n/a",
             "n/a",
             "n/a",
@@ -2017,6 +2040,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",
@@ -2030,6 +2054,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "firefox safari",
             "2011",
             "firefox chrome",
+            "n/a",
             "n/a",
             "n/a",
             "n/a",
@@ -2146,6 +2171,7 @@ class TestCSVDataFrameBuilder(TestBase):
             "_version",
             "_duration",
             "_submitted_by",
+            "_last_edited_by",
             "_total_media",
             "_media_count",
             "_media_all_received",

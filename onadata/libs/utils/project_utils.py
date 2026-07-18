@@ -20,14 +20,8 @@ from requests.sessions import HTTPAdapter
 from onadata.apps.api.models.team import Team
 from onadata.apps.logger.models.project import Project
 from onadata.celeryapp import app
-from onadata.libs.permissions import (
-    get_role,
-    is_organization,
-)
-from onadata.libs.utils.common_tags import (
-    API_TOKEN,
-    ONADATA_KOBOCAT_AUTH_HEADER,
-)
+from onadata.libs.permissions import get_role, is_organization
+from onadata.libs.utils.common_tags import API_TOKEN, ONADATA_KOBOCAT_AUTH_HEADER
 from onadata.libs.utils.common_tools import report_exception
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -63,6 +57,33 @@ def get_project_users(project):
     return ret
 
 
+def get_kpi_asset_uid(xform) -> Optional[str]:
+    """
+    Return the KPI asset uid for an XForm, or None if the form has no
+    Formbuilder counterpart
+
+    A form published on Onadata then edited on the Formbuilder keeps its
+    original `id_string`; the KPI asset uid is only recorded in the URL of
+    its `source` metadata. A form originally authored on the Formbuilder
+    has no `source` metadata, but its `id_string` matches the asset uid
+    and it is marked with `published_by_formbuilder` metadata.
+    """
+    source = xform.metadata_set.filter(data_type="source").first()
+
+    if source is not None:
+        match = re.search(r"/assets/([a-zA-Z0-9]+)", source.data_value or "")
+
+        if match is not None:
+            return match.group(1)
+
+    if xform.metadata_set.filter(
+        data_type="published_by_formbuilder", data_value=True
+    ).exists():
+        return xform.id_string
+
+    return None
+
+
 def retrieve_asset_permissions(
     service_url: str, asset_id: str, session: requests.Session
 ) -> Dict[str, List[str]]:
@@ -82,7 +103,7 @@ def retrieve_asset_permissions(
     data = resp.json()
     for permission in data:
         user = permission.get("user")
-        user = re.findall(r"\S\/api\/v2\/users\/(\w+)", user)[0]
+        user = re.search(r"/api/v2/users/([^/]+)", user).group(1)
 
         if user not in ret:
             ret[user] = []
@@ -128,7 +149,7 @@ def propagate_project_permissions_async(self, project_id: int):
             if self.request.retries > 3:
                 msg = f"Failed to propagate permissions for Project {project.pk}"
                 report_exception(msg, exc, sys.exc_info())
-            self.retry(exc=exc, countdown=60 * self.requests.retries)
+            self.retry(exc=exc, countdown=60 * self.request.retries)
 
 
 def propagate_project_permissions(
@@ -157,8 +178,8 @@ def propagate_project_permissions(
         if headers:
             session.headers.update(headers)
 
-        # Retrieve users who have access to the project
-        collaborators: List[str] = [
+        # Retrieve users who administer the project
+        admins: List[str] = [
             username
             for username, data in get_project_users(project).items()
             if not data.get("is_org") and data.get("role") in ["manager", "owner"]
@@ -173,18 +194,14 @@ def propagate_project_permissions(
                     ~Q(username=project.organization.username)
                 ).values_list("username", flat=True)
             )
-            collaborators += owners_team
-            collaborators = list(set(collaborators))
+            admins += owners_team
+            admins = list(set(admins))
 
-        # Propagate permissions for XForms that were published by
-        # Formbuilder
+        # Propagate permissions for XForms that exist on the Formbuilder
         for asset in project.xform_set.filter(deleted_at__isnull=True).iterator():
-            if (
-                asset.metadata_set.filter(
-                    data_type="published_by_formbuilder", data_value=True
-                ).count()
-                == 0
-            ):
+            asset_uid = get_kpi_asset_uid(asset)
+
+            if asset_uid is None:
                 continue
 
             if use_asset_owner_auth:
@@ -198,32 +215,22 @@ def propagate_project_permissions(
                     }
                 )
 
-            assigned_permissions = retrieve_asset_permissions(
-                service_url, asset.id_string, session
+            # The bulk endpoint is declarative: KPI replaces the asset's
+            # assignments with the posted set, removing users left out of
+            # the payload. Always send the complete desired state.
+            # For forms authored on the Formbuilder, `created_by` is the
+            # user who deployed the form and is therefore the asset owner
+            # on KPI — unlike `xform.user`, which is the form owner on
+            # Onadata and may be an organization. The KPI asset owner is
+            # excluded because KPI rejects payloads that assign permissions
+            # to the owner; owners hold all permissions implicitly.
+            assign_change_asset_permission(
+                service_url,
+                asset_uid,
+                [
+                    username
+                    for username in admins
+                    if username != asset.created_by.username
+                ],
+                session,
             )
-            new_users = [
-                username
-                for username in collaborators
-                if username not in assigned_permissions
-            ]
-            removed_permissions = [
-                (username, permissions)
-                for username, permissions in assigned_permissions.items()
-                if username not in collaborators
-            ]
-
-            # Unassign permissions granted to users who no longer have permissions
-            for _, permission_assignments in removed_permissions:
-                _ = [
-                    session.delete(permission_assignment)
-                    for permission_assignment in permission_assignments
-                ]
-
-            # Assign permissions to the new users
-            if new_users:
-                assign_change_asset_permission(
-                    service_url,
-                    asset.id_string,
-                    new_users,
-                    session,
-                )

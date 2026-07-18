@@ -27,6 +27,7 @@ from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from pyxform import SurveyElementBuilder, constants
 from pyxform.errors import PyXFormError
@@ -61,6 +62,7 @@ from onadata.libs.utils.common_tags import (
     DURATION,
     ID,
     KNOWN_MEDIA_TYPES,
+    LAST_EDITED_BY,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
     MULTIPLE_SELECT_TYPE,
@@ -85,9 +87,14 @@ XFORM_TITLE_LENGTH = 255
 TITLE_PATTERN = re.compile(r"<h:title>(.*?)</h:title>")
 
 
+# A title is treated as a URL when it either uses an explicit http(s) scheme
+# (any host, including IP addresses) or is a scheme-less bare domain. Requiring
+# an alphabetic TLD for scheme-less matches keeps version suffixes such as
+# "1.0" from being misread as URLs (see issue #3138).
 URL_PATTERN = (
-    r"(?:https?://)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\."
-    r"[a-zA-Z0-9()]{1,6}\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
+    r"(?:https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}"
+    r"|(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z][a-zA-Z0-9()]{0,5})"
+    r"\b(?::[0-9]{1,5})?(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"
 )
 
 
@@ -758,6 +765,7 @@ class XFormMixin:
             VERSION,
             DURATION,
             SUBMITTED_BY,
+            LAST_EDITED_BY,
             TOTAL_MEDIA,
             MEDIA_COUNT,
             MEDIA_ALL_RECEIVED,
@@ -1539,6 +1547,9 @@ def xform_post_delete_callback(sender, instance, **kwargs):
 post_delete.connect(
     xform_post_delete_callback, sender=XForm, dispatch_uid="xform_post_delete_callback"
 )
+
+# Register XForm in django-reversion
+reversion.register(XForm)
 
 
 # pylint: disable=too-few-public-methods

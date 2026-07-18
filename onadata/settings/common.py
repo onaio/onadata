@@ -188,6 +188,7 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "onadata.libs.utils.middleware.ActivityTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware",
     "onadata.libs.utils.middleware.OperationalErrorMiddleware",
@@ -361,6 +362,13 @@ AUTHENTICATION_BACKENDS = (
 
 # Settings for Django Registration
 ACCOUNT_ACTIVATION_DAYS = 1
+
+# Inactive account deactivation defaults.
+DEACTIVATION_INACTIVITY_DAYS = 365
+DEACTIVATION_WARNING_DAYS = [30, 7]
+DEACTIVATION_PERMISSION_POLICY = "revoke"
+DEACTIVATION_EXCLUDED_USER_IDS = []
+DEACTIVATION_EXCLUDED_USERNAMES = []
 
 
 def skip_suspicious_operations(record):

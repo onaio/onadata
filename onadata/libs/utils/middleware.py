@@ -2,12 +2,13 @@
 """
 Custom middleware classes.
 """
+
 import logging
 import traceback
 from sys import stdout
 
 from django.conf import settings
-from django.db import OperationalError, connection
+from django.db import DatabaseError, OperationalError, connection
 from django.http import HttpResponseNotAllowed
 from django.middleware.locale import LocaleMiddleware
 from django.template import loader
@@ -15,6 +16,10 @@ from django.utils.translation import gettext as _
 from django.utils.translation.trans_real import parse_accept_lang_header
 
 from multidb.pinning import use_master
+
+from onadata.apps.main.models.user_activity import record_user_activity
+
+logger = logging.getLogger(__name__)
 
 
 class BaseMiddleware:  # pylint: disable=too-few-public-methods
@@ -49,6 +54,25 @@ class HTTPResponseNotAllowedMiddleware:  # pylint: disable=too-few-public-method
         response = self.get_response(request)
         if isinstance(response, HttpResponseNotAllowed):
             response.content = loader.render_to_string("405.html", request=request)
+
+        return response
+
+
+class ActivityTrackingMiddleware:  # pylint: disable=too-few-public-methods
+    """Record activity for requests that authenticated by any middleware or view."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        user = getattr(request, "user", None)
+
+        if getattr(user, "is_authenticated", False):
+            try:
+                record_user_activity(user)
+            except DatabaseError:
+                logger.exception("Failed to record user activity for user %s", user.pk)
 
         return response
 

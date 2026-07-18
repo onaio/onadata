@@ -170,6 +170,7 @@ def _edit_instance(instance, old_uuid, new_uuid, submitted_by, checksum, xml):
     )
     instance.xml = xml
     instance.last_edited = last_edited
+    instance.last_edited_by = submitted_by
     instance.uuid = new_uuid
     instance.checksum = checksum
     instance.save()

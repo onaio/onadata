@@ -3,6 +3,95 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.22.3(2026-07-09)
+-------------------
+- fix: register XForm with django-reversion
+  [@kelvin-muchiri]
+  `PR #3170 https://github.com/onaio/onadata/pull/3170`
+
+v5.22.2(2026-07-09)
+-------------------
+- refactor: move user activity backfill out of migrations
+  [@ukanga]
+  `PR #3167 https://github.com/onaio/onadata/pull/3167`
+
+v5.22.1(2026-07-08)
+-------------------
+- perf(messaging): cache list endpoint responses
+  [@kelvin-muchiri]
+  `PR #3158 https://github.com/onaio/onadata/pull/3158`
+- fix: project permission propagation to KPI
+  [@kelvin-muchiri]
+  `PR #3161 https://github.com/onaio/onadata/pull/3161`
+- fix(kpi): resolve asset uid from source metadata when propagating permissions
+  [@kelvin-muchiri]
+  `PR #3164 https://github.com/onaio/onadata/pull/3164`
+- fix: don't mark __enketo_meta_username cookie HttpOnly
+  [@FrankApiyo]
+  `PR #3165 https://github.com/onaio/onadata/pull/3165`
+
+v5.22.0(2026-07-01)*
+--------------------
+- fix: don't classify version numbers in form titles as URLs
+  [@kelvin-muchiri]
+  `PR #3139 https://github.com/onaio/onadata/pull/3139`
+- Address security update findings
+  [@ukanga]
+  `PR #3136 https://github.com/onaio/onadata/pull/3136`
+- fix(exports): sanitize SPSS-invalid characters in SAV export variable names
+  [@kelvin-muchiri]
+  `PR #3146 https://github.com/onaio/onadata/pull/3146`
+- chore: clean up v2 project endpoints and star/unstar handling
+  [@kelvin-muchiri]
+  `PR #3152 https://github.com/onaio/onadata/pull/3152`
+- Add inactive account deactivation lifecycle
+  [@ukanga]
+  `PR #3156 https://github.com/onaio/onadata/pull/3156`
+
+v5.21.0(2026-06-24)*
+--------------------
+- Add last_edited_by to submissions
+  [@ukanga]
+  `PR #3128 https://github.com/onaio/onadata/pull/3128`
+- feat: case-insensitive partial username search on /users
+  [@kelvin-muchiri]
+  `PR #3133 https://github.com/onaio/onadata/pull/3133`
+- fix: invalidate team-users cache when a team's project role changes
+  [@FrankApiyo]
+  `PR #3134 https://github.com/onaio/onadata/pull/3134`
+
+
+v5.20.0(2026-06-17)
+-------------------
+- chore: bump cryptography, valigetta, and lxml
+  [@FrankApiyo]
+  `PR #3119 https://github.com/onaio/onadata/pull/3119`
+- fix(security): key login lockout on canonical username
+  [@kelvin-muchiri]
+  `PR #3118 https://github.com/onaio/onadata/pull/3118`
+- Include filenames in upload validation errors
+  [@ukanga]
+  `PR #3121 https://github.com/onaio/onadata/pull/3121`
+- Fix public project response caching
+  [@ukanga]
+  `PR #3120 https://github.com/onaio/onadata/pull/3120`
+- fix: rate limit password reset requests
+  [@ukanga]
+  `PR #3122 https://github.com/onaio/onadata/pull/3122`
+- fix: save a new form version when a form is replaced
+  [@kelvin-muchiri]
+  `PR #3075 https://github.com/onaio/onadata/pull/3075`
+- fix: case-insensitive username uniqueness + hyphenated username URL support
+  [@kelvin-muchiri]
+  `PR #3126 https://github.com/onaio/onadata/pull/3126`
+- feat(security): rate-limit HTTP Basic and OAuth2 password-grant logins
+  [@kelvin-muchiri]
+  `PR #3127 https://github.com/onaio/onadata/pull/3127`
+- fix: exclude inactive users from project users list
+  [@kelvin-muchiri]
+  `PR #3131 https://github.com/onaio/onadata/pull/3131`
+
+
 v5.19.0(2026-06-04)
 -------------------
 - Add bbox endpoint for forms, dataviews, and merged datasets

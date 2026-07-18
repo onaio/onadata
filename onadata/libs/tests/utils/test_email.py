@@ -2,6 +2,8 @@
 """
 Test onadata.utils.emails module.
 """
+
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from django.test import RequestFactory
@@ -13,6 +15,7 @@ from onadata.apps.logger.models import ProjectInvitation
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.email import (
     ProjectInvitationEmail,
+    get_account_deactivation_email_data,
     get_project_invitation_url,
     get_verification_email_data,
     get_verification_url,
@@ -161,6 +164,27 @@ class TestEmail(TestBase):
     def test_email_data_does_not_contain_newline_chars(self):
         email_data = self._get_email_data(include_redirect_url=True)
         self.assertNotIn("\n", email_data.get("subject"))
+
+    @override_settings(DEPLOYMENT_NAME="Misfit", SUPPORT_EMAIL="help@example.com")
+    def test_get_account_deactivation_email_data(self):
+        deactivation_date = datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc)
+
+        email_data = get_account_deactivation_email_data(
+            email="jane@example.com",
+            username="janedoe",
+            days_remaining=30,
+            deactivation_date=deactivation_date,
+        )
+
+        self.assertEqual(email_data["email"], "jane@example.com")
+        self.assertEqual(
+            email_data["subject"],
+            "Misfit account scheduled for deactivation",
+        )
+        self.assertNotIn("\n", email_data["subject"])
+        self.assertIn("Hi janedoe", email_data["message_txt"])
+        self.assertIn("30 days", email_data["message_txt"])
+        self.assertIn("help@example.com", email_data["message_txt"])
 
 
 @override_settings(DEFAULT_FROM_EMAIL="no-reply@mail.misfit.com")

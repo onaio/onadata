@@ -2,6 +2,7 @@
 """
 Instance model class
 """
+
 # pylint: disable=too-many-lines
 
 import importlib
@@ -67,6 +68,7 @@ from onadata.libs.utils.common_tags import (
     GEOLOCATION,
     ID,
     LAST_EDITED,
+    LAST_EDITED_BY,
     MEDIA_ALL_RECEIVED,
     MEDIA_COUNT,
     NOTES,
@@ -508,12 +510,20 @@ class InstanceBaseClass:
         if isinstance(self.deleted_at, datetime):
             doc[DELETEDAT] = self.deleted_at.isoformat()
 
-        edited = False
-
         if hasattr(self, "last_edited"):
             edited = self.last_edited is not None
+        else:
+            edited = False
 
         doc[EDITED] = edited
+
+        last_edited_by = None
+        if hasattr(self, "last_edited_by"):
+            last_edited_by = self.last_edited_by
+
+        doc[LAST_EDITED_BY] = (
+            last_edited_by.username if last_edited_by is not None else None
+        )
 
         if edited:
             doc.update({LAST_EDITED: convert_to_serializable_date(self.last_edited)})
@@ -676,6 +686,9 @@ class Instance(models.Model, InstanceBaseClass):
 
     # this will be edited when we need to create a new InstanceHistory object
     last_edited = models.DateTimeField(null=True, default=None)
+    last_edited_by = models.ForeignKey(
+        User, related_name="edited_instances", null=True, on_delete=models.SET_NULL
+    )
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete

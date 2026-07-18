@@ -9,6 +9,11 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_team_project import ShareTeamProject
 from onadata.libs.permissions import ManagerRole
+from onadata.libs.utils.cache_tools import (
+    PROJ_TEAM_USERS_CACHE,
+    safe_cache_get,
+    safe_cache_set,
+)
 
 
 class ShareTeamProjectTestCase(TestBase):
@@ -50,6 +55,7 @@ class ShareTeamProjectTestCase(TestBase):
         mock_safe_cache_delete.assert_has_calls(
             [
                 call(f"ps-project_permissions-{self.project.pk}"),
+                call(f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}"),
             ]
         )
 
@@ -79,5 +85,31 @@ class ShareTeamProjectTestCase(TestBase):
         mock_safe_cache_delete.assert_has_calls(
             [
                 call(f"ps-project_permissions-{self.project.pk}"),
+                call(f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}"),
             ]
         )
+
+    def test_share_busts_team_users_cache(self):
+        """Sharing a project with a team busts the cached teams list.
+
+        Regression: get_teams() caches the team's role under
+        PROJ_TEAM_USERS_CACHE. If the role changes but the key is not
+        invalidated, the project endpoint keeps serving the stale role.
+        """
+        cache_key = f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}"
+        safe_cache_set(
+            cache_key,
+            [{"name": self.team.name, "role": "dataentry", "users": []}],
+        )
+        ShareTeamProject(self.team, self.project, "editor").save()
+        self.assertIsNone(safe_cache_get(cache_key))
+
+    def test_remove_busts_team_users_cache(self):
+        """Removing a team from a project busts the cached teams list."""
+        cache_key = f"{PROJ_TEAM_USERS_CACHE}{self.project.pk}"
+        safe_cache_set(
+            cache_key,
+            [{"name": self.team.name, "role": "manager", "users": []}],
+        )
+        ShareTeamProject(self.team, self.project, "manager", remove=True).save()
+        self.assertIsNone(safe_cache_get(cache_key))

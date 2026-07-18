@@ -137,6 +137,7 @@ class ProjectViewSet(
         self.object = self.get_object()
         cache_key = get_project_cache_key(self.object.pk, request, self.object)
         project_data = safe_cache_get(cache_key)
+
         if project_data is None:
             serializer = ProjectSerializer(self.object, context={"request": request})
             project_data = get_shared_project_detail_cache_data(serializer.data)
@@ -145,17 +146,6 @@ class ProjectViewSet(
             project_data = get_shared_project_detail_cache_data(project_data)
 
         return Response({**project_data, "starred": is_starred(self.object, request)})
-
-    def list(self, request, *args, **kwargs):
-        """Returns a list of projects"""
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page:
-            serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
 
     @action(methods=["POST", "GET"], detail=True)
     def forms(self, request, **kwargs):
@@ -258,10 +248,8 @@ class ProjectViewSet(
 
         if request.method == "DELETE":
             project.user_stars.remove(user)
-            project.save()
         elif request.method == "POST":
             project.user_stars.add(user)
-            project.save()
         elif request.method == "GET":
             users = project.user_stars.values("pk")
             user_profiles = UserProfile.objects.filter(user__in=users)
