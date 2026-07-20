@@ -155,12 +155,43 @@ class EntityListTestCase(TestBase):
         entity_list.soft_delete()
         entity_list.refresh_from_db()
         self.assertIsNone(entity_list.deleted_by)
-        # updated name is truncated if more than 255 characters
+        # name is unchanged if appending the suffix would exceed 255 characters
         dataset_name = "x" * 255
         entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
         entity_list.soft_delete()
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.name, dataset_name)
+
+    def test_soft_delete_long_name(self):
+        """Deletion suffix is not appended if it would exceed the max length"""
+        dataset_name = "x" * 250
+        entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
+
+        entity_list.soft_delete(self.user)
+
+        entity_list.refresh_from_db()
+        self.assertIsNotNone(entity_list.deleted_at)
+        self.assertEqual(entity_list.name, dataset_name)
+
+    def test_str_includes_deletion_suffix(self):
+        """String representation includes the deletion suffix if name lacks it"""
+        dataset_name = "x" * 250
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(
+                name=dataset_name, project=self.project
+            )
+            trees = EntityList.objects.create(name="trees", project=self.project)
+            entity_list.soft_delete(self.user)
+            trees.soft_delete(self.user)
+
+        entity_list.refresh_from_db()
+        trees.refresh_from_db()
+        suffix = self.mocked_now.strftime("-deleted-at-%s")
+        # Suffix missing from stored name is included
+        self.assertEqual(f"{entity_list}", f"{dataset_name}{suffix}|{self.project}")
+        # Suffix present in stored name is not duplicated
+        self.assertEqual(f"{trees}", f"trees{suffix}|{self.project}")
 
     def test_restore(self):
         """Soft deleted EntityList is restored"""

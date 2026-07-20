@@ -1305,7 +1305,17 @@ class XForm(XFormMixin, BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return getattr(self, "id_string", "")
+        id_string = getattr(self, "id_string", "")
+
+        # The deletion suffix is not stored if appending it would exceed
+        # the id_string's max length
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+
+            if not id_string.endswith(deletion_suffix):
+                id_string += deletion_suffix
+
+        return id_string
 
     @transaction.atomic()
     def soft_delete(self, user=None):
@@ -1322,13 +1332,14 @@ class XForm(XFormMixin, BaseModel):
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime("-deleted-at-%s")
         self.deleted_at = soft_deletion_time
-        self.id_string += deletion_suffix
-        self.sms_id_string += deletion_suffix
         self.downloadable = False
 
-        # only take the first 100 characters (within the set max_length)
-        self.id_string = self.id_string[: self.MAX_ID_LENGTH]
-        self.sms_id_string = self.sms_id_string[: self.MAX_ID_LENGTH]
+        # Never store a truncated suffix
+        if len(self.id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.id_string += deletion_suffix
+
+        if len(self.sms_id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.sms_id_string += deletion_suffix
 
         update_fields = [
             "date_modified",
