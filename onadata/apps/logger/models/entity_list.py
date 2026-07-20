@@ -107,7 +107,10 @@ class EntityList(BaseModel):
             )
 
             for datum in queryset_iterator(metadata_qs):
-                if datum.content_object.deleted_at is None:
+                # Do not reactivate metadata whose owning form is itself
+                # soft deleted e.g. a follow-up form that was soft deleted
+                # before the EntityList was soft deleted
+                if getattr(datum.content_object, "deleted_at", None) is None:
                     datum.restore()
 
     class Meta(BaseModel.Meta):
