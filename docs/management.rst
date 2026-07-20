@@ -38,11 +38,16 @@ You can also restore a form in Django admin interface:
 Restore soft deleted EntityList
 -------------------------------
 
-Restores a soft deleted EntityList. The EntityList is identified by its ID.
+Restores a soft deleted EntityList. The EntityList is identified by its ID or
+by the ID of a registration form (XForm) that creates entities in it.
 
 .. code-block:: bash
 
     python manage.py restore_entity_list entity_list_id
+
+.. code-block:: bash
+
+    python manage.py restore_entity_list --xform-id xform_id
 
 
 Soft delete user
