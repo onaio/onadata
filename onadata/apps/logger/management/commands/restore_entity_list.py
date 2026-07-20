@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     Usage:
     python manage.py restore_entity_list <entity_list_id>
-    python manage.py restore_entity_list --xform-id <xform_id>
+    python manage.py restore_entity_list --contributor <xform_id>
     """
 
     help = "Restores a soft-deleted EntityList."
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             help="The ID of the soft-deleted EntityList to restore",
         )
         parser.add_argument(
-            "--xform-id",
+            "--contributor",
             type=int,
             help=(
                 "The ID of a registration form (XForm) that creates entities "
@@ -38,10 +38,10 @@ class Command(BaseCommand):
     def _get_entity_list(self, options):
         """Retrieve the soft-deleted EntityList to restore"""
         entity_list_id = options["entity_list_id"]
-        xform_id = options["xform_id"]
+        xform_id = options["contributor"]
 
         if (entity_list_id is None) == (xform_id is None):
-            raise CommandError("Provide exactly one of entity_list_id or --xform-id")
+            raise CommandError("Provide exactly one of entity_list_id or --contributor")
 
         if entity_list_id is not None:
             try:

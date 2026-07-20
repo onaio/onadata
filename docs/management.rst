@@ -47,7 +47,7 @@ by the ID of a registration form (XForm) that creates entities in it.
 
 .. code-block:: bash
 
-    python manage.py restore_entity_list --xform-id xform_id
+    python manage.py restore_entity_list --contributor xform_id
 
 
 Soft delete user

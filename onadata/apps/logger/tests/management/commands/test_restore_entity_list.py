@@ -35,14 +35,14 @@ class RestoreEntityListTestCase(TestBase):
             out.getvalue(),
         )
 
-    def test_restore_by_xform_id(self):
-        """Soft deleted EntityList is restored via registration form XForm ID"""
+    def test_restore_by_contributor(self):
+        """Soft deleted EntityList is restored via contributing XForm ID"""
         xform = self._publish_registration_form(self.user)
         entity_list = EntityList.objects.get(name="trees")
         entity_list.soft_delete(self.user)
         out = StringIO()
 
-        call_command("restore_entity_list", xform_id=xform.pk, stdout=out)
+        call_command("restore_entity_list", contributor=xform.pk, stdout=out)
 
         entity_list.refresh_from_db()
         self.assertIsNone(entity_list.deleted_at)
@@ -68,18 +68,18 @@ class RestoreEntityListTestCase(TestBase):
         ):
             call_command("restore_entity_list", 1234)
 
-    def test_no_entity_list_for_xform(self):
-        """No soft-deleted EntityList found for the XForm ID fails"""
+    def test_no_entity_list_for_contributor(self):
+        """No soft-deleted EntityList found for the contributing XForm fails"""
         xform = self._publish_registration_form(self.user)
 
         with self.assertRaisesRegex(
             CommandError,
             f"No soft-deleted EntityList found for XForm with ID {xform.pk}",
         ):
-            call_command("restore_entity_list", xform_id=xform.pk)
+            call_command("restore_entity_list", contributor=xform.pk)
 
-    def test_multiple_entity_lists_for_xform(self):
-        """Multiple soft-deleted EntityLists for the XForm ID fails"""
+    def test_multiple_entity_lists_for_contributor(self):
+        """Multiple soft-deleted EntityLists for the contributing XForm fails"""
         xform = self._publish_registration_form(self.user)
         trees = EntityList.objects.get(name="trees")
         shrubs = EntityList.objects.create(name="shrubs", project=self.project)
@@ -92,16 +92,16 @@ class RestoreEntityListTestCase(TestBase):
             f"Multiple soft-deleted EntityLists found for XForm with ID "
             f"{xform.pk}: {trees.pk}, {shrubs.pk}",
         ):
-            call_command("restore_entity_list", xform_id=xform.pk)
+            call_command("restore_entity_list", contributor=xform.pk)
 
-    def test_id_or_xform_id_required(self):
-        """Exactly one of entity_list_id or --xform-id must be provided"""
+    def test_id_or_contributor_required(self):
+        """Exactly one of entity_list_id or --contributor must be provided"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         entity_list.soft_delete(self.user)
-        expected_error = "Provide exactly one of entity_list_id or --xform-id"
+        expected_error = "Provide exactly one of entity_list_id or --contributor"
 
         with self.assertRaisesRegex(CommandError, expected_error):
             call_command("restore_entity_list")
 
         with self.assertRaisesRegex(CommandError, expected_error):
-            call_command("restore_entity_list", entity_list.pk, xform_id=1)
+            call_command("restore_entity_list", entity_list.pk, contributor=1)
