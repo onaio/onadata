@@ -10,6 +10,10 @@ This endpoint provides access to event messages sent for a specific target. Wher
 
     - ``user``
 
+    - ``kmskey``
+
+    - ``entitylist``
+
 * ``target_id`` - The unique identifier of the target object.
 
 * ``verb`` - A specific action that has occured on the object. The supported verbs are:
@@ -24,6 +28,16 @@ This endpoint provides access to event messages sent for a specific target. Wher
     - ``submission_reviewed``
 
     - ``form_updated``
+
+    - ``kmskey_rotated``
+
+    - ``export_created``
+
+    - ``export_downloaded``
+
+    - ``entitylist_imported``
+
+    - ``entitylist_deleted``
 
 
 GET All event messages that have been sent for a form
