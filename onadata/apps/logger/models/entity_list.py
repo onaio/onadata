@@ -45,7 +45,17 @@ class EntityList(BaseModel):
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f"{self.name}|{self.project}"
+        name = self.name
+
+        # The deletion suffix is not stored if appending it would exceed
+        # the name's max length
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+
+            if not name.endswith(deletion_suffix):
+                name += deletion_suffix
+
+        return f"{name}|{self.project}"
 
     @property
     def properties(self) -> list[str]:
@@ -64,8 +74,11 @@ class EntityList(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             original_name = self.name
-            self.name += deletion_suffix
-            self.name = self.name[:255]  # Only first 255 characters
+
+            # Never store a truncated suffix
+            if len(self.name) + len(deletion_suffix) <= 255:
+                self.name += deletion_suffix
+
             self.save()
             clear_project_cache(self.project.pk)
             # Soft delete follow up forms link

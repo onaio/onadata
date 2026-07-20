@@ -146,6 +146,25 @@ class TestXForm(TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
         self.assertEqual(xform.deleted_by.username, "bob")
 
+    def test_str_includes_deletion_suffix(self):
+        """String representation includes the deletion suffix if missing"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        long_id_string = "x" * 95
+        xform.id_string = long_id_string
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        # Suffix missing from stored id_string is included
+        self.assertEqual(str(xform), f"{long_id_string}{suffix}")
+        # Suffix present in stored id_string is not duplicated
+        deleted_xform = XForm(
+            id_string=f"transportation{suffix}", deleted_at=xform.deleted_at
+        )
+        self.assertEqual(str(deleted_xform), f"transportation{suffix}")
+
     def test_get_survey_element(self):
         """
         Test XForm.get_survey_element()
@@ -224,22 +243,31 @@ class TestXForm(TestBase):
         xform.soft_delete(self.user)
         xform.refresh_from_db()
 
-        d_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
-        d_sms_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
-
         # deleted_at is not None
         self.assertIsNotNone(xform.deleted_at)
 
         # is inactive, no submissions will be allowed
         self.assertFalse(xform.downloadable)
 
-        self.assertGreater(len(d_sms_id_string), 100)
-        self.assertGreater(len(d_id_string), 100)
-        self.assertIn(xform.sms_id_string, d_id_string)
-        self.assertIn(xform.sms_id_string, d_sms_id_string)
-        self.assertEqual(xform.id_string, d_id_string[:100])
-        self.assertEqual(xform.sms_id_string, d_sms_id_string[:100])
+        # suffix is not appended since it would exceed the max length
+        self.assertEqual(xform.id_string, new_string)
+        self.assertEqual(xform.sms_id_string, new_string)
         self.assertEqual(xform.deleted_by.username, "bob")
+
+    def test_soft_delete_suffix_applied_per_field(self):
+        """Deletion suffix is applied independently per field"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        long_id_string = "x" * 95
+        xform.id_string = long_id_string
+        xform.sms_id_string = "transportation_sms"
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        self.assertEqual(xform.id_string, long_id_string)
+        self.assertEqual(xform.sms_id_string, f"transportation_sms{suffix}")
 
     def test_id_string_length(self):
         """Test Xform.id_string cannot store more than 100 chars"""
