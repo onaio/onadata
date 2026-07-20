@@ -595,6 +595,20 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
             self.entity_list.name, f'trees{mocked_date.strftime("-deleted-at-%s")}'
         )
 
+    @patch("onadata.apps.api.viewsets.entity_list_viewset.send_message")
+    def test_audit_log_capture(self, mock_send_message):
+        """Audit log is captured on deletion"""
+        request = self.factory.delete("/", **self.extra)
+        response = self.view(request, pk=self.entity_list.pk)
+        self.assertEqual(response.status_code, 204)
+        mock_send_message.assert_called_once_with(
+            instance_id=self.entity_list.pk,
+            target_id=self.entity_list.pk,
+            target_type="entitylist",
+            user=self.user,
+            message_verb="entitylist_deleted",
+        )
+
     def test_authentication_required(self):
         """Anonymous user cannot delete EntityList"""
         # Private EntityList
