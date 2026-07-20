@@ -162,6 +162,25 @@ class EntityListTestCase(TestBase):
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.name, dataset_name)
 
+    def test_restore(self):
+        """Soft deleted EntityList is restored"""
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(name="trees", project=self.project)
+            follow_up_form = self._publish_follow_up_form(self.user)
+            entity_list.soft_delete(self.user)
+
+        entity_list.restore()
+
+        entity_list.refresh_from_db()
+        follow_up_form_meta_datum = follow_up_form.metadata_set.get(
+            data_value=f"entity_list {entity_list.pk} trees"
+        )
+        self.assertIsNone(entity_list.deleted_at)
+        self.assertIsNone(entity_list.deleted_by)
+        self.assertEqual(entity_list.name, "trees")
+        self.assertIsNone(follow_up_form_meta_datum.deleted_at)
+
     def test_hard_delete(self):
         """Hard delete removes consumers' metadata"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)

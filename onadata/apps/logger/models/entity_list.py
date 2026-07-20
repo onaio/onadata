@@ -77,6 +77,27 @@ class EntityList(BaseModel):
             for datum in queryset_iterator(metadata_qs):
                 datum.soft_delete()
 
+    @transaction.atomic()
+    def restore(self):
+        """Restore a soft-deleted EntityList"""
+        # Avoid circular import
+        meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
+
+        if self.deleted_at is not None:
+            self.deleted_at = None
+            self.deleted_by = None
+            self.name = self.name.split("-deleted-at-")[0]
+            self.save()
+            clear_project_cache(self.project.pk)
+            # Restore follow up forms link
+            metadata_qs = meta_data.MetaData.objects.filter(
+                data_type="media",
+                data_value=f"entity_list {self.pk} {self.name}",
+            )
+
+            for datum in queryset_iterator(metadata_qs):
+                datum.restore()
+
     class Meta(BaseModel.Meta):
         app_label = "logger"
         unique_together = ("name", "project")
