@@ -3,6 +3,21 @@ Changelog for Onadata
 
 ``* represents releases that introduce new migrations``
 
+v5.23.0(2026-07-20)
+-------------------
+- feat(entities): capture audit log on EntityList deletion
+  [@kelvin-muchiri]
+  `PR #3180 https://github.com/onaio/onadata/pull/3180`
+- feat(messaging): group by verb, user in messaging endpoint
+  [@kelvin-muchiri]
+  `PR #3159 https://github.com/onaio/onadata/pull/3159`
+- fix(auth): per-user PasswordHistory uniqueness (login lockout)
+  [@FrankApiyo]
+  `PR #3173 https://github.com/onaio/onadata/pull/3173`
+- feat(v2): server-side project search, sort & role/starred/shared filters
+  [@FrankApiyo]
+  `PR #3172 https://github.com/onaio/onadata/pull/3172`
+
 v5.22.3(2026-07-09)
 -------------------
 - fix: register XForm with django-reversion

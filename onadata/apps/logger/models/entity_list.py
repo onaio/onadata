@@ -77,6 +77,42 @@ class EntityList(BaseModel):
             for datum in queryset_iterator(metadata_qs):
                 datum.soft_delete()
 
+    @transaction.atomic()
+    def restore(self):
+        """Restore a soft-deleted EntityList"""
+        # Avoid circular import
+        meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
+
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+            self.deleted_at = None
+            self.deleted_by = None
+
+            if self.name.endswith(deletion_suffix):
+                self.name = self.name[: -len(deletion_suffix)]
+            elif len(self.name) == 255:
+                # Soft delete truncated the name to 255 characters,
+                # retaining only part of the deletion suffix
+                for length in range(len(deletion_suffix) - 1, 0, -1):
+                    if self.name.endswith(deletion_suffix[:length]):
+                        self.name = self.name[:-length]
+                        break
+
+            self.save()
+            clear_project_cache(self.project.pk)
+            # Restore follow up forms link
+            metadata_qs = meta_data.MetaData.objects.filter(
+                data_type="media",
+                data_value=f"entity_list {self.pk} {self.name}",
+            )
+
+            for datum in queryset_iterator(metadata_qs):
+                # Do not reactivate metadata whose owning form is itself
+                # soft deleted e.g. a follow-up form that was soft deleted
+                # before the EntityList was soft deleted
+                if getattr(datum.content_object, "deleted_at", None) is None:
+                    datum.restore()
+
     class Meta(BaseModel.Meta):
         app_label = "logger"
         unique_together = ("name", "project")
