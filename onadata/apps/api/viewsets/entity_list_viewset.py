@@ -17,9 +17,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.mixins import (
     CreateModelMixin,
+    DestroyModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
-    DestroyModelMixin,
 )
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -29,6 +29,8 @@ from onadata.apps.api.permissions import EntityListPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models import Entity, EntityList
 from onadata.apps.logger.tasks import import_entities_from_csv_async
+from onadata.apps.messaging.constants import ENTITY_LIST, ENTITY_LIST_DELETED
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.filters import AnonUserEntityListFilter, EntityListProjectFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -226,6 +228,13 @@ class EntityListViewSet(
     def perform_destroy(self, instance):
         """Override `perform_detroy` method"""
         instance.soft_delete(self.request.user)
+        send_message(
+            instance_id=instance.pk,
+            target_id=instance.pk,
+            target_type=ENTITY_LIST,
+            user=self.request.user,
+            message_verb=ENTITY_LIST_DELETED,
+        )
 
     def create(self, request, *args, **kwargs):
         """Override `create` method"""
