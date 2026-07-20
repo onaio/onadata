@@ -181,6 +181,55 @@ class EntityListTestCase(TestBase):
         self.assertEqual(entity_list.name, "trees")
         self.assertIsNone(follow_up_form_meta_datum.deleted_at)
 
+    def test_restore_follow_up_form_deleted(self):
+        """Metadata of a soft-deleted follow-up form stays deleted on restore"""
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(name="trees", project=self.project)
+            follow_up_form = self._publish_follow_up_form(self.user)
+            follow_up_form.soft_delete(self.user)
+            entity_list.soft_delete(self.user)
+
+        entity_list.restore()
+
+        entity_list.refresh_from_db()
+        follow_up_form_meta_datum = follow_up_form.metadata_set.get(
+            data_value=f"entity_list {entity_list.pk} trees"
+        )
+        self.assertIsNone(entity_list.deleted_at)
+        self.assertIsNotNone(follow_up_form_meta_datum.deleted_at)
+
+    def test_restore_name_contains_deletion_marker(self):
+        """Name containing the deletion marker is restored intact"""
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(
+                name="trees-deleted-at-noon", project=self.project
+            )
+            entity_list.soft_delete(self.user)
+
+        entity_list.restore()
+
+        entity_list.refresh_from_db()
+        self.assertIsNone(entity_list.deleted_at)
+        self.assertEqual(entity_list.name, "trees-deleted-at-noon")
+
+    def test_restore_truncated_name(self):
+        """Name truncated to 255 characters on soft delete is restored"""
+        original_name = "x" * 250
+        with patch("django.utils.timezone.now") as mock_now:
+            mock_now.return_value = self.mocked_now
+            entity_list = EntityList.objects.create(
+                name=original_name, project=self.project
+            )
+            entity_list.soft_delete(self.user)
+
+        entity_list.restore()
+
+        entity_list.refresh_from_db()
+        self.assertIsNone(entity_list.deleted_at)
+        self.assertEqual(entity_list.name, original_name)
+
     def test_hard_delete(self):
         """Hard delete removes consumers' metadata"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)

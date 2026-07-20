@@ -84,9 +84,20 @@ class EntityList(BaseModel):
         meta_data = importlib.import_module("onadata.apps.main.models.meta_data")
 
         if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
             self.deleted_at = None
             self.deleted_by = None
-            self.name = self.name.split("-deleted-at-")[0]
+
+            if self.name.endswith(deletion_suffix):
+                self.name = self.name[: -len(deletion_suffix)]
+            elif len(self.name) == 255:
+                # Soft delete truncated the name to 255 characters,
+                # retaining only part of the deletion suffix
+                for length in range(len(deletion_suffix) - 1, 0, -1):
+                    if self.name.endswith(deletion_suffix[:length]):
+                        self.name = self.name[:-length]
+                        break
+
             self.save()
             clear_project_cache(self.project.pk)
             # Restore follow up forms link
@@ -96,7 +107,8 @@ class EntityList(BaseModel):
             )
 
             for datum in queryset_iterator(metadata_qs):
-                datum.restore()
+                if datum.content_object.deleted_at is None:
+                    datum.restore()
 
     class Meta(BaseModel.Meta):
         app_label = "logger"

@@ -61,7 +61,9 @@ class Command(BaseCommand):
 
         entity_lists = list(
             EntityList.objects.filter(
-                registration_forms__xform_id=xform_id, deleted_at__isnull=False
+                registration_forms__xform_id=xform_id,
+                registration_forms__is_active=True,
+                deleted_at__isnull=False,
             ).order_by("pk")
         )
 

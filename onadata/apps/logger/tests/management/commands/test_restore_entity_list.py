@@ -94,6 +94,31 @@ class RestoreEntityListTestCase(TestBase):
         ):
             call_command("restore_entity_list", contributor=xform.pk)
 
+    def test_inactive_contributor_link_ignored(self):
+        """Only active registration form links are considered"""
+        xform = self._publish_registration_form(self.user)
+        trees = EntityList.objects.get(name="trees")
+        shrubs = EntityList.objects.create(name="shrubs", project=self.project)
+        RegistrationForm.objects.create(entity_list=shrubs, xform=xform)
+        trees_link = RegistrationForm.objects.get(entity_list=trees, xform=xform)
+        trees_link.is_active = False
+        trees_link.save()
+        trees.soft_delete(self.user)
+        shrubs.soft_delete(self.user)
+        out = StringIO()
+
+        call_command("restore_entity_list", contributor=xform.pk, stdout=out)
+
+        shrubs.refresh_from_db()
+        trees.refresh_from_db()
+        self.assertIsNone(shrubs.deleted_at)
+        self.assertEqual(shrubs.name, "shrubs")
+        self.assertIsNotNone(trees.deleted_at)
+        self.assertIn(
+            f"Successfully restored EntityList 'shrubs' with ID {shrubs.pk}",
+            out.getvalue(),
+        )
+
     def test_id_or_contributor_required(self):
         """Exactly one of entity_list_id or --contributor must be provided"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
