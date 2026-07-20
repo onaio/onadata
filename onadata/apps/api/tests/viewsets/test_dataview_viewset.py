@@ -1506,6 +1506,18 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
         self.assertEqual({"detail": "Invalid page."}, response.data)
 
+        # geojson requested via the format query param (no format kwarg) should
+        # also use the GeoJsonSerializer instead of crashing with a TypeError
+        request = self.factory.get(
+            "/?format=geojson&geofield=_geolocation&page=1&page_size=1&fields=name",
+            **self.extra,
+        )
+        response = view(request, pk=self.data_view.pk)
+        headers = dict(response.items())
+        self.assertEqual(headers["Content-Type"], "application/geo+json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual("FeatureCollection", response.data["type"])
+
     # pylint: disable=invalid-name
     def test_dataview_project_cache_cleared(self):
         self._create_dataview()
