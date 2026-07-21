@@ -104,8 +104,9 @@ class EntityList(BaseModel):
             if self.name.endswith(deletion_suffix):
                 self.name = self.name[: -len(deletion_suffix)]
             elif len(self.name) == 255:
-                # Soft delete truncated the name to 255 characters,
-                # retaining only part of the deletion suffix
+                # Legacy: soft delete previously truncated the name to
+                # 255 characters, retaining only part of the deletion
+                # suffix
                 for length in range(len(deletion_suffix) - 1, 0, -1):
                     if self.name.endswith(deletion_suffix[:length]):
                         self.name = self.name[:-length]
