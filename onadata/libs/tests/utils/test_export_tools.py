@@ -721,6 +721,26 @@ class TestExportTools(TestAbstractViewSet):
         ]  # yapf: disable
         self.assertEqual(kml_export_data(xform.id_string, xform.user), expected_data)
 
+    def test_kml_export_data_deleted_twin_ignored(self):
+        """kml_export_data exports the active form when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        self._publish_markdown(md, self.user, id_string=id_string)
+
+        data = kml_export_data(id_string, self.user)
+
+        self.assertEqual(data, [])
+
     def test_kml_exports(self):
         """
         Test generate_kml_export()

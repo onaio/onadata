@@ -57,7 +57,7 @@ class Command(BaseCommand):
         if options.get("id_string"):
             id_string = options.get("id_string")
             try:
-                xform = XForm.objects.get(id_string=id_string)
+                xform = XForm.objects.get(id_string=id_string, deleted_at__isnull=True)
             except XForm.DoesNotExist as error:
                 raise CommandError(
                     f"Error: Form with id_string {id_string} does not exist"

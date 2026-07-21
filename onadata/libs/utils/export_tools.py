@@ -194,7 +194,9 @@ def generate_export(export_type, xform, export_id=None, options=None):  # noqa C
 
     if xform is None:
         xform = XForm.objects.get(
-            user__username__iexact=username, id_string__iexact=id_string
+            user__username__iexact=username,
+            id_string__iexact=id_string,
+            deleted_at__isnull=True,
         )
 
     dataview = None
@@ -507,7 +509,9 @@ def generate_attachments_zip_export(
     sort = options.get("sort")
 
     if xform is None:
-        xform = XForm.objects.get(user__username=username, id_string=id_string)
+        xform = XForm.objects.get(
+            user__username=username, id_string=id_string, deleted_at__isnull=True
+        )
 
     attachment_qs = Attachment.objects.filter(
         instance__deleted_at__isnull=True,
@@ -624,7 +628,9 @@ def generate_kml_export(
 
     user = User.objects.get(username=username)
     if xform is None:
-        xform = XForm.objects.get(user__username=username, id_string=id_string)
+        xform = XForm.objects.get(
+            user__username=username, id_string=id_string, deleted_at__isnull=True
+        )
 
     response = render(
         None, "survey.kml", {"data": kml_export_data(id_string, user, xform=xform)}
@@ -681,7 +687,9 @@ def generate_geojson_export(
 
     extension = options.get("extension", export_type)
     if xform is None:
-        xform = XForm.objects.get(user__username=username, id_string=id_string)
+        xform = XForm.objects.get(
+            user__username=username, id_string=id_string, deleted_at__isnull=True
+        )
     request = HttpRequest()
     request.query_params = {
         param: options.get(param)
@@ -728,7 +736,9 @@ def kml_export_data(id_string, user, xform=None):
 
         return labels[xpath]
 
-    xform = xform or XForm.objects.get(id_string=id_string, user=user)
+    xform = xform or XForm.objects.get(
+        id_string=id_string, user=user, deleted_at__isnull=True
+    )
 
     data_kwargs = {"geom__isnull": False}
     if xform.is_merged_dataset:
@@ -812,7 +822,9 @@ def generate_osm_export(
     extension = options.get("extension", export_type)
 
     if xform is None:
-        xform = XForm.objects.get(user__username=username, id_string=id_string)
+        xform = XForm.objects.get(
+            user__username=username, id_string=id_string, deleted_at__isnull=True
+        )
 
     kwargs = get_osm_data_kwargs(xform)
     osm_list = OsmData.objects.filter(**kwargs)
@@ -917,7 +929,9 @@ def generate_external_export(  # noqa C901
 
     if xform is None:
         xform = XForm.objects.get(
-            user__username__iexact=username, id_string__iexact=id_string
+            user__username__iexact=username,
+            id_string__iexact=id_string,
+            deleted_at__isnull=True,
         )
     user = User.objects.get(username=username)
 
