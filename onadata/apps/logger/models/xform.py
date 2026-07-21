@@ -1370,9 +1370,23 @@ class XForm(XFormMixin, BaseModel):
         if self.deleted_at is None:
             return
 
+        deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
         self.deleted_at = None
-        self.id_string = self.id_string.split("-deleted-at-")[0]
-        self.sms_id_string = self.sms_id_string.split("-deleted-at-")[0]
+
+        for field in ("id_string", "sms_id_string"):
+            value = getattr(self, field)
+
+            if value.endswith(deletion_suffix):
+                setattr(self, field, value[: -len(deletion_suffix)])
+            elif len(value) == self.MAX_ID_LENGTH:
+                # Legacy: soft delete previously truncated the value to
+                # the max length, retaining only part of the deletion
+                # suffix
+                for length in range(len(deletion_suffix) - 1, 0, -1):
+                    if value.endswith(deletion_suffix[:length]):
+                        setattr(self, field, value[:-length])
+                        break
+
         self.downloadable = True
         self.deleted_by = None
         self.save(

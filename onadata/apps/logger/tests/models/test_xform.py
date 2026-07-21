@@ -307,6 +307,59 @@ class TestXForm(TestBase):
         dd.set_uuid_in_xml()
         self.assertIn("<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml)
 
+    def test_restore_id_string_contains_deletion_marker(self):
+        """id_string containing the deletion marker is restored intact"""
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string="trees-deleted-at-noon")
+        xform = XForm.objects.get(pk=dd.pk)
+        self.assertEqual(xform.id_string, "trees-deleted-at-noon")
+        original_sms_id_string = xform.sms_id_string
+
+        xform.soft_delete(self.user)
+        xform.restore()
+
+        xform.refresh_from_db()
+        self.assertIsNone(xform.deleted_at)
+        self.assertEqual(xform.id_string, "trees-deleted-at-noon")
+        self.assertEqual(xform.sms_id_string, original_sms_id_string)
+
+    def test_restore_truncated_id_string(self):
+        """id_string truncated to max length on soft delete is restored"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        # Simulate a legacy soft delete which stored a truncated suffix
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        legacy_value = (original_id_string + suffix)[:100]
+        XForm.objects.filter(pk=xform.pk).update(
+            id_string=legacy_value, sms_id_string=legacy_value
+        )
+        xform.refresh_from_db()
+
+        xform.restore()
+
+        xform.refresh_from_db()
+        self.assertIsNone(xform.deleted_at)
+        self.assertEqual(xform.id_string, original_id_string)
+        self.assertEqual(xform.sms_id_string, original_id_string)
+
     @patch("onadata.apps.logger.models.xform.clear_project_cache")
     def test_restore_deleted(self, mock_clear_project_cache):
         """Deleted XForm can be restored"""
