@@ -239,9 +239,7 @@ class TestXForm(TestBase):
             self.fail("DuplicateUUIDError raised: %s" % e)
 
     def test_id_string_max_length_on_soft_delete(self):
-        """
-        Test XForm soft delete with long id_string or sms_id_string
-        """
+        """Deletion suffix is not appended if it would exceed the max length"""
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
         new_string = (
