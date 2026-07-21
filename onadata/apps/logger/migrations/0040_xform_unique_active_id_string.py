@@ -5,6 +5,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ("logger", "0039_entity_list_unique_active_name"),
         (
@@ -15,24 +17,76 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="xform",
-            unique_together=set(),
-        ),
-        migrations.AddConstraint(
-            model_name="xform",
-            constraint=models.UniqueConstraint(
-                condition=models.Q(("deleted_at__isnull", True)),
-                fields=("user", "id_string", "project"),
-                name="unique_active_xform_id_string_per_user_project",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="xform",
-            constraint=models.UniqueConstraint(
-                condition=models.Q(("deleted_at__isnull", True)),
-                fields=("user", "sms_id_string", "project"),
-                name="unique_active_xform_sms_id_string_per_user_project",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=(
+                        "CREATE UNIQUE INDEX CONCURRENTLY "
+                        '"unique_active_xform_id_string_per_user_project" '
+                        'ON "logger_xform" ("user_id", "id_string", "project_id") '
+                        'WHERE "deleted_at" IS NULL;'
+                    ),
+                    reverse_sql=(
+                        "DROP INDEX CONCURRENTLY "
+                        '"unique_active_xform_id_string_per_user_project";'
+                    ),
+                ),
+                migrations.RunSQL(
+                    sql=(
+                        "CREATE UNIQUE INDEX CONCURRENTLY "
+                        '"unique_active_xform_sms_id_string_per_user_project" '
+                        'ON "logger_xform" ("user_id", "sms_id_string", "project_id") '
+                        'WHERE "deleted_at" IS NULL;'
+                    ),
+                    reverse_sql=(
+                        "DROP INDEX CONCURRENTLY "
+                        '"unique_active_xform_sms_id_string_per_user_project";'
+                    ),
+                ),
+                migrations.RunSQL(
+                    sql=(
+                        'ALTER TABLE "logger_xform" DROP CONSTRAINT '
+                        '"logger_xform_user_id_id_string_project_id_98726f3a_uniq";'
+                    ),
+                    reverse_sql=(
+                        'ALTER TABLE "logger_xform" ADD CONSTRAINT '
+                        '"logger_xform_user_id_id_string_project_id_98726f3a_uniq" '
+                        'UNIQUE ("user_id", "id_string", "project_id");'
+                    ),
+                ),
+                migrations.RunSQL(
+                    sql=(
+                        'ALTER TABLE "logger_xform" DROP CONSTRAINT '
+                        '"logger_xform_user_id_sms_id_string_project_id_8de53ce1_uniq";'
+                    ),
+                    reverse_sql=(
+                        'ALTER TABLE "logger_xform" ADD CONSTRAINT '
+                        '"logger_xform_user_id_sms_id_string_project_id_8de53ce1_uniq" '
+                        'UNIQUE ("user_id", "sms_id_string", "project_id");'
+                    ),
+                ),
+            ],
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="xform",
+                    unique_together=set(),
+                ),
+                migrations.AddConstraint(
+                    model_name="xform",
+                    constraint=models.UniqueConstraint(
+                        condition=models.Q(("deleted_at__isnull", True)),
+                        fields=("user", "id_string", "project"),
+                        name="unique_active_xform_id_string_per_user_project",
+                    ),
+                ),
+                migrations.AddConstraint(
+                    model_name="xform",
+                    constraint=models.UniqueConstraint(
+                        condition=models.Q(("deleted_at__isnull", True)),
+                        fields=("user", "sms_id_string", "project"),
+                        name="unique_active_xform_sms_id_string_per_user_project",
+                    ),
+                ),
+            ],
         ),
     ]
