@@ -67,6 +67,12 @@ class EntityListSerializer(serializers.ModelSerializer):
             "date_created",
             "date_modified",
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=EntityList.objects.filter(deleted_at__isnull=True),
+                fields=["name", "project"],
+            )
+        ]
 
 
 class EntityListArraySerializer(serializers.HyperlinkedModelSerializer):

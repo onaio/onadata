@@ -173,6 +173,22 @@ class EntityListTestCase(TestBase):
         self.assertIsNotNone(entity_list.deleted_at)
         self.assertEqual(entity_list.name, dataset_name)
 
+    def test_create_name_of_soft_deleted(self):
+        """A name occupied by a soft-deleted EntityList can be reused"""
+        dataset_name = "x" * 255
+        entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
+        entity_list.soft_delete(self.user)
+
+        new_entity_list = EntityList.objects.create(
+            name=dataset_name, project=self.project
+        )
+
+        self.assertIsNone(new_entity_list.deleted_at)
+        self.assertEqual(
+            EntityList.objects.filter(name=dataset_name, project=self.project).count(),
+            2,
+        )
+
     def test_str_includes_deletion_suffix(self):
         """String representation includes the deletion suffix if name lacks it"""
         dataset_name = "x" * 250
