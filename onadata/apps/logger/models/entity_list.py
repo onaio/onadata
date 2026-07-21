@@ -129,7 +129,13 @@ class EntityList(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        unique_together = ("name", "project")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_entity_list_name_per_project",
+            )
+        ]
         indexes = [models.Index(fields=["deleted_at"])]
 
 
