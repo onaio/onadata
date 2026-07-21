@@ -153,7 +153,8 @@ class TestXForm(TestBase):
         xform.refresh_from_db()
         self.assertEqual(xform.deleted_at, deleted_at)
 
-        # deleted_by is optional
+    def test_deleted_by_optional(self):
+        """`deleted_by` is optional on soft delete"""
         md = """
         | survey |
         |        | type              | name   | label   |
@@ -163,11 +164,11 @@ class TestXForm(TestBase):
         |         | fruits            | orange | Orange |
         """
         dd = self._publish_markdown(md, self.user, id_string="fruits")
-        other_xform = XForm.objects.get(pk=dd.pk)
-        other_xform.soft_delete()
-        other_xform.refresh_from_db()
-        self.assertIsNotNone(other_xform.deleted_at)
-        self.assertIsNone(other_xform.deleted_by)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete()
+        xform.refresh_from_db()
+        self.assertIsNotNone(xform.deleted_at)
+        self.assertIsNone(xform.deleted_by)
 
     def test_str_includes_deletion_suffix(self):
         """String representation includes the deletion suffix if missing"""
