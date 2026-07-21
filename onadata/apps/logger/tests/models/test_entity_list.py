@@ -150,17 +150,14 @@ class EntityListTestCase(TestBase):
         entity_list.soft_delete(self.user)
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.deleted_at, self.mocked_now)
-        # deleted_by is optional
+
+    def test_deleted_by_optional(self):
+        """`deleted_by` is optional on soft delete"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
         entity_list.soft_delete()
         entity_list.refresh_from_db()
+        self.assertIsNotNone(entity_list.deleted_at)
         self.assertIsNone(entity_list.deleted_by)
-        # name is unchanged if appending the suffix would exceed 255 characters
-        dataset_name = "x" * 255
-        entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
-        entity_list.soft_delete()
-        entity_list.refresh_from_db()
-        self.assertEqual(entity_list.name, dataset_name)
 
     def test_name_max_length_on_soft_delete(self):
         """Deletion suffix is not appended if it would exceed the max length"""
