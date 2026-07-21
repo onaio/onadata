@@ -5,22 +5,53 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ("logger", "0038_instance_last_edited_by"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="entitylist",
-            unique_together=set(),
-        ),
-        migrations.AddConstraint(
-            model_name="entitylist",
-            constraint=models.UniqueConstraint(
-                condition=models.Q(("deleted_at__isnull", True)),
-                fields=("name", "project"),
-                name="unique_active_entity_list_name_per_project",
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=(
+                        "CREATE UNIQUE INDEX CONCURRENTLY "
+                        '"unique_active_entity_list_name_per_project" '
+                        'ON "logger_entitylist" ("name", "project_id") '
+                        'WHERE "deleted_at" IS NULL;'
+                    ),
+                    reverse_sql=(
+                        "DROP INDEX CONCURRENTLY "
+                        '"unique_active_entity_list_name_per_project";'
+                    ),
+                ),
+                migrations.RunSQL(
+                    sql=(
+                        'ALTER TABLE "logger_entitylist" DROP CONSTRAINT '
+                        '"logger_entitylist_name_project_id_2b22bedb_uniq";'
+                    ),
+                    reverse_sql=(
+                        'ALTER TABLE "logger_entitylist" ADD CONSTRAINT '
+                        '"logger_entitylist_name_project_id_2b22bedb_uniq" '
+                        'UNIQUE ("name", "project_id");'
+                    ),
+                ),
+            ],
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="entitylist",
+                    unique_together=set(),
+                ),
+                migrations.AddConstraint(
+                    model_name="entitylist",
+                    constraint=models.UniqueConstraint(
+                        condition=models.Q(("deleted_at__isnull", True)),
+                        fields=("name", "project"),
+                        name="unique_active_entity_list_name_per_project",
+                    ),
+                ),
+            ],
         ),
     ]
