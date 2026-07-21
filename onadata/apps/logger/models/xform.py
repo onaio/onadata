@@ -424,12 +424,9 @@ class XFormMixin:
         ]
 
     def _id_string_already_exists_in_account(self, id_string):
-        try:
-            XForm.objects.get(user=self.user, id_string__iexact=id_string)
-        except XForm.DoesNotExist:
-            return False
-
-        return True
+        return XForm.objects.filter(
+            user=self.user, id_string__iexact=id_string, deleted_at__isnull=True
+        ).exists()
 
     def get_unique_id_string(self, id_string, count=0):
         """Checks and returns a unique ``id_string``."""
@@ -1104,10 +1101,18 @@ class XForm(XFormMixin, BaseModel):
 
     class Meta:
         app_label = "logger"
-        unique_together = (
-            ("user", "id_string", "project"),
-            ("user", "sms_id_string", "project"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_id_string_per_user_project",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "sms_id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_sms_id_string_per_user_project",
+            ),
+        ]
         verbose_name = gettext_lazy("XForm")
         verbose_name_plural = gettext_lazy("XForms")
         permissions = (
@@ -1606,7 +1611,9 @@ def update_xform_uuid(username, id_string, new_uuid):
     """
     Updates an XForm with the new_uuid.
     """
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    xform = XForm.objects.get(
+        user__username=username, id_string=id_string, deleted_at__isnull=True
+    )
     # check for duplicate uuid
     check_xform_uuid(new_uuid)
 

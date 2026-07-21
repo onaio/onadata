@@ -293,7 +293,9 @@ class AbstractDataFrameBuilder:
                 self.xform = xform
             else:
                 self.xform = XForm.objects.get(
-                    id_string=self.id_string, user__username=self.username
+                    id_string=self.id_string,
+                    user__username=self.username,
+                    deleted_at__isnull=True,
                 )
         else:
             self.xform = None

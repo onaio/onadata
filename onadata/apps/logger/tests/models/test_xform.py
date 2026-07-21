@@ -24,6 +24,7 @@ from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
     get_survey_from_file_object,
+    update_xform_uuid,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
@@ -326,6 +327,28 @@ class TestXForm(TestBase):
         )
         dd.set_uuid_in_xml()
         self.assertIn("<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml)
+
+    def test_republish_id_string_of_soft_deleted(self):
+        """id_string occupied by a soft-deleted form can be reused"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete(self.user)
+
+        new_dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+
+        new_xform = XForm.objects.get(pk=new_dd.pk)
+        self.assertIsNone(new_xform.deleted_at)
+        self.assertEqual(new_xform.id_string, original_id_string)
+        self.assertEqual(new_xform.sms_id_string, original_id_string)
 
     def test_restore_id_string_contains_deletion_marker(self):
         """id_string containing the deletion marker is restored intact"""
@@ -729,6 +752,33 @@ class TestXForm(TestBase):
         )
 
         self.assertTrue(self.xform.is_was_managed)
+
+
+class UpdateXFormUUIDTestCase(TestBase):
+    """Tests for update_xform_uuid"""
+
+    def test_deleted_twin_ignored(self):
+        """Only the active form with the id_string is updated"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+        new_uuid = "d156a2dce4c34751af57f21ef5c4e6cc"
+
+        update_xform_uuid(self.user.username, original_id_string, new_uuid)
+
+        active_xform.refresh_from_db()
+        self.assertEqual(active_xform.uuid, new_uuid)
 
 
 class XFormReversionRegistrationTestCase(TestBase):

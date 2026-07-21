@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from onadata.apps.logger.models import XForm
 from onadata.apps.sms_support.tests.test_base_sms import TestBaseSMS, response_for_text
 from onadata.apps.sms_support.tools import (
     SMS_API_ERROR,
@@ -13,6 +14,26 @@ class TestParser(TestBaseSMS):
     def setUp(self):
         TestBaseSMS.setUp(self)
         self.setup_form(allow_sms=True)
+
+    def test_deleted_twin_ignored(self):
+        """The active form with the id_string is used when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        self._publish_markdown(md, self.user, id_string=id_string)
+
+        result = response_for_text(self.user.username, "test allo", id_string=id_string)
+
+        self.assertEqual(result["code"], SMS_SUBMISSION_REFUSED)
 
     def test_api_error(self):
         # missing identity or text
