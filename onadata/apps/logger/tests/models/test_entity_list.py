@@ -162,7 +162,7 @@ class EntityListTestCase(TestBase):
         entity_list.refresh_from_db()
         self.assertEqual(entity_list.name, dataset_name)
 
-    def test_soft_delete_long_name(self):
+    def test_name_max_length_on_soft_delete(self):
         """Deletion suffix is not appended if it would exceed the max length"""
         dataset_name = "x" * 250
         entity_list = EntityList.objects.create(name=dataset_name, project=self.project)

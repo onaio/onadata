@@ -146,6 +146,28 @@ class TestXForm(TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
         self.assertEqual(xform.deleted_by.username, "bob")
 
+        # Soft deleting an already soft deleted form is a no-op
+        deleted_at = xform.deleted_at
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        self.assertEqual(xform.deleted_at, deleted_at)
+
+        # deleted_by is optional
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string="fruits")
+        other_xform = XForm.objects.get(pk=dd.pk)
+        other_xform.soft_delete()
+        other_xform.refresh_from_db()
+        self.assertIsNotNone(other_xform.deleted_at)
+        self.assertIsNone(other_xform.deleted_by)
+
     def test_str_includes_deletion_suffix(self):
         """String representation includes the deletion suffix if missing"""
         self._publish_transportation_form_and_submit_instance()
