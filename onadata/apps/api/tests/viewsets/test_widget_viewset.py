@@ -586,6 +586,25 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(count, Widget.objects.all().count())
         self.assertEqual(response.data["column"], ["'doesnotexists' not in the form."])
 
+    def test_create_group_by_not_in_form(self):
+        """A widget whose group_by is not a form field is rejected."""
+        data = {
+            "content_object": "http://testserver/api/v1/forms/%s" % self.xform.pk,
+            "widget_type": "charts",
+            "view_type": "horizontal-bar",
+            "column": "_submission_time",
+            "group_by": "doesnotexists",
+        }
+
+        count = Widget.objects.all().count()
+
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(count, Widget.objects.all().count())
+        self.assertEqual(response.data["group_by"], ["'doesnotexists' not in the form."])
+
     def test_create_widget_with_xform_no_perms(self):
         data = {
             "content_object": "http://testserver/api/v1/forms/%s" % self.xform.pk,
