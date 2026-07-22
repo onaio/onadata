@@ -2,12 +2,14 @@
 """
 Test attachments.
 """
+
 import os
 from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.http import HttpResponseRedirect
+from django.test import override_settings
 from django.urls import reverse
 
 from rest_framework.test import APIRequestFactory
@@ -73,6 +75,34 @@ class TestAttachmentUrl(TestBase):
             self.url, {"attachment_id": self.attachment.id, "no_redirect": "true"}
         )
         self.assertEqual(response.status_code, 200)  # no redirects to amazon
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+        },
+        AZURE_ACCOUNT_NAME="test-account",
+        AZURE_ACCOUNT_KEY="test-key",
+        AZURE_CONTAINER="test-container",
+    )
+    @patch("azure.storage.blob.generate_blob_sas")
+    def test_original_image_attachment_url_has_azure_sas_token(
+        self, mock_generate_blob_sas
+    ):
+        """Test original image attachment url has azure sas token"""
+        sas_token = "se=ab736fba7261"  # nosec
+        mock_generate_blob_sas.return_value = sas_token
+        expected_url = (
+            "https://test-account.blob.core.windows.net/test-container/"
+            f"{self.attachment_media_file.name}?{sas_token}"
+        )
+
+        response = self.client.get(
+            self.url, {"media_file": self.attachment_media_file.name}
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, expected_url)
+        self.assertIn(f"?{sas_token}", str(response.url))
 
     @patch("onadata.apps.viewer.views.generate_media_download_url")
     def test_attachment_url_has_azure_sas_token(self, mock_media_url):
