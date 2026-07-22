@@ -1,13 +1,17 @@
 import os
+import shutil
 import sys
+import tempfile
 from hashlib import md5
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+
+from openpyxl import Workbook
 from pyxform.errors import PyXFormError
 
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.common_tools import report_exception
 
 
@@ -56,6 +60,43 @@ class TestPublishXLS(TestBase):
             > 0
         )
         self.assertTrue(is_updated_form)
+
+    def test_deleted_twin_ignored(self):
+        """A soft-deleted form does not block publishing"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete(self.user)
+        xls_file_path = self._create_xls_form(id_string)
+
+        call_command("publish_xls", xls_file_path, self.user.username)
+
+        active_form = XForm.objects.get(deleted_at__isnull=True)
+        self.assertEqual(active_form.id_string, id_string)
+
+    def _create_xls_form(self, id_string):
+        """Returns the path to an XLSForm file with the given id_string"""
+        workbook = Workbook()
+        survey_sheet = workbook.active
+        survey_sheet.title = "survey"
+        survey_sheet.append(["type", "name", "label"])
+        survey_sheet.append(["text", "fruit", "Fruit"])
+        settings_sheet = workbook.create_sheet("settings")
+        settings_sheet.append(["form_title", "form_id"])
+        settings_sheet.append(["Fruits", id_string])
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir, ignore_errors=True)
+        xls_file_path = os.path.join(temp_dir, "fruits.xlsx")
+        workbook.save(xls_file_path)
+        return xls_file_path
 
     def test_xform_hash(self):
         md = """
