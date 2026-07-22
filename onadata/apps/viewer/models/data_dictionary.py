@@ -153,9 +153,6 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         self._id_string_changed = False
         super().__init__(*args, **kwargs)
 
-    def __str__(self):
-        return getattr(self, "id_string", "")
-
     def save(self, *args, **kwargs):
         skip_xls_read = kwargs.get("skip_xls_read")
 
