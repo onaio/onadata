@@ -181,6 +181,16 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                     {"column": f"'{column}' not in the form."}
                 ) from e
 
+            group_by = attrs.get("group_by")
+            if group_by:
+                try:
+                    # Check if group_by column exists in xform
+                    get_field_from_field_xpath(group_by, xform)
+                except Http404 as e:
+                    raise serializers.ValidationError(
+                        {"group_by": f"'{group_by}' not in the form."}
+                    ) from e
+
         order = attrs.get("order")
 
         # Set the order

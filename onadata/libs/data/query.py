@@ -49,7 +49,8 @@ def _additional_data_view_filters(data_view):
         data_view_where = " AND " + " AND ".join(where)
 
     for param in where_params:
-        data_view_where = data_view_where.replace("%s", f"'{param}'", 1)
+        escaped_param = str(param).replace("'", "''")
+        data_view_where = data_view_where.replace("%s", f"'{escaped_param}'", 1)
 
     return data_view_where
 
@@ -62,6 +63,11 @@ def _json_query(field):
     _field = field.replace("'", "''")
 
     return f"json->>'{_field}'"
+
+
+def _escape_identifier(value):
+    """Escape a value used as a double-quoted SQL identifier/alias."""
+    return value.replace('"', '""') if isinstance(value, str) else value
 
 
 def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_view):
@@ -196,7 +202,7 @@ def _query_args(field, name, xform, group_by=None):
     qargs = {
         "table": "logger_instance",
         "json": _json_query(field),
-        "name": name,
+        "name": _escape_identifier(name),
         "restrict_field": "xform_id",
         "restrict_value": xform.pk,
         "join": "",
@@ -213,10 +219,10 @@ def _query_args(field, name, xform, group_by=None):
 
     if isinstance(group_by, list):
         for index, value in enumerate(group_by):
-            qargs[f"group_name{index}"] = value
+            qargs[f"group_name{index}"] = _escape_identifier(value)
             qargs[f"group_by{index}"] = _json_query(value)
     else:
-        qargs["group_name"] = group_by
+        qargs["group_name"] = _escape_identifier(group_by)
         qargs["group_by"] = _json_query(group_by)
 
     return qargs

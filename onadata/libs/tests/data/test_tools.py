@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.data.query import (
@@ -223,3 +224,40 @@ class TestTools(TestBase):
         field = "age"
         records = get_field_records(field, self.xform)
         self.assertEqual(sorted(records), sorted([23, 23, 35]))
+
+    def test_group_by_field_name_with_double_quote(self):
+        """A group name containing a double quote is grouped safely as an alias."""
+        self._make_submissions()
+        field = "_submission_time"
+        name = 'a"b'
+
+        result = get_form_submissions_grouped_by_field(self.xform, field, name)[0]
+
+        self.assertEqual(sorted([name, "count"]), sorted(list(result)))
+        self.assertEqual(result["count"], len(self.xform.instances.all()))
+
+    def test_group_by_field_with_quoted_data_view_filter(self):
+        """A single quote in a data view filter value is compared as a literal."""
+        self._make_submissions()
+        data_view = DataView.objects.create(
+            name="dv",
+            project=self.xform.project,
+            xform=self.xform,
+            columns=["name"],
+            query=[
+                {
+                    "column": "name",
+                    "filter": "=",
+                    "value": "x' OR '1'='1",
+                    "condition": "and",
+                }
+            ],
+        )
+
+        result = get_form_submissions_grouped_by_field(
+            self.xform, "_submission_time", data_view=data_view
+        )
+
+        # The value is treated as a literal that matches no submission; if it
+        # were injected the trailing OR '1'='1' would match every row.
+        self.assertEqual(result, [])
