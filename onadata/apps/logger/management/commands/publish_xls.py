@@ -2,6 +2,7 @@
 """
 publish_xls - Publish an XLSForm command.
 """
+
 import os
 
 from django.contrib.auth import get_user_model
@@ -68,7 +69,10 @@ class Command(BaseCommand):
 
         # check if a form with this id_string exists for this user
         form_already_exists = (
-            XForm.objects.filter(user=user, id_string=survey.id_string).count() > 0
+            XForm.objects.filter(
+                user=user, id_string=survey.id_string, deleted_at__isnull=True
+            ).count()
+            > 0
         )
 
         # id_string of form to replace, if any

@@ -3,6 +3,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.test import override_settings
+from django.utils import timezone
 
 import reversion
 from reversion import revisions
@@ -529,6 +530,22 @@ class DataDictionaryTestCase(TestBase):
             xform.refresh_from_db()
 
             self.assertFalse(xform.encrypted)
+
+    def test_str_includes_deletion_suffix(self):
+        """String representation includes the deletion suffix if missing"""
+        deleted_at = timezone.now()
+        suffix = deleted_at.strftime("-deleted-at-%s")
+        long_id_string = "x" * 95
+        # Suffix missing from stored id_string is included
+        data_dictionary = DataDictionary(
+            id_string=long_id_string, deleted_at=deleted_at
+        )
+        self.assertEqual(str(data_dictionary), f"{long_id_string}{suffix}")
+        # Suffix present in stored id_string is not duplicated
+        data_dictionary = DataDictionary(
+            id_string=f"trees{suffix}", deleted_at=deleted_at
+        )
+        self.assertEqual(str(data_dictionary), f"trees{suffix}")
 
 
 class DataDictionaryReversionRegistrationTestCase(TestBase):

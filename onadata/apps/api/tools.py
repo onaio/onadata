@@ -373,7 +373,11 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
     """
     if id_string and project:
         xform = get_object_or_404(
-            XForm, user=owner, id_string=id_string, project=project
+            XForm,
+            user=owner,
+            id_string=id_string,
+            project=project,
+            deleted_at__isnull=True,
         )
         if not ManagerRole.user_has_role(user, xform):
             raise exceptions.PermissionDenied(
@@ -433,11 +437,11 @@ def publish_project_xform(request, project):
         Checks if an id_string exists in an account, returns True if it exists
         otherwise returns False.
         """
-        try:
-            XForm.objects.get(user=project.organization, id_string=xform.id_string)
-        except XForm.DoesNotExist:
-            return False
-        return True
+        return XForm.objects.filter(
+            user=project.organization,
+            id_string=xform.id_string,
+            deleted_at__isnull=True,
+        ).exists()
 
     if "formid" in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get("formid"))

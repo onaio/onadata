@@ -1125,7 +1125,9 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     """
     # get or create DataDictionary based on user and id string
     if id_string:
-        dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
+        dd = DataDictionary.objects.get(
+            user=user, id_string=id_string, project=project, deleted_at__isnull=True
+        )
         dd.xls = xls_file
         dd.save()
     else:
@@ -1198,7 +1200,9 @@ def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     form_json = survey.to_json()
     xml_version = _get_version_from_xform_xml(xml, survey.id_string)
     if id_string:
-        dd = DataDictionary.objects.get(user=user, id_string=id_string, project=project)
+        dd = DataDictionary.objects.get(
+            user=user, id_string=id_string, project=project, deleted_at__isnull=True
+        )
         new_version = xml_version
         if xml_version:
             new_version = dd.get_unique_version(xml_version)

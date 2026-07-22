@@ -2,6 +2,7 @@
 """
 create_backup - command to create zipped backup of a form and it's submissions.
 """
+
 import os
 
 from django.contrib.auth import get_user_model
@@ -49,7 +50,9 @@ class Command(BaseCommand):
         else:
             # make sure xform exists
             try:
-                xform = XForm.objects.get(user=user, id_string=id_string)
+                xform = XForm.objects.get(
+                    user=user, id_string=id_string, deleted_at__isnull=True
+                )
             except XForm.DoesNotExist as error:
                 raise CommandError(
                     _(f"The id_string '{id_string}' does not exist.")

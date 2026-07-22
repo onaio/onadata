@@ -46,7 +46,7 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
-from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
+from onadata.libs.utils.common_tools import get_uuid
 from onadata.libs.utils.export_tools import (
     DEFAULT_GROUP_DELIMITER,
     generate_export,
@@ -236,13 +236,11 @@ def add_submission_with(request, username, id_string):
         Returns xpaths with elements of type 'geopoint'.
         """
         data_dictionary = DataDictionary.objects.get(
-            user__username__iexact=username, id_string__iexact=id_string
+            user__username__iexact=username,
+            id_string__iexact=id_string,
+            deleted_at__isnull=True,
         )
-        return [
-            get_abbreviated_xpath(e.get_xpath())
-            for e in data_dictionary.get_survey_elements()
-            if e.bind.get("type") == "geopoint"
-        ]
+        return data_dictionary.geopoint_xpaths()
 
     value = request.GET.get("coordinates")
     xpaths = geopoint_xpaths(username, id_string)
@@ -714,7 +712,6 @@ def zip_export(request, username, id_string):
         id_string = None
 
     attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = None
 
     with NamedTemporaryFile() as zip_file:
         create_attachments_zipfile(attachments, zip_file)

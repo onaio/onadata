@@ -424,12 +424,9 @@ class XFormMixin:
         ]
 
     def _id_string_already_exists_in_account(self, id_string):
-        try:
-            XForm.objects.get(user=self.user, id_string__iexact=id_string)
-        except XForm.DoesNotExist:
-            return False
-
-        return True
+        return XForm.objects.filter(
+            user=self.user, id_string__iexact=id_string, deleted_at__isnull=True
+        ).exists()
 
     def get_unique_id_string(self, id_string, count=0):
         """Checks and returns a unique ``id_string``."""
@@ -1104,10 +1101,18 @@ class XForm(XFormMixin, BaseModel):
 
     class Meta:
         app_label = "logger"
-        unique_together = (
-            ("user", "id_string", "project"),
-            ("user", "sms_id_string", "project"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_id_string_per_user_project",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "sms_id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_sms_id_string_per_user_project",
+            ),
+        ]
         verbose_name = gettext_lazy("XForm")
         verbose_name_plural = gettext_lazy("XForms")
         permissions = (
@@ -1305,7 +1310,17 @@ class XForm(XFormMixin, BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return getattr(self, "id_string", "")
+        id_string = getattr(self, "id_string", "")
+
+        # The deletion suffix is not stored if appending it would exceed
+        # the id_string's max length
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+
+            if not id_string.endswith(deletion_suffix):
+                id_string += deletion_suffix
+
+        return id_string
 
     @transaction.atomic()
     def soft_delete(self, user=None):
@@ -1322,13 +1337,14 @@ class XForm(XFormMixin, BaseModel):
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime("-deleted-at-%s")
         self.deleted_at = soft_deletion_time
-        self.id_string += deletion_suffix
-        self.sms_id_string += deletion_suffix
         self.downloadable = False
 
-        # only take the first 100 characters (within the set max_length)
-        self.id_string = self.id_string[: self.MAX_ID_LENGTH]
-        self.sms_id_string = self.sms_id_string[: self.MAX_ID_LENGTH]
+        # Never store a truncated suffix
+        if len(self.id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.id_string += deletion_suffix
+
+        if len(self.sms_id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.sms_id_string += deletion_suffix
 
         update_fields = [
             "date_modified",
@@ -1359,9 +1375,23 @@ class XForm(XFormMixin, BaseModel):
         if self.deleted_at is None:
             return
 
+        deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
         self.deleted_at = None
-        self.id_string = self.id_string.split("-deleted-at-")[0]
-        self.sms_id_string = self.sms_id_string.split("-deleted-at-")[0]
+
+        for field in ("id_string", "sms_id_string"):
+            value = getattr(self, field)
+
+            if value.endswith(deletion_suffix):
+                setattr(self, field, value[: -len(deletion_suffix)])
+            elif len(value) == self.MAX_ID_LENGTH:
+                # Legacy: soft delete previously truncated the value to
+                # the max length, retaining only part of the deletion
+                # suffix
+                for length in range(len(deletion_suffix) - 1, 0, -1):
+                    if value.endswith(deletion_suffix[:length]):
+                        setattr(self, field, value[:-length])
+                        break
+
         self.downloadable = True
         self.deleted_by = None
         self.save(
@@ -1581,7 +1611,9 @@ def update_xform_uuid(username, id_string, new_uuid):
     """
     Updates an XForm with the new_uuid.
     """
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    xform = XForm.objects.get(
+        user__username=username, id_string=id_string, deleted_at__isnull=True
+    )
     # check for duplicate uuid
     check_xform_uuid(new_uuid)
 
