@@ -162,7 +162,8 @@ def get_where_clause(query, form_integer_fields=None, form_decimal_fields=None):
                             continue
 
                         if value is None:
-                            or_where.extend([f"logger_instance.json->>'{key}' IS NULL"])
+                            or_where.extend(["logger_instance.json->>%s IS NULL"])
+                            or_params.extend([key])
                         elif isinstance(value, list):
                             for item in value:
                                 or_where.extend(["logger_instance.json->>%s = %s"])
