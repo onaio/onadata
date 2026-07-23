@@ -261,3 +261,132 @@ class TestTools(TestBase):
         # The value is treated as a literal that matches no submission; if it
         # were injected the trailing OR '1'='1' would match every row.
         self.assertEqual(result, [])
+
+    def _executed_group_by_query(self, field, data_view=None):
+        """Run the public group-by path with a mocked cursor and return the
+        ``(sql, params)`` handed to ``cursor.execute``.
+
+        Asserting here checks the real psycopg2 hand-off — the SQL text the
+        driver receives and the values bound alongside it — without reaching
+        into the private query builders.
+        """
+        with patch("onadata.libs.data.query.connection") as mock_connection:
+            cursor = mock_connection.cursor.return_value
+            cursor.description = []
+            cursor.fetchall.return_value = []
+            get_form_submissions_grouped_by_field(
+                self.xform, field, data_view=data_view
+            )
+        sql, params = cursor.execute.call_args.args
+        return sql, params
+
+    def test_group_by_field_binds_hostile_filter_as_params(self):
+        """Hostile filter column/value are bound as params, never in SQL text.
+
+        Covers a literal ``%s``, a single quote and a backslash across two AND
+        filters, and asserts the placeholder count equals the parameter count.
+        """
+        data_view = DataView(
+            query=[
+                {
+                    "column": ") OR 1=1 --",
+                    "filter": "=",
+                    "value": "A%s",
+                    "condition": "and",
+                },
+                {
+                    "column": "name",
+                    "filter": "=",
+                    "value": "b\\c' OR '1'='1",
+                    "condition": "and",
+                },
+            ]
+        )
+
+        sql, params = self._executed_group_by_query("_submission_time", data_view)
+
+        # No request-derived filter token is rendered into the SQL text.
+        self.assertNotIn(") OR 1=1 --", sql)
+        self.assertNotIn("A%s", sql)
+        self.assertNotIn("b\\c", sql)
+        self.assertNotIn("OR '1'='1", sql)
+        # Every placeholder is backed by exactly one bound parameter, in order.
+        self.assertEqual(sql.count("%s"), len(params))
+        self.assertEqual(params, [") OR 1=1 --", "A%s", "name", "b\\c' OR '1'='1"])
+
+    def test_group_by_field_percent_s_shift_preserves_param_order(self):
+        """A literal ``%s`` in an earlier value cannot shift a later column out.
+
+        This is the prior-escaping-bypass primitive: a one-at-a-time replace
+        loop re-scanned inserted text, so a ``%s`` in an earlier value shifted
+        the following column outside its quotes. With bound parameters the
+        column and value are never rendered into SQL, so ordering is preserved.
+        """
+        data_view = DataView(
+            query=[
+                {"column": "age", "filter": "=", "value": "A%s", "condition": "and"},
+                {
+                    "column": ") OR 1=1 --",
+                    "filter": "=",
+                    "value": "B",
+                    "condition": "and",
+                },
+            ]
+        )
+
+        sql, params = self._executed_group_by_query("_submission_time", data_view)
+
+        self.assertNotIn(") OR 1=1 --", sql)
+        self.assertNotIn("OR 1=1", sql)
+        self.assertEqual(sql.count("%s"), len(params))
+        self.assertEqual(params, ["age", "A%s", ") OR 1=1 --", "B"])
+
+    def test_group_by_field_or_condition_param_order(self):
+        """OR filters keep their column/value parameters in emitted order."""
+        data_view = DataView(
+            query=[
+                {"column": "age", "filter": "=", "value": "1", "condition": "or"},
+                {"column": "name", "filter": "=", "value": "2", "condition": "or"},
+            ]
+        )
+
+        sql, params = self._executed_group_by_query("_submission_time", data_view)
+
+        self.assertIn(" OR ", sql)
+        self.assertEqual(sql.count("%s"), len(params))
+        self.assertEqual(params, ["age", "1", "name", "2"])
+
+    def test_group_by_field_without_data_view_binds_no_params(self):
+        """Without a DataView the driver receives the query with no bound params."""
+        sql, params = self._executed_group_by_query("_submission_time")
+
+        # ``params or None`` sends ``None`` so the driver skips ``%`` interpolation.
+        self.assertIsNone(params)
+        self.assertEqual(sql.count("%s"), 0)
+
+    def test_group_by_field_percent_s_shift_returns_no_rows(self):
+        """End-to-end: the %s-shift payload binds as data and matches nothing."""
+        self._make_submissions()
+        data_view = DataView.objects.create(
+            name="dv-shift",
+            project=self.xform.project,
+            xform=self.xform,
+            columns=["name"],
+            query=[
+                {"column": "name", "filter": "=", "value": "A%s", "condition": "and"},
+                {
+                    "column": ") OR 1=1 --",
+                    "filter": "=",
+                    "value": "B",
+                    "condition": "and",
+                },
+            ],
+        )
+
+        result = get_form_submissions_grouped_by_field(
+            self.xform, "_submission_time", data_view=data_view
+        )
+
+        # If the column injected, ") OR 1=1 --" would match every row; bound as
+        # a JSON key it matches nothing.
+        self.assertEqual(result, [])
