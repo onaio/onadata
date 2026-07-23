@@ -29,6 +29,8 @@ from onadata.libs.utils.cache_tools import (  # noqa pylint: disable=unused-impo
 )
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
+    DATE_MODIFIED,
+    DURATION,
     EDITED,
     GEOLOCATION,
     ID,
@@ -36,12 +38,22 @@ from onadata.libs.utils.common_tags import (
     MONGO_STRFTIME,
     NOTES,
     SUBMISSION_TIME,
+    SUBMITTED_BY,
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
 
 SUPPORTED_FILTERS = ["=", ">", "<", ">=", "<=", "<>", "!="]
 ATTACHMENT_TYPES = ["photo", "audio", "video"]
 DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
+# Metadata columns a DataView ``query`` filter may reference in addition to the
+# form's own fields. Extends the auto-returned DEFAULT_COLUMNS with the
+# submission metadata the chart/stats and filter paths treat as first-class
+# (see chart_tools.FIELD_DATA_MAP). DEFAULT_COLUMNS alone omits these.
+FILTERABLE_METADATA_COLUMNS = DEFAULT_COLUMNS + [
+    DATE_MODIFIED,
+    SUBMITTED_BY,
+    DURATION,
+]
 
 
 def _json_sql_str(key, known_integers=None, known_dates=None, known_decimals=None):

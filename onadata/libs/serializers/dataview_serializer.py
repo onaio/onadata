@@ -10,7 +10,11 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS, DataView
+from onadata.apps.logger.models.data_view import (
+    FILTERABLE_METADATA_COLUMNS,
+    SUPPORTED_FILTERS,
+    DataView,
+)
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -22,6 +26,7 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.common_tags import DATE_FORMAT, MONGO_STRFTIME
+from onadata.libs.utils.dataview_filters import is_safe_column
 from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 LAST_SUBMISSION_TIME = "_submission_time"
@@ -43,6 +48,18 @@ def validate_datetime(value):
     except ValueError:
         return False
     return True
+
+
+def _allowed_query_columns(xform):
+    """Columns a DataView ``query`` filter may reference on ``xform``.
+
+    Combines the form's own field XPaths with the submission metadata columns
+    DataView filtering treats as first-class (``FILTERABLE_METADATA_COLUMNS``).
+    Nested form XPaths (containing ``/``) are preserved because they are
+    returned verbatim by the form; Django lookup separators such as ``__`` never
+    appear here and are rejected separately by ``is_safe_column``.
+    """
+    return set(xform.get_field_name_xpaths_only()) | set(FILTERABLE_METADATA_COLUMNS)
 
 
 def match_columns(data, instance=None):
@@ -196,12 +213,53 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                 ):
                     raise serializers.ValidationError(
                         _(
-                            f"Date value in {column} should be yyyy-mm-ddThh:m:s or "
-                            "yyyy-mm-dd"
+                            "Date value in %(column)s should be yyyy-mm-ddThh:m:s "
+                            "or yyyy-mm-dd"
                         )
+                        % {"column": column}
                     )
 
+        self._validate_query_columns(attrs)
+
         return super().validate(attrs)
+
+    def _validate_query_columns(self, attrs):
+        """Reject unsafe or unknown ``query`` columns for the target form.
+
+        Each column must be a string free of the ORM lookup separator ``__``
+        (``is_safe_column``) and must appear in the form's allow-list. Validates
+        when the query is being set, or when the form is being changed under a
+        retained query. An update that touches neither the query nor the form is
+        left alone so a pre-existing legacy column does not fail an unrelated
+        change. The effective form is the incoming ``xform`` (create or form
+        change) otherwise the instance's form.
+        """
+        query_supplied = "query" in attrs
+        form_changed = "xform" in attrs and attrs.get("xform")
+        if not (query_supplied or form_changed):
+            return
+
+        xform = attrs.get("xform") or (
+            self.instance.xform if self.instance is not None else None
+        )
+        if xform is None:
+            return
+
+        query = attrs.get("query")
+        if query is None and self.instance is not None:
+            query = self.instance.query
+
+        allowed_columns = _allowed_query_columns(xform)
+        for query_item in query or []:
+            column = query_item.get("column")
+            if not is_safe_column(column):
+                raise serializers.ValidationError(
+                    {"query": _("Unsupported column '%(column)s'") % {"column": column}}
+                )
+            if column not in allowed_columns:
+                raise serializers.ValidationError(
+                    {"query": _("Unknown column '%(column)s'") % {"column": column}}
+                )
 
     def get_count(self, obj):
         """Returns the submission count for the data view,"""

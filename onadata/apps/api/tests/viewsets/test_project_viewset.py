@@ -419,7 +419,15 @@ class TestProjectViewSet(TestAbstractViewSet):
     # pylint: disable=invalid-name
     def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
         self._publish_xls_form_to_project()
-        self._create_dataview()
+        data = {
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": '[{"column":"_submission_time","filter":">",'
+            '"value":"1900-01-01"}]',
+        }
+        self._create_dataview(data)
 
         view = ProjectViewSet.as_view({"get": "retrieve"})
         request = self.factory.get("/", **self.extra)
@@ -2837,8 +2845,9 @@ class TestProjectViewSet(TestAbstractViewSet):
             "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
             "project": f"http://testserver/api/v1/projects/{project2.pk}",
             "columns": '["name", "age", "gender"]',
-            "query": '[{"column":"age","filter":">","value":"20"},'
-            '{"column":"age","filter":"<","value":"50"}]',
+            "query": '[{"column":"_submission_time","filter":">",'
+            '"value":"1900-01-01"},'
+            '{"column":"_submission_time","filter":"<","value":"2100-01-01"}]',
         }
 
         self._create_dataview(data)

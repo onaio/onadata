@@ -2,6 +2,7 @@
 """
 Test ChartsViewSet.
 """
+
 import json
 import os
 from unittest.mock import patch
@@ -23,7 +24,7 @@ from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
-def raise_data_error(a):
+def raise_data_error(*args, **kwargs):
     raise DataError
 
 
