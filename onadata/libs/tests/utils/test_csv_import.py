@@ -99,6 +99,21 @@ class CSVImportTestCase(TestBase):
         )
         self.assertNotEqual(safe_create_args[4], None)
 
+    def test_submit_semicolon_delimited_csv(self):
+        """Test importing a CSV that uses a semicolon delimiter."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+        semicolon_csv = BytesIO()
+        writer = ucsv.writer(semicolon_csv, delimiter=";")
+        with open(os.path.join(self.fixtures_dir, "single.csv"), "rb") as source:
+            writer.writerows(ucsv.reader(source, encoding="utf-8-sig"))
+        semicolon_csv.seek(0)
+
+        result = csv_import.submit_csv(self.user.username, xform, semicolon_csv)
+
+        self.assertEqual(result.get("additions"), 1)
+        self.assertEqual(Instance.objects.count(), 1)
+
     @patch("onadata.libs.utils.csv_import.safe_create_instance")
     @patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
     def test_submit_csv_xml_location_property_test(self, d2x, safe_create_instance):

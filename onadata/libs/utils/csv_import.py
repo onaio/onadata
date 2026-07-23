@@ -3,6 +3,7 @@
 CSV data import module.
 """
 
+import csv
 import functools
 import sys
 import uuid
@@ -59,9 +60,27 @@ PROGRESS_BATCH_UPDATE = getattr(
     settings, "EXPORT_TASK_PROGRESS_UPDATE_BATCH", DEFAULT_UPDATE_BATCH
 )
 IGNORED_COLUMNS = ["formhub/uuid", "meta/instanceID"]
+SUPPORTED_CSV_DELIMITERS = ",;\t|"
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+
+def get_csv_delimiter(csv_file):
+    """Return the delimiter used by a CSV file, defaulting to a comma."""
+    csv_file.seek(0)
+    header = csv_file.readline()
+    csv_file.seek(0)
+
+    if isinstance(header, bytes):
+        header = header.decode("utf-8-sig")
+
+    try:
+        return (
+            csv.Sniffer().sniff(header, delimiters=SUPPORTED_CSV_DELIMITERS).delimiter
+        )
+    except csv.Error:
+        return ","
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -219,8 +238,11 @@ def validate_csv_file(csv_file, xform):
     # Ensure stream position is at the start of the file
     csv_file.seek(0)
 
-    # Retrieve CSV Headers from the CSV File
-    csv_headers = ucsv.DictReader(csv_file, encoding="utf-8-sig").fieldnames
+    # Retrieve CSV headers using the delimiter found in the uploaded file.
+    delimiter = get_csv_delimiter(csv_file)
+    csv_headers = ucsv.DictReader(
+        csv_file, encoding="utf-8-sig", delimiter=delimiter
+    ).fieldnames
 
     # Make sure CSV headers have no spaces
     # because these are converted to XLSForm names
@@ -280,7 +302,11 @@ def validate_csv_file(csv_file, xform):
         if col.find("[") == -1 and col not in mutliple_select_col
     ]
 
-    return {"valid": True, "additional_col": additional_col}
+    return {
+        "valid": True,
+        "additional_col": additional_col,
+        "delimiter": delimiter,
+    }
 
 
 def flatten_split_select_multiples(
@@ -335,6 +361,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
 
     if csv_file_validation_summary.get("valid"):
         additional_col = csv_file_validation_summary.get("additional_col")
+        delimiter = csv_file_validation_summary.get("delimiter", ",")
     else:
         return async_status(FAILED, csv_file_validation_summary.get("error_msg"))
 
@@ -343,7 +370,7 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
     # Change stream position to start of file
     csv_file.seek(0)
 
-    csv_reader = ucsv.DictReader(csv_file, encoding="utf-8-sig")
+    csv_reader = ucsv.DictReader(csv_file, encoding="utf-8-sig", delimiter=delimiter)
     xform_json = xform.json_dict()
     select_multiples = [
         qstn.name for qstn in xform.get_survey_elements_of_type(MULTIPLE_SELECT_TYPE)
