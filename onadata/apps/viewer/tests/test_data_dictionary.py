@@ -203,6 +203,45 @@ class DataDictionaryTestCase(TestBase):
         )
         self.assertTrue(reg_form.is_active)
 
+    def test_create_reg_form_w_save_to_within_nested_group_within_repeat(self):
+        """A RegistrationForm is created for a form w/ save_to within a nested group, within repeat"""
+        md = """
+        | survey   |
+        |          | type         | name          | label         | save_to      |
+        |          | begin_repeat | tree          | Tree          |              |
+        |          | begin_group  | tree_details  | Tree Details  |              |
+        |          | begin_group  | planting_info | Planting Info |              |
+        |          | barcode      | tree_id       | Tree ID       |              |
+        |          | text         | year_planted  | Year planted  | year_planted |
+        |          | end_group    |               |               |              |
+        |          | end_group    |               |               |              |
+        |          | end_repeat   |               |               |              |
+        | settings |              |               |               |              |
+        |          | form_title   | form_id       |               |              |
+        |          | Trees        | trees         |               |              |
+        | entities |              |               |               |              |
+        |          | list_name    | label         |               |              |
+        |          | trees        | ${tree_id}    |               |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(EntityList.objects.filter(name="trees").exists())
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="trees"
+            ).exists()
+        )
+
+        reg_form = RegistrationForm.objects.get(xform=xform, entity_list__name="trees")
+
+        self.assertEqual(
+            reg_form.get_save_to(),
+            {
+                "year_planted": "year_planted",
+            },
+        )
+        self.assertTrue(reg_form.is_active)
+
     def test_create_follow_up_form(self):
         """Follow up form created successfully"""
         entity_list = EntityList.objects.create(name="trees", project=self.project)
