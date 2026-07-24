@@ -385,6 +385,18 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
 
+    def test_get_xform_list_project_pk_inactive_organization_returns_empty(self):
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        request = self.factory.get(f"/projects/{self.project.pk}/formList")
+        response = self.view(request, project_pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_get_xform_list_xform_pk_filter(self):
         """
         Test formList xform_pk filter for authenticated user.
@@ -428,6 +440,42 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header("X-OpenRosa-Accept-Content-Length"))
             self.assertTrue(response.has_header("Date"))
             self.assertEqual(response["Content-Type"], "text/xml; charset=utf-8")
+
+    def test_get_xform_list_xform_pk_inactive_organization_not_found(self):
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        request = self.factory.get(f"/forms/{self.xform.pk}/formList")
+        response = self.view(request, xform_pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_xform_list_ignores_inactive_uploader(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.xform.created_by.is_active = False
+        self.xform.created_by.save()
+
+        request = self.factory.get(f"/{self.organization.user.username}/formList")
+        response = self.view(request, username=self.organization.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.xform.project.organization.is_active)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["formID"], self.xform.id_string)
 
     def test_get_xform_list_of_logged_in_user_with_username_param(self):
         # publish 2 forms as bob

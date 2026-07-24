@@ -2,6 +2,7 @@
 """
 The /api/v1/stats API endpoint implementaion.
 """
+
 from rest_framework import viewsets
 
 from onadata.apps.api.permissions import XFormPermissions
@@ -36,8 +37,13 @@ class StatsViewSet(
     """
 
     lookup_field = "pk"
-    queryset = XForm.objects.all()
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
+    filter_backends = (
+        filters.AnonDjangoObjectPermissionFilter,
+        filters.ActiveXFormOrganizationFilter,
+    )
     permission_classes = [
         XFormPermissions,
     ]

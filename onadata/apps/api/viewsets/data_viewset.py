@@ -144,6 +144,7 @@ class DataViewSet(
         filters.DataAnonDjangoObjectPermissionFilter,
         filters.XFormOwnerFilter,
         filters.DataFilter,
+        filters.ActiveXFormOrganizationFilter,
     )
     serializer_class = DataSerializer
     permission_classes = (XFormPermissions,)
@@ -154,7 +155,9 @@ class DataViewSet(
     public_data_endpoint = "public"
     pagination_class = CountOverridablePageNumberPagination
 
-    queryset = XForm.objects.filter(deleted_at__isnull=True)
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
 
     def get_serializer_class(self):
         """Returns appropriate serializer class based on context."""
@@ -222,7 +225,9 @@ class DataViewSet(
 
     def _get_public_forms_queryset(self):
         return XForm.objects.filter(
-            Q(shared=True) | Q(shared_data=True), deleted_at__isnull=True
+            Q(shared=True) | Q(shared_data=True),
+            deleted_at__isnull=True,
+            project__organization__is_active=True,
         )
 
     def _filtered_or_shared_queryset(self, queryset, form_pk):
@@ -232,6 +237,7 @@ class DataViewSet(
         if not queryset:
             filter_kwargs["shared_data"] = True
             filter_kwargs["deleted_at__isnull"] = True
+            filter_kwargs["project__organization__is_active"] = True
             queryset = XForm.objects.filter(**filter_kwargs).only("id", "shared")
 
             if not queryset:
@@ -588,7 +594,8 @@ class DataViewSet(
             if is_merged_dataset:
                 merged_form = MergedXForm.objects.get(pk=xform_id)
                 queryset = merged_form.xforms.filter(
-                    deleted_at__isnull=True
+                    deleted_at__isnull=True,
+                    project__organization__is_active=True,
                 ).values_list("id", "num_of_submissions")
                 try:
                     pks, num_of_submissions = [list(value) for value in zip(*queryset)]
@@ -596,7 +603,11 @@ class DataViewSet(
                 except ValueError:
                     pks, num_of_submissions = [], 0
             else:
-                num_of_submissions = XForm.objects.get(id=xform_id).num_of_submissions
+                num_of_submissions = XForm.objects.get(
+                    id=xform_id,
+                    deleted_at__isnull=True,
+                    project__organization__is_active=True,
+                ).num_of_submissions
             # pylint: disable=attribute-defined-outside-init
             # Include geom and xform_id fields for geojson format to avoid N+1 queries
             if export_type == "geojson":

@@ -491,6 +491,7 @@ class XFormViewSet(
         filters.TagFilter,
         filters.XFormOwnerFilter,
         DjangoFilterBackend,
+        filters.ActiveXFormOrganizationFilter,
     )
     filterset_fields = ("instances_with_osm",)
 

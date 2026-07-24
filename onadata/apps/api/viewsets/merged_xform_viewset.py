@@ -22,8 +22,8 @@ from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs.serializers.merged_xform_serializer import MergedXFormSerializer
 from onadata.libs.utils.bbox_tools import compute_instance_bbox
 from onadata.libs.utils.cache_tools import (
-    get_bbox_cache_ttl,
     MERGED_XFORM_BBOX_CACHE,
+    get_bbox_cache_ttl,
     safe_cache_get,
     safe_cache_set,
 )
@@ -44,10 +44,13 @@ class MergedXFormViewSet(
     filter_backends = (
         filters.AnonDjangoObjectPermissionFilter,
         filters.PublicDatasetsFilter,
+        filters.ActiveXFormOrganizationFilter,
     )
     permission_classes = [XFormPermissions]
     queryset = (
-        MergedXForm.objects.filter(deleted_at__isnull=True)
+        MergedXForm.objects.filter(
+            deleted_at__isnull=True, project__organization__is_active=True
+        )
         .annotate(number_of_submissions=Sum("xforms__num_of_submissions"))
         .all()
     )
@@ -116,7 +119,12 @@ class MergedXFormViewSet(
         if cached is not None:
             return Response(cached)
 
-        xform_ids = list(merged_xform.xforms.values_list("pk", flat=True))
+        xform_ids = list(
+            merged_xform.xforms.filter(
+                deleted_at__isnull=True,
+                project__organization__is_active=True,
+            ).values_list("pk", flat=True)
+        )
         data = {"bbox": compute_instance_bbox(xform_ids)}
         safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
@@ -129,7 +137,11 @@ class MergedXFormViewSet(
         export_type = self.kwargs.get("format", request.GET.get("format"))
         queryset = (
             Instance.objects.filter(
-                xform__in=merged_xform.xforms.all(), deleted_at__isnull=True
+                xform__in=merged_xform.xforms.filter(
+                    deleted_at__isnull=True,
+                    project__organization__is_active=True,
+                ),
+                deleted_at__isnull=True,
             )
             .only("id", "json", "geom", "xform_id")
             .order_by("pk")

@@ -66,7 +66,11 @@ class EntityListViewSet(
     DestroyModelMixin,
 ):
     queryset = (
-        EntityList.objects.filter(deleted_at__isnull=True)
+        EntityList.objects.filter(
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
         .order_by("pk")
         .prefetch_related(
             "registration_forms",
