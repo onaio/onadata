@@ -12,6 +12,7 @@ from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import include, re_path
 from django.views.generic import RedirectView
 
+from oidc.permissions import RequireAccountRequestHeader
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps import sms_support
@@ -38,6 +39,20 @@ from onadata.libs.utils.analytics import init_analytics
 # USERNAME_LOOKUP_REGEX so hyphenated/email/phone usernames match while
 # URL/HTML metacharacters stay excluded.
 _USERNAME = rf"(?P<username>{USERNAME_LOOKUP_REGEX})"
+
+# Shared as_view() kwargs for the account-proxy routes (mirrors ona-oidc's
+# oidc/urls.py `_ACCOUNT_PROXY_VIEW_KWARGS`). ``authentication_classes=[]``
+# disables DRF's default authentication stack (which would otherwise run
+# ``SessionAuthentication`` and enforce CSRF on the unsafe-method proxy
+# actions -- the cross-origin SPA can't supply a CSRF token). CSRF on the
+# state-changing methods is instead enforced by ``RequireAccountRequestHeader``
+# (custom header + server-side Origin allowlist). ``JSONRenderer`` keeps the
+# browsable-API HTML form off these machine-only endpoints.
+_ACCOUNT_PROXY_VIEW_KWARGS = {
+    "authentication_classes": [],
+    "permission_classes": [RequireAccountRequestHeader],
+    "renderer_classes": [JSONRenderer],
+}
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 ADMIN_URL_PATH = getattr(settings, "ADMIN_URL_PATH", "admin")
@@ -68,8 +83,12 @@ urlpatterns += [
     #
     # Routed to the project-owned OnaOpenIDConnectViewset (instead of the
     # blanket ``include("oidc.urls")``) so SSO login rejects organization
-    # accounts. The "oidc" namespace and route names mirror oidc/urls.py so
-    # that reverse("oidc:openid_connect_login") still resolves.
+    # accounts. This also serves the account-proxy routes (account,
+    # sessions, linked-accounts, credentials) on the same org-rejecting
+    # viewset; those state-changing actions are CSRF-gated by
+    # ``RequireAccountRequestHeader`` rather than session authentication.
+    # The "oidc" namespace and route names mirror oidc/urls.py so that
+    # reverse("oidc:openid_connect_login") (and friends) still resolve.
     re_path(
         r"^",
         include(
@@ -93,13 +112,70 @@ urlpatterns += [
                         name="openid_connect_logout",
                     ),
                     re_path(
-                        r"^oidc/(?P<auth_server>\w+)/session",
+                        r"^oidc/(?P<auth_server>\w+)/session$",
                         OnaOpenIDConnectViewset.as_view(
                             {"get": "session"},
                             authentication_classes=[],
                             renderer_classes=[JSONRenderer],
                         ),
                         name="openid_connect_session",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/account$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"post": "account"}, **_ACCOUNT_PROXY_VIEW_KWARGS
+                        ),
+                        name="openid_connect_account",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/sessions$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {
+                                "get": "sessions_list",
+                                "delete": "sessions_revoke_others",
+                            },
+                            **_ACCOUNT_PROXY_VIEW_KWARGS,
+                        ),
+                        name="openid_connect_sessions",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/sessions/"
+                        r"(?P<session_id>[a-zA-Z0-9._-]+)$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"delete": "sessions_revoke_one"},
+                            **_ACCOUNT_PROXY_VIEW_KWARGS,
+                        ),
+                        name="openid_connect_sessions_revoke_one",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"get": "linked_list"}, **_ACCOUNT_PROXY_VIEW_KWARGS
+                        ),
+                        name="openid_connect_linked_list",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts/"
+                        r"(?P<provider>[^/]+)/link-url$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"get": "linked_link_url"}, **_ACCOUNT_PROXY_VIEW_KWARGS
+                        ),
+                        name="openid_connect_linked_link_url",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/linked-accounts/"
+                        r"(?P<provider>[^/]+)$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"delete": "linked_unlink"}, **_ACCOUNT_PROXY_VIEW_KWARGS
+                        ),
+                        name="openid_connect_linked_unlink",
+                    ),
+                    re_path(
+                        r"^oidc/(?P<auth_server>\w+)/credentials$",
+                        OnaOpenIDConnectViewset.as_view(
+                            {"get": "credentials_list"}, **_ACCOUNT_PROXY_VIEW_KWARGS
+                        ),
+                        name="openid_connect_credentials",
                     ),
                 ],
                 "oidc",
