@@ -2,25 +2,26 @@
 import json
 import os
 import re
+
+from django.test import SimpleTestCase
+
 from defusedxml import minidom
 
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.xform_instance_parser import (
-    XFormInstanceParser,
-    xpath_from_xml_node,
-)
-from onadata.apps.logger.xform_instance_parser import (
-    get_uuid_from_xml,
-    get_meta_from_xml,
-    get_deprecated_uuid_from_xml,
-)
-from onadata.libs.utils.common_tags import XFORM_ID_STRING
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import (
+    XFormInstanceParser,
     _xml_node_to_dict,
     clean_and_parse_xml,
+    get_deprecated_uuid_from_xml,
+    get_entity_group_data,
+    get_entity_label_from_node,
+    get_entity_nodes_from_xml,
+    get_meta_from_xml,
+    get_uuid_from_xml,
+    xpath_from_xml_node,
 )
-
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tags import XFORM_ID_STRING
 
 XML = "xml"
 DICT = "dict"
@@ -251,3 +252,130 @@ class TestXFormInstanceParser(TestBase):
             self.assertEqual(3, len(xml_dict["#document"]["RW_OUNIS_2016"]["S2A"]))
             with open(json_file) as file:
                 self.assertEqual(json.loads(file.read()), xml_dict)
+
+
+class GetEntityNodesFromXmlTestCase(SimpleTestCase):
+    """Tests for get_entity_nodes_from_xml"""
+
+    def test_top_level_entity(self):
+        """A top-level entity node is returned"""
+        xml = (
+            "<data>"
+            "<species>purpleheart</species>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>Purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(len(entity_nodes), 1)
+        self.assertEqual(entity_nodes[0].getAttribute("id"), "dbee4c32")
+
+    def test_entities_within_repeat(self):
+        """An entity node is returned for each repeat instance in order"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual([node.getAttribute("id") for node in entity_nodes], ["a", "b"])
+
+
+class GetEntityLabelFromNodeTestCase(SimpleTestCase):
+    """Tests for get_entity_label_from_node"""
+
+    def test_returns_label(self):
+        """The label defined within an entity node is returned"""
+        xml = (
+            "<data>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(get_entity_label_from_node(entity_node), "300cm purpleheart")
+
+
+class GetEntityGroupDataTestCase(SimpleTestCase):
+    """Tests for get_entity_group_data"""
+
+    def test_top_level_entity(self):
+        """All submission fields are returned for a top-level entity"""
+        xml = (
+            "<data>"
+            "<species>purpleheart</species>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>Purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        instance_data = {
+            "species": "purpleheart",
+            "meta/instanceID": "uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd",
+        }
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(
+            get_entity_group_data(entity_node, instance_data), instance_data
+        )
+
+    def test_entity_within_repeat(self):
+        """Only the entity's repeat instance fields are returned"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</tree>"
+            "</data>"
+        )
+        instance_data = {
+            "tree": [
+                {"tree/tree_id": "1"},
+                {"tree/tree_id": "2"},
+            ],
+        }
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[0], instance_data),
+            {"tree/tree_id": "1"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1], instance_data),
+            {"tree/tree_id": "2"},
+        )
