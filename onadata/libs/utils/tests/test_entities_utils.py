@@ -624,6 +624,102 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(third_history.created_by, instance.user)
         self.assertEqual(third_history.mutation_type, EntityHistory.MutationType.CREATE)
 
+    def test_entities_updated_from_repeat(self):
+        """A repeat updates multiple Entities in the same EntityList"""
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241130 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        # Existing Entities to be updated
+        first_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "1"},
+            uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6",
+        )
+        second_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "2"},
+            uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9",
+        )
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_repeats" version="202607241130">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2015</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        # No new Entities created
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
+
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        # Each repeat instance updates its own Entity, leaving the label unchanged
+        first_entity.refresh_from_db()
+        first_json = {"year_planted": "2015", "label": "1"}
+        self.assertDictEqual(first_entity.json, first_json)
+        self.assertEqual(first_entity.history.count(), 1)
+
+        first_history = first_entity.history.first()
+
+        self.assertEqual(first_history.registration_form, registration_form)
+        self.assertEqual(first_history.instance, instance)
+        self.assertEqual(first_history.xml, instance.xml)
+        self.assertDictEqual(first_history.json, first_json)
+        self.assertEqual(first_history.form_version, xform.version)
+        self.assertEqual(first_history.created_by, instance.user)
+        self.assertEqual(first_history.mutation_type, EntityHistory.MutationType.UPDATE)
+
+        second_entity.refresh_from_db()
+        second_json = {"year_planted": "2016", "label": "2"}
+        self.assertDictEqual(second_entity.json, second_json)
+        self.assertEqual(second_entity.history.count(), 1)
+
+        second_history = second_entity.history.first()
+
+        self.assertEqual(second_history.registration_form, registration_form)
+        self.assertEqual(second_history.instance, instance)
+        self.assertEqual(second_history.xml, instance.xml)
+        self.assertDictEqual(second_history.json, second_json)
+        self.assertEqual(second_history.form_version, xform.version)
+        self.assertEqual(second_history.created_by, instance.user)
+        self.assertEqual(
+            second_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
 
 class EntityListNumEntitiesBase(TestBase):
     def setUp(self):
