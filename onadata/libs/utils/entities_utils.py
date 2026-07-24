@@ -17,8 +17,9 @@ from onadata.apps.logger.models import (
     RegistrationForm,
 )
 from onadata.apps.logger.xform_instance_parser import (
-    get_entity_uuid_from_xml,
-    get_meta_from_xml,
+    get_entity_group_data,
+    get_entity_label_from_node,
+    get_entity_nodes_from_xml,
 )
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.utils.cache_tools import (
@@ -38,73 +39,60 @@ logger = logging.getLogger(__name__)
 
 
 def get_entity_json_from_instance(
-    instance: Instance, registration_form: RegistrationForm
+    instance: Instance, registration_form: RegistrationForm, entity_node
 ) -> dict:
-    """Parses Instance json and returns Entity json
+    """Parses Instance data and returns Entity json for a single entity node
+
+    A submission can create more than one Entity when the entity is defined
+    within a repeat, so the Entity json is built from the fields belonging to
+    the entity node's group.
 
     :param instance: Instance to create Entity from
     :param registration_form: RegistrationForm to create Entity from
+    :param entity_node: The submission's entity XML node
     :return: Entity properties
     """
-    instance_json: dict[str, Any] = instance.get_dict()
     # Getting a mapping of save_to field to the field name
     mapped_properties = registration_form.get_save_to(instance.version)
-    # Field names with an alias defined
-    property_fields = list(mapped_properties.values())
+    # Field names with an alias defined mapped to the alias
+    field_alias = {field: alias for alias, field in mapped_properties.items()}
+    group_data = get_entity_group_data(entity_node, instance.get_dict())
+    entity_json: dict[str, Any] = {}
 
-    def get_field_alias(field_name: str) -> str:
-        """Get the alias (save_to value) of a form field"""
-        for alias, field in mapped_properties.items():
-            if field == field_name:
-                return alias
+    for field_name, field_data in group_data.items():
+        # We extract field names within grouped sections
+        ungrouped_field_name = field_name.split("/")[-1]
 
-        return field_name
+        if ungrouped_field_name in field_alias:
+            entity_json[field_alias[ungrouped_field_name]] = field_data
 
-    def parse_instance_json(data: dict[str, Any]) -> None:
-        """Parse the original json, replacing field names with their alias
+    label = get_entity_label_from_node(entity_node)
 
-        The data keys are modified in place
-        """
-        for field_name in list(data):
-            field_data = data[field_name]
-            del data[field_name]
+    # An update submission may omit the label, leaving it unchanged
+    if label is not None:
+        entity_json["label"] = label
 
-            if field_name.startswith("formhub"):
-                continue
-
-            if field_name.startswith("meta"):
-                if field_name == "meta/entity/label":
-                    data["label"] = field_data
-
-                continue
-
-            # We extract field names within grouped sections
-            ungrouped_field_name = field_name.split("/")[-1]
-
-            if ungrouped_field_name in property_fields:
-                field_alias = get_field_alias(ungrouped_field_name)
-                data[field_alias] = field_data
-
-    parse_instance_json(instance_json)
-
-    return instance_json
+    return entity_json
 
 
 def _create_entity_from_instance(
-    instance: Instance, registration_form: RegistrationForm
+    instance: Instance, registration_form: RegistrationForm, entity_node
 ) -> Entity:
     """Create an Entity
 
     :param instance: Submission from which the Entity is created from
     :param registration_form: RegistrationForm creating the Entity
+    :param entity_node: The submission's entity XML node
     :return: A newly created Entity
     """
-    entity_json = get_entity_json_from_instance(instance, registration_form)
+    entity_json = get_entity_json_from_instance(
+        instance, registration_form, entity_node
+    )
     entity_list = registration_form.entity_list
     entity = Entity.objects.create(
         entity_list=entity_list,
         json=entity_json,
-        uuid=get_entity_uuid_from_xml(instance.xml),
+        uuid=entity_node.getAttribute("id"),
     )
     entity.history.create(
         registration_form=registration_form,
@@ -120,16 +108,20 @@ def _create_entity_from_instance(
 
 
 def _update_entity_from_instance(
-    entity: Entity, instance: Instance, registration_form: RegistrationForm
+    entity: Entity,
+    instance: Instance,
+    registration_form: RegistrationForm,
+    entity_node,
 ) -> Entity:
     """Updates Entity
 
     :param entity: Entity to be updated
     :param instance: Submission that updates an Entity
     :param registration_form: RegistrationForm updating the Entity
+    :param entity_node: The submission's entity XML node
     :return: updated Entity if uuid valid, else None
     """
-    patch_data = get_entity_json_from_instance(instance, registration_form)
+    patch_data = get_entity_json_from_instance(instance, registration_form, entity_node)
     entity.json = {**entity.json, **patch_data}
     entity.save()
     entity.history.create(
@@ -163,16 +155,21 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     registration_form_qs = RegistrationForm.objects.filter(
         xform=instance.xform, is_active=True
     )
-    entity_node = get_meta_from_xml(instance.xml, "entity")
+    entity_nodes = get_entity_nodes_from_xml(instance.xml)
 
-    if not registration_form_qs.exists() or not entity_node:
+    if not registration_form_qs.exists() or not entity_nodes:
         return
 
     registration_form = registration_form_qs.first()
     mutation_success_checks = ["1", "true"]
-    entity_uuid = entity_node.getAttribute("id")
 
-    if entity_uuid:
+    # A repeat can create multiple Entities in the same EntityList
+    for entity_node in entity_nodes:
+        entity_uuid = entity_node.getAttribute("id")
+
+        if not entity_uuid:
+            continue
+
         try:
             entity = Entity.objects.get(
                 uuid=entity_uuid, entity_list=registration_form.entity_list
@@ -180,12 +177,14 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         except Entity.DoesNotExist:
             if entity_node.getAttribute("create") in mutation_success_checks:
                 # Create Entity
-                _create_entity_from_instance(instance, registration_form)
+                _create_entity_from_instance(instance, registration_form, entity_node)
 
         else:
             if entity_node.getAttribute("update") in mutation_success_checks:
                 # Update Entity
-                _update_entity_from_instance(entity, instance, registration_form)
+                _update_entity_from_instance(
+                    entity, instance, registration_form, entity_node
+                )
 
 
 def adjust_elist_num_entities(entity_list: EntityList, delta: int) -> None:
