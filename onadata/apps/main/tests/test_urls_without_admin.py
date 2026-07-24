@@ -138,3 +138,61 @@ class TestHyphenatedUsernameUrls(SimpleTestCase):
             with self.subTest(path=path):
                 with self.assertRaises(Resolver404):
                     resolve(path)
+
+
+class TestOidcAccountProxyUrls(SimpleTestCase):
+    """The inline ``oidc`` URLconf also routes the account-proxy actions.
+
+    These live alongside login/callback/logout/session on the same
+    org-account-rejecting viewset (instead of a blanket
+    ``include("oidc.urls")``), so this pins both that every account-proxy
+    route resolves to the expected action and that anchoring the
+    ``session`` route with ``$`` keeps it from prefix-matching ``sessions``.
+    Pure URLconf resolution -- no database required.
+
+    Assertions check individual ``method -> action`` pairs rather than the
+    whole ``actions`` dict: DRF's ``ViewSetMixin.as_view()`` lazily mutates
+    that (shared, process-lifetime) dict to alias ``head`` to ``get`` the
+    first time the view actually dispatches a request, so its exact
+    contents can vary depending on what other tests ran earlier.
+    """
+
+    def test_credentials_resolves_to_credentials_list(self):
+        match = resolve("/oidc/example/credentials")
+        self.assertEqual(match.func.actions.get("get"), "credentials_list")
+
+    def test_sessions_resolves_to_sessions_list_and_revoke_others(self):
+        """``/sessions`` must resolve on its own route, not the ``session`` one."""
+        match = resolve("/oidc/example/sessions")
+        self.assertEqual(match.func.actions.get("get"), "sessions_list")
+        self.assertEqual(match.func.actions.get("delete"), "sessions_revoke_others")
+        self.assertNotIn("session", match.func.actions.values())
+
+    def test_session_still_resolves_to_session_probe(self):
+        """Anchoring ``session`` with ``$`` must not break the route itself."""
+        match = resolve("/oidc/example/session")
+        self.assertEqual(match.func.actions.get("get"), "session")
+
+    def test_account_resolves_to_account_action(self):
+        match = resolve("/oidc/example/account")
+        self.assertEqual(match.func.actions.get("post"), "account")
+
+    def test_linked_accounts_resolves_to_linked_list(self):
+        match = resolve("/oidc/example/linked-accounts")
+        self.assertEqual(match.func.actions.get("get"), "linked_list")
+
+    def test_linked_accounts_link_url_resolves_to_linked_link_url(self):
+        """The ``/link-url`` suffix route must win over the bare provider route."""
+        match = resolve("/oidc/example/linked-accounts/foo/link-url")
+        self.assertEqual(match.func.actions.get("get"), "linked_link_url")
+        self.assertEqual(match.kwargs["provider"], "foo")
+
+    def test_linked_accounts_provider_resolves_to_linked_unlink(self):
+        match = resolve("/oidc/example/linked-accounts/foo")
+        self.assertEqual(match.func.actions.get("delete"), "linked_unlink")
+        self.assertEqual(match.kwargs["provider"], "foo")
+
+    def test_sessions_id_resolves_to_sessions_revoke_one(self):
+        match = resolve("/oidc/example/sessions/abc")
+        self.assertEqual(match.func.actions.get("delete"), "sessions_revoke_one")
+        self.assertEqual(match.kwargs["session_id"], "abc")
