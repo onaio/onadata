@@ -151,6 +151,7 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
         self.instances_for_export = lambda d: d.instances.all()
         self.has_external_choices = False
         self._id_string_changed = False
+        self._version_changed = False
         super().__init__(*args, **kwargs)
 
     def __str__(self):
@@ -168,7 +169,9 @@ class DataDictionary(XForm):  # pylint: disable=too-many-instance-attributes
                 self.has_external_choices = True
             survey = check_version_set(survey)
             if self.pk is not None:
-                survey.version = self.get_unique_version(survey.get("version"))
+                new_version = self.get_unique_version(survey.get("version"))
+                self._version_changed = new_version != survey.get("version")
+                survey.version = new_version
             workbook_json["version"] = survey.get("version")
             if get_columns_with_hxl(survey.get("children")):
                 self.has_hxl_support = True
