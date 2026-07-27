@@ -328,6 +328,7 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
         xml = (
             "<data>"
             "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
             "<meta>"
             '<entity dataset="trees" create="1" id="dbee4c32">'
             "<label>Purpleheart</label>"
@@ -335,14 +336,11 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
             "</meta>"
             "</data>"
         )
-        instance_data = {
-            "species": "purpleheart",
-            "meta/instanceID": "uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd",
-        }
         entity_node = get_meta_from_xml(xml, "entity")
 
         self.assertEqual(
-            get_entity_group_data(entity_node, instance_data), instance_data
+            get_entity_group_data(entity_node),
+            {"species": "purpleheart", "circumference": "300"},
         )
 
     def test_entity_within_repeat(self):
@@ -363,21 +361,44 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
             "</tree>"
             "</data>"
         )
-        instance_data = {
-            "tree": [
-                {"tree/tree_id": "1"},
-                {"tree/tree_id": "2"},
-            ],
-        }
         entity_nodes = get_entity_nodes_from_xml(xml)
 
         self.assertEqual(
-            get_entity_group_data(entity_nodes[0], instance_data),
+            get_entity_group_data(entity_nodes[0]),
             {"tree/tree_id": "1"},
         )
         self.assertEqual(
-            get_entity_group_data(entity_nodes[1], instance_data),
+            get_entity_group_data(entity_nodes[1]),
             {"tree/tree_id": "2"},
+        )
+
+    def test_empty_fields_omitted(self):
+        """A repeat instance's empty fields are omitted"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id/>"
+            "<year_planted/>"
+            "<meta>"
+            '<entity dataset="trees" update="1" id="a" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees" update="1" id="b" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        # The first repeat instance is entirely empty
+        self.assertEqual(get_entity_group_data(entity_nodes[0]), {})
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1]),
+            {"tree/tree_id": "2", "tree/year_planted": "2016"},
         )
 
     def test_entity_within_nested_repeat(self):
@@ -408,32 +429,17 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
             "</tree>"
             "</data>"
         )
-        instance_data = {
-            "tree": [
-                {
-                    "tree/inspection": [
-                        {"tree/inspection/tree_id": "1"},
-                        {"tree/inspection/tree_id": "2"},
-                    ],
-                },
-                {
-                    "tree/inspection": [
-                        {"tree/inspection/tree_id": "3"},
-                    ],
-                },
-            ],
-        }
         entity_nodes = get_entity_nodes_from_xml(xml)
 
         self.assertEqual(
-            get_entity_group_data(entity_nodes[0], instance_data),
+            get_entity_group_data(entity_nodes[0]),
             {"tree/inspection/tree_id": "1"},
         )
         self.assertEqual(
-            get_entity_group_data(entity_nodes[1], instance_data),
+            get_entity_group_data(entity_nodes[1]),
             {"tree/inspection/tree_id": "2"},
         )
         self.assertEqual(
-            get_entity_group_data(entity_nodes[2], instance_data),
+            get_entity_group_data(entity_nodes[2]),
             {"tree/inspection/tree_id": "3"},
         )

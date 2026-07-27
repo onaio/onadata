@@ -56,7 +56,9 @@ def get_entity_json_from_instance(
     mapped_properties = registration_form.get_save_to(instance.version)
     # Field names with an alias defined mapped to the alias
     field_alias = {field: alias for alias, field in mapped_properties.items()}
-    group_data = get_entity_group_data(entity_node, instance.get_dict())
+    # Field values are read from the submission XML and numeric fields
+    # converted to match the parsed submission dictionary
+    group_data = instance.numeric_converter(get_entity_group_data(entity_node))
     entity_json: dict[str, Any] = {}
 
     for field_name, field_data in group_data.items():

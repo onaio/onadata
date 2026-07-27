@@ -514,54 +514,40 @@ def get_entity_label_from_node(entity_node):
     return None
 
 
-def _get_node_index(node):
-    """Return the position of ``node`` among its same-named siblings."""
-    index = 0
-    sibling = node.previousSibling
-
-    while sibling is not None:
-        if sibling.nodeType == Node.ELEMENT_NODE and sibling.tagName == node.tagName:
-            index += 1
-
-        sibling = sibling.previousSibling
-
-    return index
-
-
-def get_entity_group_data(entity_node, instance_data):
+def get_entity_group_data(entity_node):
     """Return the submission field values for an entity node's group.
 
-    For an entity defined within a repeat, only the fields of the specific
-    repeat instance the entity belongs to are returned. For a top-level entity,
-    all the submission fields are returned.
+    The values are read from the entity node's enclosing group in the
+    submission XML. An entity defined within a repeat therefore only sees the
+    fields of its own repeat instance, while a top-level entity sees all the
+    submission fields. Reading straight from the XML keeps each entity matched
+    to its own data even when a sibling repeat instance is empty and so dropped
+    from the parsed submission dictionary.
 
     :param entity_node: The submission's entity XML node
-    :param instance_data: The submission's flat data dictionary
+    :return: A mapping of field xpath to its string value
     """
-    root_node = entity_node.ownerDocument.documentElement
-    # The groups enclosing the entity, from the one directly holding it
-    # (entity -> meta -> group) up to, but excluding, the root
-    groups = []
-    node = entity_node.parentNode.parentNode
+    # entity -> meta -> group holding the entity
+    group_node = entity_node.parentNode.parentNode
+    group_data = {}
 
-    while node is not None and node is not root_node:
-        groups.append(node)
-        node = node.parentNode
+    def collect(node):
+        for child in node.childNodes:
+            if child.nodeType != Node.ELEMENT_NODE:
+                continue
 
-    # Descend from the outermost group inwards, following the specific repeat
-    # instance the entity belongs to at each level. Nested repeats keep their
-    # data nested, so a deeper repeat's data lives within its parent's instance.
-    data = instance_data
+            # A meta section holds entity definitions, not field data
+            if child.tagName.lower() in ("meta", "orx:meta"):
+                continue
 
-    for group in reversed(groups):
-        repeat_data = data.get(xpath_from_xml_node(group))
+            if (
+                len(child.childNodes) == 1
+                and child.childNodes[0].nodeType == Node.TEXT_NODE
+            ):
+                group_data[xpath_from_xml_node(child)] = child.childNodes[0].nodeValue
+            else:
+                collect(child)
 
-        if isinstance(repeat_data, list):
-            index = _get_node_index(group)
+    collect(group_node)
 
-            if index >= len(repeat_data):
-                return {}
-
-            data = repeat_data[index]
-
-    return data
+    return group_data
