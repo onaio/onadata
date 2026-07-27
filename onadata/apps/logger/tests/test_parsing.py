@@ -379,3 +379,61 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
             get_entity_group_data(entity_nodes[1], instance_data),
             {"tree/tree_id": "2"},
         )
+
+    def test_entity_within_nested_repeat(self):
+        """Only the entity's nested repeat instance fields are returned"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "<inspection>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>3</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="c"><label>3</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "</data>"
+        )
+        instance_data = {
+            "tree": [
+                {
+                    "tree/inspection": [
+                        {"tree/inspection/tree_id": "1"},
+                        {"tree/inspection/tree_id": "2"},
+                    ],
+                },
+                {
+                    "tree/inspection": [
+                        {"tree/inspection/tree_id": "3"},
+                    ],
+                },
+            ],
+        }
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[0], instance_data),
+            {"tree/inspection/tree_id": "1"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1], instance_data),
+            {"tree/inspection/tree_id": "2"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[2], instance_data),
+            {"tree/inspection/tree_id": "3"},
+        )

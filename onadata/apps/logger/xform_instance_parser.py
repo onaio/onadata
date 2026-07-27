@@ -538,21 +538,30 @@ def get_entity_group_data(entity_node, instance_data):
     :param entity_node: The submission's entity XML node
     :param instance_data: The submission's flat data dictionary
     """
-    # entity -> meta -> group holding the entity
+    root_node = entity_node.ownerDocument.documentElement
+    # The groups enclosing the entity, from the one directly holding it
+    # (entity -> meta -> group) up to, but excluding, the root
+    groups = []
     node = entity_node.parentNode.parentNode
-    root_node = node.ownerDocument.documentElement
 
     while node is not None and node is not root_node:
-        repeat_data = instance_data.get(xpath_from_xml_node(node))
-
-        if isinstance(repeat_data, list):
-            index = _get_node_index(node)
-
-            if index < len(repeat_data):
-                return repeat_data[index]
-
-            return {}
-
+        groups.append(node)
         node = node.parentNode
 
-    return instance_data
+    # Descend from the outermost group inwards, following the specific repeat
+    # instance the entity belongs to at each level. Nested repeats keep their
+    # data nested, so a deeper repeat's data lives within its parent's instance.
+    data = instance_data
+
+    for group in reversed(groups):
+        repeat_data = data.get(xpath_from_xml_node(group))
+
+        if isinstance(repeat_data, list):
+            index = _get_node_index(group)
+
+            if index >= len(repeat_data):
+                return {}
+
+            data = repeat_data[index]
+
+    return data
