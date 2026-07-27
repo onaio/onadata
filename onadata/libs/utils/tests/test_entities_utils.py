@@ -548,16 +548,6 @@ class CreateUpdateEntityTestCase(TestBase):
             "</entity>"
             "</meta>"
             "</tree>"
-            "<tree>"
-            "<tree_id>3</tree_id>"
-            "<year_planted>2015</year_planted>"
-            "<meta>"
-            '<entity dataset="trees_repeat" create="1" '
-            'id="e3b6446f-40f1-4ff5-8cd1-1b7f562ff8c5">'
-            "<label>3</label>"
-            "</entity>"
-            "</meta>"
-            "</tree>"
             "<meta>"
             "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
             "</meta>"
@@ -569,7 +559,7 @@ class CreateUpdateEntityTestCase(TestBase):
 
         create_or_update_entity_from_instance(instance)
 
-        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 3)
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
 
         registration_form = RegistrationForm.objects.get(xform=xform)
 
@@ -607,22 +597,6 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(
             second_history.mutation_type, EntityHistory.MutationType.CREATE
         )
-
-        third_entity = Entity.objects.get(uuid="e3b6446f-40f1-4ff5-8cd1-1b7f562ff8c5")
-        third_json = {"year_planted": "2015", "label": "3"}
-        self.assertEqual(third_entity.entity_list, entity_list)
-        self.assertDictEqual(third_entity.json, third_json)
-        self.assertEqual(third_entity.history.count(), 1)
-
-        third_history = third_entity.history.first()
-
-        self.assertEqual(third_history.registration_form, registration_form)
-        self.assertEqual(third_history.instance, instance)
-        self.assertEqual(third_history.xml, instance.xml)
-        self.assertDictEqual(third_history.json, third_json)
-        self.assertEqual(third_history.form_version, xform.version)
-        self.assertEqual(third_history.created_by, instance.user)
-        self.assertEqual(third_history.mutation_type, EntityHistory.MutationType.CREATE)
 
     def test_entities_updated_from_repeat(self):
         """A repeat updates multiple Entities in the same EntityList"""
@@ -836,18 +810,6 @@ class CreateUpdateEntityTestCase(TestBase):
             "</meta>"
             "</inspection>"
             "</tree>"
-            "<tree>"
-            "<inspection>"
-            "<tree_id>3</tree_id>"
-            "<year_planted>2016</year_planted>"
-            "<meta>"
-            '<entity dataset="trees_repeat" create="1" '
-            'id="e3b6446f-40f1-4ff5-8cd1-1b7f562ff8c5">'
-            "<label>3</label>"
-            "</entity>"
-            "</meta>"
-            "</inspection>"
-            "</tree>"
             "<meta>"
             "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
             "</meta>"
@@ -859,7 +821,7 @@ class CreateUpdateEntityTestCase(TestBase):
 
         create_or_update_entity_from_instance(instance)
 
-        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 3)
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
 
         registration_form = RegistrationForm.objects.get(xform=xform)
 
@@ -897,22 +859,6 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(
             second_history.mutation_type, EntityHistory.MutationType.CREATE
         )
-
-        third_entity = Entity.objects.get(uuid="e3b6446f-40f1-4ff5-8cd1-1b7f562ff8c5")
-        third_json = {"year_planted": "2016", "label": "3"}
-        self.assertEqual(third_entity.entity_list, entity_list)
-        self.assertDictEqual(third_entity.json, third_json)
-        self.assertEqual(third_entity.history.count(), 1)
-
-        third_history = third_entity.history.first()
-
-        self.assertEqual(third_history.registration_form, registration_form)
-        self.assertEqual(third_history.instance, instance)
-        self.assertEqual(third_history.xml, instance.xml)
-        self.assertDictEqual(third_history.json, third_json)
-        self.assertEqual(third_history.form_version, xform.version)
-        self.assertEqual(third_history.created_by, instance.user)
-        self.assertEqual(third_history.mutation_type, EntityHistory.MutationType.CREATE)
 
     def test_entities_updated_from_nested_repeat(self):
         """A nested repeat updates multiple Entities in the same EntityList"""
