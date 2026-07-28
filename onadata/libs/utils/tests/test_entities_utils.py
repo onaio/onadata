@@ -1028,6 +1028,310 @@ class CreateUpdateEntityTestCase(TestBase):
             second_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
 
+    def test_entities_created_in_multi_lists(self):
+        """A submission creates Entities in multiple EntityLists"""
+        md = """
+        | survey   |
+        |          | type         | name                    | label            | calculation | save_to             |
+        |          | text         | hhid                    | Household ID     |             | households#id       |
+        |          | geopoint     | location                | Location         |             | households#geometry |
+        |          | begin_repeat | household_member        | Household Member |             |                     |
+        |          | text         | full_name               | Full name        |             |                     |
+        |          | text         | phone_number            | Phone number     |             | members#phone       |
+        |          | calculate    | member_hhid             |                  | ${hhid}     | members#hhid        |
+        |          | end_repeat   |              |                  |             |                     |
+        | settings |              |              |                  |             |                     |
+        |          | form_title   | form_id                 | version          |             |                     |
+        |          | Households   | households_registration | 2026072801       |             |                     |
+        | entities |              |              |                  |             |                     |
+        |          | list_name    | label        |                  |             |                     |
+        |          | households   | ${hhid}      |                  |             |                     |
+        |          | members      | ${full_name} |                  |             |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+        households_entity_list = EntityList.objects.get(name="households")
+        members_entity_list = EntityList.objects.get(name="members")
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="households_registration" '
+            'version="2026072801">'
+            "<formhub><uuid>c160aebf02644aee8f81bed71ce2e21c</uuid></formhub>"
+            "<hhid>1</hhid>"
+            "<location>-1.238173 36.66086 0 0</location>"
+            "<household_member>"
+            "<full_name>Maimuna Boza</full_name>"
+            "<phone_number>0700000000</phone_number>"
+            "<member_hhid>1</member_hhid>"
+            "<meta>"
+            '<entity dataset="members" create="1" '
+            'id="fd31535f-1712-4805-b618-ca3cfec4d290">'
+            "<label>Maimuna Boza</label>"
+            "</entity>"
+            "</meta>"
+            "</household_member>"
+            "<household_member>"
+            "<full_name>Mtemi Bokono</full_name>"
+            "<phone_number>0711111111</phone_number>"
+            "<member_hhid>1</member_hhid>"
+            "<meta>"
+            '<entity dataset="members" create="1" '
+            'id="8e160c1b-0c1e-4de5-899c-ebd5111d097c">'
+            "<label>Mtemi Bokono</label>"
+            "</entity>"
+            "</meta>"
+            "</household_member>"
+            "<meta>"
+            '<entity dataset="households" create="1" '
+            'id="f82d80c7-6f82-4845-8040-0ebbf4f48c5a">'
+            "<label>1</label>"
+            "</entity>"
+            "<instanceID>uuid:3e53e18c-bc7b-4433-8259-04bc20257980</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(
+            Entity.objects.filter(entity_list=households_entity_list).count(), 0
+        )
+        self.assertEqual(
+            Entity.objects.filter(entity_list=members_entity_list).count(), 0
+        )
+
+        create_or_update_entity_from_instance(instance)
+
+        self.assertEqual(
+            Entity.objects.filter(entity_list=households_entity_list).count(), 1
+        )
+        self.assertEqual(
+            Entity.objects.filter(entity_list=members_entity_list).count(), 2
+        )
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=households_entity_list
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=members_entity_list
+        )
+
+        # Entity for the households list is created from the top-level fields
+        household_entity = Entity.objects.get(
+            uuid="f82d80c7-6f82-4845-8040-0ebbf4f48c5a"
+        )
+        household_json = {"id": "1", "geometry": "-1.238173 36.66086 0 0", "label": "1"}
+        self.assertEqual(household_entity.entity_list, households_entity_list)
+        self.assertDictEqual(household_entity.json, household_json)
+        self.assertEqual(household_entity.history.count(), 1)
+
+        household_history = household_entity.history.first()
+
+        self.assertEqual(household_history.registration_form, households_reg_form)
+        self.assertEqual(household_history.instance, instance)
+        self.assertEqual(household_history.xml, instance.xml)
+        self.assertDictEqual(household_history.json, household_json)
+        self.assertEqual(household_history.form_version, xform.version)
+        self.assertEqual(household_history.created_by, instance.user)
+        self.assertEqual(
+            household_history.mutation_type, EntityHistory.MutationType.CREATE
+        )
+
+        # Each repeat instance creates an Entity in the members list
+        first_member = Entity.objects.get(uuid="fd31535f-1712-4805-b618-ca3cfec4d290")
+        first_member_json = {
+            "phone": "0700000000",
+            "hhid": "1",
+            "label": "Maimuna Boza",
+        }
+        self.assertEqual(first_member.entity_list, members_entity_list)
+        self.assertDictEqual(first_member.json, first_member_json)
+        self.assertEqual(first_member.history.count(), 1)
+
+        first_member_history = first_member.history.first()
+
+        self.assertEqual(first_member_history.registration_form, members_reg_form)
+        self.assertEqual(first_member_history.instance, instance)
+        self.assertEqual(first_member_history.xml, instance.xml)
+        self.assertDictEqual(first_member_history.json, first_member_json)
+        self.assertEqual(first_member_history.form_version, xform.version)
+        self.assertEqual(first_member_history.created_by, instance.user)
+        self.assertEqual(
+            first_member_history.mutation_type, EntityHistory.MutationType.CREATE
+        )
+
+        second_member = Entity.objects.get(uuid="8e160c1b-0c1e-4de5-899c-ebd5111d097c")
+        second_member_json = {
+            "phone": "0711111111",
+            "hhid": "1",
+            "label": "Mtemi Bokono",
+        }
+        self.assertEqual(second_member.entity_list, members_entity_list)
+        self.assertDictEqual(second_member.json, second_member_json)
+        self.assertEqual(second_member.history.count(), 1)
+
+        second_member_history = second_member.history.first()
+
+        self.assertEqual(second_member_history.registration_form, members_reg_form)
+        self.assertEqual(second_member_history.instance, instance)
+        self.assertEqual(second_member_history.xml, instance.xml)
+        self.assertDictEqual(second_member_history.json, second_member_json)
+        self.assertEqual(second_member_history.form_version, xform.version)
+        self.assertEqual(second_member_history.created_by, instance.user)
+        self.assertEqual(
+            second_member_history.mutation_type, EntityHistory.MutationType.CREATE
+        )
+
+    def test_entities_updated_in_multi_lists(self):
+        """A submission updates Entities in multiple EntityLists"""
+        md = """
+        | survey   |
+        |          | type         | name                    | label            | calculation | save_to             |
+        |          | text         | hhid                    | Household ID     |             | households#id       |
+        |          | geopoint     | location                | Location         |             | households#geometry |
+        |          | begin_repeat | household_member        | Household Member |             |                     |
+        |          | text         | full_name               | Full name        |             |                     |
+        |          | text         | phone_number            | Phone number     |             | members#phone       |
+        |          | calculate    | member_hhid             |                  | ${hhid}     | members#hhid        |
+        |          | end_repeat   |              |                  |             |                     |
+        | settings |              |              |                  |             |                     |
+        |          | form_title   | form_id                 | version          |             |                     |
+        |          | Households   | households_registration | 2026072802       |             |                     |
+        | entities |              |              |                  |             |                     |
+        |          | list_name    | label        |                  |             |                     |
+        |          | households   | ${hhid}      |                  |             |                     |
+        |          | members      | ${full_name} |                  |             |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+        households_entity_list = EntityList.objects.get(name="households")
+        members_entity_list = EntityList.objects.get(name="members")
+        # Existing Entities to be updated
+        household_entity = Entity.objects.create(
+            entity_list=households_entity_list,
+            json={"id": "1", "geometry": "-1.238173 36.66086 0 0", "label": "1"},
+            uuid="f82d80c7-6f82-4845-8040-0ebbf4f48c5a",
+        )
+        first_member = Entity.objects.create(
+            entity_list=members_entity_list,
+            json={"phone": "0700000000", "hhid": "1", "label": "Maimuna Boza"},
+            uuid="fd31535f-1712-4805-b618-ca3cfec4d290",
+        )
+        second_member = Entity.objects.create(
+            entity_list=members_entity_list,
+            json={"phone": "0711111111", "hhid": "1", "label": "Mtemi Bokono"},
+            uuid="8e160c1b-0c1e-4de5-899c-ebd5111d097c",
+        )
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="households_registration" '
+            'version="2026072802">'
+            "<formhub><uuid>c160aebf02644aee8f81bed71ce2e21c</uuid></formhub>"
+            "<hhid>1</hhid>"
+            "<location>-1.298895 36.759096 0 0</location>"
+            "<household_member>"
+            "<full_name>Maimuna Boza</full_name>"
+            "<phone_number>0733333333</phone_number>"
+            "<member_hhid>1</member_hhid>"
+            "<meta>"
+            '<entity dataset="members" update="1" '
+            'id="fd31535f-1712-4805-b618-ca3cfec4d290" baseVersion="1"/>'
+            "</meta>"
+            "</household_member>"
+            "<household_member>"
+            "<full_name>Mtemi Bokono</full_name>"
+            "<phone_number>0744444444</phone_number>"
+            "<member_hhid>1</member_hhid>"
+            "<meta>"
+            '<entity dataset="members" update="1" '
+            'id="8e160c1b-0c1e-4de5-899c-ebd5111d097c" baseVersion="1"/>'
+            "</meta>"
+            "</household_member>"
+            "<meta>"
+            '<entity dataset="households" update="1" '
+            'id="f82d80c7-6f82-4845-8040-0ebbf4f48c5a" baseVersion="1"/>'
+            "<instanceID>uuid:3e53e18c-bc7b-4433-8259-04bc20257980</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        # No new Entities created
+        self.assertEqual(
+            Entity.objects.filter(entity_list=households_entity_list).count(), 1
+        )
+        self.assertEqual(
+            Entity.objects.filter(entity_list=members_entity_list).count(), 2
+        )
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=households_entity_list
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list=members_entity_list
+        )
+
+        # Entity for the households list is updated from the top-level
+        # fields, leaving the label unchanged
+        household_entity.refresh_from_db()
+        household_json = {"id": "1", "geometry": "-1.298895 36.759096 0 0", "label": "1"}
+        self.assertDictEqual(household_entity.json, household_json)
+        self.assertEqual(household_entity.history.count(), 1)
+
+        household_history = household_entity.history.first()
+
+        self.assertEqual(household_history.registration_form, households_reg_form)
+        self.assertEqual(household_history.instance, instance)
+        self.assertEqual(household_history.xml, instance.xml)
+        self.assertDictEqual(household_history.json, household_json)
+        self.assertEqual(household_history.form_version, xform.version)
+        self.assertEqual(household_history.created_by, instance.user)
+        self.assertEqual(
+            household_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
+        # Each repeat instance updates its own Entity in the members list
+        first_member.refresh_from_db()
+        first_member_json = {
+            "phone": "0733333333",
+            "hhid": "1",
+            "label": "Maimuna Boza",
+        }
+        self.assertDictEqual(first_member.json, first_member_json)
+        self.assertEqual(first_member.history.count(), 1)
+
+        first_member_history = first_member.history.first()
+
+        self.assertEqual(first_member_history.registration_form, members_reg_form)
+        self.assertEqual(first_member_history.instance, instance)
+        self.assertEqual(first_member_history.xml, instance.xml)
+        self.assertDictEqual(first_member_history.json, first_member_json)
+        self.assertEqual(first_member_history.form_version, xform.version)
+        self.assertEqual(first_member_history.created_by, instance.user)
+        self.assertEqual(
+            first_member_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
+        second_member.refresh_from_db()
+        second_member_json = {
+            "phone": "0744444444",
+            "hhid": "1",
+            "label": "Mtemi Bokono",
+        }
+        self.assertDictEqual(second_member.json, second_member_json)
+        self.assertEqual(second_member.history.count(), 1)
+
+        second_member_history = second_member.history.first()
+
+        self.assertEqual(second_member_history.registration_form, members_reg_form)
+        self.assertEqual(second_member_history.instance, instance)
+        self.assertEqual(second_member_history.xml, instance.xml)
+        self.assertDictEqual(second_member_history.json, second_member_json)
+        self.assertEqual(second_member_history.form_version, xform.version)
+        self.assertEqual(second_member_history.created_by, instance.user)
+        self.assertEqual(
+            second_member_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
 
 class EntityListNumEntitiesBase(TestBase):
     def setUp(self):
