@@ -162,7 +162,6 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
     if not registration_form_qs.exists() or not entity_nodes:
         return
 
-    registration_form = registration_form_qs.first()
     mutation_success_checks = ["1", "true"]
 
     # A repeat can create multiple Entities in the same EntityList
@@ -170,6 +169,13 @@ def create_or_update_entity_from_instance(instance: Instance) -> None:
         entity_uuid = entity_node.getAttribute("id")
 
         if not entity_uuid:
+            continue
+
+        registration_form = registration_form_qs.filter(
+            entity_list__name=entity_node.getAttribute("dataset")
+        ).first()
+
+        if registration_form is None:
             continue
 
         try:
