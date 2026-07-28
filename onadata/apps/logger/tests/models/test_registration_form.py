@@ -173,7 +173,7 @@ class RegistrationFormTestCase(TestBase):
         )
 
     def test_get_save_to_multi_lists(self):
-        """Method `get_save_to` returns properties for the form's entity list only"""
+        """Method `get_save_to` returns save_to to name map for each list for multiple lists"""
         md = """
         | survey   |
         |          | type         | name         | label            | save_to             |
