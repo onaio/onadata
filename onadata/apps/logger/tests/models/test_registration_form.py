@@ -172,6 +172,48 @@ class RegistrationFormTestCase(TestBase):
             {"geometry": "location", "species": "species"},
         )
 
+    def test_get_save_to_multi_lists(self):
+        """Method `get_save_to` returns properties for the form's entity list only"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        self._publish_markdown(md, self.user, self.project, id_string="households")
+        xform = XForm.objects.get(id_string="households")
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(
+            households_reg_form.get_save_to(),
+            {
+                "id": "hhid",
+                "geometry": "location",
+            },
+        )
+        self.assertEqual(
+            members_reg_form.get_save_to(),
+            {
+                "phone": "phone_number",
+            },
+        )
+
     def test_entity_list_xform_unique(self):
         """No duplicates allowed for existing entity_list and xform"""
         RegistrationForm.objects.create(
