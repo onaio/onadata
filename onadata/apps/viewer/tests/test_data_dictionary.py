@@ -337,7 +337,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertTrue(members_reg_form.is_active)
 
     def test_replace_list_form_w_mult_list(self):
-        """Replacing a entiies list for a form w/ multiple lists works"""
+        """Replacing a entities list for a form w/ multiple lists works"""
         md = """
         | survey   |
         |          | type         | name         | label            | save_to             |
