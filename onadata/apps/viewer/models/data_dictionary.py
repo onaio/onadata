@@ -382,6 +382,8 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
     if not _has_entity_definition(instance_json):
         return
 
+    datasets = []
+
     def _register(children):
         for child in children:
             if child.get("children", []):
@@ -393,6 +395,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
             for child in meta.get("children", []):
                 if child.get("name") == "entity":
                     dataset = _get_entity_dataset(child)
+                    datasets.append(dataset)
                     entity_list, _ = EntityList.objects.get_or_create(
                         name=dataset, project=instance.project
                     )
@@ -404,15 +407,7 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
                         xform=instance,
                     )
 
-                    if registration_form_created:
-                        # RegistrationForm contributing to any previous
-                        # EntityList should be disabled
-                        for form in instance.registration_forms.exclude(
-                            entity_list=entity_list, is_active=True
-                        ):
-                            form.is_active = False
-                            form.save()
-                    elif (
+                    if (
                         not registration_form_created
                         and not registration_form.is_active
                     ):
@@ -423,6 +418,14 @@ def create_registration_form(sender, instance=None, created=False, **kwargs):
                     return
 
     _register(instance_json.get("children", []))
+
+    # RegistrationForm contributing to any previous EntityList should
+    # be disabled
+    for form in instance.registration_forms.filter(is_active=True).exclude(
+        entity_list__name__in=datasets
+    ):
+        form.is_active = False
+        form.save()
 
 
 post_save.connect(

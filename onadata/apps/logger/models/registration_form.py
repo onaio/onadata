@@ -59,6 +59,41 @@ class RegistrationForm(BaseModel):
 
         result = {}
         children = xform_json.get("children", [])
+        dataset = self.entity_list.name
+
+        def get_entity_dataset(entity_field):
+            parameters = entity_field.get("parameters")
+
+            if parameters:
+                return parameters.get("dataset")
+
+            for field in entity_field.get("children", []):
+                if field.get("name") == "dataset":
+                    return field.get("value")
+
+            return None
+
+        def get_container_dataset(form_fields):
+            for field in form_fields:
+                if field.get("name") == "meta":
+                    for meta_field in field.get("children", []):
+                        if meta_field.get("name") == "entity":
+                            return get_entity_dataset(meta_field)
+
+            return None
+
+        def find_container_fields(form_fields):
+            if get_container_dataset(form_fields) == dataset:
+                return form_fields
+
+            for field in form_fields:
+                if field.get("children", []):
+                    found = find_container_fields(field["children"])
+
+                    if found is not None:
+                        return found
+
+            return None
 
         def get_entity_property_fields(form_fields):
             for field in form_fields:
@@ -67,9 +102,15 @@ class RegistrationForm(BaseModel):
                     result[alias] = field["name"]
 
                 elif field.get("children", []):
-                    get_entity_property_fields(field["children"])
+                    child_dataset = get_container_dataset(field["children"])
 
-        get_entity_property_fields(children)
+                    if child_dataset is None or child_dataset == dataset:
+                        get_entity_property_fields(field["children"])
+
+        container_fields = find_container_fields(children)
+
+        if container_fields is not None:
+            get_entity_property_fields(container_fields)
 
         return result
 
