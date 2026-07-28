@@ -41,11 +41,12 @@ class RegistrationForm(BaseModel):
         return f"{self.xform}|{self.entity_list.name}"
 
     def get_save_to(self, version: str | None = None) -> dict[str, str]:
-        """Maps the save_to alias to the original field
+        """Maps the save_to values to their names
 
-        :param version: XFormVersion's version to use to get properties
-        :return: properties used to create entities mapped to their
-            original names
+        :param version: XForm version (optional, defaults to current version)
+        :type version: str
+        :return: save_to values mapped to their names
+        :rtype: dict
         """
         if version:
             xform_version = XFormVersion.objects.get(version=version, xform=self.xform)
