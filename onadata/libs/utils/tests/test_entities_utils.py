@@ -1273,7 +1273,11 @@ class CreateUpdateEntityTestCase(TestBase):
         # Entity for the households list is updated from the top-level
         # fields, leaving the label unchanged
         household_entity.refresh_from_db()
-        household_json = {"id": "1", "geometry": "-1.298895 36.759096 0 0", "label": "1"}
+        household_json = {
+            "id": "1",
+            "geometry": "-1.298895 36.759096 0 0",
+            "label": "1",
+        }
         self.assertDictEqual(household_entity.json, household_json)
         self.assertEqual(household_entity.history.count(), 1)
 
@@ -1331,6 +1335,33 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(
             second_member_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
+
+    def test_reg_form_inactive(self):
+        """Entity is not created if RegistrationForm is inactive"""
+        registration_form = RegistrationForm.objects.get(xform=self.xform)
+        registration_form.is_active = False
+        registration_form.save()
+
+        create_or_update_entity_from_instance(self.instance)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_reg_form_not_found(self):
+        """Entity is not created if RegistrationForm does not exist"""
+        RegistrationForm.objects.filter(xform=self.xform).delete()
+
+        create_or_update_entity_from_instance(self.instance)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_entity_list_not_found(self):
+        """Entity is not created if EntityList not found"""
+        entity_list = EntityList.objects.get(name="trees")
+        entity_list.soft_delete()
+
+        create_or_update_entity_from_instance(self.instance)
+
+        self.assertEqual(Entity.objects.count(), 0)
 
 
 class EntityListNumEntitiesBase(TestBase):
