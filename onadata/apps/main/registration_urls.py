@@ -7,13 +7,14 @@ URLConf to include this URLConf for any URL beginning with
 
 """
 
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordResetView
 from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic import TemplateView
 
 from registration.backends.default.views import ActivationView
 
 from onadata.apps.main.forms import (
+    AccountPasswordResetForm,
     LoginLockoutAuthenticationForm,
     RegistrationFormUserProfile,
 )
@@ -57,6 +58,18 @@ urlpatterns = [
             authentication_form=LoginLockoutAuthenticationForm,
         ),
         name="auth_login",
+    ),
+    # Override the reset-request view (also defined in registration.auth_urls
+    # below) with a form that rate-limits reset emails per address and skips
+    # organization accounts. Declared first so it takes precedence over the
+    # include's route.
+    path(
+        "password/reset/",
+        PasswordResetView.as_view(
+            form_class=AccountPasswordResetForm,
+            success_url=reverse_lazy("auth_password_reset_done"),
+        ),
+        name="auth_password_reset",
     ),
     # Override the reset-confirm view (also defined in registration.auth_urls
     # below) so a successful password reset also rotates the user's API/temp
