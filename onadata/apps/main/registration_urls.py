@@ -8,7 +8,7 @@ URLConf to include this URLConf for any URL beginning with
 """
 
 from django.contrib.auth.views import LoginView
-from django.urls import include, path, re_path
+from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic import TemplateView
 
 from registration.backends.default.views import ActivationView
@@ -17,7 +17,10 @@ from onadata.apps.main.forms import (
     LoginLockoutAuthenticationForm,
     RegistrationFormUserProfile,
 )
-from onadata.apps.main.registration_views import FHRegistrationView
+from onadata.apps.main.registration_views import (
+    FHRegistrationView,
+    TokenRotatingPasswordResetConfirmView,
+)
 
 urlpatterns = [
     path(
@@ -54,6 +57,16 @@ urlpatterns = [
             authentication_form=LoginLockoutAuthenticationForm,
         ),
         name="auth_login",
+    ),
+    # Override the reset-confirm view (also defined in registration.auth_urls
+    # below) so a successful password reset also rotates the user's API/temp
+    # tokens. Declared first so it takes precedence over the include's route.
+    path(
+        "password/reset/confirm/<uidb64>/<token>/",
+        TokenRotatingPasswordResetConfirmView.as_view(
+            success_url=reverse_lazy("auth_password_reset_complete")
+        ),
+        name="auth_password_reset_confirm",
     ),
     re_path(r"", include("registration.auth_urls")),
 ]
