@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.utils.timezone import now
@@ -201,6 +202,18 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data["detail"], "Invalid token")
         self.assertEqual(response["www-authenticate"], "TempToken")
+
+    def test_reset_action_removed(self):
+        """The /api/v1/user/reset action was dropped; the route no longer exists."""
+        response = self.client.post(
+            "/api/v1/user/reset",
+            data={
+                "email": self.user.email,
+                "reset_url": "https://evil.example/reset_form",
+            },
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_get_starred_projects(self):
         self._project_create()
