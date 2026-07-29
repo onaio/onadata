@@ -5797,11 +5797,56 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         entity_list = EntityList.objects.get(name="trees")
         self.assertEqual(
             response.data["contributes_entities_to"],
-            {
-                "id": entity_list.pk,
-                "name": "trees",
-                "is_active": True,
-            },
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+        )
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_registration_form_multiple_lists(self):
+        """Response for an XForm contributing Entities to multiple lists is correct"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        households = EntityList.objects.get(name="households")
+        members = EntityList.objects.get(name="members")
+        self.assertEqual(
+            response.data["contributes_entities_to"],
+            [
+                {
+                    "id": members.pk,
+                    "name": "members",
+                    "is_active": True,
+                },
+                {
+                    "id": households.pk,
+                    "name": "households",
+                    "is_active": True,
+                },
+            ],
         )
 
     @override_settings(TIME_ZONE="UTC")
@@ -5816,11 +5861,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         entity_list = EntityList.objects.get(name="trees")
         self.assertEqual(
             response.data[0]["contributes_entities_to"],
-            {
-                "id": entity_list.pk,
-                "name": "trees",
-                "is_active": True,
-            },
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
         )
 
     @override_settings(TIME_ZONE="UTC")

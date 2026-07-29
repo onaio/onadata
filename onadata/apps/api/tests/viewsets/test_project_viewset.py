@@ -208,7 +208,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                                     ("id_string", "transportation_2011_07_25"),
                                     ("is_merged_dataset", False),
                                     ("encrypted", False),
-                                    ("contributes_entities_to", None),
+                                    ("contributes_entities_to", []),
                                     ("consumes_entities_from", []),
                                 ]
                             )
@@ -3263,11 +3263,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.data["forms"][0]["contributes_entities_to"],
-            {
-                "id": entity_list.pk,
-                "name": "trees",
-                "is_active": True,
-            },
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
         )
         # Soft delete dataset
         entity_list.soft_delete()
@@ -3275,7 +3277,66 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.data["forms"][0]["contributes_entities_to"])
+        self.assertEqual(response.data["forms"][0]["contributes_entities_to"], [])
+
+    def test_get_project_w_registration_form_multiple_lists(self):
+        """Retrieve project with form registering Entities to multiple lists"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        self._publish_markdown(md, self.user)
+        view = ProjectViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+        households = EntityList.objects.get(name="households")
+        members = EntityList.objects.get(name="members")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["forms"][0]["contributes_entities_to"],
+            [
+                {
+                    "id": members.pk,
+                    "name": "members",
+                    "is_active": True,
+                },
+                {
+                    "id": households.pk,
+                    "name": "households",
+                    "is_active": True,
+                },
+            ],
+        )
+        # Soft deleted dataset is excluded
+        members.soft_delete()
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["forms"][0]["contributes_entities_to"],
+            [
+                {
+                    "id": households.pk,
+                    "name": "households",
+                    "is_active": True,
+                }
+            ],
+        )
 
     def test_get_project_w_follow_up_form(self):
         """Retrieve project with Entity follow up form"""

@@ -264,19 +264,24 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     consumes_entities_from = serializers.SerializerMethodField()
 
     def get_contributes_entities_to(self, obj: XForm):
-        """Return the EntityList that the form contributes Entities to"""
-        registration_form = obj.registration_forms.filter(
+        """Return the EntityLists that the form contributes Entities to"""
+        queryset = obj.registration_forms.filter(
             entity_list__deleted_at__isnull=True
-        ).first()
+        ).order_by("pk")
 
-        if registration_form is None:
-            return None
+        if not queryset:
+            return []
 
-        return {
-            "id": registration_form.entity_list.pk,
-            "name": registration_form.entity_list.name,
-            "is_active": registration_form.is_active,
-        }
+        return list(
+            map(
+                lambda registration_form: {
+                    "id": registration_form.entity_list.pk,
+                    "name": registration_form.entity_list.name,
+                    "is_active": registration_form.is_active,
+                },
+                queryset,
+            )
+        )
 
     def get_consumes_entities_from(self, obj: XForm):
         """Return the EntityLIst that the form consumes Entities"""
