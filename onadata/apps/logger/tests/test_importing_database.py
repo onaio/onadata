@@ -6,9 +6,10 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from onadata.apps.logger.import_tools import import_instances_from_zip
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.views import bulksubmission
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.permissions import DataEntryRole
 
 CUR_PATH = os.path.abspath(__file__)
 CUR_DIR = os.path.dirname(CUR_PATH)
@@ -72,7 +73,7 @@ class TestImportingDatabase(TestBase):
                 "test_forms",
                 "tutorial.xlsx",
             ),
-            user=user
+            user=user,
         )
 
         # import from sd card
@@ -120,3 +121,50 @@ class TestImportingDatabase(TestBase):
             post_data = {"zip_submission_file": zip_file}
             response = self.client.post(url, post_data)
         self.assertEqual(response.status_code, 200)
+
+    def test_bulk_import_post_requires_authentication(self):
+        """An anonymous caller cannot bulk-import submissions into any account."""
+        zip_file_path = os.path.join(
+            DB_FIXTURES_PATH, "bulk_submission_w_extra_instance.zip"
+        )
+        url = reverse(bulksubmission, kwargs={"username": self.user.username})
+        initial_instance_count = Instance.objects.count()
+        with open(zip_file_path, "rb") as zip_file:
+            post_data = {"zip_submission_file": zip_file}
+            response = self.anon.post(url, post_data)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(Instance.objects.count(), initial_instance_count)
+
+    def test_bulk_import_post_rejects_user_without_submit_permission(self):
+        """A user without submit permission cannot import into a require-auth account."""
+        self._set_require_auth(True)
+        self._create_user("alice", "alice", create_profile=True)
+        other_client = self._login("alice", "alice")
+        zip_file_path = os.path.join(
+            DB_FIXTURES_PATH, "bulk_submission_w_extra_instance.zip"
+        )
+        url = reverse(bulksubmission, kwargs={"username": self.user.username})
+        initial_instance_count = Instance.objects.count()
+        with open(zip_file_path, "rb") as zip_file:
+            post_data = {"zip_submission_file": zip_file}
+            response = other_client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Instance.objects.count(), initial_instance_count)
+
+    def test_bulk_import_post_allows_collaborator_with_submit_permission(self):
+        """A collaborator granted submit permission can bulk-import for the owner."""
+        self._set_require_auth(True)
+        alice = self._create_user("alice", "alice", create_profile=True)
+        xform = XForm.objects.filter(user=self.user).first()
+        DataEntryRole.add(alice, xform)
+        other_client = self._login("alice", "alice")
+        zip_file_path = os.path.join(
+            DB_FIXTURES_PATH, "bulk_submission_w_extra_instance.zip"
+        )
+        url = reverse(bulksubmission, kwargs={"username": self.user.username})
+        initial_instance_count = Instance.objects.count()
+        with open(zip_file_path, "rb") as zip_file:
+            post_data = {"zip_submission_file": zip_file}
+            response = other_client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertGreater(Instance.objects.count(), initial_instance_count)
