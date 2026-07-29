@@ -443,3 +443,20 @@ class GetEntityGroupDataTestCase(SimpleTestCase):
             get_entity_group_data(entity_nodes[2]),
             {"tree/inspection/tree_id": "3"},
         )
+
+    def test_cdata_value(self):
+        """A field value stored as CDATA is returned"""
+        xml = (
+            "<data>"
+            "<species><![CDATA[purpleheart]]></species>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</data>"
+        )
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(
+            get_entity_group_data(entity_node),
+            {"species": "purpleheart"},
+        )

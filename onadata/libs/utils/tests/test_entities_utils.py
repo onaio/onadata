@@ -112,6 +112,33 @@ class CreateUpdateEntityTestCase(TestBase):
             entity_history.mutation_type, EntityHistory.MutationType.CREATE
         )
 
+    def test_entity_created_with_cdata_property(self):
+        """Entity property stored as CDATA is created"""
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species><![CDATA[purpleheart]]></species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:aa3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="cc3e4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=self.xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        entity = Entity.objects.get(uuid="cc3e4c32-a922-451c-9df7-42f40bf78f48")
+        self.assertEqual(entity.json["species"], "purpleheart")
+
     def test_entity_updated(self):
         """Entity is updated from a Instance"""
         # Create existing entity
@@ -177,6 +204,45 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(
             entity_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
+
+    def test_entity_updated_with_cdata_property(self):
+        """Entity property stored as CDATA is updated"""
+        entity_list = EntityList.objects.get(name="trees", project=self.project)
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+        update_xform = self._publish_entity_update_form(self.user)
+        update_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference><![CDATA[30]]></circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48"'
+            ' update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        update_instance = Instance.objects.create(
+            xml=update_xml, user=self.user, xform=update_xform
+        )
+
+        create_or_update_entity_from_instance(update_instance)
+
+        entity.refresh_from_db()
+        self.assertEqual(entity.json["circumference_cm"], 30)
 
     def test_entity_created_if_create_attribute_is_true(self):
         """Entity is created if create attribute value is 'true'"""

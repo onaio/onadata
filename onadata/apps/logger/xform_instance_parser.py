@@ -540,9 +540,9 @@ def get_entity_group_data(entity_node):
             if child.tagName.lower() in ("meta", "orx:meta"):
                 continue
 
-            if (
-                len(child.childNodes) == 1
-                and child.childNodes[0].nodeType == Node.TEXT_NODE
+            if len(child.childNodes) == 1 and child.childNodes[0].nodeType in (
+                Node.TEXT_NODE,
+                Node.CDATA_SECTION_NODE,
             ):
                 group_data[xpath_from_xml_node(child)] = child.childNodes[0].nodeValue
             else:
