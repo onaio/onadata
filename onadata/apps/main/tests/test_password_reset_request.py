@@ -58,6 +58,41 @@ class TestPasswordResetRequest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_shared_email_only_regular_user_emailed(self):
+        """An email shared by an org and a regular user reaches only the user.
+
+        The org exclusion must drop just the organization account, not every
+        account matching the email.
+        """
+        shared_email = "shared@example.com"
+        org_user = User.objects.create(username="sharedorg", email=shared_email)
+        OrganizationProfile.objects.create(
+            creator=self.user, user=org_user, name="Shared Organization"
+        )
+        regular_user = User.objects.create_user(
+            username="regularuser", email=shared_email, password="testpass123"
+        )
+
+        response = self.client.post(RESET_URL, {"email": shared_email})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [regular_user.email])
+        self.assertIn(regular_user.username, mail.outbox[0].body)
+
+    def test_excludes_users_with_unusable_password(self):
+        """No reset email is sent for an account with an unusable password."""
+        no_password = User.objects.create_user(
+            username="nopassword", email="nopassword@example.com"
+        )
+        no_password.set_unusable_password()
+        no_password.save()
+
+        response = self.client.post(RESET_URL, {"email": no_password.email})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_excludes_inactive_users(self):
         """No reset email is sent for an inactive account."""
         inactive = User.objects.create_user(
