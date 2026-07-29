@@ -42,6 +42,22 @@ Get projects that the authenticating user has starred
    <pre class="prettyprint">
    <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
 
+Password reset
+==============
+
+Password resets are handled by the website's native flow, not the API.
+Direct users who have forgotten their password to::
+
+      /accounts/password/reset/
+
+Submitting the form there emails the user a one-time link to
+``/accounts/password/reset/confirm/<uid>/<token>/`` where a new password
+can be set. Reset emails are rate limited per email address. Completing a
+reset invalidates the user's existing API and temporary tokens.
+
+Authenticated users can change their own password via
+``POST /api/v1/profiles/{username}/change_password``.
+
 Expire temporary token
 ======================
 
