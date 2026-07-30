@@ -42,65 +42,21 @@ Get projects that the authenticating user has starred
    <pre class="prettyprint">
    <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
 
-Request password reset
-======================
+Password reset
+==============
 
-.. raw:: html
+Password resets are handled by the website's native flow, not the API.
+Direct users who have forgotten their password to::
 
-   <pre class="prettyprint">
-   <b>POST</b> /api/v1/user/reset
-   </pre>
+      /accounts/password/reset/
 
--  Sends an email to the user’s email, when the account exists, with a url that redirects to a reset password form on the API consumer’s website.
--  ``email`` and ``reset_url`` are expected in the POST payload ``email_subject`` is optional.
--  Password reset email requests are rate limited per email address. The endpoint still returns the same success response for existing, unknown, and rate limited emails.
--  Expected reset_url format is ``reset_url=https:/domain/path/to/reset/form``.
--  Example of reset url sent to user’s email is ``http://mydomain.com/reset_form?uid=Mg&token=2f3f334g3r3434&username=dXNlcg==``.
--  ``uid`` is the users ``unique key`` which is a base64 encoded integer value that can be used to access the users info at ``/api/v1/users/<pk>`` or ``/api/v1/profiles/<pk>``. You can retrieve the integer value in ``javascript`` using the ``window.atob();`` function. ``username`` is a base64 encoded value of the user’s username
--  ``token`` is a onetime use token that allows password reset
+Submitting the form there emails the user a one-time link to
+``/accounts/password/reset/confirm/<uid>/<token>/`` where a new password
+can be set. Reset emails are rate limited per email address. Completing a
+reset invalidates the user's existing API and temporary tokens.
 
-Example
--------
-
-::
-
-      curl -X POST -d email=demouser@mail.com -d reset_url=http://example-url.com/reset https://api.ona.io/api/v1/user/reset -d email_subject="Reset password requested"
-
-Response
---------
-
-::
-
-       HTTP 204 OK
-
-Reset user password
-===================
-
-.. raw:: html
-
-   <pre class="prettyprint">
-   <b>POST</b> /api/v1/user/reset
-   </pre>
-
--  Resets user’s password
--  ``uid``, ``token`` and ``new_password`` are expected in the POST payload.
--  minimum password length is 4 characters
-
-Example
--------
-
-::
-
-      curl -X POST -d uid=Mg -d token=qndoi209jf02n4 -d new_password=usernewpass https://api.ona.io/api/v1/user/reset
-
-Response
---------
-
-::
-
-       {
-           "username": "demouser"
-       }
+Authenticated users can change their own password via
+``POST /api/v1/profiles/{username}/change_password``.
 
 Expire temporary token
 ======================
