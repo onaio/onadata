@@ -3306,7 +3306,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         members = EntityList.objects.get(name="members")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
+        self.assertCountEqual(
             response.data["forms"][0]["contributes_entities_to"],
             [
                 {

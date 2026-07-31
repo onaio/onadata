@@ -265,9 +265,7 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_contributes_entities_to(self, obj: XForm):
         """Return the EntityLists that the form contributes Entities to"""
-        queryset = obj.registration_forms.filter(
-            entity_list__deleted_at__isnull=True
-        ).order_by("pk")
+        queryset = obj.registration_forms.filter(entity_list__deleted_at__isnull=True)
 
         if not queryset:
             return []

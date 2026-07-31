@@ -5833,7 +5833,7 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         self.assertEqual(response.status_code, 200)
         households = EntityList.objects.get(name="households")
         members = EntityList.objects.get(name="members")
-        self.assertEqual(
+        self.assertCountEqual(
             response.data["contributes_entities_to"],
             [
                 {

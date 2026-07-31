@@ -345,7 +345,7 @@ class XFormMixin:
 
     def get_contributes_entities_to(self, obj: XForm):
         """Return the EntityLists that the form contributes Entities to"""
-        queryset = obj.registration_forms.all().order_by("pk")
+        queryset = obj.registration_forms.all()
 
         if not queryset:
             return []
