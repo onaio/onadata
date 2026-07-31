@@ -112,6 +112,33 @@ class CreateUpdateEntityTestCase(TestBase):
             entity_history.mutation_type, EntityHistory.MutationType.CREATE
         )
 
+    def test_entity_created_with_cdata_property(self):
+        """Entity property stored as CDATA is created"""
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_registration" version="2022110901">'
+            "<formhub><uuid>d156a2dce4c34751af57f21ef5c4e6cc</uuid></formhub>"
+            "<location>-1.286905 36.772845 0 0</location>"
+            "<species><![CDATA[purpleheart]]></species>"
+            "<circumference>300</circumference>"
+            "<intake_notes />"
+            "<meta>"
+            "<instanceID>uuid:aa3f042e-cfec-4d2a-8b5b-212e3b04802b</instanceID>"
+            "<instanceName>300cm purpleheart</instanceName>"
+            '<entity create="1" dataset="trees" id="cc3e4c32-a922-451c-9df7-42f40bf78f48">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=self.xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        entity = Entity.objects.get(uuid="cc3e4c32-a922-451c-9df7-42f40bf78f48")
+        self.assertEqual(entity.json["species"], "purpleheart")
+
     def test_entity_updated(self):
         """Entity is updated from a Instance"""
         # Create existing entity
@@ -177,6 +204,45 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(
             entity_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
+
+    def test_entity_updated_with_cdata_property(self):
+        """Entity property stored as CDATA is updated"""
+        entity_list = EntityList.objects.get(name="trees", project=self.project)
+        entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={
+                "species": "purpleheart",
+                "geometry": "-1.286905 36.772845 0 0",
+                "circumference_cm": 300,
+                "label": "300cm purpleheart",
+            },
+            uuid="dbee4c32-a922-451c-9df7-42f40bf78f48",
+        )
+        update_xform = self._publish_entity_update_form(self.user)
+        update_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_update" version="2024050801">'
+            "<formhub><uuid>a9caf13e366b44a68f173bbb6746e3d4</uuid></formhub>"
+            "<tree>dbee4c32-a922-451c-9df7-42f40bf78f48</tree>"
+            "<circumference><![CDATA[30]]></circumference>"
+            "<today>2024-05-28</today>"
+            "<meta>"
+            "<instanceID>uuid:45d27780-48fd-4035-8655-9332649385bd</instanceID>"
+            "<instanceName>30cm dbee4c32-a922-451c-9df7-42f40bf78f48</instanceName>"
+            '<entity dataset="trees" id="dbee4c32-a922-451c-9df7-42f40bf78f48"'
+            ' update="1" baseVersion=""/>'
+            "</meta>"
+            "</data>"
+        )
+        update_instance = Instance.objects.create(
+            xml=update_xml, user=self.user, xform=update_xform
+        )
+
+        create_or_update_entity_from_instance(update_instance)
+
+        entity.refresh_from_db()
+        self.assertEqual(entity.json["circumference_cm"], 30)
 
     def test_entity_created_if_create_attribute_is_true(self):
         """Entity is created if create attribute value is 'true'"""
@@ -503,6 +569,463 @@ class CreateUpdateEntityTestCase(TestBase):
         self.assertEqual(entity_history.instance, update_instance)
         self.assertEqual(
             entity_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
+    def test_entities_created_from_repeat(self):
+        """A repeat creates multiple Entities in the same EntityList"""
+        # Publish registration form
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241122 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_repeats" version="202607241122">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2014</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6">'
+            "<label>1</label>"
+            "</entity>"
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2014</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9">'
+            "<label>2</label>"
+            "</entity>"
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 0)
+
+        create_or_update_entity_from_instance(instance)
+
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
+
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        # Each repeat instance creates an Entity from its own data
+        first_entity = Entity.objects.get(uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6")
+        first_json = {"year_planted": "2014", "label": "1"}
+        self.assertEqual(first_entity.entity_list, entity_list)
+        self.assertDictEqual(first_entity.json, first_json)
+        self.assertEqual(first_entity.history.count(), 1)
+
+        first_history = first_entity.history.first()
+
+        self.assertEqual(first_history.registration_form, registration_form)
+        self.assertEqual(first_history.instance, instance)
+        self.assertEqual(first_history.xml, instance.xml)
+        self.assertDictEqual(first_history.json, first_json)
+        self.assertEqual(first_history.form_version, xform.version)
+        self.assertEqual(first_history.created_by, instance.user)
+        self.assertEqual(first_history.mutation_type, EntityHistory.MutationType.CREATE)
+
+        second_entity = Entity.objects.get(uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9")
+        second_json = {"year_planted": "2014", "label": "2"}
+        self.assertEqual(second_entity.entity_list, entity_list)
+        self.assertDictEqual(second_entity.json, second_json)
+        self.assertEqual(second_entity.history.count(), 1)
+
+        second_history = second_entity.history.first()
+
+        self.assertEqual(second_history.registration_form, registration_form)
+        self.assertEqual(second_history.instance, instance)
+        self.assertEqual(second_history.xml, instance.xml)
+        self.assertDictEqual(second_history.json, second_json)
+        self.assertEqual(second_history.form_version, xform.version)
+        self.assertEqual(second_history.created_by, instance.user)
+        self.assertEqual(
+            second_history.mutation_type, EntityHistory.MutationType.CREATE
+        )
+
+    def test_entities_updated_from_repeat(self):
+        """A repeat updates multiple Entities in the same EntityList"""
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241130 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        # Existing Entities to be updated
+        first_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "1"},
+            uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6",
+        )
+        second_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "2"},
+            uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9",
+        )
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_repeats" version="202607241130">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2015</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        # No new Entities created
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
+
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        # Each repeat instance updates its own Entity, leaving the label unchanged
+        first_entity.refresh_from_db()
+        first_json = {"year_planted": "2015", "label": "1"}
+        self.assertDictEqual(first_entity.json, first_json)
+        self.assertEqual(first_entity.history.count(), 1)
+
+        first_history = first_entity.history.first()
+
+        self.assertEqual(first_history.registration_form, registration_form)
+        self.assertEqual(first_history.instance, instance)
+        self.assertEqual(first_history.xml, instance.xml)
+        self.assertDictEqual(first_history.json, first_json)
+        self.assertEqual(first_history.form_version, xform.version)
+        self.assertEqual(first_history.created_by, instance.user)
+        self.assertEqual(first_history.mutation_type, EntityHistory.MutationType.UPDATE)
+
+        second_entity.refresh_from_db()
+        second_json = {"year_planted": "2016", "label": "2"}
+        self.assertDictEqual(second_entity.json, second_json)
+        self.assertEqual(second_entity.history.count(), 1)
+
+        second_history = second_entity.history.first()
+
+        self.assertEqual(second_history.registration_form, registration_form)
+        self.assertEqual(second_history.instance, instance)
+        self.assertEqual(second_history.xml, instance.xml)
+        self.assertDictEqual(second_history.json, second_json)
+        self.assertEqual(second_history.form_version, xform.version)
+        self.assertEqual(second_history.created_by, instance.user)
+        self.assertEqual(
+            second_history.mutation_type, EntityHistory.MutationType.UPDATE
+        )
+
+    def test_entities_updated_from_repeat_with_empty_instance(self):
+        """Each Entity is updated from its own repeat instance
+
+        An empty repeat instance is dropped from the parsed submission, so each
+        Entity is matched to its own data by reading the submission XML.
+        """
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241131 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        # Existing Entities to be updated
+        first_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "1"},
+            uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6",
+        )
+        second_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "2"},
+            uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9",
+        )
+        # The first repeat instance is blank and precedes a populated one
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees" version="202607241131">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<tree_id/>"
+            "<year_planted/>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        # The populated instance updates its own Entity
+        second_entity.refresh_from_db()
+        self.assertDictEqual(second_entity.json, {"year_planted": "2016", "label": "2"})
+        # The blank instance leaves its own Entity's saved value in place
+        first_entity.refresh_from_db()
+        self.assertDictEqual(first_entity.json, {"year_planted": "2014", "label": "1"})
+
+    def test_entities_created_from_nested_repeat(self):
+        """A nested repeat creates multiple Entities in the same EntityList"""
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | begin_repeat | inspection   | Inspection   |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241122 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees" version="202607241122">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2014</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6">'
+            "<label>1</label>"
+            "</entity>"
+            "</meta>"
+            "</inspection>"
+            "<inspection>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2015</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9">'
+            "<label>2</label>"
+            "</entity>"
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 0)
+
+        create_or_update_entity_from_instance(instance)
+
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
+
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        # An entity is created from each nested repeat instance's own data
+        first_entity = Entity.objects.get(uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6")
+        first_json = {"year_planted": "2014", "label": "1"}
+        self.assertEqual(first_entity.entity_list, entity_list)
+        self.assertDictEqual(first_entity.json, first_json)
+        self.assertEqual(first_entity.history.count(), 1)
+
+        first_history = first_entity.history.first()
+
+        self.assertEqual(first_history.registration_form, registration_form)
+        self.assertEqual(first_history.instance, instance)
+        self.assertEqual(first_history.xml, instance.xml)
+        self.assertDictEqual(first_history.json, first_json)
+        self.assertEqual(first_history.form_version, xform.version)
+        self.assertEqual(first_history.created_by, instance.user)
+        self.assertEqual(first_history.mutation_type, EntityHistory.MutationType.CREATE)
+
+        second_entity = Entity.objects.get(uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9")
+        second_json = {"year_planted": "2015", "label": "2"}
+        self.assertEqual(second_entity.entity_list, entity_list)
+        self.assertDictEqual(second_entity.json, second_json)
+        self.assertEqual(second_entity.history.count(), 1)
+
+        second_history = second_entity.history.first()
+
+        self.assertEqual(second_history.registration_form, registration_form)
+        self.assertEqual(second_history.instance, instance)
+        self.assertEqual(second_history.xml, instance.xml)
+        self.assertDictEqual(second_history.json, second_json)
+        self.assertEqual(second_history.form_version, xform.version)
+        self.assertEqual(second_history.created_by, instance.user)
+        self.assertEqual(
+            second_history.mutation_type, EntityHistory.MutationType.CREATE
+        )
+
+    def test_entities_updated_from_nested_repeat(self):
+        """A nested repeat updates multiple Entities in the same EntityList"""
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | begin_repeat | inspection   | Inspection   |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241130 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        entity_list = EntityList.objects.get(name="trees_repeat")
+        # Existing Entities to be updated
+        first_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "1"},
+            uuid="e02dc9a9-0451-419d-934d-6d5621e4c5d6",
+        )
+        second_entity = Entity.objects.create(
+            entity_list=entity_list,
+            json={"year_planted": "2014", "label": "2"},
+            uuid="c14614e1-0bec-491c-b287-d2a4f7353ab9",
+        )
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees" version="202607241130">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2015</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6" baseVersion="1"/>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" update="1" '
+            'id="c14614e1-0bec-491c-b287-d2a4f7353ab9" baseVersion="1"/>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        # No new Entities created
+        self.assertEqual(Entity.objects.filter(entity_list=entity_list).count(), 2)
+
+        registration_form = RegistrationForm.objects.get(xform=xform)
+
+        # Each nested repeat instance updates its own Entity, leaving the label unchanged
+        first_entity.refresh_from_db()
+        first_json = {"year_planted": "2015", "label": "1"}
+        self.assertDictEqual(first_entity.json, first_json)
+        self.assertEqual(first_entity.history.count(), 1)
+
+        first_history = first_entity.history.first()
+
+        self.assertEqual(first_history.registration_form, registration_form)
+        self.assertEqual(first_history.instance, instance)
+        self.assertEqual(first_history.xml, instance.xml)
+        self.assertDictEqual(first_history.json, first_json)
+        self.assertEqual(first_history.form_version, xform.version)
+        self.assertEqual(first_history.created_by, instance.user)
+        self.assertEqual(first_history.mutation_type, EntityHistory.MutationType.UPDATE)
+
+        second_entity.refresh_from_db()
+        second_json = {"year_planted": "2016", "label": "2"}
+        self.assertDictEqual(second_entity.json, second_json)
+        self.assertEqual(second_entity.history.count(), 1)
+
+        second_history = second_entity.history.first()
+
+        self.assertEqual(second_history.registration_form, registration_form)
+        self.assertEqual(second_history.instance, instance)
+        self.assertEqual(second_history.xml, instance.xml)
+        self.assertDictEqual(second_history.json, second_json)
+        self.assertEqual(second_history.form_version, xform.version)
+        self.assertEqual(second_history.created_by, instance.user)
+        self.assertEqual(
+            second_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
 
 

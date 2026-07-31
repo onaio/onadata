@@ -215,7 +215,7 @@ def _xml_node_to_dict(node, repeats=None, encrypted=False):  # noqa C901
         if child_xpath in repeats or (encrypted and child_name == "media"):
             node_type = list
 
-        if node_type == dict:
+        if node_type is dict:
             if child_name not in value:
                 value[child_name] = child_dict[child_name]
             else:
@@ -463,3 +463,91 @@ def get_entity_uuid_from_xml(xml):
     """Returns the uuid for the XML submission's entity"""
     entity_node = get_meta_from_xml(xml, "entity")
     return entity_node.getAttribute("id")
+
+
+def get_entity_nodes_from_xml(xml_str):
+    """Return all entity nodes in a submission XML in document order.
+
+    A submission can define more than one entity when the entity is created
+    within a repeat, so entity nodes are collected from every meta section and
+    not just the top-level one.
+    """
+    xml = clean_and_parse_xml(xml_str)
+    entity_nodes = []
+
+    def is_meta(node):
+        return node.nodeType == Node.ELEMENT_NODE and node.tagName.lower() in (
+            "meta",
+            "orx:meta",
+        )
+
+    def is_entity(node):
+        return node.nodeType == Node.ELEMENT_NODE and node.tagName.lower() in (
+            "entity",
+            "orx:entity",
+        )
+
+    def collect(node):
+        for child in node.childNodes:
+            if child.nodeType != Node.ELEMENT_NODE:
+                continue
+
+            if is_meta(child):
+                entity_nodes.extend(n for n in child.childNodes if is_entity(n))
+            else:
+                collect(child)
+
+    collect(xml)
+
+    return entity_nodes
+
+
+def get_entity_label_from_node(entity_node):
+    """Return the label defined within a submission's entity node."""
+    for child in entity_node.childNodes:
+        if child.nodeType == Node.ELEMENT_NODE and child.tagName.lower() in (
+            "label",
+            "orx:label",
+        ):
+            return child.firstChild.nodeValue if child.firstChild else None
+
+    return None
+
+
+def get_entity_group_data(entity_node):
+    """Return the submission field values for an entity node's group.
+
+    The values are read from the entity node's enclosing group in the
+    submission XML. An entity defined within a repeat therefore only sees the
+    fields of its own repeat instance, while a top-level entity sees all the
+    submission fields. Reading straight from the XML keeps each entity matched
+    to its own data even when a sibling repeat instance is empty and so dropped
+    from the parsed submission dictionary.
+
+    :param entity_node: The submission's entity XML node
+    :return: A mapping of field xpath to its string value
+    """
+    # entity -> meta -> group holding the entity
+    group_node = entity_node.parentNode.parentNode
+    group_data = {}
+
+    def collect(node):
+        for child in node.childNodes:
+            if child.nodeType != Node.ELEMENT_NODE:
+                continue
+
+            # A meta section holds entity definitions, not field data
+            if child.tagName.lower() in ("meta", "orx:meta"):
+                continue
+
+            if len(child.childNodes) == 1 and child.childNodes[0].nodeType in (
+                Node.TEXT_NODE,
+                Node.CDATA_SECTION_NODE,
+            ):
+                group_data[xpath_from_xml_node(child)] = child.childNodes[0].nodeValue
+            else:
+                collect(child)
+
+    collect(group_node)
+
+    return group_data
