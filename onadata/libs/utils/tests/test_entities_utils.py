@@ -1565,6 +1565,126 @@ class CreateUpdateEntityTestCase(TestBase):
             member_history.mutation_type, EntityHistory.MutationType.UPDATE
         )
 
+    def test_entities_created_duplicate_field_in_repeat(self):
+        """Entities get correct values when a field name recurs in a repeat"""
+        md = """
+        | survey   |
+        |          | type         | name                    | label          | save_to         |
+        |          | text         | code                    | Household code | households#code |
+        |          | begin_repeat | household_member        | Member         |                 |
+        |          | text         | code                    | Member code    | members#code    |
+        |          | end_repeat   |              |                |                 |
+        | settings |              |              |                |                 |
+        |          | form_title   | form_id                 | version        |                 |
+        |          | Households   | households_registration | 2026073101     |                 |
+        | entities |              |              |                |                 |
+        |          | list_name    | label        |                |                 |
+        |          | households   | Household    |                |                 |
+        |          | members      | Member       |                |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+        households_entity_list = EntityList.objects.get(name="households")
+        members_entity_list = EntityList.objects.get(name="members")
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="households_registration" '
+            'version="2026073101">'
+            "<formhub><uuid>c160aebf02644aee8f81bed71ce2e21c</uuid></formhub>"
+            "<code>HH-1</code>"
+            "<household_member>"
+            "<code>MEM-9</code>"
+            "<meta>"
+            '<entity dataset="members" create="1" '
+            'id="fd31535f-1712-4805-b618-ca3cfec4d290">'
+            "<label>Member</label>"
+            "</entity>"
+            "</meta>"
+            "</household_member>"
+            "<meta>"
+            '<entity dataset="households" create="1" '
+            'id="f82d80c7-6f82-4845-8040-0ebbf4f48c5a">'
+            "<label>Household</label>"
+            "</entity>"
+            "<instanceID>uuid:3e53e18c-bc7b-4433-8259-04bc20257980</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        household_entity = Entity.objects.get(
+            uuid="f82d80c7-6f82-4845-8040-0ebbf4f48c5a"
+        )
+        self.assertEqual(household_entity.entity_list, households_entity_list)
+        self.assertDictEqual(
+            household_entity.json, {"code": "HH-1", "label": "Household"}
+        )
+
+        member_entity = Entity.objects.get(uuid="fd31535f-1712-4805-b618-ca3cfec4d290")
+        self.assertEqual(member_entity.entity_list, members_entity_list)
+        self.assertDictEqual(member_entity.json, {"code": "MEM-9", "label": "Member"})
+
+    def test_entities_created_duplicate_field_in_group(self):
+        """Entities get correct values when a field name recurs in a group"""
+        md = """
+        | survey   |
+        |          | type        | name                    | label           | save_to         |
+        |          | text        | code                    | Household code  | households#code |
+        |          | begin_group | primary_contact         | Primary Contact |                 |
+        |          | text        | code                    | Contact code    | members#code    |
+        |          | end_group   |              |                 |                 |
+        | settings |             |              |                 |                 |
+        |          | form_title  | form_id                 | version         |                 |
+        |          | Households  | households_registration | 2026073102      |                 |
+        | entities |             |              |                 |                 |
+        |          | list_name   | label        |                 |                 |
+        |          | households  | Household    |                 |                 |
+        |          | members     | Member       |                 |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+        households_entity_list = EntityList.objects.get(name="households")
+        members_entity_list = EntityList.objects.get(name="members")
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="households_registration" '
+            'version="2026073102">'
+            "<formhub><uuid>c160aebf02644aee8f81bed71ce2e21c</uuid></formhub>"
+            "<code>HH-1</code>"
+            "<primary_contact>"
+            "<code>MEM-9</code>"
+            "<meta>"
+            '<entity dataset="members" create="1" '
+            'id="fd31535f-1712-4805-b618-ca3cfec4d290">'
+            "<label>Member</label>"
+            "</entity>"
+            "</meta>"
+            "</primary_contact>"
+            "<meta>"
+            '<entity dataset="households" create="1" '
+            'id="f82d80c7-6f82-4845-8040-0ebbf4f48c5a">'
+            "<label>Household</label>"
+            "</entity>"
+            "<instanceID>uuid:3e53e18c-bc7b-4433-8259-04bc20257981</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        create_or_update_entity_from_instance(instance)
+
+        household_entity = Entity.objects.get(
+            uuid="f82d80c7-6f82-4845-8040-0ebbf4f48c5a"
+        )
+        self.assertEqual(household_entity.entity_list, households_entity_list)
+        self.assertDictEqual(
+            household_entity.json, {"code": "HH-1", "label": "Household"}
+        )
+
+        member_entity = Entity.objects.get(uuid="fd31535f-1712-4805-b618-ca3cfec4d290")
+        self.assertEqual(member_entity.entity_list, members_entity_list)
+        self.assertDictEqual(member_entity.json, {"code": "MEM-9", "label": "Member"})
+
     def test_reg_form_inactive(self):
         """Entity is not created if RegistrationForm is inactive"""
         registration_form = RegistrationForm.objects.get(xform=self.xform)

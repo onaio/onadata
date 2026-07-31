@@ -124,9 +124,9 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "geometry": "location",
-                "species": "species",
-                "circumference_cm": "circumference",
+                "geometry": "tree_details/location",
+                "species": "tree_details/species",
+                "circumference_cm": "tree_details/circumference",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -161,7 +161,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -198,7 +198,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/tree_details/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -237,7 +237,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/tree_details/planting_info/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -274,7 +274,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/inspection/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -330,11 +330,71 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             members_reg_form.get_save_to(),
             {
-                "phone": "phone_number",
+                "phone": "member/phone_number",
             },
         )
         self.assertTrue(households_reg_form.is_active)
         self.assertTrue(members_reg_form.is_active)
+
+    def test_create_reg_form_w_duplicate_field_in_group(self):
+        """save_to maps to the correct field when a field name recurs in a group"""
+        md = """
+        | survey   |
+        |          | type        | name            | label           | save_to         |
+        |          | text        | code            | Household code  | households#code |
+        |          | begin_group | primary_contact | Primary Contact |                 |
+        |          | text        | code            | Contact code    | members#code    |
+        |          | end_group   |                 |                 |                 |
+        | settings |             |                 |                 |                 |
+        |          | form_title  | form_id         |                 |                 |
+        |          | Households  | households      |                 |                 |
+        | entities |             |                 |                 |                 |
+        |          | list_name   | label           |                 |                 |
+        |          | households  | Household       |                 |                 |
+        |          | members     | Member          |                 |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(households_reg_form.get_save_to(), {"code": "code"})
+        self.assertEqual(
+            members_reg_form.get_save_to(), {"code": "primary_contact/code"}
+        )
+
+    def test_create_reg_form_w_duplicate_field_in_repeat(self):
+        """save_to maps to the correct field when a field name recurs in a repeat"""
+        md = """
+        | survey   |
+        |          | type         | name       | label          | save_to         |
+        |          | text         | code       | Household code | households#code |
+        |          | begin_repeat | member     | Member         |                 |
+        |          | text         | code       | Member code    | members#code    |
+        |          | end_repeat   |            |                |                 |
+        | settings |              |            |                |                 |
+        |          | form_title   | form_id    |                |                 |
+        |          | Households   | households |                |                 |
+        | entities |              |            |                |                 |
+        |          | list_name    | label      |                |                 |
+        |          | households   | Household  |                |                 |
+        |          | members      | Member     |                |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(households_reg_form.get_save_to(), {"code": "code"})
+        self.assertEqual(members_reg_form.get_save_to(), {"code": "member/code"})
 
     def test_replace_list_form_w_mult_list(self):
         """Replacing a entities list for a form w/ multiple lists works"""
@@ -393,7 +453,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             contacts_reg_form.get_save_to(),
             {
-                "phone": "phone_number",
+                "phone": "member/phone_number",
             },
         )
         self.assertTrue(contacts_reg_form.is_active)

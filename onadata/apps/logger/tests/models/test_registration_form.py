@@ -169,7 +169,7 @@ class RegistrationFormTestCase(TestBase):
 
         self.assertEqual(
             registration_form.get_save_to(),
-            {"geometry": "location", "species": "species"},
+            {"geometry": "tree/location", "species": "tree/species"},
         )
 
     def test_get_save_to_multi_lists(self):
@@ -210,7 +210,7 @@ class RegistrationFormTestCase(TestBase):
         self.assertEqual(
             members_reg_form.get_save_to(),
             {
-                "phone": "phone_number",
+                "phone": "member/phone_number",
             },
         )
 

@@ -52,21 +52,18 @@ def get_entity_json_from_instance(
     :param entity_node: The submission's entity XML node
     :return: Entity properties
     """
-    # Getting a mapping of save_to field to the field name
+    # Getting a mapping of save_to field to the field xpath
     mapped_properties = registration_form.get_save_to(instance.version)
-    # Field names with an alias defined mapped to the alias
+    # Field xpaths with an alias defined mapped to the alias
     field_alias = {field: alias for alias, field in mapped_properties.items()}
     # Field values are read from the submission XML and numeric fields
     # converted to match the parsed submission dictionary
     group_data = instance.numeric_converter(get_entity_group_data(entity_node))
     entity_json: dict[str, Any] = {}
 
-    for field_name, field_data in group_data.items():
-        # We extract field names within grouped sections
-        ungrouped_field_name = field_name.split("/")[-1]
-
-        if ungrouped_field_name in field_alias:
-            entity_json[field_alias[ungrouped_field_name]] = field_data
+    for field_xpath, field_data in group_data.items():
+        if field_xpath in field_alias:
+            entity_json[field_alias[field_xpath]] = field_data
 
     label = get_entity_label_from_node(entity_node)
 

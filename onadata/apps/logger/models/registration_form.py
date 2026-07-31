@@ -41,11 +41,11 @@ class RegistrationForm(BaseModel):
         return f"{self.xform}|{self.entity_list.name}"
 
     def get_save_to(self, version: str | None = None) -> dict[str, str]:
-        """Maps the save_to values to their names
+        """Maps the save_to values to the xpaths of their fields
 
         :param version: XForm version (optional, defaults to current version)
         :type version: str
-        :return: save_to values mapped to their names
+        :return: save_to values mapped to the xpaths of their fields
         :rtype: dict
         """
         if version:
@@ -80,35 +80,40 @@ class RegistrationForm(BaseModel):
 
             return None
 
-        def find_container_fields(form_fields):
+        def find_container_fields(form_fields, xpath_prefix=""):
             if get_container_dataset(form_fields) == dataset:
-                return form_fields
+                return form_fields, xpath_prefix
 
             for field in form_fields:
                 if field.get("children", []):
-                    found = find_container_fields(field["children"])
+                    found = find_container_fields(
+                        field["children"], f"{xpath_prefix}{field['name']}/"
+                    )
 
                     if found is not None:
                         return found
 
             return None
 
-        def get_entity_property_fields(form_fields):
+        def get_entity_property_fields(form_fields, xpath_prefix):
             for field in form_fields:
                 if "bind" in field and "entities:saveto" in field["bind"]:
                     alias = field["bind"]["entities:saveto"]
-                    result[alias] = field["name"]
+                    result[alias] = f"{xpath_prefix}{field['name']}"
 
                 elif field.get("children", []):
                     child_dataset = get_container_dataset(field["children"])
 
                     if child_dataset is None or child_dataset == dataset:
-                        get_entity_property_fields(field["children"])
+                        get_entity_property_fields(
+                            field["children"], f"{xpath_prefix}{field['name']}/"
+                        )
 
-        container_fields = find_container_fields(children)
+        container = find_container_fields(children)
 
-        if container_fields is not None:
-            get_entity_property_fields(container_fields)
+        if container is not None:
+            container_fields, xpath_prefix = container
+            get_entity_property_fields(container_fields, xpath_prefix)
 
         return result
 
