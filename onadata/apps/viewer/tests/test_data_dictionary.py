@@ -124,9 +124,9 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "geometry": "location",
-                "species": "species",
-                "circumference_cm": "circumference",
+                "geometry": "tree_details/location",
+                "species": "tree_details/species",
+                "circumference_cm": "tree_details/circumference",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -161,7 +161,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -198,7 +198,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/tree_details/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -237,7 +237,7 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/tree_details/planting_info/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
@@ -274,10 +274,205 @@ class DataDictionaryTestCase(TestBase):
         self.assertEqual(
             reg_form.get_save_to(),
             {
-                "year_planted": "year_planted",
+                "year_planted": "tree/inspection/year_planted",
             },
         )
         self.assertTrue(reg_form.is_active)
+
+    def test_create_reg_form_w_save_to_multi_lists(self):
+        """Multiple RegistrationForms are created for a form w/ save_to for different lists"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        self.assertTrue(EntityList.objects.filter(name="households").exists())
+        self.assertTrue(EntityList.objects.filter(name="members").exists())
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="households"
+            ).exists()
+        )
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=xform, entity_list__name="members"
+            ).exists()
+        )
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(
+            households_reg_form.get_save_to(),
+            {
+                "id": "hhid",
+                "geometry": "location",
+            },
+        )
+        self.assertEqual(
+            members_reg_form.get_save_to(),
+            {
+                "phone": "member/phone_number",
+            },
+        )
+        self.assertTrue(households_reg_form.is_active)
+        self.assertTrue(members_reg_form.is_active)
+
+    def test_create_reg_form_w_duplicate_field_in_group(self):
+        """save_to maps to the correct field when a field name recurs in a group"""
+        md = """
+        | survey   |
+        |          | type        | name            | label           | save_to         |
+        |          | text        | code            | Household code  | households#code |
+        |          | begin_group | primary_contact | Primary Contact |                 |
+        |          | text        | code            | Contact code    | members#code    |
+        |          | end_group   |                 |                 |                 |
+        | settings |             |                 |                 |                 |
+        |          | form_title  | form_id         |                 |                 |
+        |          | Households  | households      |                 |                 |
+        | entities |             |                 |                 |                 |
+        |          | list_name   | label           |                 |                 |
+        |          | households  | Household       |                 |                 |
+        |          | members     | Member          |                 |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(households_reg_form.get_save_to(), {"code": "code"})
+        self.assertEqual(
+            members_reg_form.get_save_to(), {"code": "primary_contact/code"}
+        )
+
+    def test_create_reg_form_w_duplicate_field_in_repeat(self):
+        """save_to maps to the correct field when a field name recurs in a repeat"""
+        md = """
+        | survey   |
+        |          | type         | name       | label          | save_to         |
+        |          | text         | code       | Household code | households#code |
+        |          | begin_repeat | member     | Member         |                 |
+        |          | text         | code       | Member code    | members#code    |
+        |          | end_repeat   |            |                |                 |
+        | settings |              |            |                |                 |
+        |          | form_title   | form_id    |                |                 |
+        |          | Households   | households |                |                 |
+        | entities |              |            |                |                 |
+        |          | list_name    | label      |                |                 |
+        |          | households   | Household  |                |                 |
+        |          | members      | Member     |                |                 |
+        """
+        xform = self._publish_markdown(md, self.user)
+
+        households_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="households"
+        )
+        members_reg_form = RegistrationForm.objects.get(
+            xform=xform, entity_list__name="members"
+        )
+
+        self.assertEqual(households_reg_form.get_save_to(), {"code": "code"})
+        self.assertEqual(members_reg_form.get_save_to(), {"code": "member/code"})
+
+    def test_replace_list_form_w_mult_list(self):
+        """Replacing a entities list for a form w/ multiple lists works"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        data_dict = self._publish_markdown(md, self.user)
+        # `members` list replaced by `contacts`
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | contacts#phone      |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | contacts     | ${full_name} |                  |                     |
+        """
+        self._replace_form(md, data_dict)
+
+        # A new EntityList is created
+        self.assertTrue(EntityList.objects.filter(name="contacts").exists())
+        # A new RegistrationForm referencing the new entity list is
+        # created for the XForm
+        self.assertTrue(
+            RegistrationForm.objects.filter(
+                xform=data_dict, entity_list__name="contacts"
+            ).exists()
+        )
+
+        contacts_reg_form = RegistrationForm.objects.get(
+            xform=data_dict, entity_list__name="contacts"
+        )
+
+        self.assertEqual(
+            contacts_reg_form.get_save_to(),
+            {
+                "phone": "member/phone_number",
+            },
+        )
+        self.assertTrue(contacts_reg_form.is_active)
+
+        # RegistrationForm contributing to the replaced EntityList
+        # should be disabled
+        members_reg_form = RegistrationForm.objects.get(
+            xform=data_dict, entity_list__name="members"
+        )
+
+        self.assertFalse(members_reg_form.is_active)
+
+        # RegistrationForm contributing to the unchanged EntityList
+        # should remain active
+        households_reg_form = RegistrationForm.objects.get(
+            xform=data_dict, entity_list__name="households"
+        )
+
+        self.assertTrue(households_reg_form.is_active)
 
     def test_create_follow_up_form(self):
         """Follow up form created successfully"""
@@ -406,8 +601,8 @@ class DataDictionaryTestCase(TestBase):
             },
         )
 
-    def test_replace_form_entities_list_name(self):
-        """Replacing entities list_name works"""
+    def test_replace_list(self):
+        """Replacing a entities list works"""
         data_dict = self._publish_markdown(self.registration_form, self.user)
         # name changed entities list_name to `trees_registration`
         md = """
