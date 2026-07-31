@@ -345,7 +345,7 @@ class XFormMixin:
 
     def get_contributes_entities_to(self, obj: XForm):
         """Return the EntityLists that the form contributes Entities to"""
-        queryset = obj.registration_forms.all()
+        queryset = obj.registration_forms.filter(entity_list__deleted_at__isnull=True)
 
         if not queryset:
             return []
@@ -363,7 +363,7 @@ class XFormMixin:
 
     def get_consumes_entities_from(self, obj: XForm):
         """Return the EntityLIst that the form consumes Entities"""
-        queryset = obj.follow_up_forms.all()
+        queryset = obj.follow_up_forms.filter(entity_list__deleted_at__isnull=True)
 
         if not queryset:
             return []
