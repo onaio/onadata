@@ -487,6 +487,7 @@ class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
         )
 
 
+# pylint: disable=too-many-ancestors
 class XFormSerializer(XFormBaseSerializer):
     """
     XForm model serializer
