@@ -20,6 +20,7 @@ from onadata.libs.permissions import ManagerRole, OwnerRole, get_role, is_organi
 from onadata.libs.serializers.dataview_serializer import DataViewMinimalSerializer
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.serializers.xform_serializer import XFormEntityListsMixin
 from onadata.libs.utils.analytics import TrackObjectEvent
 from onadata.libs.utils.cache_tools import (
     PROJ_BASE_FORMS_CACHE,
@@ -253,7 +254,9 @@ class PublicProjectFieldsMixin:
 
 
 # pylint: disable=too-few-public-methods
-class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
+class BaseProjectXFormSerializer(
+    XFormEntityListsMixin, serializers.HyperlinkedModelSerializer
+):
     """
     BaseProjectXFormSerializer class.
     """
@@ -262,39 +265,6 @@ class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.ReadOnlyField(source="title")
     contributes_entities_to = serializers.SerializerMethodField()
     consumes_entities_from = serializers.SerializerMethodField()
-
-    def get_contributes_entities_to(self, obj: XForm):
-        """Return the EntityList that the form contributes Entities to"""
-        registration_form = obj.registration_forms.filter(
-            entity_list__deleted_at__isnull=True
-        ).first()
-
-        if registration_form is None:
-            return None
-
-        return {
-            "id": registration_form.entity_list.pk,
-            "name": registration_form.entity_list.name,
-            "is_active": registration_form.is_active,
-        }
-
-    def get_consumes_entities_from(self, obj: XForm):
-        """Return the EntityLIst that the form consumes Entities"""
-        queryset = obj.follow_up_forms.filter(entity_list__deleted_at__isnull=True)
-
-        if not queryset:
-            return []
-
-        return list(
-            map(
-                lambda follow_up_form: {
-                    "id": follow_up_form.entity_list.pk,
-                    "name": follow_up_form.entity_list.name,
-                    "is_active": follow_up_form.is_active,
-                },
-                queryset,
-            )
-        )
 
     # pylint: disable=too-few-public-methods,missing-class-docstring
     class Meta:

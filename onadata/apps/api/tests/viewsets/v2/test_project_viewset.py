@@ -156,11 +156,13 @@ class RetrieveProjectTestCase(TestAbstractViewSet):
                         "+00:00", "Z"
                     ),
                     "is_merged_dataset": False,
-                    "contributes_entities_to": {
-                        "id": entity_list.pk,
-                        "name": "trees",
-                        "is_active": True,
-                    },
+                    "contributes_entities_to": [
+                        {
+                            "id": entity_list.pk,
+                            "name": "trees",
+                            "is_active": True,
+                        }
+                    ],
                     "consumes_entities_from": [],
                 },
             ],
