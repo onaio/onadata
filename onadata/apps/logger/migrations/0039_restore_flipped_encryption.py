@@ -31,7 +31,12 @@ def restore_flipped_encryption(apps, schema_editor):
         .only("id", "xml")
     )
 
+    eta = candidates.count()
+
     for xform in candidates.iterator(chunk_size=100):
+        eta -= 1
+        print("eta", eta)
+
         if "base64RsaPublicKey" not in (xform.xml or ""):
             continue
 
