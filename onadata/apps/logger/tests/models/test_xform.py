@@ -592,6 +592,96 @@ class TestXForm(TestBase):
         # The json should now be workbook_json, not the old survey.to_json_dict() format
         self.assertEqual(xform.json, original_workbook_json)
 
+    def _make_stale_managed_xform(self, public_key):
+        """Publish a form and recreate a stale managed encrypted state.
+
+        Managed (KMS) encryption injects the public key into the stored
+        ``json`` after publishing; the XLSForm file has no record of it.
+        Stored json that predates the pyxform 4.1.0 upgrade — a select
+        question with inline children and no itemset — fails parsing,
+        making ``_get_survey`` fall back to rebuilding from the XLSForm.
+        Migration logger.0031 skipped encrypted forms, so such forms
+        exist in production.
+        """
+        self._publish_transportation_form()
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.publish_time_workbook_json = xform.json.copy()
+        stale_json = {
+            "name": self.publish_time_workbook_json["name"],
+            "title": xform.title,
+            "id_string": xform.id_string,
+            "sms_keyword": xform.id_string,
+            "type": "survey",
+            "default_language": "default",
+            "public_key": public_key,
+            "children": [
+                {
+                    "name": "fruit",
+                    "type": "select one",
+                    "label": "Fruit",
+                    "children": [
+                        {"name": "mango", "label": "Mango"},
+                        {"name": "orange", "label": "Orange"},
+                    ],
+                },
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "type": "calculate",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                        }
+                    ],
+                },
+            ],
+        }
+        XForm.objects.filter(pk=xform.pk).update(
+            json=stale_json,
+            encrypted=True,
+            is_managed=True,
+            public_key=public_key,
+            # The form has data, so _set_public_key_field does not
+            # re-inject the key on save
+            num_of_submissions=1,
+        )
+        xform.refresh_from_db()
+        return xform
+
+    def test_save_preserves_managed_encryption_on_stale_json(self):
+        """A full save keeps a managed form encrypted when its json is stale.
+
+        The XLSForm-rebuilt survey must retain the injected public key,
+        otherwise the save recomputes ``encrypted`` as False.
+        """
+        public_key = "fake-managed-public-key"
+        xform = self._make_stale_managed_xform(public_key)
+
+        xform.save()
+
+        xform.refresh_from_db()
+        self.assertTrue(xform.encrypted)
+
+    def test_save_heals_stale_json_of_managed_form(self):
+        """A full save persists the rebuilt json, key included.
+
+        The stale json should be replaced by the XLSForm-rebuilt workbook
+        json with the injected public key retained, so later saves do not
+        re-parse the XLSForm.
+        """
+        public_key = "fake-managed-public-key"
+        xform = self._make_stale_managed_xform(public_key)
+
+        xform.save()
+
+        xform.refresh_from_db()
+        self.assertEqual(
+            xform.json,
+            {**self.publish_time_workbook_json, "public_key": public_key},
+        )
+
     def test_is_was_managed_when_managed(self):
         """is_was_managed returns True when is_managed is True"""
         self._publish_transportation_form()

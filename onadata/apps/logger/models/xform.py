@@ -512,7 +512,15 @@ class XFormMixin:
             if (is_itemset_error or is_trigger_error) and self.xls:
                 # Use get_survey_and_json_from_xlsform to get workbook_json
                 survey, workbook_json = self.get_survey_and_json_from_xlsform()
-                # Persist the workbook_json to avoid repeated XLS parsing
+                # Encryption enabled post-publish (e.g. via managed keys)
+                # exists only in the stored json, not the XLSForm
+                if self.public_key:
+                    survey.public_key = self.public_key
+                    workbook_json["public_key"] = self.public_key
+                # Persist the workbook_json to avoid repeated XLS parsing;
+                # updating the in-memory json keeps an enclosing save()
+                # from writing the stale json back
+                self.json = workbook_json
                 XForm.objects.filter(pk=self.pk).update(json=workbook_json)
                 return survey
             raise
