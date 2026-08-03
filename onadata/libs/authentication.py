@@ -7,12 +7,14 @@ from __future__ import unicode_literals
 
 import base64
 import binascii
+import logging
 from datetime import datetime
 from typing import Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
+from django.core.exceptions import ImproperlyConfigured
 from django.core.signing import BadSignature
 from django.db import DataError
 from django.db.models import Q
@@ -25,6 +27,7 @@ from multidb.pinning import use_master
 from oauth2_provider.models import AccessToken
 from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.settings import oauth2_settings
+from oauthlib.oauth2.rfc6749 import errors as oauth2_errors
 from oidc.utils import authenticate_sso
 from rest_framework import exceptions
 from rest_framework.authentication import (
@@ -73,6 +76,131 @@ LOCKOUT_EXCLUDED_PATHS = getattr(
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+PKCE_S256_MODE_ENFORCE = "enforce"
+PKCE_S256_MODE_OBSERVE = "observe"
+PKCE_S256_MODES = (PKCE_S256_MODE_ENFORCE, PKCE_S256_MODE_OBSERVE)
+PKCE_S256_METHOD = "S256"
+PKCE_MIGRATION_LOGGER = logging.getLogger("pkce_migration")
+
+
+def _validated_pkce_s256_settings():
+    """Return PKCE migration settings or fail closed on invalid values."""
+    mode = getattr(settings, "OAUTH2_PKCE_S256_MODE", PKCE_S256_MODE_ENFORCE)
+    if not isinstance(mode, str) or mode not in PKCE_S256_MODES:
+        raise ImproperlyConfigured(
+            "OAUTH2_PKCE_S256_MODE must be 'enforce' or 'observe'."
+        )
+
+    cutoff = getattr(settings, "OAUTH2_PKCE_S256_MIGRATION_CUTOFF", None)
+    expires_at = getattr(
+        settings,
+        "OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT",
+        None,
+    )
+    for name, value in (
+        ("OAUTH2_PKCE_S256_MIGRATION_CUTOFF", cutoff),
+        ("OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT", expires_at),
+    ):
+        if value is not None and (
+            not isinstance(value, datetime) or timezone.is_naive(value)
+        ):
+            raise ImproperlyConfigured(
+                f"{name} must be None or a timezone-aware datetime."
+            )
+
+    if (cutoff is None) != (expires_at is None):
+        raise ImproperlyConfigured(
+            "The PKCE S256 migration cutoff and expiry must either both be "
+            "set or both be None."
+        )
+
+    return mode, cutoff, expires_at
+
+
+def _uses_authorization_code(application):
+    """Return whether an application has an explicitly code-based grant."""
+    if application is None:
+        return False
+
+    return application.authorization_grant_type in (
+        application.GRANT_AUTHORIZATION_CODE,
+        application.GRANT_OPENID_HYBRID,
+    )
+
+
+def _is_pkce_legacy_window_active(
+    application,
+    cutoff,
+    expires_at,
+    at,
+):
+    """Return whether the shared legacy-application window is still active."""
+    if cutoff is None or expires_at is None or expires_at <= at:
+        return False
+
+    created = getattr(application, "created", None)
+    return (
+        isinstance(created, datetime)
+        and timezone.is_aware(created)
+        and created < cutoff
+    )
+
+
+def is_pkce_s256_enforced(application, at=None):
+    """Return whether S256 is effective for an OAuth application.
+
+    This helper accepts unsaved applications so registration commands can
+    verify the effective policy before making any database writes.
+    """
+    mode, cutoff, expires_at = _validated_pkce_s256_settings()
+
+    if not _uses_authorization_code(application):
+        return False
+    if mode == PKCE_S256_MODE_OBSERVE:
+        return False
+
+    effective_at = at if at is not None else timezone.now()
+    if not isinstance(effective_at, datetime) or timezone.is_naive(effective_at):
+        raise ValueError("at must be a timezone-aware datetime.")
+
+    return not _is_pkce_legacy_window_active(
+        application,
+        cutoff,
+        expires_at,
+        effective_at,
+    )
+
+
+def _pkce_challenge_method_category(challenge, challenge_method):
+    """Reduce challenge input to the approved migration-log categories."""
+    if challenge is None:
+        return "not_applicable"
+    if challenge_method is None:
+        return "missing"
+    if challenge_method == PKCE_S256_METHOD:
+        return PKCE_S256_METHOD
+    if challenge_method == "plain":
+        return "plain"
+    return "unsupported"
+
+
+def _log_pkce_migration_observation(application, request):
+    """Emit one allowlisted, identity-free structured migration event."""
+    challenge = getattr(request, "code_challenge", None)
+    challenge_method = getattr(request, "code_challenge_method", None)
+    PKCE_MIGRATION_LOGGER.info(
+        "pkce_migration",
+        extra={
+            "application_pk": application.pk,
+            "client_type": application.client_type,
+            "grant_type": application.authorization_grant_type,
+            "challenge_absent": challenge is None,
+            "challenge_method_category": _pkce_challenge_method_category(
+                challenge, challenge_method
+            ),
+        },
+    )
 
 
 def expired(time_token_created):
@@ -491,6 +619,65 @@ class MasterReplicaOAuth2Validator(OAuth2Validator):
     def validate_silent_login(self, request):
         """See oauthlib.oauth2.rfc6749.request_validator"""
         raise NotImplementedError("Subclasses must implement this method.")
+
+    def is_pkce_required(self, client_id, request):
+        """Require PKCE for code grants when the effective policy enforces it."""
+        application = getattr(request, "client", None)
+        if application is None:
+            application = self._load_application(client_id, request)
+        return is_pkce_s256_enforced(application)
+
+    def validate_response_type(
+        self, client_id, response_type, client, request, *args, **kwargs
+    ):
+        """Reject authorization requests that do not use PKCE S256.
+
+        OAuthLib defaults a missing challenge method to ``plain`` after this
+        hook, so checking here also protects the authorization-response POST
+        from a changed hidden form value.
+        """
+        valid = super().validate_response_type(
+            client_id, response_type, client, request, *args, **kwargs
+        )
+        if (
+            not valid
+            or not isinstance(response_type, str)
+            or "code" not in response_type.split()
+            or not _uses_authorization_code(client)
+        ):
+            return valid
+
+        if not is_pkce_s256_enforced(client):
+            _log_pkce_migration_observation(client, request)
+            return valid
+
+        challenge = getattr(request, "code_challenge", None)
+        challenge_method = getattr(request, "code_challenge_method", None)
+        if challenge is None:
+            raise oauth2_errors.InvalidRequestError(
+                description="PKCE code_challenge is required.",
+                request=request,
+            )
+        if challenge_method != PKCE_S256_METHOD:
+            raise oauth2_errors.InvalidRequestError(
+                description="PKCE code_challenge_method must be S256.",
+                request=request,
+            )
+
+        return valid
+
+    def get_code_challenge_method(self, code, request):
+        """Reject legacy stored grants when their effective policy enforces."""
+        challenge_method = super().get_code_challenge_method(code, request)
+        if (
+            is_pkce_s256_enforced(getattr(request, "client", None))
+            and challenge_method != PKCE_S256_METHOD
+        ):
+            raise oauth2_errors.InvalidGrantError(
+                description="Authorization grant does not use PKCE S256.",
+                request=request,
+            )
+        return challenge_method
 
     def validate_bearer_token(self, token, scopes, request):
         if not token:
