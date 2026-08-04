@@ -45,6 +45,7 @@ from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
+from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 from onadata.libs.utils.export_tools import (
@@ -870,23 +871,63 @@ def data_view(request, username, id_string):
     return render(request, "data_view.html", data)
 
 
+def has_attachment_permission(attachment, request):
+    """Checks if ``request.user`` may download ``attachment``.
+
+    Mirrors what ``AttachmentFilter`` enforces on the DRF routes: access to the
+    owning form, plus the form's meta permissions.
+    """
+    xform = attachment.get_xform()
+    owner = xform.user
+    if not has_permission(xform, owner, request):
+        return False
+
+    # Meta permissions scope a collaborator to their own submissions, so they
+    # only apply to a caller who reached the form through a role. ``shared_data``
+    # and the public link both hand out the whole form's data, so a caller who
+    # came in either way is not subject to them.
+    if xform.shared_data or request.session.get("public_link") == xform.uuid:
+        return True
+
+    if not request.user.is_authenticated:
+        # Meta permissions are granted per user, so there is nothing left to
+        # let an anonymous caller through on.
+        return False
+
+    permitted = exclude_items_from_queryset_using_xform_meta_perms(
+        xform, request.user, Attachment.objects.filter(pk=attachment.pk)
+    )
+
+    return permitted.exists()
+
+
 def attachment_url(request, size="medium"):
     """
     Redirects to image attachment  of the specified size, defaults to 'medium'.
+
+    Responds with 403 when the requester has no access to the owning form.
     """
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
     attachment_id = request.GET.get("attachment_id")
 
-    if not media_file and not attachment_id:
-        return HttpResponseNotFound(_("Attachment not found"))
+    live_attachments = Attachment.objects.filter(
+        instance__deleted_at__isnull=True,
+        instance__xform__deleted_at__isnull=True,
+        deleted_at__isnull=True,
+    )
     if attachment_id:
-        attachment = get_object_or_404(Attachment, pk=attachment_id)
+        attachment = get_object_or_404(live_attachments, pk=attachment_id)
+    elif media_file:
+        attachment = live_attachments.filter(media_file=media_file).order_by().first()
     else:
-        result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
-        if not result:
-            return HttpResponseNotFound(_("Attachment not found"))
-        attachment = result[0]
+        attachment = None
+
+    if attachment is None:
+        return HttpResponseNotFound(_("Attachment not found"))
+
+    if not has_attachment_permission(attachment, request):
+        return HttpResponseForbidden(_("Not shared."))
 
     if size == "original" and no_redirect == "true":
         response = response_with_mimetype_and_name(
