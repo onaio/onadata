@@ -1129,14 +1129,14 @@ class DecryptInstanceTestCase(TestBase):
         )
 
         # Decrypted media files are saved
-        att_qs = Attachment.objects.filter(
-            xform=self.xform, instance=self.instance
-        ).order_by("pk")
+        att_qs = Attachment.objects.filter(instance=self.instance).order_by("pk")
 
         self.assertEqual(att_qs.count(), 5)
         self.assertEqual(att_qs[3].name, "sunset.png")
         self.assertEqual(att_qs[3].extension, "png")
         self.assertEqual(att_qs[3].mimetype, "image/png")
+        self.assertEqual(att_qs[3].xform, self.xform)
+        self.assertEqual(att_qs[3].user, self.instance.user)
 
         with att_qs[3].media_file.open("rb") as dec_file:
             buffer = BytesIO(dec_file.read())
@@ -1151,6 +1151,8 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(att_qs[4].name, "forest.mp4")
         self.assertEqual(att_qs[4].extension, "mp4")
         self.assertEqual(att_qs[4].mimetype, "video/mp4")
+        self.assertEqual(att_qs[4].xform, self.xform)
+        self.assertEqual(att_qs[4].user, self.instance.user)
 
         with att_qs[4].media_file.open("rb") as dec_file:
             buffer = BytesIO(dec_file.read())
