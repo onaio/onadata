@@ -6,6 +6,7 @@ from io import StringIO
 from unittest.mock import call, patch
 
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.test import override_settings
 from django.utils import timezone
@@ -1709,6 +1710,58 @@ class CreateUpdateEntityTestCase(TestBase):
         entity_list.soft_delete()
 
         create_or_update_entity_from_instance(self.instance)
+
+        self.assertEqual(Entity.objects.count(), 0)
+
+    def test_mutations_atomic(self):
+        """Entity mutations from a single Instance are applied atomically"""
+        md = """
+        | survey   |
+        |          | type         | name         | label        | save_to      |
+        |          | begin_repeat | tree         | Tree         |              |
+        |          | barcode      | tree_id      | Tree ID      |              |
+        |          | text         | year_planted | Year planted | year_planted |
+        |          | end_repeat   |              |              |              |
+        | settings |              |              |              |              |
+        |          | form_title   | form_id      | version      |              |
+        |          | Trees        | trees        | 202607241122 |              |
+        | entities |              |              |              |              |
+        |          | list_name    | label        |              |              |
+        |          | trees_repeat | ${tree_id}   |              |              |
+        """
+        xform = self._publish_markdown(md, self.user)
+        xml = (
+            '<data xmlns:jr="http://openrosa.org/javarosa" xmlns:orx='
+            '"http://openrosa.org/xforms" id="trees_repeats" version="202607241122">'
+            "<formhub><uuid>080c4868778a4c9fa20e71f6dc3ef285</uuid></formhub>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<year_planted>2014</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" '
+            'id="e02dc9a9-0451-419d-934d-6d5621e4c5d6">'
+            "<label>1</label>"
+            "</entity>"
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2014</year_planted>"
+            "<meta>"
+            '<entity dataset="trees_repeat" create="1" id="invalid-uuid">'
+            "<label>2</label>"
+            "</entity>"
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        instance = Instance.objects.create(xml=xml, user=self.user, xform=xform)
+
+        with self.assertRaises(ValidationError):
+            create_or_update_entity_from_instance(instance)
 
         self.assertEqual(Entity.objects.count(), 0)
 
