@@ -119,3 +119,23 @@ Notes
 - Unknown property columns are silently ignored (not saved to entities).
 - If an Entity with the same uuid already exists, it will be updated instead of creating a new one.
 - Errors are reported with row numbers; when any row fails, the command exits with a non-zero status.
+
+
+Backfill attachment user
+------------------------
+
+Backfills the ``user`` field on attachments whose submitting user was not
+recorded. The user is copied from the attachment's submission.
+
+The decryption path created attachments without the ``user`` field set. Only
+forms holding a KMS key can have decrypted attachments, so the repair is
+scoped to those.
+
+.. code-block:: bash
+
+    python manage.py backfill_attachment_user
+
+Options
+^^^^^^^
+
+- ``--batch-size``: Number of attachments to update per batch (default: 1000).
