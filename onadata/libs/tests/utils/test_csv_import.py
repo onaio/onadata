@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import re
 from builtins import open
+from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
@@ -606,8 +607,8 @@ class CSVImportTestCase(TestBase):
             submission.json["section_B/year_established"].startswith("1890")
         )
 
-    def test_select_multiples_grouped_repeating_w_split(self):
-        """Select multiple choices within group within repeat with split"""
+    def _publish_nested_repeat_select_multiple(self):
+        """Publish the nested repeat select-multiple test form."""
         md_xform = """
         | survey  |                          |              |                   |
         |         | type                     | name         | label             |
@@ -633,7 +634,33 @@ class CSVImportTestCase(TestBase):
         |         | browsers                 | chrome       | Chrome            |
         |         | browsers                 | ie           | Internet Explorer |
         |         | browsers                 | safari       | Safari            |"""
-        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+        return self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+    @staticmethod
+    def _use_legacy_inline_choices_json(xform):
+        """Move browser choices inline to recreate the legacy JSON shape."""
+        legacy_json = deepcopy(xform.json)
+        choices = legacy_json["choices"].pop("browsers")
+
+        elements = list(legacy_json["children"])
+        while elements:
+            element = elements.pop()
+            if element.get("name") == "browsers":
+                element["children"] = choices
+                break
+            elements.extend(element.get("children", []))
+        else:
+            raise AssertionError("Browsers question not found")
+
+        XForm.objects.filter(pk=xform.pk).update(json=legacy_json)
+        xform.refresh_from_db()
+        if hasattr(xform, "_survey"):
+            del xform._survey  # pylint: disable=protected-access
+        return legacy_json
+
+    def test_select_multiples_grouped_repeating_w_split(self):
+        """Select multiple choices within group within repeat with split"""
+        xform = self._publish_nested_repeat_select_multiple()
 
         with open(
             os.path.join(
@@ -657,6 +684,47 @@ class CSVImportTestCase(TestBase):
                     },
                 ],
             )
+
+    def test_select_multiples_grouped_repeating_w_split_legacy_json(self):
+        """CSV import handles legacy select-multiple choices being unavailable."""
+        xform = self._publish_nested_repeat_select_multiple()
+        legacy_json = self._use_legacy_inline_choices_json(xform)
+
+        self.assertIsNone(xform.get_survey_element("browsers").choices)
+        combined_header = "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers"
+        headers = xform.get_headers(repeat_iterations=1)
+        self.assertIn(combined_header, headers)
+        self.assertFalse(
+            any(header.startswith(f"{combined_header}/") for header in headers)
+        )
+
+        with open(
+            os.path.join(
+                self.fixtures_dir,
+                "csv_import_multiple_split_group_repeat.csv",
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+
+        self.assertEqual(Instance.objects.count(), 1)
+        submission = Instance.objects.first()
+        repeat_path = "grp1/grp2/browser_use/grp3/grp4/grp5"
+        self.assertEqual(
+            submission.json["grp1/grp2/browser_use"],
+            [
+                {
+                    f"{repeat_path}/year": 2010,
+                    f"{repeat_path}/browsers": "firefox safari",
+                },
+                {
+                    f"{repeat_path}/year": 2011,
+                    f"{repeat_path}/browsers": "firefox chrome",
+                },
+            ],
+        )
+        xform.refresh_from_db()
+        self.assertEqual(xform.json, legacy_json)
 
     def test_select_multiples_grouped_repeating_wo_split(self):
         """Select multiple choices within group within repeat without split"""
