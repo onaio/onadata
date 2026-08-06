@@ -568,6 +568,7 @@ def decrypt_instance(instance: Instance) -> None:
                     _, extension = os.path.splitext(original_name)
                     attachment = instance.attachments.create(
                         xform=instance.xform,
+                        user=instance.user,
                         media_file=media_file,
                         name=original_name,
                         mimetype=mimetype or "application/octet-stream",

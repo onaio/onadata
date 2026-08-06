@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Any, Iterator, TextIO
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import transaction
 from django.db.models import QuerySet
 from django.utils.translation import gettext as _
 
@@ -146,6 +147,7 @@ def soft_delete_entities_bulk(entity_qs: QuerySet[Entity], deleted_by=None) -> N
         entity.soft_delete(deleted_by)
 
 
+@transaction.atomic()
 def create_or_update_entity_from_instance(instance: Instance) -> None:
     """Create or Update Entity from Instance
 
