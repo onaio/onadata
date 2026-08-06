@@ -608,11 +608,11 @@ urlpatterns += [
         viewer_views.stats_tables,
         name="stats-tables",
     ),
-    # static media
+    # media files
     re_path(
         r"^media/(?P<path>.*)$",
-        django.views.static.serve,
-        {"document_root": settings.MEDIA_ROOT},
+        main_views.serve_media,
+        name="serve-media",
     ),
     re_path(
         r"^favicon\.ico",

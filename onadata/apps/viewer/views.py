@@ -45,7 +45,6 @@ from onadata.apps.viewer.models.export import Export, ExportTypeError
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 from onadata.libs.utils.chart_tools import build_chart_data
 from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
 from onadata.libs.utils.export_tools import (
@@ -65,6 +64,7 @@ from onadata.libs.utils.logger_tools import (
 )
 from onadata.libs.utils.user_auth import (
     get_xform_and_perms,
+    has_attachment_permission,
     has_permission,
     helper_auth_helper,
 )
@@ -715,7 +715,6 @@ def zip_export(request, username, id_string):
         id_string = None
 
     attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = None
 
     with NamedTemporaryFile() as zip_file:
         create_attachments_zipfile(attachments, zip_file)
@@ -869,36 +868,6 @@ def data_view(request, username, id_string):
     )
 
     return render(request, "data_view.html", data)
-
-
-def has_attachment_permission(attachment, request):
-    """Checks if ``request.user`` may download ``attachment``.
-
-    Mirrors what ``AttachmentFilter`` enforces on the DRF routes: access to the
-    owning form, plus the form's meta permissions.
-    """
-    xform = attachment.get_xform()
-    owner = xform.user
-    if not has_permission(xform, owner, request):
-        return False
-
-    # Meta permissions scope a collaborator to their own submissions, so they
-    # only apply to a caller who reached the form through a role. ``shared_data``
-    # and the public link both hand out the whole form's data, so a caller who
-    # came in either way is not subject to them.
-    if xform.shared_data or request.session.get("public_link") == xform.uuid:
-        return True
-
-    if not request.user.is_authenticated:
-        # Meta permissions are granted per user, so there is nothing left to
-        # let an anonymous caller through on.
-        return False
-
-    permitted = exclude_items_from_queryset_using_xform_meta_perms(
-        xform, request.user, Attachment.objects.filter(pk=attachment.pk)
-    )
-
-    return permitted.exists()
 
 
 def attachment_url(request, size="medium"):
