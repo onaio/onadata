@@ -19,6 +19,7 @@ from django.db.models import F, Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from multidb.pinning import use_master
 from oauth2_provider.models import AccessToken, RefreshToken
 from rest_framework.authtoken.models import Token
 
@@ -808,16 +809,16 @@ def _get_permission_snapshot_source_ids(permission_row):
     }
 
 
+@use_master
 def get_or_create_user_activity(user):
     """
     Return a user's activity row, seeding it from historical activity if missing.
     """
-    try:
-        return UserActivity.objects.get(user=user)
-    except UserActivity.DoesNotExist:
-        return UserActivity.objects.create(
-            user=user, last_activity=get_initial_last_activity(user)
-        )
+    activity, _created = UserActivity.objects.get_or_create(
+        user=user,
+        defaults={"last_activity": lambda: get_initial_last_activity(user)},
+    )
+    return activity
 
 
 def sync_user_deactivation_state(user, inactivity_days=None):

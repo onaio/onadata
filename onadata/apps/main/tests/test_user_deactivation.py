@@ -3,7 +3,7 @@
 Test user deactivation lifecycle state.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from django.conf import settings
@@ -46,6 +46,7 @@ from onadata.apps.main.models.user_deactivation import (
     get_deactivation_states_due_for_deactivation,
     get_deactivation_states_due_for_warning,
     get_deactivation_warning_days,
+    get_or_create_user_activity,
     get_pending_deactivation_actions,
     perform_deactivation_action,
     reactivate_user,
@@ -106,6 +107,15 @@ class TestUserDeactivationState(TestBase):
             user.deactivation_state.deactivation_scheduled_at,
             user.activity.last_activity + timedelta(days=365),
         )
+
+    def test_get_or_create_user_activity_creates_missing_activity(self):
+        user = User.objects.create_user(username="missing-activity")
+        UserActivity.objects.filter(user=user).delete()
+
+        activity = get_or_create_user_activity(user)
+
+        self.assertIsInstance(activity.last_activity, datetime)
+        self.assertEqual(activity.last_activity, user.date_joined)
 
     @override_settings(DEACTIVATION_INACTIVITY_DAYS=365)
     def test_sync_user_deactivation_state_schedules_from_activity(self):

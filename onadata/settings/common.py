@@ -254,6 +254,13 @@ OAUTH2_PROVIDER = {
     "OAUTH2_VALIDATOR_CLASS": "onadata.libs.authentication.MasterReplicaOAuth2Validator",  # noqa
 }
 
+# Authorization Code and code-based OpenID Connect applications require PKCE
+# S256 by default. The remaining settings support a bounded migration and
+# should be empty in a fully migrated deployment.
+OAUTH2_PKCE_S256_MODE = "enforce"
+OAUTH2_PKCE_S256_MIGRATION_CUTOFF = None
+OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT = None
+
 OPENID_CONNECT_VIEWSET_CONFIG = {
     "REDIRECT_AFTER_AUTH": "http://localhost:3000",
     "USE_SSO_COOKIE": True,
@@ -404,6 +411,14 @@ LOGGING = {
         },
         "simple": {"format": "%(levelname)s %(message)s"},
         "profiler": {"format": "%(levelname)s %(asctime)s %(message)s"},
+        "pkce_migration": {
+            "format": (
+                "%(message)s application_pk=%(application_pk)s "
+                "client_type=%(client_type)s grant_type=%(grant_type)s "
+                "challenge_absent=%(challenge_absent)s "
+                "challenge_method_category=%(challenge_method_category)s"
+            )
+        },
         "sql": {
             "format": "%(levelname)s %(process)d %(thread)d"
             + " %(time)s seconds %(message)s %(sql)s"
@@ -431,6 +446,12 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+            "stream": sys.stdout,
+        },
+        "pkce_migration_console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "pkce_migration",
             "stream": sys.stdout,
         },
         "audit": {
@@ -464,6 +485,11 @@ LOGGING = {
             "propagate": True,
         },
         "audit_logger": {"handlers": ["audit"], "level": "DEBUG", "propagate": True},
+        "pkce_migration": {
+            "handlers": ["pkce_migration_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         # 'sql_logger': {
         #     'handlers': ['sql_handler'],
         #     'level': 'DEBUG',
