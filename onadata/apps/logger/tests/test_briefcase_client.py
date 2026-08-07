@@ -4,7 +4,6 @@ Test Briefcase client
 """
 
 import os.path
-import shutil
 from io import BytesIO
 
 import requests
@@ -236,10 +235,7 @@ class TestBriefcaseClient(TestBase):
 
     @classmethod
     def tearDownClass(cls):
-        # remove media files
-        for username in ["bob", "deno"]:
-            if storage.exists(username):
-                shutil.rmtree(storage.path(username), ignore_errors=True)
         MetaData.objects.all().delete()
         Instance.objects.all().delete()
         XForm.objects.all().delete()
+        super().tearDownClass()
