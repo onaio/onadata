@@ -1283,8 +1283,12 @@ class TestInstance(TestBase):
         self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
         # Encrypted Instance whose encryption is not by managed keys (custom encryption)
-        self.xform.is_managed = False
-        self.xform.save(update_fields=["is_managed"])
+        md = """
+        | survey |
+        |        | type  | name   | label                |
+        |        | photo | sunset | Take photo of sunset |
+        """
+        custom_xform = self._publish_markdown(md, self.user, id_string="custom")
         manifest_xml = """
         <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
             id="test_valigetta" version="202502131337">
@@ -1302,7 +1306,7 @@ class TestInstance(TestBase):
         """.strip()
         survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
         instance = Instance.objects.create(
-            xform=self.xform,
+            xform=custom_xform,
             xml=manifest_xml,
             user=self.user,
             survey_type=survey_type,
@@ -1322,6 +1326,18 @@ class TestInstance(TestBase):
         self.assertEqual(
             instance.decryption_status, Instance.DecryptionStatus.UNMANAGED
         )
+
+    def test_decryption_pending_encryption_disabled(self):
+        """decryption_status is PENDING for encrypted Instance received after
+        managed encryption is disabled."""
+        self._publish_managed_form()
+        # Disabled encryption
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False, is_managed=False)
+        self.xform.refresh_from_db()
+        instance = self._submit_encrypted_instance()
+
+        self.assertTrue(instance.is_encrypted)
+        self.assertEqual(instance.decryption_status, Instance.DecryptionStatus.PENDING)
 
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
@@ -1401,3 +1417,61 @@ class TestInstance(TestBase):
         # Returns False if XML invalid
         with patch("xml.etree.ElementTree.fromstring", side_effect=ParseError):
             self.assertFalse(instance.check_encrypted())
+
+
+class GetExpectedMediaTestCase(TestBase):
+    """Tests for `Instance.get_expected_media`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self._publish_managed_form()
+
+    def test_encrypted_flag_off(self):
+        """Ciphertext files are expected media when a managed form's encrypted flag is off."""
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False)
+        self.xform.refresh_from_db()
+        instance = self._submit_encrypted_instance()
+
+        self.assertCountEqual(
+            instance.get_expected_media(),
+            ["submission.xml.enc", "sunset.png.enc", "forest.mp4.enc"],
+        )
+
+    def test_encryption_disabled(self):
+        """Ciphertext files are expected media after managed encryption is disabled."""
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False, is_managed=False)
+        self.xform.refresh_from_db()
+        instance = self._submit_encrypted_instance()
+
+        self.assertCountEqual(
+            instance.get_expected_media(),
+            ["submission.xml.enc", "sunset.png.enc", "forest.mp4.enc"],
+        )
+
+    def test_single_media_file(self):
+        """A lone ciphertext media file is expected media when the encrypted flag is off."""
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False)
+        self.xform.refresh_from_db()
+        xml = f"""
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+        survey_type, _ = SurveyType.objects.get_or_create(slug="slug-foo")
+        instance = Instance.objects.create(
+            xform=self.xform, xml=xml, user=self.user, survey_type=survey_type
+        )
+
+        self.assertCountEqual(
+            instance.get_expected_media(), ["submission.xml.enc", "sunset.png.enc"]
+        )
