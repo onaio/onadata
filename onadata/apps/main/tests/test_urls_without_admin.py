@@ -14,6 +14,10 @@ from django.urls import (
 
 from onadata.apps.api.urls import v1_urls as api_v1_urls_module
 from onadata.apps.main import urls as main_urls_module
+from onadata.apps.main.oidc_viewsets import (
+    OnaKeycloakOpenIDConnectViewset,
+    OnaOpenIDConnectViewset,
+)
 
 
 class TestUrlsAdminToggle(SimpleTestCase):
@@ -138,3 +142,78 @@ class TestHyphenatedUsernameUrls(SimpleTestCase):
             with self.subTest(path=path):
                 with self.assertRaises(Resolver404):
                     resolve(path)
+
+
+class TestOidcAccountProxyIsOptIn(SimpleTestCase):
+    """The Keycloak account proxy is not part of the default viewset.
+
+    ona-oidc derives its routes from the ``@action`` decorators on whichever
+    class ``VIEWSET_CLASS`` names, so which viewset a deployment configures
+    decides whether the proxy endpoints exist at all. That is silent either
+    way -- there is no error, the routes are simply absent -- which is what
+    these pin.
+
+    Pure URLconf resolution and class inspection; no database required.
+    """
+
+    PROXY_ACTIONS = (
+        "sessions_list",
+        "sessions_revoke_one",
+        "sessions_revoke_others",
+        "linked_list",
+        "linked_unlink",
+        "linked_link_url",
+        "credentials_list",
+    )
+
+    def test_the_default_viewset_has_no_proxy_actions(self):
+        """Settings ship the plain viewset, so nothing routes the proxy."""
+        for action in self.PROXY_ACTIONS:
+            self.assertFalse(
+                hasattr(OnaOpenIDConnectViewset, action),
+                f"{action} should be opt-in, not on the default viewset",
+            )
+        self.assertFalse(OnaOpenIDConnectViewset.stash_oidc_tokens)
+
+    def test_the_keycloak_viewset_adds_them(self):
+        for action in self.PROXY_ACTIONS:
+            self.assertTrue(
+                hasattr(OnaKeycloakOpenIDConnectViewset, action),
+                f"{action} missing -- the SPA's Account tab would 404",
+            )
+        # Without this the callback keeps no access token, so the routes
+        # would exist but every call would 401.
+        self.assertTrue(OnaKeycloakOpenIDConnectViewset.stash_oidc_tokens)
+
+    def test_the_keycloak_viewset_still_refuses_organization_accounts(self):
+        """The whole reason onadata owns a viewset. Composition order must
+        not let the mixin displace it."""
+        self.assertTrue(
+            issubclass(OnaKeycloakOpenIDConnectViewset, OnaOpenIDConnectViewset)
+        )
+        self.assertIs(
+            OnaKeycloakOpenIDConnectViewset.is_session_allowed,
+            OnaOpenIDConnectViewset.is_session_allowed,
+        )
+
+    def test_the_proxy_paths_do_not_resolve_under_the_default_viewset(self):
+        for path in (
+            "/oidc/example/sessions",
+            "/oidc/example/credentials",
+            "/oidc/example/linked-accounts",
+        ):
+            with self.subTest(path=path):
+                with self.assertRaises(Resolver404):
+                    resolve(path)
+
+    def test_session_still_resolves_to_the_session_probe(self):
+        """``session`` is on the base viewset, so it routes either way -- and
+        its ``$`` anchor keeps it from prefix-matching ``sessions``."""
+        match = resolve("/oidc/example/session")
+        self.assertEqual(match.func.actions.get("get"), "session")
+
+    def test_the_removed_account_endpoint_is_not_routed(self):
+        """ona-oidc dropped the profile-update ``account`` action -- the proxy
+        is read-and-revoke only."""
+        with self.assertRaises(Resolver404):
+            resolve("/oidc/example/account")
