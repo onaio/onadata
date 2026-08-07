@@ -162,7 +162,6 @@ class CSVImportTestCase(TestBase):
         """Delayed count tasks do not double-count imported submissions."""
         self._publish_xls_file(self.xls_file_path)
         xform = XForm.objects.get()
-        single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
 
         with (
             patch(
@@ -176,7 +175,10 @@ class CSVImportTestCase(TestBase):
             ),
             patch.object(csv_import, "PROGRESS_BATCH_UPDATE", 1),
         ):
-            csv_import.submit_csv(self.user.username, xform, single_csv)
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
 
         count_task.assert_called_once()
         xform.refresh_from_db()
@@ -207,8 +209,10 @@ class CSVImportTestCase(TestBase):
         )
 
         with task_patches[0] as count_task, task_patches[1], task_patches[2]:
-            single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
-            csv_import.submit_csv(self.user.username, xform, single_csv)
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
 
             first_instance_id = count_task.call_args.kwargs["args"][0]
             update_xform_submission_count(Instance.objects.get(pk=first_instance_id))
@@ -216,8 +220,12 @@ class CSVImportTestCase(TestBase):
             self.assertEqual(xform.num_of_submissions, 1)
 
             count_task.reset_mock()
-            single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
-            csv_import.submit_csv(self.user.username, xform, single_csv, overwrite=True)
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(
+                    self.user.username, xform, single_csv, overwrite=True
+                )
 
         count_task.assert_called_once()
         xform.refresh_from_db()
@@ -234,7 +242,6 @@ class CSVImportTestCase(TestBase):
         """Rollback removes rows before their delayed count tasks run."""
         self._publish_xls_file(self.xls_file_path)
         xform = XForm.objects.get()
-        single_csv = open(os.path.join(self.fixtures_dir, "single.csv"), "rb")
 
         with (
             patch(
@@ -251,7 +258,10 @@ class CSVImportTestCase(TestBase):
                 side_effect=RuntimeError("metadata save failed"),
             ),
         ):
-            result = csv_import.submit_csv(self.user.username, xform, single_csv)
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                result = csv_import.submit_csv(self.user.username, xform, single_csv)
 
         count_task.assert_called_once()
         instance_id = count_task.call_args.kwargs["args"][0]
