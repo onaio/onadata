@@ -18,9 +18,11 @@ from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs.permissions import exclude_items_from_queryset_using_xform_meta_perms
 
 # pylint: disable=invalid-name
 User = get_user_model()
@@ -96,6 +98,37 @@ def has_permission(xform, owner, request, shared=False):
         or user.has_perm("logger.view_xform", xform)  # noqa W503
         or user.has_perm("logger.change_xform", xform)  # noqa W503
     )
+
+
+def has_attachment_permission(attachment, request):
+    """Checks if ``request.user`` may download ``attachment``.
+
+    Mirrors what ``AttachmentFilter`` enforces on the DRF routes: access to
+    the owning form, plus the form's meta permissions.
+    """
+    xform = attachment.get_xform()
+    if not has_permission(xform, xform.user, request):
+        return False
+
+    # Meta permissions scope a collaborator to their own submissions, so they
+    # only apply to a caller who reached the form through a role. ``shared_data``
+    # and the public link both hand out the whole form's data, so a caller who
+    # came in either way is not subject to them.
+    if xform.shared_data or (
+        hasattr(request, "session") and request.session.get("public_link") == xform.uuid
+    ):
+        return True
+
+    if not request.user.is_authenticated:
+        # Meta permissions are granted per user, so there is nothing left to
+        # let an anonymous caller through on.
+        return False
+
+    permitted = exclude_items_from_queryset_using_xform_meta_perms(
+        xform, request.user, Attachment.objects.filter(pk=attachment.pk)
+    )
+
+    return permitted.exists()
 
 
 def has_edit_permission(xform, owner, request, shared=False):

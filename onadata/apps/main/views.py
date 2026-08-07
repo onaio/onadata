@@ -30,6 +30,7 @@ from django.template import loader
 from django.urls import reverse
 from django.utils.html import conditional_escape
 from django.utils.translation import gettext as _
+from django.views import static
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from bson import json_util
@@ -40,7 +41,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import AuthenticationFailed
 
 import onadata
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Attachment, Instance, Project, XForm
 from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -64,6 +65,7 @@ from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
+from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import (
     DATETIME_FORMAT,
     ParsedInstance,
@@ -80,6 +82,7 @@ from onadata.libs.authentication import (
     get_lockout_username,
 )
 from onadata.libs.exceptions import EnketoError
+from onadata.libs.permissions import CAN_VIEW_PROJECT
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.log import Actions, audit_log
@@ -95,6 +98,7 @@ from onadata.libs.utils.user_auth import (
     get_user_default_project,
     get_xform_and_perms,
     get_xform_users_with_perms,
+    has_attachment_permission,
     has_permission,
     helper_auth_helper,
     set_profile_data,
@@ -1200,6 +1204,135 @@ def download_media_data(request, username, id_string, data_id):
             return HttpResponseNotFound()
 
     return HttpResponseForbidden(_("Permission denied."))
+
+
+def _resolve_media_attachment(path):
+    """Returns the live attachment a media path belongs to, if any.
+
+    Image thumbnails sit next to the original file with a size suffix before
+    the extension, so a thumbnail path resolves to its parent attachment.
+    """
+    candidates = [path]
+    stem, extension = os.path.splitext(path)
+    for thumbnail in settings.THUMB_CONF.values():
+        suffix = thumbnail["suffix"]
+        if stem.endswith(suffix):
+            candidates.append(stem[: -len(suffix)] + extension)
+
+    live_attachments = Attachment.objects.filter(
+        deleted_at__isnull=True,
+        instance__deleted_at__isnull=True,
+        instance__xform__deleted_at__isnull=True,
+    )
+    for candidate in candidates:
+        attachment = live_attachments.filter(media_file=candidate).first()
+        if attachment is not None:
+            return attachment
+
+    return None
+
+
+def _metadata_media_authorized(metadata, request):
+    """Checks if ``request.user`` may download ``metadata``'s file.
+
+    The linked object decides: form and submission media follow the form's
+    permissions, project media follow the project's. Returns None when the
+    linked object is gone so the caller treats the path as not found.
+    """
+    linked = metadata.content_object
+    if linked is None or getattr(linked, "deleted_at", None) is not None:
+        return None
+
+    if isinstance(linked, Instance):
+        # Submission documents follow the form's data permissions — a
+        # publicly listed form (``shared``) does not expose them.
+        if linked.xform.deleted_at is not None:
+            return None
+        return has_permission(linked.xform, linked.xform.user, request)
+    if isinstance(linked, XForm):
+        return has_permission(linked, linked.user, request, linked.shared)
+    if isinstance(linked, Project):
+        return linked.shared or request.user.has_perm(CAN_VIEW_PROJECT, linked)
+
+    return None
+
+
+def _export_media_authorized(export, request):
+    """Checks if ``request.user`` may download ``export``'s file.
+
+    Mirrors what ``ExportFilter`` enforces on the DRF routes: an export
+    scoped to a submitter with ``_submitted_by`` is only served to that
+    submitter, and a whole-form export needs access to all of the form's
+    data — not just the form — so meta-permission-restricted collaborators
+    are excluded. Public-data forms stay reachable like they are on the API.
+    """
+    xform = export.xform
+    user = request.user
+    query = (export.options or {}).get("query") or {}
+    scoped_to = query.get("_submitted_by") if isinstance(query, dict) else None
+
+    if scoped_to is not None:
+        return (
+            user.is_authenticated
+            and user.username == scoped_to
+            and user.has_perm("logger.view_xform_data", xform)
+        )
+
+    if user.is_authenticated and user.has_perm("logger.view_xform_all", xform):
+        return True
+
+    return xform.shared_data or (
+        hasattr(request, "session") and request.session.get("public_link") == xform.uuid
+    )
+
+
+def _media_path_authorized(request, path):
+    """Maps a MEDIA_ROOT path to its owner object and checks permissions.
+
+    Returns True/False once a live owner object claims the path, or None when
+    no object does — unclaimed files are never served.
+    """
+    attachment = _resolve_media_attachment(path)
+    if attachment is not None:
+        return has_attachment_permission(attachment, request)
+
+    metadata = MetaData.objects.filter(data_file=path, deleted_at__isnull=True).first()
+    if metadata is not None:
+        return _metadata_media_authorized(metadata, request)
+
+    xform = XForm.objects.filter(xls=path, deleted_at__isnull=True).first()
+    if xform is not None:
+        return has_permission(xform, xform.user, request, xform.shared)
+
+    filedir, filename = os.path.split(path)
+    export = Export.objects.filter(
+        filedir=filedir, filename=filename, xform__deleted_at__isnull=True
+    ).first()
+    if export is not None:
+        return _export_media_authorized(export, request)
+
+    return None
+
+
+@require_http_methods(["GET", "HEAD"])
+def serve_media(request, path):
+    """Serves a MEDIA_ROOT file only after object-level permission checks.
+
+    Every file under MEDIA_ROOT belongs to a known owner object — a
+    submission attachment (or one of its thumbnails), an uploaded XLSForm, a
+    form/project media document or an export — and a request must pass that
+    object's permission checks before the file is served.
+    """
+    helper_auth_helper(request)
+    authorized = _media_path_authorized(request, path)
+
+    if authorized is None:
+        return HttpResponseNotFound(_("Media file not found."))
+
+    if not authorized:
+        return HttpResponseForbidden(_("Not shared."))
+
+    return static.serve(request, path, document_root=settings.MEDIA_ROOT)
 
 
 def form_photos(request, username, id_string):

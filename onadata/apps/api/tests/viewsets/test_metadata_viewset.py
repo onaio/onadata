@@ -348,7 +348,15 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         )
 
     def test_add_media_dataview_link(self):
-        self._create_dataview()
+        data = {
+            "name": "My DataView",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": '[{"column":"_submission_time","filter":">",'
+            '"value":"1900-01-01"}]',
+        }
+        self._create_dataview(data)
         data_type = "media"
         data_value = "dataview {} transportation".format(self.data_view.pk)
         self._add_form_metadata(self.xform, data_type, data_value)

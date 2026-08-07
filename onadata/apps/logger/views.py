@@ -119,6 +119,10 @@ def bulksubmission(request, username):
     # deletes
     posting_user = get_object_or_404(User, username__iexact=username)
 
+    auth_response = helper_auth_helper(request)
+    if auth_response is not None:
+        return auth_response
+
     # request.FILES is a django.utils.datastructures.MultiValueDict
     # for each key we have a list of values
     try:
@@ -148,7 +152,9 @@ def bulksubmission(request, username):
         f.write(postfile.read())
 
     with open(our_tfpath, "rb") as f:
-        total_count, success_count, errors = import_instances_from_zip(f, posting_user)
+        total_count, success_count, errors = import_instances_from_zip(
+            f, posting_user, request=request
+        )
     # chose the try approach as suggested by the link below
     # http://stackoverflow.com/questions/82831
     try:

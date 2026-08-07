@@ -504,8 +504,6 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
                                 )
                             except AttributeError:
                                 pass
-                            finally:
-                                xform.submission_count(True)
 
                         users = (
                             User.objects.filter(username=submitted_by)
@@ -543,7 +541,9 @@ def submit_csv(username, xform, csv_file, overwrite=False):  # noqa
             f"Invalid CSV data imported in row(s): {errors}",
         )
 
-    xform.submission_count(True)
+    # Instance post-save processing maintains the submission counter. Recounting
+    # here races with delayed asynchronous counter updates and can count imported
+    # submissions twice.
     added_submissions = additions - inserts
     event_by = User.objects.get(username=username)
     event_name = None

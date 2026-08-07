@@ -14,12 +14,14 @@ from unittest.mock import patch
 from xml.etree.ElementTree import fromstring
 
 from django.conf import settings
+from django.test import override_settings
 
 import unicodecsv as ucsv
 from celery.backends.rpc import BacklogLimitExceeded
 from openpyxl import Workbook
 
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.instance import update_xform_submission_count
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import (
@@ -154,6 +156,119 @@ class CSVImportTestCase(TestBase):
             self.assertEqual(resp, {"job_status": "FAILURE"})
             self.xform.refresh_from_db()
             self.assertEqual(initial_count, self.xform.num_of_submissions)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_submit_csv_count_with_delayed_async_processing(self):
+        """Delayed count tasks do not double-count imported submissions."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        with (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ) as count_task,
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+            patch.object(csv_import, "PROGRESS_BATCH_UPDATE", 1),
+        ):
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
+
+        count_task.assert_called_once()
+        xform.refresh_from_db()
+        self.assertEqual(xform.instances.filter(deleted_at__isnull=True).count(), 1)
+        self.assertEqual(xform.num_of_submissions, 0)
+
+        instance_id = count_task.call_args.kwargs["args"][0]
+        update_xform_submission_count(Instance.objects.get(pk=instance_id))
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 1)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_submit_csv_overwrite_count_with_delayed_async_processing(self):
+        """Overwrite recounts deletions before delayed creation increments."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        task_patches = (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ),
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+        )
+
+        with task_patches[0] as count_task, task_patches[1], task_patches[2]:
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
+
+            first_instance_id = count_task.call_args.kwargs["args"][0]
+            update_xform_submission_count(Instance.objects.get(pk=first_instance_id))
+            xform.refresh_from_db()
+            self.assertEqual(xform.num_of_submissions, 1)
+
+            count_task.reset_mock()
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(
+                    self.user.username, xform, single_csv, overwrite=True
+                )
+
+        count_task.assert_called_once()
+        xform.refresh_from_db()
+        self.assertEqual(xform.instances.filter(deleted_at__isnull=True).count(), 1)
+        self.assertEqual(xform.num_of_submissions, 0)
+
+        instance_id = count_task.call_args.kwargs["args"][0]
+        update_xform_submission_count(Instance.objects.get(pk=instance_id))
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 1)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_failed_submit_csv_count_with_delayed_async_processing(self):
+        """Rollback removes rows before their delayed count tasks run."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        with (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ) as count_task,
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+            patch(
+                "onadata.libs.utils.csv_import.MetaDataSerializer.save",
+                side_effect=RuntimeError("metadata save failed"),
+            ),
+        ):
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                result = csv_import.submit_csv(self.user.username, xform, single_csv)
+
+        count_task.assert_called_once()
+        instance_id = count_task.call_args.kwargs["args"][0]
+        self.assertFalse(Instance.objects.filter(pk=instance_id).exists())
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 0)
+        self.assertEqual(result["job_status"], "FAILURE")
 
     @patch("onadata.libs.utils.logger_tools.send_message")
     def test_submit_csv_edits(self, send_message_mock):

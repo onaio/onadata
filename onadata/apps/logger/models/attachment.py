@@ -149,6 +149,15 @@ class Attachment(models.Model):
 
         return self.file_hash
 
+    def get_xform(self):
+        """Returns the form this attachment belongs to.
+
+        The ``xform`` column is a denormalisation of ``instance.xform`` and is
+        null on rows created before it was added, so fall back to the
+        submission.
+        """
+        return self.xform or self.instance.xform
+
     @property
     def filename(self):
         """Returns the attachment's filename."""

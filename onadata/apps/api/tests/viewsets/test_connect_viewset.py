@@ -8,10 +8,9 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.cache import cache
 from django.template.loader import render_to_string
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
 
 from django_digest.backend.db import update_partial_digests
@@ -25,9 +24,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractVi
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
-from onadata.libs.serializers.password_reset_serializer import default_token_generator
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.utils.cache_tools import PASSWORD_RESET_ATTEMPTS, safe_key
+from onadata.libs.utils.cache_tools import safe_key
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -36,7 +34,6 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.view = ConnectViewSet.as_view(
             {
                 "get": "list",
-                "post": "reset",
                 "delete": "expire",
             }
         )
@@ -206,6 +203,18 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data["detail"], "Invalid token")
         self.assertEqual(response["www-authenticate"], "TempToken")
 
+    def test_reset_action_removed(self):
+        """The /api/v1/user/reset action was dropped; the route no longer exists."""
+        response = self.client.post(
+            "/api/v1/user/reset",
+            data={
+                "email": self.user.email,
+                "reset_url": "https://evil.example/reset_form",
+            },
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_get_starred_projects(self):
         self._project_create()
 
@@ -295,159 +304,6 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.data["temp_token"] = temp_token.key
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
-
-    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
-    def test_request_reset_password(self, mock_send_mail):
-        data = {
-            "email": self.user.email,
-            "reset_url": "http://testdomain.com/reset_form",
-        }
-        cache_key = f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}"
-        cache.delete(cache_key)
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 204, response.data)
-        self.assertTrue(mock_send_mail.called)
-
-        data["email_subject"] = "X" * 100
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data["email_subject"][0],
-            "Ensure this field has no more than 78 characters.",
-        )
-
-        mock_send_mail.reset_mock()
-        request = self.factory.post("/")
-        response = self.view(request)
-        mock_send_mail.assert_not_called()
-        self.assertEqual(response.status_code, 400)
-
-    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
-    def test_request_reset_password_unknown_email_returns_generic_success(
-        self, mock_send_mail
-    ):
-        email = "unknown@example.com"
-        cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}")
-        data = {
-            "email": email,
-            "reset_url": "http://testdomain.com/reset_form",
-        }
-
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-
-        self.assertEqual(response.status_code, 204, response.data)
-        mock_send_mail.assert_not_called()
-        self.assertEqual(cache.get(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email)}"), 1)
-
-    @patch("onadata.libs.serializers.password_reset_serializer.logger")
-    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
-    def test_request_reset_password_rate_limited_per_email(
-        self, mock_send_mail, mock_logger
-    ):
-        email = self.user.email
-        cache_key = f"{PASSWORD_RESET_ATTEMPTS}{safe_key(email.lower())}"
-        cache.delete(cache_key)
-        data = {
-            "email": email,
-            "reset_url": "http://testdomain.com/reset_form",
-        }
-
-        for _ in range(3):
-            request = self.factory.post("/", data=data)
-            response = self.view(request)
-            self.assertEqual(response.status_code, 204, response.data)
-
-        self.assertEqual(mock_send_mail.call_count, 3)
-
-        data["email"] = email.upper()
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-
-        self.assertEqual(response.status_code, 204, response.data)
-        self.assertEqual(mock_send_mail.call_count, 3)
-        self.assertEqual(cache.get(cache_key), 4)
-        self.assertEqual(
-            mock_logger.warning.call_args[0][0],
-            "Password reset rate limit exceeded.",
-        )
-
-    def test_reset_user_password(self):
-        # set user.last_login, ensures we get same/valid token
-        # https://code.djangoproject.com/ticket/10265
-        self.user.last_login = now()
-        self.user.save()
-        token = default_token_generator.make_token(self.user)
-        new_password = "bobbob1"
-        data = {"token": token, "new_password": new_password}
-        # missing uid, should fail
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-
-        data["uid"] = urlsafe_base64_encode(force_bytes(self.user.pk))
-        # with uid, should be successful
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 200)
-        user = User.objects.get(email=self.user.email)
-        self.assertEqual(user.username, response.data["username"])
-        self.assertTrue(user.check_password(new_password))
-
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-
-    def test_reset_user_password_with_invalid_json_body(self):
-        request = self.factory.post("/", data=1, format="json")
-
-        response = self.view(request)
-
-        self.assertEqual(response.status_code, 400)
-
-    def test_reset_user_password_with_updated_user_email(self):
-        # set user.last_login, ensures we get same/valid token
-        # https://code.djangoproject.com/ticket/10265
-        self.user.last_login = now()
-        self.user.save()
-        new_password = "bobbob1"
-        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
-        mhv = default_token_generator
-        token = mhv.make_token(self.user)
-        data = {"token": token, "new_password": new_password, "uid": uid}
-        # check that the token is valid
-        valid_token = mhv.check_token(self.user, token)
-        self.assertTrue(valid_token)
-
-        # Update user email
-        self.user.email = "bob2@columbia.edu"
-        self.user.save()
-        update_partial_digests(self.user, "bobbob")
-
-        # Token should be invalid as the email was updated
-        invalid_token = mhv.check_token(self.user, token)
-        self.assertFalse(invalid_token)
-
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertTrue("Invalid token" in response.data["non_field_errors"][0])
-
-    @patch("onadata.libs.serializers.password_reset_serializer.send_mail")
-    def test_request_reset_password_custom_email_subject(self, mock_send_mail):
-        data = {
-            "email": self.user.email,
-            "reset_url": "http://testdomain.com/reset_form",
-            "email_subject": "You requested for a reset password",
-        }
-        cache.delete(f"{PASSWORD_RESET_ATTEMPTS}{safe_key(self.user.email.lower())}")
-        request = self.factory.post("/", data=data)
-        response = self.view(request)
-
-        self.assertTrue(mock_send_mail.called)
-        self.assertEqual(response.status_code, 204)
 
     def test_user_updates_email_wrong_password(self):
         # Clear cache

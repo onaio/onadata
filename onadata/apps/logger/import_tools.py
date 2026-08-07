@@ -8,6 +8,7 @@ import tempfile
 import zipfile
 from contextlib import ExitStack
 
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.response import Http404
 
@@ -51,10 +52,13 @@ def django_file(path, field_name, content_type):
 
 
 # pylint: disable=too-many-arguments, too-many-positional-arguments
-def import_instance(username, xform_path, photos, osm_files, status):
+def import_instance(username, xform_path, photos, osm_files, status, request=None):
     """
     This callback is passed an instance of a XFormInstanceFS.
     See xform_fs.py for more info.
+
+    When ``request`` is provided, per-form submission permissions are enforced
+    downstream in ``create_instance``; without it the check is a no-op.
     """
     with ExitStack() as stack:
         submission_file = stack.enter_context(open(xform_path, "rb"))
@@ -89,7 +93,9 @@ def import_instance(username, xform_path, photos, osm_files, status):
             )
             for open_file, path, content_type in _media_files
         ]
-        instance = create_instance(username, xml_file, media_files, status)
+        instance = create_instance(
+            username, xml_file, media_files, status, request=request
+        )
 
         if instance:
             return 1
@@ -125,7 +131,9 @@ def iterate_through_instances(
                 else:
                     try:
                         count = callback(xfxs)
-                    except Http404:
+                    except (Http404, PermissionDenied):
+                        # Skip instances the submitter is not allowed to
+                        # import; they are counted as rejected.
                         pass
                     else:
                         if count:
@@ -136,7 +144,7 @@ def iterate_through_instances(
     return (total_file_count, success_count, errors)
 
 
-def import_instances_from_zip(zipfile_path, user, status="zip"):
+def import_instances_from_zip(zipfile_path, user, status="zip", request=None):
     """Unzips a zip file and imports submission instances from it."""
     temp_directory = tempfile.mkdtemp()
     try:
@@ -146,12 +154,12 @@ def import_instances_from_zip(zipfile_path, user, status="zip"):
         errors = [f"{error}"]
         return 0, 0, errors
     else:
-        return import_instances_from_path(temp_directory, user, status)
+        return import_instances_from_path(temp_directory, user, status, request=request)
     finally:
         shutil.rmtree(temp_directory)
 
 
-def import_instances_from_path(path, user, status="zip", is_async=False):
+def import_instances_from_path(path, user, status="zip", is_async=False, request=None):
     """Process all submission instances in the given directory tree at ``path``."""
 
     def callback(xform_fs):
@@ -160,7 +168,12 @@ def import_instances_from_path(path, user, status="zip", is_async=False):
         See xform_fs.py for more info.
         """
         import_instance(
-            user.username, xform_fs.path, xform_fs.photos, xform_fs.osm, status
+            user.username,
+            xform_fs.path,
+            xform_fs.photos,
+            xform_fs.osm,
+            status,
+            request=request,
         )
 
     if is_async:
