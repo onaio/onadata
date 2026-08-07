@@ -24,8 +24,13 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
     )
     decrypted_count = 0
     failed_count = 0
+    skipped_count = 0
 
     for instance in candidates.iterator(chunk_size=100):
+        if (instance.json or {}).get("_decryption_error") != "INVALID_SUBMISSION":
+            skipped_count += 1
+            continue
+
         instance.attachments.filter(deleted_at__isnull=False).update(deleted_at=None)
 
         try:
@@ -39,7 +44,10 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
             failed_count += 1
             print(f"Decrypting Instance {instance.id} failed: {e}")
 
-    print(f"Decrypted {decrypted_count} submissions, {failed_count} failed")
+    print(
+        f"Decrypted {decrypted_count} submissions,"
+        f" {failed_count} failed, {skipped_count} skipped"
+    )
 
 
 class Migration(migrations.Migration):
