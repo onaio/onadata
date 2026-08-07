@@ -22,7 +22,6 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
             deleted_at__isnull=True,
             is_encrypted=True,
             xform__kms_keys__isnull=False,
-            attachments__extension="enc",
             attachments__deleted_at__isnull=False,
         )
         .exclude(decryption_status=Instance.DecryptionStatus.SUCCESS)
@@ -35,10 +34,7 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
         eta -= 1
         print("eta", eta)
 
-        instance.attachments.filter(
-            extension="enc",
-            deleted_at__isnull=False,
-        ).update(deleted_at=None)
+        instance.attachments.filter(deleted_at__isnull=False).update(deleted_at=None)
 
         try:
             decrypt_instance(instance)
@@ -52,7 +48,7 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("logger", "0040_backfill_attachment_user"),
+        ("logger", "0041_project_date_created_indexes"),
     ]
 
     operations = [

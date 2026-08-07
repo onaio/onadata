@@ -19,7 +19,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.kms.tools import create_key
 
 migration = import_module(
-    "onadata.apps.logger.migrations.0041_decrypt_swept_encrypted_submissions"
+    "onadata.apps.logger.migrations.0042_decrypt_swept_encrypted_submissions"
 )
 
 
