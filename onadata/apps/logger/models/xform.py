@@ -140,6 +140,20 @@ def get_survey_from_file_object(
     return survey, xlsform_json
 
 
+def _convert_triggers_to_tuples(node):
+    """Recursively convert question ``trigger`` values from lists to tuples.
+
+    pyxform processes trigger references into tuples; storing the survey as
+    JSON turns them into lists, which ``SurveyElementBuilder`` rejects.
+    """
+    if isinstance(node, dict):
+        if isinstance(node.get("trigger"), list):
+            node["trigger"] = tuple(node["trigger"])
+        for child in node.get("children", []):
+            _convert_triggers_to_tuples(child)
+    return node
+
+
 def question_types_to_exclude(_type):
     """Returns True if ``_type`` is in QUESTION_TYPES_TO_EXCLUDE."""
     return _type in QUESTION_TYPES_TO_EXCLUDE
@@ -514,6 +528,16 @@ class XFormMixin:
                 # Persist the workbook_json to avoid repeated XLS parsing
                 XForm.objects.filter(pk=self.pk).update(json=workbook_json)
                 return survey
+            if is_trigger_error:
+                # Merged datasets have no XLSForm to rebuild from; the
+                # stored json is valid except triggers became lists in
+                # the JSON round-trip
+                survey_dict = (
+                    json.loads(self.json) if isinstance(self.json, str) else self.json
+                )
+                return SurveyElementBuilder().create_survey_element_from_dict(
+                    _convert_triggers_to_tuples(survey_dict)
+                )
             raise
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
