@@ -8,12 +8,12 @@ import os
 import re
 import warnings
 from glob import glob
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 import requests
 from django_digest.test import Client as DigestClient
@@ -140,19 +140,6 @@ class TestAbstractViewSet(TestBase, TestCase):
     }
 
     def setUp(self):
-        shared_media_root = os.path.join(settings.PROJECT_ROOT, "test_media")
-        if os.path.normpath(settings.MEDIA_ROOT) == shared_media_root:
-            # Parallel test workers have separate database clones but share
-            # MEDIA_ROOT. Since the clones reuse primary keys, their attachment
-            # paths can collide and one worker can delete another worker's file.
-            media_directory = TemporaryDirectory(prefix="onadata-test-media-")
-            media_override = override_settings(
-                MEDIA_ROOT=f"{media_directory.name}{os.sep}"
-            )
-            media_override.enable()
-            self.addCleanup(media_directory.cleanup)
-            self.addCleanup(media_override.disable)
-
         TestCase.setUp(self)
         self.factory = APIRequestFactory()
         self._login_user_and_profile()

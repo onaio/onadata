@@ -16,13 +16,13 @@ import subprocess
 import warnings
 from hashlib import md5
 from io import BytesIO, StringIO
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.test import RequestFactory, TransactionTestCase
+from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.test.client import Client
 from django.utils import timezone
 from django.utils.encoding import smart_str
@@ -80,6 +80,42 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         "transport_2011-07-25_19-06-14",
     ]
     this_directory = os.path.abspath(os.path.dirname(__file__))
+
+    @classmethod
+    def _cleanup_test_media(cls):
+        if cls._test_media_override is not None:
+            cls._test_media_override.disable()
+            cls._test_media_override = None
+        if cls._test_media_directory is not None:
+            cls._test_media_directory.cleanup()
+            cls._test_media_directory = None
+
+    @classmethod
+    def _pre_setup(cls):
+        cls._test_media_directory = None
+        cls._test_media_override = None
+        shared_media_root = os.path.join(settings.PROJECT_ROOT, "test_media")
+        if os.path.normpath(settings.MEDIA_ROOT) == shared_media_root:
+            # Parallel test workers have separate database clones but share
+            # MEDIA_ROOT. Since the clones reuse primary keys, their files can
+            # collide and one worker can delete another worker's files.
+            cls._test_media_directory = TemporaryDirectory(prefix="onadata-test-media-")
+            cls._test_media_override = override_settings(
+                MEDIA_ROOT=f"{cls._test_media_directory.name}{os.sep}"
+            )
+            cls._test_media_override.enable()
+
+        try:
+            super()._pre_setup()
+        except Exception:
+            cls._cleanup_test_media()
+            raise
+
+    def _post_teardown(self):
+        try:
+            super()._post_teardown()
+        finally:
+            self.__class__._cleanup_test_media()
 
     def setUp(self):
         self.maxDiff = None
