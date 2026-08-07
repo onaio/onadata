@@ -12,8 +12,6 @@ from django.contrib.staticfiles import views as staticfiles_views
 from django.urls import include, re_path
 from django.views.generic import RedirectView
 
-from rest_framework.renderers import JSONRenderer
-
 from onadata.apps import sms_support
 from onadata.apps.api.constants import USERNAME_LOOKUP_REGEX
 from onadata.apps.api.urls.v1_urls import (
@@ -27,7 +25,6 @@ from onadata.apps.api.viewsets.xform_list_viewset import PreviewXFormListViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger import views as logger_views
 from onadata.apps.main import views as main_views
-from onadata.apps.main.oidc_viewsets import OnaOpenIDConnectViewset
 from onadata.apps.main.registration_urls import urlpatterns as registration_patterns
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
@@ -66,46 +63,13 @@ urlpatterns += [
     re_path("^api/v2/", include(api_v2_router.urls)),
     # open id connect urls
     #
-    # Routed to the project-owned OnaOpenIDConnectViewset (instead of the
-    # blanket ``include("oidc.urls")``) so SSO login rejects organization
-    # accounts. The "oidc" namespace and route names mirror oidc/urls.py so
-    # that reverse("oidc:openid_connect_login") still resolves.
-    re_path(
-        r"^",
-        include(
-            (
-                [
-                    re_path(
-                        r"^oidc/(?P<auth_server>\w+)/login",
-                        OnaOpenIDConnectViewset.as_view({"get": "login"}),
-                        name="openid_connect_login",
-                    ),
-                    re_path(
-                        r"^oidc/(?P<auth_server>\w+)/callback",
-                        OnaOpenIDConnectViewset.as_view(
-                            {"get": "callback", "post": "callback"}
-                        ),
-                        name="openid_connect_callback",
-                    ),
-                    re_path(
-                        r"^oidc/(?P<auth_server>\w+)/logout",
-                        OnaOpenIDConnectViewset.as_view({"get": "logout"}),
-                        name="openid_connect_logout",
-                    ),
-                    re_path(
-                        r"^oidc/(?P<auth_server>\w+)/session",
-                        OnaOpenIDConnectViewset.as_view(
-                            {"get": "session"},
-                            authentication_classes=[],
-                            renderer_classes=[JSONRenderer],
-                        ),
-                        name="openid_connect_session",
-                    ),
-                ],
-                "oidc",
-            ),
-        ),
-    ),
+    # ona-oidc routes every one of its URLs to OnaOpenIDConnectViewset via
+    # OPENID_CONNECT_VIEWSET_CONFIG["VIEWSET_CLASS"], so SSO login still
+    # rejects organization accounts. Re-declaring them here meant mirroring
+    # each new upstream route and every as_view() kwarg by hand. The "oidc"
+    # namespace comes from ona-oidc's app_name, so
+    # reverse("oidc:openid_connect_login") still resolves.
+    re_path(r"^", include("oidc.urls")),
     re_path(
         r"^api-docs/", RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)
     ),
