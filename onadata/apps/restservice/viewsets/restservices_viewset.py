@@ -2,6 +2,7 @@
 """
 Implements the /api/v1/restservices endpoint.
 """
+
 from django.conf import settings
 from django.utils.module_loading import import_string
 
@@ -49,7 +50,10 @@ class RestServicesViewSet(
     This endpoint provides access to form rest services.
     """
 
-    queryset = RestService.objects.select_related("xform")
+    queryset = RestService.objects.select_related("xform").filter(
+        xform__deleted_at__isnull=True,
+        xform__project__organization__is_active=True,
+    )
     serializer_class = RestServiceSerializer
     permission_classes = [
         RestServiceObjectPermissions,

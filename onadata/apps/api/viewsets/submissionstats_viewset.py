@@ -2,9 +2,11 @@
 """
 The /api/v1/stats/submissions API endpoint implementation.
 """
+
 from rest_framework import viewsets
 
 from onadata.apps.api.permissions import XFormPermissions
+from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -14,10 +16,9 @@ from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixi
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
-    SubmissionStatsSerializer,
     SubmissionStatsInstanceSerializer,
+    SubmissionStatsSerializer,
 )
-from onadata.apps.api.tools import get_baseviewset_class
 
 BaseViewset = get_baseviewset_class()
 
@@ -31,7 +32,6 @@ class SubmissionStatsViewSet(
     BaseViewset,
     viewsets.ReadOnlyModelViewSet,
 ):
-
     """
     Provides submissions counts grouped by a specified field.
     It accepts query parameters `group` and `name`. Default result
@@ -73,8 +73,13 @@ class SubmissionStatsViewSet(
     """
 
     lookup_field = "pk"
-    queryset = XForm.objects.all()
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
+    filter_backends = (
+        filters.AnonDjangoObjectPermissionFilter,
+        filters.ActiveXFormOrganizationFilter,
+    )
     permission_classes = [
         XFormPermissions,
     ]

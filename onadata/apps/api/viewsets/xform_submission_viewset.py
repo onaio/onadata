@@ -145,7 +145,13 @@ class XFormSubmissionViewSet(
 
         instance_pk = kwargs.get("pk")
         xform_pk = kwargs.get("xform_pk")
-        instance = get_object_or_404(Instance, pk=instance_pk, xform_id=xform_pk)
+        instance = get_object_or_404(
+            Instance,
+            pk=instance_pk,
+            xform_id=xform_pk,
+            xform__deleted_at__isnull=True,
+            xform__project__organization__is_active=True,
+        )
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)

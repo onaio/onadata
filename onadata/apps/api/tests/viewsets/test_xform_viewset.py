@@ -1164,6 +1164,81 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         self.assertNotIn(deleted_form.pk, form_ids)
         self.assertIn(active_form.pk, form_ids)
 
+    def test_public_form_list_excludes_inactive_project_organization(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk="public")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_form_retrieve_inactive_project_organization_not_found(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_form_list_excludes_inactive_project_organization(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        form_ids = [form["formid"] for form in response.data]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(self.xform.pk, form_ids)
+
+    def test_public_form_list_ignores_inactive_uploader(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.xform.created_by.is_active = False
+        self.xform.created_by.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk="public")
+        form_ids = [form["formid"] for form in response.data]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.xform.project.organization.is_active)
+        self.assertIn(self.xform.pk, form_ids)
+
     def test_form_list_other_user_access(self):
         with HTTMock(enketo_urls_mock):
             """Test that a different user has no access to bob's form"""

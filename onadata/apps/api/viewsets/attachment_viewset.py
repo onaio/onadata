@@ -7,6 +7,7 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.core.files.storage import default_storage
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -60,7 +61,16 @@ class AttachmentViewSet(
     filter_backends = (filters.AttachmentFilter, filters.AttachmentTypeFilter)
     lookup_field = "pk"
     queryset = Attachment.objects.filter(
-        instance__deleted_at__isnull=True, deleted_at__isnull=True
+        Q(
+            xform__deleted_at__isnull=True,
+            xform__project__organization__is_active=True,
+        )
+        | Q(
+            instance__xform__deleted_at__isnull=True,
+            instance__xform__project__organization__is_active=True,
+        ),
+        instance__deleted_at__isnull=True,
+        deleted_at__isnull=True,
     )
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
@@ -121,7 +131,11 @@ class AttachmentViewSet(
             if xform:
                 xform = parse_int(xform)
                 if xform:
-                    xform = get_object_or_404(XForm, pk=xform)
+                    xform = get_object_or_404(
+                        XForm,
+                        pk=xform,
+                        project__organization__is_active=True,
+                    )
                     if not xform.shared_data:
                         raise Http404(_("Not Found"))
                 else:

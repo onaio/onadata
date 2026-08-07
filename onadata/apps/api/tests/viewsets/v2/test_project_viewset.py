@@ -87,6 +87,19 @@ class GetProjectListTestCase(TestAbstractViewSet):
         public_excluded_fields = PROJECT_PUBLIC_EXCLUDED_FIELDS | {"current_user_role"}
         self.assertFalse(public_excluded_fields & set(response.data[0]))
 
+    def test_public_inactive_organization_project_excluded(self):
+        """Anonymous list omits public projects under inactive organizations."""
+        self.project.shared = True
+        self.project.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        request = self.factory.get("/")
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
 
 @override_settings(TIME_ZONE="UTC")
 class RetrieveProjectTestCase(TestAbstractViewSet):

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -138,6 +138,18 @@ class Project(BaseModel):
         )
         indexes = [
             models.Index(fields=["deleted_at"], name="idx_logger_project_deleted_at"),
+            models.Index(
+                fields=["-date_created"],
+                name="idx_lproj_notdel_created",
+                include=["id", "organization"],
+                condition=Q(deleted_at__isnull=True),
+            ),
+            models.Index(
+                fields=["-date_created"],
+                name="idx_lproj_shr_notdel_created",
+                include=["id", "organization"],
+                condition=Q(deleted_at__isnull=True, shared=True),
+            ),
         ]
 
     def __str__(self):

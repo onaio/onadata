@@ -2,6 +2,7 @@
 """
 The osm API endpoint.
 """
+
 from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
@@ -39,7 +40,6 @@ class OsmViewSet(
     BaseViewset,
     ReadOnlyModelViewSet,
 ):
-
     """
     This endpoint provides public access to OSM submitted data in OSM format.
     No authentication is required. Where:
@@ -101,7 +101,9 @@ class OsmViewSet(
     extra_lookup_fields = None
     public_data_endpoint = "public"
 
-    queryset = XForm.objects.filter(deleted_at__isnull=True).select_related()
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    ).select_related()
 
     def get_serializer_class(self):
         """Returns the OSMSiteMapSerializer class when list API is invoked."""
@@ -137,6 +139,7 @@ class OsmViewSet(
                 pk=dataid,
                 xform__pk=form_pk,
                 xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
                 deleted_at__isnull=True,
             )
 

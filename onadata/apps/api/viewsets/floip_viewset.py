@@ -2,6 +2,7 @@
 """
 FloipViewSet: API endpoint for /api/floip
 """
+
 from uuid import UUID
 
 from django.db.models import Q
@@ -75,9 +76,12 @@ class FloipViewSet(
     filter_backends = (
         filters.AnonDjangoObjectPermissionFilter,
         filters.PublicDatasetsFilter,
+        filters.ActiveXFormOrganizationFilter,
     )
     permission_classes = [XFormPermissions]
-    queryset = XForm.objects.filter(deleted_at__isnull=True)
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
     serializer_class = FloipSerializer
 
     pagination_class = PageNumberPagination

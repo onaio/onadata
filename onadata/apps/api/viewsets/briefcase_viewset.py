@@ -2,6 +2,7 @@
 """
 The /briefcase API implementation.
 """
+
 from xml.dom import NotFoundErr
 
 from django.conf import settings
@@ -103,8 +104,7 @@ def _query_optimization_fence(instances, num_entries):
     raw_queryset = Instance.objects.raw(outer_query, [num_entries])
     # convert raw queryset to queryset
     instances_data = [
-        {"pk": item.id, "uuid": item.uuid}
-        for item in raw_queryset.iterator()
+        {"pk": item.id, "uuid": item.uuid} for item in raw_queryset.iterator()
     ]
     # Create QuerySet from the instances dict
     instances = Instance.objects.filter(
@@ -126,9 +126,14 @@ class BriefcaseViewset(
     https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).
     """
 
-    authentication_classes = (DigestAuthentication, TokenAuthentication,)
+    authentication_classes = (
+        DigestAuthentication,
+        TokenAuthentication,
+    )
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
-    queryset = XForm.objects.all()
+    queryset = XForm.objects.filter(
+        deleted_at__isnull=True, project__organization__is_active=True
+    )
     permission_classes = (permissions.IsAuthenticated, ViewDjangoObjectPermissions)
     renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)
     serializer_class = XFormListSerializer
@@ -158,6 +163,8 @@ class BriefcaseViewset(
             Instance,
             xform__user__username__iexact=username,
             xform__id_string__iexact=id_string,
+            xform__deleted_at__isnull=True,
+            xform__project__organization__is_active=True,
             uuid=uuid,
         )
         self.check_object_permissions(self.request, obj.xform)

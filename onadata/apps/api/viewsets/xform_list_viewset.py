@@ -71,7 +71,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         django_filter_filters.DjangoFilterBackend,
     )
     queryset = XForm.objects.filter(
-        downloadable=True, deleted_at=None, is_merged_dataset=False
+        downloadable=True,
+        deleted_at=None,
+        is_merged_dataset=False,
+        project__organization__is_active=True,
     ).only(
         "id_string", "title", "version", "uuid", "description", "user__username", "hash"
     )
@@ -84,7 +87,10 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_field]}
-        obj = get_object_or_404(queryset or XForm, **filter_kwargs)
+        try:
+            obj = get_object_or_404(queryset, **filter_kwargs)
+        except Http404:
+            obj = get_object_or_404(self.get_queryset(), **filter_kwargs)
         self.check_object_permissions(self.request, obj)
 
         if self.request.user.is_anonymous and obj.require_auth:
@@ -158,11 +164,20 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
                 queryset = queryset | forms_shared_with_user
                 if self.request.user != profile.user:
                     public_forms = profile.user.xforms.filter(
-                        downloadable=True, shared=True
+                        downloadable=True,
+                        shared=True,
+                        deleted_at=None,
+                        is_merged_dataset=False,
+                        project__organization__is_active=True,
                     )
                     queryset = queryset | public_forms
 
-        return queryset
+        return queryset.filter(
+            downloadable=True,
+            deleted_at=None,
+            is_merged_dataset=False,
+            project__organization__is_active=True,
+        )
 
     def _get_xform_list_cache_key(self):
         xform_pk = self.kwargs.get("xform_pk")
@@ -170,12 +185,22 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         cache_key = None
 
         if xform_pk:
-            xform = get_object_or_404(XForm, pk=xform_pk)
+            xform = get_object_or_404(
+                XForm,
+                pk=xform_pk,
+                deleted_at__isnull=True,
+                project__organization__is_active=True,
+            )
             cache_key = get_xform_list_cache_key(self.request.user, xform)
 
         elif project_pk:
-            project = get_object_or_404(Project, pk=project_pk)
-            cache_key = get_xform_list_cache_key(self.request.user, project)
+            project = Project.objects.filter(
+                pk=project_pk,
+                deleted_at__isnull=True,
+                organization__is_active=True,
+            ).first()
+            if project is not None:
+                cache_key = get_xform_list_cache_key(self.request.user, project)
 
         return cache_key
 
@@ -185,7 +210,13 @@ class XFormListViewSet(ETagsMixin, BaseViewset, viewsets.ReadOnlyModelViewSet):
         xform_pk = self.kwargs.get("xform_pk")
 
         if submission_pk and xform_pk:
-            get_object_or_404(Instance, pk=submission_pk, xform_id=xform_pk)
+            get_object_or_404(
+                Instance,
+                pk=submission_pk,
+                xform_id=xform_pk,
+                xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
+            )
 
     def list(self, request, *args, **kwargs):
         headers = get_openrosa_headers(request, location=False)
