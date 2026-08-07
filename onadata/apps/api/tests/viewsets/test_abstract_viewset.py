@@ -6,14 +6,14 @@ Test base class for API viewset tests.
 import json
 import os
 import re
-import subprocess
 import warnings
-from tempfile import NamedTemporaryFile
+from glob import glob
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import Permission
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 import requests
 from django_digest.test import Client as DigestClient
@@ -140,6 +140,19 @@ class TestAbstractViewSet(TestBase, TestCase):
     }
 
     def setUp(self):
+        shared_media_root = os.path.join(settings.PROJECT_ROOT, "test_media")
+        if os.path.normpath(settings.MEDIA_ROOT) == shared_media_root:
+            # Parallel test workers have separate database clones but share
+            # MEDIA_ROOT. Since the clones reuse primary keys, their attachment
+            # paths can collide and one worker can delete another worker's file.
+            media_directory = TemporaryDirectory(prefix="onadata-test-media-")
+            media_override = override_settings(
+                MEDIA_ROOT=f"{media_directory.name}{os.sep}"
+            )
+            media_override.enable()
+            self.addCleanup(media_directory.cleanup)
+            self.addCleanup(media_override.disable)
+
         TestCase.setUp(self)
         self.factory = APIRequestFactory()
         self._login_user_and_profile()
@@ -497,18 +510,17 @@ class TestAbstractViewSet(TestBase, TestCase):
             media_file,
         )
         if delete_existing_attachments:
-            try:
-                media_file_name = media_file.split(".")[0]
-                # Use the same folder pattern as the upload_to function in Attachment model
-                # Format: {xform.id}_{xform.id_string}
-                attachment_folder = f"{self.xform.id}_{self.xform.id_string}"
-                cmd = (
-                    f"rm {settings.MEDIA_ROOT}"
-                    f"{self.profile_data['username']}/attachments/{attachment_folder}/{media_file_name}*"
-                )
-                subprocess.run(cmd, shell=True, check=True)
-            except subprocess.CalledProcessError:
-                pass
+            media_file_name = os.path.splitext(media_file)[0]
+            attachment_folder = f"{self.xform.id}_{self.xform.id_string}"
+            attachment_pattern = os.path.join(
+                settings.MEDIA_ROOT,
+                self.profile_data["username"],
+                "attachments",
+                attachment_folder,
+                f"{media_file_name}*",
+            )
+            for attachment_path in glob(attachment_pattern):
+                os.unlink(attachment_path)
 
         with open(path, "rb") as f:
             self._make_submission(
