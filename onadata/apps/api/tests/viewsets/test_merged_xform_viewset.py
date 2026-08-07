@@ -54,6 +54,13 @@ NOT_MATCHING = """
 |         | fruits            | mango  | Mango  |
 """
 
+TRIGGER_MD = """
+| survey  |
+|         | type    | name  | label | trigger  | calculation |
+|         | integer | fruit | Fruit |          |             |
+|         | text    | note  | Note  | ${fruit} | 1 + 1       |
+"""
+
 # https://github.com/onaio/onadata/issues/1153
 REFERENCE_ISSUE = """
 | survey  |
@@ -160,6 +167,36 @@ class TestMergedXFormViewSet(TestAbstractViewSet):
     def test_create_merged_dataset(self):
         """Test creating a merged dataset"""
         self._create_merged_dataset()
+
+    def test_create_merged_dataset_trigger_column(self):
+        """Creating a merged dataset from forms with a trigger column"""
+        view = MergedXFormViewSet.as_view(
+            {
+                "post": "create",
+            }
+        )
+        # pylint: disable=attribute-defined-outside-init
+        self.project = get_user_default_project(self.user)
+        xform1 = self._publish_markdown(TRIGGER_MD, self.user, id_string="a")
+        xform2 = self._publish_markdown(TRIGGER_MD, self.user, id_string="b")
+
+        data = {
+            "xforms": [
+                "http://testserver/api/v1/forms/%s" % xform1.pk,
+                "http://testserver/api/v1/forms/%s" % xform2.pk,
+            ],
+            "name": "Merged Dataset",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+        }
+        request = self.factory.post("/", data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # the merged form's survey rebuilds from its stored JSON
+        merged_xform = MergedXForm.objects.get(pk=response.data["id"])
+        self.assertIn(
+            'event="xforms-value-changed"', merged_xform.get_survey().to_xml()
+        )
 
     def test_merged_datasets_list(self):
         """Test list endpoint of a merged dataset"""
