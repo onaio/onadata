@@ -17,17 +17,11 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
     from onadata.apps.logger.models import Instance
     from onadata.libs.kms.tools import decrypt_instance
 
-    candidates = (
-        Instance.objects.filter(
-            deleted_at__isnull=True,
-            is_encrypted=True,
-            xform__kms_keys__isnull=False,
-            attachments__deleted_at__isnull=False,
-        )
-        .exclude(decryption_status=Instance.DecryptionStatus.SUCCESS)
-        .distinct()
+    candidates = Instance.objects.filter(
+        deleted_at__isnull=True,
+        is_encrypted=True,
+        decryption_status=Instance.DecryptionStatus.FAILED,
     )
-
     eta = candidates.count()
 
     for instance in candidates.iterator(chunk_size=100):
