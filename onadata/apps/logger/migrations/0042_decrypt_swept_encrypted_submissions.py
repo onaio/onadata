@@ -23,6 +23,7 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
         decryption_status=Instance.DecryptionStatus.FAILED,
     )
     decrypted_count = 0
+    failed_count = 0
 
     for instance in candidates.iterator(chunk_size=100):
         instance.attachments.filter(deleted_at__isnull=False).update(deleted_at=None)
@@ -35,9 +36,10 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
         # pylint: disable=broad-exception-caught
         except Exception as e:
             # Best-effort repair; leave the submission for manual follow-up
+            failed_count += 1
             print(f"Decrypting Instance {instance.id} failed: {e}")
 
-    print(f"Decrypted {decrypted_count} submissions")
+    print(f"Decrypted {decrypted_count} submissions, {failed_count} failed")
 
 
 class Migration(migrations.Migration):
