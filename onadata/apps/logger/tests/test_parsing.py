@@ -238,6 +238,58 @@ class TestXFormInstanceParser(TestBase):
         ]
         self.assertEqual(flat_dict.get("media"), expected_flat_list)
 
+    def _encrypted_envelope_single_media(self):
+        return f"""
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+
+    def test_media_list_on_managed_form_encrypted_flag_off(self):
+        """A single media file parses as a list when a managed form's
+        encrypted flag is off."""
+        self._publish_managed_form()
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False)
+        self.xform.refresh_from_db()
+
+        parser = XFormInstanceParser(
+            self._encrypted_envelope_single_media(), self.xform
+        )
+
+        self.assertEqual(
+            parser.to_dict().get("data").get("media"), [{"file": "sunset.png.enc"}]
+        )
+        self.assertEqual(
+            parser.to_flat_dict().get("media"), [{"media/file": "sunset.png.enc"}]
+        )
+
+    def test_media_list_after_encryption_disabled(self):
+        """A single media file parses as a list after managed encryption
+        is disabled."""
+        self._publish_managed_form()
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False, is_managed=False)
+        self.xform.refresh_from_db()
+
+        parser = XFormInstanceParser(
+            self._encrypted_envelope_single_media(), self.xform
+        )
+
+        self.assertEqual(
+            parser.to_dict().get("data").get("media"), [{"file": "sunset.png.enc"}]
+        )
+        self.assertEqual(
+            parser.to_flat_dict().get("media"), [{"media/file": "sunset.png.enc"}]
+        )
+
     def test_xml_repeated_nodes_to_dict(self):
         xml_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "../fixtures/repeated_nodes.xml"
