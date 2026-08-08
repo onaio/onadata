@@ -743,9 +743,11 @@ class XFormMixin:
             and survey_element.bind.get("type") == "string"
             and survey_element.type == MULTIPLE_SELECT_TYPE
         ):
-            result.pop()
-            for child in survey_element.choices.options:
-                result.append("/".join([path, child.name]))
+            choices = survey_element.choices
+            if choices is not None:
+                result.pop()
+                for child in choices.options:
+                    result.append("/".join([path, child.name]))
         elif (
             hasattr(survey_element, "bind")
             and survey_element.bind is not None
