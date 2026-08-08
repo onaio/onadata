@@ -25,6 +25,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     PROJ_V2_OWNER_CACHE,
     PROJ_V2_PUBLIC_OWNER_CACHE,
+    bump_attempts,
     clear_project_owner_cache,
     get_project_cache_key,
     get_project_cache_keys,
@@ -439,3 +440,34 @@ class SafeCacheDeleteTestCase(TestCase):
                 # Reset mocks for next iteration
                 mock_logger.reset_mock()
                 mock_delete.reset_mock()
+
+
+class BumpAttemptsTestCase(TestCase):
+    """Test the shared `bump_attempts` throttle counter primitive."""
+
+    def setUp(self):
+        cache.clear()
+
+    def test_first_call_sets_one(self):
+        """First increment creates the key at 1."""
+        self.assertEqual(bump_attempts("k"), 1)
+
+    def test_increments_within_window(self):
+        """Subsequent calls increment the existing counter."""
+        bump_attempts("k")
+        self.assertEqual(bump_attempts("k"), 2)
+
+    @patch("onadata.libs.utils.cache_tools.safe_cache_incr", return_value=None)
+    @patch("onadata.libs.utils.cache_tools.safe_cache_get", return_value=3)
+    def test_returns_int_when_incr_yields_none(self, mock_get, mock_incr):
+        """A cache blip (incr -> None) must not propagate None to callers."""
+        self.assertEqual(bump_attempts("k"), 0)
+        mock_incr.assert_called_once_with("k")
+
+    @patch("onadata.libs.utils.cache_tools.safe_cache_incr", return_value=4)
+    @patch("onadata.libs.utils.cache_tools.safe_cache_get", return_value=3)
+    def test_uses_incr_return_without_second_get(self, mock_get, mock_incr):
+        """Increment path uses incr's return, not a second get."""
+        self.assertEqual(bump_attempts("k"), 4)
+        mock_get.assert_called_once_with("k")  # only the guard read
+        mock_incr.assert_called_once_with("k")

@@ -10,6 +10,7 @@ import os
 from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import signals
@@ -30,6 +31,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models.pending_email_change import PendingEmailChange
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
@@ -2122,3 +2124,189 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         user = User.objects.get(username=data["username"])
         self.assertFalse(user.is_active)
+
+    # ---------------------------------------------------------------------------
+    # request_email_change tests
+    # ---------------------------------------------------------------------------
+
+    def test_request_email_change_happy_path(self):
+        """Happy path: returns 200, creates PendingEmailChange, sends 1 email."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        mail.outbox = []
+        request = self.factory.post(
+            "/",
+            data={"new_email": "New@X.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(PendingEmailChange.objects.filter(user=self.user).exists())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["new@x.com"])
+        self.assertRegex(mail.outbox[0].body, r"\d{6}")
+
+    def test_request_email_change_bad_password(self):
+        """Wrong password returns 400 with a 'password' error key."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        request = self.factory.post(
+            "/",
+            data={"new_email": "other@example.com", "password": "wrongpass"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["password"]), "Invalid password.")
+
+    def test_request_email_change_duplicate_email(self):
+        """Email already in use (case-insensitive) returns 400 with new_email error."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        # Another user already owns taken@example.com; bob submits a
+        # case-variant of it and must be rejected as a duplicate.
+        User.objects.create_user(
+            username="claire", email="taken@example.com", password="clairepass"
+        )
+        request = self.factory.post(
+            "/",
+            data={"new_email": "TAKEN@Example.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["new_email"]), "This email address is already in use."
+        )
+
+    @override_settings(MAX_EMAIL_CHANGE_REQUESTS=2)
+    def test_request_email_change_throttled(self):
+        """OTP send is rate-limited so it can't spam the target address."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+        mail.outbox = []
+
+        # The budget of sends all succeed.
+        for _ in range(2):
+            request = self.factory.post(
+                "/",
+                data={"new_email": "new@x.com", "password": "bobbob"},
+                **self.extra,
+            )
+            self.assertEqual(view(request, user="bob").status_code, 200)
+
+        # The next one is blocked and sends no further mail.
+        blocked = self.factory.post(
+            "/",
+            data={"new_email": "new@x.com", "password": "bobbob"},
+            **self.extra,
+        )
+        response = view(blocked, user="bob")
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(
+            str(response.data["error"]),
+            "Too many email-change requests. Try again later.",
+        )
+        self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(MAX_EMAIL_CHANGE_REQUESTS=2)
+    def test_request_email_change_throttle_gates_entry(self):
+        """The rate limit gates entry, not just the send: even calls that fail
+        the password check count against the budget, so the password/uniqueness
+        checks can't be exercised as unbounded oracles."""
+        view = UserProfileViewSet.as_view({"post": "request_email_change"})
+
+        # A failed (wrong-password) call still counts against the budget.
+        bad = self.factory.post(
+            "/",
+            data={"new_email": "probe@x.com", "password": "wrongpass"},
+            **self.extra,
+        )
+        self.assertEqual(view(bad, user="bob").status_code, 400)
+        cache_key = f"email_change_attempts-{self.user.username}"
+        self.assertEqual(cache.get(cache_key), 1)
+
+        # Simulate an exhausted budget directly in the cache; the next call is
+        # throttled (429) before it can reach the password/uniqueness checks.
+        cache.set(cache_key, 2)
+        blocked = self.factory.post(
+            "/",
+            data={"new_email": "probe@x.com", "password": "wrongpass"},
+            **self.extra,
+        )
+        self.assertEqual(view(blocked, user="bob").status_code, 429)
+
+    # ---------------------------------------------------------------------------
+    # confirm_email_change tests
+    # ---------------------------------------------------------------------------
+
+    def test_confirm_email_change_bad_otp(self):
+        """Invalid OTP returns 400 with an 'otp' error key; email is not changed."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        PendingEmailChange.start(self.user, "new@x.com")
+        request = self.factory.post("/", data={"otp": "000000"}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["otp"]), "Invalid or expired code.")
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.email, "new@x.com")
+
+    def test_confirm_email_change_no_pending(self):
+        """No pending record returns 400."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        request = self.factory.post("/", data={"otp": "123456"}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["otp"]), "Invalid or expired code.")
+
+    def test_confirm_applies_email(self):
+        """Happy path: applies new email, deletes pending row, sets
+        is_email_verified, returns 200 with the new email."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "new@x.com")
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get("email"), "new@x.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "new@x.com")
+        self.assertFalse(PendingEmailChange.objects.filter(user=self.user).exists())
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.metadata.get("is_email_verified"))
+
+    def test_confirm_invalidates_profile_cache(self):
+        """The cached profile response must be cleared so the new email is
+        served immediately, not stale until the cache TTL expires."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "fresh@x.com")
+        # retrieve() caches under "user_profile-" + username + request_username
+        cache_key = f"user_profile-{self.user.username}{self.user.username}"
+        cache.set(cache_key, {"email": "stale@x.com"})
+
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(cache.get(cache_key))
+
+    def test_confirm_race_email_taken(self):
+        """If the new email is taken between request and confirm, delete pending and 400."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "raced@x.com")
+        # Another user registers the target email before bob confirms
+        User.objects.create_user(
+            username="racer", email="raced@x.com", password="racerpass"
+        )
+        request = self.factory.post("/", data={"otp": code}, **self.extra)
+        response = view_confirm(request, user="bob")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["new_email"]), "This email address is already in use."
+        )
+        self.assertFalse(PendingEmailChange.objects.filter(user=self.user).exists())
+
+    def test_confirm_single_use(self):
+        """Replaying the same OTP a second time returns 400 (pending row deleted on success)."""
+        view_confirm = UserProfileViewSet.as_view({"post": "confirm_email_change"})
+        pec, code = PendingEmailChange.start(self.user, "once@x.com")
+        req1 = self.factory.post("/", data={"otp": code}, **self.extra)
+        resp1 = view_confirm(req1, user="bob")
+        self.assertEqual(resp1.status_code, 200)
+        req2 = self.factory.post("/", data={"otp": code}, **self.extra)
+        resp2 = view_confirm(req2, user="bob")
+        self.assertEqual(resp2.status_code, 400)
