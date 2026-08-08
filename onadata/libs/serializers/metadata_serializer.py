@@ -206,7 +206,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         except UploadValidationError as error:
             logger.warning("Metadata file upload validation failed: %s", error)
             raise serializers.ValidationError(
-                {"data_file": generic_upload_validation_error_message(data_file)}
+                {"data_file": generic_upload_validation_error_message(data_file, error)}
             ) from error
 
         data_file.name = upload.storage_basename
