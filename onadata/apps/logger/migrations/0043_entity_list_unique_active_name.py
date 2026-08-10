@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("logger", "0038_instance_last_edited_by"),
+        ("logger", "0042_decrypt_swept_encrypted_submissions"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
