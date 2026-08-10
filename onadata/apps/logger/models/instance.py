@@ -768,7 +768,7 @@ class Instance(models.Model, InstanceBaseClass):
         if self.check_encrypted():
             self.is_encrypted = True
 
-            if self.xform.is_managed:
+            if self.xform.is_was_managed:
                 self.decryption_status = Instance.DecryptionStatus.PENDING
         else:
             self.is_encrypted = False
@@ -781,7 +781,9 @@ class Instance(models.Model, InstanceBaseClass):
             # pylint: disable=no-member
             data = self.get_dict()
             media_list = []
-            if "encryptedXmlFile" in data and self.xform.encrypted:
+            if "encryptedXmlFile" in data and (
+                self.xform.encrypted or self.xform.is_was_managed
+            ):
                 media_list.append(data["encryptedXmlFile"])
                 if "media" in data:
                     # pylint: disable=no-member
