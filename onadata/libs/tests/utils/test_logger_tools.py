@@ -22,7 +22,6 @@ from django.utils import timezone
 from azure.storage.blob import AccountSasPermissions
 from defusedxml import minidom
 from defusedxml.ElementTree import ParseError
-from openpyxl import Workbook
 
 from onadata.apps.logger.import_tools import django_file
 from onadata.apps.logger.models import Instance, InstanceHistory
@@ -1493,24 +1492,18 @@ class PublishXLSFormTestCase(TestBase):
         deleted_xform.soft_delete(self.user)
         new_dd = self._publish_markdown(md, self.user, id_string=id_string)
         active_xform = XForm.objects.get(pk=new_dd.pk)
-        xls_file = self._create_xls_form(id_string, title="Fruits updated")
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            f",Fruits updated,{id_string}\r\n"
+        )
+        xls_file = ContentFile(text_xls_form.encode(), name="fruits.csv")
 
         updated_dd = publish_xls_form(xls_file, self.user, self.project, id_string)
 
         self.assertEqual(updated_dd.pk, active_xform.pk)
         active_xform.refresh_from_db()
         self.assertEqual(active_xform.title, "Fruits updated")
-
-    def _create_xls_form(self, id_string, title):
-        """Returns an XLSForm file with the given id_string and title"""
-        workbook = Workbook()
-        survey_sheet = workbook.active
-        survey_sheet.title = "survey"
-        survey_sheet.append(["type", "name", "label"])
-        survey_sheet.append(["text", "fruit", "Fruit"])
-        settings_sheet = workbook.create_sheet("settings")
-        settings_sheet.append(["form_title", "form_id"])
-        settings_sheet.append([title, id_string])
-        file = BytesIO()
-        workbook.save(file)
-        return ContentFile(file.getvalue(), name="fruits.xlsx")
