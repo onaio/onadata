@@ -1,13 +1,9 @@
 """Tests for module onadata.apps.api.tools"""
 
-from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.files.uploadedfile import SimpleUploadedFile
-
-from openpyxl import Workbook
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
@@ -47,12 +43,19 @@ class DoPublishXLSFormTestCase(TestBase):
         deleted_xform.soft_delete(self.user)
         new_dd = self._publish_markdown(md, self.user, id_string=id_string)
         active_xform = XForm.objects.get(pk=new_dd.pk)
-        xls_file = self._create_xls_form(id_string, title="Fruits updated")
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            f",Fruits updated,{id_string}\r\n"
+        )
 
         survey = do_publish_xlsform(
             self.user,
+            {"text_xls_form": text_xls_form},
             None,
-            {"xls_file": xls_file},
             self.user,
             id_string=id_string,
             project=self.project,
@@ -61,26 +64,6 @@ class DoPublishXLSFormTestCase(TestBase):
         self.assertEqual(survey.pk, active_xform.pk)
         active_xform.refresh_from_db()
         self.assertEqual(active_xform.title, "Fruits updated")
-
-    def _create_xls_form(self, id_string, title):
-        """Returns an XLSForm file with the given id_string and title"""
-        workbook = Workbook()
-        survey_sheet = workbook.active
-        survey_sheet.title = "survey"
-        survey_sheet.append(["type", "name", "label"])
-        survey_sheet.append(["text", "fruit", "Fruit"])
-        settings_sheet = workbook.create_sheet("settings")
-        settings_sheet.append(["form_title", "form_id"])
-        settings_sheet.append([title, id_string])
-        file = BytesIO()
-        workbook.save(file)
-        return SimpleUploadedFile(
-            "fruits.xlsx",
-            file.getvalue(),
-            content_type=(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ),
-        )
 
 
 class AddUserToOrgTestCase(TestBase):
