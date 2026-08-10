@@ -262,6 +262,10 @@ OAUTH2_PKCE_S256_MIGRATION_CUTOFF = None
 OAUTH2_PKCE_S256_MIGRATION_EXPIRES_AT = None
 
 OPENID_CONNECT_VIEWSET_CONFIG = {
+    # Route ona-oidc's URLs to the project-owned subclass, which refuses SSO
+    # login for organization accounts. Without this, changing the viewset
+    # meant copying ona-oidc's whole URLconf into onadata/apps/main/urls.py.
+    "VIEWSET_CLASS": "onadata.apps.main.oidc_viewsets.OnaOpenIDConnectViewset",
     "REDIRECT_AFTER_AUTH": "http://localhost:3000",
     "USE_SSO_COOKIE": True,
     "SSO_COOKIE_DATA": "email",

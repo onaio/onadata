@@ -7,13 +7,20 @@ establish a session via SSO. The base viewset looks a user up by the email or
 username claim coming from the IdP and calls ``django.contrib.auth.login``
 directly, bypassing ``onadata.apps.main.backends.ModelBackend``. Guarding only
 the backend is therefore not enough; the rejection must also happen here.
+
+The Keycloak Account REST proxy is *not* part of the default viewset. It is
+Keycloak-specific and stores the user's access and refresh tokens in the
+session, so a deployment opts in by pointing ``VIEWSET_CLASS`` at
+``OnaKeycloakOpenIDConnectViewset`` below.
 """
 
 from django.conf import settings
 from django.utils.translation import gettext as _
 
+from oidc.keycloak import KeycloakAccountMixin
 from oidc.viewsets import SSO_COOKIE_NAME, UserModelOpenIDConnectViewset
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from onadata.apps.main.models.user_profile import UserProfile
@@ -27,6 +34,15 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
 
     authentication_classes = []
 
+    # Re-declared, not just overridden: the router builds routes from the
+    # ``@action`` metadata on the function, and a plain override drops it,
+    # silently removing /oidc/<server>/login. Must mirror the base viewset.
+    @action(
+        methods=["GET"],
+        detail=False,
+        url_path=r"login/?",
+        url_name="openid_connect_login",
+    )
     def login(self, request, **kwargs):
         # Evict stale auth cookies a partly-logged-out browser may still
         # be sending; without this, a 401 from the downstream callback
@@ -84,3 +100,20 @@ class OnaOpenIDConnectViewset(  # pylint: disable=too-few-public-methods
             }
         )
         return data
+
+
+class OnaKeycloakOpenIDConnectViewset(  # pylint: disable=too-many-ancestors
+    KeycloakAccountMixin, OnaOpenIDConnectViewset
+):
+    """``OnaOpenIDConnectViewset`` plus Keycloak's Account REST proxy.
+
+    Opt-in — point ``OPENID_CONNECT_VIEWSET_CONFIG["VIEWSET_CLASS"]`` here on
+    deployments whose IdP is Keycloak and whose SPA needs the Account tab.
+    The proxy keeps the user's access and refresh tokens in the session, so
+    it also requires a server-side ``SESSION_ENGINE``; ona-oidc's own deploy
+    check enforces that.
+
+    The mixin comes first so its actions win, matching ona-oidc's
+    ``KeycloakOpenIDConnectViewset``. The organization-account rejection is
+    inherited unchanged.
+    """
