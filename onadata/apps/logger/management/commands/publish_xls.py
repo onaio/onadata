@@ -68,12 +68,9 @@ class Command(BaseCommand):
         survey = create_survey_from_xls(xls_filepath)
 
         # check if a form with this id_string exists for this user
-        form_already_exists = (
-            XForm.objects.filter(
-                user=user, id_string=survey.id_string, deleted_at__isnull=True
-            ).count()
-            > 0
-        )
+        form_already_exists = XForm.objects.filter(
+            user=user, id_string=survey.id_string, deleted_at__isnull=True
+        ).exists()
 
         # id_string of form to replace, if any
         id_string = None
