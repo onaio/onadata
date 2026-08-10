@@ -359,7 +359,9 @@ class XFormInstanceParser:
         ]
 
         self._dict = _xml_node_to_dict(
-            self._root_node, repeats, self.data_dicionary.encrypted
+            self._root_node,
+            repeats,
+            self.data_dicionary.encrypted or self.data_dicionary.is_was_managed,
         )
         self._flat_dict = {}
 
