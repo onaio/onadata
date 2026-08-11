@@ -2,6 +2,7 @@
 """
 Creates enketo url including preview
 """
+
 from django.core.management.base import BaseCommand, CommandError
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy
@@ -60,7 +61,11 @@ class Command(BaseCommand):
 
         if username and id_string:
             try:
-                xform = XForm.objects.get(user__username=username, id_string=id_string)
+                xform = XForm.objects.get(
+                    user__username=username,
+                    id_string=id_string,
+                    deleted_at__isnull=True,
+                )
                 form_url = get_form_url(
                     request,
                     username,

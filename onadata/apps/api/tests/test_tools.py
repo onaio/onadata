@@ -1,6 +1,7 @@
 """Tests for module onadata.apps.api.tools"""
 
 from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 
@@ -11,19 +12,58 @@ from onadata.apps.api.models.organization_profile import (
 )
 from onadata.apps.api.tools import (
     add_user_to_organization,
+    do_publish_xlsform,
     invalidate_xform_list_cache,
     remove_user_from_organization,
 )
 from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import (
-    ROLES,
-    DataEntryRole,
-    ManagerRole,
-    OwnerRole,
-)
+from onadata.libs.permissions import ROLES, DataEntryRole, ManagerRole, OwnerRole
 
 User = get_user_model()
+
+
+class DoPublishXLSFormTestCase(TestBase):
+    """Tests for do_publish_xlsform"""
+
+    def test_update_with_deleted_twin(self):
+        """Update is applied to the active form when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            f",Fruits updated,{id_string}\r\n"
+        )
+
+        survey = do_publish_xlsform(
+            self.user,
+            {"text_xls_form": text_xls_form},
+            None,
+            self.user,
+            id_string=id_string,
+            project=self.project,
+        )
+
+        self.assertEqual(survey.pk, active_xform.pk)
+        active_xform.refresh_from_db()
+        self.assertEqual(active_xform.title, "Fruits updated")
 
 
 class AddUserToOrgTestCase(TestBase):

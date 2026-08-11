@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
 from django.core.files.storage import InvalidStorageError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
@@ -37,6 +38,7 @@ from onadata.libs.utils.logger_tools import (
     delete_xform_submissions,
     generate_content_disposition_header,
     get_storages_media_download_url,
+    publish_xls_form,
     publish_xml_form,
     response_with_mimetype_and_name,
     safe_create_instance,
@@ -1469,3 +1471,39 @@ class PublishXmlFormReplaceTestCase(TestBase):
                 xform_id=xform_id, version=xform.version
             ).exists()
         )
+
+
+class PublishXLSFormTestCase(TestBase):
+    """Tests for publish_xls_form"""
+
+    def test_update_with_deleted_twin(self):
+        """Update is applied to the active form when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+        text_xls_form = (
+            "survey\r\n"
+            ",type,name,label\r\n"
+            ",text,fruit,Fruit\r\n"
+            "settings\r\n"
+            ",form_title,id_string\r\n"
+            f",Fruits updated,{id_string}\r\n"
+        )
+        xls_file = ContentFile(text_xls_form.encode(), name="fruits.csv")
+
+        updated_dd = publish_xls_form(xls_file, self.user, self.project, id_string)
+
+        self.assertEqual(updated_dd.pk, active_xform.pk)
+        active_xform.refresh_from_db()
+        self.assertEqual(active_xform.title, "Fruits updated")
