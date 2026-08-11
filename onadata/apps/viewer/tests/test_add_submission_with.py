@@ -26,7 +26,13 @@ class AddSubmissionWithTestCase(TestBase):
         dd = self._publish_markdown(md, self.user, id_string=id_string)
         xform = XForm.objects.get(pk=dd.pk)
         xform.soft_delete(self.user)
-        self._publish_markdown(md, self.user, id_string=id_string)
+        # The active twin names its geopoint differently to the deleted twin
+        active_md = """
+        | survey |
+        |        | type     | name         | label    |
+        |        | geopoint | gps_location | Location |
+        """
+        self._publish_markdown(active_md, self.user, id_string=id_string)
 
         url = reverse(
             "add_submission_with",
@@ -38,3 +44,5 @@ class AddSubmissionWithTestCase(TestBase):
         self.assertEqual(
             response.json(), {"url": "https://enketo.example.com/instance"}
         )
+        instance_xml = mock_post.call_args.kwargs["data"]["instance"]
+        self.assertIn("<gps_location>-1.28 36.82</gps_location>", instance_xml)

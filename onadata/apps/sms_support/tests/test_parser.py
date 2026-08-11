@@ -29,11 +29,13 @@ class TestParser(TestBaseSMS):
         dd = self._publish_markdown(md, self.user, id_string=id_string)
         deleted_xform = XForm.objects.get(pk=dd.pk)
         deleted_xform.soft_delete(self.user)
-        self._publish_markdown(md, self.user, id_string=id_string)
+        new_dd = self._publish_markdown(md, self.user, id_string=id_string)
+        # Only the active twin accepts SMS; the deleted twin would refuse
+        XForm.objects.filter(pk=new_dd.pk).update(allows_sms=True)
 
         result = response_for_text(self.user.username, "test allo", id_string=id_string)
 
-        self.assertEqual(result["code"], SMS_SUBMISSION_REFUSED)
+        self.assertEqual(result["code"], SMS_PARSING_ERROR)
 
     def test_api_error(self):
         # missing identity or text
