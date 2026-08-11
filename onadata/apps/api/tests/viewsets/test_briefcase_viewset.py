@@ -13,6 +13,7 @@ from django.core.files.storage import storages
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+
 from django_digest.test import DigestAuth
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -791,7 +792,8 @@ class TestBriefcaseViewSet(TestAbstractViewSet):
         optimized_instances = _query_optimization_fence(instances, 4)
         self.assertEqual(instances.count(), optimized_instances.count())
         op_sql_query = (
-            'SELECT "logger_instance"."id", "logger_instance"."uuid" FROM "logger_instance"'
+            'SELECT "logger_instance"."id" AS "pk", '
+            '"logger_instance"."uuid" AS "uuid" FROM "logger_instance"'
             f' WHERE "logger_instance"."id" IN ({optimized_instances[0].get("pk")},'
             f" {optimized_instances[1].get('pk')}, {optimized_instances[2].get('pk')},"
             f" {optimized_instances[3].get('pk')})"

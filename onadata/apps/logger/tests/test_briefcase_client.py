@@ -4,17 +4,17 @@ Test Briefcase client
 """
 
 import os.path
-import shutil
 from io import BytesIO
 
-import requests
-import requests_mock
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.files.storage import storages
 from django.core.files.uploadedfile import UploadedFile
 from django.test import RequestFactory
 from django.urls import reverse
+
+import requests
+import requests_mock
 from django_digest.test import Client as DigestClient
 from flaky import flaky
 from six.moves.urllib.parse import urljoin
@@ -70,9 +70,9 @@ def form_media(request, context):
     )
     ids = list(Instance.objects.values_list("id", flat=True))
     xids = list(XForm.objects.values_list("id", flat=True))
-    assert response.status_code == 200, (
-        f"{data_id} - {response.content} {response.status_code} -{ids} {xids} {path}"
-    )
+    assert (
+        response.status_code == 200
+    ), f"{data_id} - {response.content} {response.status_code} -{ids} {xids} {path}"
     return get_streaming_content(response)
 
 
@@ -236,10 +236,7 @@ class TestBriefcaseClient(TestBase):
 
     @classmethod
     def tearDownClass(cls):
-        # remove media files
-        for username in ["bob", "deno"]:
-            if storage.exists(username):
-                shutil.rmtree(storage.path(username), ignore_errors=True)
         MetaData.objects.all().delete()
         Instance.objects.all().delete()
         XForm.objects.all().delete()
+        super().tearDownClass()
