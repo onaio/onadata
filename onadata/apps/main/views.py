@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage, storages
@@ -1060,7 +1061,12 @@ def download_metadata(request, username, id_string, data_id):
 
     owner = xform.user
     if username == request.user.username or xform.shared:
-        data = get_object_or_404(MetaData, pk=data_id)
+        data = get_object_or_404(
+            MetaData,
+            pk=data_id,
+            object_id=xform.id,
+            content_type=ContentType.objects.get_for_model(xform),
+        )
         file_path = data.data_file.name
         original_filename = sanitized_original_filename(data.data_value)
         filename, extension = os.path.splitext(original_filename)
@@ -1101,7 +1107,12 @@ def delete_metadata(request, username, id_string, data_id):
     )
 
     owner = xform.user
-    data = get_object_or_404(MetaData, pk=data_id)
+    data = get_object_or_404(
+        MetaData,
+        pk=data_id,
+        object_id=xform.id,
+        content_type=ContentType.objects.get_for_model(xform),
+    )
     dfs = storages["default"]
     req_username = request.user.username
     if request.GET.get("del", False) and username == req_username:
@@ -1151,7 +1162,12 @@ def download_media_data(request, username, id_string, data_id):
         id_string__iexact=id_string,
     )
     owner = xform.user
-    data = get_object_or_404(MetaData, id=data_id)
+    data = get_object_or_404(
+        MetaData,
+        id=data_id,
+        object_id=xform.id,
+        content_type=ContentType.objects.get_for_model(xform),
+    )
     dfs = storages["default"]
     if request.GET.get("del", False):
         if username == request.user.username:
@@ -1176,7 +1192,7 @@ def download_media_data(request, username, id_string, data_id):
                 reverse(show, kwargs={"username": username, "id_string": id_string})
             )
     else:
-        if username:  # == request.user.username or xform.shared:
+        if has_permission(xform, owner, request, xform.shared):
             if data.data_file.name == "" and data.data_value is not None:
                 return HttpResponseRedirect(data.data_value)
 
