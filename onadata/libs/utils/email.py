@@ -121,6 +121,27 @@ def send_generic_email(email, message_txt, subject):
     email_message.send()
 
 
+def send_email_change_code(to_email: str, code: str) -> None:
+    """Send a numeric OTP to *to_email* as part of an email-change request.
+
+    Uses synchronous delivery so Django's test ``mail.outbox`` captures it
+    without requiring Celery workers.
+    """
+    ttl_seconds = getattr(settings, "EMAIL_CHANGE_OTP_TTL_SECONDS", 300)
+    ctx_dict = {"code": code, "ttl_minutes": max(1, ttl_seconds // 60)}
+    subject = render_to_string(
+        "email_change/verification_subject.txt", ctx_dict
+    ).strip()
+    message = render_to_string("email_change/verification_message.html", ctx_dict)
+    send_mail(
+        subject,
+        strip_tags(message),
+        settings.DEFAULT_FROM_EMAIL,
+        (to_email,),
+        html_message=message,
+    )
+
+
 def get_project_invitation_url(request: HttpRequest):
     """Get project invitation url"""
     invitation_url_setting: dict = getattr(settings, "PROJECT_INVITATION_URL", {})
