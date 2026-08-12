@@ -1,5 +1,5 @@
 cryptography>=48.0.1
 Django>=5.2.14,<6
 django-storages[azure]
-idna>=3.15
+idna>=3.18
 urllib3>=2.7.0
