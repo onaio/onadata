@@ -59,7 +59,6 @@ class TestOpenDataViewSet(TestBase):
 
         data = {
             'object_id': self.xform.id,
-            'data_type': 'xform',
             'name': self.xform.id_string
         }
 
@@ -95,7 +94,7 @@ class TestOpenDataViewSet(TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data,
-            ['Fields object_id, data_type and name are required.']
+            ['Fields object_id and name are required.']
         )
 
     def test_get_data_using_uuid(self):
@@ -276,7 +275,7 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data, "Query params data_type and object_id are required"
+            response.data, "Query param object_id is required"
         )
 
         data = {
@@ -303,6 +302,12 @@ class TestOpenDataViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 403)
 
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'uuid': _open_data.uuid})
+
+        data.pop('data_type')
         request = self.factory.get('/', data=data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)

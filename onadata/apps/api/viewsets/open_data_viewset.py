@@ -9,10 +9,8 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import PermissionDenied
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext as _
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -30,7 +28,11 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import TableauDataSerializer
-from onadata.libs.serializers.open_data_serializer import OpenDataSerializer
+from onadata.libs.serializers.open_data_serializer import (
+    OpenDataCreateSerializer,
+    OpenDataSerializer,
+    get_manageable_xforms,
+)
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     GEOLOCATION,
@@ -176,6 +178,31 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
     flattened_dict = {}
     MAX_INSTANCES_PER_REQUEST = 1000
     pagination_class = StandardPageNumberPagination
+
+    def get_queryset(self):
+        """Scope capabilities by action and XForm authorization."""
+        xforms = XForm.objects.filter(
+            deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
+        queryset = OpenData.objects.filter(
+            content_type=ContentType.objects.get_for_model(XForm),
+            object_id__in=xforms.values("id"),
+        )
+
+        if self.action in ["schema", "data"]:
+            return queryset.filter(active=True)
+
+        return queryset.filter(
+            object_id__in=get_manageable_xforms(self.request.user).values("id")
+        )
+
+    def get_serializer_class(self):
+        """Return UUIDs only from a successful authorized create."""
+        if self.action == "create":
+            return OpenDataCreateSerializer
+
+        return super().get_serializer_class()
 
     def get_tableau_type(self, xform_type):
         """
@@ -342,34 +369,29 @@ class OpenDataViewSet(ETagsMixin, CacheControlMixin, BaseViewset, ModelViewSet):
     @action(methods=["GET"], detail=False)
     def uuid(self, request, *args, **kwargs):
         """Respond with the OpenData uuid."""
-        data_type = request.query_params.get("data_type")
+        data_type = request.query_params.get("data_type", "xform")
         object_id = request.query_params.get("object_id")
 
-        if not data_type or not object_id:
+        if not object_id:
             return Response(
-                data="Query params data_type and object_id are required",
+                data="Query param object_id is required",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if data_type == "xform":
             xform = get_object_or_404(
-                XForm,
+                get_manageable_xforms(request.user),
                 id=object_id,
-                deleted_at__isnull=True,
-                project__organization__is_active=True,
             )
-            if request.user.has_perm("change_xform", xform):
-                content_type = ContentType.objects.get_for_model(xform)
-                _open_data = get_object_or_404(
-                    OpenData, object_id=object_id, content_type=content_type
-                )
-                if _open_data:
-                    return Response(
-                        data={"uuid": _open_data.uuid}, status=status.HTTP_200_OK
-                    )
-            else:
-                raise PermissionDenied(
-                    _(("You do not have permission to perform this action."))
-                )
+            content_type = ContentType.objects.get_for_model(xform)
+            open_data = get_object_or_404(
+                self.get_queryset(),
+                object_id=xform.id,
+                content_type=content_type,
+            )
+            return Response(
+                data={"uuid": open_data.uuid},
+                status=status.HTTP_200_OK,
+            )
 
         return Response(status=status.HTTP_404_NOT_FOUND)
