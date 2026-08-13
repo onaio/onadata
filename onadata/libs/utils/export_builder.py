@@ -7,6 +7,7 @@ ExportBuilder
 from __future__ import unicode_literals
 
 import csv
+import locale
 import re
 import uuid
 from datetime import date, datetime
@@ -1278,7 +1279,8 @@ class ExportBuilder:
                 'varNames': var_names,   # a list of varNames
                 'varTypes': var_types,  # a dict of varTypes
                 'valueLabels': value_labels,  # a dict of valueLabels
-                'ioUtf8': True
+                'ioUtf8': True,
+                'ioLocale': 'C'
             }
         """
 
@@ -1425,6 +1427,11 @@ class ExportBuilder:
             "varTypes": var_types,
             "valueLabels": value_labels,
             "ioUtf8": True,
+            # SavReaderWriter otherwise resolves the locale from the host
+            # environment. Keep this at the universally available C locale,
+            # rather than an environment locale or en_US.UTF-8; ioUtf8 controls
+            # the encoding of Unicode SAV content independently.
+            "ioLocale": "C",
             "fileLabel": "File exported by Ona",
         }
 
@@ -1457,7 +1464,14 @@ class ExportBuilder:
         for section in self.sections:
             sav_options = self._get_sav_options(section["elements"])
             sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(sav_file.name, **sav_options)
+            process_locale = locale.setlocale(locale.LC_ALL)
+            try:
+                sav_writer = SavWriter(sav_file.name, **sav_options)
+            finally:
+                # SavReaderWriter changes Python's process-global locale while
+                # applying ioLocale. SPSS retains its own locale setting, so
+                # restore the caller's locale before writing any export data.
+                locale.setlocale(locale.LC_ALL, process_locale)
             sav_defs[section["name"]] = {"sav_file": sav_file, "sav_writer": sav_writer}
 
         media_xpaths = (
