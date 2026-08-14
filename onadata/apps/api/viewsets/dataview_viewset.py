@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """The /dataview API endpoint implementation."""
 
+import json
+
 from django.db.models.signals import post_delete, post_save
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import gettext as _
@@ -16,12 +18,14 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.data_view import DEFAULT_COLUMNS, DataView
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.mixins.authenticate_header_mixin import AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.models.sorting import sort_from_mongo_sort_str
 from onadata.libs.pagination import StandardPageNumberPagination
+from onadata.libs.permissions import CAN_VIEW_XFORM, CAN_VIEW_XFORM_DATA
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
@@ -72,6 +76,40 @@ def get_dataview_instances(dataview):
     )
 
 
+def _runtime_query_columns(query):
+    """Return field names referenced by a JSON runtime query."""
+    if not query:
+        return set()
+
+    try:
+        parsed = query if isinstance(query, (dict, list)) else json.loads(query)
+    except (TypeError, ValueError) as error:
+        raise ParseError(
+            _("Text search is not available through a filtered dataset.")
+        ) from error
+
+    if isinstance(parsed, list):
+        parsed = parsed[0] if parsed else None
+    if not isinstance(parsed, dict):
+        raise ParseError(_("Text search is not available through a filtered dataset."))
+
+    columns = set()
+
+    def collect(value):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key.startswith("$"):
+                    collect(child)
+                else:
+                    columns.add(key)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(parsed)
+    return columns
+
+
 # pylint: disable=too-many-ancestors
 class DataViewViewSet(
     AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet
@@ -100,6 +138,92 @@ class DataViewViewSet(
         renderers.ZipRenderer,
         renderers.GeoJsonRenderer,
     ]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        dataview = getattr(self, "object", None)
+        if isinstance(dataview, DataView):
+            context["dataview"] = dataview
+        return context
+
+    @staticmethod
+    def _has_source_data_access(request, dataview):
+        return dataview.xform.shared_data or (
+            request.user.is_authenticated
+            and request.user.has_perm(CAN_VIEW_XFORM_DATA, dataview.xform)
+        )
+
+    @staticmethod
+    def _allowed_data_columns(dataview):
+        allowed = set(dataview.columns or []) | set(DEFAULT_COLUMNS)
+        if dataview.instances_with_geopoints:
+            allowed.add(common_tags.GEOLOCATION)
+        return allowed
+
+    def _validate_runtime_projection(self, request, dataview):
+        """Prevent destination-only readers from probing excluded fields."""
+        if self._has_source_data_access(request, dataview):
+            return
+
+        allowed = self._allowed_data_columns(dataview)
+        query_columns = _runtime_query_columns(request.query_params.get("query"))
+        hidden_query_columns = query_columns - allowed
+        if hidden_query_columns:
+            raise ParseError(
+                _(
+                    "Query references field(s) outside the filtered dataset: "
+                    "%(fields)s"
+                )
+                % {"fields": ", ".join(sorted(hidden_query_columns))}
+            )
+
+        sort = request.query_params.get("sort")
+        try:
+            sort_columns = {
+                column.lstrip("-") for column in sort_from_mongo_sort_str(sort)
+            }
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise ParseError(_("Invalid sort expression.")) from error
+        hidden_sort_columns = sort_columns - allowed
+        if hidden_sort_columns:
+            raise ParseError(
+                _(
+                    "Sort references field(s) outside the filtered dataset: "
+                    "%(fields)s"
+                )
+                % {"fields": ", ".join(sorted(hidden_sort_columns))}
+            )
+
+    def _validate_geojson_projection(self, request, dataview):
+        allowed = self._allowed_data_columns(dataview)
+        requested = set()
+        fields = request.query_params.get("fields")
+        if fields:
+            requested.update(field for field in fields.split(",") if field)
+        for parameter in ("geo_field", "geofield", "title"):
+            field = request.query_params.get(parameter)
+            if field:
+                requested.add(field)
+
+        hidden = requested - allowed
+        if hidden:
+            raise ParseError(
+                _(
+                    "GeoJSON references field(s) outside the filtered dataset: "
+                    "%(fields)s"
+                )
+                % {"fields": ", ".join(sorted(hidden))}
+            )
+
+    @staticmethod
+    def _require_source_form_access(request, dataview):
+        xform = dataview.xform
+        if xform.shared or (
+            request.user.is_authenticated
+            and request.user.has_perm(CAN_VIEW_XFORM, xform)
+        ):
+            return
+        raise Http404
 
     def get_serializer_class(self):
         """
@@ -139,6 +263,7 @@ class DataViewViewSet(
         export_type = self.kwargs.get("format", request.GET.get("format"))
         # pylint: disable=attribute-defined-outside-init
         self.object = self.get_object()
+        self._validate_runtime_projection(request, self.object)
         if export_type is None or export_type in ["json", "debug"]:
             data = DataView.query_data(
                 self.object,
@@ -156,6 +281,7 @@ class DataViewViewSet(
             return Response(serializer.data)
 
         if export_type == "geojson":
+            self._validate_geojson_projection(request, self.object)
             page = self.paginate_queryset(get_dataview_instances(self.object))
 
             serializer = self.get_serializer(page, many=True)
@@ -185,9 +311,10 @@ class DataViewViewSet(
         if cached is not None:
             return Response(cached)
 
-        data = {
-            "bbox": compute_instance_bbox([self.object.xform_id], dataview=self.object)
-        }
+        bbox = None
+        if self.object.instances_with_geopoints:
+            bbox = compute_instance_bbox([self.object.xform_id], dataview=self.object)
+        data = {"bbox": bbox}
         safe_cache_set(cache_key, data, get_bbox_cache_ttl())
         return Response(data)
 
@@ -200,6 +327,7 @@ class DataViewViewSet(
         export_type = params.get("format")
         query = params.get("query")
         dataview = self.get_object()
+        self._validate_runtime_projection(request, dataview)
         xform = dataview.xform
         options = parse_request_export_options(params)
         options["host"] = request.get_host()
@@ -234,6 +362,7 @@ class DataViewViewSet(
     def form(self, request, format="json", **kwargs):
         """Returns the form as either json, xml or XLS linked the dataview."""
         dataview = self.get_object()
+        self._require_source_form_access(request, dataview)
         xform = dataview.xform
         if format not in ["json", "xml", "xls"]:
             return HttpResponseBadRequest(
@@ -249,6 +378,7 @@ class DataViewViewSet(
     def form_details(self, request, *args, **kwargs):
         """Returns the dataview's form API data."""
         dataview = self.get_object()
+        self._require_source_form_access(request, dataview)
         xform = dataview.xform
         serializer = XFormSerializer(xform, context={"request": request})
 
@@ -265,6 +395,14 @@ class DataViewViewSet(
         field_xpath = request.query_params.get("field_xpath")
         fmt = kwargs.get("format", request.accepted_renderer.format)
         group_by = request.query_params.get("group_by")
+
+        if group_by:
+            hidden_group_fields = set(group_by.split(",")) - set(dataview.columns)
+            if hidden_group_fields:
+                raise Http404(
+                    _("Group field(s) do not exist on the DataView: %(fields)s")
+                    % {"fields": ", ".join(sorted(hidden_group_fields))}
+                )
 
         if field_name:
             field = get_field_from_field_name(field_name, xform)
@@ -316,6 +454,7 @@ class DataViewViewSet(
     def xlsx_export(self, request, *args, **kwargs):
         """Returns the data views XLS export files."""
         dataview = self.get_object()
+        self._validate_runtime_projection(request, dataview)
         xform = dataview.xform
 
         token = None
@@ -341,6 +480,7 @@ class DataViewViewSet(
 def dataview_post_save_callback(sender, instance=None, created=False, **kwargs):
     """Clear project cache post dataview save."""
     safe_cache_delete(f"{PROJECT_LINKED_DATAVIEWS}{instance.project.pk}")
+    safe_cache_delete(f"{DATAVIEW_BBOX_CACHE}{instance.pk}")
 
 
 def dataview_post_delete_callback(sender, instance, **kwargs):

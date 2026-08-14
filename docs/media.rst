@@ -166,7 +166,10 @@ Response
 Lists attachments of a filtered dataset
 ---------------------------------------
 
-You'll ned to pass a `dataview` parameter to the media endpoint. Filtered datasets are internally known as dataviews.
+Pass a ``dataview`` parameter to the media endpoint. Filtered datasets are
+internally known as DataViews. The response contains attachments from selected
+media columns and matching submissions. Use the returned download URL, which
+includes the ``dataview`` parameter, to download an attachment.
 
 .. raw:: html
 
@@ -191,9 +194,9 @@ Response
             "id": 1,
             "xform": 1,
             "instance": 1,
-            "download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png",
-            "small_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=small",
-            "medium_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=medium"
+            "download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&dataview=1",
+            "small_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=small&dataview=1",
+            "medium_download_url": "http://testserver/api/v1/files/1?filename=bob/attachments/1_a/test-image_qdCeDHO.png&suffix=medium&dataview=1"
         },
         ...
     ]

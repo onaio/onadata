@@ -2,12 +2,15 @@
 
 from unittest.mock import call, patch
 
+from guardian.shortcuts import get_perms
+
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.entity_list import EntityList
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import ManagerRole
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
+from onadata.libs.tests.models.dataview_test_utils import create_cross_project_dataview
 
 
 @patch(
@@ -31,6 +34,9 @@ class ShareProjectTestCase(TestBase):
         self.merged_xf = self._create_merged_dataset()
         self.entity_list = EntityList.objects.create(name="trees", project=self.project)
         self.alice = self._create_user("alice", "Yuao8(-)")
+        cross_project_dataview = create_cross_project_dataview(self.project, self.xform)
+        self.foreign_xform = cross_project_dataview.xform
+        ReadOnlyRole.add(self.alice, self.foreign_xform)
 
     def test_share(self, mock_propagate):
         """A project is shared with a user
@@ -51,6 +57,10 @@ class ShareProjectTestCase(TestBase):
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr))
         self.assertTrue(ManagerRole.user_has_role(self.alice, self.entity_list))
+        self.assertEqual(
+            set(get_perms(self.alice, self.foreign_xform)),
+            set(ReadOnlyRole.class_to_permissions[XForm]),
+        )
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_clear_project_owner_cache.assert_has_calls(
@@ -98,6 +108,10 @@ class ShareProjectTestCase(TestBase):
             ManagerRole.user_has_role(self.alice, self.merged_xf.xform_ptr)
         )
         self.assertFalse(ManagerRole.user_has_role(self.alice, self.entity_list))
+        self.assertEqual(
+            set(get_perms(self.alice, self.foreign_xform)),
+            set(ReadOnlyRole.class_to_permissions[XForm]),
+        )
         mock_propagate.assert_called_once_with(args=[self.project.pk])
         # Cache is invalidated
         mock_clear_project_owner_cache.assert_has_calls(

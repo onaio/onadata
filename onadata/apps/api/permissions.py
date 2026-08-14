@@ -382,6 +382,14 @@ class AttachmentObjectPermissions(
     authenticated_users_only = False
 
     def has_object_permission(self, request, view, obj):
+        dataview = getattr(view, "dataview", None)
+        if dataview is not None and obj.get_xform().pk == dataview.xform_id:
+            if dataview.project.shared:
+                return True
+            return self._has_object_permission(
+                request, Project, request.user, dataview.project
+            )
+
         model_cls = XForm
         user = request.user
 
@@ -420,6 +428,9 @@ class DataViewViewsetPermissions(
     model_classes = [Project]
 
     def has_permission(self, request, view):
+        if view.action == "create":
+            return request.user.is_authenticated
+
         # To allow individual public dataviews to be visible on
         # `api/v1/dataviews/<pk>` but stop retreival of all dataviews when
         # the dataviews endpoint is queried `api/v1/dataviews`
@@ -429,9 +440,21 @@ class DataViewViewsetPermissions(
         model_cls = Project
         user = request.user
 
-        if obj.project.shared:
+        if request.method in SAFE_METHODS and obj.project.shared:
             return True
-        return self._has_object_permission(request, model_cls, user, obj.project)
+
+        if request.method in SAFE_METHODS:
+            return self._has_object_permission(request, model_cls, user, obj.project)
+
+        if not user.is_authenticated:
+            return False
+
+        # The source owner must be able to withdraw a filtered publication,
+        # even when it lives in a project they do not manage.
+        if request.method == "DELETE" and ManagerRole.user_has_role(user, obj.xform):
+            return True
+
+        return ManagerRole.user_has_role(user, obj.project)
 
 
 class RestServiceObjectPermissions(

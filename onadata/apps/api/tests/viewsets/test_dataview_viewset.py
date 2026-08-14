@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.test.utils import override_settings
@@ -17,15 +18,24 @@ from openpyxl import load_workbook
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import Attachment, Instance
+from onadata.apps.logger.import_tools import django_file
+from onadata.apps.logger.models import Attachment, Instance, Project
 from onadata.apps.logger.models.data_view import FILTERABLE_METADATA_COLUMNS, DataView
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.models import MetaData
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import (
+    CAN_VIEW_XFORM,
+    DataEntryMinorRole,
+    ManagerRole,
+    ReadOnlyRole,
+)
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.cache_tools import (
@@ -81,6 +91,52 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_create_dataview(self):
         self._create_dataview()
+
+        destination_project = self._create_destination_project()
+        data = {
+            "name": "Cross-project DataView",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{destination_project.pk}",
+            "columns": "[]",
+            "query": "[]",
+        }
+        response = self.view(self.factory.post("/", data=data, **self.extra))
+
+        self.assertEqual(response.status_code, 201)
+        cross_project_dataview = DataView.objects.get(name=data["name"])
+        self.assertFalse(cross_project_dataview.matches_parent)
+        projected_data = DataView.query_data(cross_project_dataview)
+        self.assertTrue(projected_data)
+        self.assertNotIn("name", projected_data[0])
+        self.assertNotIn("age", projected_data[0])
+
+        # An anonymous user cannot create a DataView.
+        anonymous_data = dict(data, name="Anonymous publication")
+        response = self.view(self.factory.post("/", data=anonymous_data))
+        self.assertEqual(response.status_code, 401)
+
+        # Alice manages the destination project but has only read-only access
+        # to the source XForm. Publishing a DataView requires manager access to
+        # both the source XForm and destination project.
+        alice = self._create_user_profile(
+            {
+                "username": "alice",
+                "email": "alice@example.com",
+                "password1": "alice",
+                "password2": "alice",
+            }
+        ).user
+        ReadOnlyRole.add(alice, self.xform)
+        ManagerRole.add(alice, destination_project)
+        readonly_data = dict(data, name="Read-only source publication")
+        response = self.view(
+            self.factory.post(
+                "/",
+                data=readonly_data,
+                HTTP_AUTHORIZATION=f"Token {alice.auth_token}",
+            )
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_filter_to_field_lookup(self):
         self.assertEqual(filter_to_field_lookup("="), "__iexact")
@@ -210,7 +266,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         attachment_info = instance_with_attachment.get("_attachments")[0]
         self.assertEqual("image/png", attachment_info.get("mimetype"))
         self.assertEqual(
-            f"{self.user.username}/attachments/{self.xform.id}_{self.xform.id_string}/{media_file}",
+            f"{self.user.username}/attachments/"
+            f"{self.xform.id}_{self.xform.id_string}/{media_file}",
             attachment_info.get("filename"),
         )
         self.assertEqual(response.status_code, 200)
@@ -268,6 +325,60 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(
             response_data, {"detail": "No Attachment matches the given query."}
         )
+
+        # Destination-project access grants the filtered attachment without
+        # granting access to the source XForm.
+        destination_project = self._create_destination_project()
+        self.data_view.project = destination_project
+        self.data_view.save(update_fields=["project", "date_modified"])
+        ReadOnlyRole.add(alice_profile.user, destination_project)
+
+        self.assertFalse(alice_profile.user.has_perm(CAN_VIEW_XFORM, self.xform))
+        request = self.factory.get("/", **self.extra)
+        response = XFormViewSet.as_view({"get": "retrieve"})(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 404)
+
+        request = self.factory.get("/?dataview=" + str(self.data_view.pk), **self.extra)
+        response = AttachmentViewSet.as_view({"get": "list"})(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertIn(f"dataview={self.data_view.pk}", response.data[0]["download_url"])
+
+        attachment = attachments.first()
+        request = self.factory.get(
+            f"/?filename={attachment.media_file.name}&dataview={self.data_view.pk}",
+            **self.extra,
+        )
+        response = AttachmentViewSet.as_view({"get": "retrieve"})(
+            request, pk=attachment.pk
+        )
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get(
+            "/",
+            {
+                "filename": attachment.media_file.name,
+                "dataview": self.data_view.pk,
+            },
+            **self.extra,
+        )
+        response = MediaViewSet.as_view({"get": "retrieve"})(request, pk=attachment.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.data_view.columns = ["name", "age", "gender"]
+        self.data_view.save(update_fields=["columns", "date_modified"])
+        request = self.factory.get(
+            "/",
+            {
+                "filename": attachment.media_file.name,
+                "dataview": self.data_view.pk,
+            },
+            **self.extra,
+        )
+        response = MediaViewSet.as_view({"get": "retrieve"})(request, pk=attachment.pk)
+        self.assertEqual(response.status_code, 404)
+        self.data_view.columns.append("photo")
+        self.data_view.save(update_fields=["columns", "date_modified"])
 
         # a user with permissions can view a specific attachment object
         attachment_list_view = AttachmentViewSet.as_view({"get": "retrieve"})
@@ -329,6 +440,15 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn("id_string", response.data)
         self.assertIn("metadata", response.data)
 
+        destination_project = self._create_destination_project()
+        self.data_view.project = destination_project
+        self.data_view.save(update_fields=["project", "date_modified"])
+        alice = self._create_user("schema-reader", "reader")
+        ReadOnlyRole.add(alice, destination_project)
+        request = self.factory.get("/", HTTP_AUTHORIZATION=f"Token {alice.auth_token}")
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 404)
+
     def test_get_dataview(self):
         self._create_dataview()
 
@@ -369,6 +489,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
         anon_response = self.view(anon_request, pk=self.data_view.pk)
         self.assertEqual(anon_response.status_code, 200)
 
+        request = self.factory.patch("/", data={"name": "Anonymous edit"})
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 401)
+        self.data_view.refresh_from_db()
+        self.assertNotEqual(self.data_view.name, "Anonymous edit")
+
         # Private
         self.project.shared = False
         self.project.save()
@@ -400,6 +526,16 @@ class TestDataViewViewSet(TestAbstractViewSet):
             response.data["query"], [{"column": "age", "filter": ">", "value": "20"}]
         )
 
+        destination_project = self._create_destination_project()
+        data["project"] = f"http://testserver/api/v1/projects/{destination_project.pk}"
+        response = self.view(
+            self.factory.put("/", data=data, **self.extra), pk=self.data_view.pk
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.data_view.refresh_from_db()
+        self.assertEqual(self.data_view.project_id, destination_project.pk)
+
     def test_patch_dataview(self):
         self._create_dataview()
 
@@ -412,6 +548,64 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["name"], "My DataView updated")
+
+        alice = self._create_user("readonly-editor", "reader")
+        ReadOnlyRole.add(alice, self.project)
+        readonly_response = self.view(
+            self.factory.patch(
+                "/",
+                data={"name": "Unauthorized rename"},
+                HTTP_AUTHORIZATION=f"Token {alice.auth_token}",
+            ),
+            pk=self.data_view.pk,
+        )
+        self.assertEqual(readonly_response.status_code, 403)
+
+        destination_project = self._create_destination_project()
+        destination_project_url = (
+            f"http://testserver/api/v1/projects/{destination_project.pk}"
+        )
+        response = self.view(
+            self.factory.patch(
+                "/",
+                data={"project": destination_project_url},
+                **self.extra,
+            ),
+            pk=self.data_view.pk,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["project"], destination_project_url)
+
+        destination_manager = self._create_user("destination-manager", "manager")
+        ManagerRole.add(destination_manager, destination_project)
+        self.assertFalse(ManagerRole.user_has_role(destination_manager, self.xform))
+        request = self.factory.patch(
+            "/",
+            data={"name": "Renamed publication"},
+            HTTP_AUTHORIZATION=f"Token {destination_manager.auth_token}",
+        )
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["name"], "Renamed publication")
+
+    def _create_destination_project(self):
+        project = Project.objects.create(
+            name="Foreign DataView project",
+            organization=self.user,
+            created_by=self.user,
+            metadata={},
+        )
+        ManagerRole.add(self.user, project)
+        return project
+
+    def _give_destination_reader_access(self):
+        """Publish the current DataView to a project readable by another user."""
+        destination_project = self._create_destination_project()
+        self.data_view.project = destination_project
+        self.data_view.save(update_fields=["project", "date_modified"])
+        reader = self._create_user("destination-reader", "reader")
+        ReadOnlyRole.add(reader, destination_project)
+        return {"HTTP_AUTHORIZATION": f"Token {reader.auth_token}"}
 
     def _dataview_data(self, **overrides):
         data = {
@@ -508,19 +702,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["name"], "Renamed")
 
-    def test_form_change_validates_retained_query(self):
-        """Changing the form re-validates the retained query against it."""
-        # Query column ``gender`` is valid on the tutorial form.
-        self._create_dataview(
-            data=self._dataview_data(
-                name="Gender DataView",
-                columns='["name", "gender"]',
-                query='[{"column":"gender","filter":"=","value":"male"}]',
-            )
-        )
+    def test_update_dataview_rejects_source_xform_change(self):
+        """The source XForm cannot be replaced by PUT or PATCH."""
+        self._create_dataview()
         data_view_pk = self.data_view.pk
+        source_xform_pk = self.xform.pk
 
-        # Publish a second form that has no ``gender`` field.
         path = os.path.join(
             settings.PROJECT_ROOT,
             "libs",
@@ -532,12 +719,25 @@ class TestDataViewViewSet(TestAbstractViewSet):
         )
         self._publish_xls_form_to_project(xlsform_path=path)
 
-        data = {"xform": f"http://testserver/api/v1/forms/{self.xform.pk}"}
-        request = self.factory.patch("/", data=data, **self.extra)
-        response = self.view(request, pk=data_view_pk)
+        replacement_xform_url = f"http://testserver/api/v1/forms/{self.xform.pk}"
+        requests = (
+            self.factory.patch(
+                "/", data={"xform": replacement_xform_url}, **self.extra
+            ),
+            self.factory.put(
+                "/",
+                data=self._dataview_data(xform=replacement_xform_url),
+                **self.extra,
+            ),
+        )
+        for request in requests:
+            with self.subTest(method=request.method):
+                response = self.view(request, pk=data_view_pk)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("xform", response.data)
 
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("query", response.data)
+        data_view = DataView.objects.get(pk=data_view_pk)
+        self.assertEqual(data_view.xform_id, source_xform_pk)
 
     def test_create_dataview_rejects_non_string_column(self):
         """A non-string query column yields a 400, not a 500 (TypeError)."""
@@ -706,6 +906,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.data_view.pk)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["query"], [])
 
     def test_can_not_get_deleted_dataview(self):
         data = {
@@ -1099,6 +1300,145 @@ class TestDataViewViewSet(TestAbstractViewSet):
         filename = filename_from_disposition(content_disposition)
         _basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, ".zip")
+
+    # pylint: disable=too-many-locals
+    @override_settings(
+        CELERY_TASK_ALWAYS_EAGER=True,
+        SHOULD_ALWAYS_CREATE_NEW_EXPORT=True,
+    )
+    def test_project_authorized_dataview_ignores_source_meta_permissions(self):
+        """DataView project access governs exports and selected attachments."""
+        media_file = "test-image.png"
+        attachment_file_path = os.path.join(
+            settings.PROJECT_ROOT, "libs", "tests", "utils", "fixtures", media_file
+        )
+        submission_file_path = os.path.join(
+            settings.PROJECT_ROOT,
+            "libs",
+            "tests",
+            "utils",
+            "fixtures",
+            "tutorial",
+            "instances",
+            "uuid10",
+            "submission.xml",
+        )
+        with open(attachment_file_path, "rb") as attachment_file:
+            self._make_submission(submission_file_path, media_file=attachment_file)
+        selected_attachment = Attachment.objects.latest("pk")
+
+        # Add a real attachment to the row excluded by the saved DataView
+        # filter. This makes the attachment assertion cover both the row
+        # filter and the selected media-field projection.
+        excluded_instance = self.xform.instances.get(json__age=28)
+        excluded_media = django_file(attachment_file_path, "photo", "image/png")
+        excluded_media.name = "excluded-image.png"
+        excluded_attachment = Attachment.objects.create(
+            instance=excluded_instance,
+            mimetype="image/png",
+            extension="png",
+            name=excluded_media.name,
+            media_file=excluded_media,
+            xform=self.xform,
+            user=self.user,
+        )
+        excluded_data = dict(excluded_instance.json)
+        excluded_data["photo"] = excluded_attachment.name
+        Instance.objects.filter(pk=excluded_instance.pk).update(json=excluded_data)
+
+        data = {
+            "name": "Project-authorized DataView",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "photo"]',
+            "query": '[{"column":"pizza_fan","filter":"=","value":"no"}]',
+        }
+        self._create_dataview(data=data)
+
+        alice = self._create_user("project-reader", "reader")
+        ReadOnlyRole.add(alice, self.project)
+        DataEntryMinorRole.add(alice, self.xform)
+        MetaData.xform_meta_permission(
+            self.xform,
+            data_value="editor|dataentry-minor|readonly-no-download",
+        )
+        alice_extra = {"HTTP_AUTHORIZATION": f"Token {alice.auth_token}"}
+
+        # The source role is genuinely row-restricted: Alice owns none of the
+        # submissions and receives no rows from the source XForm endpoint.
+        request = self.factory.get("/", **alice_extra)
+        response = DataViewSet.as_view({"get": "list"})(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        def assert_dataview_csv(content):
+            rows = list(csv.reader(content.splitlines()))
+            self.assertEqual(rows[0], ["name", "age", "photo"])
+            self.assertEqual(len(rows) - 1, 8)
+            self.assertNotIn("Dennis Wambua", [row[0] for row in rows[1:]])
+            self.assertNotIn("gender", rows[0])
+            self.assertNotIn("pizza_fan", rows[0])
+
+        data_view = DataViewViewSet.as_view({"get": "data"})
+        request = self.factory.get("/", **alice_extra)
+        response = data_view(request, pk=self.data_view.pk, format="csv")
+        self.assertEqual(response.status_code, 200)
+        assert_dataview_csv(get_response_content(response))
+
+        export_async = DataViewViewSet.as_view({"get": "export_async"})
+        request = self.factory.get("/", data={"format": "csv"}, **alice_extra)
+        response = export_async(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 202)
+        task_id = response.data["job_uuid"]
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        with default_storage.open(export.filepath, "r") as export_file:
+            assert_dataview_csv(export_file.read())
+
+        attachment_list = AttachmentViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/", data={"dataview": self.data_view.pk}, **alice_extra
+        )
+        response = attachment_list(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item["id"] for item in response.data], [selected_attachment.pk]
+        )
+
+        # Source access without DataView-project access grants none of the
+        # DataView's data, exports, or attachments.
+        outsider = self._create_user("source-only-reader", "reader")
+        DataEntryMinorRole.add(outsider, self.xform)
+        outsider_extra = {"HTTP_AUTHORIZATION": f"Token {outsider.auth_token}"}
+        request = self.factory.get("/", **outsider_extra)
+        self.assertEqual(
+            data_view(request, pk=self.data_view.pk, format="csv").status_code,
+            404,
+        )
+        request = self.factory.get("/", data={"format": "csv"}, **outsider_extra)
+        self.assertEqual(
+            export_async(request, pk=self.data_view.pk).status_code,
+            404,
+        )
+        request = self.factory.get(
+            "/", data={"dataview": self.data_view.pk}, **outsider_extra
+        )
+        self.assertEqual(attachment_list(request).data, [])
+
+        # Removing the only media field closes both attachment list and
+        # attachment retrieval, while Alice retains project access.
+        self.data_view.columns = ["name", "age"]
+        self.data_view.save(update_fields=["columns", "date_modified"])
+        request = self.factory.get(
+            "/", data={"dataview": self.data_view.pk}, **alice_extra
+        )
+        self.assertEqual(attachment_list(request).data, [])
+        attachment_detail = AttachmentViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get(
+            "/", data={"dataview": self.data_view.pk}, **alice_extra
+        )
+        response = attachment_detail(request, pk=selected_attachment.pk)
+        self.assertEqual(response.status_code, 404)
 
     # pylint: disable=invalid-name
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -1546,6 +1886,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.data_view.pk)
         self.assertEqual(response.status_code, 404)
 
+        data = {"field_name": "age", "group_by": "pizza_fan"}
+        request = self.factory.get("/charts", data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 404)
+
     def test_get_charts_data_with_empty_query(self):
         data = {
             "name": "My DataView",
@@ -1697,6 +2042,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
             response.data,
         )
         request = self.factory.get(
+            "/?geo_field=location&fields=pizza_fan", **self.extra
+        )
+        response = view(request, pk=self.data_view.pk, format="geojson")
+        self.assertEqual(response.status_code, 400)
+        request = self.factory.get(
             "/?geofield=_geolocation&page=9&page_size=1&fields=name", **self.extra
         )
         response = view(request, pk=self.data_view.pk, format="geojson")
@@ -1727,6 +2077,59 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk, format="geojson")
         self.assertEqual(response.status_code, 404)
         self.assertEqual({"detail": "Invalid page."}, response.data)
+
+        # Derived geospatial output must use the selected geopoint rather than
+        # another geopoint stored on the source submission.
+        instance = self.xform.instances.order_by("-pk").first()
+        instance_data = dict(instance.json)
+        instance_data.update(
+            {
+                "hidden_location": "80 170 0 0",
+                "location": "-1.2655 36.8304 0 0",
+                "_geolocation": [80, 170],
+            }
+        )
+        Instance.objects.filter(pk=instance.pk).update(
+            json=instance_data,
+            geom=GeometryCollection([Point(170, 80), Point(36.8304, -1.2655)]),
+        )
+
+        with patch.object(
+            XForm,
+            "geopoint_xpaths",
+            return_value=["hidden_location", "location"],
+        ):
+            request = self.factory.get("/", **self.extra)
+            response = view(request, pk=self.data_view.pk)
+            projected_instance = next(
+                item for item in response.data if item["_id"] == instance.pk
+            )
+            self.assertEqual(projected_instance["_geolocation"], [-1.2655, 36.8304])
+
+            request = self.factory.get("/?page_size=20&fields=name", **self.extra)
+            response = view(request, pk=self.data_view.pk, format="geojson")
+            feature = next(
+                item
+                for item in response.data["features"]
+                if item["properties"]["id"] == instance.pk
+            )
+            self.assertEqual(
+                feature["geometry"],
+                {
+                    "type": "GeometryCollection",
+                    "geometries": [
+                        {"type": "Point", "coordinates": [36.8304, -1.2655]}
+                    ],
+                },
+            )
+
+            bbox_view = DataViewViewSet.as_view({"get": "bbox"})
+            request = self.factory.get("/", **self.extra)
+            response = bbox_view(request, pk=self.data_view.pk)
+            self.assertEqual(
+                response.data["bbox"],
+                [36.8304, -1.2655, 36.8304, -1.2655],
+            )
 
     # pylint: disable=invalid-name
     def test_dataview_project_cache_cleared(self):
@@ -2116,6 +2519,35 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(1, len(response.data))
         self.assertEqual(45, response.data[0].get("age"))
 
+        destination_extra = self._give_destination_reader_access()
+
+        request = self.factory.get(
+            "/", data={"query": '{"pizza_fan": "yes"}'}, **destination_extra
+        )
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.get(
+            "/", data={"sort": '{"pizza_fan": -1}'}, **destination_extra
+        )
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 400)
+
+        request = self.factory.get(
+            "/", data={"query": '{"age": 22}'}, **destination_extra
+        )
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]["age"], 22)
+
+        for query in ('"Fred"', "22", "[]", "[22]"):
+            with self.subTest(query=query):
+                request = self.factory.get(
+                    "/", data={"query": query}, **destination_extra
+                )
+                response = view(request, pk=self.data_view.pk)
+                self.assertEqual(response.status_code, 400)
+
     def test_invalid_url_parameters(self):
         response = self.client.get("/api/v1/dataviews/css/ona.css/")
         self.assertEqual(response.status_code, 404)
@@ -2226,6 +2658,19 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content = get_response_content(response)
         self.assertEqual(content, "name,age,gender\nDennis Wambua,28,male\n")
 
+        MetaData.xform_meta_permission(
+            self.data_view.xform,
+            data_value="editor|dataentry-minor|readonly-no-download",
+        )
+        destination_extra = self._give_destination_reader_access()
+        request = self.factory.get("/", data={"query": query_str}, **destination_extra)
+        response = view(request, pk=self.data_view.pk, format="csv")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            get_response_content(response),
+            "name,age,gender\nDennis Wambua,28,male\n",
+        )
+
     # pylint: disable=too-many-locals
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
     @patch("onadata.apps.api.viewsets.dataview_viewset.AsyncResult")
@@ -2284,6 +2729,20 @@ class TestDataViewViewSet(TestAbstractViewSet):
             self.assertEqual(
                 csv_file.read(), "name,age,gender\nDennis Wambua,28,male\n"
             )
+
+        MetaData.xform_meta_permission(
+            self.data_view.xform,
+            data_value="editor|dataentry-minor|readonly-no-download",
+        )
+        destination_extra = self._give_destination_reader_access()
+        request = self.factory.get(
+            "/",
+            data={"format": "csv", "query": query_str},
+            **destination_extra,
+        )
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 202)
+        self.assertIn("export_url", response.data)
 
     def test_bbox_returns_null_without_geolocated_submissions(self):
         """The tutorial fixture has no geom, so bbox is ``null``.

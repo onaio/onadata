@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=too-many-lines
 """
 Django rest_framework ViewSet filters.
 """
@@ -29,8 +30,10 @@ from onadata.apps.logger.models import (
     Project,
     XForm,
 )
+from onadata.apps.logger.models.data_view import filter_dataview_attachments
 from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
+    CAN_VIEW_PROJECT,
     ROLES,
     exclude_items_from_queryset_using_xform_meta_perms,
 )
@@ -41,6 +44,14 @@ from onadata.libs.utils.string import str2bool
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+
+def _can_view_dataview_project(request, dataview):
+    """Return whether a request may access a DataView destination project."""
+    return dataview.project.shared or (
+        request.user.is_authenticated
+        and request.user.has_perm(CAN_VIEW_PROJECT, dataview.project)
+    )
 
 
 def _public_xform_id_or_none(export_id: int):
@@ -477,7 +488,16 @@ class XFormPermissionFilterMixin:
                 dataview,
                 "Invalid value for dataview ID. It must be a positive integer.",
             )
-            self.dataview = get_object_or_404(DataView, pk=dataview)
+            self.dataview = get_object_or_404(
+                DataView,
+                pk=dataview,
+                deleted_at__isnull=True,
+                project__deleted_at__isnull=True,
+                project__organization__is_active=True,
+                xform__deleted_at__isnull=True,
+                xform__project__organization__is_active=True,
+            )
+            view.dataview = self.dataview
             # filter with fitlered dataset query
             dataview_kwargs = self._add_instance_prefix_to_dataview_filter_kwargs(
                 get_filter_kwargs(self.dataview.query)
@@ -535,7 +555,13 @@ class XFormPermissionFilterMixin:
             deleted_at=None, project__organization__is_active=True
         )
 
-        if request.user.is_anonymous:
+        if dataview:
+            xforms = (
+                xform_qs
+                if _can_view_dataview_project(request, self.dataview)
+                else XForm.objects.none()
+            )
+        elif request.user.is_anonymous:
             xforms = xform_qs.filter(shared_data=True)
         else:
             xforms = super().filter_queryset(request, xform_qs, view) | public_forms
@@ -711,9 +737,12 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         queryset = self._xform_filter_queryset(request, queryset, view, "xform")
+        dataview = getattr(self, "dataview", None)
+        if dataview is not None:
+            queryset = filter_dataview_attachments(queryset, dataview)
         xform = getattr(self, "xform", None)
         # Ensure queryset is filtered by XForm meta permissions
-        if xform is None:
+        if dataview is None and xform is None:
             xform_ids = [
                 xform_id
                 for xform_id in set(queryset.values_list("xform", flat=True))
@@ -727,7 +756,7 @@ class AttachmentFilter(XFormPermissionFilterMixin, ObjectPermissionsFilter):
                     project__organization__is_active=True,
                 )
 
-        if xform is not None:
+        if dataview is None and xform is not None:
             queryset = exclude_items_from_queryset_using_xform_meta_perms(
                 xform, request.user, queryset
             )

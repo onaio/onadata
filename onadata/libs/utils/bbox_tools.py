@@ -10,7 +10,8 @@ JSON (same semantics `form_tiles()` applies server-side).
 
 from django.contrib.gis.db.models import Extent
 
-from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.data_view import get_selected_geopoints
+from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.dataview_filters import apply_filters
 
 
@@ -38,6 +39,21 @@ def compute_instance_bbox(xform_ids, dataview=None):
 
     if dataview is not None:
         queryset = apply_filters(queryset, dataview.query)
+        points = [
+            point
+            for instance_data in queryset.values_list("json", flat=True).iterator()
+            for point in get_selected_geopoints(dataview, instance_data)
+        ]
+        if not points:
+            return None
+
+        longitudes, latitudes = zip(*points)
+        return [
+            min(longitudes),
+            min(latitudes),
+            max(longitudes),
+            max(latitudes),
+        ]
 
     extent = queryset.aggregate(extent=Extent("geom")).get("extent")
     if not extent:

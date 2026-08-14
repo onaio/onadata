@@ -9,6 +9,9 @@ Where:
 
 Definition
 ^^^^^^^^^^
+- ``xform`` - source XForm. It cannot be changed after creation.
+- ``project`` - project containing the DataView. It may differ from the source
+  XForm's project.
 - ``columns`` - Json list of columns to be included in the data
 - ``query`` - Json list of dicts with filter information.
 
@@ -46,6 +49,10 @@ Example:
 
 Create a new DataView
 ^^^^^^^^^^^^^^^^^^^^^
+
+Authentication is required. The requester must be a manager of the source
+``xform`` and selected ``project``. The XForm and project may belong to
+different projects.
 
 .. raw:: html
 
@@ -91,6 +98,16 @@ Response
 
 Retrieve a DataView
 ^^^^^^^^^^^^^^^^^^^
+
+Users who can access the DataView through its project but cannot view the
+source XForm data receive an empty ``query`` value. Data responses still apply
+the saved filter and the configured column projection.
+
+Authorization to DataView rows, exports, and selected media is governed by the
+project containing the DataView. Source-XForm meta-permissions continue to
+apply to source-XForm endpoints, but do not further narrow a project-authorized
+DataView. The DataView's saved row filter and column or media-field projection
+remain in effect.
 
 .. raw:: html
 
@@ -177,6 +194,11 @@ Response
 
 Update a DataView
 ^^^^^^^^^^^^^^^^^
+
+The ``xform`` value must identify the existing source XForm. To use a different
+source XForm, create a new DataView. The ``project``, ``columns``, and ``query``
+values can be changed by a manager of both the source XForm and selected
+project.
 
 .. raw:: html
 

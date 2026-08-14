@@ -41,14 +41,6 @@ def remove_xform_permissions(project, user, role):
             role._remove_obj_permissions(user, xform.mergedxform)
 
 
-def remove_dataview_permissions(project, user, role):
-    """Remove user permissions to all dataviews for the given ``project``."""
-    dataview_qs = project.dataview_set.all()
-    for dataview in queryset_iterator(dataview_qs):
-        # pylint: disable=protected-access
-        role._remove_obj_permissions(user, dataview.xform)
-
-
 def remove_entity_list_permissions(project, user, role):
     """Remove user permissions for all entitylists for the given project"""
     entity_list_qs = project.entity_lists.all()
@@ -104,11 +96,6 @@ class ShareProject:
                     if hasattr(xform, "mergedxform"):
                         role.add(self.user, xform.mergedxform)
 
-                dataview_qs = self.project.dataview_set.all()
-                for dataview in queryset_iterator(dataview_qs):
-                    if dataview.matches_parent:
-                        role.add(self.user, dataview.xform)
-
                 # Apply same role to EntityLists under project
                 entity_list_qs = self.project.entity_lists.all()
                 for entity_list in queryset_iterator(entity_list_qs):
@@ -126,7 +113,6 @@ class ShareProject:
 
         if role and self.user and self.project:
             remove_xform_permissions(self.project, self.user, role)
-            remove_dataview_permissions(self.project, self.user, role)
             remove_entity_list_permissions(self.project, self.user, role)
             # pylint: disable=protected-access
             role._remove_obj_permissions(self.user, self.project)

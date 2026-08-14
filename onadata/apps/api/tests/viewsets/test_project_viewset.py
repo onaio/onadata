@@ -2850,7 +2850,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertTrue(project.shared)
 
-    def test_permission_passed_to_dataview_parent_form(self):
+    def test_permission_not_passed_to_cross_project_dataview_source_form(self):
         self._project_create()
         project1 = self.project
         self._publish_xls_form_to_project()
@@ -2876,58 +2876,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             "columns": columns,
             "query": "[ ]",
         }
-        self._create_dataview(data)
-
-        alice_data = {"username": "alice", "email": "alice@localhost.com"}
-        self._login_user_and_profile(alice_data)
-
-        view = ProjectViewSet.as_view({"put": "share"})
-
-        data = {"username": "alice", "remove": True}
-        for role_name, role_class in iteritems(role.ROLES):
-            ShareProject(self.project, "alice", role_name).save()
-
-            self.assertFalse(role_class.user_has_role(self.user, project1))
-            self.assertTrue(role_class.user_has_role(self.user, project2))
-            self.assertTrue(role_class.user_has_role(self.user, self.xform))
-            data["role"] = role_name
-
-            request = self.factory.put("/", data=data, **self.extra)
-            response = view(request, pk=self.project.pk)
-
-            self.assertEqual(response.status_code, 204)
-
-            self.assertFalse(role_class.user_has_role(self.user, project1))
-            self.assertFalse(role_class.user_has_role(self.user, self.project))
-            self.assertFalse(role_class.user_has_role(self.user, self.xform))
-
-    def test_permission_not_passed_to_dataview_parent_form(self):
-        self._project_create()
-        project1 = self.project
-        self._publish_xls_form_to_project()
-        data = {
-            "name": "demo2",
-            "owner": f"http://testserver/api/v1/users/{self.user.username}",
-            "metadata": {
-                "description": "Some description",
-                "location": "Naivasha, Kenya",
-                "category": "governance",
-            },
-            "public": False,
-        }
-        self._project_create(data)
-        project2 = self.project
-
-        data = {
-            "name": "My DataView",
-            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
-            "project": f"http://testserver/api/v1/projects/{project2.pk}",
-            "columns": '["name", "age", "gender"]',
-            "query": '[{"column":"_submission_time","filter":">",'
-            '"value":"1900-01-01"},'
-            '{"column":"_submission_time","filter":"<","value":"2100-01-01"}]',
-        }
-
         self._create_dataview(data)
 
         alice_data = {"username": "alice", "email": "alice@localhost.com"}

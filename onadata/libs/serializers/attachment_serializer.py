@@ -89,7 +89,7 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
 
         if obj:
-            path = get_attachment_url(obj)
+            path = self._dataview_path(get_attachment_url(obj))
 
             return request.build_absolute_uri(path) if request else path
         return ""
@@ -101,7 +101,7 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
 
         if obj.mimetype.startswith("image"):
-            path = get_attachment_url(obj, "small")
+            path = self._dataview_path(get_attachment_url(obj, "small"))
 
             return request.build_absolute_uri(path) if request else path
         return ""
@@ -113,10 +113,19 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
         request = self.context.get("request")
 
         if obj.mimetype.startswith("image"):
-            path = get_attachment_url(obj, "medium")
+            path = self._dataview_path(get_attachment_url(obj, "medium"))
 
             return request.build_absolute_uri(path) if request else path
         return ""
+
+    def _dataview_path(self, path):
+        """Keep filtered-dataset authorization on attachment links."""
+        request = self.context.get("request")
+        params = getattr(request, "query_params", getattr(request, "GET", {}))
+        dataview = request and params.get("dataview")
+        if dataview:
+            return f"{path}&dataview={dataview}"
+        return path
 
     def get_field_xpath(self, obj):
         """

@@ -5,6 +5,7 @@ DataView model class
 
 import datetime
 import json
+import os
 
 from django.conf import settings
 from django.contrib.gis.db import models
@@ -41,6 +42,7 @@ from onadata.libs.utils.common_tags import (
     SUBMITTED_BY,
 )
 from onadata.libs.utils.common_tools import get_abbreviated_xpath
+from onadata.libs.utils.dict_tools import get_values_matching_key
 
 SUPPORTED_FILTERS = ["=", ">", "<", ">=", "<=", "<>", "!="]
 ATTACHMENT_TYPES = ["photo", "audio", "video"]
@@ -97,19 +99,118 @@ def has_attachments_fields(data_view):
     photo, video or audio (attachments fields). It returns a boolean
     value.
     """
-    xform = data_view.xform
+    return bool(get_attachment_columns(data_view))
 
-    if xform:
-        attachments = []
-        for element_type in ATTACHMENT_TYPES:
-            attachments += get_elements_of_type(xform, element_type)
 
-        if attachments:
-            for attachment in data_view.columns:
-                if attachment in attachments:
-                    return True
+def get_attachment_columns(data_view):
+    """Return attachment field XPaths selected by ``data_view``."""
+    attachment_columns = []
+    for element_type in ATTACHMENT_TYPES:
+        attachment_columns += get_elements_of_type(data_view.xform, element_type)
 
-    return False
+    return [
+        column for column in data_view.columns or [] if column in attachment_columns
+    ]
+
+
+def _flatten_field_values(value):
+    """Yield strings from scalar or repeated field values."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from _flatten_field_values(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _flatten_field_values(item)
+
+
+def get_selected_attachment_names(data_view, instance_data):
+    """Return attachment filenames exposed by a DataView for one row."""
+    names = set()
+    for column in get_attachment_columns(data_view):
+        for value in get_values_matching_key(instance_data, column):
+            names.update(_flatten_field_values(value))
+
+    return names
+
+
+def get_geopoint_columns(data_view):
+    """Return geopoint field XPaths selected by ``data_view``."""
+    geopoint_xpaths = set(data_view.xform.geopoint_xpaths())
+    return [column for column in data_view.columns or [] if column in geopoint_xpaths]
+
+
+def get_selected_geopoints(data_view, instance_data):
+    """Yield ``(longitude, latitude)`` pairs selected for one DataView row."""
+    for column in get_geopoint_columns(data_view):
+        for value in get_values_matching_key(instance_data, column):
+            for geopoint in _flatten_field_values(value):
+                coordinates = geopoint.split()
+                if len(coordinates) < 2:
+                    continue
+                try:
+                    latitude, longitude = map(float, coordinates[:2])
+                except ValueError:
+                    continue
+                yield longitude, latitude
+
+
+def project_dataview_geolocation(data_view, record):
+    """Build ``_geolocation`` only from selected DataView geopoint fields."""
+    if not get_geopoint_columns(data_view):
+        record.pop(GEOLOCATION, None)
+        return record
+
+    point = next(get_selected_geopoints(data_view, record), None)
+    record[GEOLOCATION] = [point[1], point[0]] if point else [None, None]
+    return record
+
+
+def attachment_is_selected(data_view, attachment):
+    """Return whether ``attachment`` belongs to a selected media field."""
+    names = get_selected_attachment_names(data_view, attachment.instance.json)
+    return bool(
+        names
+        & {
+            attachment.name,
+            attachment.filename,
+            os.path.basename(attachment.media_file.name),
+        }
+    )
+
+
+def filter_dataview_attachments(queryset, data_view):
+    """Restrict an attachment queryset to selected DataView media fields."""
+    allowed_ids = [
+        attachment.pk
+        for attachment in queryset.select_related("instance").iterator()
+        if attachment_is_selected(data_view, attachment)
+    ]
+    return queryset.filter(pk__in=allowed_ids)
+
+
+def project_dataview_attachments(data_view, record):
+    """Remove hidden attachments and preserve DataView auth on their URLs."""
+    attachments = record.get(ATTACHMENTS)
+    if not isinstance(attachments, list):
+        return record
+
+    selected_names = get_selected_attachment_names(data_view, record)
+    selected_attachments = []
+    for attachment in attachments:
+        filename = os.path.basename(attachment.get("filename", ""))
+        if not selected_names.intersection({attachment.get("name"), filename}):
+            continue
+
+        for key in ("download_url", "small_download_url", "medium_download_url"):
+            url = attachment.get(key)
+            if url and "dataview=" not in url:
+                attachment[key] = f"{url}&dataview={data_view.pk}"
+        selected_attachments.append(attachment)
+
+    record[ATTACHMENTS] = selected_attachments
+    return record
 
 
 class DataView(models.Model):
@@ -347,14 +448,14 @@ class DataView(models.Model):
     ):
         """Returns an SQL string based on the passed in parameters."""
         additional_columns = []
-        if data_view.instances_with_geopoints:
-            additional_columns = [GEOLOCATION]
 
         if has_attachments_fields(data_view):
             additional_columns += [ATTACHMENTS]
 
         sql = "SELECT json FROM logger_instance"
-        if all_data or data_view.matches_parent:
+        form_columns = set(data_view.xform.get_field_name_xpaths_only())
+        matches_current_form = set(data_view.columns or []) == form_columns
+        if all_data or matches_current_form:
             columns = None
         elif last_submission_time:
             columns = [SUBMISSION_TIME]
@@ -454,6 +555,11 @@ class DataView(models.Model):
             records = list(DataView.query_iterator(sql, columns, params, count))
         except DataError as error:
             return {"error": _(str(error))}
+
+        for record in records:
+            if isinstance(record, dict):
+                project_dataview_geolocation(data_view, record)
+                project_dataview_attachments(data_view, record)
 
         return records
 
