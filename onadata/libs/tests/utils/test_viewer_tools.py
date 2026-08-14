@@ -228,12 +228,13 @@ class TestGetEnketoAttachmentParams(TestBase):
             "1335783522563.jpg",
         )
 
-        return Attachment.objects.create(
-            instance=self.instance,
-            media_file=File(open(media_file, "rb"), media_file),
-            name=name,
-            **kwargs,
-        )
+        with open(media_file, "rb") as media:
+            return Attachment.objects.create(
+                instance=self.instance,
+                media_file=File(media, media_file),
+                name=name,
+                **kwargs,
+            )
 
     def test_maps_file_name_to_absolute_download_url(self):
         """Each attachment is keyed by file name, with a download URL."""
