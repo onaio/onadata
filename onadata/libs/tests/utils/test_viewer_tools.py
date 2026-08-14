@@ -23,6 +23,7 @@ from onadata.libs.utils.viewer_tools import (
     export_def_from_filename,
     generate_enketo_form_defaults,
     get_client_ip,
+    get_enketo_attachment_params,
     get_form,
     get_form_url,
     handle_enketo_error,
@@ -205,6 +206,81 @@ class TestViewerTools(TestBase):
 
         self.assertTrue(rpt_mock.called)
         rpt_mock.assert_called_with(message[0], message[1])
+
+
+class TestGetEnketoAttachmentParams(TestBase):
+    """Test get_enketo_attachment_params()."""
+
+    def setUp(self):
+        super().setUp()
+        self._publish_transportation_form_and_submit_instance()
+        self.instance = Instance.objects.all()[0]
+        self.request = RequestFactory().get("/")
+
+    def _create_attachment(self, name="1335783522563.jpg", **kwargs):
+        """Create an attachment on the submission from the image fixture."""
+        media_file = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            self.surveys[0],
+            "1335783522563.jpg",
+        )
+
+        return Attachment.objects.create(
+            instance=self.instance,
+            media_file=File(open(media_file, "rb"), media_file),
+            name=name,
+            **kwargs,
+        )
+
+    def test_maps_file_name_to_absolute_download_url(self):
+        """Each attachment is keyed by file name, with a download URL."""
+        attachment = self._create_attachment()
+
+        params = get_enketo_attachment_params(self.request, self.instance)
+
+        self.assertEqual(
+            params,
+            {
+                "instance_attachments[1335783522563.jpg]": (
+                    "http://testserver/api/v1/files/"
+                    f"{attachment.pk}?filename={attachment.media_file.name}"
+                )
+            },
+        )
+
+    def test_falls_back_to_media_file_basename(self):
+        """Without a recorded name, the stored file's basename is used.
+
+        Attachments predating the name field have none, and media_file holds a
+        full storage path rather than the bare file name the XML references.
+        """
+        attachment = self._create_attachment(name=None)
+
+        params = get_enketo_attachment_params(self.request, self.instance)
+
+        self.assertIn("/", attachment.media_file.name)
+        self.assertEqual(list(params), ["instance_attachments[1335783522563.jpg]"])
+
+    def test_skips_deleted_attachments(self):
+        """A deleted attachment is left out.
+
+        Its file is gone from storage, so a URL for it would only resolve to a
+        broken download.
+        """
+        self._create_attachment(deleted_at=timezone.now())
+
+        params = get_enketo_attachment_params(self.request, self.instance)
+
+        self.assertEqual(params, {})
+
+    def test_submission_without_attachments(self):
+        """A submission with no attachments contributes no params."""
+        params = get_enketo_attachment_params(self.request, self.instance)
+
+        self.assertEqual(params, {})
 
 
 def _mock_response(status_code, content, text=None):

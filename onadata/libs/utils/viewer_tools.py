@@ -141,6 +141,34 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR")
 
 
+def get_enketo_attachment_params(request, instance) -> Dict[str, str]:
+    """Return the `instance_attachments[<filename>]` params for a submission.
+
+    The instance XML records only the file name of each attachment, so these
+    params pair every one of them with an absolute download URL. They are sent
+    alongside the instance when requesting an edit URL, and without them the
+    attachments cannot be resolved.
+
+    :param request: HttpRequest object, used to make the download URLs absolute.
+    :param instance: Instance object whose attachments to send.
+    """
+    # Avoid cyclic import
+    # pylint: disable=import-outside-toplevel
+    from onadata.apps.logger.models.instance import get_attachment_url
+
+    params = {}
+
+    for attachment in instance.attachments.filter(deleted_at__isnull=True):
+        # `name` is the file name as submitted, which is the one the XML
+        # references; storage may have suffixed `media_file` to avoid a clash.
+        filename = attachment.name or os.path.basename(attachment.media_file.name)
+        params[f"instance_attachments[{filename}]"] = request.build_absolute_uri(
+            get_attachment_url(attachment)
+        )
+
+    return params
+
+
 def get_enketo_urls(
     form_url, id_string, instance_xml=None, instance_id=None, return_url=None, **kwargs
 ) -> Dict[str, str]:

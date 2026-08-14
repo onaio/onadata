@@ -15,6 +15,7 @@ from datetime import timedelta
 from io import StringIO
 from tempfile import NamedTemporaryFile
 from unittest.mock import Mock, patch
+from urllib.parse import parse_qs
 
 from django.conf import settings
 from django.core.cache import cache
@@ -79,6 +80,18 @@ def enketo_edit_mock(url, request):
         'rnUrl=http://test.io/test_url", "code": 201}'
     )
     return response
+
+
+def enketo_edit_capture_mock(captured):
+    """``enketo_edit_mock``, recording the request body into ``captured``."""
+
+    @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
+    def capture(url, request):
+        captured["body"] = request.body
+
+        return enketo_edit_mock(url, request)
+
+    return capture
 
 
 @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
@@ -1544,6 +1557,61 @@ class TestDataViewSet(SerializeMixin, TestBase):
             response = view(request, pk=formid, dataid=dataid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
+
+    def test_enketo_edit_url_sends_instance_attachments(self):
+        """The edit link request carries the submission's attachments.
+
+        The instance XML records only their file names, so each is sent paired
+        with an absolute download URL.
+        """
+        self._submit_transport_instance_w_attachment()
+        view = DataViewSet.as_view({"get": "enketo"})
+        request = self.factory.get(
+            "/", data={"return_url": "http://test.io/test_url"}, **self.extra
+        )
+
+        captured = {}
+
+        with HTTMock(enketo_edit_capture_mock(captured)):
+            view(
+                request,
+                pk=self.xform.pk,
+                dataid=self.xform.instances.all().order_by("id")[0].pk,
+            )
+
+        posted = parse_qs(captured["body"])
+
+        self.assertEqual(
+            posted["instance_attachments[1335783522563.jpg]"],
+            [
+                "http://testserver/api/v1/files/"
+                f"{self.attachment.pk}?filename={self.attachment.media_file.name}"
+            ],
+        )
+
+    def test_enketo_edit_url_skips_deleted_attachments(self):
+        """A deleted attachment is not sent.
+
+        Its file is gone from storage, so a URL for it would only resolve to a
+        broken download.
+        """
+        self._submit_transport_instance_w_attachment()
+        instance = self.xform.instances.all().order_by("id")[0]
+        self.attachment.deleted_at = timezone.now()
+        self.attachment.save()
+        view = DataViewSet.as_view({"get": "enketo"})
+        request = self.factory.get(
+            "/", data={"return_url": "http://test.io/test_url"}, **self.extra
+        )
+
+        captured = {}
+
+        with HTTMock(enketo_edit_capture_mock(captured)):
+            view(request, pk=self.xform.pk, dataid=instance.pk)
+
+        posted = parse_qs(captured["body"])
+
+        self.assertNotIn("instance_attachments[1335783522563.jpg]", posted)
 
     def test_get_form_public_data(self):
         self._make_submissions()
