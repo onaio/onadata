@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import csv
 import datetime
+import locale
 import os
 import shutil
 import tempfile
@@ -683,6 +684,41 @@ class TestExportBuilder(TestBase):
             self.assertEqual(data["children.info/fav_colors/blue's"], "True")
             self.assertEqual(data["children.info/fav_colors/pink's"], "False")
             # check that red and blue are set to true
+
+    def test_zipped_sav_export_ignores_unsupported_environment_locale(self):
+        """SAV generation does not resolve its locale from the environment."""
+        md = """
+        | survey |
+        |        | type | name | label |
+        |        | text | name | Name  |
+        """
+        survey = self.md_to_pyxform_survey(md, {"name": "locale_test"})
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        sav_options = export_builder._get_sav_options(
+            list(export_builder.sections[0]["elements"])
+        )
+        self.assertEqual(sav_options["ioLocale"], "C")
+        self.assertIs(sav_options["ioUtf8"], True)
+        original_lc_all = os.environ.get("LC_ALL")
+        original_locale = locale.setlocale(locale.LC_ALL)
+
+        try:
+            os.environ["LC_ALL"] = "onadata_UNSUPPORTED.INVALID"
+            with NamedTemporaryFile(suffix=".zip") as temp_zip_file:
+                export_builder.to_zipped_sav(
+                    temp_zip_file.name, [{"name": "café 漢字"}]
+                )
+                temp_zip_file.seek(0)
+                with zipfile.ZipFile(temp_zip_file.name, "r") as zip_file:
+                    self.assertIn("locale_test.sav", zip_file.namelist())
+                self.assertEqual(locale.setlocale(locale.LC_ALL), original_locale)
+        finally:
+            if original_lc_all is None:
+                os.environ.pop("LC_ALL", None)
+            else:
+                os.environ["LC_ALL"] = original_lc_all
+            locale.setlocale(locale.LC_ALL, original_locale)
 
     # pylint: disable=invalid-name
     def test_zipped_sav_export_with_date_field(self):
