@@ -68,14 +68,6 @@ onadata.libs.tests.serializers.test\_organization\_serializer module
    :undoc-members:
    :show-inheritance:
 
-onadata.libs.tests.serializers.test\_password\_reset\_serializer module
------------------------------------------------------------------------
-
-.. automodule:: onadata.libs.tests.serializers.test_password_reset_serializer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 onadata.libs.tests.serializers.test\_project\_serializer module
 ---------------------------------------------------------------
 

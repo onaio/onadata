@@ -22,9 +22,11 @@ def _dictfetchall(cursor):
     return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
 
 
-def _execute_query(query, to_dict=True):
+def _execute_query(query, params=None, to_dict=True):
     cursor = connection.cursor()
-    cursor.execute(query)
+    # Pass ``None`` (not an empty list) when there are no parameters so the
+    # driver sends the query verbatim and does not attempt ``%`` interpolation.
+    cursor.execute(query, params or None)
 
     return _dictfetchall(cursor) if to_dict else cursor
 
@@ -41,17 +43,20 @@ def _get_fields_of_type(xform, types):
 
 
 def _additional_data_view_filters(data_view):
+    """Return a DataView's filter SQL fragment and its bound parameters.
+
+    The fragment keeps the ``%s`` placeholders emitted by
+    ``DataView._get_where_clause`` and the parameters are returned untouched so
+    the caller can hand them to ``cursor.execute`` as bound values. No
+    request-derived filter column or value is ever rendered into the SQL text.
+    """
     # pylint: disable=protected-access
     where, where_params = DataView._get_where_clause(data_view)
 
-    data_view_where = ""
-    if where:
-        data_view_where = " AND " + " AND ".join(where)
+    if not where:
+        return "", []
 
-    for param in where_params:
-        data_view_where = data_view_where.replace("%s", f"'{param}'", 1)
-
-    return data_view_where
+    return " AND " + " AND ".join(where), list(where_params)
 
 
 def _json_query(field):
@@ -64,6 +69,11 @@ def _json_query(field):
     return f"json->>'{_field}'"
 
 
+def _escape_identifier(value):
+    """Escape a value used as a double-quoted SQL identifier/alias."""
+    return value.replace('"', '""') if isinstance(value, str) else value
+
+
 def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_view):
     string_args = _query_args(field, name, xform, group_by)
     if is_date_field(xform, field):
@@ -71,9 +81,10 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_vi
             "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY" "-MM-DD')" % string_args
         )
 
-    additional_filters = ""
+    additional_filters, additional_params = "", []
     if data_view:
-        additional_filters = _additional_data_view_filters(data_view)
+        additional_filters, additional_params = _additional_data_view_filters(data_view)
+    string_args["additional_filters"] = additional_filters
 
     restricted_string = _restricted_query(xform)
     query = (
@@ -83,13 +94,13 @@ def _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_vi
         "FROM %(table)s WHERE "
         + restricted_string
         + " AND deleted_at IS NULL "
-        + additional_filters
+        + "%(additional_filters)s"
         + " GROUP BY %(json)s, %(group_by)s"
         + " ORDER BY %(json)s, %(group_by)s"
     )
     query = query % string_args
 
-    return query
+    return query, additional_params
 
 
 def _postgres_count_group(field, name, xform, data_view=None):
@@ -99,9 +110,10 @@ def _postgres_count_group(field, name, xform, data_view=None):
             "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY" "-MM-DD')" % string_args
         )
 
-    additional_filters = ""
+    additional_filters, additional_params = "", []
     if data_view:
-        additional_filters = _additional_data_view_filters(data_view)
+        additional_filters, additional_params = _additional_data_view_filters(data_view)
+    string_args["additional_filters"] = additional_filters
 
     # Use left join to the auth user model for better performance.
     if field == SUBMITTED_BY:
@@ -114,13 +126,13 @@ def _postgres_count_group(field, name, xform, data_view=None):
         "%(table)s %(join)s WHERE "
         + restricted_string
         + " AND deleted_at IS NULL "
-        + additional_filters
+        + "%(additional_filters)s"
         + " GROUP BY %(json)s"
         " ORDER BY %(json)s"
     )
     sql_query = sql_query % string_args
 
-    return sql_query
+    return sql_query, additional_params
 
 
 def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
@@ -130,9 +142,10 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
             "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY" "-MM-DD')" % string_args
         )
 
-    additional_filters = ""
+    additional_filters, additional_params = "", []
     if data_view:
-        additional_filters = _additional_data_view_filters(data_view)
+        additional_filters, additional_params = _additional_data_view_filters(data_view)
+    string_args["additional_filters"] = additional_filters
 
     group_by_select = ""
     group_by_group_by = ""
@@ -164,14 +177,14 @@ def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
         + "FROM %(table)s WHERE "
         + restricted_string
         + " AND deleted_at IS NULL "
-        + additional_filters
+        + "%(additional_filters)s"
         + " GROUP BY "
         + group_by_group_by
         + " ORDER BY "
         + group_by_group_by
     )
 
-    return query % string_args
+    return query % string_args, additional_params
 
 
 def _postgres_select_key(field, name, xform):
@@ -196,7 +209,7 @@ def _query_args(field, name, xform, group_by=None):
     qargs = {
         "table": "logger_instance",
         "json": _json_query(field),
-        "name": name,
+        "name": _escape_identifier(name),
         "restrict_field": "xform_id",
         "restrict_value": xform.pk,
         "join": "",
@@ -213,10 +226,10 @@ def _query_args(field, name, xform, group_by=None):
 
     if isinstance(group_by, list):
         for index, value in enumerate(group_by):
-            qargs[f"group_name{index}"] = value
+            qargs[f"group_name{index}"] = _escape_identifier(value)
             qargs[f"group_by{index}"] = _json_query(value)
     else:
-        qargs["group_name"] = group_by
+        qargs["group_name"] = _escape_identifier(group_by)
         qargs["group_by"] = _json_query(group_by)
 
     return qargs
@@ -253,7 +266,9 @@ def get_form_submissions_grouped_by_field(xform, field, name=None, data_view=Non
     if not name:
         name = field
 
-    return _execute_query(_postgres_count_group(field, name, xform, data_view))
+    query, params = _postgres_count_group(field, name, xform, data_view)
+
+    return _execute_query(query, params)
 
 
 # pylint: disable=invalid-name
@@ -263,9 +278,11 @@ def get_form_submissions_aggregated_by_select_one(
     """Number of submissions grouped and aggregated by select_one field"""
     if not name:
         name = field
-    return _execute_query(
-        _postgres_aggregate_group_by(field, name, xform, group_by, data_view)
+    query, params = _postgres_aggregate_group_by(
+        field, name, xform, group_by, data_view
     )
+
+    return _execute_query(query, params)
 
 
 # pylint: disable=invalid-name
@@ -275,9 +292,11 @@ def get_form_submissions_grouped_by_select_one(
     """Number of submissions disaggregated by select_one field"""
     if not name:
         name = field
-    return _execute_query(
-        _postgres_count_group_field_n_group_by(field, name, xform, group_by, data_view)
+    query, params = _postgres_count_group_field_n_group_by(
+        field, name, xform, group_by, data_view
     )
+
+    return _execute_query(query, params)
 
 
 def get_numeric_fields(xform):

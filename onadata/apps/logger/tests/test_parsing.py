@@ -2,25 +2,26 @@
 import json
 import os
 import re
+
+from django.test import SimpleTestCase
+
 from defusedxml import minidom
 
-from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.xform_instance_parser import (
-    XFormInstanceParser,
-    xpath_from_xml_node,
-)
-from onadata.apps.logger.xform_instance_parser import (
-    get_uuid_from_xml,
-    get_meta_from_xml,
-    get_deprecated_uuid_from_xml,
-)
-from onadata.libs.utils.common_tags import XFORM_ID_STRING
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import (
+    XFormInstanceParser,
     _xml_node_to_dict,
     clean_and_parse_xml,
+    get_deprecated_uuid_from_xml,
+    get_entity_group_data,
+    get_entity_label_from_node,
+    get_entity_nodes_from_xml,
+    get_meta_from_xml,
+    get_uuid_from_xml,
+    xpath_from_xml_node,
 )
-
+from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.common_tags import XFORM_ID_STRING
 
 XML = "xml"
 DICT = "dict"
@@ -237,6 +238,58 @@ class TestXFormInstanceParser(TestBase):
         ]
         self.assertEqual(flat_dict.get("media"), expected_flat_list)
 
+    def _encrypted_envelope_single_media(self):
+        return f"""
+        <data xmlns="http://opendatakit.org/submissions" encrypted="yes"
+            id="{self.xform.id_string}" version="{self.xform.version}">
+            <base64EncryptedKey>fake-key</base64EncryptedKey>
+            <meta xmlns="http://openrosa.org/xforms">
+                <instanceID>uuid:8780874c-fe70-4060-ab6e-c8e5228ed85f</instanceID>
+            </meta>
+            <media>
+                <file>sunset.png.enc</file>
+            </media>
+            <encryptedXmlFile>submission.xml.enc</encryptedXmlFile>
+            <base64EncryptedElementSignature>fake-signature</base64EncryptedElementSignature>
+        </data>
+        """.strip()
+
+    def test_media_list_on_managed_form_encrypted_flag_off(self):
+        """A single media file parses as a list when a managed form's
+        encrypted flag is off."""
+        self._publish_managed_form()
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False)
+        self.xform.refresh_from_db()
+
+        parser = XFormInstanceParser(
+            self._encrypted_envelope_single_media(), self.xform
+        )
+
+        self.assertEqual(
+            parser.to_dict().get("data").get("media"), [{"file": "sunset.png.enc"}]
+        )
+        self.assertEqual(
+            parser.to_flat_dict().get("media"), [{"media/file": "sunset.png.enc"}]
+        )
+
+    def test_media_list_after_encryption_disabled(self):
+        """A single media file parses as a list after managed encryption
+        is disabled."""
+        self._publish_managed_form()
+        XForm.objects.filter(pk=self.xform.pk).update(encrypted=False, is_managed=False)
+        self.xform.refresh_from_db()
+
+        parser = XFormInstanceParser(
+            self._encrypted_envelope_single_media(), self.xform
+        )
+
+        self.assertEqual(
+            parser.to_dict().get("data").get("media"), [{"file": "sunset.png.enc"}]
+        )
+        self.assertEqual(
+            parser.to_flat_dict().get("media"), [{"media/file": "sunset.png.enc"}]
+        )
+
     def test_xml_repeated_nodes_to_dict(self):
         xml_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "../fixtures/repeated_nodes.xml"
@@ -251,3 +304,211 @@ class TestXFormInstanceParser(TestBase):
             self.assertEqual(3, len(xml_dict["#document"]["RW_OUNIS_2016"]["S2A"]))
             with open(json_file) as file:
                 self.assertEqual(json.loads(file.read()), xml_dict)
+
+
+class GetEntityNodesFromXmlTestCase(SimpleTestCase):
+    """Tests for get_entity_nodes_from_xml"""
+
+    def test_top_level_entity(self):
+        """A top-level entity node is returned"""
+        xml = (
+            "<data>"
+            "<species>purpleheart</species>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>Purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(len(entity_nodes), 1)
+        self.assertEqual(entity_nodes[0].getAttribute("id"), "dbee4c32")
+
+    def test_entities_within_repeat(self):
+        """An entity node is returned for each repeat instance in order"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<meta>"
+            "<instanceID>uuid:86d21baf-75a2-4907-be8d-84dbacae2ebd</instanceID>"
+            "</meta>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual([node.getAttribute("id") for node in entity_nodes], ["a", "b"])
+
+
+class GetEntityLabelFromNodeTestCase(SimpleTestCase):
+    """Tests for get_entity_label_from_node"""
+
+    def test_returns_label(self):
+        """The label defined within an entity node is returned"""
+        xml = (
+            "<data>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>300cm purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(get_entity_label_from_node(entity_node), "300cm purpleheart")
+
+
+class GetEntityGroupDataTestCase(SimpleTestCase):
+    """Tests for get_entity_group_data"""
+
+    def test_top_level_entity(self):
+        """All submission fields are returned for a top-level entity"""
+        xml = (
+            "<data>"
+            "<species>purpleheart</species>"
+            "<circumference>300</circumference>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="dbee4c32">'
+            "<label>Purpleheart</label>"
+            "</entity>"
+            "</meta>"
+            "</data>"
+        )
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(
+            get_entity_group_data(entity_node),
+            {"species": "purpleheart", "circumference": "300"},
+        )
+
+    def test_entity_within_repeat(self):
+        """Only the entity's repeat instance fields are returned"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</tree>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[0]),
+            {"tree/tree_id": "1"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1]),
+            {"tree/tree_id": "2"},
+        )
+
+    def test_empty_fields_omitted(self):
+        """A repeat instance's empty fields are omitted"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<tree_id/>"
+            "<year_planted/>"
+            "<meta>"
+            '<entity dataset="trees" update="1" id="a" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "<tree>"
+            "<tree_id>2</tree_id>"
+            "<year_planted>2016</year_planted>"
+            "<meta>"
+            '<entity dataset="trees" update="1" id="b" baseVersion="1"/>'
+            "</meta>"
+            "</tree>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        # The first repeat instance is entirely empty
+        self.assertEqual(get_entity_group_data(entity_nodes[0]), {})
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1]),
+            {"tree/tree_id": "2", "tree/year_planted": "2016"},
+        )
+
+    def test_entity_within_nested_repeat(self):
+        """Only the entity's nested repeat instance fields are returned"""
+        xml = (
+            "<data>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>1</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "<inspection>"
+            "<tree_id>2</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="b"><label>2</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "<tree>"
+            "<inspection>"
+            "<tree_id>3</tree_id>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="c"><label>3</label></entity>'
+            "</meta>"
+            "</inspection>"
+            "</tree>"
+            "</data>"
+        )
+        entity_nodes = get_entity_nodes_from_xml(xml)
+
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[0]),
+            {"tree/inspection/tree_id": "1"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[1]),
+            {"tree/inspection/tree_id": "2"},
+        )
+        self.assertEqual(
+            get_entity_group_data(entity_nodes[2]),
+            {"tree/inspection/tree_id": "3"},
+        )
+
+    def test_cdata_value(self):
+        """A field value stored as CDATA is returned"""
+        xml = (
+            "<data>"
+            "<species><![CDATA[purpleheart]]></species>"
+            "<meta>"
+            '<entity dataset="trees" create="1" id="a"><label>1</label></entity>'
+            "</meta>"
+            "</data>"
+        )
+        entity_node = get_meta_from_xml(xml, "entity")
+
+        self.assertEqual(
+            get_entity_group_data(entity_node),
+            {"species": "purpleheart"},
+        )

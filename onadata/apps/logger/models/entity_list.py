@@ -45,7 +45,17 @@ class EntityList(BaseModel):
     deleted_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f"{self.name}|{self.project}"
+        name = self.name
+
+        # The deletion suffix is not stored if appending it would exceed
+        # the name's max length
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+
+            if not name.endswith(deletion_suffix):
+                name += deletion_suffix
+
+        return f"{name}|{self.project}"
 
     @property
     def properties(self) -> list[str]:
@@ -64,8 +74,11 @@ class EntityList(BaseModel):
             self.deleted_at = deletion_time
             self.deleted_by = deleted_by
             original_name = self.name
-            self.name += deletion_suffix
-            self.name = self.name[:255]  # Only first 255 characters
+
+            # Never store a truncated suffix
+            if len(self.name) + len(deletion_suffix) <= 255:
+                self.name += deletion_suffix
+
             self.save()
             clear_project_cache(self.project.pk)
             # Soft delete follow up forms link
@@ -91,8 +104,9 @@ class EntityList(BaseModel):
             if self.name.endswith(deletion_suffix):
                 self.name = self.name[: -len(deletion_suffix)]
             elif len(self.name) == 255:
-                # Soft delete truncated the name to 255 characters,
-                # retaining only part of the deletion suffix
+                # Legacy: soft delete previously truncated the name to
+                # 255 characters, retaining only part of the deletion
+                # suffix
                 for length in range(len(deletion_suffix) - 1, 0, -1):
                     if self.name.endswith(deletion_suffix[:length]):
                         self.name = self.name[:-length]
@@ -115,7 +129,13 @@ class EntityList(BaseModel):
 
     class Meta(BaseModel.Meta):
         app_label = "logger"
-        unique_together = ("name", "project")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_entity_list_name_per_project",
+            )
+        ]
         indexes = [models.Index(fields=["deleted_at"])]
 
 

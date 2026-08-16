@@ -24,6 +24,7 @@ from onadata.apps.logger.models.xform import (
     DuplicateUUIDError,
     check_xform_uuid,
     get_survey_from_file_object,
+    update_xform_uuid,
 )
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.tests.test_base import TestBase
@@ -146,6 +147,48 @@ class TestXForm(TestBase):
         self.assertIn("-deleted-at-", xform.sms_id_string)
         self.assertEqual(xform.deleted_by.username, "bob")
 
+        # Soft deleting an already soft deleted form is a no-op
+        deleted_at = xform.deleted_at
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        self.assertEqual(xform.deleted_at, deleted_at)
+
+    def test_deleted_by_optional(self):
+        """`deleted_by` is optional on soft delete"""
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string="fruits")
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete()
+        xform.refresh_from_db()
+        self.assertIsNotNone(xform.deleted_at)
+        self.assertIsNone(xform.deleted_by)
+
+    def test_str_includes_deletion_suffix(self):
+        """String representation includes the deletion suffix if missing"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        long_id_string = "x" * 95
+        xform.id_string = long_id_string
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        # Suffix missing from stored id_string is included
+        self.assertEqual(str(xform), f"{long_id_string}{suffix}")
+        # Suffix present in stored id_string is not duplicated
+        deleted_xform = XForm(
+            id_string=f"transportation{suffix}", deleted_at=xform.deleted_at
+        )
+        self.assertEqual(str(deleted_xform), f"transportation{suffix}")
+
     def test_get_survey_element(self):
         """
         Test XForm.get_survey_element()
@@ -198,9 +241,7 @@ class TestXForm(TestBase):
             self.fail("DuplicateUUIDError raised: %s" % e)
 
     def test_id_string_max_length_on_soft_delete(self):
-        """
-        Test XForm soft delete with long id_string or sms_id_string
-        """
+        """Deletion suffix is not appended if it would exceed the max length"""
         self._publish_transportation_form_and_submit_instance()
         xform = XForm.objects.get(pk=self.xform.id)
         new_string = (
@@ -224,22 +265,31 @@ class TestXForm(TestBase):
         xform.soft_delete(self.user)
         xform.refresh_from_db()
 
-        d_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
-        d_sms_id_string = new_string + xform.deleted_at.strftime("-deleted-at-%s")
-
         # deleted_at is not None
         self.assertIsNotNone(xform.deleted_at)
 
         # is inactive, no submissions will be allowed
         self.assertFalse(xform.downloadable)
 
-        self.assertGreater(len(d_sms_id_string), 100)
-        self.assertGreater(len(d_id_string), 100)
-        self.assertIn(xform.sms_id_string, d_id_string)
-        self.assertIn(xform.sms_id_string, d_sms_id_string)
-        self.assertEqual(xform.id_string, d_id_string[:100])
-        self.assertEqual(xform.sms_id_string, d_sms_id_string[:100])
+        # suffix is not appended since it would exceed the max length
+        self.assertEqual(xform.id_string, new_string)
+        self.assertEqual(xform.sms_id_string, new_string)
         self.assertEqual(xform.deleted_by.username, "bob")
+
+    def test_soft_delete_suffix_applied_per_field(self):
+        """Deletion suffix is applied independently per field"""
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        long_id_string = "x" * 95
+        xform.id_string = long_id_string
+        xform.sms_id_string = "transportation_sms"
+
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        self.assertEqual(xform.id_string, long_id_string)
+        self.assertEqual(xform.sms_id_string, f"transportation_sms{suffix}")
 
     def test_id_string_length(self):
         """Test Xform.id_string cannot store more than 100 chars"""
@@ -278,6 +328,81 @@ class TestXForm(TestBase):
         )
         dd.set_uuid_in_xml()
         self.assertIn("<formhub>\n            <uuid/>\n          </formhub>\n", dd.xml)
+
+    def test_republish_id_string_of_soft_deleted(self):
+        """id_string occupied by a soft-deleted form can be reused"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete(self.user)
+
+        new_dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+
+        new_xform = XForm.objects.get(pk=new_dd.pk)
+        self.assertIsNone(new_xform.deleted_at)
+        self.assertEqual(new_xform.id_string, original_id_string)
+        self.assertEqual(new_xform.sms_id_string, original_id_string)
+
+    def test_restore_id_string_contains_deletion_marker(self):
+        """id_string containing the deletion marker is restored intact"""
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string="trees-deleted-at-noon")
+        xform = XForm.objects.get(pk=dd.pk)
+        self.assertEqual(xform.id_string, "trees-deleted-at-noon")
+        original_sms_id_string = xform.sms_id_string
+
+        xform.soft_delete(self.user)
+        xform.restore()
+
+        xform.refresh_from_db()
+        self.assertIsNone(xform.deleted_at)
+        self.assertEqual(xform.id_string, "trees-deleted-at-noon")
+        self.assertEqual(xform.sms_id_string, original_sms_id_string)
+
+    def test_restore_truncated_id_string(self):
+        """id_string truncated to max length on soft delete is restored"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        xform = XForm.objects.get(pk=dd.pk)
+        xform.soft_delete(self.user)
+        xform.refresh_from_db()
+        # Simulate a legacy soft delete which stored a truncated suffix
+        suffix = xform.deleted_at.strftime("-deleted-at-%s")
+        legacy_value = (original_id_string + suffix)[:100]
+        XForm.objects.filter(pk=xform.pk).update(
+            id_string=legacy_value, sms_id_string=legacy_value
+        )
+        xform.refresh_from_db()
+
+        xform.restore()
+
+        xform.refresh_from_db()
+        self.assertIsNone(xform.deleted_at)
+        self.assertEqual(xform.id_string, original_id_string)
+        self.assertEqual(xform.sms_id_string, original_id_string)
 
     @patch("onadata.apps.logger.models.xform.clear_project_cache")
     def test_restore_deleted(self, mock_clear_project_cache):
@@ -592,6 +717,96 @@ class TestXForm(TestBase):
         # The json should now be workbook_json, not the old survey.to_json_dict() format
         self.assertEqual(xform.json, original_workbook_json)
 
+    def _make_stale_managed_xform(self, public_key):
+        """Publish a form and recreate a stale managed encrypted state.
+
+        Managed (KMS) encryption injects the public key into the stored
+        ``json`` after publishing; the XLSForm file has no record of it.
+        Stored json that predates the pyxform 4.1.0 upgrade — a select
+        question with inline children and no itemset — fails parsing,
+        making ``_get_survey`` fall back to rebuilding from the XLSForm.
+        Migration logger.0031 skipped encrypted forms, so such forms
+        exist in production.
+        """
+        self._publish_transportation_form()
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.publish_time_workbook_json = xform.json.copy()
+        stale_json = {
+            "name": self.publish_time_workbook_json["name"],
+            "title": xform.title,
+            "id_string": xform.id_string,
+            "sms_keyword": xform.id_string,
+            "type": "survey",
+            "default_language": "default",
+            "public_key": public_key,
+            "children": [
+                {
+                    "name": "fruit",
+                    "type": "select one",
+                    "label": "Fruit",
+                    "children": [
+                        {"name": "mango", "label": "Mango"},
+                        {"name": "orange", "label": "Orange"},
+                    ],
+                },
+                {
+                    "name": "meta",
+                    "type": "group",
+                    "control": {"bodyless": True},
+                    "children": [
+                        {
+                            "name": "instanceID",
+                            "type": "calculate",
+                            "bind": {"readonly": "true()", "jr:preload": "uid"},
+                        }
+                    ],
+                },
+            ],
+        }
+        XForm.objects.filter(pk=xform.pk).update(
+            json=stale_json,
+            encrypted=True,
+            is_managed=True,
+            public_key=public_key,
+            # The form has data, so _set_public_key_field does not
+            # re-inject the key on save
+            num_of_submissions=1,
+        )
+        xform.refresh_from_db()
+        return xform
+
+    def test_save_preserves_managed_encryption_on_stale_json(self):
+        """A full save keeps a managed form encrypted when its json is stale.
+
+        The XLSForm-rebuilt survey must retain the injected public key,
+        otherwise the save recomputes ``encrypted`` as False.
+        """
+        public_key = "fake-managed-public-key"
+        xform = self._make_stale_managed_xform(public_key)
+
+        xform.save()
+
+        xform.refresh_from_db()
+        self.assertTrue(xform.encrypted)
+
+    def test_save_heals_stale_json_of_managed_form(self):
+        """A full save persists the rebuilt json, key included.
+
+        The stale json should be replaced by the XLSForm-rebuilt workbook
+        json with the injected public key retained, so later saves do not
+        re-parse the XLSForm.
+        """
+        public_key = "fake-managed-public-key"
+        xform = self._make_stale_managed_xform(public_key)
+
+        xform.save()
+
+        xform.refresh_from_db()
+        self.assertEqual(
+            xform.json,
+            {**self.publish_time_workbook_json, "public_key": public_key},
+        )
+
     def test_is_was_managed_when_managed(self):
         """is_was_managed returns True when is_managed is True"""
         self._publish_transportation_form()
@@ -628,6 +843,33 @@ class TestXForm(TestBase):
         )
 
         self.assertTrue(self.xform.is_was_managed)
+
+
+class UpdateXFormUUIDTestCase(TestBase):
+    """Tests for update_xform_uuid"""
+
+    def test_deleted_twin_ignored(self):
+        """Only the active form with the id_string is updated"""
+        original_id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=original_id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+        new_uuid = "d156a2dce4c34751af57f21ef5c4e6cc"
+
+        update_xform_uuid(self.user.username, original_id_string, new_uuid)
+
+        active_xform.refresh_from_db()
+        self.assertEqual(active_xform.uuid, new_uuid)
 
 
 class XFormReversionRegistrationTestCase(TestBase):

@@ -4,6 +4,7 @@ The /api/v1/exports API implementation.
 
 List, Create, Update, Destroy Export model objects.
 """
+
 import os
 
 from rest_framework.mixins import DestroyModelMixin
@@ -30,7 +31,10 @@ class ExportViewSet(DestroyModelMixin, ReadOnlyModelViewSet):
     authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
         TempTokenURLParameterAuthentication
     ]
-    queryset = Export.objects.all()
+    queryset = Export.objects.filter(
+        xform__deleted_at__isnull=True,
+        xform__project__organization__is_active=True,
+    )
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,

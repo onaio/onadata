@@ -121,6 +121,27 @@ class TestCSVDataFrameBuilder(TestBase):
         xform = self._publish_markdown(md, self.user, id_string="browser_use")
         return xform
 
+    def test_deleted_twin_ignored(self):
+        """The active form with the id_string is used when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+
+        csv_df_builder = CSVDataFrameBuilder(self.user.username, id_string)
+
+        self.assertEqual(csv_df_builder.xform, active_xform)
+
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username, self.xform.id_string, include_images=False

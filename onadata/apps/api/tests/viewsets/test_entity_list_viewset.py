@@ -208,6 +208,25 @@ class CreateEntityListTestCase(TestAbstractViewSet):
             else:
                 self.assertEqual(response.status_code, 403)
 
+    def test_name_of_soft_deleted_reused(self):
+        """A name occupied by a soft-deleted EntityList can be reused"""
+        dataset_name = "x" * 255
+        entity_list = EntityList.objects.create(name=dataset_name, project=self.project)
+        entity_list.soft_delete(self.user)
+        data = {"name": dataset_name, "project": self.project.pk}
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["name"], dataset_name)
+        entity_lists = EntityList.objects.filter(
+            name=dataset_name, project=self.project
+        )
+        new_entity_list = entity_lists.get(deleted_at__isnull=True)
+        entity_list.refresh_from_db()
+        self.assertEqual(entity_lists.count(), 2)
+        self.assertEqual(new_entity_list.pk, response.data["id"])
+        self.assertIsNotNone(entity_list.deleted_at)
+
     def test_name_unique(self):
         """`name` should be unique per project"""
         EntityList.objects.create(name="trees", project=self.project)

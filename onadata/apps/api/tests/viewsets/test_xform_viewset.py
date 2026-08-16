@@ -1164,6 +1164,81 @@ class TestXFormViewSet(XFormViewSetBaseTestCase):
         self.assertNotIn(deleted_form.pk, form_ids)
         self.assertIn(active_form.pk, form_ids)
 
+    def test_public_form_list_excludes_inactive_project_organization(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk="public")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_form_retrieve_inactive_project_organization_not_found(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_form_list_excludes_inactive_project_organization(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.project.organization.is_active = False
+        self.project.organization.save()
+
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        form_ids = [form["formid"] for form in response.data]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(self.xform.pk, form_ids)
+
+    def test_public_form_list_ignores_inactive_uploader(self):
+        self._org_create()
+        self._project_create(
+            {
+                "name": "organization_project",
+                "owner": (
+                    "http://testserver/api/v1/users/"
+                    f"{self.organization.user.username}"
+                ),
+            }
+        )
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        self.xform.created_by.is_active = False
+        self.xform.created_by.save()
+
+        self.view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/")
+        response = self.view(request, pk="public")
+        form_ids = [form["formid"] for form in response.data]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.xform.project.organization.is_active)
+        self.assertIn(self.xform.pk, form_ids)
+
     def test_form_list_other_user_access(self):
         with HTTMock(enketo_urls_mock):
             """Test that a different user has no access to bob's form"""
@@ -5797,11 +5872,94 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         entity_list = EntityList.objects.get(name="trees")
         self.assertEqual(
             response.data["contributes_entities_to"],
-            {
-                "id": entity_list.pk,
-                "name": "trees",
-                "is_active": True,
-            },
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
+        )
+
+    @override_settings(TIME_ZONE="UTC")
+    def test_get_single_registration_form_multiple_lists(self):
+        """Response for an XForm contributing Entities to multiple lists is correct"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        households = EntityList.objects.get(name="households")
+        members = EntityList.objects.get(name="members")
+        self.assertCountEqual(
+            response.data["contributes_entities_to"],
+            [
+                {
+                    "id": members.pk,
+                    "name": "members",
+                    "is_active": True,
+                },
+                {
+                    "id": households.pk,
+                    "name": "households",
+                    "is_active": True,
+                },
+            ],
+        )
+
+    def test_get_single_registration_form_deleted_dataset(self):
+        """Soft deleted dataset is excluded from contributes_entities_to"""
+        md = """
+        | survey   |
+        |          | type         | name         | label            | save_to             |
+        |          | text         | hhid         | Household ID     | households#id       |
+        |          | geopoint     | location     | Location         | households#geometry |
+        |          | begin_repeat | member       | Household Member |                     |
+        |          | text         | full_name    | Full name        |                     |
+        |          | text         | phone_number | Phone number     | members#phone       |
+        |          | end_repeat   |              |                  |                     |
+        | settings |              |              |                  |                     |
+        |          | form_title   | form_id      |                  |                     |
+        |          | Households   | households   |                  |                     |
+        | entities |              |              |                  |                     |
+        |          | list_name    | label        |                  |                     |
+        |          | households   | ${hhid}      |                  |                     |
+        |          | members      | ${full_name} |                  |                     |
+        """
+        xform = self._publish_markdown(md, self.user)
+        households = EntityList.objects.get(name="households")
+        members = EntityList.objects.get(name="members")
+        members.soft_delete()
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["contributes_entities_to"],
+            [
+                {
+                    "id": households.pk,
+                    "name": "households",
+                    "is_active": True,
+                }
+            ],
         )
 
     @override_settings(TIME_ZONE="UTC")
@@ -5816,11 +5974,13 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
         entity_list = EntityList.objects.get(name="trees")
         self.assertEqual(
             response.data[0]["contributes_entities_to"],
-            {
-                "id": entity_list.pk,
-                "name": "trees",
-                "is_active": True,
-            },
+            [
+                {
+                    "id": entity_list.pk,
+                    "name": "trees",
+                    "is_active": True,
+                }
+            ],
         )
 
     @override_settings(TIME_ZONE="UTC")
@@ -5843,6 +6003,18 @@ nhMo+jI88L3qfm4/rtWKuQ9/a268phlNj34uQeoDDHuRViQo00L5meE/pFptm
                 }
             ],
         )
+
+    def test_get_single_follow_up_form_deleted_dataset(self):
+        """Soft deleted dataset is excluded from consumes_entities_from"""
+        self._project_create()
+        entity_list = EntityList.objects.create(name="trees", project=self.project)
+        xform = self._publish_follow_up_form(self.user, self.project)
+        entity_list.soft_delete()
+        view = XFormViewSet.as_view({"get": "retrieve"})
+        request = self.factory.get("/", **self.extra)
+        response = view(request, pk=xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["consumes_entities_from"], [])
 
     @override_settings(TIME_ZONE="UTC")
     def test_get_list_follow_up_form(self):

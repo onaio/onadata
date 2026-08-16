@@ -74,7 +74,7 @@ Response
                     "id_string": "Community_Health_Check",
                     "is_merged_dataset": false,
                     "encrypted": true,
-                    "contributes_entities_to": null,
+                    "contributes_entities_to": [],
                     "consumes_entities_from": []
                 }
                 ],
@@ -115,7 +115,7 @@ Response
                     "id_string": "Animal_Sighting_Log",
                     "is_merged_dataset": false,
                     "encrypted": false,
-                    "contributes_entities_to": null,
+                    "contributes_entities_to": [],
                     "consumes_entities_from": []
                 }
                 ],
@@ -264,11 +264,13 @@ Response
                     "url":"https://api.ona.io/api/v1/forms/1",
                     "last_updated_at":"2024-06-21T08:13:06.436449Z",
                     "is_merged_dataset":false,
-                    "contributes_entities_to":{
-                        "id":100,
-                        "name":"trees",
-                        "is_active":true
-                    },
+                    "contributes_entities_to":[
+                        {
+                            "id":100,
+                            "name":"trees",
+                            "is_active":true
+                        }
+                    ],
                     "consumes_entities_from":[]
                 },
                 {
@@ -284,7 +286,7 @@ Response
                     "url":"https://api.ona.io/api/v1/forms/2",
                     "last_updated_at":"2024-06-21T08:13:58.963836Z",
                     "is_merged_dataset":false,
-                    "contributes_entities_to":null,
+                    "contributes_entities_to":[],
                     "consumes_entities_from":[
                         {
                             "id":100,

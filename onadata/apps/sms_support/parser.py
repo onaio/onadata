@@ -3,6 +3,7 @@
 """
 SMS parser module - utility functionality to process SMS messages.
 """
+
 import base64
 import binascii
 import logging
@@ -214,7 +215,6 @@ def parse_sms_text(xform, identity, sms_text):
         # number of intermediate, omited questions (medias)
         step_back = 0
         for idx, question in enumerate(egroups):
-
             real_value = None
 
             question_type = question.get("type")
@@ -310,9 +310,15 @@ def process_incoming_smses(username, incomings, id_string=None):  # noqa C901
         # we expect the SMS to be prefixed with the form's sms_id_string
         if id_string is None:
             keyword, text = [s.strip() for s in text.split(None, 1)]
-            xform = XForm.objects.get(user__username=username, sms_id_string=keyword)
+            xform = XForm.objects.get(
+                user__username=username,
+                sms_id_string=keyword,
+                deleted_at__isnull=True,
+            )
         else:
-            xform = XForm.objects.get(user__username=username, id_string=id_string)
+            xform = XForm.objects.get(
+                user__username=username, id_string=id_string, deleted_at__isnull=True
+            )
 
         if not xform.allows_sms:
             responses.append(

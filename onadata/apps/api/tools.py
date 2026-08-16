@@ -117,7 +117,10 @@ def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
     Returns only public forms if owner is 'public' otherwise returns forms
     belonging to owner.
     """
-    xforms = XForm.objects.filter()
+    xforms = XForm.objects.filter(
+        deleted_at__isnull=True,
+        project__organization__is_active=True,
+    )
 
     if shared_form and not shared_data:
         xforms = xforms.filter(shared=True)
@@ -373,7 +376,11 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
     """
     if id_string and project:
         xform = get_object_or_404(
-            XForm, user=owner, id_string=id_string, project=project
+            XForm,
+            user=owner,
+            id_string=id_string,
+            project=project,
+            deleted_at__isnull=True,
         )
         if not ManagerRole.user_has_role(user, xform):
             raise exceptions.PermissionDenied(
@@ -433,14 +440,20 @@ def publish_project_xform(request, project):
         Checks if an id_string exists in an account, returns True if it exists
         otherwise returns False.
         """
-        try:
-            XForm.objects.get(user=project.organization, id_string=xform.id_string)
-        except XForm.DoesNotExist:
-            return False
-        return True
+        return XForm.objects.filter(
+            user=project.organization,
+            id_string=xform.id_string,
+            deleted_at__isnull=True,
+            project__organization__is_active=True,
+        ).exists()
 
     if "formid" in request.data:
-        xform = get_object_or_404(XForm, pk=request.data.get("formid"))
+        xform = get_object_or_404(
+            XForm,
+            pk=request.data.get("formid"),
+            deleted_at__isnull=True,
+            project__organization__is_active=True,
+        )
         clear_project_owner_cache(xform.project.pk)
         safe_cache_delete(f"{PROJ_FORMS_CACHE}{xform.project.pk}")
         safe_cache_delete(f"{PROJ_BASE_FORMS_CACHE}{xform.project.pk}")

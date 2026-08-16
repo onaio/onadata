@@ -67,11 +67,12 @@ Reuse the test database for faster repeated runs:
 
 We would like to thank the following security researchers for responsibly disclosing security issues:
 
-============= ================  ==========  ==============
- Name          Date              Severity    Contribution
-============= ================  ==========  ==============
-Danish Tariq   1st April 2018     Medium     `Users able to create projects in other user accounts <https://github.com/onaio/onadata/commit/bdcd53922940739d71bc554ca86ab484de5feab8>`_
-============= ================  ==========  ==============
+===================== ================  ==========  ==============
+Name                  Date              Severity    Contribution
+===================== ================  ==========  ==============
+Danish Tariq          1st April 2018    Medium      `Users able to create projects in other user accounts <https://github.com/onaio/onadata/commit/bdcd53922940739d71bc554ca86ab484de5feab8>`_
+Santosh Kumar Puppala 20th July 2026    High        `SQL injection via the $or null branch of the data API query filter <https://github.com/onaio/onadata/commit/ea77de0b8fb59d6a6e2d9ec64ba18a8e9c0384ed>`_
+===================== ================  ==========  ==============
 
 
 Localization

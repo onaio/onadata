@@ -140,14 +140,6 @@ onadata.libs.serializers.organization\_serializer module
    :undoc-members:
    :show-inheritance:
 
-onadata.libs.serializers.password\_reset\_serializer module
------------------------------------------------------------
-
-.. automodule:: onadata.libs.serializers.password_reset_serializer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 onadata.libs.serializers.project\_invitation\_serializer module
 ---------------------------------------------------------------
 

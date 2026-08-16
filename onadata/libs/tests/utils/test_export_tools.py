@@ -721,6 +721,49 @@ class TestExportTools(TestAbstractViewSet):
         ]  # yapf: disable
         self.assertEqual(kml_export_data(xform.id_string, xform.user), expected_data)
 
+    def test_kml_export_data_deleted_twin_ignored(self):
+        """kml_export_data exports the active form when a deleted twin exists"""
+        id_string = "x" * 95
+        md = """
+        | survey |
+        |        | type              | name   | label   |
+        |        | geopoint          | gps    | GPS     |
+        |        | select one fruits | fruit  | Fruit   |
+        | choices |
+        |         | list name         | name   | label  |
+        |         | fruits            | orange | Orange |
+        |         | fruits            | mango  | Mango  |
+        """
+        dd = self._publish_markdown(md, self.user, id_string=id_string)
+        deleted_xform = XForm.objects.get(pk=dd.pk)
+        Instance(
+            xform=deleted_xform,
+            xml=f'<data id="{id_string}"><gps>-1.28 36.83</gps>'
+            "<fruit>orange</fruit></data>",
+        ).save()
+        deleted_xform.soft_delete(self.user)
+        new_dd = self._publish_markdown(md, self.user, id_string=id_string)
+        active_xform = XForm.objects.get(pk=new_dd.pk)
+        Instance(
+            xform=active_xform,
+            xml=f'<data id="{id_string}"><gps>32.85 13.04</gps>'
+            "<fruit>mango</fruit></data>",
+        ).save()
+
+        data = kml_export_data(id_string, self.user)
+
+        expected_data = [
+            {
+                "name": id_string,
+                "image_urls": [],
+                "lat": 32.85,
+                "table": '<table border="1"><a href="#"><img width="210" class="thumbnail" src="" alt=""></a><tr><td>GPS</td><td>32.85 13.04</td></tr><tr><td>Fruit</td><td>mango</td></tr></table>',  # noqa pylint: disable=C0301
+                "lng": 13.04,
+                "id": active_xform.instances.all().first().pk,
+            },
+        ]
+        self.assertEqual(data, expected_data)
+
     def test_kml_exports(self):
         """
         Test generate_kml_export()

@@ -8,18 +8,21 @@ from __future__ import unicode_literals
 import os
 import re
 from builtins import open
+from copy import deepcopy
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import patch
 from xml.etree.ElementTree import fromstring
 
 from django.conf import settings
+from django.test import override_settings
 
 import unicodecsv as ucsv
 from celery.backends.rpc import BacklogLimitExceeded
 from openpyxl import Workbook
 
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.instance import update_xform_submission_count
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.messaging.constants import (
@@ -97,6 +100,21 @@ class CSVImportTestCase(TestBase):
         )
         self.assertNotEqual(safe_create_args[4], None)
 
+    def test_submit_semicolon_delimited_csv(self):
+        """Test importing a CSV that uses a semicolon delimiter."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+        semicolon_csv = BytesIO()
+        writer = ucsv.writer(semicolon_csv, delimiter=";")
+        with open(os.path.join(self.fixtures_dir, "single.csv"), "rb") as source:
+            writer.writerows(ucsv.reader(source, encoding="utf-8-sig"))
+        semicolon_csv.seek(0)
+
+        result = csv_import.submit_csv(self.user.username, xform, semicolon_csv)
+
+        self.assertEqual(result.get("additions"), 1)
+        self.assertEqual(Instance.objects.count(), 1)
+
     @patch("onadata.libs.utils.csv_import.safe_create_instance")
     @patch("onadata.libs.utils.csv_import.dict2xmlsubmission")
     def test_submit_csv_xml_location_property_test(self, d2x, safe_create_instance):
@@ -154,6 +172,119 @@ class CSVImportTestCase(TestBase):
             self.assertEqual(resp, {"job_status": "FAILURE"})
             self.xform.refresh_from_db()
             self.assertEqual(initial_count, self.xform.num_of_submissions)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_submit_csv_count_with_delayed_async_processing(self):
+        """Delayed count tasks do not double-count imported submissions."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        with (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ) as count_task,
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+            patch.object(csv_import, "PROGRESS_BATCH_UPDATE", 1),
+        ):
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
+
+        count_task.assert_called_once()
+        xform.refresh_from_db()
+        self.assertEqual(xform.instances.filter(deleted_at__isnull=True).count(), 1)
+        self.assertEqual(xform.num_of_submissions, 0)
+
+        instance_id = count_task.call_args.kwargs["args"][0]
+        update_xform_submission_count(Instance.objects.get(pk=instance_id))
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 1)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_submit_csv_overwrite_count_with_delayed_async_processing(self):
+        """Overwrite recounts deletions before delayed creation increments."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        task_patches = (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ),
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+        )
+
+        with task_patches[0] as count_task, task_patches[1], task_patches[2]:
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(self.user.username, xform, single_csv)
+
+            first_instance_id = count_task.call_args.kwargs["args"][0]
+            update_xform_submission_count(Instance.objects.get(pk=first_instance_id))
+            xform.refresh_from_db()
+            self.assertEqual(xform.num_of_submissions, 1)
+
+            count_task.reset_mock()
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                csv_import.submit_csv(
+                    self.user.username, xform, single_csv, overwrite=True
+                )
+
+        count_task.assert_called_once()
+        xform.refresh_from_db()
+        self.assertEqual(xform.instances.filter(deleted_at__isnull=True).count(), 1)
+        self.assertEqual(xform.num_of_submissions, 0)
+
+        instance_id = count_task.call_args.kwargs["args"][0]
+        update_xform_submission_count(Instance.objects.get(pk=instance_id))
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 1)
+
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
+    def test_failed_submit_csv_count_with_delayed_async_processing(self):
+        """Rollback removes rows before their delayed count tasks run."""
+        self._publish_xls_file(self.xls_file_path)
+        xform = XForm.objects.get()
+
+        with (
+            patch(
+                "onadata.apps.logger.tasks.update_xform_submission_count_async."
+                "apply_async"
+            ) as count_task,
+            patch("onadata.apps.logger.tasks.save_full_json_async.apply_async"),
+            patch(
+                "onadata.apps.logger.tasks.update_project_date_modified_async."
+                "apply_async"
+            ),
+            patch(
+                "onadata.libs.utils.csv_import.MetaDataSerializer.save",
+                side_effect=RuntimeError("metadata save failed"),
+            ),
+        ):
+            with open(
+                os.path.join(self.fixtures_dir, "single.csv"), "rb"
+            ) as single_csv:
+                result = csv_import.submit_csv(self.user.username, xform, single_csv)
+
+        count_task.assert_called_once()
+        instance_id = count_task.call_args.kwargs["args"][0]
+        self.assertFalse(Instance.objects.filter(pk=instance_id).exists())
+        xform.refresh_from_db()
+        self.assertEqual(xform.num_of_submissions, 0)
+        self.assertEqual(result["job_status"], "FAILURE")
 
     @patch("onadata.libs.utils.logger_tools.send_message")
     def test_submit_csv_edits(self, send_message_mock):
@@ -606,8 +737,8 @@ class CSVImportTestCase(TestBase):
             submission.json["section_B/year_established"].startswith("1890")
         )
 
-    def test_select_multiples_grouped_repeating_w_split(self):
-        """Select multiple choices within group within repeat with split"""
+    def _publish_nested_repeat_select_multiple(self):
+        """Publish the nested repeat select-multiple test form."""
         md_xform = """
         | survey  |                          |              |                   |
         |         | type                     | name         | label             |
@@ -633,7 +764,33 @@ class CSVImportTestCase(TestBase):
         |         | browsers                 | chrome       | Chrome            |
         |         | browsers                 | ie           | Internet Explorer |
         |         | browsers                 | safari       | Safari            |"""
-        xform = self._publish_markdown(md_xform, self.user, id_string="nested_split")
+        return self._publish_markdown(md_xform, self.user, id_string="nested_split")
+
+    @staticmethod
+    def _use_legacy_inline_choices_json(xform):
+        """Move browser choices inline to recreate the legacy JSON shape."""
+        legacy_json = deepcopy(xform.json)
+        choices = legacy_json["choices"].pop("browsers")
+
+        elements = list(legacy_json["children"])
+        while elements:
+            element = elements.pop()
+            if element.get("name") == "browsers":
+                element["children"] = choices
+                break
+            elements.extend(element.get("children", []))
+        else:
+            raise AssertionError("Browsers question not found")
+
+        XForm.objects.filter(pk=xform.pk).update(json=legacy_json)
+        xform.refresh_from_db()
+        if hasattr(xform, "_survey"):
+            del xform._survey  # pylint: disable=protected-access
+        return legacy_json
+
+    def test_select_multiples_grouped_repeating_w_split(self):
+        """Select multiple choices within group within repeat with split"""
+        xform = self._publish_nested_repeat_select_multiple()
 
         with open(
             os.path.join(
@@ -657,6 +814,47 @@ class CSVImportTestCase(TestBase):
                     },
                 ],
             )
+
+    def test_select_multiples_grouped_repeating_w_split_legacy_json(self):
+        """CSV import handles legacy select-multiple choices being unavailable."""
+        xform = self._publish_nested_repeat_select_multiple()
+        legacy_json = self._use_legacy_inline_choices_json(xform)
+
+        self.assertIsNone(xform.get_survey_element("browsers").choices)
+        combined_header = "grp1/grp2/browser_use[1]/grp3/grp4/grp5/browsers"
+        headers = xform.get_headers(repeat_iterations=1)
+        self.assertIn(combined_header, headers)
+        self.assertFalse(
+            any(header.startswith(f"{combined_header}/") for header in headers)
+        )
+
+        with open(
+            os.path.join(
+                self.fixtures_dir,
+                "csv_import_multiple_split_group_repeat.csv",
+            ),
+            "rb",
+        ) as csv_file:
+            csv_import.submit_csv(self.user.username, xform, csv_file)
+
+        self.assertEqual(Instance.objects.count(), 1)
+        submission = Instance.objects.first()
+        repeat_path = "grp1/grp2/browser_use/grp3/grp4/grp5"
+        self.assertEqual(
+            submission.json["grp1/grp2/browser_use"],
+            [
+                {
+                    f"{repeat_path}/year": 2010,
+                    f"{repeat_path}/browsers": "firefox safari",
+                },
+                {
+                    f"{repeat_path}/year": 2011,
+                    f"{repeat_path}/browsers": "firefox chrome",
+                },
+            ],
+        )
+        xform.refresh_from_db()
+        self.assertEqual(xform.json, legacy_json)
 
     def test_select_multiples_grouped_repeating_wo_split(self):
         """Select multiple choices within group within repeat without split"""

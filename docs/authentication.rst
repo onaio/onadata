@@ -63,103 +63,112 @@ class to your local_settings.py file, for example:
         'onadata.libs.authentication.TempTokenAuthentication',
         ...
 
-Using Oauth2 with the Ona API
------------------------------
+Using OAuth 2.0 with the Ona API
+--------------------------------
 
-You can learn more about oauth2 `here <http://tools.ietf.org/html/rfc6749>`_.
+Ona supports the OAuth 2.0 `Authorization Code flow
+<https://www.rfc-editor.org/rfc/rfc6749#section-4.1>`_. Every public or
+confidential client using this flow must use Proof Key for Code Exchange
+(PKCE) with the ``S256`` challenge method.
 
 1. Register your client application with Ona - `register`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``name`` - name of your application
--  ``client_type`` - Client Type: select confidential
--  ``authorization_grant_type`` - Authorization grant type: Authorization code
--  ``redirect_uri`` - Redirect urls: redirection endpoint
+-  ``client_type`` - select public or confidential as appropriate
+-  ``authorization_grant_type`` - select Authorization code
+-  ``redirect_uri`` - exact callback URL or URLs
 
-Keep note of the ``client_id`` and the ``client_secret``, it is required
-when requesting for an ``access_token``.
+Use a public client for software that cannot securely retain a client secret,
+such as a browser-based, native, or command-line application. A public client
+uses its ``client_id`` without a ``client_secret``. A confidential client must
+retain its ``client_secret`` securely and authenticate at the token endpoint.
+Both client types must use PKCE S256.
 
 .. _register: /o/applications/register/
 
-2. Authorize client application.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. Create a PKCE verifier and challenge
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The authorization url is of the form:
-
-.. raw:: html
-
-   <pre class="prettyprint">
-   <b>GET</b> /o/authorize?client_id=XXXXXX&response_type=code&state=abc</pre>
-
-example:
+For each authorization request, generate a new cryptographically random
+``code_verifier`` containing 43 to 128 URI-unreserved characters. Keep the
+verifier private until the token request. Derive the challenge as:
 
 ::
 
-    http://api.ona.io/o/authorize?client_id=e8&response_type=code&state=xyz
+    code_challenge = BASE64URL(SHA256(ASCII(code_verifier)))
 
-.. note::
+The base64url value must not contain ``=`` padding. For example, the verifier
+and its derived challenge below are a matching pair from RFC 7636:
 
-  Providing the url to any user will prompt for a password and
-  request for read and write permission for the application whose
-  ``client_id`` is specified.
+::
+
+    code_verifier:  dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk
+    code_challenge: E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM
+
+Do not reuse this example pair in an application.
+
+3. Authorize the client application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Direct the user's browser to the authorization endpoint with the derived
+challenge and the challenge method set to exactly ``S256``:
+
+::
+
+    https://api.ona.io/o/authorize/?client_id=CLIENT_ID&response_type=code&redirect_uri=https%3A%2F%2Fclient.example.org%2Foauth%2Fcallback&scope=read%20write&state=RANDOM_STATE&code_challenge=CODE_CHALLENGE&code_challenge_method=S256
 
 Where:
 
--  ``client_id`` - is the client application id - ensure its urlencoded
--  ``response_type`` - should be code
--  ``state`` - a random state string that you client application will
-   get when redirection happens
+-  ``client_id`` is the registered application ID
+-  ``response_type`` must be ``code``
+-  ``redirect_uri`` must exactly match a registered callback URL
+-  ``state`` must be a random, transaction-specific value that the client
+   validates after redirection
+-  ``code_challenge`` is derived from the verifier for this transaction
+-  ``code_challenge_method`` must be exactly ``S256``
 
-What happens:
+Ona rejects Authorization Code requests with a missing challenge, an omitted
+challenge method, ``plain``, or any unsupported challenge method.
 
-1. a login page is presented, the username used to login determines the
-   account that provides access.
-2. redirection to the client application occurs, the url is of the form:
-
-    REDIRECT_URI/?state=abc&code=YYYYYYYYY
-
-example redirect uri
-
-::
-
-    http://localhost:30000/?state=xyz&code=SWWk2PN6NdCwfpqiDiPRcLmvkw2uWd
-
--  ``code`` - is the code to use to request for ``access_token``
--  ``state`` - same state string used during authorization request
-
-Your client application should use the ``code`` to request for an
-access_token.
-
-3. Request for access token.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You need to make a ``POST`` request with ``grant_type``, ``code``,
-``client_id`` and ``redirect_uri`` as ``POST`` payload params. You
-should authenticate the request with ``Basic Authentication`` using your
-``client_id`` and ``client_secret`` as ``username:password`` pair.
-
-Request:
-
-.. raw:: html
-
-   <pre class="prettyprint">
-   <b>POST</b>/o/token</pre>
-
-Payload:
+The user signs in and approves the requested access. Ona then redirects the
+browser to the registered callback URL:
 
 ::
 
-    grant_type=authorization_code&code=YYYYYYYYY&client_id=XXXXXX&redirect_uri=http://redirect/uri/path
+    https://client.example.org/oauth/callback?state=RANDOM_STATE&code=AUTHORIZATION_CODE
 
-curl example:
+The client must validate ``state`` before exchanging the authorization code.
+
+4. Request an access token
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Exchange the authorization code at ``/o/token/``. The request must include the
+original ``code_verifier``. A missing or incorrect verifier is rejected.
+
+Public-client example:
 
 ::
 
-    curl -X POST -d "grant_type=authorization_code&
-    code=PSwrMilnJESZVFfFsyEmEukNv0sGZ8&
-    client_id=e8x4zzJJIyOikDqjPcsCJrmnU22QbpfHQo4HhRnv&
-    redirect_uri=http://localhost:30000" "http://api.ona.io/o/token/"
-    --user "e8:xo7i4LNpMj"
+    curl -X POST https://api.ona.io/o/token/ \
+        --data-urlencode grant_type=authorization_code \
+        --data-urlencode code=AUTHORIZATION_CODE \
+        --data-urlencode client_id=CLIENT_ID \
+        --data-urlencode redirect_uri=https://client.example.org/oauth/callback \
+        --data-urlencode code_verifier=CODE_VERIFIER
+
+A public client must not send a client secret. A confidential client sends the
+same payload and also authenticates with HTTP Basic Authentication:
+
+::
+
+    curl -X POST https://api.ona.io/o/token/ \
+        --user "CLIENT_ID:CLIENT_SECRET" \
+        --data-urlencode grant_type=authorization_code \
+        --data-urlencode code=AUTHORIZATION_CODE \
+        --data-urlencode client_id=CLIENT_ID \
+        --data-urlencode redirect_uri=https://client.example.org/oauth/callback \
+        --data-urlencode code_verifier=CODE_VERIFIER
 
 Response:
 
@@ -180,8 +189,8 @@ Where:
 
 Now that you have an ``access_token`` you can make API calls.
 
-4. Accessing the Ona API using the ``access_token``.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+5. Access the Ona API with the ``access_token``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Example using curl:
 

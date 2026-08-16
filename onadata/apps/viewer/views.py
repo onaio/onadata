@@ -46,7 +46,7 @@ from onadata.apps.viewer.tasks import create_async_export
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.chart_tools import build_chart_data
-from onadata.libs.utils.common_tools import get_abbreviated_xpath, get_uuid
+from onadata.libs.utils.common_tools import get_uuid
 from onadata.libs.utils.export_tools import (
     DEFAULT_GROUP_DELIMITER,
     generate_export,
@@ -64,6 +64,7 @@ from onadata.libs.utils.logger_tools import (
 )
 from onadata.libs.utils.user_auth import (
     get_xform_and_perms,
+    has_attachment_permission,
     has_permission,
     helper_auth_helper,
 )
@@ -236,13 +237,11 @@ def add_submission_with(request, username, id_string):
         Returns xpaths with elements of type 'geopoint'.
         """
         data_dictionary = DataDictionary.objects.get(
-            user__username__iexact=username, id_string__iexact=id_string
+            user__username__iexact=username,
+            id_string__iexact=id_string,
+            deleted_at__isnull=True,
         )
-        return [
-            get_abbreviated_xpath(e.get_xpath())
-            for e in data_dictionary.get_survey_elements()
-            if e.bind.get("type") == "geopoint"
-        ]
+        return data_dictionary.geopoint_xpaths()
 
     value = request.GET.get("coordinates")
     xpaths = geopoint_xpaths(username, id_string)
@@ -714,7 +713,6 @@ def zip_export(request, username, id_string):
         id_string = None
 
     attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = None
 
     with NamedTemporaryFile() as zip_file:
         create_attachments_zipfile(attachments, zip_file)
@@ -873,20 +871,30 @@ def data_view(request, username, id_string):
 def attachment_url(request, size="medium"):
     """
     Redirects to image attachment  of the specified size, defaults to 'medium'.
+
+    Responds with 403 when the requester has no access to the owning form.
     """
     media_file = request.GET.get("media_file")
     no_redirect = request.GET.get("no_redirect")
     attachment_id = request.GET.get("attachment_id")
 
-    if not media_file and not attachment_id:
-        return HttpResponseNotFound(_("Attachment not found"))
+    live_attachments = Attachment.objects.filter(
+        instance__deleted_at__isnull=True,
+        instance__xform__deleted_at__isnull=True,
+        deleted_at__isnull=True,
+    )
     if attachment_id:
-        attachment = get_object_or_404(Attachment, pk=attachment_id)
+        attachment = get_object_or_404(live_attachments, pk=attachment_id)
+    elif media_file:
+        attachment = live_attachments.filter(media_file=media_file).order_by().first()
     else:
-        result = Attachment.objects.filter(media_file=media_file).order_by()[0:1]
-        if not result:
-            return HttpResponseNotFound(_("Attachment not found"))
-        attachment = result[0]
+        attachment = None
+
+    if attachment is None:
+        return HttpResponseNotFound(_("Attachment not found"))
+
+    if not has_attachment_permission(attachment, request):
+        return HttpResponseForbidden(_("Not shared."))
 
     if size == "original" and no_redirect == "true":
         response = response_with_mimetype_and_name(

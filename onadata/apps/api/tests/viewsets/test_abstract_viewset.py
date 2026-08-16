@@ -6,8 +6,8 @@ Test base class for API viewset tests.
 import json
 import os
 import re
-import subprocess
 import warnings
+from glob import glob
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -497,18 +497,17 @@ class TestAbstractViewSet(TestBase, TestCase):
             media_file,
         )
         if delete_existing_attachments:
-            try:
-                media_file_name = media_file.split(".")[0]
-                # Use the same folder pattern as the upload_to function in Attachment model
-                # Format: {xform.id}_{xform.id_string}
-                attachment_folder = f"{self.xform.id}_{self.xform.id_string}"
-                cmd = (
-                    f"rm {settings.MEDIA_ROOT}"
-                    f"{self.profile_data['username']}/attachments/{attachment_folder}/{media_file_name}*"
-                )
-                subprocess.run(cmd, shell=True, check=True)
-            except subprocess.CalledProcessError:
-                pass
+            media_file_name = os.path.splitext(media_file)[0]
+            attachment_folder = f"{self.xform.id}_{self.xform.id_string}"
+            attachment_pattern = os.path.join(
+                settings.MEDIA_ROOT,
+                self.profile_data["username"],
+                "attachments",
+                attachment_folder,
+                f"{media_file_name}*",
+            )
+            for attachment_path in glob(attachment_pattern):
+                os.unlink(attachment_path)
 
         with open(path, "rb") as f:
             self._make_submission(

@@ -18,17 +18,12 @@ from openpyxl import load_workbook
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
-from onadata.libs.utils.dataview_filters import (
-    apply_filters,
-    filter_to_field_lookup,
-    get_field_lookup,
-    get_filter_kwargs,
-)
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment, Instance
-from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.data_view import FILTERABLE_METADATA_COLUMNS, DataView
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
@@ -42,6 +37,13 @@ from onadata.libs.utils.common_tags import EDITED, MONGO_STRFTIME
 from onadata.libs.utils.common_tools import (
     filename_from_disposition,
     get_response_content,
+)
+from onadata.libs.utils.dataview_filters import (
+    apply_filters,
+    filter_to_field_lookup,
+    get_field_lookup,
+    get_filter_kwargs,
+    is_safe_column,
 )
 
 
@@ -112,6 +114,56 @@ class TestDataViewViewSet(TestAbstractViewSet):
         instance.save()
         self.assertEqual(apply_filters(self.xform.instances, filters).first().xml, xml)
         # delete instance
+        instance.delete()
+
+    def test_is_safe_column(self):
+        """Only string columns free of the ``__`` lookup separator are safe."""
+        self.assertTrue(is_safe_column("age"))
+        self.assertTrue(is_safe_column("a_group/grouped"))
+        self.assertTrue(is_safe_column("_submission_time"))
+        # A form field literally named with ``__`` is not safe even though it
+        # could otherwise reach the allow-list.
+        self.assertFalse(is_safe_column("age__gt"))
+        self.assertFalse(is_safe_column([]))
+        self.assertFalse(is_safe_column(None))
+
+    def test_get_filter_kwargs_drops_lookup_separator_column(self):
+        """A column carrying ``__`` never reaches the ORM lookup."""
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": "age__gt", "filter": "="}]),
+            {},
+        )
+
+    def test_get_filter_kwargs_drops_non_string_column(self):
+        """A non-string column is dropped rather than raising a TypeError."""
+        self.assertEqual(
+            get_filter_kwargs([{"value": 2, "column": [], "filter": "="}]),
+            {},
+        )
+
+    def test_apply_filters_ignores_hostile_stored_dataview(self):
+        """A hostile column stored directly is handled safely at consumption.
+
+        DataViews created via the ORM bypass serializer validation; a column
+        with ``__`` must not reach ``filter(**kwargs)``. The filter is dropped
+        so the query runs without error and simply applies no constraint.
+        """
+        xml = '<data id="a"><fruit>orange</fruit></data>'
+        instance = Instance(xform=self.xform, xml=xml)
+        instance.save()
+
+        data_view = DataView.objects.create(
+            name="Hostile DataView",
+            project=self.project,
+            xform=self.xform,
+            columns=["fruit"],
+            query=[{"column": "fruit__gt", "filter": "=", "value": "x"}],
+        )
+
+        queryset = apply_filters(self.xform.instances, data_view.query)
+        # No exception, and the hostile filter applied no constraint.
+        self.assertIn(instance, list(queryset))
+
         instance.delete()
 
     # pylint: disable=invalid-name
@@ -360,6 +412,176 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["name"], "My DataView updated")
+
+    def _dataview_data(self, **overrides):
+        data = {
+            "name": "Allow-list DataView",
+            "xform": f"http://testserver/api/v1/forms/{self.xform.pk}",
+            "project": f"http://testserver/api/v1/projects/{self.project.pk}",
+            "columns": '["name", "age", "gender"]',
+            "query": '[{"column":"age","filter":">","value":"20"}]',
+        }
+        data.update(overrides)
+        return data
+
+    def test_create_dataview_rejects_unknown_column(self):
+        """A query column absent from the form is rejected on create."""
+        data = self._dataview_data(
+            query='[{"column":"nonexistent_field","filter":"=","value":"x"}]'
+        )
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_create_dataview_rejects_lookup_path_column(self):
+        """A Django lookup-separator column (``__``) is rejected on create."""
+        data = self._dataview_data(
+            query='[{"column":"age__gt","filter":"=","value":"20"}]'
+        )
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_create_dataview_accepts_supported_metadata_column(self):
+        """A supported metadata column (``_submission_time``) is accepted."""
+        data = self._dataview_data(
+            query='[{"column":"_submission_time","filter":">","value":"2015-01-01"}]'
+        )
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_create_dataview_accepts_nested_xpath_column(self):
+        """A valid nested form XPath (containing ``/``) is accepted."""
+        data = self._dataview_data(
+            columns='["name", "a_group/grouped"]',
+            query='[{"column":"a_group/grouped","filter":"=","value":"Yes"}]',
+        )
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_update_dataview_rejects_unknown_column(self):
+        """A full update (PUT) with an unknown query column is rejected."""
+        self._create_dataview()
+
+        data = self._dataview_data(
+            name="My DataView updated",
+            query='[{"column":"nonexistent_field","filter":"=","value":"x"}]',
+        )
+        request = self.factory.put("/", data=data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_patch_dataview_query_rejects_unknown_column(self):
+        """A partial update (PATCH) that sets an unknown query column fails."""
+        self._create_dataview()
+
+        data = {"query": '[{"column":"nonexistent_field","filter":"=","value":"x"}]'}
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_patch_unrelated_keeps_legacy_column(self):
+        """An unrelated PATCH is not failed by a pre-existing legacy column."""
+        data_view = DataView.objects.create(
+            name="Legacy DataView",
+            project=self.project,
+            xform=self.xform,
+            columns=["name"],
+            query=[{"column": "legacy_gone", "filter": "=", "value": "x"}],
+        )
+
+        request = self.factory.patch("/", data={"name": "Renamed"}, **self.extra)
+        response = self.view(request, pk=data_view.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["name"], "Renamed")
+
+    def test_form_change_validates_retained_query(self):
+        """Changing the form re-validates the retained query against it."""
+        # Query column ``gender`` is valid on the tutorial form.
+        self._create_dataview(
+            data=self._dataview_data(
+                name="Gender DataView",
+                columns='["name", "gender"]',
+                query='[{"column":"gender","filter":"=","value":"male"}]',
+            )
+        )
+        data_view_pk = self.data_view.pk
+
+        # Publish a second form that has no ``gender`` field.
+        path = os.path.join(
+            settings.PROJECT_ROOT,
+            "libs",
+            "tests",
+            "utils",
+            "fixtures",
+            "age_decimal",
+            "age_decimal.xlsx",
+        )
+        self._publish_xls_form_to_project(xlsform_path=path)
+
+        data = {"xform": f"http://testserver/api/v1/forms/{self.xform.pk}"}
+        request = self.factory.patch("/", data=data, **self.extra)
+        response = self.view(request, pk=data_view_pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_create_dataview_rejects_non_string_column(self):
+        """A non-string query column yields a 400, not a 500 (TypeError)."""
+        data = self._dataview_data(query='[{"column":[],"filter":"=","value":"x"}]')
+        request = self.factory.post("/", data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_create_dataview_rejects_form_field_with_lookup_separator(self):
+        """A form field literally named with ``__`` is still rejected.
+
+        Even when the field enters the allow-list via the form, the ``__``
+        lookup separator is rejected before the membership check so it can
+        never reach ``get_field_lookup``.
+        """
+        fields = self.xform.get_field_name_xpaths_only() + ["age__gt"]
+        data = self._dataview_data(
+            query='[{"column":"age__gt","filter":"=","value":"20"}]'
+        )
+        with patch.object(XForm, "get_field_name_xpaths_only", return_value=fields):
+            request = self.factory.post("/", data=data, **self.extra)
+            response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("query", response.data)
+
+    def test_create_dataview_accepts_all_supported_metadata_columns(self):
+        """Every supported filter metadata column is accepted on create."""
+        for column in FILTERABLE_METADATA_COLUMNS:
+            # ``_submission_time`` casts to a timestamp; other metadata compare
+            # as text and ``_id`` as an integer, so an int-like value is safe.
+            value = "2015-01-01" if column == "_submission_time" else "1"
+            query = json.dumps([{"column": column, "filter": "=", "value": value}])
+            data = self._dataview_data(name=f"Meta {column}", query=query)
+            request = self.factory.post("/", data=data, **self.extra)
+            response = self.view(request)
+
+            self.assertEqual(
+                response.status_code,
+                201,
+                f"metadata column {column} rejected: {response.data}",
+            )
 
     def test_soft_delete_dataview(self):
         """

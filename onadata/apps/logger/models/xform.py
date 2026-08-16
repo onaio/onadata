@@ -141,6 +141,20 @@ def get_survey_from_file_object(
     return survey, xlsform_json
 
 
+def _convert_triggers_to_tuples(node):
+    """Recursively convert question ``trigger`` values from lists to tuples.
+
+    pyxform processes trigger references into tuples; storing the survey as
+    JSON turns them into lists, which ``SurveyElementBuilder`` rejects.
+    """
+    if isinstance(node, dict):
+        if isinstance(node.get("trigger"), list):
+            node["trigger"] = tuple(node["trigger"])
+        for child in node.get("children", []):
+            _convert_triggers_to_tuples(child)
+    return node
+
+
 def question_types_to_exclude(_type):
     """Returns True if ``_type`` is in QUESTION_TYPES_TO_EXCLUDE."""
     return _type in QUESTION_TYPES_TO_EXCLUDE
@@ -424,12 +438,9 @@ class XFormMixin:
         ]
 
     def _id_string_already_exists_in_account(self, id_string):
-        try:
-            XForm.objects.get(user=self.user, id_string__iexact=id_string)
-        except XForm.DoesNotExist:
-            return False
-
-        return True
+        return XForm.objects.filter(
+            user=self.user, id_string__iexact=id_string, deleted_at__isnull=True
+        ).exists()
 
     def get_unique_id_string(self, id_string, count=0):
         """Checks and returns a unique ``id_string``."""
@@ -512,9 +523,27 @@ class XFormMixin:
             if (is_itemset_error or is_trigger_error) and self.xls:
                 # Use get_survey_and_json_from_xlsform to get workbook_json
                 survey, workbook_json = self.get_survey_and_json_from_xlsform()
-                # Persist the workbook_json to avoid repeated XLS parsing
+                # Encryption enabled post-publish (e.g. via managed keys)
+                # exists only in the stored json, not the XLSForm
+                if self.public_key:
+                    survey.public_key = self.public_key
+                    workbook_json["public_key"] = self.public_key
+                # Persist the workbook_json to avoid repeated XLS parsing;
+                # updating the in-memory json keeps an enclosing save()
+                # from writing the stale json back
+                self.json = workbook_json
                 XForm.objects.filter(pk=self.pk).update(json=workbook_json)
                 return survey
+            if is_trigger_error:
+                # Merged datasets have no XLSForm to rebuild from; the
+                # stored json is valid except triggers became lists in
+                # the JSON round-trip
+                survey_dict = (
+                    json.loads(self.json) if isinstance(self.json, str) else self.json
+                )
+                return SurveyElementBuilder().create_survey_element_from_dict(
+                    _convert_triggers_to_tuples(survey_dict)
+                )
             raise
 
         return bytes(bytearray(self.xml, encoding="utf-8"))
@@ -711,9 +740,11 @@ class XFormMixin:
             and survey_element.bind.get("type") == "string"
             and survey_element.type == MULTIPLE_SELECT_TYPE
         ):
-            result.pop()
-            for child in survey_element.choices.options:
-                result.append("/".join([path, child.name]))
+            choices = survey_element.choices
+            if choices is not None:
+                result.pop()
+                for child in choices.options:
+                    result.append("/".join([path, child.name]))
         elif (
             hasattr(survey_element, "bind")
             and survey_element.bind is not None
@@ -1104,10 +1135,18 @@ class XForm(XFormMixin, BaseModel):
 
     class Meta:
         app_label = "logger"
-        unique_together = (
-            ("user", "id_string", "project"),
-            ("user", "sms_id_string", "project"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_id_string_per_user_project",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "sms_id_string", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="unique_active_xform_sms_id_string_per_user_project",
+            ),
+        ]
         verbose_name = gettext_lazy("XForm")
         verbose_name_plural = gettext_lazy("XForms")
         permissions = (
@@ -1305,7 +1344,17 @@ class XForm(XFormMixin, BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return getattr(self, "id_string", "")
+        id_string = getattr(self, "id_string", "")
+
+        # The deletion suffix is not stored if appending it would exceed
+        # the id_string's max length
+        if self.deleted_at is not None:
+            deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
+
+            if not id_string.endswith(deletion_suffix):
+                id_string += deletion_suffix
+
+        return id_string
 
     @transaction.atomic()
     def soft_delete(self, user=None):
@@ -1322,13 +1371,14 @@ class XForm(XFormMixin, BaseModel):
         soft_deletion_time = timezone.now()
         deletion_suffix = soft_deletion_time.strftime("-deleted-at-%s")
         self.deleted_at = soft_deletion_time
-        self.id_string += deletion_suffix
-        self.sms_id_string += deletion_suffix
         self.downloadable = False
 
-        # only take the first 100 characters (within the set max_length)
-        self.id_string = self.id_string[: self.MAX_ID_LENGTH]
-        self.sms_id_string = self.sms_id_string[: self.MAX_ID_LENGTH]
+        # Never store a truncated suffix
+        if len(self.id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.id_string += deletion_suffix
+
+        if len(self.sms_id_string) + len(deletion_suffix) <= self.MAX_ID_LENGTH:
+            self.sms_id_string += deletion_suffix
 
         update_fields = [
             "date_modified",
@@ -1359,9 +1409,23 @@ class XForm(XFormMixin, BaseModel):
         if self.deleted_at is None:
             return
 
+        deletion_suffix = self.deleted_at.strftime("-deleted-at-%s")
         self.deleted_at = None
-        self.id_string = self.id_string.split("-deleted-at-")[0]
-        self.sms_id_string = self.sms_id_string.split("-deleted-at-")[0]
+
+        for field in ("id_string", "sms_id_string"):
+            value = getattr(self, field)
+
+            if value.endswith(deletion_suffix):
+                setattr(self, field, value[: -len(deletion_suffix)])
+            elif len(value) == self.MAX_ID_LENGTH:
+                # Legacy: soft delete previously truncated the value to
+                # the max length, retaining only part of the deletion
+                # suffix
+                for length in range(len(deletion_suffix) - 1, 0, -1):
+                    if value.endswith(deletion_suffix[:length]):
+                        setattr(self, field, value[:-length])
+                        break
+
         self.downloadable = True
         self.deleted_by = None
         self.save(
@@ -1581,7 +1645,9 @@ def update_xform_uuid(username, id_string, new_uuid):
     """
     Updates an XForm with the new_uuid.
     """
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    xform = XForm.objects.get(
+        user__username=username, id_string=id_string, deleted_at__isnull=True
+    )
     # check for duplicate uuid
     check_xform_uuid(new_uuid)
 

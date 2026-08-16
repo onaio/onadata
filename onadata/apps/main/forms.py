@@ -5,6 +5,7 @@ forms module.
 
 import importlib
 import ipaddress
+import logging
 import os
 import re
 import socket
@@ -12,7 +13,7 @@ import socket
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
@@ -32,6 +33,15 @@ from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
 from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
+from onadata.libs.permissions import is_organization_user
+from onadata.libs.utils.cache_tools import (
+    PASSWORD_RESET_ATTEMPTS,
+    safe_cache_add,
+    safe_cache_get,
+    safe_cache_incr,
+    safe_cache_set,
+    safe_key,
+)
 from onadata.libs.utils.content_disposition import (
     ContentDispositionError,
     parse_filename,
@@ -46,6 +56,8 @@ from onadata.libs.utils.upload_validation import (
     validate_uploaded_file,
 )
 from onadata.libs.utils.user_auth import get_user_default_project
+
+logger = logging.getLogger(__name__)
 
 FORM_LICENSES_CHOICES = (
     ("No License", gettext_lazy("No License")),
@@ -721,3 +733,58 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             _("Maximum login attempts exceeded. Please try again later."),
             code="locked_out",
         )
+
+
+def password_reset_attempt_cache_key(email):
+    """Return the cache key for password reset attempts for an email."""
+    normalized_email = email.strip().lower()
+
+    return f"{PASSWORD_RESET_ATTEMPTS}{safe_key(normalized_email)}"
+
+
+def increment_password_reset_attempts(email):
+    """Increment and return the password reset attempts for an email."""
+    cache_key = password_reset_attempt_cache_key(email)
+    window = getattr(settings, "PASSWORD_RESET_ATTEMPT_WINDOW", 15 * 60)
+
+    if safe_cache_add(cache_key, 1, window):
+        return 1
+
+    attempts = safe_cache_incr(cache_key)
+    if attempts is not None:
+        return attempts
+
+    attempts = (safe_cache_get(cache_key, 0) or 0) + 1
+    safe_cache_set(cache_key, attempts, window)
+
+    return attempts
+
+
+class AccountPasswordResetForm(PasswordResetForm):
+    """PasswordResetForm that enforces onadata account rules.
+
+    - Excludes organization accounts: organization ``User`` rows are created
+      without a real password but pass Django's ``has_usable_password()``
+      check (an empty-string hash is "usable"), so the stock form would let
+      whoever controls the organization's email set a login password on the
+      shared account.
+    - Rate-limits reset emails per email address, mirroring the limits the
+      removed ``/api/v1/user/reset`` endpoint enforced. Over-limit requests
+      still render the generic success page so the limiter can't be used to
+      probe which emails exist.
+    """
+
+    def get_users(self, email):
+        return (
+            user for user in super().get_users(email) if not is_organization_user(user)
+        )
+
+    def save(self, *args, **kwargs):
+        attempts = increment_password_reset_attempts(self.cleaned_data["email"])
+        max_attempts = getattr(settings, "MAX_PASSWORD_RESET_ATTEMPTS", 3)
+
+        if attempts > max_attempts:
+            logger.warning("Password reset rate limit exceeded.")
+            return
+
+        super().save(*args, **kwargs)
