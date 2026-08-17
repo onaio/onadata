@@ -599,8 +599,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
 
-    def test_require_auth_change_is_recorded(self):
-        """Changing require_auth records who changed it and the old and new value."""
+    def test_require_auth_change_is_audit_logged(self):
+        """Changing require_auth is audit logged."""
         request = self.factory.patch(
             "/",
             data=json.dumps({"require_auth": True}),

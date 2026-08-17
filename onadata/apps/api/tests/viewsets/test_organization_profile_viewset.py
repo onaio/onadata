@@ -90,8 +90,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data["name"], ["Ensure this field has no more than 30 characters."]
         )
 
-    def test_require_auth_change_is_recorded(self):
-        """Changing require_auth records who changed it and the old and new value."""
+    def test_require_auth_change_is_audit_logged(self):
+        """Changing require_auth is audit logged."""
         self._org_create()
         request = self.factory.patch(
             "/",
