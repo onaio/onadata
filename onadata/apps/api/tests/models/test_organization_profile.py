@@ -126,10 +126,6 @@ class TestOrganizationProfile(TestBase):
 
         self.assertEqual(kms_key_qs.count(), 0)
 
-
-class OrganizationProfileReversionRegistrationTestCase(TestBase):
-    """Test OrganizationProfile is registered with django-reversion."""
-
     def test_organization_profile_is_registered(self):
         """OrganizationProfile is registered with django-reversion."""
         self.assertTrue(reversion.is_registered(OrganizationProfile))
