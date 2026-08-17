@@ -26,6 +26,8 @@ from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_host_domain
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
+from onadata.apps.messaging.constants import REQUIRE_AUTH_CHANGED, USER
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -256,7 +258,23 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # force django-digest to regenerate its stored partial digests
             update_partial_digests(instance.user, password)
 
-        return super().update(instance, params)
+        old_require_auth = instance.require_auth
+        instance = super().update(instance, params)
+
+        if instance.require_auth != old_require_auth:
+            send_message(
+                instance_id=instance.pk,
+                target_id=instance.user.pk,
+                target_type=USER,
+                user=self.context["request"].user,
+                message_verb=REQUIRE_AUTH_CHANGED,
+                message_description=(
+                    f"require_auth changed from {old_require_auth} "
+                    f"to {instance.require_auth}"
+                ),
+            )
+
+        return instance
 
     @TrackObjectEvent(
         user_field="user", properties={"name": "name", "country": "country"}

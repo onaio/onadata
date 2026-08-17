@@ -31,6 +31,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
+from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
@@ -597,6 +598,43 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.country, country)
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
+
+    def test_require_auth_change_is_recorded(self):
+        """Changing require_auth records who changed it and the old and new value."""
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"require_auth": True}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["require_auth"])
+
+        messaging_view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": self.user.pk,
+                "verb": "require_auth_changed",
+            },
+            **self.extra,
+        )
+        response = messaging_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        message = response.data[0]
+        self.assertEqual(message["user"], "bob")
+        self.assertEqual(
+            json.loads(message["message"]),
+            {
+                "id": [self.user.profile.pk],
+                "description": "require_auth changed from False to True",
+            },
+        )
 
     def test_partial_updates_empty_metadata(self):
         profile = UserProfile.objects.get(user=self.user)

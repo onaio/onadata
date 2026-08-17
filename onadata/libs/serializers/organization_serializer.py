@@ -20,6 +20,8 @@ from onadata.apps.api.tools import (
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
+from onadata.apps.messaging.constants import REQUIRE_AUTH_CHANGED, USER
+from onadata.apps.messaging.serializers import send_message
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
@@ -107,7 +109,23 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.email = validated_data.pop("email")
 
         instance.user.save()
-        return super().update(instance, validated_data)
+        old_require_auth = instance.require_auth
+        instance = super().update(instance, validated_data)
+
+        if instance.require_auth != old_require_auth:
+            send_message(
+                instance_id=instance.pk,
+                target_id=instance.user.pk,
+                target_type=USER,
+                user=self.context["request"].user,
+                message_verb=REQUIRE_AUTH_CHANGED,
+                message_description=(
+                    f"require_auth changed from {old_require_auth} "
+                    f"to {instance.require_auth}"
+                ),
+            )
+
+        return instance
 
     def create(self, validated_data):
         """Create an organization profile."""
