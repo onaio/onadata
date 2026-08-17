@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """API Django admin amendments."""
+
 from django.contrib import admin
 
-from onadata.apps.api.models import Team, OrganizationProfile, TempToken
+from reversion.admin import VersionAdmin
+
+from onadata.apps.api.models import OrganizationProfile, Team, TempToken
 
 
 # pylint: disable=too-few-public-methods
@@ -24,7 +27,7 @@ class TeamAdmin(FilterSuperuserMixin, admin.ModelAdmin):
 admin.site.register(Team, TeamAdmin)
 
 
-class OrganizationProfileAdmin(FilterSuperuserMixin, admin.ModelAdmin):
+class OrganizationProfileAdmin(FilterSuperuserMixin, VersionAdmin, admin.ModelAdmin):
     """Filter by request.user unless is_superuser."""
 
 
