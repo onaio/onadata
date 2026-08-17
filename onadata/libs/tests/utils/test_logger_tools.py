@@ -1115,10 +1115,11 @@ class DeleteXFormSubmissionsTestCase(TestBase):
     @patch("onadata.libs.utils.logger_tools.send_message")
     def test_action_recorded(self, mock_send_message):
         """Action is recorded in the audit log"""
-        delete_xform_submissions(self.xform, self.user, [self.instances[0].pk])
+        instance_id = self.instances[0].pk
+        delete_xform_submissions(self.xform, self.user, [instance_id])
 
         mock_send_message.assert_called_once_with(
-            instance_id=[self.instances[0].pk],
+            instance_id=[instance_id],
             target_id=self.xform.id,
             target_type="xform",
             user=self.user,
