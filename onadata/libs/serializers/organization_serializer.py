@@ -20,15 +20,31 @@ from onadata.apps.api.tools import (
 from onadata.apps.logger.models import KMSKey
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models.user_profile import UserProfile
-from onadata.apps.messaging.constants import REQUIRE_AUTH_CHANGED, USER
-from onadata.apps.messaging.serializers import send_message
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.serializers.user_profile_serializer import (
+    get_audit_values,
+    send_profile_updated_message,
+)
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+# Organization profile attributes whose changes are audit logged.
+ORGANIZATION_AUDIT_FIELDS = (
+    "name",
+    "email",
+    "city",
+    "country",
+    "home_page",
+    "twitter",
+    "description",
+    "require_auth",
+    "address",
+    "phonenumber",
+)
 
 
 class KMSKeyInlineSerializer(serializers.ModelSerializer):
@@ -99,6 +115,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
     def update(self, instance, validated_data):
         """Update organization profile properties."""
+        old_values = get_audit_values(instance, ORGANIZATION_AUDIT_FIELDS)
         # update the user model
         if "name" in validated_data:
             first_name, last_name = _get_first_last_names(validated_data.get("name"))
@@ -109,21 +126,13 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.email = validated_data.pop("email")
 
         instance.user.save()
-        old_require_auth = instance.require_auth
         instance = super().update(instance, validated_data)
-
-        if instance.require_auth != old_require_auth:
-            send_message(
-                instance_id=instance.pk,
-                target_id=instance.user.pk,
-                target_type=USER,
-                user=self.context["request"].user,
-                message_verb=REQUIRE_AUTH_CHANGED,
-                message_description=(
-                    f"require_auth changed from {old_require_auth} "
-                    f"to {instance.require_auth}"
-                ),
-            )
+        send_profile_updated_message(
+            instance,
+            old_values,
+            ORGANIZATION_AUDIT_FIELDS,
+            self.context["request"].user,
+        )
 
         return instance
 

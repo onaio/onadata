@@ -90,12 +90,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data["name"], ["Ensure this field has no more than 30 characters."]
         )
 
-    def test_require_auth_change_is_audit_logged(self):
-        """Changing require_auth is audit logged."""
+    def test_organization_update_is_audit_logged(self):
+        """Updating an organization is audit logged."""
         self._org_create()
         request = self.factory.patch(
             "/",
-            data=json.dumps({"require_auth": True}),
+            data=json.dumps({"require_auth": True, "email": "info@denoinc.org"}),
             content_type="application/json",
             **self.extra,
         )
@@ -103,6 +103,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["require_auth"])
+        self.assertEqual(response.data["email"], "info@denoinc.org")
 
         messaging_view = MessagingViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -110,7 +111,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             {
                 "target_type": "user",
                 "target_id": self.organization.user.pk,
-                "verb": "require_auth_changed",
+                "verb": "profile_updated",
             },
             **self.extra,
         )
@@ -124,7 +125,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             json.loads(message["message"]),
             {
                 "id": [self.organization.pk],
-                "description": "require_auth changed from False to True",
+                "description": {
+                    "require_auth": {"old": False, "new": True},
+                    "email": {},
+                },
             },
         )
 

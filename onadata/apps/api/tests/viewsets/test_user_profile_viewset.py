@@ -599,11 +599,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
 
-    def test_require_auth_change_is_audit_logged(self):
-        """Changing require_auth is audit logged."""
+    def test_profile_update_is_audit_logged(self):
+        """Updating a profile is audit logged."""
         request = self.factory.patch(
             "/",
-            data=json.dumps({"require_auth": True}),
+            data=json.dumps({"require_auth": True, "city": "Nairobi"}),
             content_type="application/json",
             **self.extra,
         )
@@ -611,6 +611,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["require_auth"])
+        self.assertEqual(response.data["city"], "Nairobi")
 
         messaging_view = MessagingViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -618,7 +619,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             {
                 "target_type": "user",
                 "target_id": self.user.pk,
-                "verb": "require_auth_changed",
+                "verb": "profile_updated",
             },
             **self.extra,
         )
@@ -632,7 +633,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             json.loads(message["message"]),
             {
                 "id": [self.user.profile.pk],
-                "description": "require_auth changed from False to True",
+                "description": {
+                    "require_auth": {"old": False, "new": True},
+                    "city": {"old": "Bobville", "new": "Nairobi"},
+                },
             },
         )
 

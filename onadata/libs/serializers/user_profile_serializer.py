@@ -5,6 +5,7 @@ UserProfile Serializers.
 
 import copy
 import re
+from operator import attrgetter
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -26,7 +27,7 @@ from onadata.apps.api.tasks import send_verification_email
 from onadata.apps.api.tools import get_host_domain
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
-from onadata.apps.messaging.constants import REQUIRE_AUTH_CHANGED, USER
+from onadata.apps.messaging.constants import PROFILE_UPDATED, USER
 from onadata.apps.messaging.serializers import send_message
 from onadata.libs.authentication import expired
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
@@ -38,9 +39,61 @@ from onadata.libs.utils.email import get_verification_email_data, get_verificati
 RESERVED_NAMES = RegistrationFormUserProfile.RESERVED_USERNAMES
 LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
 
+# Profile attributes whose changes are audit logged.
+USER_PROFILE_AUDIT_FIELDS = (
+    "user.username",
+    "user.first_name",
+    "user.last_name",
+    "user.email",
+    "name",
+    "city",
+    "country",
+    "organization",
+    "home_page",
+    "twitter",
+    "require_auth",
+)
+# Audited fields whose values are left out of the audit log.
+CONTACT_AUDIT_FIELDS = ("email", "phonenumber")
+
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+
+def get_audit_values(profile, fields):
+    """Returns the current values of the audited ``fields`` on ``profile``.
+
+    Each field is an attribute path on the profile, e.g. ``user.email``; the
+    values are keyed by the attribute name.
+    """
+    return {field.rsplit(".", 1)[-1]: attrgetter(field)(profile) for field in fields}
+
+
+def send_profile_updated_message(profile, old_values, fields, user):
+    """Audit logs the audited ``fields`` of ``profile`` that changed since ``old_values``.
+
+    Each changed field maps to its old and new value, except contact fields
+    which are recorded without their values.
+    """
+    changes = {}
+    for field, new_value in get_audit_values(profile, fields).items():
+        if new_value != old_values[field]:
+            changes[field] = (
+                {}
+                if field in CONTACT_AUDIT_FIELDS
+                else {"old": old_values[field], "new": new_value}
+            )
+
+    if changes:
+        send_message(
+            instance_id=profile.pk,
+            target_id=profile.user.pk,
+            target_type=USER,
+            user=user,
+            message_verb=PROFILE_UPDATED,
+            message_description=changes,
+        )
 
 
 def _get_first_last_names(name, limit=30):
@@ -223,6 +276,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def update(self, instance, validated_data):
         """Update user properties."""
+        old_values = get_audit_values(instance, USER_PROFILE_AUDIT_FIELDS)
         params = validated_data
         password = params.get("password1")
         email = params.get("email")
@@ -258,21 +312,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # force django-digest to regenerate its stored partial digests
             update_partial_digests(instance.user, password)
 
-        old_require_auth = instance.require_auth
         instance = super().update(instance, params)
-
-        if instance.require_auth != old_require_auth:
-            send_message(
-                instance_id=instance.pk,
-                target_id=instance.user.pk,
-                target_type=USER,
-                user=self.context["request"].user,
-                message_verb=REQUIRE_AUTH_CHANGED,
-                message_description=(
-                    f"require_auth changed from {old_require_auth} "
-                    f"to {instance.require_auth}"
-                ),
-            )
+        send_profile_updated_message(
+            instance,
+            old_values,
+            USER_PROFILE_AUDIT_FIELDS,
+            self.context["request"].user,
+        )
 
         return instance
 

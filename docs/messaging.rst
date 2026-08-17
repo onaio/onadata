@@ -39,7 +39,7 @@ This endpoint provides access to event messages sent for a specific target. Wher
 
     - ``entitylist_deleted``
 
-    - ``require_auth_changed``
+    - ``profile_updated``
 
 
 GET All event messages that have been sent for a form
