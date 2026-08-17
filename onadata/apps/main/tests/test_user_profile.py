@@ -13,7 +13,12 @@ from django.test import RequestFactory
 from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
 
+import reversion
+from reversion import revisions
+from reversion.models import Version
+
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.models import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.views import api_token, profile
 from onadata.libs.utils.common_tools import merge_dicts
@@ -250,3 +255,24 @@ class TestUserProfile(TestBase):
                 self.assertIn(username, unquote(url))
             except NoReverseMatch as e:
                 self.fail(f"URL reverse failed for Unicode username '{username}': {e}")
+
+
+class UserProfileReversionRegistrationTestCase(TestBase):
+    """Test UserProfile is registered with django-reversion."""
+
+    def test_user_profile_is_registered(self):
+        """UserProfile is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(UserProfile))
+
+    def test_revision_recorded_and_read(self):
+        """A UserProfile saved in a revision is recorded and readable."""
+        user_profile = self.user.profile
+        user_profile.city = "Nairobi"
+        user_profile.save()
+
+        with revisions.create_revision():
+            revisions.add_to_revision(user_profile)
+
+        version = Version.objects.get_for_object(user_profile).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["city"], "Nairobi")

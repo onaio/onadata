@@ -22,6 +22,7 @@ from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
+from reversion.models import Version
 from six.moves.urllib.parse import parse_qs, urlparse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -288,6 +289,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username="deno")
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+        # reversion: creating a profile records a version
+        versions = Version.objects.get_for_object(profile)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     @override_settings(DISABLE_CREATING_USERS=True)
     def test_block_profile_create(self):
@@ -586,6 +592,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates(self):
         self.assertEqual(self.user.profile.country, "US")
+        version_count = Version.objects.get_for_object(self.user.profile).count()
         country = "KE"
         username = "george"
         metadata = {"computer": "mac"}
@@ -598,6 +605,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.country, country)
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
+
+        # reversion: partial update records a new version
+        versions = Version.objects.get_for_object(profile)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     def test_profile_update_is_audit_logged(self):
         """Updating a profile is audit logged."""

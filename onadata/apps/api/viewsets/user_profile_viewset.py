@@ -24,6 +24,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from reversion.views import RevisionMixin
 from six.moves.urllib.parse import urlencode
 
 from onadata.apps.api.constants import USERNAME_LOOKUP_REGEX
@@ -158,6 +159,7 @@ class UserProfileViewSet(
     CacheControlMixin,
     ETagsMixin,
     ObjectLookupMixin,
+    RevisionMixin,
     BaseViewset,
     ModelViewSet,
 ):

@@ -17,6 +17,7 @@ from django.utils import timezone
 
 from guardian.shortcuts import get_perms
 from rest_framework import status
+from reversion.models import Version
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
@@ -71,6 +72,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates(self):
         self._org_create()
+        version_count = Version.objects.get_for_object(self.organization).count()
         metadata = {"computer": "mac"}
         json_metadata = json.dumps(metadata)
         data = {"metadata": json_metadata}
@@ -79,6 +81,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         profile = OrganizationProfile.objects.get(name="Dennis")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
+
+        # reversion: partial update records a new version
+        versions = Version.objects.get_for_object(self.organization)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     def test_partial_updates_invalid(self):
         self._org_create()
@@ -277,6 +284,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         self.assertTrue(self.organization.user.is_active)
         self.assertEqual(self.organization.email, "mail@mail-server.org")
+
+        # reversion: creating an organization records a version
+        versions = Version.objects.get_for_object(self.organization)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     def test_orgs_create_without_name(self):
         data = {

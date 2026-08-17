@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils.translation import gettext_lazy as _
 
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from multidb.pinning import use_master
@@ -246,3 +247,6 @@ class OrgProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(OrganizationProfile, on_delete=models.CASCADE)
+
+
+reversion.register(OrganizationProfile, follow=("userprofile_ptr",))

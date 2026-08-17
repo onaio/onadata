@@ -2,6 +2,7 @@
 """
 UserProfile model class
 """
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -10,6 +11,7 @@ from django.utils.translation import gettext_lazy
 
 import jwt
 import requests
+import reversion
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from rest_framework.authtoken.models import Token
@@ -188,3 +190,6 @@ class UserProfileGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+
+
+reversion.register(UserProfile)

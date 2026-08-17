@@ -3,7 +3,10 @@ from django.core.cache import cache
 from django.db import IntegrityError
 from django.test import override_settings
 
+import reversion
 from moto import mock_aws
+from reversion import revisions
+from reversion.models import Version
 
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -122,3 +125,26 @@ class TestOrganizationProfile(TestBase):
         )
 
         self.assertEqual(kms_key_qs.count(), 0)
+
+
+class OrganizationProfileReversionRegistrationTestCase(TestBase):
+    """Test OrganizationProfile is registered with django-reversion."""
+
+    def test_organization_profile_is_registered(self):
+        """OrganizationProfile is registered with django-reversion."""
+        self.assertTrue(reversion.is_registered(OrganizationProfile))
+
+    def test_revision_recorded_and_read(self):
+        """An OrganizationProfile saved in a revision is recorded and readable."""
+        profile = tools.create_organization_object(
+            "modilabs", self.user, {"name": "Modi Labs", "email": "info@modilabs.org"}
+        )
+        profile.save()
+
+        with revisions.create_revision():
+            revisions.add_to_revision(profile)
+
+        version = Version.objects.get_for_object(profile).first()
+        self.assertIsNotNone(version)
+        self.assertEqual(version.field_dict["email"], "info@modilabs.org")
+        self.assertEqual(version.field_dict["name"], "Modi Labs")
