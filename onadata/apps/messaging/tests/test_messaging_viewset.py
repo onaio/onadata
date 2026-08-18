@@ -69,7 +69,6 @@ class TestMessagingViewSet(TestCase):
         """
         self._create_message()
 
-    @override_settings(FULL_MESSAGE_PAYLOAD=True)
     def test_create_message_for_kmskey(self):
         """
         POST /messaging adds a new message for a KMS key.
@@ -93,9 +92,13 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertLessEqual(data.items(), response.data.items())
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(KMSKey),
+            target_object_id=kms_key.pk,
+        )
+        self.assertEqual(message.actor, user)
+        self.assertEqual(message.description, "Hello World!")
 
-    @override_settings(FULL_MESSAGE_PAYLOAD=True)
     def test_create_message_for_entitylist(self):
         """
         POST /messaging adds a new message for an entity list.
@@ -115,7 +118,12 @@ class TestMessagingViewSet(TestCase):
         force_authenticate(request, user=user)
         response = view(request=request)
         self.assertEqual(response.status_code, 201, response.data)
-        self.assertLessEqual(data.items(), response.data.items())
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(EntityList),
+            target_object_id=entity_list.pk,
+        )
+        self.assertEqual(message.actor, user)
+        self.assertEqual(message.description, "Hello World!")
 
     def test_target_does_not_exist(self):
         """

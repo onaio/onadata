@@ -6,12 +6,13 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import DatabaseError, OperationalError
 from django.utils import timezone
 
+from actstream.models import Action
 from celery.exceptions import MaxRetriesExceededError
-from rest_framework.test import APIRequestFactory, force_authenticate
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
 from onadata.apps.logger.models import EntityList
@@ -29,7 +30,6 @@ from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import NotAllMediaReceivedError
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -593,20 +593,10 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
         )
 
-        view = MessagingViewSet.as_view({"get": "list"})
-        request = APIRequestFactory().get(
-            "/messaging",
-            {
-                "target_type": "entitylist",
-                "target_id": self.entity_list.pk,
-                "verb": "entitylist_imported",
-            },
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(EntityList),
+            target_object_id=self.entity_list.pk,
+            verb="entitylist_imported",
         )
-        force_authenticate(request, user=self.user)
-        response = view(request)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        message = response.data[0]
-        self.assertEqual(message["user"], "bob")
-        self.assertEqual(json.loads(message["message"]), {"id": [self.entity_list.pk]})
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.entity_list.pk]})

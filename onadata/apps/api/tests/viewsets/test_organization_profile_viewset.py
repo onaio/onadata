@@ -15,6 +15,7 @@ from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from actstream.models import Action
 from guardian.shortcuts import get_perms
 from rest_framework import status
 from reversion.models import Version
@@ -1661,24 +1662,13 @@ class RotateKeyTestCase(TestAbstractViewSet):
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-
-        messaging_view = MessagingViewSet.as_view({"get": "list"})
-        request = self.factory.get(
-            "/messaging",
-            {
-                "target_type": "kmskey",
-                "target_id": self.kms_key.id,
-                "verb": "kmskey_rotated",
-            },
-            **self.extra,
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(KMSKey),
+            target_object_id=self.kms_key.id,
+            verb="kmskey_rotated",
         )
-        response = messaging_view(request)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        message = response.data[0]
-        self.assertEqual(message["user"], "bob")
-        self.assertEqual(json.loads(message["message"]), {"id": [self.kms_key.id]})
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.kms_key.id]})
 
     def test_rotation_reason_optional(self, mock_rotate_key):
         """Rotation reason is optional."""

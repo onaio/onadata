@@ -9,12 +9,14 @@ from datetime import datetime
 from datetime import timezone as tz
 from unittest.mock import Mock, patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
 import boto3
+from actstream.models import Action
 from moto import mock_aws
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -26,7 +28,6 @@ from onadata.apps.logger.models import (
     EntityListProperty,
     Project,
 )
-from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import CSVImportError
 from onadata.libs.models.share_project import ShareProject
 from onadata.libs.pagination import StandardPageNumberPagination
@@ -620,24 +621,13 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 204)
-
-        messaging_view = MessagingViewSet.as_view({"get": "list"})
-        request = self.factory.get(
-            "/messaging",
-            {
-                "target_type": "entitylist",
-                "target_id": self.entity_list.pk,
-                "verb": "entitylist_deleted",
-            },
-            **self.extra,
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(EntityList),
+            target_object_id=self.entity_list.pk,
+            verb="entitylist_deleted",
         )
-        response = messaging_view(request)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        message = response.data[0]
-        self.assertEqual(message["user"], "bob")
-        self.assertEqual(json.loads(message["message"]), {"id": [self.entity_list.pk]})
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.entity_list.pk]})
 
     def test_authentication_required(self):
         """Anonymous user cannot delete EntityList"""
