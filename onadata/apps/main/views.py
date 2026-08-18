@@ -29,6 +29,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template import loader
 from django.urls import reverse
 from django.utils.html import conditional_escape
+from django.utils.http import content_disposition_header
 from django.utils.translation import gettext as _
 from django.views import static
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -91,6 +92,7 @@ from onadata.libs.utils.logger_tools import (
     response_with_mimetype_and_name,
 )
 from onadata.libs.utils.qrcode import generate_qrcode
+from onadata.libs.utils.upload_validation import sanitized_original_filename
 from onadata.libs.utils.user_auth import (
     add_cors_headers,
     check_and_set_user,
@@ -1332,7 +1334,18 @@ def serve_media(request, path):
     if not authorized:
         return HttpResponseForbidden(_("Not shared."))
 
-    return static.serve(request, path, document_root=settings.MEDIA_ROOT)
+    response = static.serve(request, path, document_root=settings.MEDIA_ROOT)
+    metadata = MetaData.objects.filter(data_file=path, deleted_at__isnull=True).first()
+
+    if metadata is not None:
+        filename = sanitized_original_filename(metadata.data_value)
+        content_disposition = content_disposition_header(
+            as_attachment=False, filename=filename
+        )
+        if content_disposition:
+            response["Content-Disposition"] = content_disposition
+
+    return response
 
 
 def form_photos(request, username, id_string):

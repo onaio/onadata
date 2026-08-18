@@ -220,6 +220,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertNotEqual(stored_basename, "1335783522563.jpg")
         self.assertTrue(stored_basename.endswith(".jpg"))
 
+        media_response = self.client.get(response.data["media_url"])
+        self.assertEqual(media_response.status_code, 200)
+        self.assertEqual(
+            media_response["Content-Disposition"],
+            'inline; filename="1335783522563.jpg"',
+        )
+
     def test_add_mapbox_layer(self):
         data_type = "mapbox_layer"
         data_value = "test_mapbox_layer||http://0.0.0.0:8080||attribution"
