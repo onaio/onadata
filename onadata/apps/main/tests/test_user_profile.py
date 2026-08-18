@@ -256,10 +256,6 @@ class TestUserProfile(TestBase):
             except NoReverseMatch as e:
                 self.fail(f"URL reverse failed for Unicode username '{username}': {e}")
 
-
-class UserProfileReversionRegistrationTestCase(TestBase):
-    """Test UserProfile is registered with django-reversion."""
-
     def test_user_profile_is_registered(self):
         """UserProfile is registered with django-reversion."""
         self.assertTrue(reversion.is_registered(UserProfile))
