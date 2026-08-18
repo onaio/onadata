@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import IntegrityError
@@ -132,10 +133,12 @@ class TestOrganizationProfile(TestBase):
 
     def test_revision_recorded_and_read(self):
         """An OrganizationProfile saved in a revision is recorded and readable."""
-        profile = tools.create_organization_object(
-            "modilabs", self.user, {"name": "Modi Labs", "email": "info@modilabs.org"}
+        profile = OrganizationProfile.objects.create(
+            user=User.objects.create(username="modilabs"),
+            creator=self.user,
+            name="Modi Labs",
+            email="info@modilabs.org",
         )
-        profile.save()
 
         with revisions.create_revision():
             revisions.add_to_revision(profile)
