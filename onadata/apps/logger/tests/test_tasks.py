@@ -1,5 +1,6 @@
 """Tests for module onadata.apps.logger.tasks"""
 
+import json
 import sys
 from io import StringIO
 from types import SimpleNamespace
@@ -10,6 +11,7 @@ from django.db import DatabaseError, OperationalError
 from django.utils import timezone
 
 from celery.exceptions import MaxRetriesExceededError
+from rest_framework.test import APIRequestFactory, force_authenticate
 from valigetta.exceptions import ConnectionException as ValigettaConnectionException
 
 from onadata.apps.logger.models import EntityList
@@ -27,6 +29,7 @@ from onadata.apps.logger.tasks import (
     set_entity_list_perms_async,
 )
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import NotAllMediaReceivedError
 from onadata.libs.utils.cache_tools import PROJECT_DATE_MODIFIED_CACHE
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -582,8 +585,7 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             uuid_column="uuid",
         )
 
-    @patch("onadata.apps.logger.tasks.send_message")
-    def test_audit_log_created(self, mock_send_message, mock_import, mock_open):
+    def test_audit_log_created(self, mock_import, mock_open):
         """Creates an audit log when entities are imported"""
         mock_open.return_value = self.csv_file
 
@@ -591,11 +593,20 @@ class ImportEntitiesFromCSVAsyncTestCase(TestBase):
             "csv_file.csv", self.entity_list.pk, user_id=self.user.pk
         )
 
-        mock_import.assert_called_once()
-        mock_send_message.assert_called_once_with(
-            instance_id=self.entity_list.pk,
-            target_id=self.entity_list.pk,
-            target_type="entitylist",
-            user=self.user,
-            message_verb="entitylist_imported",
+        view = MessagingViewSet.as_view({"get": "list"})
+        request = APIRequestFactory().get(
+            "/messaging",
+            {
+                "target_type": "entitylist",
+                "target_id": self.entity_list.pk,
+                "verb": "entitylist_imported",
+            },
         )
+        force_authenticate(request, user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        message = response.data[0]
+        self.assertEqual(message["user"], "bob")
+        self.assertEqual(json.loads(message["message"]), {"id": [self.entity_list.pk]})

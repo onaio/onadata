@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 from builtins import str as text
 from datetime import datetime, timedelta, timezone as dt_timezone
 
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.utils import override_settings
@@ -19,9 +21,13 @@ from actstream.signals import action
 from guardian.shortcuts import assign_perm
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from onadata.apps.logger.models import EntityList, KMSKey
 from onadata.apps.messaging.constants import EXPORT_CREATED, SUBMISSION_CREATED
 from onadata.apps.messaging.tests.test_base import _create_user
 from onadata.apps.messaging.viewsets import MessagingViewSet
+from onadata.libs.utils.user_auth import get_user_default_project
+
+User = get_user_model()
 
 
 class TestMessagingViewSet(TestCase):
@@ -62,6 +68,54 @@ class TestMessagingViewSet(TestCase):
         Test POST /messaging adding a new message for a specific form.
         """
         self._create_message()
+
+    @override_settings(FULL_MESSAGE_PAYLOAD=True)
+    def test_create_message_for_kmskey(self):
+        """
+        POST /messaging adds a new message for a KMS key.
+        """
+        user = _create_user()
+        kms_key = KMSKey.objects.create(
+            key_id="fake-key-id",
+            public_key="fake-pub-key",
+            content_type=ContentType.objects.get_for_model(User),
+            object_id=user.pk,
+            provider=KMSKey.KMSProvider.AWS,
+        )
+        assign_perm("logger.change_kmskey", user, kms_key)
+        view = MessagingViewSet.as_view({"post": "create"})
+        data = {
+            "message": "Hello World!",
+            "target_id": kms_key.pk,
+            "target_type": "kmskey",
+        }
+        request = self.factory.post("/messaging", data)
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
+
+    @override_settings(FULL_MESSAGE_PAYLOAD=True)
+    def test_create_message_for_entitylist(self):
+        """
+        POST /messaging adds a new message for an entity list.
+        """
+        user = _create_user()
+        entity_list = EntityList.objects.create(
+            name="trees", project=get_user_default_project(user)
+        )
+        assign_perm("logger.change_entitylist", user, entity_list)
+        view = MessagingViewSet.as_view({"post": "create"})
+        data = {
+            "message": "Hello World!",
+            "target_id": entity_list.pk,
+            "target_type": "entitylist",
+        }
+        request = self.factory.post("/messaging", data)
+        force_authenticate(request, user=user)
+        response = view(request=request)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertLessEqual(data.items(), response.data.items())
 
     def test_target_does_not_exist(self):
         """
