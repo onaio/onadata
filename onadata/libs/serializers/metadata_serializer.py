@@ -6,11 +6,13 @@ MetaData Serializer
 import logging
 import os
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
 from django.utils.translation import gettext as _
 
 from rest_framework import serializers
@@ -30,7 +32,7 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_REVIEW,
     XFORM_META_PERMS,
 )
-from onadata.libs.utils.image_tools import generate_media_url_with_sas, is_azure_storage
+from onadata.libs.utils.logger_tools import get_storages_media_download_url
 from onadata.libs.utils.upload_validation import (
     FORM_MEDIA_ALLOWED_EXTENSIONS,
     FORM_MEDIA_UPLOAD_CONTEXT,
@@ -38,6 +40,7 @@ from onadata.libs.utils.upload_validation import (
     SUPPORTING_DOC_UPLOAD_CONTEXT,
     UploadValidationError,
     generic_upload_validation_error_message,
+    sanitized_original_filename,
     validate_uploaded_file,
 )
 from onadata.libs.utils.xform_utils import update_role_by_meta_xform_perms
@@ -169,11 +172,18 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             and getattr(obj.data_file, "url")
         ):
             media_name = obj.data_file.name
-            return (
-                generate_media_url_with_sas(media_name)
-                if media_name and is_azure_storage()
-                else obj.data_file.url
+            filename = sanitized_original_filename(obj.data_value)
+            content_disposition = content_disposition_header(
+                as_attachment=False, filename=filename
             )
+            signed_url = get_storages_media_download_url(
+                media_name,
+                content_disposition,
+                obj.data_file_type,
+                expires_in=settings.METADATA_SIGNED_URL_EXPIRATION,
+            )
+
+            return signed_url or obj.data_file.url
         if obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
             request = self.context.get("request")
             kwargs = {
@@ -188,6 +198,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
             return reverse("xform-media", **kwargs)
         return None
+
+    def to_representation(self, instance):
+        """Use the filename-aware URL for both uploaded-file URL fields."""
+        representation = super().to_representation(instance)
+
+        if instance.data_type in [DOC_TYPE, MEDIA_TYPE] and instance.data_file:
+            representation["data_file"] = representation["media_url"]
+
+        return representation
 
     @staticmethod
     def _validate_data_file(attrs, data_type, data_file):

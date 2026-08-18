@@ -146,14 +146,12 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [data])
 
-    @patch("onadata.libs.serializers.metadata_serializer.is_azure_storage")
-    @patch("azure.storage.blob.generate_blob_sas")
-    def test_forms_endpoint_with_metadata_and_azure_storage(
-        self, mock_generate_blob_sas, mock_is_azure_storage
-    ):
-        sas_token = "sc=date+randomText"
-        mock_is_azure_storage.return_value = True
-        mock_generate_blob_sas.return_value = sas_token
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_forms_endpoint_with_metadata_and_signed_storage(self, mock_signed_url):
+        signed_url = "https://storage.example/media?signed-token"
+        mock_signed_url.return_value = signed_url
 
         self._add_form_metadata(self.xform, "media", self.data_value, self.path)
         self.xform.refresh_from_db()
@@ -166,7 +164,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         data = XFormSerializer(self.xform, context={"request": request}).data
         self.assertEqual(response.data, data)
-        self.assertIn(f"?{sas_token}", str(data))
+        self.assertIn(signed_url, str(data))
 
     def test_get_metadata_with_file_attachment(self):
         for data_type in ["supporting_doc", "media", "source"]:
@@ -276,7 +274,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 201)
             self.assertEqual(response.data["data_file_type"], "text/csv")
 
-    def test_add_media_url(self):
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_add_media_url(self, mock_signed_url):
         data_type = "media"
 
         # test invalid URL
@@ -290,13 +291,19 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         # test valid URL
         data_value = "https://devtrac.ona.io/fieldtrips.csv"
         self._add_form_metadata(self.xform, data_type, data_value)
+        self.assertIsNone(self.metadata_data["data_file"])
+        self.assertIsNone(self.metadata_data["media_url"])
+        mock_signed_url.assert_not_called()
         request = self.factory.get("/", **self.extra)
         ext = self.data_value[self.data_value.rindex(".") + 1 :]
         response = self.view(request, pk=self.metadata.pk, format=ext)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], data_value)
 
-    def test_add_media_xform_link(self):
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_add_media_xform_link(self, mock_signed_url):
         data_type = "media"
 
         # test missing parameters
@@ -315,6 +322,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         data_value = "xform {} transportation".format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
         self.assertIsNotNone(self.metadata_data["media_url"])
+        self.assertIsNone(self.metadata_data["data_file"])
+        mock_signed_url.assert_not_called()
 
         request = self.factory.get("/", **self.extra)
         ext = self.data_value[self.data_value.rindex(".") + 1 :]
@@ -751,8 +760,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assert_upload_validation_error(response, "data.csv")
         self.assertEqual(MetaData.objects.count(), before)
 
-    def test_media_upload_stores_uuid_filename(self):
-        """Accepted media uploads store a UUID-based filename, not the client name."""
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_media_upload_stores_uuid_filename(self, mock_signed_url):
+        """Media URLs preserve the client name while storage uses a UUID."""
+        signed_url = "https://storage.example/media?signed-token"
+        mock_signed_url.return_value = signed_url
         with open(self.path, "rb") as png:
             png_bytes = png.read()
 
@@ -769,6 +783,14 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(metadata.data_value, "screenshot.png")
         # Stored file actually exists in storage
         self.assertTrue(default_storage.exists(metadata.data_file.name))
+        self.assertEqual(response.data["data_file"], signed_url)
+        self.assertEqual(response.data["media_url"], signed_url)
+        mock_signed_url.assert_called_once_with(
+            metadata.data_file.name,
+            'inline; filename="screenshot.png"',
+            "image/png",
+            expires_in=3600,
+        )
 
     def test_media_upload_mp4_stores_uuid_filename(self):
         """An MP4 form-media upload is accepted and stored under a UUID name."""
@@ -867,8 +889,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assert_upload_validation_error(response, "report.doc")
         self.assertEqual(MetaData.objects.count(), before)
 
-    def test_supporting_doc_upload_stores_uuid_filename(self):
-        """Accepted supporting-doc uploads store a UUID-based filename."""
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_supporting_doc_upload_stores_uuid_filename(self, mock_signed_url):
+        """Document URLs preserve the client name while storage uses a UUID."""
+        signed_url = "https://storage.example/document?signed-token"
+        mock_signed_url.return_value = signed_url
         response = self._post_supporting_doc_upload(
             "report.pdf", self._pdf_bytes(), "application/pdf"
         )
@@ -882,6 +909,14 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(len(stored_name), 32 + len(".pdf"))
         # Original filename preserved as display value
         self.assertEqual(metadata.data_value, "report.pdf")
+        self.assertEqual(response.data["data_file"], signed_url)
+        self.assertEqual(response.data["media_url"], signed_url)
+        mock_signed_url.assert_called_once_with(
+            metadata.data_file.name,
+            'inline; filename="report.pdf"',
+            "application/pdf",
+            expires_in=3600,
+        )
 
     @override_settings(
         STRICT_UPLOAD_MAX_BYTES={"supporting_doc": {"*": 8}},
