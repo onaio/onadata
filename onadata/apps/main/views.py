@@ -1062,7 +1062,8 @@ def download_metadata(request, username, id_string, data_id):
     if username == request.user.username or xform.shared:
         data = get_object_or_404(MetaData, pk=data_id)
         file_path = data.data_file.name
-        filename, extension = os.path.splitext(file_path.split("/")[-1])
+        original_filename = sanitized_original_filename(data.data_value)
+        filename, extension = os.path.splitext(original_filename)
         extension = extension.strip(".")
         dfs = storages["default"]
         if dfs.exists(file_path):
@@ -1180,7 +1181,8 @@ def download_media_data(request, username, id_string, data_id):
                 return HttpResponseRedirect(data.data_value)
 
             file_path = data.data_file.name
-            filename, extension = os.path.splitext(file_path.split("/")[-1])
+            original_filename = sanitized_original_filename(data.data_value)
+            filename, extension = os.path.splitext(original_filename)
             extension = extension.strip(".")
             if dfs.exists(file_path):
                 audit = {"xform": xform.id_string}

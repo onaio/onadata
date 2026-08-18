@@ -166,6 +166,27 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, data)
         self.assertIn(signed_url, str(data))
 
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_source_file_uses_signed_storage_url(self, mock_signed_url):
+        """Source attachment URLs preserve the client filename."""
+        signed_url = "https://storage.example/source?signed-token"
+        mock_signed_url.return_value = signed_url
+
+        response = self._add_form_metadata(
+            self.xform, "source", self.data_value, self.path
+        )
+
+        self.assertEqual(response.data["data_file"], signed_url)
+        self.assertEqual(response.data["media_url"], signed_url)
+        mock_signed_url.assert_called_once_with(
+            self.metadata.data_file.name,
+            'inline; filename="screenshot.png"',
+            "image/png",
+            expires_in=3600,
+        )
+
     def test_get_metadata_with_file_attachment(self):
         for data_type in ["supporting_doc", "media", "source"]:
             self._add_form_metadata(self.xform, data_type, self.data_value, self.path)
@@ -179,6 +200,11 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             response = self.view(request, pk=self.metadata.pk, format=ext)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response["Content-Type"], "image/png")
+            self.assertEqual(
+                response["Content-Disposition"],
+                'attachment; filename="download.png"; '
+                "filename*=UTF-8''screenshot.png",
+            )
 
     def test_get_metadata(self):
         self.fixture_dir = os.path.join(

@@ -166,11 +166,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         """
         Returns media URL for given metadata
         """
-        if (
-            obj.data_type in [DOC_TYPE, MEDIA_TYPE]
-            and getattr(obj, "data_file")
-            and getattr(obj.data_file, "url")
-        ):
+        if getattr(obj, "data_file") and getattr(obj.data_file, "url"):
             media_name = obj.data_file.name
             filename = sanitized_original_filename(obj.data_value)
             content_disposition = content_disposition_header(
@@ -203,7 +199,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         """Use the filename-aware URL for both uploaded-file URL fields."""
         representation = super().to_representation(instance)
 
-        if instance.data_type in [DOC_TYPE, MEDIA_TYPE] and instance.data_file:
+        if instance.data_file:
             representation["data_file"] = representation["media_url"]
 
         return representation

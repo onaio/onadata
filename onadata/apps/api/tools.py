@@ -74,6 +74,7 @@ from onadata.libs.utils.logger_tools import (
     response_with_mimetype_and_name,
 )
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.upload_validation import sanitized_original_filename
 from onadata.libs.utils.user_auth import (
     check_and_set_form_by_id,
     check_and_set_form_by_id_string,
@@ -609,7 +610,8 @@ def get_media_file_response(metadata, request=None):
 
     if metadata.data_file:
         file_path = metadata.data_file.name
-        filename, extension = os.path.splitext(file_path.split("/")[-1])
+        original_filename = sanitized_original_filename(metadata.data_value)
+        filename, extension = os.path.splitext(original_filename)
         extension = extension.strip(".")
         dfs = storages["default"]
 
