@@ -3,6 +3,7 @@
 Test onadata.libs.serializers.metadata_serializer
 """
 
+import io
 import os
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -68,9 +69,11 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertEqual(
+            self.assertTrue(
+                serializer.errors["data_file"][0].startswith(
+                    "The uploaded file 'sample.svg' could not be validated."
+                ),
                 serializer.errors["data_file"][0],
-                "The uploaded file 'sample.svg' could not be validated.",
             )
 
     def test_svg_media_files(self):
@@ -93,10 +96,50 @@ class TestMetaDataViewSerializer(TestAbstractViewSet):
             }
             serializer = MetaDataSerializer(data=data)
             self.assertFalse(serializer.is_valid())
-            self.assertEqual(
+            self.assertTrue(
+                serializer.errors["data_file"][0].startswith(
+                    "The uploaded file 'sample.svg' could not be validated."
+                ),
                 serializer.errors["data_file"][0],
-                "The uploaded file 'sample.svg' could not be validated.",
             )
+
+    def test_invalid_csv_surfaces_validation_reason(self):
+        """The specific validation reason is surfaced to API clients.
+
+        A CSV carrying a non-UTF-8 byte (0x92, a Windows-1252 smart quote)
+        must be rejected with an actionable message that explains *why* it
+        failed, not only the generic "could not be validated" text.
+        """
+        self._login_user_and_profile()
+        self._publish_form_with_hxl_support()
+        data_value = "delivery_partner_list.csv"
+        # Header row + one data cell whose middle byte (0x92) is not valid UTF-8.
+        content = b"h\r\na\x92b\r\n"
+        f = InMemoryUploadedFile(
+            io.BytesIO(content),
+            "media",
+            data_value,
+            "text/csv",
+            len(content),
+            None,
+        )
+        data = {
+            "data_value": data_value,
+            "data_file": f,
+            "data_type": "media",
+            "xform": self.xform.pk,
+        }
+        serializer = MetaDataSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        error = serializer.errors["data_file"][0]
+        self.assertTrue(
+            error.startswith(
+                "The uploaded file 'delivery_partner_list.csv' "
+                "could not be validated."
+            ),
+            error,
+        )
+        self.assertIn("CSV files must be UTF-8 encoded.", error)
 
     def test_geojson_media_files(self):
         """
