@@ -71,7 +71,7 @@ def get_audit_values(profile, fields):
 
 
 def send_profile_updated_message(profile, old_values, fields, user):
-    """Audit logs the audited ``fields`` of ``profile`` that changed since ``old_values``.
+    """Audit logs the audited ``fields`` of ``profile`` changed since ``old_values``.
 
     Each changed field maps to its old and new value, except contact fields
     which are recorded without their values.
