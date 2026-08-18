@@ -187,6 +187,24 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             expires_in=3600,
         )
 
+    @override_settings(MEDIA_URL="/media/")
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_unsigned_storage_preserves_request_aware_data_file_url(
+        self, mock_signed_url
+    ):
+        """Unsigned fallback retains DRF's absolute data_file URL."""
+        mock_signed_url.return_value = None
+
+        response = self._add_form_metadata(
+            self.xform, "media", self.data_value, self.path
+        )
+
+        storage_url = self.metadata.data_file.url
+        self.assertEqual(response.data["media_url"], storage_url)
+        self.assertEqual(response.data["data_file"], f"http://testserver{storage_url}")
+
     def test_get_metadata_with_file_attachment(self):
         for data_type in ["supporting_doc", "media", "source"]:
             self._add_form_metadata(self.xform, data_type, self.data_value, self.path)

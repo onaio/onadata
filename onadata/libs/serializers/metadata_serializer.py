@@ -199,7 +199,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         """Use the filename-aware URL for both uploaded-file URL fields."""
         representation = super().to_representation(instance)
 
-        if instance.data_file:
+        if instance.data_file and representation["media_url"] != instance.data_file.url:
             representation["data_file"] = representation["media_url"]
 
         return representation
