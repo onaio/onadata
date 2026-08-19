@@ -168,6 +168,14 @@ TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = False
 TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
     {"enroll-start", "disable", "recovery-generate", "recovery-view"}
 )
+
+# Step-up authentication. ACTIONS is empty by default so gating is opt-in per
+# deployment; MODE is "local" while OnaData owns the second factor.
+STEP_UP = {
+    "ACTIONS": set(),
+    "MODE": "local",
+    "NO_FACTOR_POLICY": "skip_gate",
+}
 LOGIN_REDIRECT_URL = "/login_redirect/"
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
