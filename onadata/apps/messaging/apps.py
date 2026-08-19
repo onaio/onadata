@@ -27,3 +27,5 @@ class MessagingConfig(AppConfig):
         registry.register(apps.get_model(model_name="User", app_label="auth"))
         registry.register(apps.get_model(model_name="XForm", app_label="logger"))
         registry.register(apps.get_model(model_name="Project", app_label="logger"))
+        registry.register(apps.get_model(model_name="KMSKey", app_label="logger"))
+        registry.register(apps.get_model(model_name="EntityList", app_label="logger"))

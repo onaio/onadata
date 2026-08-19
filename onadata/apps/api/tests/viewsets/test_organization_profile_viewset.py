@@ -15,6 +15,7 @@ from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from actstream.models import Action
 from guardian.shortcuts import get_perms
 from rest_framework import status
 from reversion.models import Version
@@ -1655,20 +1656,19 @@ class RotateKeyTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key is disabled", str(response.data["id"]))
 
-    @patch("onadata.apps.api.viewsets.organization_profile_viewset.send_message")
-    def test_audit_log_capture(self, mock_send_message, mock_rotate_key):
+    def test_audit_log_capture(self, mock_rotate_key):
         """Audit log is captured."""
         request = self.factory.post("/", data=self.data, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        mock_send_message.assert_called_once_with(
-            instance_id=self.kms_key.id,
-            target_id=self.kms_key.id,
-            target_type="kmskey",
-            user=self.user,
-            message_verb="kmskey_rotated",
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(KMSKey),
+            target_object_id=self.kms_key.id,
+            verb="kmskey_rotated",
         )
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.kms_key.id]})
 
     def test_rotation_reason_optional(self, mock_rotate_key):
         """Rotation reason is optional."""
