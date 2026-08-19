@@ -251,6 +251,9 @@ class UserProfileViewSet(
 
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
@@ -340,8 +343,12 @@ class UserProfileViewSet(
 
         return Response(status=status.HTTP_200_OK, data=data)
 
-    def partial_update(self, request, *args, **kwargs):
-        """Allows for partial update of the user profile data."""
+    def _step_up_refusal(self, request):
+        """Refuse whichever gated change this request would make, or None.
+
+        Shared by update and partial_update: the gate belongs to the change,
+        not to the verb, and a PUT writes the same fields a PATCH does.
+        """
         # Gated per field, not per endpoint: require_auth governs whether
         # submissions demand authentication, so weakening it is the step-up
         # target. Editing a city or a website is not.
@@ -352,7 +359,7 @@ class UserProfileViewSet(
         profile = self.get_object()
         # Where password resets are delivered. Changing it is the first move in
         # taking an account over, so it needs more than the session that is
-        # already open -- gated on an actual change, since the client PATCHes
+        # already open -- gated on an actual change, since the client sends
         # the whole profile.
         new_email = str(request.data.get("email", "") or "").strip()
         if new_email and new_email.lower() != (profile.user.email or "").lower():
@@ -362,15 +369,21 @@ class UserProfileViewSet(
         # The GDPR consent record is a compliance statement about whose data
         # this account collects, so changing it needs the same proof. Gated on
         # an actual change rather than on the key being present: the client
-        # PATCHes the whole metadata blob, and challenging a request that
-        # leaves consent untouched would prompt for unrelated edits.
+        # sends the whole metadata blob, and challenging a request that leaves
+        # consent untouched would prompt for unrelated edits.
         incoming_consent = _incoming_eu_consent(request.data)
         if incoming_consent is not None and incoming_consent != _stored_eu_consent(
             profile
         ):
-            refusal = self.check_step_up(request, GATE_PRIVACY_CONSENT)
-            if refusal is not None:
-                return refusal
+            return self.check_step_up(request, GATE_PRIVACY_CONSENT)
+        return None
+
+    def partial_update(self, request, *args, **kwargs):
+        """Allows for partial update of the user profile data."""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
+        profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get("overwrite") == "false":
             if isinstance(request.data.get("metadata"), str):

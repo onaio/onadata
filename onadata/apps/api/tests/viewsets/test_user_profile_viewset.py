@@ -656,6 +656,38 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     @override_settings(
         STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
     )
+    @override_settings(
+        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
+    )
+    def test_a_put_is_gated_like_a_patch(self):
+        """The gate belongs to the change, not the verb.
+
+        ``ModelViewSet`` routes PUT to ``update`` and PATCH to
+        ``partial_update``; both write require_auth, so gating one leaves the
+        other as a way around it.
+        """
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+        view = UserProfileViewSet.as_view({"put": "update"})
+
+        request = self.factory.put(
+            "/",
+            data={
+                "username": self.user.username,
+                "name": "Bob",
+                "email": self.user.email,
+                "require_auth": not before,
+            },
+            **self.extra,
+        )
+        response = view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, before
+        )
+
     def test_changing_require_auth_needs_a_step_up_grant(self):
         """A client-side prompt is not a gate: without this the server never
         checked, so PATCHing the field directly changed it anyway."""
