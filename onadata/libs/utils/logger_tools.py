@@ -945,23 +945,25 @@ def get_storages_media_download_url(
 
     try:
         # pylint: disable=import-outside-toplevel
-        from storages.backends.s3boto3 import S3Boto3Storage  # noqa: PLC0415
+        from storages.backends import s3boto3  # noqa: PLC0415
     except ImportError:
-        S3Boto3Storage = None
+        s3boto3 = None
 
     try:
         # pylint: disable=import-outside-toplevel
-        from storages.backends.azure_storage import AzureStorage  # noqa: PLC0415
+        from storages.backends import azure_storage  # noqa: PLC0415
     except ImportError:
-        AzureStorage = None
+        azure_storage = None
 
     parameters = None
-    if S3Boto3Storage is not None and isinstance(default_storage, S3Boto3Storage):
+    if s3boto3 is not None and isinstance(default_storage, s3boto3.S3Boto3Storage):
         parameters = {
             "ResponseContentDisposition": content_disposition,
             "ResponseContentType": content_type or "application/octet-stream",
         }
-    elif AzureStorage is not None and isinstance(default_storage, AzureStorage):
+    elif azure_storage is not None and isinstance(
+        default_storage, azure_storage.AzureStorage
+    ):
         parameters = {
             "content_disposition": content_disposition,
             "content_type": content_type,
