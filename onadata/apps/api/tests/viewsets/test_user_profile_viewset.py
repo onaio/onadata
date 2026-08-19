@@ -19,6 +19,7 @@ from django.utils.dateparse import parse_datetime
 
 import requests
 from django_digest.test import DigestAuth
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from httmock import HTTMock, all_requests
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
@@ -650,6 +651,27 @@ class TestUserProfileViewSet(TestAbstractViewSet):
                     "city": {"old": "Bobville", "new": "Nairobi"},
                 },
             },
+        )
+
+    @override_settings(
+        STEP_UP={"ACTIONS": {"require-auth-toggle"}, "MODE": "local"}
+    )
+    def test_changing_require_auth_needs_a_step_up_grant(self):
+        """A client-side prompt is not a gate: without this the server never
+        checked, so PATCHing the field directly changed it anyway."""
+        TOTPDevice.objects.create(user=self.user, name="default", confirmed=True)
+        before = UserProfile.objects.get(user=self.user).require_auth
+
+        request = self.factory.patch(
+            "/", data={"require_auth": not before}, **self.extra
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data["error"], "step_up_required")
+        self.assertEqual(response.data["audience"], "require-auth-toggle")
+        self.assertEqual(
+            UserProfile.objects.get(user=self.user).require_auth, before
         )
 
     def test_partial_updates_empty_metadata(self):

@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.timezone import now
 
 from django_digest.backend.db import update_partial_digests
@@ -26,6 +27,40 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
+
+
+class TestCapabilitiesRoute(TestAbstractViewSet):
+    """The capabilities route is reachable and reports the current mode.
+
+    Covering the route, not just ``account_capabilities`` -- an unrouted or
+    unauthenticated endpoint would still pass a test of the function alone.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self._login_user_and_profile()
+        self.view = ConnectViewSet.as_view({"get": "capabilities"})
+
+    def test_local_mode_reports_onadata_as_the_owner(self):
+        response = self.view(self.factory.get("/", **self.extra))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["twoFactor"]["managedBy"], "onadata")
+        self.assertTrue(response.data["password"]["change"])
+        self.assertEqual(response.data["identityProvider"], "")
+
+    def test_an_anonymous_caller_is_refused(self):
+        """It names what the caller may manage, so it answers the caller --
+        not the internet."""
+        response = self.view(self.factory.get("/"))
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_the_route_is_registered(self):
+        """Asserted through the router rather than ``as_view``: the cases
+        above bind the method directly and would pass on a viewset nothing
+        routes."""
+        self.assertEqual(reverse("connect-capabilities"), "/api/v1/user/capabilities")
 
 
 class TestConnectViewSet(TestAbstractViewSet):

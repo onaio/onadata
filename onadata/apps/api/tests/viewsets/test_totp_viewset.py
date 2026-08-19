@@ -63,13 +63,10 @@ def current_code(hex_key, step=30, digits=6):
     return str(truncated % (10**digits)).zfill(digits)
 
 
-# The password requirement is pinned off for the class so these cases assert
-# enrolment mechanics rather than whichever way the running deployment has it
-# set -- the local stack turns it on, CI does not. The cases that are about
-# the password say so individually.
-@override_settings(
-    ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False
-)
+# Both pinned rather than inherited: without them these read whatever the
+# process happens to run under and pass or fail on the environment. Every case
+# here exercises OnaData-managed two-factor on a deployment that enabled it.
+@override_settings(ENABLE_TWO_FACTOR=True, STEP_UP={"MODE": "local"})
 class TestTOTPViewSet(TestAbstractViewSet):
     """The endpoints act on the authenticated user and nobody else."""
 
@@ -173,6 +170,36 @@ class TestTOTPViewSet(TestAbstractViewSet):
         # off while every gated action says otherwise.
         status_body = self._get_status().data
         self.assertTrue(status_body["methods"])
+
+    def test_status_reports_what_this_deployment_supports(self):
+        """The client renders from this rather than its own config, so the two
+        cannot disagree about whether two-factor is manageable here.
+
+        Mode is pinned rather than inherited: without it the assertion reads
+        whatever STEP_UP_MODE the process happens to be running under, and
+        passes or fails on the environment instead of the code."""
+        response = self._get_status()
+
+        self.assertEqual(response.data["managedBy"], "onadata")
+        self.assertEqual(
+            response.data["capabilities"],
+            {
+                "enroll": True,
+                "disable": True,
+                "recoveryCodes": True,
+                "verify": True,
+            },
+        )
+
+    @override_settings(STEP_UP={"MODE": "federated"})
+    def test_status_says_the_idp_owns_it_when_federated(self):
+        """The one route that must answer in both modes -- it is how the SPA
+        discovers that management is remote."""
+        response = self._get_status()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["managedBy"], "idp")
+        self.assertFalse(response.data["capabilities"]["verify"])
 
     def test_recovery_codes_are_the_set_two_factors_backup_step_reads(self):
         """One recovery set, and it is the one the login wizard reads.
@@ -1010,3 +1037,50 @@ class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
 
         self.assertEqual(view(self.factory.post("/")).status_code, 404)
         self.assertFalse(TOTPDevice.objects.exists())
+
+
+# Enabled, but the factor is not this deployment's to manage -- a different
+# refusal from the one above, and it has to be reachable: the flag is checked
+# before the mode, so with two-factor off these routes answer 404 and this
+# class would be asserting the wrong refusal.
+@override_settings(ENABLE_TWO_FACTOR=True, STEP_UP={"MODE": "federated"})
+class TestFederatedRefusesLocalManagement(TestAbstractViewSet):
+    """When an identity provider owns the factor, OnaData manages none.
+
+    The status route already reports capabilities as all-false, but a client
+    is free to ignore that -- and a client-side capability check is
+    decoration, not a gate. Left ungated these routes would enrol a device
+    against a deployment that has just said it manages none, producing a
+    second factor nothing in the login path will ever challenge.
+    """
+
+    def _post(self, handler, data=None):
+        view = TOTPViewSet.as_view({"post": handler})
+        return view(self.factory.post("/", data=data or {}, **self.extra))
+
+    def test_enrolment_is_refused(self):
+        self.assertEqual(self._post("enroll_start").status_code, 409)
+
+    def test_enrolment_confirmation_is_refused(self):
+        response = self._post("enroll_confirm", {"code": "123456"})
+        self.assertEqual(response.status_code, 409)
+
+    def test_disable_is_refused(self):
+        self.assertEqual(self._post("disable").status_code, 409)
+
+    def test_recovery_code_generation_is_refused(self):
+        self.assertEqual(self._post("recovery_generate").status_code, 409)
+
+    def test_local_code_verification_is_refused(self):
+        """The local-totp dialect does not apply; a grant here would be minted
+        without the identity provider ever being asked."""
+        response = self._post("verify", {"code": "123456"})
+        self.assertEqual(response.status_code, 409)
+
+    def test_status_still_answers(self):
+        """The one route that must answer in both modes -- it is how a caller
+        discovers that management is remote."""
+        view = TOTPViewSet.as_view({"get": "totp_status"})
+        response = view(self.factory.get("/", **self.extra))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["managedBy"], "idp")
