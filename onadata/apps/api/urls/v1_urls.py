@@ -31,6 +31,7 @@ from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
 from onadata.apps.api.viewsets.submission_review_viewset import SubmissionReviewViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.totp_viewset import TOTPViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
@@ -144,6 +145,7 @@ router.register(
 )
 router.register(r"submissions", XFormSubmissionViewSet, basename="submissions")
 router.register(r"teams", TeamViewSet)
+router.register(r"totp", TOTPViewSet, basename="totp")
 router.register(r"user", ConnectViewSet, basename="connect")
 router.register(r"users", UserViewSet, basename="user")
 router.register(r"widgets", WidgetViewSet, basename="widgets")
