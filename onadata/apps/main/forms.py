@@ -675,6 +675,19 @@ class ExternalExportForm(forms.Form):
 ActivateSMSSupportFom = ActivateSMSSupportForm
 
 
+def lockout_validation_error():
+    """The error shown once an account is locked out.
+
+    Module level because both wizard steps raise it -- the credentials form
+    below and the token forms wrapped in ``two_factor_views`` -- and the two
+    must not drift into telling a locked-out user different things.
+    """
+    return forms.ValidationError(
+        _("Maximum login attempts exceeded. Please try again later."),
+        code="locked_out",
+    )
+
+
 class LoginLockoutAuthenticationForm(AuthenticationForm):
     """Authentication form that enforces the failed-login lockout.
 
@@ -710,7 +723,7 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             try:
                 authentication.assert_not_locked_out(ip_address, lockout_username)
             except AuthenticationFailed as exc:
-                raise self._lockout_error() from exc
+                raise lockout_validation_error() from exc
 
             self.user_cache = authenticate(
                 self.request, username=username, password=password
@@ -719,20 +732,13 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
                 try:
                     authentication.add_login_attempt(ip_address, lockout_username)
                 except AuthenticationFailed as exc:
-                    raise self._lockout_error() from exc
+                    raise lockout_validation_error() from exc
                 raise forms.ValidationError(
                     _("Invalid username or password"), code="invalid_login"
                 )
             self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
-
-    @staticmethod
-    def _lockout_error():
-        return forms.ValidationError(
-            _("Maximum login attempts exceeded. Please try again later."),
-            code="locked_out",
-        )
 
 
 def password_reset_attempt_cache_key(email):

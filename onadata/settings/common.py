@@ -126,7 +126,37 @@ CSRF_COOKIE_SAMESITE = os.environ.get("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
 # header on AJAX requests.
 
 # Login URLs
-LOGIN_URL = "/accounts/login/"
+# Covers the OIDC path too: django-oauth-toolkit's authorize view redirects
+# here. /accounts/login/ is a redirect to it.
+LOGIN_URL = "two_factor:login"
+
+# Whether accounts may set up a second factor here. Gates enrolment, not
+# enforcement: a factor already enrolled is still challenged, because ceasing
+# to ask would silently weaken the accounts that opted in.
+ENABLE_TWO_FACTOR = False
+
+# Setting an age is what offers the user a "don't ask again on this device"
+# choice at all; unset it to ask on every login. The library ships that field
+# pre-ticked -- LockoutLoginView forces it off.
+TWO_FACTOR_REMEMBER_COOKIE_AGE = int(
+    os.environ.get("DJANGO_TWO_FACTOR_REMEMBER_COOKIE_AGE", str(60 * 60 * 24 * 30))
+)
+TWO_FACTOR_REMEMBER_COOKIE_SECURE = True
+# Strict: the cookie is a second-factor bypass, and the only request that
+# reads it is the wizard's own credentials POST -- same-site by construction.
+TWO_FACTOR_REMEMBER_COOKIE_SAMESITE = "Strict"
+# Authenticator app and recovery codes only; no phone or email factor.
+TWO_FACTOR_CALL_GATEWAY = None
+TWO_FACTOR_SMS_GATEWAY = None
+
+# Operations a step-up grant may be minted for. /api/v1/totp/verify refuses
+# anything else, so a client typo cannot spend a code on a grant nothing will
+# honour. These are the operations this module gates itself; a deployment
+# whose client gates more of its own adds them, rather than OnaData naming
+# actions it does not check.
+TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
+    {"enroll-start", "disable", "recovery-generate"}
+)
 LOGIN_REDIRECT_URL = "/login_redirect/"
 
 # URL prefix for admin static files -- CSS, JavaScript and images.
@@ -188,6 +218,9 @@ MIDDLEWARE = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "csp.middleware.CSPMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Must follow AuthenticationMiddleware: decorates request.user with
+    # is_verified(). Annotates only; blocks nothing on its own.
+    "django_otp.middleware.OTPMiddleware",
     "onadata.libs.utils.middleware.ActivityTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware",
@@ -220,6 +253,11 @@ INSTALLED_APPS = (
     # downstream settings module:
     #     "django.contrib.admin",
     #     "django.contrib.admindocs",
+    #
+    # Enabling either where the two-factor gate is on opens a password-only
+    # route to a superuser session: both ship their own login view, which does
+    # not go through LOGIN_URL. Gate them with django-otp's OTPAdminSite or
+    # leave them out.
     "django.contrib.gis",
     "registration",
     # "django_nose",
@@ -242,6 +280,10 @@ INSTALLED_APPS = (
     "onadata.apps.messaging.apps.MessagingConfig",
     "django_filters",
     "oidc",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    "two_factor",
 )
 
 OAUTH2_PROVIDER = {
