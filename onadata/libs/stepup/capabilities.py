@@ -31,14 +31,20 @@ def account_capabilities() -> dict:
     itself -- a capability a client chooses to ignore must still fail.
     """
     federated = identity_is_federated()
+    # A deployment that never enabled two-factor manages none of it either:
+    # /api/v1/totp/* answers 404 there, so reporting the controls as available
+    # would make this endpoint the cause of the mismatch it exists to prevent.
+    manages_second_factor = not federated and getattr(
+        settings, "ENABLE_TWO_FACTOR", False
+    )
     return {
         "password": {"change": not federated},
         "twoFactor": {
             "managedBy": "idp" if federated else "onadata",
-            "enroll": not federated,
-            "disable": not federated,
-            "recoveryCodes": not federated,
-            "verify": not federated,
+            "enroll": manages_second_factor,
+            "disable": manages_second_factor,
+            "recoveryCodes": manages_second_factor,
+            "verify": manages_second_factor,
         },
         # Named so a client can say WHERE to go instead of showing a dead
         # control. Empty when OnaData owns identity and there is nowhere else.

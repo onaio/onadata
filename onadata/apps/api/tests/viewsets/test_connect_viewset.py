@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
 from django.template.loader import render_to_string
+from django.test import override_settings
 from django.urls import reverse
 from django.utils.timezone import now
 
@@ -29,6 +30,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.cache_tools import safe_key
 
 
+@override_settings(STEP_UP={"MODE": "local"}, ENABLE_TWO_FACTOR=True)
 class TestCapabilitiesRoute(TestAbstractViewSet):
     """The capabilities route is reachable and reports the current mode.
 

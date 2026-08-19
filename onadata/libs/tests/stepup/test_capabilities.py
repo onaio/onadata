@@ -14,6 +14,27 @@ FEDERATED = {
 }
 
 
+@override_settings(STEP_UP={"MODE": "local"}, ENABLE_TWO_FACTOR=False)
+class TestTwoFactorDisabled(TestCase):
+    """A deployment that never enabled two-factor manages none of it.
+
+    /api/v1/totp/* answers 404 there, and this endpoint exists so a client can
+    avoid offering a control the server refuses -- reporting the controls as
+    available would make it the cause of exactly that.
+    """
+
+    def test_the_two_factor_controls_are_all_unavailable(self):
+        capabilities = account_capabilities()["twoFactor"]
+
+        for control in ("enroll", "disable", "recoveryCodes", "verify"):
+            with self.subTest(control=control):
+                self.assertFalse(capabilities[control])
+
+    def test_changing_a_password_is_unaffected(self):
+        """Only the second factor is gated; OnaData still owns the password."""
+        self.assertTrue(account_capabilities()["password"]["change"])
+
+
 class TestAccountCapabilities(TestCase):
     @override_settings(STEP_UP={"MODE": "local"})
     def test_onadata_owning_identity_can_manage_everything(self):
