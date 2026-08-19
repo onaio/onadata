@@ -570,7 +570,8 @@ class TestCSVDataFrameBuilder(TestBase):
             self.xform.instances.all().order_by("id").values_list("json", flat=True)
         )
         csv_df_builder.export_to(temp_file.name, cursor)
-        csv_file = open(temp_file.name, "r")
+        # Explicit utf-8: utf-8-sig would eat the EF BB BF the assertion wants.
+        csv_file = open(temp_file.name, "r", encoding="utf-8")
         csv_reader = csv.reader(csv_file)
         header = next(csv_reader)
         self.assertEqual(len(header), 17 + len(csv_df_builder.extra_columns))
