@@ -1,14 +1,17 @@
 import os
+from urllib.parse import parse_qs
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 import requests
-from django.urls import reverse
-from httmock import urlmatch, HTTMock
+from httmock import HTTMock, urlmatch
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.views import edit_data
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.logger_tools import inject_instanceid
+from onadata.libs.utils.logger_tools import inject_instanceid, save_attachments
 
 
 @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
@@ -19,6 +22,18 @@ def enketo_edit_mock(url, request):
     return response
 
 
+def enketo_edit_capture_mock(captured):
+    """``enketo_edit_mock``, recording the request body into ``captured``."""
+
+    @urlmatch(netloc=r"(.*\.)?enketo\.ona\.io$")
+    def capture(url, request):
+        captured["body"] = request.body
+
+        return enketo_edit_mock(url, request)
+
+    return capture
+
+
 class TestWebforms(TestBase):
     def setUp(self):
         super(TestWebforms, self).setUp()
@@ -27,6 +42,22 @@ class TestWebforms(TestBase):
     def __load_fixture(self, *path):
         with open(os.path.join(os.path.dirname(__file__), *path), "r") as f:
             return f.read()
+
+    def __attach_media(self, instance, media_file):
+        """Attach a fixture media file to an existing submission."""
+        path = os.path.join(
+            self.this_directory,
+            "fixtures",
+            "transportation",
+            "instances",
+            self.surveys[0],
+            media_file,
+        )
+        with open(path, "rb") as f:
+            upload = SimpleUploadedFile(media_file, f.read(), content_type="image/jpeg")
+            save_attachments(self.xform, instance, [upload])
+
+        return instance.attachments.get(name=media_file)
 
     def test_edit_url(self):
         instance = Instance.objects.order_by("id").reverse()[0]
@@ -42,6 +73,38 @@ class TestWebforms(TestBase):
             response = self.client.get(edit_url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response["location"], "https://hmh2a.enketo.ona.io")
+
+    def test_edit_url_sends_instance_attachments(self):
+        """The edit link request carries the submission's attachments.
+
+        The instance XML records only their file names, so each is sent paired
+        with an absolute download URL.
+        """
+        instance = Instance.objects.order_by("id").reverse()[0]
+        attachment = self.__attach_media(instance, "1335783522563.jpg")
+        edit_url = reverse(
+            edit_data,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "data_id": instance.id,
+            },
+        )
+
+        captured = {}
+
+        with HTTMock(enketo_edit_capture_mock(captured)):
+            self.client.get(edit_url)
+
+        posted = parse_qs(captured["body"])
+
+        self.assertEqual(
+            posted["instance_attachments[1335783522563.jpg]"],
+            [
+                "http://testserver/api/v1/files/"
+                f"{attachment.pk}?filename={attachment.media_file.name}"
+            ],
+        )
 
     def test_inject_instanceid(self):
         """
