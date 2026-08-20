@@ -155,7 +155,7 @@ TWO_FACTOR_SMS_GATEWAY = None
 # whose client gates more of its own adds them, rather than OnaData naming
 # actions it does not check.
 TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
-    {"enroll-start", "disable", "recovery-generate"}
+    {"enroll-start", "disable", "recovery-generate", "recovery-view"}
 )
 LOGIN_REDIRECT_URL = "/login_redirect/"
 

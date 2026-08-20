@@ -367,6 +367,32 @@ class TOTPViewSet(ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=False, methods=["post"], url_path="recovery")
+    def recovery_view(self, request):
+        """Return the recovery codes that have not been spent yet.
+
+        POST, not GET: the caller proves itself with a grant or a code in the
+        body, and neither belongs in a URL or a proxy's access log. Spent
+        codes are deleted as they are used, so what comes back is what still
+        works -- and viewing leaves the set intact, which is the whole point
+        of not making the user regenerate to read their own codes.
+
+        The proof is demanded before the set is looked up, so holding a
+        session alone does not reveal whether codes exist.
+        """
+        refusal = self._require_code(request, "recovery-view")
+        if refusal is not None:
+            return refusal
+        recovery = _recovery_device(request.user)
+        if recovery is None:
+            return Response(
+                {"error": "No recovery codes have been generated."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(
+            {"codes": list(recovery.token_set.values_list("token", flat=True))}
+        )
+
     @action(detail=False, methods=["post"], url_path="verify")
     def verify(self, request):
         """Check a code without changing anything -- the step-up challenge.

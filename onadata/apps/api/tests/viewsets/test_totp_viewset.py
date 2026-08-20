@@ -728,6 +728,75 @@ class TestTOTPViewSet(TestAbstractViewSet):
         padded = b32 + "=" * (-len(b32) % 8)
         self.assertEqual(base64.b32decode(padded).hex(), device.key)
 
+    def test_viewing_returns_the_codes_that_still_work(self):
+        """The same set, not a new one -- viewing must not invalidate."""
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        with next_totp_window():
+            viewed = self._post_with_api_key(
+                "recovery_view", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(viewed.status_code, 200)
+        self.assertEqual(
+            sorted(viewed.data["codes"]), sorted(generated.data["codes"])
+        )
+        self.assertEqual(
+            self._get_status().data["recoveryCodes"],
+            {"generated": True, "remaining": RECOVERY_CODE_COUNT},
+        )
+
+    def test_viewing_refuses_without_a_current_code(self):
+        """Session alone is not enough -- these are the last-resort secret."""
+        device = self._enroll()
+        with next_totp_window():
+            self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+
+        response = self._post_with_api_key("recovery_view")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("codes", response.data)
+
+    def test_viewing_accepts_a_grant_minted_for_it(self):
+        """The SPA spends a grant rather than re-prompting for a code."""
+        device = self._enroll()
+        with next_totp_window():
+            self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        with next_totp_window():
+            verified = self._post_with_api_key(
+                "verify",
+                {"code": current_code(device.key), "audience": "recovery-view"},
+            )
+        self.assertEqual(verified.status_code, 200)
+
+        response = self._post_with_api_key(
+            "recovery_view", {"grant": verified.data["grant"]}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["codes"]), RECOVERY_CODE_COUNT)
+
+    def test_viewing_a_set_that_was_never_generated_is_a_404(self):
+        # Enrolment issues a set of its own, so drop it: the case under test
+        # is an account whose codes are gone, not one that never enrolled.
+        device = self._enroll()
+        StaticDevice.objects.filter(user=self.user).delete()
+
+        with next_totp_window():
+            response = self._post_with_api_key(
+                "recovery_view", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 404)
+
+
 
 @override_settings(ENABLE_TWO_FACTOR=False)
 class DisabledTOTPViewSetTestCase(TestAbstractViewSet):
