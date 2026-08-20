@@ -28,7 +28,7 @@ from django.core.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-from django.core.files.storage import InvalidStorageError, storages
+from django.core.files.storage import storages
 from django.db import DataError, IntegrityError, transaction
 from django.http import (
     HttpResponse,
@@ -941,50 +941,42 @@ def get_storages_media_download_url(
     :param expires_in: The expiration time in seconds.
     :returns: The media download URL.
     """
-    s3_class = None
-    azure_class = None
     default_storage = storages["default"]
-    url = None
 
     try:
-        s3_class = storages.create_storage(
-            {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
-        )
-    except (ModuleNotFoundError, InvalidStorageError):
-        pass
+        # pylint: disable=import-outside-toplevel
+        from storages.backends import s3boto3  # noqa: PLC0415
+    except ImportError:
+        s3boto3 = None
 
     try:
-        azure_class = storages.create_storage(
-            {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
-        )
-    except (ModuleNotFoundError, InvalidStorageError):
-        pass
+        # pylint: disable=import-outside-toplevel
+        from storages.backends import azure_storage  # noqa: PLC0415
+    except ImportError:
+        azure_storage = None
 
-    # Check if the storage backend is S3
-    if isinstance(default_storage, type(s3_class)):
-        try:
-            url = generate_aws_media_url(
-                file_path,
-                content_type=content_type,
-                content_disposition=content_disposition,
-                expiration=expires_in,
-            )
-        except Exception as error:  # pylint: disable=broad-exception-caught
-            logging.exception(error)
+    parameters = None
+    if s3boto3 is not None and isinstance(default_storage, s3boto3.S3Boto3Storage):
+        parameters = {
+            "ResponseContentDisposition": content_disposition,
+            "ResponseContentType": content_type or "application/octet-stream",
+        }
+    elif azure_storage is not None and isinstance(
+        default_storage, azure_storage.AzureStorage
+    ):
+        parameters = {
+            "content_disposition": content_disposition,
+            "content_type": content_type,
+        }
 
-    # Check if the storage backend is Azure
-    elif isinstance(default_storage, type(azure_class)):
-        try:
-            url = generate_media_url_with_sas(
-                file_path,
-                content_type=content_type,
-                content_disposition=content_disposition,
-                expiration=expires_in,
-            )
-        except Exception as error:  # pylint: disable=broad-exception-caught
-            logging.error(error)
+    if parameters is None:
+        return None
 
-    return url
+    try:
+        return default_storage.url(file_path, parameters=parameters, expire=expires_in)
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.exception(error)
+        return None
 
 
 def response_with_mimetype_and_name(

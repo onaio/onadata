@@ -4,11 +4,61 @@ Test onadata.libs.serializers.metadata_serializer
 """
 
 import os
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.test import SimpleTestCase, override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+
+
+class TestMetaDataSerializerUrls(SimpleTestCase):
+    """Test metadata URL generation without database access."""
+
+    @staticmethod
+    def _uploaded_media(data_value="photo.jpg"):
+        return SimpleNamespace(
+            data_type="media",
+            data_value=data_value,
+            data_file=SimpleNamespace(
+                name="alice/formid-media/random-storage-key.jpg",
+                url="http://testserver/media/random-storage-key.jpg",
+            ),
+            data_file_type="image/jpeg",
+        )
+
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    @override_settings(METADATA_SIGNED_URL_EXPIRATION=7200)
+    def test_uploaded_file_url_uses_sanitized_data_value(self, mock_signed_url):
+        """The signer receives the safe filename and configured expiration."""
+        mock_signed_url.return_value = "https://storage.example/signed"
+        metadata = self._uploaded_media("../unsafe/apple.jpg\r\n")
+
+        url = MetaDataSerializer().get_media_url(metadata)
+
+        self.assertEqual(url, "https://storage.example/signed")
+        mock_signed_url.assert_called_once_with(
+            "alice/formid-media/random-storage-key.jpg",
+            'inline; filename="apple.jpg"',
+            "image/jpeg",
+            expires_in=7200,
+        )
+
+    @patch(
+        "onadata.libs.serializers.metadata_serializer.get_storages_media_download_url"
+    )
+    def test_uploaded_file_url_falls_back_to_storage_url(self, mock_signed_url):
+        """Local and unsupported backends retain their existing storage URL."""
+        mock_signed_url.return_value = None
+        metadata = self._uploaded_media()
+
+        url = MetaDataSerializer().get_media_url(metadata)
+
+        self.assertEqual(url, metadata.data_file.url)
 
 
 class TestMetaDataViewSerializer(TestAbstractViewSet):

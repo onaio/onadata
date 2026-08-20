@@ -13,13 +13,11 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
-from django.core.files.storage import InvalidStorageError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http.request import HttpRequest
 from django.test.utils import override_settings
 from django.utils import timezone
 
-from azure.storage.blob import AccountSasPermissions
 from defusedxml import minidom
 from defusedxml.ElementTree import ParseError
 
@@ -1247,103 +1245,110 @@ class GetStoragesMediaDownloadUrlTestCase(TestBase):
     """Tests for method `get_storages_media_download_url`"""
 
     @override_settings(
-        STORAGES={"default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}},
-        AWS_STORAGE_BUCKET_NAME="test-bucket",
+        STORAGES={
+            "default": {
+                "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+                "OPTIONS": {
+                    "access_key": "options-access-key",
+                    "secret_key": "options-secret-key",
+                    "security_token": "options-session-token",
+                    "bucket_name": "options-bucket",
+                    "endpoint_url": "https://s3.example.test",
+                    "region_name": "eu-west-1",
+                    "signature_version": "s3v4",
+                },
+            }
+        },
     )
-    @patch("boto3.client")
-    def test_s3_url(self, mock_boto_client):
-        """S3 signed url is generated if default storage is S3"""
-        mock_s3 = mock_boto_client.return_value
-        mock_s3.generate_presigned_url.return_value = "https://test.com/test.csv"
+    @patch("storages.backends.s3boto3.S3Boto3Storage.url", autospec=True)
+    def test_s3_url(self, mock_storage_url):
+        """S3 signing uses the configured backend instance and its options."""
+        mock_storage_url.return_value = "https://test.com/test.csv"
 
         url = get_storages_media_download_url(
             "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
 
         self.assertEqual(url, "https://test.com/test.csv")
-        mock_s3.generate_presigned_url.assert_called_once_with(
-            "get_object",
-            Params={
-                "Bucket": "test-bucket",
-                "Key": "test.csv",
+        storage = mock_storage_url.call_args.args[0]
+        self.assertEqual(storage.access_key, "options-access-key")
+        self.assertEqual(storage.secret_key, "options-secret-key")
+        self.assertEqual(storage.security_token, "options-session-token")
+        self.assertEqual(storage.bucket_name, "options-bucket")
+        self.assertEqual(storage.endpoint_url, "https://s3.example.test")
+        self.assertEqual(storage.region_name, "eu-west-1")
+        self.assertEqual(storage.signature_version, "s3v4")
+        mock_storage_url.assert_called_once_with(
+            storage,
+            "test.csv",
+            parameters={
                 "ResponseContentDisposition": 'attachment; filename="test.csv"',
                 "ResponseContentType": "text/csv",
             },
-            ExpiresIn=3600,
+            expire=3600,
         )
 
         # Content type is application/octet-stream if not provided
-        mock_s3.generate_presigned_url.reset_mock()
+        mock_storage_url.reset_mock()
         url = get_storages_media_download_url(
             "test.csv", 'attachment; filename="test.csv"', expires_in=3600
         )
         self.assertEqual(url, "https://test.com/test.csv")
-        mock_s3.generate_presigned_url.assert_called_once_with(
-            "get_object",
-            Params={
-                "Bucket": "test-bucket",
-                "Key": "test.csv",
+        mock_storage_url.assert_called_once_with(
+            storage,
+            "test.csv",
+            parameters={
                 "ResponseContentDisposition": 'attachment; filename="test.csv"',
                 "ResponseContentType": "application/octet-stream",
             },
-            ExpiresIn=3600,
+            expire=3600,
         )
 
     @override_settings(
         STORAGES={
-            "default": {"BACKEND": "storages.backends.azure_storage.AzureStorage"}
+            "default": {
+                "BACKEND": "storages.backends.azure_storage.AzureStorage",
+                "OPTIONS": {
+                    "account_name": "options-account",
+                    "account_key": "options-key",
+                    "azure_container": "options-container",
+                    "endpoint_suffix": "blob.example.test",
+                },
+            }
         },
-        AZURE_ACCOUNT_NAME="test-account",
-        AZURE_CONTAINER="test-container",
     )
-    @patch("azure.storage.blob.generate_blob_sas")
-    def test_azure_url(self, mock_generate_blob_sas):
-        """Azure signed url is generated if default storage is Azure"""
-        mock_generate_blob_sas.return_value = "sas-token"
-        mocked_now = timezone.now()
+    @patch("storages.backends.azure_storage.AzureStorage.url", autospec=True)
+    def test_azure_url(self, mock_storage_url):
+        """Azure signing uses the configured backend instance and its options."""
+        mock_storage_url.return_value = "https://test.com/test.csv?sas-token"
 
-        with patch("django.utils.timezone.now") as mock_now:
-            mock_now.return_value = mocked_now
-            url = get_storages_media_download_url(
-                "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
-            )
-
-        self.assertEqual(
-            url,
-            "https://test-account.blob.core.windows.net/test-container/test.csv?sas-token",
+        url = get_storages_media_download_url(
+            "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
-        called_kwargs = mock_generate_blob_sas.call_args.kwargs
 
-        self.assertEqual(called_kwargs["account_name"], "test-account")
-        self.assertEqual(called_kwargs["container_name"], "test-container")
-        self.assertEqual(called_kwargs["blob_name"], "test.csv")
-        self.assertEqual(called_kwargs["expiry"], mocked_now + timedelta(seconds=3600))
-        self.assertEqual(
-            called_kwargs["content_disposition"], 'attachment; filename="test.csv"'
+        self.assertEqual(url, "https://test.com/test.csv?sas-token")
+        storage = mock_storage_url.call_args.args[0]
+        self.assertEqual(storage.account_name, "options-account")
+        self.assertEqual(storage.account_key, "options-key")
+        self.assertEqual(storage.azure_container, "options-container")
+        self.assertEqual(storage.endpoint_suffix, "blob.example.test")
+        mock_storage_url.assert_called_once_with(
+            storage,
+            "test.csv",
+            parameters={
+                "content_disposition": 'attachment; filename="test.csv"',
+                "content_type": "text/csv",
+            },
+            expire=3600,
         )
-        self.assertEqual(called_kwargs["content_type"], "text/csv")
-        self.assertIsInstance(called_kwargs["permission"], AccountSasPermissions)
-        self.assertTrue(called_kwargs["permission"].read)
 
     @override_settings(
         STORAGES={
             "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}
         },
     )
-    @patch("onadata.libs.utils.logger_tools.storages")
-    def test_invalid_storage_error_is_handled_gracefully(self, mock_storages):
-        """InvalidStorageError from create_storage is caught gracefully.
-
-        Regression test for https://github.com/onaio/onadata/issues/2960.
-        When the azure or boto3 packages are not installed, Django's
-        create_storage raises InvalidStorageError (wrapping ModuleNotFoundError).
-        The function should return None without raising.
-        """
-        mock_storages.create_storage.side_effect = InvalidStorageError(
-            "Could not find backend: No module named 'azure'"
-        )
-        mock_storages.__getitem__ = lambda self, key: None
-
+    def test_local_storage_returns_none(self):
+        """Unsupported storage backends do not generate a signed URL."""
         url = get_storages_media_download_url(
             "test.csv", 'attachment; filename="test.csv"', "text/csv", 3600
         )
