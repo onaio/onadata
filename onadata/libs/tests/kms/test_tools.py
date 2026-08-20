@@ -22,7 +22,6 @@ from valigetta.exceptions import (
     AliasAlreadyExistsException,
     CreateAliasException,
     GetPublicKeyException,
-    InvalidSubmissionException,
 )
 from valigetta.kms import APIKMSClient as BaseAPIClient
 from valigetta.kms import AWSKMSClient as BaseAWSClient
@@ -1033,25 +1032,25 @@ class DecryptInstanceTestCase(TestBase):
         }
         dec_aes_key = b"0123456789abcdef0123456789abcdef"
         self.kms_key = create_key(self.org)
-        enc_aes_key = self._kms_encrypt(
+        self.enc_aes_key = self._kms_encrypt(
             key_id=self.kms_key.key_id, plain_text=dec_aes_key
         )
         enc_signature = self._create_encrypted_signature(
             key_id=self.kms_key.key_id,
             form_id=self.form_id,
             version=self.instance_version,
-            enc_aes_key=enc_aes_key,
+            enc_aes_key=self.enc_aes_key,
             instance_uuid=self.instance_uuid,
             dec_submission=self.dec_submission_file,
             dec_media=self.dec_media,
         )
-        enc_key_b64 = base64.b64encode(enc_aes_key).decode("utf-8")
+        self.enc_key_b64 = base64.b64encode(self.enc_aes_key).decode("utf-8")
         enc_signature_b64 = base64.b64encode(enc_signature).decode("utf-8")
 
         self.metadata_xml = self._create_encrypted_submission_manifest(
             form_id=self.form_id,
             version=self.instance_version,
-            enc_key_b64=enc_key_b64,
+            enc_key_b64=self.enc_key_b64,
             instance_uuid=self.instance_uuid,
             enc_signature_b64=enc_signature_b64,
             media_files=["sunset.png.enc", "forest.mp4.enc"],
@@ -1186,6 +1185,85 @@ class DecryptInstanceTestCase(TestBase):
             self.xform.pk, delta=1
         )
 
+    def test_validation_status_not_valid(self):
+        """Submission not matching its signature is recorded as not valid."""
+        mismatched_signature = self._create_encrypted_signature(
+            key_id=self.kms_key.key_id,
+            form_id=self.form_id,
+            version=self.instance_version,
+            enc_aes_key=self.enc_aes_key,
+            instance_uuid=self.instance_uuid,
+            dec_submission=BytesIO(b"Content that was never submitted"),
+            dec_media=self.dec_media,
+        )
+        mismatched_xml = self._create_encrypted_submission_manifest(
+            form_id=self.form_id,
+            version=self.instance_version,
+            enc_key_b64=self.enc_key_b64,
+            instance_uuid=self.instance_uuid,
+            enc_signature_b64=base64.b64encode(mismatched_signature).decode("utf-8"),
+            media_files=["sunset.png.enc", "forest.mp4.enc"],
+        )
+        Instance.objects.filter(pk=self.instance.pk).update(
+            xml=mismatched_xml,
+            checksum=sha256(mismatched_xml.encode("utf-8")).hexdigest(),
+        )
+        self.instance.refresh_from_db()
+
+        with self.assertLogs("onadata.libs.kms.tools", level="WARNING") as logs:
+            decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+
+        # Decrypted submission is kept
+        self.assertEqual(self.instance.xml, self.dec_submission_xml)
+        self.assertFalse(self.instance.is_encrypted)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
+        self.assertEqual(
+            self.instance.validation_status, Instance.ValidationStatus.NOT_VALID
+        )
+        self.assertIn(str(self.instance.pk), logs.output[0])
+
+    def test_validation_status_not_validated(self):
+        """Submission carrying no signature is recorded as not validated."""
+        unsigned_xml = self._create_encrypted_submission_manifest(
+            form_id=self.form_id,
+            version=self.instance_version,
+            enc_key_b64=self.enc_key_b64,
+            instance_uuid=self.instance_uuid,
+            enc_signature_b64=None,
+            media_files=["sunset.png.enc", "forest.mp4.enc"],
+        )
+        Instance.objects.filter(pk=self.instance.pk).update(
+            xml=unsigned_xml,
+            checksum=sha256(unsigned_xml.encode("utf-8")).hexdigest(),
+        )
+        self.instance.refresh_from_db()
+
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+
+        self.assertEqual(self.instance.xml, self.dec_submission_xml)
+        self.assertEqual(
+            self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
+        )
+        self.assertEqual(
+            self.instance.validation_status, Instance.ValidationStatus.NOT_VALIDATED
+        )
+
+    def test_validation_status_valid(self):
+        """Submission matching its signature is recorded as valid."""
+        decrypt_instance(self.instance)
+
+        self.instance.refresh_from_db()
+
+        self.assertEqual(
+            self.instance.validation_status, Instance.ValidationStatus.VALID
+        )
+
     @patch(
         "onadata.apps.logger.tasks.adjust_xform_num_of_decrypted_submissions_async.delay"
     )
@@ -1303,24 +1381,20 @@ class DecryptInstanceTestCase(TestBase):
             self.instance.json.get("_decryption_error"), "KMS_KEY_NOT_FOUND"
         )
 
-    def _mock_decrypt_submission(*args, **kwargs):
-        def _gen():
-            raise InvalidSubmissionException("Invalid signature.")
-            yield  # unreachable, but needed to make it a generator
-
-        return _gen()
-
-    @patch("onadata.libs.kms.tools.decrypt_submission")
-    def test_decryption_failure(self, mock_decrypt_submission):
+    def test_decryption_failure(self):
         """Decryption failure is handled."""
-        mock_decrypt_submission.side_effect = self._mock_decrypt_submission
+        # Corrupt the encrypted submission so decryption yields invalid padding
+        attachment = self.instance.attachments.get(name="submission.xml.enc")
+        attachment.media_file.save(
+            "submission.xml.enc", File(BytesIO(b"\x00" * 32)), save=True
+        )
 
         old_xml = self.instance.xml
 
         with self.assertRaises(DecryptionError) as exc_info:
             decrypt_instance(self.instance)
 
-        self.assertEqual(str(exc_info.exception), "Invalid signature.")
+        self.assertIn("Invalid padding", str(exc_info.exception))
 
         self.instance.refresh_from_db()
 
