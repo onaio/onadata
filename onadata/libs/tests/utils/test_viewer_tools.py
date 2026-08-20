@@ -178,6 +178,17 @@ class TestViewerTools(TestBase):
         )
         self.assertEqual(url, "https://ona.io/enketo/492")
 
+    @override_settings(TESTING_MODE=False, ENKETO_PROTOCOL="http")
+    def test_get_form_url_submission_pk(self):
+        """The submission pk is appended to the form specific URL."""
+        request = RequestFactory().get("/")
+
+        url = get_form_url(
+            request, xform_pk=492, submission_pk=6, generate_consistent_urls=True
+        )
+
+        self.assertEqual(url, "http://ona.io/enketo/492/6")
+
     @override_settings(ZIP_REPORT_ATTACHMENT_LIMIT=8)
     @patch("onadata.libs.utils.viewer_tools.report_exception")
     def test_create_attachments_zipfile_file_too_big(self, rpt_mock):

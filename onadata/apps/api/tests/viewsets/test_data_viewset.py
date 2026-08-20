@@ -1558,6 +1558,32 @@ class TestDataViewSet(SerializeMixin, TestBase):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get("Cache-Control"), None)
 
+    def test_enketo_edit_url_names_the_submission(self):
+        """The server URL sent to Enketo names the submission being edited.
+
+        Enketo derives the form list and submission endpoints from it, so
+        naming the submission is what routes the edit to the endpoint that
+        supersedes it instead of the one that creates a new submission.
+        """
+        self._make_submissions()
+        instance = self.xform.instances.all().order_by("id")[0]
+        view = DataViewSet.as_view({"get": "enketo"})
+        request = self.factory.get(
+            "/", data={"return_url": "http://test.io/test_url"}, **self.extra
+        )
+
+        captured = {}
+
+        with HTTMock(enketo_edit_capture_mock(captured)):
+            view(request, pk=self.xform.pk, dataid=instance.pk)
+
+        posted = parse_qs(captured["body"])
+
+        self.assertEqual(
+            posted["server_url"],
+            [f"https://testserver.com/enketo/{self.xform.pk}/{instance.pk}"],
+        )
+
     def test_enketo_edit_url_sends_instance_attachments(self):
         """The edit link request carries the submission's attachments.
 
