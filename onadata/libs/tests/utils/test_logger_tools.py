@@ -1029,7 +1029,9 @@ class DeleteXFormSubmissionsTestCase(TestBase):
 
         self._publish_transportation_form()
         self._make_submissions()
-        self.instances = self.xform.instances.all()
+        # Ordered so the two reads of instances[0] in a test agree. Not list():
+        # it must stay unevaluated until the tests below read it, after mutating.
+        self.instances = self.xform.instances.order_by("pk")
 
     def test_soft_delete_all(self):
         """All submissions are soft deleted"""
