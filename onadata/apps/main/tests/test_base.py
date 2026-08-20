@@ -867,7 +867,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         version,
         enc_key_b64,
         instance_uuid,
-        enc_signature_b64,
+        enc_signature_b64=None,
         media_files=None,
     ):
         """Create the metadata XML manifest for an encrypted submission.
@@ -876,7 +876,8 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         :param version: The XForm version.
         :param enc_key_b64: The base64-encoded encrypted AES key.
         :param instance_uuid: The instance UUID (with or without 'uuid:' prefix).
-        :param enc_signature_b64: The base64-encoded encrypted signature.
+        :param enc_signature_b64: The base64-encoded encrypted signature. The
+            signature is optional; omit it for an unsigned submission.
         :param media_files: Optional list of encrypted media file names.
         :returns: The metadata XML string.
         """
@@ -884,6 +885,13 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
         if media_files:
             media_entries = "".join(f"<file>{f}</file>" for f in media_files)
             media_xml = f"<media>{media_entries}</media>"
+
+        signature_xml = ""
+        if enc_signature_b64 is not None:
+            signature_xml = (
+                f"<base64EncryptedElementSignature>{enc_signature_b64}"
+                f"</base64EncryptedElementSignature>"
+            )
 
         return (
             f'<data xmlns="http://opendatakit.org/submissions" encrypted="yes" '
@@ -894,8 +902,7 @@ class TestBase(PyxformMarkdown, TransactionTestCase):
             f"</orx:meta>"
             f"{media_xml}"
             f"<encryptedXmlFile>submission.xml.enc</encryptedXmlFile>"
-            f"<base64EncryptedElementSignature>{enc_signature_b64}"
-            f"</base64EncryptedElementSignature>"
+            f"{signature_xml}"
             f"</data>"
         )
 
