@@ -1126,6 +1126,9 @@ class DecryptInstanceTestCase(TestBase):
         self.assertEqual(
             self.instance.decryption_status, Instance.DecryptionStatus.SUCCESS
         )
+        self.assertEqual(
+            self.instance.validation_status, Instance.ValidationStatus.VALID
+        )
 
         # Decrypted media files are saved
         att_qs = Attachment.objects.filter(instance=self.instance).order_by("pk")
@@ -1252,16 +1255,6 @@ class DecryptInstanceTestCase(TestBase):
         )
         self.assertEqual(
             self.instance.validation_status, Instance.ValidationStatus.NOT_VALIDATED
-        )
-
-    def test_validation_status_valid(self):
-        """Submission matching its signature is recorded as valid."""
-        decrypt_instance(self.instance)
-
-        self.instance.refresh_from_db()
-
-        self.assertEqual(
-            self.instance.validation_status, Instance.ValidationStatus.VALID
         )
 
     @patch(
