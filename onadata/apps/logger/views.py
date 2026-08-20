@@ -636,7 +636,13 @@ def edit_data(request, username, id_string, data_id):
         + "#/"
         + str(instance.id)
     )
-    form_url = get_form_url(request, username)
+    form_url = get_form_url(
+        request,
+        username,
+        xform_pk=xform.pk,
+        generate_consistent_urls=True,
+        submission_pk=instance.pk,
+    )
 
     try:
         url = get_enketo_urls(

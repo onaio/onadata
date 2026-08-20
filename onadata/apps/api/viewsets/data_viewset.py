@@ -343,6 +343,7 @@ class DataViewSet(
                     self.object.xform.user.username,
                     xform_pk=self.object.xform.id,
                     generate_consistent_urls=True,
+                    submission_pk=self.object.pk,
                 )
                 if not return_url:
                     raise ParseError(_("return_url not provided."))

@@ -339,6 +339,7 @@ def get_form_url(
     preview=False,
     xform_pk=None,
     generate_consistent_urls=False,
+    submission_pk=None,
 ):
     """
     Return a form list url endpoint to be used to make a request to Enketo.
@@ -348,6 +349,9 @@ def get_form_url(
     provided then Enketo will request the form list from
     https://example.com/[username]/formList. Same applies for preview if
     preview is True and also to a single form when xform_pk is provided.
+    When submission_pk is provided the url is scoped to that submission, so
+    that Enketo requests the form list from and posts the edit to the
+    submission specific endpoints.
 
     When *protocol* is ``None`` (the default) it is read from the
     ``ENKETO_PROTOCOL`` Django setting, falling back to ``"https"``.
@@ -368,6 +372,9 @@ def get_form_url(
 
     if xform_pk and generate_consistent_urls:
         url += f"/enketo/{xform_pk}"
+
+        if submission_pk:
+            url += f"/{submission_pk}"
     elif username:
         url += f"/{username}/{xform_pk}" if xform_pk else f"/{username}"
 

@@ -106,6 +106,35 @@ class TestWebforms(TestBase):
             ],
         )
 
+    def test_edit_url_names_the_submission(self):
+        """The server URL sent to Enketo names the submission being edited.
+
+        Enketo derives the form list and submission endpoints from it, so
+        naming the submission is what routes the edit to the endpoint that
+        supersedes it instead of the one that creates a new submission.
+        """
+        instance = Instance.objects.order_by("id").reverse()[0]
+        edit_url = reverse(
+            edit_data,
+            kwargs={
+                "username": self.user.username,
+                "id_string": self.xform.id_string,
+                "data_id": instance.id,
+            },
+        )
+
+        captured = {}
+
+        with HTTMock(enketo_edit_capture_mock(captured)):
+            self.client.get(edit_url)
+
+        posted = parse_qs(captured["body"])
+
+        self.assertEqual(
+            posted["server_url"],
+            [f"https://testserver.com/enketo/{self.xform.pk}/{instance.pk}"],
+        )
+
     def test_inject_instanceid(self):
         """
         Test that 1 and only 1 instance id exists or is injected
