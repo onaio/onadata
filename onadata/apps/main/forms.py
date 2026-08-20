@@ -24,6 +24,7 @@ from django.views.decorators.debug import sensitive_variables
 
 import requests
 from registration.forms import RegistrationFormUniqueEmail
+from two_factor.forms import BackupTokenForm
 from requests.exceptions import RequestException
 from rest_framework.exceptions import AuthenticationFailed
 from six.moves.urllib.parse import urljoin, urlparse
@@ -739,6 +740,32 @@ class LoginLockoutAuthenticationForm(AuthenticationForm):
             self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
+
+
+class RecoveryCodeForm(BackupTokenForm):
+    """Recovery-code step of the login wizard.
+
+    ``StaticToken.random_token`` lowercases its base32, and the library
+    compares the submitted code exactly, so a keyboard that autocapitalises
+    turns a valid code into a wrong one. The API relay already lowercases;
+    this keeps the wizard in step with it.
+
+    The library's "Invalid token" also names neither recovery codes nor their
+    single use, which is the whole question a user has at this point.
+    """
+
+    otp_error_messages = dict(
+        BackupTokenForm.otp_error_messages,
+        invalid_token=gettext_lazy(
+            "That recovery code is invalid or has already been used. Each "
+            "code works once, so try one you have not used yet, or check "
+            "for a typo."
+        ),
+    )
+
+    def clean_otp_token(self):
+        """Normalise to the stored form. CharField has already stripped it."""
+        return self.cleaned_data["otp_token"].lower()
 
 
 def password_reset_attempt_cache_key(email):

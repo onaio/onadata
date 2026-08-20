@@ -5,11 +5,12 @@ import importlib
 from django import forms
 
 from rest_framework.exceptions import AuthenticationFailed
-from two_factor.forms import AuthenticationTokenForm, BackupTokenForm
+from two_factor.forms import AuthenticationTokenForm
 from two_factor.views import LoginView
 
 from onadata.apps.main.forms import (
     LoginLockoutAuthenticationForm,
+    RecoveryCodeForm,
     lockout_validation_error,
 )
 
@@ -75,7 +76,7 @@ class LockoutLoginView(LoginView):
     form_list = (
         (LoginView.AUTH_STEP, LoginLockoutAuthenticationForm),
         (LoginView.TOKEN_STEP, AuthenticationTokenForm),
-        (LoginView.BACKUP_STEP, BackupTokenForm),
+        (LoginView.BACKUP_STEP, RecoveryCodeForm),
     )
 
     def get_form(self, step=None, **kwargs):
