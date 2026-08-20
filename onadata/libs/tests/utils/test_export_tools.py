@@ -5,6 +5,7 @@ Test export_tools module
 
 import csv
 import json
+import locale
 import os
 import shutil
 import tempfile
@@ -1086,6 +1087,13 @@ class TestExportTools(TestAbstractViewSet):
         expected_data = {"fruit": {"orange": "Orange", "mango": "Mango"}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
+    def _restore_locale_after_sav_writer(self):
+        # SavWriter applies its ioLocale with locale.setlocale, changing the
+        # locale for the whole process. Unrestored, the C locale it is given
+        # leaves every later open() in this process decoding as ASCII.
+        process_locale = locale.setlocale(locale.LC_ALL)
+        self.addCleanup(locale.setlocale, locale.LC_ALL, process_locale)
+
     def test_sav_duplicate_columns(self):
         more_than_64_char = (
             "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsjadsasdasgdsahdsahdsadgsd"
@@ -1123,6 +1131,7 @@ class TestExportTools(TestAbstractViewSet):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
+        self._restore_locale_after_sav_writer()
 
         for sec in export_builder.sections:
             sav_options = export_builder._get_sav_options(sec["elements"])
@@ -1137,6 +1146,7 @@ class TestExportTools(TestAbstractViewSet):
         export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
+        self._restore_locale_after_sav_writer()
 
         for sec in export_builder.sections:
             sav_options = export_builder._get_sav_options(sec["elements"])
