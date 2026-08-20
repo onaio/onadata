@@ -735,6 +735,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
             generated = self._post_with_api_key(
                 "recovery_generate", {"code": current_code(device.key)}
             )
+        # The comparison below is only meaningful if a set was really issued:
+        # two empty lists would match and prove nothing.
+        self.assertEqual(generated.status_code, 201)
         with next_totp_window():
             viewed = self._post_with_api_key(
                 "recovery_view", {"code": current_code(device.key)}
@@ -753,9 +756,11 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """Session alone is not enough -- these are the last-resort secret."""
         device = self._enroll()
         with next_totp_window():
-            self._post_with_api_key(
+            generated = self._post_with_api_key(
                 "recovery_generate", {"code": current_code(device.key)}
             )
+        # Refusing to show nothing would pass this test for the wrong reason.
+        self.assertEqual(generated.status_code, 201)
 
         response = self._post_with_api_key("recovery_view")
 
@@ -766,9 +771,10 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The SPA spends a grant rather than re-prompting for a code."""
         device = self._enroll()
         with next_totp_window():
-            self._post_with_api_key(
+            generated = self._post_with_api_key(
                 "recovery_generate", {"code": current_code(device.key)}
             )
+        self.assertEqual(generated.status_code, 201)
         with next_totp_window():
             verified = self._post_with_api_key(
                 "verify",
