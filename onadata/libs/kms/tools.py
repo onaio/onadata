@@ -23,7 +23,7 @@ from django.utils.html import strip_tags
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
-from valigetta.decryptor import decrypt_submission
+from valigetta.decryptor import ValidationStatus, decrypt_submission
 from valigetta.exceptions import (
     AliasAlreadyExistsException,
     CreateAliasException,
@@ -528,12 +528,20 @@ def decrypt_instance(instance: Instance) -> None:
     kms_client = get_kms_client()
     # Decrypt submission files
     attachment_qs = instance.attachments.filter(deleted_at__isnull=True)
-    decrypted_files = decrypt_submission(
-        kms_client=kms_client,
-        key_id=xform_key.kms_key.key_id,
-        submission_xml=submission_xml,
-        enc_files=get_encrypted_files(attachment_qs),
-    )
+    # Files are decrypted and validated eagerly, so a malformed submission is
+    # reported here rather than while the decrypted files are being iterated.
+    try:
+        decrypted_files, validation_status = decrypt_submission(
+            kms_client=kms_client,
+            key_id=xform_key.kms_key.key_id,
+            submission_xml=submission_xml,
+            enc_files=get_encrypted_files(attachment_qs),
+        )
+
+    except InvalidSubmissionException as exc:
+        save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
+        raise DecryptionError(str(exc)) from exc
+
     # Replace encrypted submission with decrypted submission
     # Check if this is an edit (has prior history) before creating new history
     is_edit = instance.submission_history.exists()
@@ -559,6 +567,9 @@ def decrypt_instance(instance: Instance) -> None:
                     instance.checksum = sha256(xml).hexdigest()
                     instance.is_encrypted = False
                     instance.decryption_status = Instance.DecryptionStatus.SUCCESS
+                    instance.validation_status = Instance.ValidationStatus(
+                        validation_status.value
+                    )
                     instance.save(force=True)
 
                 else:
@@ -593,6 +604,14 @@ def decrypt_instance(instance: Instance) -> None:
     except InvalidSubmissionException as exc:
         save_decryption_error(instance, DECRYPTION_FAILURE_INVALID_SUBMISSION)
         raise DecryptionError(str(exc)) from exc
+
+    if validation_status is ValidationStatus.NOT_VALID:
+        logger.warning(
+            "Submission content does not match its signature - "
+            "XForm: %s; Instance: %s",
+            instance.xform_id,
+            instance.pk,
+        )
 
 
 @transaction.atomic()

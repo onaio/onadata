@@ -2,6 +2,12 @@
 
 from django.db import migrations
 
+# Live models are used for decrypt_instance. This is needed because
+# apps.get_model("logger", "Instance") returns a frozen version of
+# Instance that has only the fields known at this migration
+from onadata.apps.logger.models import Instance as LiveInstance
+from onadata.libs.kms.tools import decrypt_instance
+
 
 # pylint: disable=unused-argument
 def decrypt_swept_encrypted_submissions(apps, schema_editor):
@@ -14,13 +20,12 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
     ``save_attachments`` soft-deleted their ciphertext right after
     creation and decryption failed with no files.
     """
-    from onadata.apps.logger.models import Instance
-    from onadata.libs.kms.tools import decrypt_instance
-
+    # pylint: disable=invalid-name
+    Instance = apps.get_model("logger", "Instance")
     candidates = Instance.objects.filter(
         deleted_at__isnull=True,
         is_encrypted=True,
-        decryption_status=Instance.DecryptionStatus.FAILED,
+        decryption_status="failed",
     )
     decrypted_count = 0
     failed_count = 0
@@ -34,7 +39,7 @@ def decrypt_swept_encrypted_submissions(apps, schema_editor):
         instance.attachments.filter(deleted_at__isnull=False).update(deleted_at=None)
 
         try:
-            decrypt_instance(instance)
+            decrypt_instance(LiveInstance.objects.get(pk=instance.pk))
             decrypted_count += 1
             print(f"Decrypted Instance {instance.id}")
 
