@@ -24,10 +24,10 @@ from django.views.decorators.debug import sensitive_variables
 
 import requests
 from registration.forms import RegistrationFormUniqueEmail
-from two_factor.forms import BackupTokenForm
 from requests.exceptions import RequestException
 from rest_framework.exceptions import AuthenticationFailed
 from six.moves.urllib.parse import urljoin, urlparse
+from two_factor.forms import BackupTokenForm
 
 # pylint: disable=ungrouped-imports
 from onadata.apps.api.constants import USERNAME_VALIDATION_REGEX
