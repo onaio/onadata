@@ -254,10 +254,10 @@ INSTALLED_APPS = (
     #     "django.contrib.admin",
     #     "django.contrib.admindocs",
     #
-    # Enabling either where the two-factor gate is on opens a password-only
-    # route to a superuser session: both ship their own login view, which does
-    # not go through LOGIN_URL. Gate them with django-otp's OTPAdminSite or
-    # leave them out.
+    # /admin/login/ defers to LOGIN_URL (TWO_FACTOR_PATCH_ADMIN), so admin
+    # shares the deployment's login. Reaching /admin/ still needs only staff
+    # permission: enrolment is opt-in, so a staff user with no device gets in
+    # on a password alone.
     "django.contrib.gis",
     "registration",
     # "django_nose",
