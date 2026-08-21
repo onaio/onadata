@@ -111,13 +111,39 @@ def _has_second_factor(user) -> bool:
 
 
 def _verify_totp(user, code: str) -> bool:
-    device = _totp_device(user)
-    return device is not None and device.verify_token(code)
+    """Check ``code`` against the authenticator, spending it once.
+
+    Locked, because ``verify_token`` is a read-modify-write: it compares the
+    code against ``last_t`` and then saves the new one in separate statements.
+    Workers are separate processes with their own connections, so without the
+    lock each reads the same ``last_t`` and every one of them accepts the same
+    code -- ``--threads 1`` does not serialise them.
+    """
+    with transaction.atomic():
+        device = (
+            TOTPDevice.objects.select_for_update()
+            .filter(user=user, name=TOTP_DEVICE_NAME, confirmed=True)
+            .order_by("-id")
+            .first()
+        )
+        return device is not None and device.verify_token(code)
 
 
 def _verify_recovery(user, code: str) -> bool:
-    recovery = _recovery_device(user)
-    return recovery is not None and recovery.verify_token(code)
+    """Check ``code`` against the recovery set, spending it once.
+
+    Same race as ``_verify_totp`` and a worse outcome: ``verify_token`` reads
+    the matching token and deletes it in separate statements, so concurrent
+    callers each find the code unspent and a single-use credential is honoured
+    several times over.
+    """
+    with transaction.atomic():
+        recovery = (
+            StaticDevice.objects.select_for_update()
+            .filter(user=user, name=RECOVERY_DEVICE_NAME)
+            .first()
+        )
+        return recovery is not None and recovery.verify_token(code)
 
 
 VERIFY_METHODS = {
