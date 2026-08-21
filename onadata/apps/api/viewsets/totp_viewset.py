@@ -15,6 +15,8 @@ import secrets
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
 
 import qrcode
 from django_otp import devices_for_user
@@ -185,6 +187,18 @@ class TOTPViewSet(ViewSet):
     permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer,)
 
+    @method_decorator(sensitive_post_parameters())
+    def dispatch(self, request, *args, **kwargs):
+        """Keep submitted secrets out of error reports.
+
+        Applied here rather than on the action: the decorator marks the
+        underlying ``HttpRequest``, which is what Django's exception reporter
+        reads. Marking DRF's ``Request`` instead leaves the raw POST body in
+        the traceback. Blanket rather than named fields -- every route on this
+        viewset carries a code, grant, or password.
+        """
+        return super().dispatch(request, *args, **kwargs)
+
     def initial(self, request, *args, **kwargs):
         """Refuse every action unless the deployment enabled two-factor.
 
@@ -212,6 +226,44 @@ class TOTPViewSet(ViewSet):
             {
                 "error": "That code is not valid. Enter a current code from your "
                 "authenticator app, or one of your recovery codes."
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    @sensitive_variables()
+    def _require_password(self, request):
+        """Refuse unless the account's own password is supplied.
+
+        The one proof available at first enrolment: there is no factor yet, so
+        ``_require_code`` has nothing to demand. It is needed because an SSO
+        credential carries no expiry and survives logout, so holding one only
+        shows the user authenticated at some point, not that they are here now
+        -- and adding a factor is exactly where that distinction matters.
+
+        Off unless the deployment asks for it: where users authenticate
+        elsewhere the stored hash may be one nobody knows, and demanding it
+        would bar enrolment outright.
+
+        Even when on, an account with no usable password is let through, or it
+        could never enrol at all. Both halves of that test are needed: a row
+        created without ``set_password`` keeps an empty ``password``, and
+        Django reports the empty string as *usable*, so
+        ``has_usable_password()`` alone would demand one that cannot exist.
+        """
+        if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", False):
+            return None
+        user = request.user
+        if not user.password or not user.has_usable_password():
+            return None
+        if user.check_password(str(request.data.get("password", ""))):
+            return None
+        # ``reason`` so a client can tell this refusal from the step-up one
+        # above it: both are 403, but one is answered by typing a password and
+        # the other by a code, and offering the wrong prompt strands the user.
+        return Response(
+            {
+                "error": "Enter your account password to set up an authenticator.",
+                "reason": "password_required",
             },
             status=status.HTTP_403_FORBIDDEN,
         )
@@ -283,8 +335,10 @@ class TOTPViewSet(ViewSet):
             # Swapping in a new authenticator weakens the old one just as
             # removing it does, so it needs the same proof.
             refusal = self._require_code(request, "enroll-start")
-            if refusal is not None:
-                return refusal
+        else:
+            refusal = self._require_password(request)
+        if refusal is not None:
+            return refusal
         with transaction.atomic():
             TOTPDevice.objects.filter(
                 user=request.user, name=TOTP_DEVICE_NAME, confirmed=False

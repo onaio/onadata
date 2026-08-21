@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
+from django.views.debug import SafeExceptionReporterFilter
 
 import jwt
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
@@ -62,7 +63,13 @@ def current_code(hex_key, step=30, digits=6):
     return str(truncated % (10**digits)).zfill(digits)
 
 
-@override_settings(ENABLE_TWO_FACTOR=True)
+# The password requirement is pinned off for the class so these cases assert
+# enrolment mechanics rather than whichever way the running deployment has it
+# set -- the local stack turns it on, CI does not. The cases that are about
+# the password say so individually.
+@override_settings(
+    ENABLE_TWO_FACTOR=True, TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False
+)
 class TestTOTPViewSet(TestAbstractViewSet):
     """The endpoints act on the authenticated user and nobody else."""
 
@@ -115,8 +122,14 @@ class TestTOTPViewSet(TestAbstractViewSet):
         return view(self.factory.get("/", **self.extra))
 
     def _enroll(self):
-        """Take a user all the way through to a confirmed authenticator."""
-        started = self._post_session("enroll_start")
+        """Take a user all the way through to a confirmed authenticator.
+
+        Always passes the password so the helper works either way: it is
+        ignored unless the deployment asks for one, and required when it does.
+        """
+        started = self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         self.assertEqual(started.status_code, 201)
         device = TOTPDevice.objects.get(
             user=self.user, name=TOTP_DEVICE_NAME, confirmed=False
@@ -727,6 +740,104 @@ class TestTOTPViewSet(TestAbstractViewSet):
         b32 = response.data["secretBase32"]
         padded = b32 + "=" * (-len(b32) % 8)
         self.assertEqual(base64.b32decode(padded).hex(), device.key)
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
+    def test_first_enrolment_needs_no_password_when_not_asked_for(self):
+        """Switched off, enrolment is unchanged."""
+        response = self._post_session("enroll_start")
+
+        self.assertEqual(response.status_code, 201)
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_first_enrolment_refuses_without_the_account_password(self):
+        """A session alone must not add a factor to an unprotected account.
+
+        ``_require_code`` cannot cover first enrolment -- there is no factor to
+        demand a code from -- so the password stands in as the proof of
+        presence. Without it a captured SSO cookie, which carries no expiry and
+        survives logout, could enrol silently and lock the owner out.
+        """
+        response = self._post_session("enroll_start")
+
+        self.assertEqual(response.status_code, 403)
+        # Distinguishable from the step-up refusal, which is also a 403 but is
+        # answered with a code rather than a password.
+        self.assertEqual(response.data["reason"], "password_required")
+        self.assertFalse(
+            TOTPDevice.objects.filter(user=self.user).exists(),
+            "a device was minted despite the refusal",
+        )
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_first_enrolment_accepts_the_account_password(self):
+        response = self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("otpauthUri", response.data)
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_first_enrolment_refuses_a_wrong_password(self):
+        response = self._post_session("enroll_start", {"password": "not-it"})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_an_account_with_no_password_enrols_without_one(self):
+        """A password cannot be demanded from a user who has none.
+
+        A row created without ``set_password`` keeps an empty ``password``,
+        which Django reports as *usable* -- so ``has_usable_password()`` alone
+        cannot be the gate, and using it would bar these accounts from
+        enrolling at all.
+        """
+        passwordless = User.objects.create(
+            username="nopasswordprobe", email="nopasswordprobe@example.com"
+        )
+        self.assertTrue(
+            passwordless.has_usable_password(),
+            "precondition: the misleading signal this guards against",
+        )
+        view = TOTPViewSet.as_view({"post": "enroll_start"})
+        request = self.factory.post("/", data={}, **self._sso(passwordless))
+
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
+    def test_re_enrolment_still_asks_for_a_code_not_a_password(self):
+        """An account that has a factor proves presence with that factor."""
+        device = self._enroll()
+
+        with next_totp_window():
+            response = self._post_session(
+                "enroll_start", {"code": current_code(device.key)}
+            )
+
+        self.assertEqual(response.status_code, 201)
+
+    @override_settings(DEBUG=False)
+    def test_submitted_secrets_are_scrubbed_from_error_reports(self):
+        """A password in the body must not survive into a traceback.
+
+        ``sensitive_variables`` covers the guard's own locals; this covers the
+        request body, which the reporter reads from the Django request rather
+        than DRF's -- which is why the decorator sits on ``dispatch``. Pinned
+        with DEBUG off because the reporter's filter is inert when it is on.
+        """
+        secret = "sup3r-s3cret-pw"  # nosec B105 - test fixture, not a credential
+        request = RequestFactory().post(
+            "/", data={"password": secret}, **self._sso()
+        )
+
+        TOTPViewSet.as_view({"post": "enroll_start"})(request)
+
+        params = SafeExceptionReporterFilter().get_post_parameters(request)
+        self.assertIn("password", params, "the field itself should still show")
+        self.assertNotIn(secret, str(params))
 
     def test_viewing_returns_the_codes_that_still_work(self):
         """The same set, not a new one -- viewing must not invalidate."""
