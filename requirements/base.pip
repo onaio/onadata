@@ -119,6 +119,8 @@ django-debug-toolbar==7.0.0
 django-digest @ git+https://github.com/onaio/django-digest.git@6bf61ec08502fd3545d4f2c0838b6cb15e7ffa92
     # via -r requirements/base.in
 django-filter==25.2
+django-formtools==2.7
+    # via django-two-factor-auth
     # via
     #   djangorestframework-gis
     #   onadata
@@ -133,6 +135,10 @@ django-nose==1.4.7
 django-oauth-toolkit==3.3.0
     # via onadata
 django-ordered-model==3.7.4
+django-otp==1.7.0
+    # via django-two-factor-auth
+django-phonenumber-field==8.5.0
+    # via django-two-factor-auth
     # via onadata
 django-query-builder==3.2.1
     # via onadata
@@ -145,6 +151,8 @@ django-render-block==0.11
 django-reversion==6.3.0
     # via onadata
 django-taggit==6.1.0
+django-two-factor-auth==1.18.1
+    # via -r requirements/base.in
     # via onadata
 django-templated-email==3.1.1
     # via onadata
@@ -286,6 +294,8 @@ pymongo==4.17.0
 pyparsing==3.3.2
     # via httplib2
 python-dateutil==2.9.0.post0
+qrcode==8.2
+    # via django-two-factor-auth
     # via
     #   analytics-python
     #   botocore
