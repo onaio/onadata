@@ -113,11 +113,9 @@ def _has_second_factor(user) -> bool:
 def _verify_totp(user, code: str) -> bool:
     """Check ``code`` against the authenticator, spending it once.
 
-    Locked, because ``verify_token`` is a read-modify-write: it compares the
-    code against ``last_t`` and then saves the new one in separate statements.
-    Workers are separate processes with their own connections, so without the
-    lock each reads the same ``last_t`` and every one of them accepts the same
-    code -- ``--threads 1`` does not serialise them.
+    Locked because ``verify_token`` reads ``last_t`` and saves it in separate
+    statements. Workers are separate processes with their own connections, so
+    ``--threads 1`` does not serialise them.
     """
     with transaction.atomic():
         device = (
@@ -132,16 +130,11 @@ def _verify_totp(user, code: str) -> bool:
 def _verify_recovery(user, code: str) -> bool:
     """Check ``code`` against the recovery set, spending it once.
 
-    Same race as ``_verify_totp`` and a worse outcome: ``verify_token`` reads
-    the matching token and deletes it in separate statements, so concurrent
-    callers each find the code unspent and a single-use credential is honoured
-    several times over.
+    Locked for the same reason as ``_verify_totp``, and a worse outcome here:
+    unlocked, one single-use code is honoured once per racing caller.
 
-    Case is folded to the stored form, matching the login wizard: the
-    generator emits lowercase base32 and django-otp compares exactly, so a
-    keyboard that capitalises would otherwise turn a valid code into a wrong
-    one here while the same code still worked at login. No entropy is given
-    up -- both spellings name the one stored code.
+    Case folded because the generator emits lowercase and django-otp compares
+    exactly, so the login wizard and this path would otherwise disagree.
     """
     with transaction.atomic():
         recovery = (
@@ -223,22 +216,17 @@ class TOTPViewSet(ViewSet):
     def dispatch(self, request, *args, **kwargs):
         """Keep submitted secrets out of error reports.
 
-        Applied here rather than on the action: the decorator marks the
-        underlying ``HttpRequest``, which is what Django's exception reporter
-        reads. Marking DRF's ``Request`` instead leaves the raw POST body in
-        the traceback. Blanket rather than named fields -- every route on this
-        viewset carries a code, grant, or password.
+        On ``dispatch`` rather than the action: the decorator marks the
+        underlying ``HttpRequest``, which is what the exception reporter
+        reads. Marking DRF's ``Request`` leaves the body in the traceback.
         """
         return super().dispatch(request, *args, **kwargs)
 
     def finalize_response(self, request, response, *args, **kwargs):
         """Forbid storing any answer from here.
 
-        Every route carries a code, a grant, an enrolment secret or the
-        recovery set. Set for the whole viewset rather than per action, for
-        the same reason the feature flag is checked in ``initial``: a route
-        added later cannot forget it. Clients that relay these responses set
-        the header too; this covers everyone who calls the API directly.
+        Viewset-wide rather than per action, so a route added later cannot
+        forget it -- every route here carries a secret.
         """
         response = super().finalize_response(request, response, *args, **kwargs)
         response["Cache-Control"] = "no-store"
@@ -279,21 +267,13 @@ class TOTPViewSet(ViewSet):
     def _require_password(self, request):
         """Refuse unless the account's own password is supplied.
 
-        The one proof available at first enrolment: there is no factor yet, so
-        ``_require_code`` has nothing to demand. It is needed because an SSO
-        credential carries no expiry and survives logout, so holding one only
-        shows the user authenticated at some point, not that they are here now
-        -- and adding a factor is exactly where that distinction matters.
+        The only proof available at first enrolment: with no factor yet,
+        ``_require_code`` has nothing to demand.
 
-        Off unless the deployment asks for it: where users authenticate
-        elsewhere the stored hash may be one nobody knows, and demanding it
-        would bar enrolment outright.
-
-        Even when on, an account with no usable password is let through, or it
-        could never enrol at all. Both halves of that test are needed: a row
-        created without ``set_password`` keeps an empty ``password``, and
-        Django reports the empty string as *usable*, so
-        ``has_usable_password()`` alone would demand one that cannot exist.
+        Both halves of the usable-password test are needed. A row created
+        without ``set_password`` keeps an empty ``password``, which Django
+        reports as *usable*, so the shorter check would demand a password
+        those accounts cannot supply.
         """
         if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", False):
             return None
@@ -470,14 +450,8 @@ class TOTPViewSet(ViewSet):
     def recovery_view(self, request):
         """Return the recovery codes that have not been spent yet.
 
-        POST, not GET: the caller proves itself with a grant or a code in the
-        body, and neither belongs in a URL or a proxy's access log. Spent
-        codes are deleted as they are used, so what comes back is what still
-        works -- and viewing leaves the set intact, which is the whole point
-        of not making the user regenerate to read their own codes.
-
-        The proof is demanded before the set is looked up, so holding a
-        session alone does not reveal whether codes exist.
+        POST, not GET: the proof travels in the body, and neither a grant nor
+        a code belongs in a URL or an access log.
         """
         refusal = self._require_code(request, "recovery-view")
         if refusal is not None:
