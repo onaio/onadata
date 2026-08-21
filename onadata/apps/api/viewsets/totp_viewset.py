@@ -246,13 +246,14 @@ class TOTPViewSet(ViewSet):
         The only proof available at first enrolment: with no factor yet,
         ``_require_code`` has nothing to demand.
 
+        Reached only where OnaData owns the factor: ``enroll_start`` refuses a
+        federated deployment first, which may hold hashes nobody knows.
+
         Both halves of the usable-password test are needed. A row created
         without ``set_password`` keeps an empty ``password``, which Django
         reports as *usable*, so the shorter check would demand a password
         those accounts cannot supply.
         """
-        if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", False):
-            return None
         user = request.user
         if not user.password or not user.has_usable_password():
             return None

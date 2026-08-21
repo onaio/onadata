@@ -154,17 +154,6 @@ TWO_FACTOR_SMS_GATEWAY = None
 # honour. These are the operations this module gates itself; a deployment
 # whose client gates more of its own adds them, rather than OnaData naming
 # actions it does not check.
-# Demand the account password before a first authenticator enrolment.
-#
-# ``_require_code`` cannot cover that step -- an account with no factor has no
-# code to challenge -- so the password stands in as proof the user is present
-# rather than merely holding a session credential.
-#
-# Off by default: a deployment whose users authenticate elsewhere may hold
-# password hashes nobody knows, and demanding one there would bar enrolment
-# outright. Deployments where the password is the account's own turn it on.
-TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD = False
-
 TWO_FACTOR_STEP_UP_AUDIENCES = frozenset(
     {"enroll-start", "disable", "recovery-generate", "recovery-view"}
 )

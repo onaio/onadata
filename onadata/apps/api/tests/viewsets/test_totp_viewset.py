@@ -228,7 +228,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """The pending device must not count as a second factor until the user
         has proved they can read it -- otherwise a misscanned QR locks them
         out of their own account."""
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         response = self._post_session("enroll_confirm", {"code": "000000"})
 
         self.assertEqual(response.status_code, 403)
@@ -251,7 +253,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         """An authenticator that confirmed while its recovery codes did not is
         one lost phone away from a locked account, so both land in the same
         transaction."""
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         device = TOTPDevice.objects.get(user=self.user, confirmed=False)
 
         with (
@@ -269,8 +273,12 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_starting_again_replaces_the_pending_device(self):
         """Re-scanning must not leave the previous attempt behind: two
         unconfirmed devices means the code from either one works."""
-        self._post_session("enroll_start")
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
 
         self.assertEqual(
             TOTPDevice.objects.filter(user=self.user, confirmed=False).count(), 1
@@ -644,7 +652,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_confirming_enrolment_refuses_an_api_key(self):
         """The second half of enrolment refuses a key for the same reason --
         and it is the half that hands back the recovery codes."""
-        self._post_session("enroll_start")
+        self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         device = TOTPDevice.objects.get(user=self.user, confirmed=False)
 
         response = self._post_with_api_key(
@@ -759,7 +769,9 @@ class TestTOTPViewSet(TestAbstractViewSet):
         authenticator app accepts."""
         import base64
 
-        response = self._post_session("enroll_start")
+        response = self._post_session(
+            "enroll_start", {"password": self.login_password}
+        )
         device = TOTPDevice.objects.get(user=self.user, confirmed=False)
 
         self.assertTrue(response.data["qrDataUrl"].startswith("data:image/png;base64,"))
@@ -768,14 +780,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
         padded = b32 + "=" * (-len(b32) % 8)
         self.assertEqual(base64.b32decode(padded).hex(), device.key)
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=False)
-    def test_first_enrolment_needs_no_password_when_not_asked_for(self):
-        """Switched off, enrolment is unchanged."""
-        response = self._post_session("enroll_start")
-
-        self.assertEqual(response.status_code, 201)
-
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_refuses_without_the_account_password(self):
         """A session alone must not add a factor to an unprotected account.
 
@@ -795,7 +799,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
             "a device was minted despite the refusal",
         )
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_accepts_the_account_password(self):
         response = self._post_session(
             "enroll_start", {"password": self.login_password}
@@ -804,14 +807,12 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertIn("otpauthUri", response.data)
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_first_enrolment_refuses_a_wrong_password(self):
         response = self._post_session("enroll_start", {"password": "not-it"})
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_an_account_with_no_password_enrols_without_one(self):
         """A password cannot be demanded from a user who has none.
 
@@ -834,7 +835,6 @@ class TestTOTPViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 201)
 
-    @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_re_enrolment_still_asks_for_a_code_not_a_password(self):
         """An account that has a factor proves presence with that factor."""
         device = self._enroll()
