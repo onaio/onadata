@@ -10,10 +10,8 @@ demand, so it takes the login session alone.
 
 import base64
 import io
-import secrets
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.debug import sensitive_post_parameters, sensitive_variables
@@ -32,7 +30,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from two_factor.utils import default_device
 
+from oidc.stepup_grants import issue_grant, spend_grant
+
 from onadata.libs.authentication import SSOHeaderAuthentication
+from onadata.libs.stepup import mode as stepup_mode
 
 RECOVERY_CODE_COUNT = 10
 
@@ -43,37 +44,13 @@ RECOVERY_CODE_COUNT = 10
 TOTP_DEVICE_NAME = "default"
 RECOVERY_DEVICE_NAME = "backup"
 
-STEP_UP_GRANT_TTL = 5 * 60
-
-
-def _grant_key(user, audience: str, grant: str) -> str:
-    return f"totp-step-up:{user.pk}:{audience}:{grant}"
-
-
-def _issue_grant(user, audience: str) -> str:
-    """Proof that this user showed a second factor a moment ago.
-
-    django-otp records the counter a code was used at, so a caller that
-    verifies first and acts second has nothing to resend.
-    """
-    grant = secrets.token_urlsafe(32)
-    cache.set(_grant_key(user, audience, grant), True, STEP_UP_GRANT_TTL)
-    return grant
-
-
-def _spend_grant(user, audience: str, grant: str) -> bool:
-    """Redeem a grant, once. False if minted for a different operation.
-
-    The delete is the check: ``cache.delete`` reports whether it removed
-    anything, so two requests racing on one grant cannot both be told yes.
-    """
-    if not grant:
-        return False
-    return bool(cache.delete(_grant_key(user, audience, grant)))
-
 
 def _known_audiences() -> frozenset:
     """The operations a grant may be minted for.
+
+    Kept here rather than pushed down to ``stepup_grants``: the audience is
+    this application's vocabulary for what was proved, and the grant store
+    deliberately does not know it.
 
     Read per call rather than at import so a deployment's override -- and a
     test's -- takes effect.
@@ -247,11 +224,10 @@ class TOTPViewSet(ViewSet):
 
         Applied to every operation that weakens or replaces it -- otherwise a
         stolen session could switch 2FA off. A grant from a recent ``verify``
-        counts, but only one earned for this same ``audience``.
+        counts, but only one minted for this same audience.
         """
-        if _spend_grant(
-            request.user, audience, str(request.data.get("grant", "")).strip()
-        ):
+        grant = str(request.data.get("grant", "")).strip()
+        if spend_grant(request.user.pk, audience, grant):
             return None
         if _verify_code(request.user, str(request.data.get("code", "")).strip()):
             return None
@@ -270,13 +246,14 @@ class TOTPViewSet(ViewSet):
         The only proof available at first enrolment: with no factor yet,
         ``_require_code`` has nothing to demand.
 
+        Reached only where OnaData owns the factor: ``enroll_start`` refuses a
+        federated deployment first, which may hold hashes nobody knows.
+
         Both halves of the usable-password test are needed. A row created
         without ``set_password`` keeps an empty ``password``, which Django
         reports as *usable*, so the shorter check would demand a password
         those accounts cannot supply.
         """
-        if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", False):
-            return None
         user = request.user
         if not user.password or not user.has_usable_password():
             return None
@@ -316,8 +293,20 @@ class TOTPViewSet(ViewSet):
         """The account's second factor and recovery-code state."""
         device = default_device(request.user)
         recovery = _recovery_device(request.user)
+        local = stepup_mode() == "local"
         return Response(
             {
+                # Reported rather than left for a caller to infer from its own
+                # configuration, so the two cannot disagree about what is
+                # manageable here. This route answers in every mode -- it is
+                # the channel that reports the others are gone.
+                "managedBy": "onadata" if local else "idp",
+                "capabilities": {
+                    "enroll": local,
+                    "disable": local,
+                    "recoveryCodes": local,
+                    "verify": local,
+                },
                 # A list, not a single "authenticator": additional factor
                 # kinds (a security key, say) append here instead of
                 # reshaping the payload under every consumer.
@@ -345,6 +334,23 @@ class TOTPViewSet(ViewSet):
             }
         )
 
+    def _refuse_if_not_local(self):
+        """``None`` in local mode, or a Response refusing the request.
+
+        The status route already reports ``capabilities`` as all-false when an
+        identity provider owns the factor, but a client is free to ignore that
+        -- and a client-side capability check is decoration, not a gate. Left
+        ungated, these routes let a user enrol a device against a deployment
+        that has just told them it manages none, producing a second factor
+        nothing in the login path will ever challenge.
+        """
+        if stepup_mode() == "local":
+            return None
+        return Response(
+            {"error": "not_managed_here"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
     @action(detail=False, methods=["post"], url_path="enroll/start")
     def enroll_start(self, request):
         """Mint an unconfirmed device and hand back its provisioning URI.
@@ -353,6 +359,9 @@ class TOTPViewSet(ViewSet):
         Re-starting replaces the previous attempt rather than accumulating
         dead devices.
         """
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
@@ -376,6 +385,9 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="enroll/confirm")
     def enroll_confirm(self, request):
         """Activate the pending device once the user echoes a code from it."""
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         refusal = self._require_login_session(request)
         if refusal is not None:
             return refusal
@@ -415,6 +427,9 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="disable")
     def disable(self, request):
         """Remove every device the login view could challenge on."""
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         if not _has_second_factor(request.user):
             return Response({"enrolled": False})
         refusal = self._require_code(request, "disable")
@@ -432,6 +447,9 @@ class TOTPViewSet(ViewSet):
     @action(detail=False, methods=["post"], url_path="recovery/generate")
     def recovery_generate(self, request):
         """Replace the recovery set and return the new codes once."""
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         if not _has_second_factor(request.user):
             return Response(
                 {"error": "Set up an authenticator before generating recovery codes."},
@@ -475,6 +493,9 @@ class TOTPViewSet(ViewSet):
         recognises: minting a grant for an unknown operation would spend the
         user's code on something they can never redeem.
         """
+        refusal = self._refuse_if_not_local()
+        if refusal is not None:
+            return refusal
         code = str(request.data.get("code", "")).strip()
         audience = str(request.data.get("audience", "")).strip()
         if audience not in _known_audiences():
@@ -497,5 +518,5 @@ class TOTPViewSet(ViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return Response(
-            {"verified": True, "grant": _issue_grant(request.user, audience)}
+            {"verified": True, "grant": issue_grant(request.user.pk, audience)}
         )

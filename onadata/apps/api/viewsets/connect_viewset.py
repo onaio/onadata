@@ -35,6 +35,9 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.capabilities import account_capabilities
+from onadata.libs.stepup.policy import GATE_REGENERATE_API_KEY
 
 
 def user_profile_w_token_response(request, status_code):
@@ -69,6 +72,7 @@ def user_profile_w_token_response(request, status_code):
 
 # pylint: disable=too-many-ancestors
 class ConnectViewSet(
+    RequiresStepUp,
     mixins.CreateModelMixin,
     AuthenticateHeaderMixin,
     CacheControlMixin,
@@ -126,7 +130,14 @@ class ConnectViewSet(
         Implements the /regenerate_auth_token endpoint
 
         Allows a user to expire and create a new API Token.
+
+        Gated: this invalidates every integration holding the old token and
+        mints a new long-lived credential, so a stolen session must not be
+        enough. A GET has no body, so the grant travels in a header.
         """
+        refusal = self.check_step_up(request, GATE_REGENERATE_API_KEY)
+        if refusal is not None:
+            return refusal
         try:
             Token.objects.get(user=request.user).delete()
         except Token.DoesNotExist as exc:
@@ -177,3 +188,14 @@ class ConnectViewSet(
             data={"odk_token": token.raw_key, "expires": token.expires},
             status=status_code,
         )
+
+    @action(methods=["GET"], detail=False)
+    def capabilities(self, request, *args, **kwargs):
+        """What this deployment lets the caller manage about their credentials.
+
+        Clients render from this rather than their own configuration, so the
+        two cannot disagree about whether a control exists. Every value is
+        enforced server-side as well: this exists so a client can avoid
+        offering a control that would be refused, not as the refusal.
+        """
+        return Response(account_capabilities())

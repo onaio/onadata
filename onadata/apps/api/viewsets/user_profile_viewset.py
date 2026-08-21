@@ -42,6 +42,14 @@ from onadata.libs.serializers.monthly_submissions_serializer import (
     MonthlySubmissionsSerializer,
 )
 from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
+from onadata.libs.stepup import RequiresStepUp
+from onadata.libs.stepup.policy import (
+    GATE_CHANGE_EMAIL,
+    GATE_CHANGE_PASSWORD,
+    GATE_PRIVACY_CONSENT,
+    GATE_REQUIRE_AUTH,
+    eu_consent_path,
+)
 from onadata.libs.utils.cache_tools import (
     CHANGE_PASSWORD_ATTEMPTS,
     LOCKOUT_CHANGE_PASSWORD_USER,
@@ -154,7 +162,36 @@ def change_password_attempts(request):
 
 
 # pylint: disable=too-many-ancestors
+def _dig(mapping, path):
+    """Walk ``path`` through nested dicts, or ``None`` if it does not resolve."""
+    for key in path:
+        if not isinstance(mapping, dict):
+            return None
+        mapping = mapping.get(key)
+    return mapping
+
+
+def _incoming_eu_consent(data):
+    """The consent record this request is trying to write, if any.
+
+    Metadata arrives either as a dict or as a JSON string depending on the
+    client, so both are read here rather than at each call site.
+    """
+    raw = data.get("metadata")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    return _dig(raw, eu_consent_path())
+
+
+def _stored_eu_consent(profile):
+    return _dig(profile.metadata or {}, eu_consent_path())
+
+
 class UserProfileViewSet(
+    RequiresStepUp,
     AuthenticateHeaderMixin,
     CacheControlMixin,
     ETagsMixin,
@@ -214,6 +251,9 @@ class UserProfileViewSet(
 
     def update(self, request, *args, **kwargs):
         """Update user in cache and db"""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         username = kwargs.get("user")
         request_username = request.user.username if request.user else ""
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{username}{request_username}")
@@ -246,7 +286,14 @@ class UserProfileViewSet(
     def change_password(self, request, *args, **kwargs):  # noqa
         """
         Change user's password.
+
+        Gated as well as demanding the current password: a session opened on a
+        machine the user walked away from already knows nothing else, and a
+        new password is a durable takeover.
         """
+        refusal = self.check_step_up(request, GATE_CHANGE_PASSWORD)
+        if refusal is not None:
+            return refusal
         # clear cache
         safe_cache_delete(f"{USER_PROFILE_PREFIX}{request.user.username}")
         user_profile = self.get_object()
@@ -296,8 +343,46 @@ class UserProfileViewSet(
 
         return Response(status=status.HTTP_200_OK, data=data)
 
+    def _step_up_refusal(self, request):
+        """Refuse whichever gated change this request would make, or None.
+
+        Shared by update and partial_update: the gate belongs to the change,
+        not to the verb, and a PUT writes the same fields a PATCH does.
+        """
+        # Gated per field, not per endpoint: require_auth governs whether
+        # submissions demand authentication, so weakening it is the step-up
+        # target. Editing a city or a website is not.
+        if "require_auth" in request.data:
+            refusal = self.check_step_up(request, GATE_REQUIRE_AUTH)
+            if refusal is not None:
+                return refusal
+        profile = self.get_object()
+        # Where password resets are delivered. Changing it is the first move in
+        # taking an account over, so it needs more than the session that is
+        # already open -- gated on an actual change, since the client sends
+        # the whole profile.
+        new_email = str(request.data.get("email", "") or "").strip()
+        if new_email and new_email.lower() != (profile.user.email or "").lower():
+            refusal = self.check_step_up(request, GATE_CHANGE_EMAIL)
+            if refusal is not None:
+                return refusal
+        # The GDPR consent record is a compliance statement about whose data
+        # this account collects, so changing it needs the same proof. Gated on
+        # an actual change rather than on the key being present: the client
+        # sends the whole metadata blob, and challenging a request that leaves
+        # consent untouched would prompt for unrelated edits.
+        incoming_consent = _incoming_eu_consent(request.data)
+        if incoming_consent is not None and incoming_consent != _stored_eu_consent(
+            profile
+        ):
+            return self.check_step_up(request, GATE_PRIVACY_CONSENT)
+        return None
+
     def partial_update(self, request, *args, **kwargs):
         """Allows for partial update of the user profile data."""
+        refusal = self._step_up_refusal(request)
+        if refusal is not None:
+            return refusal
         profile = self.get_object()
         metadata = profile.metadata or {}
         if request.data.get("overwrite") == "false":
