@@ -50,6 +50,37 @@ class RecoveryCodeStepTestCase(TestBase):
             self.url, {STEP_FIELD: "backup", "backup-otp_token": code}
         )
 
+    def test_a_stray_static_device_does_not_shadow_the_recovery_set(self):
+        """The wizard must read the recovery set, not merely the first device.
+
+        Upstream takes ``staticdevice_set.first()`` and django-otp then limits
+        verification to whatever that returns, so any unrelated static device
+        sorting ahead of the recovery set silently refuses every valid code.
+        One can be added from the Django admin, which django-otp registers.
+        """
+        # Built in the order reality produces: the unrelated device predates
+        # the recovery set, so it sorts ahead by pk. setUp makes the recovery
+        # set first, which would leave the stray harmlessly second.
+        StaticDevice.objects.filter(user=self.user).delete()
+        stray = StaticDevice.objects.create(
+            user=self.user, name="legacy", confirmed=True
+        )
+        StaticToken.objects.create(device=stray, token="straytoken")
+        recovery = StaticDevice.objects.create(
+            user=self.user, name="backup", confirmed=True
+        )
+        StaticToken.objects.create(device=recovery, token=RECOVERY_CODE)
+        self.assertEqual(
+            self.user.staticdevice_set.all().first().pk,
+            stray.pk,
+            "precondition: the stray must sort ahead, or this proves nothing",
+        )
+
+        self.submit_credentials()
+        self.submit_recovery_code(RECOVERY_CODE)
+
+        self.assertIn("_auth_user_id", self.client.session)
+
     def test_lowercase_recovery_code_completes_login(self):
         """The stored form of the code works -- the control for the case test."""
         self.submit_credentials()

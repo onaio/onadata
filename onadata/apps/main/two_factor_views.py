@@ -79,6 +79,35 @@ class LockoutLoginView(LoginView):
         (LoginView.BACKUP_STEP, RecoveryCodeForm),
     )
 
+    def get_device(self, step=None):
+        """Pick the recovery set by name on the backup step.
+
+        Upstream takes ``staticdevice_set.first()``, and django-otp then
+        verifies against that device alone -- so any unrelated static device
+        sorting ahead of the recovery set refuses every valid recovery code,
+        with nothing to tell the user why. django-otp registers StaticDevice
+        in the Django admin, so one can arrive without any code creating it.
+
+        Falls through to upstream when the named set is absent, leaving the
+        no-recovery-codes case exactly as the library handles it.
+        """
+        if (step or self.steps.current) == self.BACKUP_STEP:
+            # Lazy, matching _enforce_lockout above: the viewset module
+            # reaches onadata.libs.authentication, which imports back into
+            # this app.
+            totp_viewset = importlib.import_module(
+                "onadata.apps.api.viewsets.totp_viewset"
+            )
+            device = (
+                self.get_user()
+                .staticdevice_set.filter(name=totp_viewset.RECOVERY_DEVICE_NAME)
+                .first()
+            )
+            if device is not None:
+                self.device_cache = device
+                return device
+        return super().get_device(step=step)
+
     def get_form(self, step=None, **kwargs):
         """Adjust the token forms after the library has chosen them.
 
