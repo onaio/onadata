@@ -225,6 +225,19 @@ class TOTPViewSet(ViewSet):
         """
         return super().dispatch(request, *args, **kwargs)
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        """Forbid storing any answer from here.
+
+        Every route carries a code, a grant, an enrolment secret or the
+        recovery set. Set for the whole viewset rather than per action, for
+        the same reason the feature flag is checked in ``initial``: a route
+        added later cannot forget it. Clients that relay these responses set
+        the header too; this covers everyone who calls the API directly.
+        """
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
     def initial(self, request, *args, **kwargs):
         """Refuse every action unless the deployment enabled two-factor.
 

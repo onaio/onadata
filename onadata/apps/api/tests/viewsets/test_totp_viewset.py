@@ -839,6 +839,39 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertIn("password", params, "the field itself should still show")
         self.assertNotIn(secret, str(params))
 
+    def test_responses_forbid_storing_the_secrets_they_carry(self):
+        """Every route here answers with a secret, so none may be cached.
+
+        The SPA reaches these through a relay that sets the header itself, so
+        this is about every other caller: a mobile client, a script, a proxy
+        in between. Asserted across a representative set rather than one route
+        because the guard is meant to cover the viewset, not a single action.
+        """
+        device = self._enroll()
+
+        checks = [("status", self._get_status())]
+        with next_totp_window():
+            checks.append(
+                (
+                    "recovery_generate",
+                    self._post_with_api_key(
+                        "recovery_generate", {"code": current_code(device.key)}
+                    ),
+                )
+            )
+        with next_totp_window():
+            checks.append(
+                (
+                    "verify",
+                    self._verify({"code": current_code(device.key)}),
+                )
+            )
+
+        for name, response in checks:
+            with self.subTest(route=name):
+                self.assertEqual(response.status_code // 100, 2, name)
+                self.assertEqual(response.get("Cache-Control"), "no-store")
+
     def test_viewing_returns_the_codes_that_still_work(self):
         """The same set, not a new one -- viewing must not invalidate."""
         device = self._enroll()
