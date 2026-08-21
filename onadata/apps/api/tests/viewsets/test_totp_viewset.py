@@ -872,6 +872,31 @@ class TestTOTPViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code // 100, 2, name)
                 self.assertEqual(response.get("Cache-Control"), "no-store")
 
+    def test_a_recovery_code_verifies_in_any_case(self):
+        """The wizard and the relay both fold case; this path must agree.
+
+        A code typed in caps -- what a phone keyboard offers by default --
+        signs the user in at the wizard, so refusing it here makes the same
+        code behave differently depending on which door they came through.
+        No entropy is given up: the generator emits lowercase only, so both
+        spellings name the one stored code.
+        """
+        device = self._enroll()
+        with next_totp_window():
+            generated = self._post_with_api_key(
+                "recovery_generate", {"code": current_code(device.key)}
+            )
+        self.assertEqual(generated.status_code, 201)
+        code = generated.data["codes"][0]
+        self.assertEqual(
+            code, code.lower(), "precondition: codes are generated lowercase"
+        )
+
+        response = self._verify({"code": code.upper(), "method": "recovery"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["verified"])
+
     def test_viewing_returns_the_codes_that_still_work(self):
         """The same set, not a new one -- viewing must not invalidate."""
         device = self._enroll()

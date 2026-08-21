@@ -136,6 +136,12 @@ def _verify_recovery(user, code: str) -> bool:
     the matching token and deletes it in separate statements, so concurrent
     callers each find the code unspent and a single-use credential is honoured
     several times over.
+
+    Case is folded to the stored form, matching the login wizard: the
+    generator emits lowercase base32 and django-otp compares exactly, so a
+    keyboard that capitalises would otherwise turn a valid code into a wrong
+    one here while the same code still worked at login. No entropy is given
+    up -- both spellings name the one stored code.
     """
     with transaction.atomic():
         recovery = (
@@ -143,7 +149,7 @@ def _verify_recovery(user, code: str) -> bool:
             .filter(user=user, name=RECOVERY_DEVICE_NAME)
             .first()
         )
-        return recovery is not None and recovery.verify_token(code)
+        return recovery is not None and recovery.verify_token(code.lower())
 
 
 VERIFY_METHODS = {
