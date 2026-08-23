@@ -785,27 +785,30 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertFalse(TOTPDevice.objects.filter(user=self.user).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
-    def test_an_account_with_no_password_enrols_without_one(self):
-        """A password cannot be demanded from a user who has none.
+    def test_an_account_with_no_password_cannot_enrol(self):
+        """Having no password is not a way past the password.
 
-        A row created without ``set_password`` keeps an empty ``password``,
-        which Django reports as *usable* -- so ``has_usable_password()`` alone
-        cannot be the gate, and using it would bar these accounts from
-        enrolling at all.
+        Where the deployment demands one, an account that cannot produce one
+        is refused rather than waved through -- letting it enrol would hand a
+        second factor to whoever holds the session, which is the case this
+        guard exists for. Answered with its own reason so the caller can say
+        what is wrong instead of prompting for a password that cannot exist.
         """
         passwordless = User.objects.create(
             username="nopasswordprobe", email="nopasswordprobe@example.com"
         )
         self.assertTrue(
             passwordless.has_usable_password(),
-            "precondition: the misleading signal this guards against",
+            "precondition: the misleading signal this no longer relies on",
         )
         view = TOTPViewSet.as_view({"post": "enroll_start"})
         request = self.factory.post("/", data={}, **self._sso(passwordless))
 
         response = view(request)
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["reason"], "no_password_set")
+        self.assertFalse(TOTPDevice.objects.filter(user=passwordless).exists())
 
     @override_settings(TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD=True)
     def test_re_enrolment_still_asks_for_a_code_not_a_password(self):

@@ -270,16 +270,24 @@ class TOTPViewSet(ViewSet):
         The only proof available at first enrolment: with no factor yet,
         ``_require_code`` has nothing to demand.
 
-        Both halves of the usable-password test are needed. A row created
-        without ``set_password`` keeps an empty ``password``, which Django
-        reports as *usable*, so the shorter check would demand a password
-        those accounts cannot supply.
+        An account with no password is refused rather than let through, or
+        having no password would itself be the way past it. Its own reason, so
+        a caller can say what is wrong instead of prompting for one that
+        cannot exist. The stored value is tested directly: Django reports the
+        empty string ``objects.create`` leaves behind as *usable*.
         """
         if not getattr(settings, "TWO_FACTOR_ENROLMENT_REQUIRES_PASSWORD", False):
             return None
         user = request.user
         if not user.password or not user.has_usable_password():
-            return None
+            return Response(
+                {
+                    "error": "This account has no password, so it cannot "
+                    "confirm an enrolment. Set one first.",
+                    "reason": "no_password_set",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if user.check_password(str(request.data.get("password", ""))):
             return None
         # ``reason`` so a client can tell this refusal from the step-up one
