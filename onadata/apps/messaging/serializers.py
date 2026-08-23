@@ -46,6 +46,8 @@ class MessageSerializer(serializers.ModelSerializer):
         ("xform", "XForm"),
         ("project", "Project"),
         ("user", "User"),
+        ("kmskey", "KMSKey"),
+        ("entitylist", "EntityList"),
     )  # yapf: disable
 
     message = serializers.CharField(source="description", allow_blank=False)
@@ -183,7 +185,7 @@ def send_message(
     Send a message.
     :param id: A single ID or list of IDs that have been affected by an action
     :param target_id: id of the target_type
-    :param target_type: any of these three ['xform', 'project', 'user']
+    :param target_type: any of ['xform', 'project', 'user', 'kmskey', 'entitylist']
     :param request: http request object
     :return:
     """

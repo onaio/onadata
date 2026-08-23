@@ -22,6 +22,7 @@ from django_digest.test import DigestAuth
 from httmock import HTTMock, all_requests
 from registration.models import RegistrationProfile
 from rest_framework.authtoken.models import Token
+from reversion.models import Version
 from six.moves.urllib.parse import parse_qs, urlparse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -31,6 +32,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.project_invitation import ProjectInvitation
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.models.user_profile import set_kpi_formbuilder_permissions
+from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.permissions import EditorRole
 from onadata.libs.serializers.user_profile_serializer import _get_first_last_names
@@ -287,6 +289,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username="deno")
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
+
+        # reversion: creating a profile records a version
+        versions = Version.objects.get_for_object(profile)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     @override_settings(DISABLE_CREATING_USERS=True)
     def test_block_profile_create(self):
@@ -585,6 +592,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates(self):
         self.assertEqual(self.user.profile.country, "US")
+        version_count = Version.objects.get_for_object(self.user.profile).count()
         country = "KE"
         username = "george"
         metadata = {"computer": "mac"}
@@ -597,6 +605,52 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.country, country)
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
+
+        # reversion: partial update records a new version
+        versions = Version.objects.get_for_object(profile)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertEqual(versions[0].revision.user, self.user)
+
+    def test_profile_update_is_audit_logged(self):
+        """Updating a profile is audit logged."""
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"require_auth": True, "city": "Nairobi"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, user=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["require_auth"])
+        self.assertEqual(response.data["city"], "Nairobi")
+
+        messaging_view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": self.user.pk,
+                "verb": "profile_updated",
+            },
+            **self.extra,
+        )
+        response = messaging_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        message = response.data[0]
+        self.assertEqual(message["user"], "bob")
+        self.assertEqual(
+            json.loads(message["message"]),
+            {
+                "id": [self.user.profile.pk],
+                "description": {
+                    "require_auth": {"old": False, "new": True},
+                    "city": {"old": "Bobville", "new": "Nairobi"},
+                },
+            },
+        )
 
     def test_partial_updates_empty_metadata(self):
         profile = UserProfile.objects.get(user=self.user)

@@ -15,8 +15,10 @@ from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from actstream.models import Action
 from guardian.shortcuts import get_perms
 from rest_framework import status
+from reversion.models import Version
 
 from onadata.apps.api.models.organization_profile import (
     OrganizationProfile,
@@ -36,6 +38,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.logger.models.kms import KMSKey
 from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
+from onadata.apps.messaging.viewsets import MessagingViewSet
 from onadata.libs.exceptions import EncryptionError
 from onadata.libs.permissions import ROLES, DataEntryRole, OwnerRole
 from onadata.libs.utils.cache_tools import (
@@ -70,6 +73,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates(self):
         self._org_create()
+        version_count = Version.objects.get_for_object(self.organization).count()
         metadata = {"computer": "mac"}
         json_metadata = json.dumps(metadata)
         data = {"metadata": json_metadata}
@@ -79,6 +83,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
 
+        # reversion: partial update records a new version
+        versions = Version.objects.get_for_object(self.organization)
+        self.assertEqual(versions.count(), version_count + 1)
+        self.assertEqual(versions[0].revision.user, self.user)
+
     def test_partial_updates_invalid(self):
         self._org_create()
         data = {"name": "a" * 31}
@@ -87,6 +96,48 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data["name"], ["Ensure this field has no more than 30 characters."]
+        )
+
+    def test_organization_update_is_audit_logged(self):
+        """Updating an organization is audit logged."""
+        self._org_create()
+        request = self.factory.patch(
+            "/",
+            data=json.dumps({"require_auth": True, "email": "info@denoinc.org"}),
+            content_type="application/json",
+            **self.extra,
+        )
+        response = self.view(request, user="denoinc")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["require_auth"])
+        self.assertEqual(response.data["email"], "info@denoinc.org")
+
+        messaging_view = MessagingViewSet.as_view({"get": "list"})
+        request = self.factory.get(
+            "/messaging",
+            {
+                "target_type": "user",
+                "target_id": self.organization.user.pk,
+                "verb": "profile_updated",
+            },
+            **self.extra,
+        )
+        response = messaging_view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        message = response.data[0]
+        self.assertEqual(message["user"], "bob")
+        self.assertEqual(
+            json.loads(message["message"]),
+            {
+                "id": [self.organization.pk],
+                "description": {
+                    "require_auth": {"old": False, "new": True},
+                    "email": {},
+                },
+            },
         )
 
     def test_orgs_list(self):
@@ -234,6 +285,11 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         self.assertTrue(self.organization.user.is_active)
         self.assertEqual(self.organization.email, "mail@mail-server.org")
+
+        # reversion: creating an organization records a version
+        versions = Version.objects.get_for_object(self.organization)
+        self.assertEqual(versions.count(), 1)
+        self.assertEqual(versions[0].revision.user, self.user)
 
     def test_orgs_create_without_name(self):
         data = {
@@ -1600,20 +1656,19 @@ class RotateKeyTestCase(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Key is disabled", str(response.data["id"]))
 
-    @patch("onadata.apps.api.viewsets.organization_profile_viewset.send_message")
-    def test_audit_log_capture(self, mock_send_message, mock_rotate_key):
+    def test_audit_log_capture(self, mock_rotate_key):
         """Audit log is captured."""
         request = self.factory.post("/", data=self.data, **self.extra)
         response = self.view(request, user="denoinc")
 
         self.assertEqual(response.status_code, 200)
-        mock_send_message.assert_called_once_with(
-            instance_id=self.kms_key.id,
-            target_id=self.kms_key.id,
-            target_type="kmskey",
-            user=self.user,
-            message_verb="kmskey_rotated",
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(KMSKey),
+            target_object_id=self.kms_key.id,
+            verb="kmskey_rotated",
         )
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.kms_key.id]})
 
     def test_rotation_reason_optional(self, mock_rotate_key):
         """Rotation reason is optional."""

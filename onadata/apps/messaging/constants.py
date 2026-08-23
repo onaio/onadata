@@ -35,6 +35,7 @@ FORM_UPDATED = "form_updated"
 KMS_KEY_ROTATED = "kmskey_rotated"
 ENTITY_LIST_IMPORTED = "entitylist_imported"
 ENTITY_LIST_DELETED = "entitylist_deleted"
+PROFILE_UPDATED = "profile_updated"
 MESSAGE_VERBS = [
     MESSAGE,
     SUBMISSION_REVIEWED,
@@ -47,6 +48,7 @@ MESSAGE_VERBS = [
     EXPORT_DOWNLOADED,
     ENTITY_LIST_IMPORTED,
     ENTITY_LIST_DELETED,
+    PROFILE_UPDATED,
 ]
 VERB_TOPIC_DICT = {
     SUBMISSION_CREATED: "submission/created",
@@ -57,4 +59,5 @@ VERB_TOPIC_DICT = {
     KMS_KEY_ROTATED: "kmskey/rotated",
     ENTITY_LIST_IMPORTED: "entitylist/imported",
     ENTITY_LIST_DELETED: "entitylist/deleted",
+    PROFILE_UPDATED: "profile/updated",
 }

@@ -9,12 +9,14 @@ from datetime import datetime
 from datetime import timezone as tz
 from unittest.mock import Mock, patch
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
 import boto3
+from actstream.models import Action
 from moto import mock_aws
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
@@ -614,19 +616,18 @@ class DeleteEntityListTestCase(TestAbstractViewSet):
             self.entity_list.name, f'trees{mocked_date.strftime("-deleted-at-%s")}'
         )
 
-    @patch("onadata.apps.api.viewsets.entity_list_viewset.send_message")
-    def test_audit_log_capture(self, mock_send_message):
+    def test_audit_log_capture(self):
         """Audit log is captured on deletion"""
         request = self.factory.delete("/", **self.extra)
         response = self.view(request, pk=self.entity_list.pk)
         self.assertEqual(response.status_code, 204)
-        mock_send_message.assert_called_once_with(
-            instance_id=self.entity_list.pk,
-            target_id=self.entity_list.pk,
-            target_type="entitylist",
-            user=self.user,
-            message_verb="entitylist_deleted",
+        message = Action.objects.get(
+            target_content_type=ContentType.objects.get_for_model(EntityList),
+            target_object_id=self.entity_list.pk,
+            verb="entitylist_deleted",
         )
+        self.assertEqual(message.actor, self.user)
+        self.assertEqual(json.loads(message.description), {"id": [self.entity_list.pk]})
 
     def test_authentication_required(self):
         """Anonymous user cannot delete EntityList"""

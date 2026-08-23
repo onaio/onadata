@@ -24,9 +24,27 @@ from onadata.libs.exceptions import EncryptionError
 from onadata.libs.kms.tools import rotate_key
 from onadata.libs.permissions import CAN_ADD_ORGANIZATION_PROJECT, get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.serializers.user_profile_serializer import (
+    get_audit_values,
+    send_profile_updated_message,
+)
 
 # pylint: disable=invalid-name
 User = get_user_model()
+
+# Organization profile attributes whose changes are audit logged.
+ORGANIZATION_AUDIT_FIELDS = (
+    "name",
+    "email",
+    "city",
+    "country",
+    "home_page",
+    "twitter",
+    "description",
+    "require_auth",
+    "address",
+    "phonenumber",
+)
 
 
 class KMSKeyInlineSerializer(serializers.ModelSerializer):
@@ -97,6 +115,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
     def update(self, instance, validated_data):
         """Update organization profile properties."""
+        old_values = get_audit_values(instance, ORGANIZATION_AUDIT_FIELDS)
         # update the user model
         if "name" in validated_data:
             first_name, last_name = _get_first_last_names(validated_data.get("name"))
@@ -107,7 +126,15 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             instance.email = validated_data.pop("email")
 
         instance.user.save()
-        return super().update(instance, validated_data)
+        instance = super().update(instance, validated_data)
+        send_profile_updated_message(
+            instance,
+            old_values,
+            ORGANIZATION_AUDIT_FIELDS,
+            self.context["request"].user,
+        )
+
+        return instance
 
     def create(self, validated_data):
         """Create an organization profile."""

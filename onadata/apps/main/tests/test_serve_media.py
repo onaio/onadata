@@ -214,6 +214,42 @@ class TestServeMetaDataMedia(ServeMediaTestBase):
         with self.metadata.data_file.open("rb") as media_file:
             self.assertEqual(self._response_bytes(response), media_file.read())
 
+    def test_owner_response_uses_original_filename(self):
+        """Unsigned metadata responses use the display filename."""
+        self.metadata.data_value = "apple.jpg"
+        self.metadata.save(update_fields=["data_value"])
+
+        response = self._get_media(self.path)
+
+        self.assertNotEqual(os.path.basename(self.path), "apple.jpg")
+        self.assertEqual(
+            response["Content-Disposition"], 'inline; filename="apple.jpg"'
+        )
+
+    def test_supporting_document_response_uses_original_filename(self):
+        """Unsigned supporting documents use the display filename."""
+        fixture_path = os.path.join(
+            self.this_directory, "fixtures", "transportation", "screenshot.png"
+        )
+        with open(fixture_path, "rb") as media_file:
+            metadata = MetaData.objects.create(
+                content_type=ContentType.objects.get_for_model(XForm),
+                object_id=self.xform.id,
+                data_type="supporting_doc",
+                data_value="apple.jpg",
+                data_file=File(media_file, "random-storage-key.jpg"),
+                data_file_type="image/jpeg",
+            )
+
+        response = self._get_media(metadata.data_file.name)
+
+        self.assertNotEqual(
+            os.path.basename(metadata.data_file.name), metadata.data_value
+        )
+        self.assertEqual(
+            response["Content-Disposition"], 'inline; filename="apple.jpg"'
+        )
+
     def test_anonymous_allowed_when_form_is_public(self):
         """Media of a publicly shared form stays reachable to data collectors."""
         self.xform.shared = True

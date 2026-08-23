@@ -195,11 +195,15 @@ class TestFormMetadata(TestBase):
         self.assertContains(response, "test_mapbox_layer")
 
     def test_download_supporting_doc(self):
-        self._add_metadata()
+        name = self._add_metadata()
         response = self.client.get(self.doc_url)
         self.assertEqual(response.status_code, 200)
-        fileName, ext = os.path.splitext(response["Content-Disposition"])
-        self.assertEqual(ext, ".xlsx")
+        self.assertNotEqual(os.path.basename(self.doc.data_file.name), name)
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="download.xlsx"; '
+            "filename*=UTF-8''transportation.xlsx",
+        )
 
     def test_no_download_supporting_doc_for_anon(self):
         self._add_metadata()
@@ -207,11 +211,14 @@ class TestFormMetadata(TestBase):
         self.assertEqual(response.status_code, 403)
 
     def test_download_supporting_media(self):
-        self._add_metadata(data_type="media")
+        name = self._add_metadata(data_type="media")
         response = self.client.get(self.doc_url)
         self.assertEqual(response.status_code, 200)
-        fileName, ext = os.path.splitext(response["Content-Disposition"])
-        self.assertEqual(ext, ".png")
+        self.assertNotEqual(os.path.basename(self.doc.data_file.name), name)
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="download.png"; ' "filename*=UTF-8''screenshot.png",
+        )
 
     def test_shared_download_supporting_doc_for_anon(self):
         self._add_metadata()

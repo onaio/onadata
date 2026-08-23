@@ -57,7 +57,12 @@ from onadata.libs.utils.user_auth import (
     has_permission,
     helper_auth_helper,
 )
-from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form, get_form_url
+from onadata.libs.utils.viewer_tools import (
+    get_enketo_attachment_params,
+    get_enketo_urls,
+    get_form,
+    get_form_url,
+)
 
 IO_ERROR_STRINGS = ["request data read error", "error during read(65536) on wsgi.input"]
 
@@ -631,7 +636,13 @@ def edit_data(request, username, id_string, data_id):
         + "#/"
         + str(instance.id)
     )
-    form_url = get_form_url(request, username)
+    form_url = get_form_url(
+        request,
+        username,
+        xform_pk=xform.pk,
+        generate_consistent_urls=True,
+        submission_pk=instance.pk,
+    )
 
     try:
         url = get_enketo_urls(
@@ -640,6 +651,7 @@ def edit_data(request, username, id_string, data_id):
             instance_xml=injected_xml,
             instance_id=instance.uuid,
             return_url=return_url,
+            **get_enketo_attachment_params(request, instance),
         )
     except EnketoError as e:
         context.message = {

@@ -75,7 +75,11 @@ from onadata.libs.utils.cache_tools import (
     safe_cache_set,
 )
 from onadata.libs.utils.common_tools import json_stream, str_to_bool
-from onadata.libs.utils.viewer_tools import get_enketo_urls, get_form_url
+from onadata.libs.utils.viewer_tools import (
+    get_enketo_attachment_params,
+    get_enketo_urls,
+    get_form_url,
+)
 
 SAFE_METHODS = ["GET", "HEAD", "OPTIONS"]
 SUBMISSION_RETRIEVAL_THRESHOLD = getattr(
@@ -339,6 +343,7 @@ class DataViewSet(
                     self.object.xform.user.username,
                     xform_pk=self.object.xform.id,
                     generate_consistent_urls=True,
+                    submission_pk=self.object.pk,
                 )
                 if not return_url:
                     raise ParseError(_("return_url not provided."))
@@ -350,6 +355,7 @@ class DataViewSet(
                         instance_id=self.object.uuid,
                         instance_xml=self.object.xml,
                         return_url=return_url,
+                        **get_enketo_attachment_params(request, self.object),
                     )
                     if "edit_url" in data:
                         data["url"] = data.pop("edit_url")

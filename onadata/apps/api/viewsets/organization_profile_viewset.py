@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from reversion.views import RevisionMixin
 
 from onadata.apps.api import permissions
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -61,6 +62,7 @@ class OrganizationProfileViewSet(
     CacheControlMixin,
     ETagsMixin,
     ObjectLookupMixin,
+    RevisionMixin,
     BaseViewset,
     ModelViewSet,
 ):
