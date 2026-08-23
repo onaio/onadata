@@ -747,8 +747,8 @@ class RecoveryCodeForm(BackupTokenForm):
 
     ``StaticToken.random_token`` lowercases its base32, and the library
     compares the submitted code exactly, so a keyboard that autocapitalises
-    turns a valid code into a wrong one. The API relay already lowercases;
-    this keeps the wizard in step with it.
+    turns a valid code into a wrong one. Folded here and on the API, so the
+    two doors do not disagree about the same code.
 
     The library's "Invalid token" also names neither recovery codes nor their
     single use, which is the whole question a user has at this point.

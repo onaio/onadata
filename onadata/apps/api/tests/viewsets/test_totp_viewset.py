@@ -845,9 +845,8 @@ class TestTOTPViewSet(TestAbstractViewSet):
     def test_responses_forbid_storing_the_secrets_they_carry(self):
         """Every route here answers with a secret, so none may be cached.
 
-        The SPA reaches these through a relay that sets the header itself, so
-        this is about every other caller: a mobile client, a script, a proxy
-        in between. Asserted across a representative set rather than one route
+        A caller that relays these responses may set the header itself; this
+        is about the rest -- a mobile client, a script, a proxy in between. Asserted across a representative set rather than one route
         because the guard is meant to cover the viewset, not a single action.
         """
         device = self._enroll()
@@ -876,7 +875,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
                 self.assertEqual(response.get("Cache-Control"), "no-store")
 
     def test_a_recovery_code_verifies_in_any_case(self):
-        """The wizard and the relay both fold case; this path must agree.
+        """The login wizard folds case; this path must agree.
 
         A code typed in caps -- what a phone keyboard offers by default --
         signs the user in at the wizard, so refusing it here makes the same
@@ -940,7 +939,7 @@ class TestTOTPViewSet(TestAbstractViewSet):
         self.assertNotIn("codes", response.data)
 
     def test_viewing_accepts_a_grant_minted_for_it(self):
-        """The SPA spends a grant rather than re-prompting for a code."""
+        """A caller spends a grant rather than re-prompting for a code."""
         device = self._enroll()
         with next_totp_window():
             generated = self._post_with_api_key(

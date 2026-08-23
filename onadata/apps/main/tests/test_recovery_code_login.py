@@ -21,8 +21,7 @@ class RecoveryCodeStepTestCase(TestBase):
     Codes are stored lowercase (``StaticToken.random_token`` lowercases its
     base32), and the library compares them exactly. Phone keyboards
     autocapitalise, so a user typing the code they were shown would be told it
-    was wrong; the API relay already lowercases, and these pin the wizard to
-    the same behaviour.
+    was wrong. These pin the wizard to the same case-folding the API does.
     """
 
     def setUp(self):
@@ -88,7 +87,7 @@ class RecoveryCodeStepTestCase(TestBase):
         self.assertIn("_auth_user_id", self.client.session)
 
     def test_uppercase_recovery_code_completes_login(self):
-        """A code typed in caps is accepted, matching the API relay."""
+        """A code typed in caps is accepted, as it is on the API."""
         self.submit_credentials()
         self.submit_recovery_code(RECOVERY_CODE.upper())
         self.assertIn("_auth_user_id", self.client.session)
